@@ -41,7 +41,7 @@ async def info(ctx):
 	nb_commandes+=1
 	await ctx.message.add_reaction(emoji_thumb)
 
-	await ctx.send('GuiOn bot is UP\n'+clean_cache(99)+'\n'+str(cache_max_minutes)+' minutes for cache refrshing')
+	await ctx.send('GuiOn bot is UP\n'+clean_cache(99)+'\n'+str(cache_max_minutes)+' minutes for cache refreshing')
 	await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='cmd')
