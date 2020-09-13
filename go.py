@@ -66,14 +66,16 @@ def clean_cache(nb_minutes):
 	sum_size=0
 	nb_files=0
 	for filename in os.listdir('CACHE'):
-		file_path='CACHE'+os.path.sep+filename
-		file_stats=os.stat(file_path)
-		nb_files+=1
-		sum_size+=file_stats.st_size
-		delta_time_sec=time.time()-file_stats.st_mtime
-		if (delta_time_sec/60) > nb_minutes:
-			print ('Remove '+filename+' ('+str(delta_time_sec/60)+' minutes old)')
-			os.remove(file_path)
+		print filename
+		if filename!='KEEPDIR':
+			file_path='CACHE'+os.path.sep+filename
+			file_stats=os.stat(file_path)
+			nb_files+=1
+			sum_size+=file_stats.st_size
+			delta_time_sec=time.time()-file_stats.st_mtime
+			if (delta_time_sec/60) > nb_minutes:
+				print ('Remove '+filename+' ('+str(delta_time_sec/60)+' minutes old)')
+				os.remove(file_path)
 	return 'Total CACHE: '+str(nb_files)+' files, '+str(sum_size)+' Bytes'
 
 def load_player(allycode):
