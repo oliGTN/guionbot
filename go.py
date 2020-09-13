@@ -462,7 +462,7 @@ def function_twt(txt_allycode, character_name):
 
 	if character_name in dict_team_tw:
 		objectifs=dict_team_tw[character_name]
-		print(objectifs)
+		#print(objectifs)
 	else:
 		sys.stderr.write('ERR: team '+character_name+' inconnue\n')
 		sys.exit(1)		
