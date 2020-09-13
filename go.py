@@ -26,19 +26,19 @@ dict_guidevoyage['Luke']=[[[], []]]
 dict_guidevoyage['Luke'][0][0]=["Persos", 9, 7, 3, -1, -1, -1, ['COMMANDERLUKESKYWALKER', 'HOTHLEIA', 'HOTHHAN', 'WAMPA', 'CHEWBACCALEGENDARY', 'C3POLEGENDARY', 'VADER', 'ADMINISTRATORLANDO', 'HERMITYODA']]
 dict_guidevoyage['Luke'][0][1]=["Vaisseaux", 2, 7, -1, -1, -1, -1, ['XWINGRED2', 'MILLENNIUMFALCON']]
 
-dict_team_tw={} # [[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles, gear, relic, [liste zeta]]}]]
-dict_team_tw['JKR']=[[], []]
-dict_team_tw['JKR'][0]=['Requis', 4, {}]
-dict_team_tw['JKR'][0][2]['JEDIKNIGHTREVAN']=[1, 7, 12, ['G\u00e9n\u00e9ral', 'H\u00e9ros', 'Concentration directe']]
-dict_team_tw['JKR'][0][2]['JOLEEBINDO']=     [2, 7, 12, ['\u00c7a doit faire mal']]
-dict_team_tw['JKR'][0][2]['BASTILASHAN']=    [3, 7, 12, []]
-dict_team_tw['JKR'][0][2]['GRANDMASTERYODA']=[4, 7, 12, ['M\u00e9ditation de combat']]
-dict_team_tw['JKR'][1]=['Important', 1, {}]
-dict_team_tw['JKR'][1][2]['GENERALKENOBI']=[1, 7, 11, ['Soresu']]
-dict_team_tw['JKR'][1][2]['HERMITYODA']=   [2, 7, 11, ['Fais-le. Ou ne le fais pas.']]
-dict_team_tw['JKR'][1][2]['EZRABRIDGERS3']=  [3, 7, 11, []]
-dict_team_tw['JKR'][1][2]['ANAKINKNIGHT']= [4, 7, 11, []]
-dict_team_tw['JKR'][1][2]['BARRISSOFFEE']= [5, 7, 11, []]
+dict_team_gt={} # [[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles, gear, relic, [liste zeta]]}]]
+dict_team_gt['JKR']=[[], []]
+dict_team_gt['JKR'][0]=['Requis', 4, {}]
+dict_team_gt['JKR'][0][2]['JEDIKNIGHTREVAN']=[1, 7, 12, ['G\u00e9n\u00e9ral', 'H\u00e9ros', 'Concentration directe']]
+dict_team_gt['JKR'][0][2]['JOLEEBINDO']=     [2, 7, 12, ['\u00c7a doit faire mal']]
+dict_team_gt['JKR'][0][2]['BASTILASHAN']=    [3, 7, 12, []]
+dict_team_gt['JKR'][0][2]['GRANDMASTERYODA']=[4, 7, 12, ['M\u00e9ditation de combat']]
+dict_team_gt['JKR'][1]=['Important', 1, {}]
+dict_team_gt['JKR'][1][2]['GENERALKENOBI']=[1, 7, 11, ['Soresu']]
+dict_team_gt['JKR'][1][2]['HERMITYODA']=   [2, 7, 11, ['Fais-le. Ou ne le fais pas.']]
+dict_team_gt['JKR'][1][2]['EZRABRIDGERS3']=  [3, 7, 11, []]
+dict_team_gt['JKR'][1][2]['ANAKINKNIGHT']= [4, 7, 11, []]
+dict_team_gt['JKR'][1][2]['BARRISSOFFEE']= [5, 7, 11, []]
 
 
 def dict2str(d, depth, idx):
@@ -225,9 +225,9 @@ def print_gp_graph(guild_stats):
 	
 	return ret_print_gp_graph
 
-def function_tw(txt_alycode, txt_op_allycode):
-	ret_function_tw=''
-	## TERRITORY WAR ##
+def function_gt(txt_alycode, txt_op_allycode):
+	ret_function_gt=''
+	## GUERRE DE TERRITOIRE ##
 	if txt_alycode in dict_allycodes:
 		my_allycode=dict_allycodes[txt_alycode]
 	else:
@@ -241,17 +241,17 @@ def function_tw(txt_alycode, txt_op_allycode):
 	#Get data for opponent guild
 	opponent_guild = load_guild(opponent_allycode)
 
-	ret_function_tw+='\n'+guild['name']+' vs '+opponent_guild['name']+'\n'
-	ret_function_tw+='==Overview==\n'
-	ret_function_tw+='Members:         '+pad_txt(str(guild['members']), 8)+str(opponent_guild['members'])+'\n'
-	ret_function_tw+='GP:              '+pad_txt(str(int(guild['gp']/100000)/10), 8)+str(int(opponent_guild['gp']/100000)/10)+'\n'
-	ret_function_tw+='Avg arena chars: '+pad_txt(str(get_guild_avg_arena(guild, 'char')), 8)+str(get_guild_avg_arena(opponent_guild, 'char'))+'\n'
-	ret_function_tw+='Avg arena ships: '+pad_txt(str(get_guild_avg_arena(guild, 'ship')), 9)+str(get_guild_avg_arena(opponent_guild, 'ship'))+'\n'
+	ret_function_gt+='\n'+guild['name']+' vs '+opponent_guild['name']+'\n'
+	ret_function_gt+='==Overview==\n'
+	ret_function_gt+='Members:         '+pad_txt(str(guild['members']), 8)+str(opponent_guild['members'])+'\n'
+	ret_function_gt+='GP:              '+pad_txt(str(int(guild['gp']/100000)/10), 8)+str(int(opponent_guild['gp']/100000)/10)+'\n'
+	ret_function_gt+='Avg arena chars: '+pad_txt(str(get_guild_avg_arena(guild, 'char')), 8)+str(get_guild_avg_arena(opponent_guild, 'char'))+'\n'
+	ret_function_gt+='Avg arena ships: '+pad_txt(str(get_guild_avg_arena(guild, 'ship')), 9)+str(get_guild_avg_arena(opponent_guild, 'ship'))+'\n'
 
 
 	guild_stats=get_guild_stats_char(guild, '')
 	op_guild_stats=get_guild_stats_char(opponent_guild, '')
-	ret_function_tw+='\n==Gears==\n'
+	ret_function_gt+='\n==Gears==\n'
 	for key in ['G11', 'G12', 'G13']:
 		if key in guild_stats:
 			line=pad_txt(key, 8)+pad_txt(str(guild_stats[key]), 9)
@@ -261,9 +261,9 @@ def function_tw(txt_alycode, txt_op_allycode):
 			line=line+str(op_guild_stats[key])
 		else:
 			line=line+'-'
-		ret_function_tw+=line+'\n'
+		ret_function_gt+=line+'\n'
 
-	ret_function_tw+='\n==Relics==\n'
+	ret_function_gt+='\n==Relics==\n'
 	for key in ['Tier 0', 'Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5', 'Tier 6', 'Tier 7']:
 		if key in guild_stats:
 			line=pad_txt(key, 8)+pad_txt(str(guild_stats[key]), 8)
@@ -273,11 +273,11 @@ def function_tw(txt_alycode, txt_op_allycode):
 			line=line+str(op_guild_stats[key])
 		else:
 			line=line+'-'
-		ret_function_tw+=line+'\n'
+		ret_function_gt+=line+'\n'
 
 #	for lookup_character in ['JEDIKNIGHTREVAN', 'PADMEAMIDALA', 'COMMANDERLUKESKYWALKER', 'JEDIKNIGHTLUKE', 'GENERALSKYWALKER', 'GEONOSIANBROODALPHA', 'DARTHREVAN', 'DARTHMALAK', 'DARTHTRAYA', 'ENFYSNEST', 'GRIEVOUS', 'GLREY', 'SUPREMELEADERKYLOREN' ]:
 	for lookup_character in []:
-		ret_function_tw+='\n=='+lookup_character+'==\n'
+		ret_function_gt+='\n=='+lookup_character+'==\n'
 		guild_stats=get_guild_stats_char(guild, lookup_character)
 		gear_list=sorted(guild_stats.keys())
 
@@ -295,9 +295,9 @@ def function_tw(txt_alycode, txt_op_allycode):
 						line=line+str(op_guild_stats[key])
 					else:
 						line=line+'-'
-				ret_function_tw+=line+'\n'
+				ret_function_gt+=line+'\n'
 		else:
-			ret_function_tw+='none\n'
+			ret_function_gt+='none\n'
 
 	guild_stats=get_guild_gp(guild)
 	op_guild_stats=get_guild_gp(opponent_guild)
@@ -312,13 +312,13 @@ def function_tw(txt_alycode, txt_op_allycode):
 			# print(key+','+str(op_guild_stats[key][0])+','+str(op_guild_stats[key][1]))
 			
 	#compute ASCII graphs
-	ret_function_tw+='\n==GP stats '+guild['name']+'==  (# = actif | . = inactif depuis '+str(inactive_duration)+' heures)\n'
-	ret_function_tw+=print_gp_graph(guild_stats)+'\n'
+	ret_function_gt+='\n==GP stats '+guild['name']+'==  (# = actif | . = inactif depuis '+str(inactive_duration)+' heures)\n'
+	ret_function_gt+=print_gp_graph(guild_stats)+'\n'
 
-	ret_function_tw+='\n==GP stats '+opponent_guild['name']+'==\n'
-	ret_function_tw+=print_gp_graph(op_guild_stats)+'\n'
+	ret_function_gt+='\n==GP stats '+opponent_guild['name']+'==\n'
+	ret_function_gt+=print_gp_graph(op_guild_stats)+'\n'
 	
-	return ret_function_tw
+	return ret_function_gt
 
 def function_ct(txt_alycode):
 	ret_function_ct=''
@@ -463,19 +463,19 @@ def pad_txt(txt, size):
 	
 	return ret_pad_txt
 
-def function_twt(txt_allycode, character_name):
-	ret_function_twt=''
+def function_gtt(txt_allycode, character_name):
+	ret_function_gtt=''
 
 	if txt_allycode in dict_allycodes:
 		my_allycode=dict_allycodes[txt_allycode]
 	else:
 		my_allycode=txt_allycode
 
-	#Recuperation des dernieres donnees sur gdrivedict_team_tw
-	dict_team_tw=load_config_teams()
+	#Recuperation des dernieres donnees sur gdrivedict_team_gt
+	dict_team_gt=load_config_teams()
 
-	if character_name in dict_team_tw:
-		objectifs=dict_team_tw[character_name]
+	if character_name in dict_team_gt:
+		objectifs=dict_team_gt[character_name]
 		#print(objectifs)
 	else:
 		sys.stderr.write('ERR: team '+character_name+' inconnue\n')
@@ -488,40 +488,40 @@ def function_twt(txt_allycode, character_name):
 	#print('DBG: nb_levels='+str(nb_levels))
 	
 	#Affichage des prérequis
-	ret_function_twt+='== Team: '+character_name+'\n'
+	ret_function_gtt+='== Team: '+character_name+'\n'
 	for i_level in range(0,nb_levels):
 		#print('DBG: i_level='+str(i_level))
 		#print('DBG: obj='+str(objectifs[i_level]))
 		nb_sub_obj=len(objectifs[i_level][2])
 		#print('DBG: nb_sub_obj='+str(nb_sub_obj))
-		ret_function_twt+='='+objectifs[i_level][0]+'\n'
+		ret_function_gtt+='='+objectifs[i_level][0]+'\n'
 		for i_sub_obj in range(0, nb_sub_obj):
 			for perso in objectifs[i_level][2]:
 				if objectifs[i_level][2][perso][0] == i_sub_obj+1:
 					perso_rarity=objectifs[i_level][2][perso][1]
 					perso_gear=objectifs[i_level][2][perso][2]
 					perso_zetas=objectifs[i_level][2][perso][3]
-					ret_function_twt+=objectifs[i_level][0][0]+str(i_sub_obj+1)+': '+perso+' ('+str(perso_rarity)+'*, G'+str(perso_gear)+', zetas='+str(perso_zetas)+')\n'
+					ret_function_gtt+=objectifs[i_level][0][0]+str(i_sub_obj+1)+': '+perso+' ('+str(perso_rarity)+'*, G'+str(perso_gear)+', zetas='+str(perso_zetas)+')\n'
 
 	#ligne d'entete
 	list_player_names=[(lambda x:x['name'])(x) for x in guild['roster']]
 	max_playername_size=max([(lambda x:len(x))(x) for x in list_player_names])+1
-	ret_function_twt+='\n'
-	ret_function_twt+=pad_txt('Joueur', max_playername_size)
+	ret_function_gtt+='\n'
+	ret_function_gtt+=pad_txt('Joueur', max_playername_size)
 	for i_level in range(0,nb_levels):
 		nb_sub_obj=len(objectifs[i_level][2])
 		#print('DBG: nb_sub_obj='+str(nb_sub_obj))
 		for i_sub_obj in range(0, nb_sub_obj):
 			#print('DBG:'+str(objectifs[i_level][0][0]+str(i_sub_obj)))
 			nom_sub_obj=objectifs[i_level][0][0]+str(i_sub_obj+1)
-			ret_function_twt+=pad_txt(nom_sub_obj, 8)
+			ret_function_gtt+=pad_txt(nom_sub_obj, 8)
 			
-	ret_function_twt+='GLOBAL\n'
+	ret_function_gtt+='GLOBAL\n'
 	
 	#resultats par joueur
 	for player in guild['roster']:
 		#print('DBG: '+player['name'])
-		ret_function_twt+=pad_txt(player['name'], max_playername_size)
+		ret_function_gtt+=pad_txt(player['name'], max_playername_size)
 		
 		#INIT tableau des resultats
 		tab_progress_player=[[] for i in range(nb_levels)]
@@ -575,8 +575,8 @@ def function_twt(txt_allycode, character_name):
 			for i_sub_obj in range(0, nb_sub_obj):
 				tab_progress_sub_obj=tab_progress_player[i_level][i_sub_obj]
 				#print('DBG: '+str(tab_progress_sub_obj))
-				#ret_function_twt+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
-				ret_function_twt+=pad_txt(tab_progress_sub_obj[1], 8)
+				#ret_function_gtt+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
+				ret_function_gtt+=pad_txt(tab_progress_sub_obj[1], 8)
 			min_perso = objectifs[i_level][1]
 			#print('DBG: '+str(tab_progress_player[i_level]))
 			tab_progress_player_values=[(lambda f:f[0])(x) for x in tab_progress_player[i_level]]
@@ -586,12 +586,12 @@ def function_twt(txt_allycode, character_name):
 				progress_nogo=True
 			
 		if progress_nogo:
-			ret_function_twt+='KO'
+			ret_function_gtt+='KO'
 		else:
-			ret_function_twt+=str(int(progress/progress100*100))+'%'
-		ret_function_twt+='\n'
+			ret_function_gtt+=str(int(progress/progress100*100))+'%'
+		ret_function_gtt+='\n'
 		
-	return ret_function_twt
+	return ret_function_gtt
 
 def split_txt(txt, max_size):
 	ret_split_txt=[]
@@ -613,20 +613,20 @@ def split_txt(txt, max_size):
 	
 def print_help():
 	print('Commande inconnue')
-	print(sys.argv[0]+' tw <allycode> <opponent allycode>')
+	print(sys.argv[0]+' gt <allycode> <opponent allycode>')
 	print(sys.argv[0]+' ct <allycode>')
 	print(sys.argv[0]+' gv <allycode> <character>')
 	
 ########### MAIN #########
 if len(sys.argv)>1:
 	cmd=sys.argv[1]
-	if cmd=='tw':
-		for txt in split_txt(function_tw(sys.argv[2], sys.argv[3]), 1000):
+	if cmd=='gt':
+		for txt in split_txt(function_gt(sys.argv[2], sys.argv[3]), 1000):
 			print(txt)
 		
-	elif cmd=='twt':
+	elif cmd=='gtt':
 		clean_cache(60)
-		print(function_twt(sys.argv[2], sys.argv[3]))
+		print(function_gtt(sys.argv[2], sys.argv[3]))
 
 	elif cmd=='ct':
 		## CHARACTER TABLE ##

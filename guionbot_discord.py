@@ -5,13 +5,16 @@ import os
 import asyncio
 import time
 from discord.ext import commands
-from go import function_tw, function_twt, split_txt, clean_cache
+from go import function_gt, function_gtt, split_txt, clean_cache
 
 #load_dotenv()
 #TOKEN = os.getenv('DISCORD_TOKEN')
 TOKEN = 'NzUyOTY5NjQ3MjMzNTY0NzAz.X1fXoQ.arxYkcPspOFTU5SeCooiKsgkZNQ'
 bot = commands.Bot(command_prefix='go.')
+
+#https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
+emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 
 nb_commandes=0
 
@@ -39,6 +42,7 @@ async def info(ctx):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	await ctx.send('GuiOn bot is UP\n'+clean_cache(99))
+	await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='cmd')
 @commands.check(is_owner)
@@ -53,6 +57,7 @@ async def cmd(ctx, arg):
 	print(output)
 	for txt in split_txt(output, 1000):
 		await ctx.send('`'+txt+'`')
+	await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='gt', help='Compare 2 guildes pour la GT')
 async def gt(ctx, allycode, op_alycode):
@@ -60,10 +65,11 @@ async def gt(ctx, allycode, op_alycode):
 	nb_commandes+=1
 	await ctx.message.add_reaction(emoji_thumb)
 
-	ret_gt=function_tw(allycode, op_alycode)
+	ret_gt=function_gt(allycode, op_alycode)
 	#print(len(ret_gt))
 	for txt in split_txt(ret_gt, 1000):
 		await ctx.send('`'+txt+'`')
+	await ctx.message.add_reaction(emoji_check)
 
 @bot.command(name='gtt', help='Liste la dispo d une team dans la guilde')
 async def gtt(ctx, allycode, team):
@@ -71,10 +77,11 @@ async def gtt(ctx, allycode, team):
 	nb_commandes+=1
 	await ctx.message.add_reaction(emoji_thumb)
 
-	ret_gt=function_twt(allycode, team)
+	ret_gt=function_gtt(allycode, team)
 	#print(len(ret_gt))
 	for txt in split_txt(ret_gt, 1000):
 		await ctx.send('`'+txt+'`')
+	await ctx.message.add_reaction(emoji_check)
 		
 bot.loop.create_task(bot_loop_60())
 bot.run(TOKEN)
