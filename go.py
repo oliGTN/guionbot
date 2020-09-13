@@ -76,7 +76,7 @@ def clean_cache(nb_minutes):
 
 def refresh_cache(nb_minutes, allycodes):
 	oldest_file=''
-	biggest_mtime_delta=-1
+	biggest_mtime_delta=nb_minutes
 	for filename in os.listdir('CACHE'):
 		#print(filename)
 		if filename!='KEEPDIR':

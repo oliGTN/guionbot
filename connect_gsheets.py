@@ -68,7 +68,8 @@ def load_config_players():
 	liste_dict_feuille=feuille.get_all_records()
 	#print(liste_dict_feuille)
 	for ligne in liste_dict_feuille:
-		dict_players[ligne['Discord name']]=str(ligne['Allycode'])
+		if ligne['Discord name']!='':
+			dict_players[ligne['Discord name']]=str(ligne['Allycode'])
 		
 	return dict_players
 	
