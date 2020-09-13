@@ -22,11 +22,11 @@ async def bot_loop_60():
     await bot.wait_until_ready()
     while not bot.is_closed():
         try:
-            clean_cache(15)
-            await asyncio.sleep(60)
+            clean_cache(240) #4 hours for fresh data
+            await asyncio.sleep(60) #60 seconds for loop
         except Exception as e:
             print(e)
-            await asyncio.sleep(60)
+            await asyncio.sleep(60) #60 seconds for loop
 			
 async def is_owner(ctx):
 	return ctx.author.id == 566552780647563285
