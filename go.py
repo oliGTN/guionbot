@@ -66,7 +66,7 @@ def clean_cache(nb_minutes):
 	sum_size=0
 	nb_files=0
 	for filename in os.listdir('CACHE'):
-		print filename
+		#print(filename)
 		if filename!='KEEPDIR':
 			file_path='CACHE'+os.path.sep+filename
 			file_stats=os.stat(file_path)
