@@ -2,8 +2,10 @@
 # CERTIFICATE_VERIFY_FAILED --> https://github.com/Rapptz/discord.py/issues/4159
 
 import os
+import asyncio
+import time
 from discord.ext import commands
-from go import function_tw, function_twt, split_txt
+from go import function_tw, function_twt, split_txt, clean_cache
 
 #load_dotenv()
 #TOKEN = os.getenv('DISCORD_TOKEN')
@@ -13,35 +15,50 @@ emoji_thumb = '\N{THUMBS UP SIGN}'
 
 nb_commandes=0
 
-async def update_stats():
-    await client.wait_until_ready()
-    global nb_commandes
-
+async def bot_loop_60():
+    await bot.wait_until_ready()
     while not bot.is_closed():
         try:
-            with open("stats.txt", "a") as f:
-                f.write(f"Time: {int(time.time())}, Commandes: {nb_commandes}\n")
-
-            await asyncio.sleep(5)
+            clean_cache(15)
+            await asyncio.sleep(60)
         except Exception as e:
             print(e)
-            await asyncio.sleep(5)
+            await asyncio.sleep(60)
+			
+async def is_owner(ctx):
+	return ctx.author.id == 566552780647563285
 			
 @bot.event
 async def on_ready():
 	print(f'{bot.user.name} has connected to Discord!')
 
 @bot.command(name='info')
-async def nine_nine(ctx):
+async def info(ctx):
 	global nb_commandes
-	nb_commandes++
+	nb_commandes+=1
+	await ctx.message.add_reaction(emoji_thumb)
 
-	await ctx.send('GuiOn bot is UP')
+	await ctx.send('GuiOn bot is UP\n'+clean_cache(99))
+	
+@bot.command(name='cmd')
+@commands.check(is_owner)
+async def cmd(ctx, arg):
+	global nb_commandes
+	nb_commandes+=1
+	await ctx.message.add_reaction(emoji_thumb)
+
+	stream = os.popen(arg)
+	output = stream.read()
+	print('CMD: '+arg)
+	print(output)
+	for txt in split_txt(output, 1000):
+		await ctx.send('`'+txt+'`')
 	
 @bot.command(name='gt', help='Compare 2 guildes pour la GT')
 async def gt(ctx, allycode, op_alycode):
 	global nb_commandes
-	nb_commandes++
+	nb_commandes+=1
+	await ctx.message.add_reaction(emoji_thumb)
 
 	ret_gt=function_tw(allycode, op_alycode)
 	#print(len(ret_gt))
@@ -51,13 +68,13 @@ async def gt(ctx, allycode, op_alycode):
 @bot.command(name='gtt', help='Liste la dispo d une team dans la guilde')
 async def gtt(ctx, allycode, team):
 	global nb_commandes
-	nb_commandes++
-
+	nb_commandes+=1
 	await ctx.message.add_reaction(emoji_thumb)
+
 	ret_gt=function_twt(allycode, team)
 	#print(len(ret_gt))
 	for txt in split_txt(ret_gt, 1000):
 		await ctx.send('`'+txt+'`')
 		
-bot.loop.create_task(update_stats())
+bot.loop.create_task(bot_loop_60())
 bot.run(TOKEN)

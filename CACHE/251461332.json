@@ -2,7 +2,7 @@
     "allyCode": 251461332,
     "arena": {
         "char": {
-            "rank": 1116,
+            "rank": 1035,
             "squad": [
                 {
                     "defId": "GRIEVOUS",
@@ -114,21 +114,21 @@
             "joinTime": 1598307071000,
             "league": "CHROMIUM",
             "losses": 0,
-            "rank": 9239,
+            "rank": 6743,
             "remove": false,
             "seasonId": "4zone_5v5_ga_c3s1_SEASON_002",
-            "seasonPoints": 11011,
+            "seasonPoints": 12761,
             "wins": 0
         }
     ],
-    "grandArenaLifeTime": 192861,
+    "grandArenaLifeTime": 194611,
     "guildBannerColor": "bright_orange_brown",
     "guildBannerLogo": "guild_icon_fulcrum",
     "guildName": "Kangoo Legends",
     "guildRefId": "G2686589780",
     "guildTypeId": "NORMAL",
     "id": "P3132197543",
-    "lastActivity": 1599937885000,
+    "lastActivity": 1599993476000,
     "level": 85,
     "name": "Tfen",
     "poUTCOffsetMinutes": 180,
@@ -942,33 +942,13 @@
             "defId": "BB8",
             "equipped": [
                 {
-                    "equipmentId": "117",
-                    "nameKey": "Pistolet paralysant A/KT Type\u00a05",
-                    "slot": 0
-                },
-                {
-                    "equipmentId": "095",
-                    "nameKey": "Pistolet paralysant A/KT Type\u00a04",
-                    "slot": 1
-                },
-                {
-                    "equipmentId": "096",
-                    "nameKey": "Chargeur \u00e0 fusion SIC Type\u00a04",
-                    "slot": 2
-                },
-                {
-                    "equipmentId": "108",
-                    "nameKey": "Dispositif de d\u00e9tection Carbanti Type\u00a03",
-                    "slot": 3
-                },
-                {
-                    "equipmentId": "132",
-                    "nameKey": "Dispositif de d\u00e9tection Carbanti Type\u00a05",
-                    "slot": 5
+                    "equipmentId": "133",
+                    "nameKey": "Module d'arme BlasTech Type\u00a010",
+                    "slot": 4
                 }
             ],
-            "gear": 9,
-            "gp": 15460,
+            "gear": 10,
+            "gp": 15780,
             "id": "07g4Q8ajRsegh21K-w6Bjw",
             "level": 85,
             "mods": [
@@ -4198,33 +4178,18 @@
             "defId": "REYJEDITRAINING",
             "equipped": [
                 {
-                    "equipmentId": "129",
-                    "nameKey": "Implant BioTech Type\u00a08",
+                    "equipmentId": "160",
+                    "nameKey": "Ba\u00efonnette ArmaTek Type\u00a012",
+                    "slot": 0
+                },
+                {
+                    "equipmentId": "159",
+                    "nameKey": "Blindage ArmaTek Type\u00a012",
                     "slot": 1
-                },
-                {
-                    "equipmentId": "139",
-                    "nameKey": "Holoprojecteur Sienar Type\u00a04",
-                    "slot": 2
-                },
-                {
-                    "equipmentId": "108",
-                    "nameKey": "Dispositif de d\u00e9tection Carbanti Type\u00a03",
-                    "slot": 3
-                },
-                {
-                    "equipmentId": "104",
-                    "nameKey": "Hyposeringue Chiewab Type\u00a05",
-                    "slot": 4
-                },
-                {
-                    "equipmentId": "131",
-                    "nameKey": "G\u00e9n\u00e9rateur de bouclier Merr-Sonn Type\u00a07",
-                    "slot": 5
                 }
             ],
-            "gear": 11,
-            "gp": 20412,
+            "gear": 12,
+            "gp": 23436,
             "id": "JooptqL8TeiEL4olKBWo0A",
             "level": 85,
             "mods": [
@@ -4445,7 +4410,7 @@
                     "id": "uniqueskill_REYJEDITRAINING02",
                     "isZeta": true,
                     "nameKey": "Perspicacit\u00e9",
-                    "tier": 7,
+                    "tier": 8,
                     "tiers": 8
                 }
             ],
@@ -5804,8 +5769,8 @@
             "combatType": 2,
             "crew": [
                 {
-                    "cp": 10950.75,
-                    "gp": 14601,
+                    "cp": 11164.5,
+                    "gp": 14886,
                     "skillReferenceList": [
                         {
                             "requiredRarity": 8,
@@ -5837,7 +5802,7 @@
             "defId": "MILLENNIUMFALCONEP7",
             "equipped": [],
             "gear": 1,
-            "gp": 38028,
+            "gp": 38349,
             "id": "CJywBu9ETl-0g9cgf60glQ",
             "level": 85,
             "mods": [],
@@ -5987,7 +5952,7 @@
             "defId": "CAPITALSTARDESTROYER",
             "equipped": [],
             "gear": 1,
-            "gp": 43812,
+            "gp": 44022,
             "id": "yKsxn8z6QIqfsXqwuXhQew",
             "level": 85,
             "mods": [],
@@ -6021,7 +5986,7 @@
                     "id": "basicskill_CAPITALSTARDESTROYER",
                     "isZeta": false,
                     "nameKey": "Batteries de turbolaser",
-                    "tier": 7,
+                    "tier": 8,
                     "tiers": 8
                 },
                 {
@@ -11612,7 +11577,7 @@
                 }
             ],
             "gear": 8,
-            "gp": 9349,
+            "gp": 9559,
             "id": "5c1vq_K8QdCDpdPl4nGBhQ",
             "level": 85,
             "mods": [
@@ -11798,7 +11763,7 @@
                     "id": "basicskill_CHIEFCHIRPA",
                     "isZeta": false,
                     "nameKey": "Frappe bondissante",
-                    "tier": 7,
+                    "tier": 8,
                     "tiers": 8
                 },
                 {
@@ -19689,10 +19654,20 @@
                     "equipmentId": "079",
                     "nameKey": "Menottes paralysantes Czerka Type\u00a02",
                     "slot": 2
+                },
+                {
+                    "equipmentId": "103",
+                    "nameKey": "Gel bacta Zaltin Type\u00a02",
+                    "slot": 3
+                },
+                {
+                    "equipmentId": "118",
+                    "nameKey": "Chargeur \u00e0 fusion SIC Type\u00a05",
+                    "slot": 4
                 }
             ],
             "gear": 9,
-            "gp": 14601,
+            "gp": 14886,
             "id": "YaIFIfBaQAGlJb6s4fDoCw",
             "level": 85,
             "mods": [
@@ -27701,22 +27676,22 @@
         {
             "index": 1,
             "nameKey": "Puissance Galactique\u00a0:",
-            "value": 2480372
+            "value": 2484742
         },
         {
             "index": 2,
             "nameKey": "Puissance Galactique (personnages)\u00a0:",
-            "value": 1491828
+            "value": 1495667
         },
         {
             "index": 3,
             "nameKey": "Puissance Galactique (vaisseaux)\u00a0:",
-            "value": 988544
+            "value": 989075
         },
         {
             "index": 4,
             "nameKey": "Score de Championnat \u00e0 vie\u00a0:",
-            "value": 192861
+            "value": 194611
         },
         {
             "index": 5,
@@ -27726,22 +27701,22 @@
         {
             "index": 6,
             "nameKey": "Batailles dans l'ar\u00e8ne des escouades gagn\u00e9es\u00a0:",
-            "value": 925
+            "value": 927
         },
         {
             "index": 7,
             "nameKey": "Total de batailles gagn\u00e9es\u00a0:",
-            "value": 63175
+            "value": 63292
         },
         {
             "index": 8,
             "nameKey": "Batailles en mode difficile gagn\u00e9es\u00a0:",
-            "value": 18842
+            "value": 18862
         },
         {
             "index": 9,
             "nameKey": "Batailles de guerre galactique gagn\u00e9es\u00a0:",
-            "value": 6458
+            "value": 6470
         },
         {
             "index": 10,
@@ -27756,7 +27731,7 @@
         {
             "index": 12,
             "nameKey": "Dons d'\u00e9quipement dans l'\u00c9change de la guilde\u00a0:",
-            "value": 1351
+            "value": 1352
         },
         {
             "index": 13,
@@ -27776,7 +27751,7 @@
         {
             "index": 16,
             "nameKey": "Banni\u00e8res de Championnat obtenues\u00a0:",
-            "value": 107796
+            "value": 108346
         },
         {
             "index": 17,
@@ -27821,5 +27796,5 @@
             "PLAYERTITLE_PITFIGHTER"
         ]
     },
-    "updated": 1599939616195
+    "updated": 1599993838015
 }

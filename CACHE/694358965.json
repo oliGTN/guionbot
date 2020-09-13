@@ -2,7 +2,7 @@
     "allyCode": 694358965,
     "arena": {
         "char": {
-            "rank": 125,
+            "rank": 126,
             "squad": [
                 {
                     "defId": "DARTHREVAN",
@@ -114,21 +114,21 @@
             "joinTime": 1598344047000,
             "league": "BRONZIUM",
             "losses": 0,
-            "rank": 4319,
+            "rank": 1359,
             "remove": false,
             "seasonId": "4zone_5v5_ga_c3s1_SEASON_002",
-            "seasonPoints": 8060,
+            "seasonPoints": 9460,
             "wins": 0
         }
     ],
-    "grandArenaLifeTime": 179620,
+    "grandArenaLifeTime": 181020,
     "guildBannerColor": "bright_orange_brown",
     "guildBannerLogo": "guild_icon_fulcrum",
     "guildName": "Kangoo Legends",
     "guildRefId": "G2686589780",
     "guildTypeId": "NORMAL",
     "id": "P2691283065",
-    "lastActivity": 1599924937000,
+    "lastActivity": 1599986851000,
     "level": 85,
     "name": "Dark Wokk",
     "poUTCOffsetMinutes": 120,
@@ -5044,8 +5044,8 @@
             "combatType": 2,
             "crew": [
                 {
-                    "cp": 15280.05,
-                    "gp": 13287,
+                    "cp": 15443.349999999999,
+                    "gp": 13429,
                     "skillReferenceList": [
                         {
                             "requiredRarity": 8,
@@ -5062,7 +5062,7 @@
             "defId": "JEDISTARFIGHTERANAKIN",
             "equipped": [],
             "gear": 1,
-            "gp": 23085,
+            "gp": 23329,
             "id": "JZj_v1SSQeS8BISL4CY6oA",
             "level": 1,
             "mods": [],
@@ -6546,10 +6546,15 @@
                     "equipmentId": "108",
                     "nameKey": "Dispositif de d\u00e9tection Carbanti Type\u00a03",
                     "slot": 3
+                },
+                {
+                    "equipmentId": "116",
+                    "nameKey": "Comlink Chedak Type\u00a04",
+                    "slot": 5
                 }
             ],
             "gear": 9,
-            "gp": 13287,
+            "gp": 13429,
             "id": "hi__LvsxTJmRlzNX0ZEZrQ",
             "level": 85,
             "mods": [
@@ -26891,22 +26896,22 @@
         {
             "index": 1,
             "nameKey": "Puissance Galactique\u00a0:",
-            "value": 3045560
+            "value": 3045947
         },
         {
             "index": 2,
             "nameKey": "Puissance Galactique (personnages)\u00a0:",
-            "value": 1870010
+            "value": 1870152
         },
         {
             "index": 3,
             "nameKey": "Puissance Galactique (vaisseaux)\u00a0:",
-            "value": 1175550
+            "value": 1175795
         },
         {
             "index": 4,
             "nameKey": "Score de Championnat \u00e0 vie\u00a0:",
-            "value": 179620
+            "value": 181020
         },
         {
             "index": 5,
@@ -26916,22 +26921,22 @@
         {
             "index": 6,
             "nameKey": "Batailles dans l'ar\u00e8ne des escouades gagn\u00e9es\u00a0:",
-            "value": 2672
+            "value": 2675
         },
         {
             "index": 7,
             "nameKey": "Total de batailles gagn\u00e9es\u00a0:",
-            "value": 91673
+            "value": 91764
         },
         {
             "index": 8,
             "nameKey": "Batailles en mode difficile gagn\u00e9es\u00a0:",
-            "value": 29924
+            "value": 29949
         },
         {
             "index": 9,
             "nameKey": "Batailles de guerre galactique gagn\u00e9es\u00a0:",
-            "value": 11142
+            "value": 11154
         },
         {
             "index": 10,
@@ -26941,7 +26946,7 @@
         {
             "index": 11,
             "nameKey": "Jetons de guilde obtenus\u00a0:",
-            "value": 750369
+            "value": 751954
         },
         {
             "index": 12,
@@ -27014,5 +27019,5 @@
             "PLAYERTITLE_LOYAL_FRIEND"
         ]
     },
-    "updated": 1599939616166
+    "updated": 1599993844798
 }

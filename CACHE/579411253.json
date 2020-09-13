@@ -2,7 +2,7 @@
     "allyCode": 579411253,
     "arena": {
         "char": {
-            "rank": 400,
+            "rank": 293,
             "squad": [
                 {
                     "defId": "PADMEAMIDALA",
@@ -32,7 +32,7 @@
             ]
         },
         "ship": {
-            "rank": 81,
+            "rank": 68,
             "squad": [
                 {
                     "defId": "CAPITALMONCALAMARICRUISER",
@@ -114,21 +114,21 @@
             "joinTime": 1598337660000,
             "league": "CHROMIUM",
             "losses": 0,
-            "rank": 2407,
+            "rank": 814,
             "remove": false,
             "seasonId": "4zone_5v5_ga_c3s1_SEASON_002",
-            "seasonPoints": 16238,
+            "seasonPoints": 17988,
             "wins": 0
         }
     ],
-    "grandArenaLifeTime": 244538,
+    "grandArenaLifeTime": 246288,
     "guildBannerColor": "bright_orange_brown",
     "guildBannerLogo": "guild_icon_fulcrum",
     "guildName": "Kangoo Legends",
     "guildRefId": "G2686589780",
     "guildTypeId": "NORMAL",
     "id": "P3130995692",
-    "lastActivity": 1599939489000,
+    "lastActivity": 1599988685000,
     "level": 85,
     "name": "Celessa",
     "poUTCOffsetMinutes": 60,
@@ -12628,7 +12628,7 @@
             "primaryUnitStat": null,
             "rarity": 7,
             "relic": {
-                "currentTier": 6
+                "currentTier": 7
             },
             "skills": [
                 {
@@ -18442,13 +18442,18 @@
                     "slot": 0
                 },
                 {
+                    "equipmentId": "111",
+                    "nameKey": "Invocateur de dro\u00efde Arakyd Type\u00a05",
+                    "slot": 3
+                },
+                {
                     "equipmentId": "121",
                     "nameKey": "Module d'arme BlasTech Type\u00a09",
                     "slot": 5
                 }
             ],
             "gear": 9,
-            "gp": 12838,
+            "gp": 12981,
             "id": "rVAjxx9ZQuu_ERLFqS4w4Q",
             "level": 85,
             "mods": [],
@@ -23217,47 +23222,47 @@
         {
             "index": 1,
             "nameKey": "Puissance Galactique\u00a0:",
-            "value": 2499514
+            "value": 2503108
         },
         {
             "index": 2,
             "nameKey": "Puissance Galactique (personnages)\u00a0:",
-            "value": 1538641
+            "value": 1539846
         },
         {
             "index": 3,
             "nameKey": "Puissance Galactique (vaisseaux)\u00a0:",
-            "value": 960873
+            "value": 963262
         },
         {
             "index": 4,
             "nameKey": "Score de Championnat \u00e0 vie\u00a0:",
-            "value": 244538
+            "value": 246288
         },
         {
             "index": 5,
             "nameKey": "Batailles dans l'ar\u00e8ne de la flotte gagn\u00e9es\u00a0:",
-            "value": 672
+            "value": 673
         },
         {
             "index": 6,
             "nameKey": "Batailles dans l'ar\u00e8ne des escouades gagn\u00e9es\u00a0:",
-            "value": 1194
+            "value": 1197
         },
         {
             "index": 7,
             "nameKey": "Total de batailles gagn\u00e9es\u00a0:",
-            "value": 60614
+            "value": 60682
         },
         {
             "index": 8,
             "nameKey": "Batailles en mode difficile gagn\u00e9es\u00a0:",
-            "value": 28440
+            "value": 28471
         },
         {
             "index": 9,
             "nameKey": "Batailles de guerre galactique gagn\u00e9es\u00a0:",
-            "value": 7055
+            "value": 7067
         },
         {
             "index": 10,
@@ -23292,7 +23297,7 @@
         {
             "index": 16,
             "nameKey": "Banni\u00e8res de Championnat obtenues\u00a0:",
-            "value": 135503
+            "value": 136053
         },
         {
             "index": 17,
@@ -23344,5 +23349,5 @@
             "PLAYERTITLE_GRANDARENA_ADVANCED"
         ]
     },
-    "updated": 1599939616854
+    "updated": 1599993838495
 }

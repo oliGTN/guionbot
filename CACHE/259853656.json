@@ -10,8 +10,8 @@
                     "squadUnitType": 2
                 },
                 {
-                    "defId": "GRANDMASTERYODA",
-                    "id": "f3w0f3fOT82izXhZ74bZ5g",
+                    "defId": "AHSOKATANO",
+                    "id": "R79ZEvk2QyG_wGoeEmf0Lw",
                     "squadUnitType": 1
                 },
                 {
@@ -25,8 +25,8 @@
                     "squadUnitType": 1
                 },
                 {
-                    "defId": "C3POLEGENDARY",
-                    "id": "BXTnBLLFR-60Z9xWLljxSg",
+                    "defId": "GRANDMASTERYODA",
+                    "id": "f3w0f3fOT82izXhZ74bZ5g",
                     "squadUnitType": 1
                 }
             ]
@@ -114,21 +114,21 @@
             "joinTime": 1598330890000,
             "league": "CHROMIUM",
             "losses": 0,
-            "rank": 3932,
+            "rank": 1471,
             "remove": false,
             "seasonId": "4zone_5v5_ga_c3s1_SEASON_002",
-            "seasonPoints": 17627,
+            "seasonPoints": 19667,
             "wins": 0
         }
     ],
-    "grandArenaLifeTime": 257559,
+    "grandArenaLifeTime": 259599,
     "guildBannerColor": "bright_orange_brown",
     "guildBannerLogo": "guild_icon_fulcrum",
     "guildName": "Kangoo Legends",
     "guildRefId": "G2686589780",
     "guildTypeId": "NORMAL",
     "id": "P1413083594",
-    "lastActivity": 1599934838000,
+    "lastActivity": 1599987477000,
     "level": 85,
     "name": "Mnus",
     "poUTCOffsetMinutes": 60,
@@ -2197,6 +2197,11 @@
             "defId": "DROIDEKA",
             "equipped": [
                 {
+                    "equipmentId": "125",
+                    "nameKey": "Scanner de s\u00e9curit\u00e9 Nubian Type\u00a07",
+                    "slot": 1
+                },
+                {
                     "equipmentId": "129",
                     "nameKey": "Implant BioTech Type\u00a08",
                     "slot": 2
@@ -2213,7 +2218,7 @@
                 }
             ],
             "gear": 11,
-            "gp": 19254,
+            "gp": 19452,
             "id": "Dqo-p1wRTsWi89rNqTSSVg",
             "level": 85,
             "mods": [
@@ -30783,12 +30788,12 @@
         {
             "index": 1,
             "nameKey": "Puissance Galactique\u00a0:",
-            "value": 3053731
+            "value": 3053929
         },
         {
             "index": 2,
             "nameKey": "Puissance Galactique (personnages)\u00a0:",
-            "value": 1917194
+            "value": 1917392
         },
         {
             "index": 3,
@@ -30798,7 +30803,7 @@
         {
             "index": 4,
             "nameKey": "Score de Championnat \u00e0 vie\u00a0:",
-            "value": 257559
+            "value": 259599
         },
         {
             "index": 5,
@@ -30808,22 +30813,22 @@
         {
             "index": 6,
             "nameKey": "Batailles dans l'ar\u00e8ne des escouades gagn\u00e9es\u00a0:",
-            "value": 2802
+            "value": 2803
         },
         {
             "index": 7,
             "nameKey": "Total de batailles gagn\u00e9es\u00a0:",
-            "value": 104909
+            "value": 105021
         },
         {
             "index": 8,
             "nameKey": "Batailles en mode difficile gagn\u00e9es\u00a0:",
-            "value": 31637
+            "value": 31659
         },
         {
             "index": 9,
             "nameKey": "Batailles de guerre galactique gagn\u00e9es\u00a0:",
-            "value": 9177
+            "value": 9189
         },
         {
             "index": 10,
@@ -30858,7 +30863,7 @@
         {
             "index": 16,
             "nameKey": "Banni\u00e8res de Championnat obtenues\u00a0:",
-            "value": 163074
+            "value": 163714
         },
         {
             "index": 17,
@@ -30911,5 +30916,5 @@
             "PLAYERTITLE_GRANDARENA_ADVANCED"
         ]
     },
-    "updated": 1599939616527
+    "updated": 1599993838653
 }

@@ -22,12 +22,12 @@ def load_config_teams():
 	dict_team_tw={} # [[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles, gear, relic, [liste zeta]]}]]
 
 	liste_dict_feuille=feuille.get_all_records()
-	print(liste_dict_feuille)
+	#print(liste_dict_feuille)
 	liste_teams=set([(lambda x:x['Nom équipe'])(x) for x in liste_dict_feuille])
 	print('\nDBG: liste_teams='+str(liste_teams))
 	for team in liste_teams:
 		liste_dict_team=list(filter(lambda x : x['Nom équipe'] == team, liste_dict_feuille))
-		print(liste_dict_team)
+		#print(liste_dict_team)
 		complete_liste_categories=[(lambda x:x['Catégorie'])(x) for x in liste_dict_team]
 		liste_categories=sorted(set(complete_liste_categories), key=lambda x: complete_liste_categories.index(x))
 		
@@ -46,7 +46,7 @@ def load_config_teams():
 				for zeta in ['Zeta1', 'Zeta2', 'Zeta3']:
 					if dict_perso[zeta]!='':
 						dict_team_tw[team][index_categorie][2][dict_perso['Nom']][3].append(dict_perso[zeta])
-		print('DBG: dict_team_tw='+str(dict_team_tw))
+		#print('DBG: dict_team_tw='+str(dict_team_tw))
 	return dict_team_tw
 	
 #print(load_config_teams())	

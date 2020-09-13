@@ -2,7 +2,7 @@
     "allyCode": 646967826,
     "arena": {
         "char": {
-            "rank": 210,
+            "rank": 161,
             "squad": [
                 {
                     "defId": "PADMEAMIDALA",
@@ -32,7 +32,7 @@
             ]
         },
         "ship": {
-            "rank": 242,
+            "rank": 236,
             "squad": [
                 {
                     "defId": "CAPITALJEDICRUISER",
@@ -112,23 +112,23 @@
             "endTime": 1601240400000,
             "eventInstanceId": "SEASON_010A:O1598302800000",
             "joinTime": 1598302801000,
-            "league": "CHROMIUM",
+            "league": "AURODIUM",
             "losses": 0,
-            "rank": 1018,
+            "rank": 3005,
             "remove": false,
             "seasonId": "4zone_5v5_ga_c3s1_SEASON_002",
-            "seasonPoints": 19982,
+            "seasonPoints": 22022,
             "wins": 0
         }
     ],
-    "grandArenaLifeTime": 188592,
+    "grandArenaLifeTime": 190632,
     "guildBannerColor": "bright_orange_brown",
     "guildBannerLogo": "guild_icon_fulcrum",
     "guildName": "Kangoo Legends",
     "guildRefId": "G2686589780",
     "guildTypeId": "NORMAL",
     "id": "P338165094",
-    "lastActivity": 1599939584000,
+    "lastActivity": 1599993825000,
     "level": 85,
     "name": "vince",
     "poUTCOffsetMinutes": 0,
@@ -3275,6 +3275,11 @@
             "defId": "DROIDEKA",
             "equipped": [
                 {
+                    "equipmentId": "125",
+                    "nameKey": "Scanner de s\u00e9curit\u00e9 Nubian Type\u00a07",
+                    "slot": 1
+                },
+                {
                     "equipmentId": "129",
                     "nameKey": "Implant BioTech Type\u00a08",
                     "slot": 2
@@ -3291,7 +3296,7 @@
                 }
             ],
             "gear": 11,
-            "gp": 18976,
+            "gp": 19174,
             "id": "HBn1IheJQIawG11Vjm_Kcg",
             "level": 85,
             "mods": [
@@ -7579,7 +7584,7 @@
             "defId": "XWINGRED3",
             "equipped": [],
             "gear": 1,
-            "gp": 33349,
+            "gp": 33559,
             "id": "yOgHbO-NS8W_DNOnlg1S0g",
             "level": 85,
             "mods": [],
@@ -7592,7 +7597,7 @@
                     "id": "basicskill_XWINGRED3",
                     "isZeta": false,
                     "nameKey": "En plein dans le mille",
-                    "tier": 7,
+                    "tier": 8,
                     "tiers": 8
                 },
                 {
@@ -18470,7 +18475,7 @@
             "defId": "CAPITALCHIMAERA",
             "equipped": [],
             "gear": 1,
-            "gp": 27074,
+            "gp": 27130,
             "id": "CdyRfBQSQ6y3rNYmxDR2yw",
             "level": 85,
             "mods": [],
@@ -18490,7 +18495,7 @@
                     "id": "uniqueskill_CAPITALCHIMAERA01",
                     "isZeta": false,
                     "nameKey": "Loyaut\u00e9 farouche",
-                    "tier": 2,
+                    "tier": 3,
                     "tiers": 8
                 },
                 {
@@ -19484,33 +19489,67 @@
                 }
             ],
             "gear": 6,
-            "gp": 7597,
+            "gp": 8163,
             "id": "T_p8s3DGS7mLmP52f7Pkwg",
             "level": 85,
             "mods": [
                 {
-                    "id": "HBARS7zNTVCRItH5u-WRRg",
-                    "level": 12,
+                    "id": "okKVoLOuTHGzx2Zx5voI3g",
+                    "level": 15,
                     "pips": 5,
                     "primaryStat": {
                         "unitStat": 48,
-                        "value": 4.75
+                        "value": 5.88
                     },
                     "secondaryStat": [
                         {
                             "roll": 1,
+                            "unitStat": 42,
+                            "value": 6
+                        },
+                        {
+                            "roll": 1,
+                            "unitStat": 5,
+                            "value": 3
+                        },
+                        {
+                            "roll": 2,
+                            "unitStat": 53,
+                            "value": 3.51
+                        },
+                        {
+                            "roll": 2,
                             "unitStat": 18,
-                            "value": 1.315
+                            "value": 4.066
+                        }
+                    ],
+                    "set": 6,
+                    "slot": 1,
+                    "tier": 3
+                },
+                {
+                    "id": "yeLJGAY6TzSQ6Zc1qNfy4g",
+                    "level": 15,
+                    "pips": 5,
+                    "primaryStat": {
+                        "unitStat": 49,
+                        "value": 11.75
+                    },
+                    "secondaryStat": [
+                        {
+                            "roll": 1,
+                            "unitStat": 56,
+                            "value": 1.856
                         },
                         {
                             "roll": 1,
-                            "unitStat": 55,
-                            "value": 1.007
+                            "unitStat": 53,
+                            "value": 1.276
                         },
                         {
                             "roll": 1,
-                            "unitStat": 17,
-                            "value": 1.98
+                            "unitStat": 42,
+                            "value": 8
                         },
                         {
                             "roll": 1,
@@ -19518,23 +19557,23 @@
                             "value": 4
                         }
                     ],
-                    "set": 6,
-                    "slot": 1,
+                    "set": 5,
+                    "slot": 2,
                     "tier": 1
                 },
                 {
                     "id": "5eRbpfO0Q1WvgCBO_ya4mQ",
-                    "level": 9,
+                    "level": 15,
                     "pips": 5,
                     "primaryStat": {
                         "unitStat": 49,
-                        "value": 7.25
+                        "value": 11.75
                     },
                     "secondaryStat": [
                         {
-                            "roll": 2,
+                            "roll": 3,
                             "unitStat": 42,
-                            "value": 16
+                            "value": 22
                         },
                         {
                             "roll": 1,
@@ -19555,6 +19594,40 @@
                     "set": 6,
                     "slot": 3,
                     "tier": 3
+                },
+                {
+                    "id": "sof5JSXfQUyDHo5bqy8PLQ",
+                    "level": 15,
+                    "pips": 5,
+                    "primaryStat": {
+                        "unitStat": 49,
+                        "value": 11.75
+                    },
+                    "secondaryStat": [
+                        {
+                            "roll": 1,
+                            "unitStat": 17,
+                            "value": 1.321
+                        },
+                        {
+                            "roll": 1,
+                            "unitStat": 41,
+                            "value": 43
+                        },
+                        {
+                            "roll": 1,
+                            "unitStat": 5,
+                            "value": 4
+                        },
+                        {
+                            "roll": 1,
+                            "unitStat": 1,
+                            "value": 389
+                        }
+                    ],
+                    "set": 5,
+                    "slot": 4,
+                    "tier": 1
                 },
                 {
                     "id": "4Qh8Pg7cSt-_frbZVs9aMw",
@@ -19591,12 +19664,12 @@
                     "tier": 3
                 },
                 {
-                    "id": "Q-EHFyXyQB2vWJKzmQUw_g",
+                    "id": "yawewyufTwuJ1Xwhnw_r9w",
                     "level": 15,
                     "pips": 5,
                     "primaryStat": {
-                        "unitStat": 55,
-                        "value": 5.88
+                        "unitStat": 18,
+                        "value": 24
                     },
                     "secondaryStat": [
                         {
@@ -19605,24 +19678,24 @@
                             "value": 4
                         },
                         {
-                            "roll": 2,
-                            "unitStat": 42,
-                            "value": 15
-                        },
-                        {
-                            "roll": 2,
-                            "unitStat": 41,
-                            "value": 60
+                            "roll": 1,
+                            "unitStat": 53,
+                            "value": 2.198
                         },
                         {
                             "roll": 1,
-                            "unitStat": 17,
-                            "value": 1.928
+                            "unitStat": 49,
+                            "value": 1.588
+                        },
+                        {
+                            "roll": 1,
+                            "unitStat": 1,
+                            "value": 245
                         }
                     ],
                     "set": 6,
                     "slot": 6,
-                    "tier": 3
+                    "tier": 1
                 }
             ],
             "nameKey": "Officier rebelle Leia Organa",
@@ -30276,7 +30349,7 @@
                 }
             ],
             "gear": 11,
-            "gp": 16723,
+            "gp": 16746,
             "id": "RzyVwtE4T4mIW7eHn08lNQ",
             "level": 85,
             "mods": [
@@ -30465,9 +30538,9 @@
                             "value": 1.333
                         },
                         {
-                            "roll": 2,
+                            "roll": 3,
                             "unitStat": 55,
-                            "value": 1.788
+                            "value": 2.773
                         },
                         {
                             "roll": 1,
@@ -30482,7 +30555,7 @@
                     ],
                     "set": 7,
                     "slot": 6,
-                    "tier": 2
+                    "tier": 3
                 }
             ],
             "nameKey": "Super dro\u00efde de combat B2",
@@ -34065,47 +34138,47 @@
         {
             "index": 1,
             "nameKey": "Puissance Galactique\u00a0:",
-            "value": 2842278
+            "value": 2843330
         },
         {
             "index": 2,
             "nameKey": "Puissance Galactique (personnages)\u00a0:",
-            "value": 1661173
+            "value": 1661960
         },
         {
             "index": 3,
             "nameKey": "Puissance Galactique (vaisseaux)\u00a0:",
-            "value": 1181105
+            "value": 1181370
         },
         {
             "index": 4,
             "nameKey": "Score de Championnat \u00e0 vie\u00a0:",
-            "value": 188592
+            "value": 190632
         },
         {
             "index": 5,
             "nameKey": "Batailles dans l'ar\u00e8ne de la flotte gagn\u00e9es\u00a0:",
-            "value": 83
+            "value": 84
         },
         {
             "index": 6,
             "nameKey": "Batailles dans l'ar\u00e8ne des escouades gagn\u00e9es\u00a0:",
-            "value": 677
+            "value": 679
         },
         {
             "index": 7,
             "nameKey": "Total de batailles gagn\u00e9es\u00a0:",
-            "value": 54037
+            "value": 54149
         },
         {
             "index": 8,
             "nameKey": "Batailles en mode difficile gagn\u00e9es\u00a0:",
-            "value": 13350
+            "value": 13399
         },
         {
             "index": 9,
             "nameKey": "Batailles de guerre galactique gagn\u00e9es\u00a0:",
-            "value": 4597
+            "value": 4609
         },
         {
             "index": 10,
@@ -34120,12 +34193,12 @@
         {
             "index": 12,
             "nameKey": "Dons d'\u00e9quipement dans l'\u00c9change de la guilde\u00a0:",
-            "value": 628
+            "value": 629
         },
         {
             "index": 13,
             "nameKey": "Promotions de Championnat obtenues\u00a0:",
-            "value": 21
+            "value": 22
         },
         {
             "index": 14,
@@ -34140,7 +34213,7 @@
         {
             "index": 16,
             "nameKey": "Banni\u00e8res de Championnat obtenues\u00a0:",
-            "value": 109692
+            "value": 110332
         },
         {
             "index": 17,
@@ -34186,5 +34259,5 @@
             "PLAYERTITLE_GRANDARENA_ADVANCED"
         ]
     },
-    "updated": 1599939616469
+    "updated": 1599993837927
 }

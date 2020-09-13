@@ -114,21 +114,21 @@
             "joinTime": 1598313515000,
             "league": "CHROMIUM",
             "losses": 0,
-            "rank": 17473,
+            "rank": 13251,
             "remove": false,
             "seasonId": "4zone_5v5_ga_c3s1_SEASON_002",
-            "seasonPoints": 15664,
+            "seasonPoints": 17264,
             "wins": 0
         }
     ],
-    "grandArenaLifeTime": 268309,
+    "grandArenaLifeTime": 269909,
     "guildBannerColor": "bright_orange_brown",
     "guildBannerLogo": "guild_icon_fulcrum",
     "guildName": "Kangoo Legends",
     "guildRefId": "G2686589780",
     "guildTypeId": "NORMAL",
     "id": "P45062856",
-    "lastActivity": 1599939570000,
+    "lastActivity": 1599956465000,
     "level": 85,
     "name": "Gui On Ensai",
     "poUTCOffsetMinutes": 60,
@@ -11607,7 +11607,7 @@
                 }
             ],
             "gear": 8,
-            "gp": 17055,
+            "gp": 19461,
             "id": "9RWqCmPURXuYzIgmOHusJA",
             "level": 85,
             "mods": [
@@ -11848,7 +11848,7 @@
                     "id": "uniqueskill_CT555501",
                     "isZeta": true,
                     "nameKey": "Escouade Domino",
-                    "tier": 7,
+                    "tier": 8,
                     "tiers": 8
                 },
                 {
@@ -24043,8 +24043,8 @@
             "combatType": 2,
             "crew": [
                 {
-                    "cp": 25582.5,
-                    "gp": 17055,
+                    "cp": 29191.5,
+                    "gp": 19461,
                     "skillReferenceList": [
                         {
                             "requiredRarity": 8,
@@ -24061,7 +24061,7 @@
             "defId": "UMBARANSTARFIGHTER",
             "equipped": [],
             "gear": 1,
-            "gp": 45062,
+            "gp": 50476,
             "id": "o-41vnGZRka3aXi88fJSiA",
             "level": 85,
             "mods": [],
@@ -39255,28 +39255,23 @@
             "defId": "ARCTROOPER501ST",
             "equipped": [
                 {
-                    "equipmentId": "108",
-                    "nameKey": "Dispositif de d\u00e9tection Carbanti Type\u00a03",
-                    "slot": 0
+                    "equipmentId": "096",
+                    "nameKey": "Chargeur \u00e0 fusion SIC Type\u00a04",
+                    "slot": 2
                 },
                 {
                     "equipmentId": "101",
                     "nameKey": "Clavier SoroSuub Type\u00a05",
-                    "slot": 1
+                    "slot": 3
                 },
                 {
-                    "equipmentId": "099",
-                    "nameKey": "Hololentille TaggeCo Type\u00a07",
-                    "slot": 2
-                },
-                {
-                    "equipmentId": "118",
-                    "nameKey": "Chargeur \u00e0 fusion SIC Type\u00a05",
+                    "equipmentId": "106",
+                    "nameKey": "Comlink Chedak Type\u00a03",
                     "slot": 4
                 }
             ],
-            "gear": 8,
-            "gp": 15576,
+            "gear": 9,
+            "gp": 16246,
             "id": "-1OxPU93RJegcP6OXxT_Pg",
             "level": 85,
             "mods": [
@@ -46051,22 +46046,22 @@
         {
             "index": 1,
             "nameKey": "Puissance Galactique\u00a0:",
-            "value": 3917548
+            "value": 3926037
         },
         {
             "index": 2,
             "nameKey": "Puissance Galactique (personnages)\u00a0:",
-            "value": 2298518
+            "value": 2301594
         },
         {
             "index": 3,
             "nameKey": "Puissance Galactique (vaisseaux)\u00a0:",
-            "value": 1619030
+            "value": 1624443
         },
         {
             "index": 4,
             "nameKey": "Score de Championnat \u00e0 vie\u00a0:",
-            "value": 268309
+            "value": 269909
         },
         {
             "index": 5,
@@ -46081,12 +46076,12 @@
         {
             "index": 7,
             "nameKey": "Total de batailles gagn\u00e9es\u00a0:",
-            "value": 93708
+            "value": 93782
         },
         {
             "index": 8,
             "nameKey": "Batailles en mode difficile gagn\u00e9es\u00a0:",
-            "value": 31368
+            "value": 31376
         },
         {
             "index": 9,
@@ -46101,7 +46096,7 @@
         {
             "index": 11,
             "nameKey": "Jetons de guilde obtenus\u00a0:",
-            "value": 572812
+            "value": 574812
         },
         {
             "index": 12,
@@ -46172,5 +46167,5 @@
             "PLAYERTITLE_LOYAL_FRIEND"
         ]
     },
-    "updated": 1599939623517
+    "updated": 1599993837959
 }
