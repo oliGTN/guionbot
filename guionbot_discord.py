@@ -15,14 +15,14 @@ bot = commands.Bot(command_prefix='go.')
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
-
+cache_max_minutes=240 #4 hours for fresh data
 nb_commandes=0
 
 async def bot_loop_60():
     await bot.wait_until_ready()
     while not bot.is_closed():
         try:
-            clean_cache(240) #4 hours for fresh data
+            clean_cache(cache_max_minutes)
             await asyncio.sleep(60) #60 seconds for loop
         except Exception as e:
             print(e)
@@ -41,7 +41,7 @@ async def info(ctx):
 	nb_commandes+=1
 	await ctx.message.add_reaction(emoji_thumb)
 
-	await ctx.send('GuiOn bot is UP\n'+clean_cache(99))
+	await ctx.send('GuiOn bot is UP\n'+clean_cache(99)+'\n'+str(cache_max_minutes)+' minutes for cache refrshing')
 	await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='cmd')
