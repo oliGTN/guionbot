@@ -4,20 +4,21 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+client=None
 
 def load_config_teams():
-	# use creds to create a client to interact with the Google Drive API
-	scope = ['https://spreadsheets.google.com/feeds',
-			 'https://www.googleapis.com/auth/drive']
-	creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
-	client = gspread.authorize(creds)
+	global client
+	global file_config
+	
+	if client == None:
+		# use creds to create a client to interact with the Google Drive API
+		scope = ['https://spreadsheets.google.com/feeds',
+				 'https://www.googleapis.com/auth/drive']
+		creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+		client = gspread.authorize(creds)
 
-	# Find a workbook by name and open the first sheet
-	# Make sure you use the right name here.
-
-	file = client.open("GuiOnBot config")
+	file = client.open("GuiOnBot config")	
 	feuille=file.worksheet("teams")
-
 
 	dict_team_tw={} # [[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles, gear, relic, [liste zeta]]}]]
 
@@ -48,6 +49,28 @@ def load_config_teams():
 						dict_team_tw[team][index_categorie][2][dict_perso['Nom']][3].append(dict_perso[zeta])
 		#print('DBG: dict_team_tw='+str(dict_team_tw))
 	return dict_team_tw
+
+def load_config_players():
+	global client
+	
+	if client == None:
+		# use creds to create a client to interact with the Google Drive API
+		scope = ['https://spreadsheets.google.com/feeds',
+				 'https://www.googleapis.com/auth/drive']
+		creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+		client = gspread.authorize(creds)
+
+	file = client.open("GuiOnBot config")
+	feuille=file.worksheet("players")
+
+	dict_players={} # {key=discord name, value=allycode]
+
+	liste_dict_feuille=feuille.get_all_records()
+	#print(liste_dict_feuille)
+	for ligne in liste_dict_feuille:
+		dict_players[ligne['Discord name']]=str(ligne['Allycode'])
+		
+	return dict_players
 	
 #print(load_config_teams())	
 		

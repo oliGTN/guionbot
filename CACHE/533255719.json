@@ -1,0 +1,541 @@
+{
+    "allyCode": 533255719,
+    "arena": {
+        "char": {
+            "rank": 12369,
+            "squad": [
+                {
+                    "defId": "CLONEWARSCHEWBACCA",
+                    "id": "HlygZZI5Q8aHQUK4ie-BdA",
+                    "squadUnitType": 2
+                },
+                {
+                    "defId": "LUKESKYWALKER",
+                    "id": "qGkvJbd1TveMLZEVkZDISA",
+                    "squadUnitType": 1
+                },
+                {
+                    "defId": "HERASYNDULLAS3",
+                    "id": "AqR7u0WPQ7-PP3NwmjQv1g",
+                    "squadUnitType": 1
+                },
+                {
+                    "defId": "ROYALGUARD",
+                    "id": "s01MuOyMQmODA8ysn3m-Ow",
+                    "squadUnitType": 1
+                },
+                {
+                    "defId": "TALIA",
+                    "id": "xTJaJm-sSlOeFqK8YiDPLg",
+                    "squadUnitType": 1
+                }
+            ]
+        },
+        "ship": {
+            "rank": null,
+            "squad": null
+        }
+    },
+    "grandArena": [],
+    "grandArenaLifeTime": 0,
+    "guildBannerColor": "bright_orange_brown",
+    "guildBannerLogo": "guild_icon_fulcrum",
+    "guildName": "Kangoo Legends",
+    "guildRefId": "G2686589780",
+    "guildTypeId": "NORMAL",
+    "id": "P1365209070",
+    "lastActivity": 1600004450000,
+    "level": 37,
+    "name": "Warstat",
+    "poUTCOffsetMinutes": 120,
+    "portraits": {
+        "selected": "PLAYERPORTRAIT_KELDOR",
+        "unlocked": [
+            "PLAYERPORTRAIT_CANTINAKEEPER",
+            "PLAYERPORTRAIT_STORMTROOPER",
+            "PLAYERPORTRAIT_KELDOR",
+            "PLAYERPORTRAIT_PROTOCOLDROID",
+            "PLAYERPORTRAIT_JEDICONSULAR",
+            "PLAYERPORTRAIT_ROYALGUARD"
+        ]
+    },
+    "roster": [
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "CLONESERGEANTPHASEI",
+            "equipped": [
+                {
+                    "equipmentId": "017",
+                    "nameKey": "Scanner de s\u00e9curit\u00e9 Nubian Type\u00a02",
+                    "slot": 3
+                }
+            ],
+            "gear": 2,
+            "gp": 429,
+            "id": "aYilDgypRw-WT46rQK7XRg",
+            "level": 15,
+            "mods": [],
+            "nameKey": "Sergent clone - Phase\u00a0I",
+            "primaryUnitStat": null,
+            "rarity": 1,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [],
+            "xp": 1800
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "CLONEWARSCHEWBACCA",
+            "equipped": [
+                {
+                    "equipmentId": "043",
+                    "nameKey": "Clavier SoroSuub Type\u00a03",
+                    "slot": 2
+                }
+            ],
+            "gear": 3,
+            "gp": 1066,
+            "id": "HlygZZI5Q8aHQUK4ie-BdA",
+            "level": 19,
+            "mods": [],
+            "nameKey": "Chewbacca Guerre des Clones",
+            "primaryUnitStat": null,
+            "rarity": 3,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [
+                {
+                    "id": "basicskill_CLONEWARSCHEWBACCA",
+                    "isZeta": false,
+                    "nameKey": "Arbal\u00e8te laser",
+                    "tier": 2,
+                    "tiers": 8
+                }
+            ],
+            "xp": 2875
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "HERASYNDULLAS3",
+            "equipped": [
+                {
+                    "equipmentId": "050",
+                    "nameKey": "Module d'armure BAW Type\u00a04",
+                    "slot": 5
+                }
+            ],
+            "gear": 4,
+            "gp": 1851,
+            "id": "AqR7u0WPQ7-PP3NwmjQv1g",
+            "level": 36,
+            "mods": [],
+            "nameKey": "Hera Syndulla",
+            "primaryUnitStat": null,
+            "rarity": 3,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [
+                {
+                    "id": "basicskill_HERASYNDULLAS3",
+                    "isZeta": false,
+                    "nameKey": "Berner",
+                    "tier": 4,
+                    "tiers": 8
+                },
+                {
+                    "id": "specialskill_HERASYNDULLAS301",
+                    "isZeta": true,
+                    "nameKey": "Exploiter ses forces",
+                    "tier": 3,
+                    "tiers": 8
+                },
+                {
+                    "id": "leaderskill_HERASYNDULLAS3",
+                    "isZeta": false,
+                    "nameKey": "Envers et contre tous",
+                    "tier": 3,
+                    "tiers": 8
+                },
+                {
+                    "id": "specialskill_HERASYNDULLAS302",
+                    "isZeta": false,
+                    "nameKey": "Plan de secours",
+                    "tier": 3,
+                    "tiers": 8
+                }
+            ],
+            "xp": 10925
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "TALIA",
+            "equipped": [
+                {
+                    "equipmentId": "070",
+                    "nameKey": "G\u00e9n\u00e9rateur de bouclier Merr-Sonn Type\u00a04",
+                    "slot": 2
+                }
+            ],
+            "gear": 3,
+            "gp": 1120,
+            "id": "xTJaJm-sSlOeFqK8YiDPLg",
+            "level": 35,
+            "mods": [],
+            "nameKey": "Talia",
+            "primaryUnitStat": null,
+            "rarity": 3,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [],
+            "xp": 9825
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "SNOWTROOPER",
+            "equipped": [],
+            "gear": 2,
+            "gp": 373,
+            "id": "1w76WJTPRa6Qz0Oy831kmQ",
+            "level": 7,
+            "mods": [],
+            "nameKey": "Snowtrooper",
+            "primaryUnitStat": null,
+            "rarity": 1,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [],
+            "xp": 300
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "RESISTANCEPILOT",
+            "equipped": [],
+            "gear": 2,
+            "gp": 676,
+            "id": "lvvCHWDPRQaiqEoBYukNrw",
+            "level": 26,
+            "mods": [],
+            "nameKey": "Pilote de la R\u00e9sistance",
+            "primaryUnitStat": null,
+            "rarity": 2,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [
+                {
+                    "id": "uniqueskill_RESISTANCEPILOT01",
+                    "isZeta": false,
+                    "nameKey": "En plein vol",
+                    "tier": 2,
+                    "tiers": 7
+                },
+                {
+                    "id": "specialskill_RESISTANCEPILOT01",
+                    "isZeta": false,
+                    "nameKey": "Plans d\u00e9jou\u00e9s",
+                    "tier": 2,
+                    "tiers": 8
+                }
+            ],
+            "xp": 5185
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "EWOKSCOUT",
+            "equipped": [
+                {
+                    "equipmentId": "019",
+                    "nameKey": "Clavier SoroSuub Type\u00a01",
+                    "slot": 0
+                },
+                {
+                    "equipmentId": "030",
+                    "nameKey": "Bloc de donn\u00e9es Fabritech Type\u00a02",
+                    "slot": 1
+                },
+                {
+                    "equipmentId": "046",
+                    "nameKey": "Chargeur \u00e0 fusion SIC Type\u00a03",
+                    "slot": 2
+                }
+            ],
+            "gear": 4,
+            "gp": 1114,
+            "id": "l11IPxONQha_vXPkSotaVg",
+            "level": 20,
+            "mods": [],
+            "nameKey": "\u00c9claireur ewok",
+            "primaryUnitStat": null,
+            "rarity": 1,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [
+                {
+                    "id": "basicskill_EWOKSCOUT",
+                    "isZeta": false,
+                    "nameKey": "Embuscade ewok",
+                    "tier": 2,
+                    "tiers": 8
+                },
+                {
+                    "id": "specialskill_EWOKSCOUT01",
+                    "isZeta": false,
+                    "nameKey": "Ruade \u00e9clair",
+                    "tier": 2,
+                    "tiers": 8
+                }
+            ],
+            "xp": 3175
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "LUKESKYWALKER",
+            "equipped": [
+                {
+                    "equipmentId": "051",
+                    "nameKey": "\u00c9lectrobinoculaires Neuro-Saav Type\u00a05",
+                    "slot": 3
+                }
+            ],
+            "gear": 4,
+            "gp": 1470,
+            "id": "qGkvJbd1TveMLZEVkZDISA",
+            "level": 35,
+            "mods": [],
+            "nameKey": "Luke Skywalker (fermier)",
+            "primaryUnitStat": null,
+            "rarity": 3,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [
+                {
+                    "id": "basicskill_LUKESKYWALKER",
+                    "isZeta": false,
+                    "nameKey": "Tireur d'\u00e9lite de la fronti\u00e8re",
+                    "tier": 2,
+                    "tiers": 8
+                },
+                {
+                    "id": "specialskill_LUKESKYWALKER01",
+                    "isZeta": false,
+                    "nameKey": "Dans le mille",
+                    "tier": 2,
+                    "tiers": 8
+                }
+            ],
+            "xp": 9825
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "JEDIKNIGHTCONSULAR",
+            "equipped": [
+                {
+                    "equipmentId": "038",
+                    "nameKey": "\u00c9lectrobinoculaires Neuro-Saav Type\u00a04",
+                    "slot": 0
+                }
+            ],
+            "gear": 4,
+            "gp": 1162,
+            "id": "2k4YErTYREuYqqp9dz29Og",
+            "level": 22,
+            "mods": [],
+            "nameKey": "Jedi consulaire",
+            "primaryUnitStat": null,
+            "rarity": 2,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [
+                {
+                    "id": "specialskill_JEDIKNIGHTCONSULAR01",
+                    "isZeta": false,
+                    "nameKey": "Gu\u00e9rison Jedi",
+                    "tier": 2,
+                    "tiers": 8
+                },
+                {
+                    "id": "basicskill_JEDIKNIGHTCONSULAR",
+                    "isZeta": false,
+                    "nameKey": "Frappe au sabre",
+                    "tier": 2,
+                    "tiers": 8
+                }
+            ],
+            "xp": 3805
+        },
+        {
+            "combatType": 1,
+            "crew": [],
+            "defId": "ROYALGUARD",
+            "equipped": [
+                {
+                    "equipmentId": "055",
+                    "nameKey": "Bloc de donn\u00e9es Fabritech Type\u00a04",
+                    "slot": 1
+                },
+                {
+                    "equipmentId": "035",
+                    "nameKey": "Hyposeringue Chiewab Type\u00a02",
+                    "slot": 4
+                }
+            ],
+            "gear": 4,
+            "gp": 1167,
+            "id": "s01MuOyMQmODA8ysn3m-Ow",
+            "level": 30,
+            "mods": [],
+            "nameKey": "Garde royal",
+            "primaryUnitStat": null,
+            "rarity": 1,
+            "relic": {
+                "currentTier": 1
+            },
+            "skills": [
+                {
+                    "id": "specialskill_ROYALGUARD01",
+                    "isZeta": false,
+                    "nameKey": "Phalange imp\u00e9riale",
+                    "tier": 2,
+                    "tiers": 8
+                },
+                {
+                    "id": "basicskill_ROYALGUARD",
+                    "isZeta": false,
+                    "nameKey": "Pique de Force",
+                    "tier": 3,
+                    "tiers": 8
+                }
+            ],
+            "xp": 6725
+        }
+    ],
+    "stats": [
+        {
+            "index": 1,
+            "nameKey": "Puissance Galactique\u00a0:",
+            "value": 10428
+        },
+        {
+            "index": 2,
+            "nameKey": "Puissance Galactique (personnages)\u00a0:",
+            "value": 10428
+        },
+        {
+            "index": 3,
+            "nameKey": "Puissance Galactique (vaisseaux)\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 4,
+            "nameKey": "Score de Championnat \u00e0 vie\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 5,
+            "nameKey": "Batailles dans l'ar\u00e8ne de la flotte gagn\u00e9es\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 6,
+            "nameKey": "Batailles dans l'ar\u00e8ne des escouades gagn\u00e9es\u00a0:",
+            "value": 3
+        },
+        {
+            "index": 7,
+            "nameKey": "Total de batailles gagn\u00e9es\u00a0:",
+            "value": 451
+        },
+        {
+            "index": 8,
+            "nameKey": "Batailles en mode difficile gagn\u00e9es\u00a0:",
+            "value": 27
+        },
+        {
+            "index": 9,
+            "nameKey": "Batailles de guerre galactique gagn\u00e9es\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 10,
+            "nameKey": "Raids de guilde gagn\u00e9s\u00a0:",
+            "value": 1
+        },
+        {
+            "index": 11,
+            "nameKey": "Jetons de guilde obtenus\u00a0:",
+            "value": 1515
+        },
+        {
+            "index": 12,
+            "nameKey": "Dons d'\u00e9quipement dans l'\u00c9change de la guilde\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 13,
+            "nameKey": "Promotions de Championnat obtenues\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 14,
+            "nameKey": "Batailles offensives de Championnat remport\u00e9es\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 15,
+            "nameKey": "Tactiques de d\u00e9fense en Championnat r\u00e9ussies\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 16,
+            "nameKey": "Banni\u00e8res de Championnat obtenues\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 17,
+            "nameKey": "Manches de Championnat compl\u00e8tes termin\u00e9es\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 18,
+            "nameKey": "Batailles de Championnat remport\u00e9es avec une escouade r\u00e9duite\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 19,
+            "nameKey": "Territoires de Championnat vaincus\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 20,
+            "nameKey": "Meilleur score de Championnat obtenu\u00a0:",
+            "value": 0
+        },
+        {
+            "index": 21,
+            "nameKey": "Meilleur rang de Championnat atteint\u00a0:",
+            "value": 0
+        }
+    ],
+    "titles": {
+        "selected": null,
+        "unlocked": []
+    },
+    "updated": 1600004729357
+}

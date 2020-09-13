@@ -1,3 +1,4 @@
 git add *
-git commit -m "import discord"
+set /p cmt=Commentaire:
+git commit -m "%cmt"
 git push -u origin master

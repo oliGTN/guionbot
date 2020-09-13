@@ -63,6 +63,41 @@ def dict2str(d, depth, idx):
 	return ret
 
 def clean_cache(nb_minutes):
+	for filename in os.listdir('CACHE'):
+		#print(filename)
+		if filename!='KEEPDIR':
+			file_path='CACHE'+os.path.sep+filename
+			file_stats=os.stat(file_path)
+
+			delta_atime_sec=time.time()-file_stats.st_atime
+			if (delta_atime_sec/60) > nb_minutes:
+				print ('Remove '+filename+' (not accessed for '+str(delta_atime_sec/60)+' minutes)')
+				os.remove(file_path)
+
+def refresh_cache(nb_minutes, allycodes):
+	oldest_file=''
+	biggest_mtime_delta=-1
+	for filename in os.listdir('CACHE'):
+		#print(filename)
+		if filename!='KEEPDIR':
+			file_path='CACHE'+os.path.sep+filename
+			file_stats=os.stat(file_path)
+
+			delta_mtime_sec=time.time()-file_stats.st_mtime
+			if biggest_mtime_delta==-1 or biggest_mtime_delta<delta_mtime_sec:
+				biggest_mtime_delta=delta_mtime_sec
+				oldest_file=filename
+				
+	if oldest_file!='':
+		print ('Refresh '+oldest_file+' (not accessed for '+str(biggest_mtime_delta/60)+' minutes)')
+		file_path='CACHE'+os.path.sep+oldest_file
+		os.remove(file_path)
+		if oldest_file[0]=='G':
+			load_guild(oldest_file[1:-5], False)
+		else:
+			load_player(oldest_file[:-5])
+
+def stats_cache():
 	sum_size=0
 	nb_files=0
 	for filename in os.listdir('CACHE'):
@@ -72,11 +107,7 @@ def clean_cache(nb_minutes):
 			file_stats=os.stat(file_path)
 			nb_files+=1
 			sum_size+=file_stats.st_size
-			delta_time_sec=time.time()-file_stats.st_mtime
-			if (delta_time_sec/60) > nb_minutes:
-				print ('Remove '+filename+' ('+str(delta_time_sec/60)+' minutes old)')
-				os.remove(file_path)
-	return 'Total CACHE: '+str(nb_files)+' files, '+str(sum_size)+' Bytes'
+	return 'Total CACHE: '+str(nb_files)+' files, '+str(int(sum_size/1024/1024*10)/10)+' MB'
 
 def load_player(allycode):
 	f = None
@@ -95,7 +126,7 @@ def load_player(allycode):
 	sys.stderr.write(' '+ret_player['name']+'\n')
 	return ret_player
 	
-def load_guild(allycode):
+def load_guild(allycode, load_players):
 	f = None
 	try:
 		f = open('CACHE'+os.path.sep+'G'+allycode+'.json', 'r')
@@ -112,14 +143,15 @@ def load_guild(allycode):
 			f.close()
 	sys.stderr.write('Guild found: '+ret_guild['name']+'\n')
 	
-	#add player data after saving the guild in json
-	total_players=len(ret_guild['roster'])
-	sys.stderr.write('Total players in guild: '+str(total_players)+'\n')
-	i_player=0
-	for player in ret_guild['roster']:
-		i_player=i_player+1
-		sys.stderr.write(str(i_player)+': ')
-		player['dict_player']=load_player(str(player['allyCode']))
+	if load_players:
+		#add player data after saving the guild in json
+		total_players=len(ret_guild['roster'])
+		sys.stderr.write('Total players in guild: '+str(total_players)+'\n')
+		i_player=0
+		for player in ret_guild['roster']:
+			i_player=i_player+1
+			sys.stderr.write(str(i_player)+': ')
+			player['dict_player']=load_player(str(player['allyCode']))
 
 	return ret_guild
 
@@ -238,10 +270,10 @@ def function_gt(txt_alycode, txt_op_allycode):
 	opponent_allycode=txt_op_allycode
 	
 	#Get data for my guild
-	guild = load_guild(my_allycode)
+	guild = load_guild(my_allycode, True)
 		
 	#Get data for opponent guild
-	opponent_guild = load_guild(opponent_allycode)
+	opponent_guild = load_guild(opponent_allycode, True)
 
 	ret_function_gt+='\n'+guild['name']+' vs '+opponent_guild['name']+'\n'
 	ret_function_gt+='==Overview==\n'
@@ -331,7 +363,7 @@ def function_ct(txt_alycode):
 		my_allycode=sys.argv[2]
 
 	#Get data for my guild
-	guild = load_guild(my_allycode)
+	guild = load_guild(my_allycode, True)
 	
 	char_list=get_guild_char_list(guild)
 	
@@ -379,7 +411,7 @@ def function_gv(txt_allycode, character_name):
 		sys.exit(1)		
 	
 	#Get data for my guild
-	guild = load_guild(my_allycode)
+	guild = load_guild(my_allycode, True)
 	
 	ret_function_gv+='Joueur'
 	nb_levels=len(objectifs)
@@ -484,7 +516,7 @@ def function_gtt(txt_allycode, character_name):
 		sys.exit(1)		
 	
 	#Get data for my guild
-	guild = load_guild(my_allycode)
+	guild = load_guild(my_allycode, True)
 	
 	nb_levels=len(objectifs)
 	#print('DBG: nb_levels='+str(nb_levels))
