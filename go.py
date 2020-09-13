@@ -625,7 +625,6 @@ if len(sys.argv)>1:
 			print(txt)
 		
 	elif cmd=='gtt':
-		clean_cache(60)
 		print(function_gtt(sys.argv[2], sys.argv[3]))
 
 	elif cmd=='ct':
