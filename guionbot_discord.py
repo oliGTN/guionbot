@@ -18,8 +18,8 @@ bot = commands.Bot(command_prefix='go.')
 emoji_thumb = '\N{THUMBS UP SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 emoji_error = '\N{CROSS MARK}'
-cache_delete_minutes=240 #4 hours before deleting unused cache file
-cache_refresh_minutes=15 #15 minutes minimum to refresh data from the guild
+cache_delete_minutes=1440 #24 hours before deleting unused cache file
+cache_refresh_minutes=60 #60 minutes minimum to refresh data from the guild
 nb_commandes=0
 
 async def bot_loop_60():
