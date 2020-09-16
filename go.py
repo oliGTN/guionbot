@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import os
+from math import ceil
 from connect_gsheets import load_config_teams
 
 creds = settings('GuiOnEnsai','4yj6GfUSezVjPJKSKpR8','123','abc')
@@ -87,7 +88,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
 	#print('DBG: list_allycodes='+str(list_allycodes))
 	
 	#Compute the amount of files to be refreshed based on global refresh rate
-	nb_refresh_files=int(len(list_allycodes) / nb_minutes_refresh * refresh_rate_minutes)
+	nb_refresh_files=ceil(len(list_allycodes) / nb_minutes_refresh * refresh_rate_minutes)
 	print('Refreshing '+str(nb_refresh_files)+' files')
 
 	#LOOP through files to check modification date
@@ -157,7 +158,6 @@ def load_guild(allycode, load_players):
 	except IOError:
 		sys.stderr.write('>Requesting guild data for allycode '+allycode+'...\n')
 		client_data=client.get_data('guild', allycode)
-		print(client_data)
 		if isinstance(client_data, dict):
 			#error code
 			ret_guild=str(client)
