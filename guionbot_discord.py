@@ -5,14 +5,14 @@ import os
 import asyncio
 import time
 from discord.ext import commands
-from go import function_gt, function_gtt, split_txt, clean_cache, refresh_cache, stats_cache
+from go import function_gt, function_gtt, split_txt, refresh_cache, stats_cache, load_guild
 from connect_gsheets import load_config_players
 
 #load_dotenv()
 #TOKEN = os.getenv('DISCORD_TOKEN')
 TOKEN = 'NzUyOTY5NjQ3MjMzNTY0NzAz.X1fXoQ.arxYkcPspOFTU5SeCooiKsgkZNQ'
 bot = commands.Bot(command_prefix='go.')
-dict_players={}
+#dict_players={}
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -22,16 +22,15 @@ cache_delete_minutes=240 #4 hours before deleting unused cache file
 cache_refresh_minutes=15 #15 minutes minimum to refresh data from the guild
 nb_commandes=0
 
-dict_players={}
 async def bot_loop_60():
-	global dict_players
+	#global dict_players
 	await bot.wait_until_ready()
 	while not bot.is_closed():
 		try:
-			clean_cache(cache_delete_minutes)
+			#clean_cache(cache_delete_minutes)
 			
-			list_guild_allycodes=[(lambda x:str(x))(x) for x in dict_players]
-			refresh_cache(cache_delete_minutes, list_guild_allycodes)
+			#list_guild_allycodes=[(lambda x:str(x))(x) for x in dict_players]
+			refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
 			await asyncio.sleep(60) #60 seconds for loop
 		except Exception as e:
 			print(e)
@@ -42,8 +41,9 @@ async def is_owner(ctx):
 			
 @bot.event
 async def on_ready():
-	global dict_players
-	dict_players=load_config_players()
+	#global dict_players
+	#dict_players=load_config_players()
+	load_guild('189341793', False)
 	print(f'{bot.user.name} has connected to Discord!')
 
 @bot.command(name='info', help='Statut du bot')
@@ -76,22 +76,15 @@ async def gt(ctx, allycode, op_alycode):
 	nb_commandes+=1
 	await ctx.message.add_reaction(emoji_thumb)
 
-	if allycode=='me':
-		discord_name=str(ctx.message.author)
-		print(discord_name)
-		if discord_name in dict_players:
-			allycode = dict_players[discord_name]
-		else:
-			allycode=''
-			await ctx.send("Tu n'es pas enregistré pour utiliser ce bot, merci d'utiliser un <code allié> explicite ou 'KL' pour la guile Kangoo Legends")
-			await ctx.message.add_reaction(emoji_error)
-	elif allycode=='KL':
+	if allycode=='KL':
 		allycode='189341793'
 		
-	if allycode!='':
-		ret_gt=function_gt(allycode, op_alycode)
-		#print(len(ret_gt))
-		for txt in split_txt(ret_gt, 1000):
+	ret_cmd=function_gt(allycode, op_alycode)
+	if ret_cmd[0:3]=='ERR':
+		await ctx.send(ret_cmd)
+		await ctx.message.add_reaction(emoji_error)
+	else:
+		for txt in split_txt(ret_cmd, 1000):
 			await ctx.send('`'+txt+'`')
 		await ctx.message.add_reaction(emoji_check)
 
@@ -101,22 +94,15 @@ async def gtt(ctx, allycode, team):
 	nb_commandes+=1
 	await ctx.message.add_reaction(emoji_thumb)
 
-	if allycode=='me':
-		discord_name=str(ctx.message.author)
-		print(discord_name)
-		if discord_name in dict_players:
-			allycode = dict_players[discord_name]
-		else:
-			allycode=''
-			await ctx.send("Tu n'es pas enregistré pour utiliser ce bot, merci d'utiliser un <code allié> explicite ou 'KL' pour la guile Kangoo Legends")
-			await ctx.message.add_reaction(emoji_error)
-	elif allycode=='KL':
+	if allycode=='KL':
 		allycode='189341793'
 			
-	if allycode!='':
-		ret_gt=function_gtt(allycode, team)
-		#print(len(ret_gt))
-		for txt in split_txt(ret_gt, 1000):
+	ret_cmd=function_gtt(allycode, team)
+	if ret_cmd[0:3]=='ERR':
+		await ctx.send(ret_cmd)
+		await ctx.message.add_reaction(emoji_error)
+	else:
+		for txt in split_txt(ret_cmd, 1000):
 			await ctx.send('`'+txt+'`')
 		await ctx.message.add_reaction(emoji_check)
 		

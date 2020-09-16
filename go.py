@@ -7,9 +7,6 @@ from connect_gsheets import load_config_teams
 
 creds = settings('GuiOnEnsai','4yj6GfUSezVjPJKSKpR8','123','abc')
 client = SWGOHhelp(creds)
-dict_allycodes={}
-dict_allycodes['me']='189341793'
-dict_allycodes['whitegungan']='913238287'
 inactive_duration=36 #hours
 
 dict_guidevoyage={} # [catégorie, nombre nécessaire, étoiles, relic, niveau capa, PG, module]
@@ -62,7 +59,9 @@ def dict2str(d, depth, idx):
 	
 	return ret
 
-def clean_cache(nb_minutes):
+def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
+	#CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
+	#Need to keep KEEPDIR to prevent removal of the directory by GIT
 	for filename in os.listdir('CACHE'):
 		#print(filename)
 		if filename!='KEEPDIR':
@@ -70,33 +69,55 @@ def clean_cache(nb_minutes):
 			file_stats=os.stat(file_path)
 
 			delta_atime_sec=time.time()-file_stats.st_atime
-			if (delta_atime_sec/60) > nb_minutes:
+			if (delta_atime_sec/60) > nb_minutes_delete:
 				print ('Remove '+filename+' (not accessed for '+str(delta_atime_sec/60)+' minutes)')
 				os.remove(file_path)
-
-def refresh_cache(nb_minutes, allycodes):
-	oldest_file=''
-	biggest_mtime_delta=nb_minutes
+			
+	#LOOP through Guild files to recover player allycodes
+	list_allycodes=[]
 	for filename in os.listdir('CACHE'):
 		#print(filename)
-		if filename!='KEEPDIR':
+		if filename[0]=='G':
+			file_path='CACHE'+os.path.sep+filename
+			for line in open(file_path).readlines():
+				if line[13:21]=='allyCode':
+					list_allycodes.append(line[24:33])
+	#remove duplicates
+	list_allycodes=[x for x in set(list_allycodes)]
+	#print('DBG: list_allycodes='+str(list_allycodes))
+	
+	#Compute the amount of files to be refreshed based on global refresh rate
+	nb_refresh_files=int(len(list_allycodes) / nb_minutes_refresh * refresh_rate_minutes)
+	print('Refreshing '+str(nb_refresh_files)+' files')
+
+	#LOOP through files to check modification date
+	list_filenames_mtime=[]
+	for filename in os.listdir('CACHE'):
+		if filename[:-5] in list_allycodes:
 			file_path='CACHE'+os.path.sep+filename
 			file_stats=os.stat(file_path)
-
-			delta_mtime_sec=time.time()-file_stats.st_mtime
-			if biggest_mtime_delta==-1 or biggest_mtime_delta<delta_mtime_sec:
-				biggest_mtime_delta=delta_mtime_sec
-				oldest_file=filename
-				
-	if oldest_file!='':
-		print ('Refresh '+oldest_file+' (not accessed for '+str(biggest_mtime_delta/60)+' minutes)')
-		file_path='CACHE'+os.path.sep+oldest_file
+			list_filenames_mtime.append([filename, file_stats.st_mtime])
+			list_allycodes.remove(filename[:-5])
+	#sort by mtime
+	list_filenames_mtime=sorted(list_filenames_mtime, key=lambda x:x[1])
+	#print('DBG: list_filenames_mtime='+str(list_filenames_mtime))
+	
+	remaining_files_to_refresh=nb_refresh_files
+	#Start creating non-existing files
+	for allycode in list_allycodes[:remaining_files_to_refresh]:
+		#print('DBG: create '+allycode)
+		load_player(allycode)
+		remaining_files_to_refresh-=1
+		
+	#Then refresh oldest existing files
+	for filename_mtime in list_filenames_mtime[:remaining_files_to_refresh]:
+		allycode=filename_mtime[0][:-5]
+		file_path='CACHE'+os.path.sep+filename_mtime[0]
+		#print('DBG: refresh '+allycode)
 		os.remove(file_path)
-		if oldest_file[0]=='G':
-			load_guild(oldest_file[1:-5], False)
-		else:
-			load_player(oldest_file[:-5])
-
+		load_player(allycode)
+		remaining_files_to_refresh-=1
+	
 def stats_cache():
 	sum_size=0
 	nb_files=0
@@ -127,23 +148,29 @@ def load_player(allycode):
 	return ret_player
 	
 def load_guild(allycode, load_players):
-	f = None
+	is_error=False
 	try:
 		f = open('CACHE'+os.path.sep+'G'+allycode+'.json', 'r')
 		sys.stderr.write('>Loading guild data for allycode '+allycode+'...\n')
 		ret_guild = json.load(f)
+		f.close()
 	except IOError:
 		sys.stderr.write('>Requesting guild data for allycode '+allycode+'...\n')
 		client_data=client.get_data('guild', allycode)
-		ret_guild=client_data[0]
-		f = open('CACHE'+os.path.sep+'G'+allycode+'.json', 'w')
-		f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
-	finally:
-		if not f is None:
+		print(client_data)
+		if isinstance(client_data, dict):
+			#error code
+			ret_guild=str(client)
+			sys.stderr.write('ERR: '+ret_guild+'\n')
+			is_error=True
+		else: #list
+			ret_guild=client_data[0]
+			f = open('CACHE'+os.path.sep+'G'+allycode+'.json', 'w')
+			f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
+			sys.stderr.write('Guild found: '+ret_guild['name']+'\n')
 			f.close()
-	sys.stderr.write('Guild found: '+ret_guild['name']+'\n')
 	
-	if load_players:
+	if load_players and not is_error:
 		#add player data after saving the guild in json
 		total_players=len(ret_guild['roster'])
 		sys.stderr.write('Total players in guild: '+str(total_players)+'\n')
@@ -262,18 +289,20 @@ def print_gp_graph(guild_stats):
 def function_gt(txt_alycode, txt_op_allycode):
 	ret_function_gt=''
 	## GUERRE DE TERRITOIRE ##
-	if txt_alycode in dict_allycodes:
-		my_allycode=dict_allycodes[txt_alycode]
-	else:
-		my_allycode=txt_alycode
-
+	my_allycode=txt_alycode
 	opponent_allycode=txt_op_allycode
 	
 	#Get data for my guild
 	guild = load_guild(my_allycode, True)
+	if isinstance(guild, str):
+		#error wile loading guild data
+		return 'ERREUR: guilde non trouvée pour code allié '+my_allycode
 		
 	#Get data for opponent guild
 	opponent_guild = load_guild(opponent_allycode, True)
+	if isinstance(opponent_guild, str):
+		#error wile loading guild data
+		return 'ERREUR: guilde non trouvée pour code allié '+opponent_allycode
 
 	ret_function_gt+='\n'+guild['name']+' vs '+opponent_guild['name']+'\n'
 	ret_function_gt+='==Overview==\n'
@@ -357,13 +386,13 @@ def function_gt(txt_alycode, txt_op_allycode):
 def function_ct(txt_alycode):
 	ret_function_ct=''
 	
-	if sys.argv[2] in dict_allycodes:
-		my_allycode=dict_allycodes[sys.argv[2]]
-	else:
-		my_allycode=sys.argv[2]
+	my_allycode=sys.argv[2]
 
 	#Get data for my guild
 	guild = load_guild(my_allycode, True)
+	if isinstance(guild, str):
+		#error wile loading guild data
+		return 'ERREUR: guilde non trouvée pour code allié '+my_allycode
 	
 	char_list=get_guild_char_list(guild)
 	
@@ -399,10 +428,7 @@ def function_ct(txt_alycode):
 def function_gv(txt_allycode, character_name):
 	ret_function_gv=''
 
-	if txt_allycode in dict_allycodes:
-		my_allycode=dict_allycodes[txt_allycode]
-	else:
-		my_allycode=txt_allycode
+	my_allycode=txt_allycode
 
 	if character_name in dict_guidevoyage:
 		objectifs=dict_guidevoyage[character_name]
@@ -412,6 +438,9 @@ def function_gv(txt_allycode, character_name):
 	
 	#Get data for my guild
 	guild = load_guild(my_allycode, True)
+	if isinstance(guild, str):
+		#error wile loading guild data
+		return 'ERREUR: guilde non trouvée pour code allié '+my_allycode
 	
 	ret_function_gv+='Joueur'
 	nb_levels=len(objectifs)
@@ -500,10 +529,7 @@ def pad_txt(txt, size):
 def function_gtt(txt_allycode, character_name):
 	ret_function_gtt=''
 
-	if txt_allycode in dict_allycodes:
-		my_allycode=dict_allycodes[txt_allycode]
-	else:
-		my_allycode=txt_allycode
+	my_allycode=txt_allycode
 
 	#Recuperation des dernieres donnees sur gdrivedict_team_gt
 	dict_team_gt=load_config_teams()
@@ -512,11 +538,13 @@ def function_gtt(txt_allycode, character_name):
 		objectifs=dict_team_gt[character_name]
 		#print(objectifs)
 	else:
-		sys.stderr.write('ERR: team '+character_name+' inconnue\n')
-		sys.exit(1)		
+		return 'ERREUR: team '+character_name+' inconnue'	
 	
 	#Get data for my guild
 	guild = load_guild(my_allycode, True)
+	if isinstance(guild, str):
+		#error wile loading guild data
+		return 'ERREUR: guilde non trouvée pour code allié '+my_allycode
 	
 	nb_levels=len(objectifs)
 	#print('DBG: nb_levels='+str(nb_levels))
