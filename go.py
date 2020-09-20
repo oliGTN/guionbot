@@ -526,19 +526,48 @@ def pad_txt(txt, size):
 	
 	return ret_pad_txt
 
+def pad_txt2(txt):
+	size_digits=[0,0,0,0,0,0,0,0,0,0]
+	size_digits[0]=12.3
+	size_digits[1]=7.1
+	size_digits[2]=10.7
+	size_digits[3]=10.5
+	size_digits[4]=11.9
+	size_digits[5]=10.6
+	size_digits[6]=11.4
+	size_digits[7]=10.6
+	size_digits[8]=11.4
+	size_digits[9]=11.4
+	size_space=4.5
+	
+	size_txt=0
+	nb_digits=0
+	for i in range(10):
+		size_txt+=txt.count(str(i))*size_digits[i]
+		nb_digits+=txt.count(str(i))
+		#print ('DBG: i='+str(i)+' size_txt='+str(size_txt)+' nb_digits='+str(nb_digits))
+	
+	max_size=nb_digits*max(size_digits)
+	espaces_additionnels=round((max_size-size_txt)/size_space)
+	#print('DBG: max_size='+str(max_size)+' espaces_additionnels='+str(espaces_additionnels))
+	ret_pad_txt=txt+'\xa0'*espaces_additionnels
+	#print('DBG: x'+txt+'x > x'+ret_pad_txt+'x')
+
+	return ret_pad_txt
+
 def function_gtt(txt_allycode, character_name):
 	ret_function_gtt=''
 
 	my_allycode=txt_allycode
 
 	#Recuperation des dernieres donnees sur gdrivedict_team_gt
-	dict_team_gt=load_config_teams()
-
+	liste_team_gt, dict_team_gt=load_config_teams()
+	
 	if character_name in dict_team_gt:
 		objectifs=dict_team_gt[character_name]
 		#print(objectifs)
 	else:
-		return 'ERREUR: team '+character_name+' inconnue'	
+		return 'ERREUR: team '+character_name+' inconnue. Liste='+str(liste_team_gt)	
 	
 	#Get data for my guild
 	guild = load_guild(my_allycode, True)
@@ -550,46 +579,45 @@ def function_gtt(txt_allycode, character_name):
 	#print('DBG: nb_levels='+str(nb_levels))
 	
 	#Affichage des prérequis
-	ret_function_gtt+='== Team: '+character_name+'\n'
+	ret_function_gtt+='**Team: '+character_name+'**\n'
 	for i_level in range(0,nb_levels):
 		#print('DBG: i_level='+str(i_level))
 		#print('DBG: obj='+str(objectifs[i_level]))
 		nb_sub_obj=len(objectifs[i_level][2])
 		#print('DBG: nb_sub_obj='+str(nb_sub_obj))
-		ret_function_gtt+='='+objectifs[i_level][0]+'\n'
+		ret_function_gtt+='**'+objectifs[i_level][0]+'**\n'
 		for i_sub_obj in range(0, nb_sub_obj):
 			for perso in objectifs[i_level][2]:
 				if objectifs[i_level][2][perso][0] == i_sub_obj+1:
 					perso_rarity=objectifs[i_level][2][perso][1]
 					perso_gear=objectifs[i_level][2][perso][2]
 					perso_zetas=objectifs[i_level][2][perso][3]
-					ret_function_gtt+=objectifs[i_level][0][0]+str(i_sub_obj+1)+': '+perso+' ('+str(perso_rarity)+'*, G'+str(perso_gear)+', zetas='+str(perso_zetas)+')\n'
+					ret_function_gtt+='**'+objectifs[i_level][0][0]+str(i_sub_obj+1)+'**: '+perso+' ('+str(perso_rarity)+'*, G'+str(perso_gear)+', zetas='+str(perso_zetas)+')\n'
 
 	#ligne d'entete
 	list_player_names=[(lambda x:x['name'])(x) for x in guild['roster']]
-	max_playername_size=max([(lambda x:len(x))(x) for x in list_player_names])+1
 	ret_function_gtt+='\n'
-	ret_function_gtt+=pad_txt('Joueur', max_playername_size)
 	for i_level in range(0,nb_levels):
 		nb_sub_obj=len(objectifs[i_level][2])
 		#print('DBG: nb_sub_obj='+str(nb_sub_obj))
 		for i_sub_obj in range(0, nb_sub_obj):
 			#print('DBG:'+str(objectifs[i_level][0][0]+str(i_sub_obj)))
 			nom_sub_obj=objectifs[i_level][0][0]+str(i_sub_obj+1)
-			ret_function_gtt+=pad_txt(nom_sub_obj, 8)
+			ret_function_gtt+=pad_txt2(nom_sub_obj)+'       |'
 			
-	ret_function_gtt+='GLOBAL\n'
+	ret_function_gtt+='GLOB|Joueur\n'
 	
 	#resultats par joueur
+	tab_lines=[]
 	for player in guild['roster']:
+		line=''
 		#print('DBG: '+player['name'])
-		ret_function_gtt+=pad_txt(player['name'], max_playername_size)
 		
 		#INIT tableau des resultats
 		tab_progress_player=[[] for i in range(nb_levels)]
 		for i_level in range(0,nb_levels):
 			nb_sub_obj=len(objectifs[i_level][2])
-			tab_progress_player[i_level]=[[0, ''] for i in range(nb_sub_obj)]
+			tab_progress_player[i_level]=[[0, '.\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0.'] for i in range(nb_sub_obj)]
 		
 		#boucle sur les persos du joueur
 		for character in player['dict_player']['roster']:
@@ -626,9 +654,10 @@ def function_gtt(txt_allycode, character_name):
 								progress+=1
 							
 					tab_progress_player[i_level][i_sub_obj-1][0] = progress/progress_100
-					tab_progress_player[i_level][i_sub_obj-1][1] = str(player_rarity)+'.'+str(player_gear)+'.'+str(player_nb_zetas)
+					tab_progress_player[i_level][i_sub_obj-1][1] = str(player_rarity)+'.'+"{:02d}".format(player_gear)+'.'+str(player_nb_zetas)
 					#print('DBG: '+character['defId']+':'+str(tab_progress_player))
 		
+		#print(tab_progress_player)
 		progress=0
 		progress100=0
 		progress_nogo=False
@@ -637,8 +666,12 @@ def function_gtt(txt_allycode, character_name):
 			for i_sub_obj in range(0, nb_sub_obj):
 				tab_progress_sub_obj=tab_progress_player[i_level][i_sub_obj]
 				#print('DBG: '+str(tab_progress_sub_obj))
-				#ret_function_gtt+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
-				ret_function_gtt+=pad_txt(tab_progress_sub_obj[1], 8)
+				#line+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
+				if tab_progress_sub_obj[0] == 1:
+					line+='**'+pad_txt2(tab_progress_sub_obj[1])+'**|'
+				else:
+					line+=pad_txt2(tab_progress_sub_obj[1])+'|'
+					
 			min_perso = objectifs[i_level][1]
 			#print('DBG: '+str(tab_progress_player[i_level]))
 			tab_progress_player_values=[(lambda f:f[0])(x) for x in tab_progress_player[i_level]]
@@ -648,11 +681,24 @@ def function_gtt(txt_allycode, character_name):
 				progress_nogo=True
 			
 		if progress_nogo:
-			ret_function_gtt+='KO'
+			global_progress=0
+			line+='\N{CROSS MARK}'
 		else:
-			ret_function_gtt+=str(int(progress/progress100*100))+'%'
-		ret_function_gtt+='\n'
+			global_progress=int(progress/progress100*100)
+			if global_progress==100:
+				line+='\N{GREEN HEART}'
+			elif global_progress>=80:
+				line+='\N{LARGE ORANGE DIAMOND}'
+			else:
+				line+='\N{CROSS MARK}'
+
+		line+='|'+player['name']+'\n'
+		tab_lines.append([global_progress, line])
 		
+	for progress, txt in sorted(tab_lines, reverse=True):
+		ret_function_gtt+=txt
+	
+	
 	return ret_function_gtt
 
 def split_txt(txt, max_size):

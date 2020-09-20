@@ -48,7 +48,7 @@ def load_config_teams():
 					if dict_perso[zeta]!='':
 						dict_team_tw[team][index_categorie][2][dict_perso['Nom']][3].append(dict_perso[zeta])
 		#print('DBG: dict_team_tw='+str(dict_team_tw))
-	return dict_team_tw
+	return liste_teams, dict_team_tw
 
 def load_config_players():
 	global client

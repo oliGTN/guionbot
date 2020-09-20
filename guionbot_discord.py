@@ -6,6 +6,7 @@ import asyncio
 import time
 import re
 from discord.ext import commands
+from discord import Embed
 from go import function_gt, function_gtt, split_txt, refresh_cache, stats_cache, load_guild
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
@@ -95,8 +96,11 @@ async def gtt(ctx, allycode, team):
 		await ctx.send(ret_cmd)
 		await ctx.message.add_reaction(emoji_error)
 	else:
+		#texte classique
 		for txt in split_txt(ret_cmd, 1000):
-			await ctx.send('`'+txt+'`')
+			await ctx.send(txt)
+			
+		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
 @bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en TB")
@@ -167,6 +171,25 @@ async def vdp(ctx):
 								print('ERR: '+perso+' n\'a pas été affecté')
 								print(dict_platoons_allocation[platoon_name].keys())
 			await ctx.message.add_reaction(emoji_check)
+						
+@bot.command(name='test', help="Vérification de Déploiement des Pelotons en TB")
+@commands.check(is_owner)
+async def test(ctx):
+	await ctx.message.add_reaction(emoji_thumb)
+
+	bt_channel=ctx.message.channel
+	async for message in bt_channel.history(limit=200):
+		#print(message)
+		if str(message.author)=='DSR Bot#1957':
+			for embed in message.embeds:
+				dict_embed=embed.to_dict()
+				if 'fields' in dict_embed:
+					print(dict_embed)
+			break
+			
+	await ctx.send('```css\n7.12.2\n```'+'```fix\n7.12.2\n```')
+	await ctx.send('```css\n[7.12.2]\n```')
+	await ctx.message.add_reaction(emoji_check)
 						
 		
 bot.loop.create_task(bot_loop_60())
