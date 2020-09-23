@@ -281,12 +281,20 @@ class GenericTBSParser(HTMLParser):
 		
 
 def parse_warstats_page():
-	page = urllib.request.urlopen(warstats_tbs_url)
+	try:
+		page = urllib.request.urlopen(warstats_tbs_url)
+	except urllib.error.HTTPError as e:
+		return '', None
+		
 	parser = GenericTBSParser()
 	parser.feed(str(page.read()))
 	warstats_platoon_url=parser.get_url()
 			
-	page = urllib.request.urlopen(warstats_platoon_url)
+	try:
+		page = urllib.request.urlopen(warstats_platoon_url)
+	except urllib.error.HTTPError as e:
+		return '', None
+		
 	parser = TBSPhaseParser()
 	parser.feed(str(page.read()))
 

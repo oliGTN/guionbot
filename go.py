@@ -698,8 +698,11 @@ def function_gtt(txt_allycode, character_name):
 				line+='\N{CROSS MARK}'
 
 		if player['name'] in dict_players:
-			line+='|'+player['name']+' @'+dict_players[player['name']][1]+'\n'
-		else: #pas de pseudo discord
+			if dict_players[player['name']][2] != '':
+				line+='|'+player['name']+' <@'+str(dict_players[player['name']][2])+'>\n'
+			else: #pas de pseudo discord
+				line+='|'+player['name']+'\n'
+		else: #joueur non-défini dans gsheets
 			line+='|'+player['name']+'\n'
 
 		tab_lines.append([global_progress, line])

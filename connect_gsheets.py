@@ -63,13 +63,13 @@ def load_config_players():
 	file = client.open("GuiOnBot config")
 	feuille=file.worksheet("players")
 
-	dict_players={} # {key=IG name, value=[allycode, discord name]]
+	dict_players={} # {key=IG name, value=[allycode, discord name, discord id]]
 
 	liste_dict_feuille=feuille.get_all_records()
 	#print(liste_dict_feuille)
 	for ligne in liste_dict_feuille:
 		if ligne['Discord name']!='':
-			dict_players[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name']]
+			dict_players[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], ligne['Discord ID']]
 		
 	return dict_players
 	

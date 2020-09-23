@@ -66,12 +66,25 @@ async def cmd(ctx, arg):
 		await ctx.send('`'+txt+'`')
 	await ctx.message.add_reaction(emoji_check)
 	
-#@bot.command(name='test', help='Réservé à GuiOn Ensai')
-#@commands.check(is_owner)
-#async def test(ctx, allycode, team):
-#	await ctx.message.add_reaction(emoji_thumb)
-#
-#	await ctx.message.add_reaction(emoji_check)
+# @bot.command(name='test', help='Réservé à GuiOn Ensai')
+# @commands.check(is_owner)
+# async def test(ctx, allycode, team):
+	# await ctx.message.add_reaction(emoji_thumb)
+
+	# if allycode=='KL':
+		# allycode='189341793'
+			
+	# ret_cmd=function_gtt(allycode, team)
+	# if ret_cmd[0:3]=='ERR':
+		# await ctx.send(ret_cmd)
+		# await ctx.message.add_reaction(emoji_error)
+	# else:
+		texte classique
+		# for txt in split_txt(ret_cmd, 1000):
+			# await ctx.send(txt)
+			
+		Icône de confirmation de fin de commande dans le message d'origine
+		# await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='gt', help='Compare 2 guildes pour la GT')
 async def gt(ctx, allycode, op_alycode):
@@ -114,12 +127,12 @@ async def vdp(ctx):
 
 	#Lecture du statut des pelotons sur warstats
 	tbs_phase, dict_platoons_done = parse_warstats_page()
-
+	
 	#Recuperation des dernieres donnees sur gdrive
-	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name]]
+	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name, discord id]]
 
 	if tbs_phase=='':
-		await ctx.send('Aucune TBS en cours')
+		await ctx.send('Aucune BT en cours')
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		print('Lecture terminée du statut TB sur warstats: phase '+tbs_phase)
@@ -174,8 +187,13 @@ async def vdp(ctx):
 								for allocated_player in dict_platoons_allocation[platoon_name][perso]:
 									if not allocated_player in dict_platoons_done[platoon_name][perso]:
 										if allocated_player in dict_players:
-											await ctx.send('**'+allocated_player+'** (@'+dict_players[allocated_player]+') n\'a pas affecté '+perso+' en '+platoon_name)											
-										else:
+											if dict_players[allocated_player][2]!='':
+												#joueur avec discord
+												await ctx.send('**'+allocated_player+'** (<@'+str(dict_players[allocated_player][2])+'>) n\'a pas affecté '+perso+' en '+platoon_name)																				
+											else:
+												#joueur sans discord
+												await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name)
+										else: #joueur non-défini dans gsheets, on l'affiche quand même
 											await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name)
 							else:
 								await ctx.send('ERR: '+perso+' n\'a pas été affecté')
