@@ -79,11 +79,11 @@ async def cmd(ctx, arg):
 		# await ctx.send(ret_cmd)
 		# await ctx.message.add_reaction(emoji_error)
 	# else:
-		texte classique
+		# # texte classique
 		# for txt in split_txt(ret_cmd, 1000):
 			# await ctx.send(txt)
 			
-		Icône de confirmation de fin de commande dans le message d'origine
+		# # Icône de confirmation de fin de commande dans le message d'origine
 		# await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='gt', help='Compare 2 guildes pour la GT')
