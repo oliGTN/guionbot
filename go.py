@@ -527,30 +527,34 @@ def pad_txt(txt, size):
 	return ret_pad_txt
 
 def pad_txt2(txt):
-	size_digits=[0,0,0,0,0,0,0,0,0,0]
-	size_digits[0]=12.3
-	size_digits[1]=7.1
-	size_digits[2]=10.7
-	size_digits[3]=10.5
-	size_digits[4]=11.9
-	size_digits[5]=10.6
-	size_digits[6]=11.4
-	size_digits[7]=10.6
-	size_digits[8]=11.4
-	size_digits[9]=11.4
-	size_space=4.5
+	size_chars={}
+	size_chars['0']=12.3
+	size_chars['1']=7.1
+	size_chars['2']=10.7
+	size_chars['3']=10.5
+	size_chars['4']=11.9
+	size_chars['5']=10.6
+	size_chars['6']=11.4
+	size_chars['7']=10.6
+	size_chars['8']=11.4
+	size_chars['9']=11.4
+	size_chars[' ']=4.5
+	size_chars['R']=11.3
+	size_chars['I']=5.3
+	size_chars['.']=4.4
+	padding_char=' '
 	
 	size_txt=0
-	nb_digits=0
-	for i in range(10):
-		size_txt+=txt.count(str(i))*size_digits[i]
-		nb_digits+=txt.count(str(i))
-		#print ('DBG: i='+str(i)+' size_txt='+str(size_txt)+' nb_digits='+str(nb_digits))
+	nb_sizeable_chars=0
+	for c in size_chars:
+		size_txt+=txt.count(c)*size_chars[c]
+		nb_sizeable_chars+=txt.count(c)
+		#print ('DBG: c='+c+' size_txt='+str(size_txt)+' nb_sizeable_chars='+str(nb_sizeable_chars))
 	
-	max_size=nb_digits*max(size_digits)
-	espaces_additionnels=round((max_size-size_txt)/size_space)
-	#print('DBG: max_size='+str(max_size)+' espaces_additionnels='+str(espaces_additionnels))
-	ret_pad_txt=txt+'\xa0'*espaces_additionnels
+	max_size=nb_sizeable_chars*max(size_chars.values())
+	nb_padding=round((max_size-size_txt)/size_chars[padding_char])
+	#print('DBG: max_size='+str(max_size)+'size='+str(size_txt)+' nb_padding='+str(nb_padding))
+	ret_pad_txt=txt+padding_char*nb_padding
 	#print('DBG: x'+txt+'x > x'+ret_pad_txt+'x')
 
 	return ret_pad_txt
@@ -603,7 +607,7 @@ def function_gtt(txt_allycode, character_name):
 		for i_sub_obj in range(0, nb_sub_obj):
 			#print('DBG:'+str(objectifs[i_level][0][0]+str(i_sub_obj)))
 			nom_sub_obj=objectifs[i_level][0][0]+str(i_sub_obj+1)
-			ret_function_gtt+=pad_txt2(nom_sub_obj)+'       |'
+			ret_function_gtt+=pad_txt2(nom_sub_obj+'    ')+'|'
 			
 	ret_function_gtt+='GLOB|Joueur\n'
 	
@@ -617,7 +621,7 @@ def function_gtt(txt_allycode, character_name):
 		tab_progress_player=[[] for i in range(nb_levels)]
 		for i_level in range(0,nb_levels):
 			nb_sub_obj=len(objectifs[i_level][2])
-			tab_progress_player[i_level]=[[0, '.\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0.'] for i in range(nb_sub_obj)]
+			tab_progress_player[i_level]=[[0, '.     '] for i in range(nb_sub_obj)]
 		
 		#boucle sur les persos du joueur
 		for character in player['dict_player']['roster']:
