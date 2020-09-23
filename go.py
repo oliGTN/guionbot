@@ -4,7 +4,7 @@ import json
 import time
 import os
 from math import ceil
-from connect_gsheets import load_config_teams
+from connect_gsheets import load_config_teams, load_config_players
 
 creds = settings('GuiOnEnsai','4yj6GfUSezVjPJKSKpR8','123','abc')
 client = SWGOHhelp(creds)
@@ -564,8 +564,9 @@ def function_gtt(txt_allycode, character_name):
 
 	my_allycode=txt_allycode
 
-	#Recuperation des dernieres donnees sur gdrivedict_team_gt
+	#Recuperation des dernieres donnees sur gdrive
 	liste_team_gt, dict_team_gt=load_config_teams()
+	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name]]
 	
 	if character_name in dict_team_gt:
 		objectifs=dict_team_gt[character_name]
@@ -696,7 +697,11 @@ def function_gtt(txt_allycode, character_name):
 			else:
 				line+='\N{CROSS MARK}'
 
-		line+='|'+player['name']+'\n'
+		if player['name'] in dict_players:
+			line+='|'+player['name']+' @'+dict_players[player['name']][1]+'\n'
+		else: #pas de pseudo discord
+			line+='|'+player['name']+'\n'
+
 		tab_lines.append([global_progress, line])
 		
 	for progress, txt in sorted(tab_lines, reverse=True):

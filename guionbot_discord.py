@@ -43,8 +43,6 @@ async def is_owner(ctx):
 			
 @bot.event
 async def on_ready():
-	#global dict_players
-	#dict_players=load_config_players()
 	load_guild('189341793', False)
 	print(f'{bot.user.name} has connected to Discord!')
 
@@ -68,16 +66,12 @@ async def cmd(ctx, arg):
 		await ctx.send('`'+txt+'`')
 	await ctx.message.add_reaction(emoji_check)
 	
-@bot.command(name='test', help='Réservé à GuiOn Ensai')
-@commands.check(is_owner)
-async def test(ctx):
-	await ctx.message.add_reaction(emoji_thumb)
-
-	for char in '0123456789 \xa0':
-		await ctx.send('|'+char*20+'|')
-		await ctx.send('|'+pad_txt2(char*20)+'|')
-		await ctx.send(pad_txt2('|'+char*20+'|'))
-	await ctx.message.add_reaction(emoji_check)
+#@bot.command(name='test', help='Réservé à GuiOn Ensai')
+#@commands.check(is_owner)
+#async def test(ctx, allycode, team):
+#	await ctx.message.add_reaction(emoji_thumb)
+#
+#	await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='gt', help='Compare 2 guildes pour la GT')
 async def gt(ctx, allycode, op_alycode):
@@ -121,12 +115,15 @@ async def vdp(ctx):
 	#Lecture du statut des pelotons sur warstats
 	tbs_phase, dict_platoons_done = parse_warstats_page()
 
+	#Recuperation des dernieres donnees sur gdrive
+	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name]]
+
 	if tbs_phase=='':
 		await ctx.send('Aucune TBS en cours')
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		print('Lecture terminée du statut TB sur warstats: phase '+tbs_phase)
-		bt_channel=bot.get_channel(719211688166948914)
+		bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
 		dict_platoons_allocation={} #key=platton_name, value={key=perso, value=[player...]}
 		async for message in bt_channel.history(limit=200):
 			if str(message.author)=='EchoStation#0000':
@@ -176,7 +173,10 @@ async def vdp(ctx):
 							if perso in dict_platoons_allocation[platoon_name]:
 								for allocated_player in dict_platoons_allocation[platoon_name][perso]:
 									if not allocated_player in dict_platoons_done[platoon_name][perso]:
-										await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name)
+										if allocated_player in dict_players:
+											await ctx.send('**'+allocated_player+'** (@'+dict_players[allocated_player]+') n\'a pas affecté '+perso+' en '+platoon_name)											
+										else:
+											await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name)
 							else:
 								await ctx.send('ERR: '+perso+' n\'a pas été affecté')
 								print('ERR: '+perso+' n\'a pas été affecté')
