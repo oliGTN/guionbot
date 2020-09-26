@@ -150,25 +150,21 @@ def load_player(allycode):
 	
 def load_guild(allycode, load_players):
 	is_error=False
-	try:
-		f = open('CACHE'+os.path.sep+'G'+allycode+'.json', 'r')
-		sys.stderr.write('>Loading guild data for allycode '+allycode+'...\n')
-		ret_guild = json.load(f)
+	
+	#rechargement systématique des infos de guilde (liste des membres)
+	sys.stderr.write('>Requesting guild data for allycode '+allycode+'...\n')
+	client_data=client.get_data('guild', allycode)
+	if isinstance(client_data, dict):
+		#error code
+		ret_guild=str(client)
+		sys.stderr.write('ERR: '+ret_guild+'\n')
+		is_error=True
+	else: #list
+		ret_guild=client_data[0]
+		f = open('CACHE'+os.path.sep+'G'+allycode+'.json', 'w')
+		f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
+		sys.stderr.write('Guild found: '+ret_guild['name']+'\n')
 		f.close()
-	except IOError:
-		sys.stderr.write('>Requesting guild data for allycode '+allycode+'...\n')
-		client_data=client.get_data('guild', allycode)
-		if isinstance(client_data, dict):
-			#error code
-			ret_guild=str(client)
-			sys.stderr.write('ERR: '+ret_guild+'\n')
-			is_error=True
-		else: #list
-			ret_guild=client_data[0]
-			f = open('CACHE'+os.path.sep+'G'+allycode+'.json', 'w')
-			f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
-			sys.stderr.write('Guild found: '+ret_guild['name']+'\n')
-			f.close()
 	
 	if load_players and not is_error:
 		#add player data after saving the guild in json
