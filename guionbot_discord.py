@@ -7,7 +7,7 @@ import time
 import re
 from discord.ext import commands
 from discord import Embed
-from go import function_gt, function_gtt, split_txt, refresh_cache, stats_cache, load_guild, pad_txt2
+from go import function_gt, function_gtt, split_txt, refresh_cache, stats_cache, load_guild, assign_bt
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
 
@@ -68,13 +68,13 @@ async def cmd(ctx, arg):
 	
 # @bot.command(name='test', help='Réservé à GuiOn Ensai')
 # @commands.check(is_owner)
-# async def test(ctx, allycode, team):
+# async def test(ctx, allycode):
 	# await ctx.message.add_reaction(emoji_thumb)
 
 	# if allycode=='KL':
 		# allycode='189341793'
 			
-	# ret_cmd=function_gtt(allycode, team)
+	# ret_cmd=assign_bt(allycode)
 	# if ret_cmd[0:3]=='ERR':
 		# await ctx.send(ret_cmd)
 		# await ctx.message.add_reaction(emoji_error)
@@ -108,8 +108,46 @@ async def gtt(ctx, allycode, team):
 
 	if allycode=='KL':
 		allycode='189341793'
+	
+	ret_cmd=function_gtt(allycode, [team], 1, False)[team]
+	if ret_cmd[0:3]=='ERR':
+		await ctx.send(ret_cmd)
+		await ctx.message.add_reaction(emoji_error)
+	else:
+		#texte classique
+		for txt in split_txt(ret_cmd, 1000):
+			await ctx.send(txt)
 			
-	ret_cmd=function_gtt(allycode, team)
+		#Icône de confirmation de fin de commande dans le message d'origine
+		await ctx.message.add_reaction(emoji_check)
+
+@bot.command(name='gtt2', help="Liste la dispo d'une team dans la guilde avecle calcul utlisé pourla commande agt")
+async def gtt2(ctx, allycode, team):
+	await ctx.message.add_reaction(emoji_thumb)
+
+	if allycode=='KL':
+		allycode='189341793'
+	
+	ret_cmd=function_gtt(allycode, [team], 3, False)[team]
+	if ret_cmd[0:3]=='ERR':
+		await ctx.send(ret_cmd)
+		await ctx.message.add_reaction(emoji_error)
+	else:
+		#texte classique
+		for txt in split_txt(ret_cmd, 1000):
+			await ctx.send(txt)
+			
+		#Icône de confirmation de fin de commande dans le message d'origine
+		await ctx.message.add_reaction(emoji_check)
+
+@bot.command(name='agt', help="Assign les équipes par territoire en BT")
+async def agtX(ctx, allycode):
+	await ctx.message.add_reaction(emoji_thumb)
+
+	if allycode=='KL':
+		allycode='189341793'
+			
+	ret_cmd=assign_bt(allycode, False)
 	if ret_cmd[0:3]=='ERR':
 		await ctx.send(ret_cmd)
 		await ctx.message.add_reaction(emoji_error)

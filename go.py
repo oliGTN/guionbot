@@ -4,7 +4,7 @@ import json
 import time
 import os
 from math import ceil
-from connect_gsheets import load_config_teams, load_config_players
+from connect_gsheets import load_config_teams, load_config_players, load_config_bt
 
 creds = settings('GuiOnEnsai','4yj6GfUSezVjPJKSKpR8','123','abc')
 client = SWGOHhelp(creds)
@@ -559,8 +559,15 @@ def pad_txt2(txt):
 
 	return ret_pad_txt
 
-def function_gtt(txt_allycode, character_name):
-	ret_function_gtt=''
+def function_gtt(txt_allycode, list_team_names, score_type, txt_mode):
+	#score_type :
+	#   1 : de 0 à 100% en fonction de [étoiles, gear, zetas].
+	#       Affichage d'une icpne verte (100%), orange (>=80%) ou rouge
+	#   2 : score = (2^^gear + 2^^relic)*vitesse
+	#       Affichage du score
+	#   3 : score = gp*vitesse/vitesse_requise
+	#       Affichage du score
+	ret_function_gtt={}
 
 	my_allycode=txt_allycode
 
@@ -568,148 +575,216 @@ def function_gtt(txt_allycode, character_name):
 	liste_team_gt, dict_team_gt=load_config_teams()
 	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name]]
 	
-	if character_name in dict_team_gt:
-		objectifs=dict_team_gt[character_name]
-		#print(objectifs)
-	else:
-		return 'ERREUR: team '+character_name+' inconnue. Liste='+str(liste_team_gt)	
-	
 	#Get data for my guild
 	guild = load_guild(my_allycode, True)
 	if isinstance(guild, str):
 		#error wile loading guild data
 		return 'ERREUR: guilde non trouvée pour code allié '+my_allycode
-	
-	nb_levels=len(objectifs)
-	#print('DBG: nb_levels='+str(nb_levels))
-	
-	#Affichage des prérequis
-	ret_function_gtt+='**Team: '+character_name+'**\n'
-	for i_level in range(0,nb_levels):
-		#print('DBG: i_level='+str(i_level))
-		#print('DBG: obj='+str(objectifs[i_level]))
-		nb_sub_obj=len(objectifs[i_level][2])
-		#print('DBG: nb_sub_obj='+str(nb_sub_obj))
-		ret_function_gtt+='**'+objectifs[i_level][0]+'**\n'
-		for i_sub_obj in range(0, nb_sub_obj):
-			for perso in objectifs[i_level][2]:
-				if objectifs[i_level][2][perso][0] == i_sub_obj+1:
-					perso_rarity=objectifs[i_level][2][perso][1]
-					perso_gear=objectifs[i_level][2][perso][2]
-					perso_zetas=objectifs[i_level][2][perso][3]
-					ret_function_gtt+='**'+objectifs[i_level][0][0]+str(i_sub_obj+1)+'**: '+perso+' ('+str(perso_rarity)+'*, G'+str(perso_gear)+', zetas='+str(perso_zetas)+')\n'
 
-	#ligne d'entete
-	list_player_names=[(lambda x:x['name'])(x) for x in guild['roster']]
-	ret_function_gtt+='\n'
-	for i_level in range(0,nb_levels):
-		nb_sub_obj=len(objectifs[i_level][2])
-		#print('DBG: nb_sub_obj='+str(nb_sub_obj))
-		for i_sub_obj in range(0, nb_sub_obj):
-			#print('DBG:'+str(objectifs[i_level][0][0]+str(i_sub_obj)))
-			nom_sub_obj=objectifs[i_level][0][0]+str(i_sub_obj+1)
-			ret_function_gtt+=pad_txt2(nom_sub_obj+'    ')+'|'
-			
-	ret_function_gtt+='GLOB|Joueur\n'
-	
-	#resultats par joueur
-	tab_lines=[]
-	for player in guild['roster']:
-		line=''
-		#print('DBG: '+player['name'])
-		
-		#INIT tableau des resultats
-		tab_progress_player=[[] for i in range(nb_levels)]
-		for i_level in range(0,nb_levels):
-			nb_sub_obj=len(objectifs[i_level][2])
-			tab_progress_player[i_level]=[[0, '.     '] for i in range(nb_sub_obj)]
-		
-		#boucle sur les persos du joueur
-		for character in player['dict_player']['roster']:
-			for i_level in range(0,nb_levels):				
-				dict_perso_objectif=objectifs[i_level][2]
-
-				progress=0
-				progress_100=0
-				#print(character['nameKey'])
-				#print(dict_perso_objectif)
-				if character['nameKey'] in dict_perso_objectif:
-					perso=character['nameKey']
-					i_sub_obj=dict_perso_objectif[perso][0]
-					#print(dict_perso_objectif[perso])
-					req_rarity=dict_perso_objectif[perso][1]
-					player_rarity=character['rarity']
-					if req_rarity != -1:
-						progress_100=progress_100+1
-						progress=progress+min(1, player_rarity/req_rarity)
-						
-					req_gear=dict_perso_objectif[perso][2]
-					player_gear=character['gear']
-					if req_gear != -1:
-						progress_100=progress_100+1
-						progress=progress+min(1, player_gear/req_gear)
-					
-					req_zetas=dict_perso_objectif[perso][3]
-					player_nb_zetas=0
-					progress_100+=len(req_zetas)
-					for skill in character['skills']:
-						if skill['nameKey'] in req_zetas:
-							if skill['tier'] == 8:
-								player_nb_zetas+=1
-								progress+=1
-							
-					tab_progress_player[i_level][i_sub_obj-1][0] = progress/progress_100
-					tab_progress_player[i_level][i_sub_obj-1][1] = str(player_rarity)+'.'+"{:02d}".format(player_gear)+'.'+str(player_nb_zetas)
-					#print('DBG: '+character['defId']+':'+str(tab_progress_player))
-		
-		#print(tab_progress_player)
-		progress=0
-		progress100=0
-		progress_nogo=False
-		for i_level in range(0,nb_levels):
-			nb_sub_obj=len(objectifs[i_level][2])
-			for i_sub_obj in range(0, nb_sub_obj):
-				tab_progress_sub_obj=tab_progress_player[i_level][i_sub_obj]
-				#print('DBG: '+str(tab_progress_sub_obj))
-				#line+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
-				if tab_progress_sub_obj[0] == 1:
-					line+='**'+pad_txt2(tab_progress_sub_obj[1])+'**|'
-				else:
-					line+=pad_txt2(tab_progress_sub_obj[1])+'|'
-					
-			min_perso = objectifs[i_level][1]
-			#print('DBG: '+str(tab_progress_player[i_level]))
-			tab_progress_player_values=[(lambda f:f[0])(x) for x in tab_progress_player[i_level]]
-			progress+=sum(sorted(tab_progress_player_values)[-min_perso:])
-			progress100+=min_perso
-			if 0.0 in sorted(tab_progress_player_values)[-min_perso:]:
-				progress_nogo=True
-			
-		if progress_nogo:
-			global_progress=0
-			line+='\N{CROSS MARK}'
+	for team_name in list_team_names:
+		ret_team=''
+		if not team_name in dict_team_gt:
+			ret_function_gtt[team_name]='ERREUR: team '+team_name+' inconnue. Liste='+str(liste_team_gt)	
 		else:
-			global_progress=int(progress/progress100*100)
-			if global_progress==100:
-				line+='\N{GREEN HEART}'
-			elif global_progress>=80:
-				line+='\N{LARGE ORANGE DIAMOND}'
-			else:
-				line+='\N{CROSS MARK}'
-
-		if player['name'] in dict_players:
-			if dict_players[player['name']][2] != '':
-				line+='|'+player['name']+' <@'+str(dict_players[player['name']][2])+'>\n'
-			else: #pas de pseudo discord
-				line+='|'+player['name']+'\n'
-		else: #joueur non-défini dans gsheets
-			line+='|'+player['name']+'\n'
-
-		tab_lines.append([global_progress, line])
-		
-	for progress, txt in sorted(tab_lines, reverse=True):
-		ret_function_gtt+=txt
+			objectifs=dict_team_gt[team_name]
+			#print(objectifs)
 	
+			nb_levels=len(objectifs)
+			#print('DBG: nb_levels='+str(nb_levels))
+			
+			#Affichage des prérequis
+			ret_team+='**Team: '+team_name+'**\n'
+			for i_level in range(0,nb_levels):
+				#print('DBG: i_level='+str(i_level))
+				#print('DBG: obj='+str(objectifs[i_level]))
+				nb_sub_obj=len(objectifs[i_level][2])
+				#print('DBG: nb_sub_obj='+str(nb_sub_obj))
+				ret_team+='**'+objectifs[i_level][0]+'**\n'
+				for i_sub_obj in range(0, nb_sub_obj):
+					for perso in objectifs[i_level][2]:
+						if objectifs[i_level][2][perso][0] == i_sub_obj+1:
+							perso_rarity=objectifs[i_level][2][perso][1]
+							perso_gear=objectifs[i_level][2][perso][2]
+							perso_zetas=objectifs[i_level][2][perso][3]
+							ret_team+='**'+objectifs[i_level][0][0]+str(i_sub_obj+1)+'**: '+perso+' ('+str(perso_rarity)+', G'+str(perso_gear)+', zetas='+str(perso_zetas)+')\n'
+
+			#ligne d'entete
+			#list_player_names=[(lambda x:x['name'])(x) for x in guild['roster']]
+			ret_team+='\n'
+			for i_level in range(0,nb_levels):
+				nb_sub_obj=len(objectifs[i_level][2])
+				#print('DBG: nb_sub_obj='+str(nb_sub_obj))
+				for i_sub_obj in range(0, nb_sub_obj):
+					#print('DBG:'+str(objectifs[i_level][0][0]+str(i_sub_obj)))
+					if score_type==1:
+						nom_sub_obj=pad_txt(objectifs[i_level][0][0]+str(i_sub_obj+1), 6)
+					elif score_type==2:
+						nom_sub_obj=pad_txt(objectifs[i_level][0][0]+str(i_sub_obj+1), 10)
+					else:
+						nom_sub_obj=pad_txt(objectifs[i_level][0][0]+str(i_sub_obj+1), 10)
+					if txt_mode:
+						ret_team+=nom_sub_obj+'|'
+					else:
+						ret_team+=pad_txt2(nom_sub_obj)+'|'
+					
+			ret_team+='GLOB|Joueur\n'
+			
+			#resultats par joueur
+			tab_lines=[]
+			for player in guild['roster']:
+				line=''
+				#print('DBG: '+player['name'])
+				
+				#INIT tableau des resultats
+				tab_progress_player=[[] for i in range(nb_levels)]
+				for i_level in range(0,nb_levels):
+					nb_sub_obj=len(objectifs[i_level][2])
+					if score_type==1:
+						tab_progress_player[i_level]=[[0, '.     ', 0] for i in range(nb_sub_obj)]
+					elif score_type==2:
+						tab_progress_player[i_level]=[[0, '.         ', 0] for i in range(nb_sub_obj)]
+					else: #score_type==3
+						tab_progress_player[i_level]=[[0, '.         ', 0] for i in range(nb_sub_obj)]
+				
+				#boucle sur les persos du joueur
+				for character in player['dict_player']['roster']:
+					for i_level in range(0,nb_levels):				
+						dict_perso_objectif=objectifs[i_level][2]
+
+						progress=0
+						progress_100=0
+						#print(character['nameKey'])
+						#print(dict_perso_objectif)
+						if character['nameKey'] in dict_perso_objectif:
+							perso=character['nameKey']
+							i_sub_obj=dict_perso_objectif[perso][0]
+							#print(dict_perso_objectif[perso])
+							req_rarity=dict_perso_objectif[perso][1]
+							player_rarity=character['rarity']
+							if req_rarity != '':
+								progress_100=progress_100+1
+								progress=progress+min(1, player_rarity/req_rarity)
+								
+							req_gear=dict_perso_objectif[perso][2]
+							player_gear=character['gear']
+							if req_gear != '':
+								progress_100=progress_100+1
+								progress=progress+min(1, player_gear/req_gear)
+								
+							if player_gear<13:
+								player_relic=0
+							else:
+								player_relic=character['relic']['currentTier']-2
+							
+							req_zetas=dict_perso_objectif[perso][3]
+							player_nb_zetas=0
+							progress_100+=len(req_zetas)
+							for skill in character['skills']:
+								if skill['nameKey'] in req_zetas:
+									if skill['tier'] == 8:
+										player_nb_zetas+=1
+										progress+=1
+							
+							player_speed=character_speed(character)
+							req_speed=dict_perso_objectif[perso][4]
+							if req_speed != '':
+								progress_100=progress_100+1
+								progress=progress+min(1, player_speed/req_speed)
+							
+							player_gp=character['gp']
+							
+							tab_progress_player[i_level][i_sub_obj-1][1] = str(player_rarity)
+							if player_gear<13:
+								tab_progress_player[i_level][i_sub_obj-1][1]+='.'+"{:02d}".format(player_gear)
+							else:
+								tab_progress_player[i_level][i_sub_obj-1][1]+='.R'+str(player_relic)
+							tab_progress_player[i_level][i_sub_obj-1][1]+='.'+str(player_nb_zetas)
+							
+							if score_type==1:
+								tab_progress_player[i_level][i_sub_obj-1][0] = progress/progress_100
+							elif score_type==2:
+								if player_rarity<req_rarity or player_gear<req_gear or player_nb_zetas<len(req_zetas):
+									tab_progress_player[i_level][i_sub_obj-1][0] = 0
+								else:
+									tab_progress_player[i_level][i_sub_obj-1][0] = (2**player_gear+2**player_relic)*player_speed
+								tab_progress_player[i_level][i_sub_obj-1][1]+='.'+"{:03d}".format(player_speed)
+							else: #score_type==3
+								if player_rarity<req_rarity or player_gear<req_gear or player_nb_zetas<len(req_zetas):
+									tab_progress_player[i_level][i_sub_obj-1][0] = 0
+								else:
+									if req_speed=='':
+										req_speed=player_speed
+									tab_progress_player[i_level][i_sub_obj-1][0] = int(player_gp*player_speed/req_speed)
+								tab_progress_player[i_level][i_sub_obj-1][1]+='.'+"{:03d}".format(player_speed)
+				
+				score=0
+				score100=0
+				score_nogo=False
+				for i_level in range(0,nb_levels):
+					nb_sub_obj=len(objectifs[i_level][2])
+					for i_sub_obj in range(0, nb_sub_obj):
+						tab_progress_sub_obj=tab_progress_player[i_level][i_sub_obj]
+						#print('DBG: '+str(tab_progress_sub_obj))
+						#line+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
+						if score_type == 1 and tab_progress_sub_obj[0] == 1:
+							if txt_mode:
+								line+=tab_progress_sub_obj[1]+'|'
+							else:
+								line+='**'+pad_txt2(tab_progress_sub_obj[1])+'**|'
+						elif score_type != 1 and tab_progress_sub_obj[0] != 0:
+							if txt_mode:
+								line+=tab_progress_sub_obj[1]+'|'
+							else:
+								line+='**'+pad_txt2(tab_progress_sub_obj[1])+'**|'
+						else:
+							if txt_mode:
+								line+=tab_progress_sub_obj[1]+'|'
+							else:
+								line+=pad_txt2(tab_progress_sub_obj[1])+'|'
+							
+					min_perso = objectifs[i_level][1]
+					#print('DBG: '+str(tab_progress_player[i_level]))
+					tab_score_player_values=[(lambda f:f[0])(x) for x in tab_progress_player[i_level]]
+					score+=sum(sorted(tab_score_player_values)[-min_perso:])
+					score100+=min_perso
+					
+					if 0.0 in sorted(tab_score_player_values)[-min_perso:]:
+						score_nogo=True
+					
+				#pourcentage sur la moyenne
+				if score_type == 1:
+					score = score/score100*100
+
+				if score_type==1:
+					line+=str(int(score))
+					if score_nogo:
+						line+='\N{CROSS MARK}'
+					elif score==100:
+						line+='\N{GREEN HEART}'
+					elif score>=80:
+						line+='\N{LARGE ORANGE DIAMOND}'
+					else:
+						line+='\N{CROSS MARK}'
+				else:
+					if score_nogo:
+						line+='0'
+					else:
+						line+=str(score)
+
+				if player['name'] in dict_players:
+					if txt_mode: # mode texte, pas de @ discord
+						line+='|'+player['name']+'\n'
+					else:
+						line+='|'+dict_players[player['name']][2]+'\n'
+				else: #joueur non-défini dans gsheets
+					line+='|'+player['name']+'\n'
+
+				tab_lines.append([score, line])
+				
+			for progress, txt in sorted(tab_lines, reverse=True):
+				ret_team+=txt
+				
+			ret_function_gtt[team_name]=ret_team
 	
 	return ret_function_gtt
 
@@ -731,6 +806,108 @@ def split_txt(txt, max_size):
 	
 	return ret_split_txt
 	
+def character_speed(dict_character):
+	equipment_stats = json.load(open('equipment_stats.json', 'r'))
+	units_stats = json.load(open('units_stats.json', 'r'))
+
+	#print('==============\n'+dict_character['nameKey'])
+	base_speed=units_stats[dict_character['defId']][dict_character['gear']-1]
+	#print('base: '+str(base_speed))
+	#print(dict_character['equipped'])
+	
+	eqpt_speed=0
+	for eqpt in dict_character['equipped']:
+		eqpt_speed+=equipment_stats[eqpt['equipmentId']]
+		#print('eqpt '+str(eqpt['equipmentId'])+': '+str(equipment_stats[eqpt['equipmentId']]))
+	
+	total_speed_mods=0
+	all_speed_mods_level15=True
+	mod_speed=0
+	for mod in dict_character['mods']:
+		#print(mod)
+		if mod['set']==4:
+			total_speed_mods+=1
+			if mod['level']<15:
+				all_speed_mods_level15=False
+			#print('total_speed_mods '+str(total_speed_mods))
+			
+		if mod['primaryStat']['unitStat']==5:
+			mod_speed+=mod['primaryStat']['value']
+			#print('mod primary: '+str(mod['primaryStat']['value']))
+		for secondary in mod['secondaryStat']:
+			if secondary['unitStat']==5:
+				mod_speed+=secondary['value']
+				#print('mod secondary: '+str(secondary['value']))
+				
+	if total_speed_mods<4:
+		total_speed=base_speed+eqpt_speed+mod_speed
+	else:
+		if all_speed_mods_level15:
+			total_speed=int(base_speed*1.10)+eqpt_speed+mod_speed
+		else:
+			total_speed=int(base_speed*1.05)+eqpt_speed+mod_speed
+			
+	return total_speed
+
+def assign_bt(allycode, txt_mode):
+	ret_assign_bt=''
+
+	dict_players=load_config_players() # {key=IG name, value=[allycode, display name]]
+
+	liste_territoires=load_config_bt() # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
+	liste_team_names=[]
+	for territoire in liste_territoires:
+		for team in territoire[1]:
+			liste_team_names.append(team[0])
+	liste_team_names=[x for x in set(liste_team_names)]
+	#print(liste_team_names)
+	
+	#Calcule des meilleures joueurs pour chaque team
+	dict_teams_gtt=function_gtt(allycode, liste_team_names, 3, True)
+	if type(dict_teams_gtt)==str:
+		return dict_teams_gtt
+	else:
+		for team in dict_teams_gtt:
+			dict_teams_gtt[team]=dict_teams_gtt[team].split('\n')
+	
+	for priorite in liste_territoires:
+		nom_territoire=priorite[0]
+		for team in priorite[1]:
+			ret_function_gtt=dict_teams_gtt[team[0]]
+			#print(ret_function_gtt)
+			if ret_function_gtt[0][0:3]=="ERR":
+				ret_assign_bt+=nom_territoire+': **WARNING** team inconnue '+team[0]+'\n'
+			else:
+				req_nombre=team[1]
+				req_score=team[2]
+				nb_joueurs_selectionnes=0
+				copy_ret_function_gtt=[x for x in ret_function_gtt]
+				for ligne in copy_ret_function_gtt:
+					tab_joueur=ligne.split('|')
+					if len(tab_joueur)>1 and tab_joueur[-1]!='Joueur':
+						#print(tab_joueur)
+						nom_joueur=tab_joueur[-1]
+						score_joueur=int(tab_joueur[-2])
+						if score_joueur>=req_score:
+							if req_nombre=='' or nb_joueurs_selectionnes<req_nombre:
+								nb_joueurs_selectionnes+=1
+								ret_assign_bt+=nom_territoire+': '
+								if nom_joueur in dict_players and not txt_mode:
+									ret_assign_bt+=dict_players[nom_joueur][2]
+								else: #joueur non-défini dans gsheets ou mode texte
+									ret_assign_bt+=nom_joueur
+								ret_assign_bt+=' doit placer sa team '+team[0]+'\n'
+								ret_function_gtt.remove(ligne)
+
+				if req_nombre!='' and nb_joueurs_selectionnes<req_nombre:
+					ret_assign_bt+=nom_territoire+': **WARNING** pas assez de team '+team[0]+'\n'
+	
+			ret_assign_bt+='\n'
+			
+	return ret_assign_bt
+	
+	
+	
 def print_help():
 	print('Commande inconnue')
 	print(sys.argv[0]+' gt <allycode> <opponent allycode>')
@@ -745,7 +922,7 @@ if len(sys.argv)>1:
 			print(txt)
 		
 	elif cmd=='gtt':
-		print(function_gtt(sys.argv[2], sys.argv[3]))
+		print(function_gtt(sys.argv[2], [sys.argv[3]], int(sys.argv[4]), True)[sys.argv[3]])
 
 	elif cmd=='ct':
 		## CHARACTER TABLE ##
@@ -754,6 +931,10 @@ if len(sys.argv)>1:
 	elif cmd=='gv':
 		## GUIDE de VOYAGE ##
 		print(function_gv(sys.argv[2], sys.argv[3]))
+			
+	elif cmd=='agt':
+		## Check Speed ##
+		print(assign_bt(sys.argv[2], True))
 			
 	else:
 		print_help()
