@@ -7,7 +7,7 @@ import time
 import re
 from discord.ext import commands
 from discord import Embed
-from go import function_gt, function_gtt, split_txt, refresh_cache, stats_cache, load_guild, assign_bt
+from go import function_gt, guild_team, player_team, split_txt, refresh_cache, stats_cache, load_guild, assign_bt
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
 
@@ -102,14 +102,14 @@ async def gt(ctx, allycode, op_alycode):
 			await ctx.send('`'+txt+'`')
 		await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='gtt', help="Liste la dispo d'une team dans la guilde")
-async def gtt(ctx, allycode, team):
+@bot.command(name='vtg', help="Vérifie la dispo d'une team dans la guilde")
+async def vtg(ctx, allycode, team):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	if allycode=='KL':
 		allycode='189341793'
 	
-	ret_cmd=function_gtt(allycode, [team], 1, False)[team]
+	ret_cmd=guild_team(allycode, [team], 1, False)[team]
 	if ret_cmd[0:3]=='ERR':
 		await ctx.send(ret_cmd)
 		await ctx.message.add_reaction(emoji_error)
@@ -121,14 +121,27 @@ async def gtt(ctx, allycode, team):
 		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='gtt2', help="Liste la dispo d'une team dans la guilde avecle calcul utlisé pourla commande agt")
-async def gtt2(ctx, allycode, team):
+@bot.command(name='vtj', help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
+async def vtj(ctx, allycode, *teams):
+	await ctx.message.add_reaction(emoji_thumb)
+	
+	ret_cmd=player_team(allycode, teams, 1, False)
+	for team in ret_cmd:
+		txt_team=ret_cmd[team]
+		for txt in split_txt(txt_team, 1000):
+			await ctx.send(txt)
+		
+	#Icône de confirmation de fin de commande dans le message d'origine
+	await ctx.message.add_reaction(emoji_check)
+
+@bot.command(name='vtg2', help="Comme vtg mais avec un autre scoring utilisé pour agt")
+async def vtg2(ctx, allycode, team):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	if allycode=='KL':
 		allycode='189341793'
 	
-	ret_cmd=function_gtt(allycode, [team], 3, False)[team]
+	ret_cmd=guild_team(allycode, [team], 3, False)[team]
 	if ret_cmd[0:3]=='ERR':
 		await ctx.send(ret_cmd)
 		await ctx.message.add_reaction(emoji_error)
@@ -140,8 +153,8 @@ async def gtt2(ctx, allycode, team):
 		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='agt', help="Assign les équipes par territoire en BT")
-async def agtX(ctx, allycode):
+@bot.command(name='agt', help="Assigne les équipes par territoire en BT")
+async def agt(ctx, allycode):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	if allycode=='KL':
