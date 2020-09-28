@@ -235,7 +235,7 @@ async def vdp(ctx):
 										alternative_allocation=''
 										if allocated_player in dict_player_allocations:
 											if perso in dict_player_allocations[allocated_player]:
-												alternative_allocation=" *(mais il l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
+												alternative_allocation=" *(mais l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
 
 										if allocated_player in dict_players:
 											await ctx.send('**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)																				
