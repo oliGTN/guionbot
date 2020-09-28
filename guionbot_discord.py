@@ -177,7 +177,7 @@ async def vdp(ctx):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	#Lecture du statut des pelotons sur warstats
-	tbs_phase, dict_platoons_done = parse_warstats_page()
+	tbs_phase, dict_platoons_done, dict_player_allocations = parse_warstats_page()
 	
 	#Recuperation des dernieres donnees sur gdrive
 	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name, discord id]]
@@ -187,6 +187,8 @@ async def vdp(ctx):
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		print('Lecture terminée du statut BT sur warstats: phase '+tbs_phase)
+		
+		# Lecture des affectation ECHOBOT
 		bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
 		dict_platoons_allocation={} #key=platton_name, value={key=perso, value=[player...]}
 		async for message in bt_channel.history(limit=200):
@@ -204,7 +206,7 @@ async def vdp(ctx):
 						dict_embed=embed.to_dict()
 						if 'fields' in dict_embed:
 							#print(dict_embed)
-							platoon_name=tbs_phase+':'+position_territoire+':'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
+							platoon_name=tbs_phase+'-'+position_territoire+'-'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
 							for dict_perso in dict_embed['fields']:
 								for perso in dict_perso['value'].split('\n'):
 									char_name=perso[1:-1]
@@ -222,19 +224,26 @@ async def vdp(ctx):
 			#Recherche des persos non-affectés
 			#print(dict_platoons_done)
 			#print(dict_platoons_allocation)
+			#print(dict_player_allocations)
 			for platoon_name in dict_platoons_done:
 				for perso in dict_platoons_done[platoon_name]:
 					if '' in dict_platoons_done[platoon_name][perso]:
 						if platoon_name in dict_platoons_allocation:
 							#print (platoon_name+': '+perso)
 							#print(dict_platoons_allocation[platoon_name])
+							#print(dict_platoons_allocation[platoon_name])
 							if perso in dict_platoons_allocation[platoon_name]:
 								for allocated_player in dict_platoons_allocation[platoon_name][perso]:
 									if not allocated_player in dict_platoons_done[platoon_name][perso]:
+										alternative_allocation=''
+										if allocated_player in dict_player_allocations:
+											if perso in dict_player_allocations[allocated_player]:
+												alternative_allocation=" *(mais il l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
+
 										if allocated_player in dict_players:
-											await ctx.send('**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name)																				
+											await ctx.send('**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)																				
 										else: #joueur non-défini dans gsheets, on l'affiche quand même
-											await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name)
+											await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
 							else:
 								await ctx.send('ERR: '+perso+' n\'a pas été affecté')
 								print('ERR: '+perso+' n\'a pas été affecté')

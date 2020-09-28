@@ -147,6 +147,7 @@ dict_platoon_names['GDS1']['B']='bottom'
 
 class TBSPhaseParser(HTMLParser):
 	dict_platoons={} #key="A1" to "C6", value={} key=perso, value=[player, ...]
+	dict_player_allocations={} #key=player, value={ key=perso, value=platoon}
 	platoon_name=''
 	char_name=''
 	player_name=''
@@ -202,7 +203,7 @@ class TBSPhaseParser(HTMLParser):
 					if name=='class' and value=='card platoon':
 						self.state_parser=4
 					if name=='id' and self.state_parser==4:
-						self.platoon_name=self.current_phase+':'+dict_platoon_names[self.current_phase][value[-2:-1]]+':'+value[-1]
+						self.platoon_name=self.current_phase+'-'+dict_platoon_names[self.current_phase][value[-2:-1]]+'-'+value[-1]
 						self.state_parser=5
 						
 		if self.state_parser==5:
@@ -269,15 +270,28 @@ class TBSPhaseParser(HTMLParser):
 			if self.char_name in dict_noms_warstats:
 				self.char_name=dict_noms_warstats[self.char_name]
 			#print(self.platoon_name+': '+self.char_name+' > '+self.player_name)
+			
+			#remplissage dict_platoons
 			if not self.platoon_name in self.dict_platoons:
 				self.dict_platoons[self.platoon_name]={}
 			if not self.char_name in self.dict_platoons[self.platoon_name]:
 				self.dict_platoons[self.platoon_name][self.char_name]=[]
 			self.dict_platoons[self.platoon_name][self.char_name].append(self.player_name)
+			
+			#remplissage dict_player_allocations
+			if not self.player_name in self.dict_player_allocations:
+				self.dict_player_allocations[self.player_name]={}
+			if not self.char_name in self.dict_player_allocations[self.player_name]:
+				self.dict_player_allocations[self.player_name][self.char_name]=[]
+			self.dict_player_allocations[self.player_name][self.char_name]=self.platoon_name
+			
 			self.state_parser=5
 
 	def get_dict_platoons(self):
 		return self.dict_platoons
+
+	def get_dict_player_allocations(self):
+		return self.dict_player_allocations
 
 	def get_phase(self):
 		return self.current_phase
@@ -341,4 +355,4 @@ def parse_warstats_page():
 	parser = TBSPhaseParser()
 	parser.feed(str(page.read()))
 
-	return parser.get_phase(), parser.get_dict_platoons()
+	return parser.get_phase(), parser.get_dict_platoons(), parser.get_dict_player_allocations()
