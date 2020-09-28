@@ -103,23 +103,20 @@ async def gt(ctx, allycode, op_alycode):
 		await ctx.message.add_reaction(emoji_check)
 
 @bot.command(name='vtg', help="Vérifie la dispo d'une team dans la guilde")
-async def vtg(ctx, allycode, team):
+async def vtg(ctx, allycode, *teams):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	if allycode=='KL':
 		allycode='189341793'
 	
-	ret_cmd=guild_team(allycode, [team], 1, False)[team]
-	if ret_cmd[0:3]=='ERR':
-		await ctx.send(ret_cmd)
-		await ctx.message.add_reaction(emoji_error)
-	else:
-		#texte classique
-		for txt in split_txt(ret_cmd, 1000):
+	ret_cmd=guild_team(allycode, teams, 1, False)
+	for team in ret_cmd:
+		txt_team=ret_cmd[team]
+		for txt in split_txt(txt_team, 1000):
 			await ctx.send(txt)
 			
-		#Icône de confirmation de fin de commande dans le message d'origine
-		await ctx.message.add_reaction(emoji_check)
+	#Icône de confirmation de fin de commande dans le message d'origine
+	await ctx.message.add_reaction(emoji_check)
 
 @bot.command(name='vtj', help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
 async def vtj(ctx, allycode, *teams):

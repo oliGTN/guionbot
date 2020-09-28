@@ -774,6 +774,8 @@ def guild_team(txt_allycode, list_team_names, score_type, txt_mode):
 		#error wile loading guild data
 		return 'ERREUR: guilde non trouvée pour code allié '+txt_allycode
 
+	if 'all' in list_team_names:
+		list_team_names=liste_team_gt
 	
 	for team_name in list_team_names:
 		ret_team=''
@@ -783,8 +785,11 @@ def guild_team(txt_allycode, list_team_names, score_type, txt_mode):
 			objectifs=dict_team_gt[team_name]
 			#print(objectifs)
 					
-			ret_team+=get_team_entete(team_name, objectifs, score_type, txt_mode)
-			
+			if len(list_team_names)==1:
+				ret_team+=get_team_entete(team_name, objectifs, score_type, txt_mode)
+			else:
+				ret_team+='Team '+team_name+'\n'
+				
 			#resultats par joueur
 			tab_lines=[]
 			for player in guild['roster']:
@@ -822,7 +827,10 @@ def player_team(txt_allycode, list_team_names, score_type, txt_mode):
 			objectifs=dict_team_gt[team_name]
 			#print(objectifs)
 					
-			ret_team+='Team '+team_name+'\n'
+			if len(list_team_names)==1:
+				ret_team+=get_team_entete(team_name, objectifs, score_type, txt_mode)
+			else:
+				ret_team+='Team '+team_name+'\n'
 			
 			#resultats par joueur
 			score, line=get_team_line_from_player(dict_player, objectifs, score_type, txt_mode, dict_player_discord)
