@@ -81,7 +81,7 @@ def load_config_players():
 		
 	return dict_players
 
-def load_config_bt():
+def load_config_gt():
 	global client
 	
 	if client == None:
@@ -92,7 +92,7 @@ def load_config_bt():
 		client = gspread.authorize(creds)
 
 	file = client.open("GuiOnBot config")
-	feuille=file.worksheet("BT")
+	feuille=file.worksheet("GT")
 
 	liste_dict_feuille=feuille.get_all_records()
 	liste_priorites=set([(lambda x:x['Priorité'])(x) for x in liste_dict_feuille])

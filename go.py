@@ -4,7 +4,7 @@ import json
 import time
 import os
 from math import ceil
-from connect_gsheets import load_config_teams, load_config_players, load_config_bt
+from connect_gsheets import load_config_teams, load_config_players, load_config_gt
 
 creds = settings('GuiOnEnsai','4yj6GfUSezVjPJKSKpR8','123','abc')
 client = SWGOHhelp(creds)
@@ -898,7 +898,7 @@ def assign_bt(allycode, txt_mode):
 
 	dict_players=load_config_players() # {key=IG name, value=[allycode, display name]]
 
-	liste_territoires=load_config_bt() # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
+	liste_territoires=load_config_gt() # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
 	liste_team_names=[]
 	for territoire in liste_territoires:
 		for team in territoire[1]:

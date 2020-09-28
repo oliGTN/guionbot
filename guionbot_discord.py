@@ -186,7 +186,7 @@ async def vdp(ctx):
 		await ctx.send('Aucune BT en cours')
 		await ctx.message.add_reaction(emoji_error)
 	else:
-		print('Lecture terminée du statut TB sur warstats: phase '+tbs_phase)
+		print('Lecture terminée du statut BT sur warstats: phase '+tbs_phase)
 		bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
 		dict_platoons_allocation={} #key=platton_name, value={key=perso, value=[player...]}
 		async for message in bt_channel.history(limit=200):
@@ -199,18 +199,12 @@ async def vdp(ctx):
 					
 				if message.content.startswith('```prolog'):
 					position_territoire=re.search('\((.*?)\)', message.content).group(1)
-					if position_territoire=='top':
-						position_territoire='A'
-					elif position_territoire=='mid':
-						position_territoire='B'
-					elif position_territoire=='bottom':
-						position_territoire='C'
 					
 					for embed in message.embeds:
 						dict_embed=embed.to_dict()
 						if 'fields' in dict_embed:
 							#print(dict_embed)
-							platoon_name=position_territoire+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
+							platoon_name=tbs_phase+':'+position_territoire+':'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
 							for dict_perso in dict_embed['fields']:
 								for perso in dict_perso['value'].split('\n'):
 									char_name=perso[1:-1]
@@ -220,7 +214,7 @@ async def vdp(ctx):
 										dict_platoons_allocation[platoon_name][char_name]=[]
 									dict_platoons_allocation[platoon_name][char_name].append(dict_perso['name'])
 		
-		if numero_phase!=tbs_phase:
+		if numero_phase!=tbs_phase[-1]:
 			await ctx.send('ERR: les phases ne sont pas identiques')
 			await ctx.message.add_reaction(emoji_error)
 		else:
@@ -238,12 +232,7 @@ async def vdp(ctx):
 								for allocated_player in dict_platoons_allocation[platoon_name][perso]:
 									if not allocated_player in dict_platoons_done[platoon_name][perso]:
 										if allocated_player in dict_players:
-											if dict_players[allocated_player][2]!='':
-												#joueur avec discord
-												await ctx.send('**'+allocated_player+'** (<@'+str(dict_players[allocated_player][2])+'>) n\'a pas affecté '+perso+' en '+platoon_name)																				
-											else:
-												#joueur sans discord
-												await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name)
+											await ctx.send('**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name)																				
 										else: #joueur non-défini dans gsheets, on l'affiche quand même
 											await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name)
 							else:

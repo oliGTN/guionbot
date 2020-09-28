@@ -139,13 +139,23 @@ dict_noms_warstats['Wedge Antilles\\\'s X-wing']='X-Wing de Wedge Antilles'
 dict_noms_warstats['Young Han Solo']='Han Solo jeune'
 dict_noms_warstats['Young Lando Calrissian']='Lando Calrissian jeune'
 
+dict_platoon_names={} #key=bataille + phase (ex "GDS1), value= {key=warstats letter, value=echobot position}
+dict_platoon_names['GDS1']={}
+dict_platoon_names['GDS1']['A']='top'
+dict_platoon_names['GDS1']['B']='bottom'
+
+
 class TBSPhaseParser(HTMLParser):
 	dict_platoons={} #key="A1" to "C6", value={} key=perso, value=[player, ...]
 	platoon_name=''
 	char_name=''
 	player_name=''
 	current_phase=''
-	state_parser=0
+	state_parser=-4
+	#-4: en recherche de h2
+	#-3: en recharche de data="Territory Battle"
+	#-2: en recherche de small
+	#-1: en recherche de data
 	#0: en recherche de div class=phases
 	#1: en recherche de i class="far fa-dot-circle red-text text-small"
 	#2: en recherche de a href
@@ -158,10 +168,19 @@ class TBSPhaseParser(HTMLParser):
 	#9: en recherche de data
 		
 	def handle_starttag(self, tag, attrs):
-		if tag=='div':
-			for name, value in attrs:
-				if name=='class' and value=='phases':
-					self.state_parser=1
+		if self.state_parser==-4:
+			if tag=='h2':
+				self.state_parser=-3
+						
+		if self.state_parser==-2:
+			if tag=='small':
+				self.state_parser=-1
+						
+		if self.state_parser==0:
+			if tag=='div':
+				for name, value in attrs:
+					if name=='class' and value=='phases':
+						self.state_parser=1
 		
 		if self.state_parser==1:
 			if tag=='i':
@@ -173,24 +192,26 @@ class TBSPhaseParser(HTMLParser):
 			if tag=='a':
 				for name, value in attrs:
 					if name=='href':
-						self.current_phase=value[-1]
-						#print('Phase '+self.current_phase)
+						self.current_phase+=value[-1]
+					if name=='class' and value=='active':
 						self.state_parser=3
 						
-		if tag=='div':
-			for name, value in attrs:
-				if name=='class' and value=='card platoon':
-					self.state_parser=4
-				if name=='id' and self.state_parser==4:
-					self.platoon_name=value[-2:]
-					self.state_parser=5
+		if self.state_parser==3 or self.state_parser==5:
+			if tag=='div':
+				for name, value in attrs:
+					if name=='class' and value=='card platoon':
+						self.state_parser=4
+					if name=='id' and self.state_parser==4:
+						self.platoon_name=self.current_phase+':'+dict_platoon_names[self.current_phase][value[-2:-1]]+':'+value[-1]
+						self.state_parser=5
 						
-		if tag=='div':
-			for name, value in attrs:
-				if name=='class' and value=='char filled':
-					self.state_parser=6
-				if name=='class' and value=='char':
-					self.state_parser=7
+		if self.state_parser==5:
+			if tag=='div':
+				for name, value in attrs:
+					if name=='class' and value=='char filled':
+						self.state_parser=6
+					if name=='class' and value=='char':
+						self.state_parser=7
 
 		if self.state_parser==6:
 			if tag=='img':
@@ -212,7 +233,7 @@ class TBSPhaseParser(HTMLParser):
 						if not self.char_name in self.dict_platoons[self.platoon_name]:
 							self.dict_platoons[self.platoon_name][self.char_name]=[]
 						self.dict_platoons[self.platoon_name][self.char_name].append('')
-						self.state_parser=4
+						self.state_parser=5
 
 		if self.state_parser==8:
 			if tag=='div':
@@ -221,6 +242,28 @@ class TBSPhaseParser(HTMLParser):
 						self.state_parser=9
 						
 	def handle_data(self, data):
+		if self.state_parser==-3:
+			#print(data)
+			if data == 'Territory Battle ':
+				self.state_parser=-2
+			else:
+				self.state_parser=-4
+				
+		if self.state_parser==-1:
+			#print(data)
+			if data == 'Geonosian - Dark side':
+				self.current_phase='GDS'
+			elif data == 'Geonosian - Light side':
+				self.current_phase='GLS'
+			elif data == 'Hoth - Dark side':
+				self.current_phase='HDS'
+			elif data == 'Hoth - Light side':
+				self.current_phase='HLS'
+			else:
+				print('ERR: BT inconnue: '+data)
+			
+			self.state_parser=0
+				
 		if self.state_parser==9:
 			self.player_name=data
 			if self.char_name in dict_noms_warstats:
