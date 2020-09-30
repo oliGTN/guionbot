@@ -143,6 +143,18 @@ dict_platoon_names={} #key=bataille + phase (ex "GDS1), value= {key=warstats let
 dict_platoon_names['GDS1']={}
 dict_platoon_names['GDS1']['A']='top'
 dict_platoon_names['GDS1']['B']='bottom'
+dict_platoon_names['GDS2']={}
+dict_platoon_names['GDS2']['A']='top'
+dict_platoon_names['GDS2']['B']='mid'
+dict_platoon_names['GDS2']['C']='bottom'
+dict_platoon_names['GDS3']={}
+dict_platoon_names['GDS3']['A']='top'
+dict_platoon_names['GDS3']['B']='mid'
+dict_platoon_names['GDS3']['C']='bottom'
+dict_platoon_names['GDS4']={}
+dict_platoon_names['GDS4']['A']='top'
+dict_platoon_names['GDS4']['B']='mid'
+dict_platoon_names['GDS4']['C']='bottom'
 
 
 class TBSPhaseParser(HTMLParser):
@@ -151,14 +163,14 @@ class TBSPhaseParser(HTMLParser):
 	platoon_name=''
 	char_name=''
 	player_name=''
-	current_phase=''
+	detected_phase=''
+	active_phase=''
 	state_parser=-4
 	#-4: en recherche de h2
 	#-3: en recharche de data="Territory Battle"
 	#-2: en recherche de small
 	#-1: en recherche de data
 	#0: en recherche de div class=phases
-	#1: en recherche de i class="far fa-dot-circle red-text text-small"
 	#2: en recherche de a href
 	#3: en recherche de div class="card platoon"
 	#4: en recherche de div id
@@ -167,8 +179,13 @@ class TBSPhaseParser(HTMLParser):
 	#7: en recherche de img-title d'un perso NON rempli
 	#8: en recherche de div class=player
 	#9: en recherche de data
+	
+	state_parser2=0
+	#0: en recherche de i class="far fa-dot-circle red-text text-small"
+	#1: en recherche de a href
 		
 	def handle_starttag(self, tag, attrs):
+		#PARSER 1 pour la phase décrite dans la page
 		if self.state_parser==-4:
 			if tag=='h2':
 				self.state_parser=-3
@@ -181,21 +198,20 @@ class TBSPhaseParser(HTMLParser):
 			if tag=='div':
 				for name, value in attrs:
 					if name=='class' and value=='phases':
-						self.state_parser=1
-		
-		if self.state_parser==1:
-			if tag=='i':
-				for name, value in attrs:
-					if name=='class' and value=='far fa-dot-circle red-text text-small':
 						self.state_parser=2
-		
+				
 		if self.state_parser==2:
 			if tag=='a':
 				for name, value in attrs:
 					if name=='href':
-						self.current_phase+=value[-1]
+						self.detected_phase=self.detected_phase[0:3]+value[-1]
 					if name=='class' and value=='active':
 						self.state_parser=3
+
+			if tag=='i':
+				for name, value in attrs:
+					if name=='class' and value=='far fa-dot-circle red-text text-small':
+						self.is_current_phase=True
 						
 		if self.state_parser==3 or self.state_parser==5:
 			if tag=='div':
@@ -203,7 +219,7 @@ class TBSPhaseParser(HTMLParser):
 					if name=='class' and value=='card platoon':
 						self.state_parser=4
 					if name=='id' and self.state_parser==4:
-						self.platoon_name=self.current_phase+'-'+dict_platoon_names[self.current_phase][value[-2:-1]]+'-'+value[-1]
+						self.platoon_name=self.detected_phase+'-'+dict_platoon_names[self.detected_phase][value[-2:-1]]+'-'+value[-1]
 						self.state_parser=5
 						
 		if self.state_parser==5:
@@ -241,6 +257,19 @@ class TBSPhaseParser(HTMLParser):
 				for name, value in attrs:
 					if name=='class' and value=='player':
 						self.state_parser=9
+
+		#PARSER 2 pour la phase active
+		if self.state_parser2==0:
+			if tag=='i':
+				for name, value in attrs:
+					if name=='class' and value=='far fa-dot-circle red-text text-small':
+						self.state_parser2=1
+		if self.state_parser2==1:
+			if tag=='a':
+				for name, value in attrs:
+					if name=='href':
+						self.active_phase=self.detected_phase[0:3]+value[-1]
+						self.state_parser2=0				
 						
 	def handle_data(self, data):
 		if self.state_parser==-3:
@@ -253,13 +282,13 @@ class TBSPhaseParser(HTMLParser):
 		if self.state_parser==-1:
 			#print(data)
 			if data == 'Geonosian - Dark side':
-				self.current_phase='GDS'
+				self.detected_phase='GDS'
 			elif data == 'Geonosian - Light side':
-				self.current_phase='GLS'
+				self.detected_phase='GLS'
 			elif data == 'Hoth - Dark side':
-				self.current_phase='HDS'
+				self.detected_phase='HDS'
 			elif data == 'Hoth - Light side':
-				self.current_phase='HLS'
+				self.detected_phase='HLS'
 			else:
 				print('ERR: BT inconnue: '+data)
 			
@@ -294,7 +323,10 @@ class TBSPhaseParser(HTMLParser):
 		return self.dict_player_allocations
 
 	def get_phase(self):
-		return self.current_phase
+		return self.detected_phase
+
+	def get_active_phase(self):
+		return self.active_phase
 			
 class GenericTBSParser(HTMLParser):
 	warstats_battle_id=''
@@ -347,12 +379,23 @@ def parse_warstats_page():
 	parser.feed(str(page.read()))
 	warstats_platoon_url=parser.get_url()
 			
+	print(warstats_platoon_url)
 	try:
 		page = urllib.request.urlopen(warstats_platoon_url)
 	except urllib.error.HTTPError as e:
 		return '', None
-		
-	parser = TBSPhaseParser()
-	parser.feed(str(page.read()))
+	
+	complete_dict_platoons={}
+	complete_dict_player_allocations={}
+	for phase in range(1,6):
+		try:
+			print('Lecture WARSTATS '+warstats_platoon_url+'/'+str(phase))
+			page = urllib.request.urlopen(warstats_platoon_url+'/'+str(phase))
+			parser = TBSPhaseParser()
+			parser.feed(str(page.read()))
+			complete_dict_platoons.update(parser.get_dict_platoons())
+			complete_dict_player_allocations.update(parser.get_dict_player_allocations())
+		except urllib.error.HTTPError as e:
+			print('WAR: page introuvable '+warstats_platoon_url+'/'+str(phase))
 
-	return parser.get_phase(), parser.get_dict_platoons(), parser.get_dict_player_allocations()
+	return parser.get_active_phase(), complete_dict_platoons, complete_dict_player_allocations

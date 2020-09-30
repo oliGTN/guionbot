@@ -71,7 +71,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
 
 			delta_atime_sec=time.time()-file_stats.st_atime
 			if (delta_atime_sec/60) > nb_minutes_delete:
-				print ('Remove '+filename+' (not accessed for '+str(delta_atime_sec/60)+' minutes)')
+				print ('Remove '+filename+' (not accessed for '+str(int(delta_atime_sec/60))+' minutes)')
 				os.remove(file_path)
 			
 	#LOOP through Guild files to recover player allycodes

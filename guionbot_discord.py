@@ -4,6 +4,7 @@
 import os
 import asyncio
 import time
+import datetime
 import re
 from discord.ext import commands
 from discord import Embed
@@ -188,22 +189,56 @@ async def vdp(ctx):
 		# Lecture des affectation ECHOBOT
 		bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
 		dict_platoons_allocation={} #key=platton_name, value={key=perso, value=[player...]}
+		eb_phases=[]
+		eb_missions_full=[]
+		eb_missions_tmp=[]
 		async for message in bt_channel.history(limit=200):
 			if str(message.author)=='EchoStation#0000':
-				msg_time=int(message.created_at.timestamp())
+				if (datetime.datetime.now() - message.created_at).days > 7:
+					#On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
+					break
+
 				if message.content.startswith(':information_source: **Overview** (Phase'):
 					numero_phase=re.search('\((.*?)\)', message.content).group(1)[-1]
-					print('Lecture terminée de l\'affectation EchoBot pour la phase '+numero_phase)
-					break
+
+					#renumérotation des clés du dictionnaire avec la phase (si pas déjà lue)
+					#print(dict_platoons_allocation)
+					old_platoon_names=set(dict_platoons_allocation.keys())
+					for old_platoon_name in old_platoon_names:
+						new_platoon_name=old_platoon_name[0:3]+numero_phase+old_platoon_name[4:]
+						if old_platoon_name[3]=='X':
+							phase_position=numero_phase+'-'+old_platoon_name.split('-')[1]
+							#print(phase_position)
+							#print(eb_missions_full)
+							if not (phase_position in eb_missions_full):
+								dict_platoons_allocation[new_platoon_name]=dict_platoons_allocation[old_platoon_name]
+							#print('del dict_platoons_allocation['+old_platoon_name+']')
+							del dict_platoons_allocation[old_platoon_name]
+					#print(dict_platoons_allocation)
+					#print('=========================')
+					
+					#Ajout des phases lues dans la liste complète
+					for pos in eb_missions_tmp:
+						if not (numero_phase+'-'+pos) in eb_missions_full:
+							eb_missions_full.append(numero_phase+'-'+pos)
+					eb_missions_tmp=[]
+
+					if not (numero_phase in eb_phases):
+						eb_phases.append(numero_phase)
+						print('Lecture terminée de l\'affectation EchoBot pour la phase '+numero_phase)
+						
 					
 				if message.content.startswith('```prolog'):
 					position_territoire=re.search('\((.*?)\)', message.content).group(1)
+					eb_missions_tmp.append(position_territoire)
 					
 					for embed in message.embeds:
 						dict_embed=embed.to_dict()
 						if 'fields' in dict_embed:
 							#print(dict_embed)
-							platoon_name=tbs_phase+'-'+position_territoire+'-'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
+							#on garde le nom de la BT mais on met X comme numéro de phase
+							#le numéro de phase sera affecté plus tard
+							platoon_name=tbs_phase[0:3]+'X-'+position_territoire+'-'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
 							for dict_perso in dict_embed['fields']:
 								for perso in dict_perso['value'].split('\n'):
 									char_name=perso[1:-1]
@@ -213,39 +248,53 @@ async def vdp(ctx):
 										dict_platoons_allocation[platoon_name][char_name]=[]
 									dict_platoons_allocation[platoon_name][char_name].append(dict_perso['name'])
 		
-		if numero_phase!=tbs_phase[-1]:
-			await ctx.send('ERR: les phases ne sont pas identiques')
-			await ctx.message.add_reaction(emoji_error)
-		else:
-			#Comparaison des dictionnaires
-			#Recherche des persos non-affectés
-			#print(dict_platoons_done)
-			#print(dict_platoons_allocation)
-			#print(dict_player_allocations)
-			for platoon_name in dict_platoons_done:
-				for perso in dict_platoons_done[platoon_name]:
-					if '' in dict_platoons_done[platoon_name][perso]:
-						if platoon_name in dict_platoons_allocation:
-							#print (platoon_name+': '+perso)
-							#print(dict_platoons_allocation[platoon_name])
-							#print(dict_platoons_allocation[platoon_name])
-							if perso in dict_platoons_allocation[platoon_name]:
-								for allocated_player in dict_platoons_allocation[platoon_name][perso]:
-									if not allocated_player in dict_platoons_done[platoon_name][perso]:
-										alternative_allocation=''
-										if allocated_player in dict_player_allocations:
-											if perso in dict_player_allocations[allocated_player]:
-												alternative_allocation=" *(mais l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
+		#Comparaison des dictionnaires
+		#Recherche des persos non-affectés
+		#print(dict_platoons_done)
+		#print(dict_platoons_allocation)
+		#print(dict_player_allocations)
+		erreur_detectee=False
+		list_platoon_names = sorted(dict_platoons_done.keys())
+		phase_names_already_displayed=[]
+		list_txt=[]
+		for platoon_name in dict_platoons_done:
+			phase_name=platoon_name[0:3]
+			if not phase_name in phase_names_already_displayed:
+				#list_txt.append('\n**Phase '+platoon_name[3]+'**')
+				phase_names_already_displayed.append(phase_name)
+			
+			for perso in dict_platoons_done[platoon_name]:
+				if '' in dict_platoons_done[platoon_name][perso]:
+					if platoon_name in dict_platoons_allocation:
+						#print (platoon_name+': '+perso)
+						#print(dict_platoons_allocation[platoon_name])
+						#print(dict_platoons_allocation[platoon_name])
+						if perso in dict_platoons_allocation[platoon_name]:
+							for allocated_player in dict_platoons_allocation[platoon_name][perso]:
+								if not allocated_player in dict_platoons_done[platoon_name][perso]:
+									erreur_detectee=True
+									alternative_allocation=''
+									#if allocated_player in dict_player_allocations:
+									#TO-DO ne marche pas en regardant es allocatoins sur plusieurs jours
+									#	if perso in dict_player_allocations[allocated_player]:
+									#		alternative_allocation=" *(mais l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
 
-										if allocated_player in dict_players:
-											await ctx.send('**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)																				
-										else: #joueur non-défini dans gsheets, on l'affiche quand même
-											await ctx.send('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
-							else:
-								await ctx.send('ERR: '+perso+' n\'a pas été affecté')
-								print('ERR: '+perso+' n\'a pas été affecté')
-								print(dict_platoons_allocation[platoon_name].keys())
-			await ctx.message.add_reaction(emoji_check)
+									if allocated_player in dict_players:
+										list_txt.append('**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
+									else: #joueur non-défini dans gsheets, on l'affiche quand même
+										list_txt.append('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
+						else:
+							erreur_detectee=True
+							list_txt.append('ERR: '+perso+' n\'a pas été affecté')
+							print('ERR: '+perso+' n\'a pas été affecté')
+							print(dict_platoons_allocation[platoon_name].keys())
+			
+		for txt in sorted(list_txt):
+			await ctx.send(txt)
+			
+		if not erreur_detectee:
+			await ctx.send('Aucune erreur de peloton')
+		await ctx.message.add_reaction(emoji_check)
 		
 bot.loop.create_task(bot_loop_60())
 bot.run(TOKEN)
