@@ -3,6 +3,7 @@ from html.parser import HTMLParser
 
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/4090'
 warstats_platoons_baseurl='https://goh.warstats.net/platoons/view/'
+warstats_resume_baseurl='https://goh.warstats.net/territory-battles/view/'
 
 tab_dict_platoons=[] #de haut en bas
 
@@ -158,7 +159,6 @@ dict_platoon_names['GDS4']['A']='top'
 dict_platoon_names['GDS4']['B']='mid'
 dict_platoon_names['GDS4']['C']='bottom'
 
-
 class TBSPhaseParser(HTMLParser):
 	dict_platoons={} #key="A1" to "C6", value={} key=perso, value=[player, ...]
 	dict_player_allocations={} #key=player, value={ key=perso, value=platoon}
@@ -166,7 +166,7 @@ class TBSPhaseParser(HTMLParser):
 	char_name=''
 	player_name=''
 	detected_phase=''
-	active_phase=''
+	active_round=''
 	state_parser=-4
 	#-4: en recherche de h2
 	#-3: en recharche de data="Territory Battle"
@@ -270,7 +270,7 @@ class TBSPhaseParser(HTMLParser):
 			if tag=='a':
 				for name, value in attrs:
 					if name=='href':
-						self.active_phase=self.detected_phase[0:3]+value[-1]
+						self.active_round=self.detected_phase[0:3]+value[-1]
 						self.state_parser2=0				
 						
 	def handle_data(self, data):
@@ -327,8 +327,8 @@ class TBSPhaseParser(HTMLParser):
 	def get_phase(self):
 		return self.detected_phase
 
-	def get_active_phase(self):
-		return self.active_phase
+	def get_active_round(self):
+		return self.active_round
 			
 class GenericTBSParser(HTMLParser):
 	warstats_battle_id=''
@@ -367,9 +367,59 @@ class GenericTBSParser(HTMLParser):
 			else:
 				self.state_parser=0
 				
-	def get_url(self):
-		return warstats_platoons_baseurl+self.warstats_battle_id
+	def get_battle_id(self):
+		return self.warstats_battle_id
 		
+class TBSResumeParser(HTMLParser):
+	list_data=[]
+	list_open_territories=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
+	active_round=0
+	
+	state_parser=0
+	#0: en recherche de div id="resume"
+	#1: en recherche de div class="valign-wrapper
+	#2; en recherche de data
+
+	def handle_starttag(self, tag, attrs):
+		if self.state_parser==0:
+			if tag=='div':
+				for name, value in attrs:
+					if name=='id' and value=='resume':
+						self.state_parser=1
+
+		elif self.state_parser==1:
+			if tag=='div':
+				for name, value in attrs:
+					if name=='class' and value=='valign-wrapper full-line':
+						self.list_data=[]
+						self.state_parser=2
+
+	def handle_endtag(self, tag):
+		if self.state_parser==2:
+			if tag=='div':
+				if len(self.list_data)==1:
+					territory_phase=self.active_round
+				else:
+					territory_phase=int(self.list_data[1][-1])
+					
+				if self.list_data[0]=='North':
+					self.list_open_territories[0]=territory_phase
+				elif self.list_data[0]=='Middle':
+					self.list_open_territories[1]=territory_phase
+				else: #South
+					self.list_open_territories[2]=territory_phase
+				self.state_parser=1
+						
+	def handle_data(self, data):
+		if self.state_parser==2:
+			if data[0]!='\\':
+				self.list_data.append(data.strip())
+				
+	def set_active_round(self, active_round):
+		self.active_round=active_round
+
+	def get_open_territories(self):
+		return self.list_open_territories
 
 def parse_warstats_page():
 	try:
@@ -377,9 +427,9 @@ def parse_warstats_page():
 	except urllib.error.HTTPError as e:
 		return '', None
 		
-	parser = GenericTBSParser()
-	parser.feed(str(page.read()))
-	warstats_platoon_url=parser.get_url()
+	generic_parser = GenericTBSParser()
+	generic_parser.feed(str(page.read()))
+	warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
 			
 	print(warstats_platoon_url)
 	try:
@@ -393,11 +443,23 @@ def parse_warstats_page():
 		try:
 			print('Lecture WARSTATS '+warstats_platoon_url+'/'+str(phase))
 			page = urllib.request.urlopen(warstats_platoon_url+'/'+str(phase))
-			parser = TBSPhaseParser()
-			parser.feed(str(page.read()))
-			complete_dict_platoons.update(parser.get_dict_platoons())
-			complete_dict_player_allocations.update(parser.get_dict_player_allocations())
+			platoon_parser = TBSPhaseParser()
+			platoon_parser.feed(str(page.read()))
+			complete_dict_platoons.update(platoon_parser.get_dict_platoons())
+			complete_dict_player_allocations.update(platoon_parser.get_dict_player_allocations())
 		except urllib.error.HTTPError as e:
 			print('WAR: page introuvable '+warstats_platoon_url+'/'+str(phase))
+	
+	warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
+	print('Lecture WARSTATS '+warstats_resume_url)
+	page = urllib.request.urlopen(warstats_resume_url)
+	resume_parser = TBSResumeParser()
+	resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
+	resume_parser.feed(str(page.read()))
+	#print(resume_parser.get_open_territories())
+	
 
-	return parser.get_active_phase(), complete_dict_platoons, complete_dict_player_allocations
+	return platoon_parser.get_active_round(), complete_dict_platoons, complete_dict_player_allocations, resume_parser.get_open_territories()
+
+#MAIN
+#parse_warstats_page()

@@ -170,12 +170,12 @@ async def agt(ctx, allycode):
 		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en TB")
-async def vdp(ctx):
+@bot.command(name='vdpX', help="Vérification de Déploiement des Pelotons en TB")
+async def vdpX(ctx):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	#Lecture du statut des pelotons sur warstats
-	tbs_phase, dict_platoons_done, dict_player_allocations = parse_warstats_page()
+	tbs_phase, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page()
 	
 	#Recuperation des dernieres donnees sur gdrive
 	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name, discord id]]
@@ -256,7 +256,8 @@ async def vdp(ctx):
 		erreur_detectee=False
 		list_platoon_names = sorted(dict_platoons_done.keys())
 		phase_names_already_displayed=[]
-		list_txt=[]
+		list_txt=[] #[[joueur, peloton, txt], ...]
+		list_err=[]
 		for platoon_name in dict_platoons_done:
 			phase_name=platoon_name[0:3]
 			if not phase_name in phase_names_already_displayed:
@@ -280,19 +281,38 @@ async def vdp(ctx):
 									#		alternative_allocation=" *(mais l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
 
 									if allocated_player in dict_players:
-										list_txt.append('**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
+										list_txt.append([allocated_player, platoon_name, '**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation])
 									else: #joueur non-défini dans gsheets, on l'affiche quand même
-										list_txt.append('**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
+										list_txt.append([allocated_player, platoon_name, '**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation])
 						else:
 							erreur_detectee=True
-							list_txt.append('ERR: '+perso+' n\'a pas été affecté')
+							list_err.append('ERR: '+perso+' n\'a pas été affecté')
 							print('ERR: '+perso+' n\'a pas été affecté')
 							print(dict_platoons_allocation[platoon_name].keys())
+		
+		cur_phase=0
+		print(sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])))
+		for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
+			if cur_phase!=int(txt[1][3]):
+				cur_phase=int(txt[1][3])
+				await ctx.send('---- **Phase '+str(cur_phase)+'**')
+				
+			position=txt[1].split('-')
+			if position=='top':
+				open_for_position=list_open_territories[0]
+			elif position=='mid':
+				open_for_position=list_open_territories[1]
+			else: #bottom
+				open_for_position=list_open_territories[2]
+			if cur_phase<open_for_position:
+				await ctx.send(txt[2]+' -- *et c\'est trop tard*')
+			else:
+				await ctx.send(txt[2])
 			
-		for txt in sorted(list_txt):
-			await ctx.send(txt)
-			
-		if not erreur_detectee:
+		if erreur_detectee:
+			for txt in sorted(set(list_err)):
+				await ctx.send(txt)
+		else:
 			await ctx.send('Aucune erreur de peloton')
 		await ctx.message.add_reaction(emoji_check)
 		
