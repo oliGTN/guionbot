@@ -170,8 +170,8 @@ async def agt(ctx, allycode):
 		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='vdpX', help="Vérification de Déploiement des Pelotons en TB")
-async def vdpX(ctx):
+@bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en TB")
+async def vdp(ctx):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	#Lecture du statut des pelotons sur warstats
