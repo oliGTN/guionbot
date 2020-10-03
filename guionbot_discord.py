@@ -63,7 +63,7 @@ async def cmd(ctx, arg):
 	output = stream.read()
 	print('CMD: '+arg)
 	print(output)
-	for txt in split_txt(output, 1000):
+	for txt in split_txt(output, 2000):
 		await ctx.send('`'+txt+'`')
 	await ctx.message.add_reaction(emoji_check)
 	
@@ -81,7 +81,7 @@ async def cmd(ctx, arg):
 		# await ctx.message.add_reaction(emoji_error)
 	# else:
 		# # texte classique
-		# for txt in split_txt(ret_cmd, 1000):
+		# for txt in split_txt(ret_cmd, 2000):
 			# await ctx.send(txt)
 			
 		# # Icône de confirmation de fin de commande dans le message d'origine
@@ -99,7 +99,7 @@ async def gt(ctx, allycode, op_alycode):
 		await ctx.send(ret_cmd)
 		await ctx.message.add_reaction(emoji_error)
 	else:
-		for txt in split_txt(ret_cmd, 1000):
+		for txt in split_txt(ret_cmd, 2000):
 			await ctx.send('`'+txt+'`')
 		await ctx.message.add_reaction(emoji_check)
 
@@ -113,7 +113,7 @@ async def vtg(ctx, allycode, *teams):
 	ret_cmd=guild_team(allycode, teams, 1, False)
 	for team in ret_cmd:
 		txt_team=ret_cmd[team]
-		for txt in split_txt(txt_team, 1000):
+		for txt in split_txt(txt_team, 2000):
 			await ctx.send(txt)
 			
 	#Icône de confirmation de fin de commande dans le message d'origine
@@ -126,7 +126,7 @@ async def vtj(ctx, allycode, *teams):
 	ret_cmd=player_team(allycode, teams, 1, False)
 	for team in ret_cmd:
 		txt_team=ret_cmd[team]
-		for txt in split_txt(txt_team, 1000):
+		for txt in split_txt(txt_team, 2000):
 			await ctx.send(txt)
 		
 	#Icône de confirmation de fin de commande dans le message d'origine
@@ -145,7 +145,7 @@ async def vtg2(ctx, allycode, team):
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		#texte classique
-		for txt in split_txt(ret_cmd, 1000):
+		for txt in split_txt(ret_cmd, 2000):
 			await ctx.send(txt)
 			
 		#Icône de confirmation de fin de commande dans le message d'origine
@@ -164,7 +164,7 @@ async def agt(ctx, allycode):
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		#texte classique
-		for txt in split_txt(ret_cmd, 1000):
+		for txt in split_txt(ret_cmd, 2000):
 			await ctx.send(txt)
 			
 		#Icône de confirmation de fin de commande dans le message d'origine
@@ -192,7 +192,7 @@ async def vdp(ctx):
 		eb_phases=[]
 		eb_missions_full=[]
 		eb_missions_tmp=[]
-		async for message in bt_channel.history(limit=200):
+		async for message in bt_channel.history(limit=500):
 			if str(message.author)=='EchoStation#0000':
 				if (datetime.datetime.now() - message.created_at).days > 7:
 					#On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
@@ -259,6 +259,7 @@ async def vdp(ctx):
 		list_txt=[] #[[joueur, peloton, txt], ...]
 		list_err=[]
 		for platoon_name in dict_platoons_done:
+			#print('platoon_name='+platoon_name)
 			phase_name=platoon_name[0:3]
 			if not phase_name in phase_names_already_displayed:
 				#list_txt.append('\n**Phase '+platoon_name[3]+'**')
@@ -267,9 +268,10 @@ async def vdp(ctx):
 			for perso in dict_platoons_done[platoon_name]:
 				if '' in dict_platoons_done[platoon_name][perso]:
 					if platoon_name in dict_platoons_allocation:
-						#print (platoon_name+': '+perso)
-						#print(dict_platoons_allocation[platoon_name])
-						#print(dict_platoons_allocation[platoon_name])
+						# if perso == 'Faucon Millenium de Han':
+							# print (platoon_name+': '+perso)
+							# print(dict_platoons_done[platoon_name])
+							# print(dict_platoons_allocation[platoon_name])
 						if perso in dict_platoons_allocation[platoon_name]:
 							for allocated_player in dict_platoons_allocation[platoon_name][perso]:
 								if not allocated_player in dict_platoons_done[platoon_name][perso]:
@@ -280,6 +282,7 @@ async def vdp(ctx):
 									#	if perso in dict_player_allocations[allocated_player]:
 									#		alternative_allocation=" *(mais l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
 
+									#print(allocated_player+' n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
 									if allocated_player in dict_players:
 										list_txt.append([allocated_player, platoon_name, '**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation])
 									else: #joueur non-défini dans gsheets, on l'affiche quand même
@@ -290,12 +293,12 @@ async def vdp(ctx):
 							print('ERR: '+perso+' n\'a pas été affecté')
 							print(dict_platoons_allocation[platoon_name].keys())
 		
+		full_txt=''
 		cur_phase=0
-		print(sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])))
 		for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
 			if cur_phase!=int(txt[1][3]):
 				cur_phase=int(txt[1][3])
-				await ctx.send('---- **Phase '+str(cur_phase)+'**')
+				full_txt+='\n---- **Phase '+str(cur_phase)+'**\n'
 				
 			position=txt[1].split('-')
 			if position=='top':
@@ -305,15 +308,20 @@ async def vdp(ctx):
 			else: #bottom
 				open_for_position=list_open_territories[2]
 			if cur_phase<open_for_position:
-				await ctx.send(txt[2]+' -- *et c\'est trop tard*')
+				full_txt+=txt[2]+' -- *et c\'est trop tard*\n'
 			else:
-				await ctx.send(txt[2])
+				full_txt+=txt[2]+'\n'
 			
 		if erreur_detectee:
 			for txt in sorted(set(list_err)):
-				await ctx.send(txt)
+				full_txt+=txt+'\n'
 		else:
-			await ctx.send('Aucune erreur de peloton')
+			full_txt+='Aucune erreur de peloton\n'
+			
+		for txt in split_txt(full_txt, 2000):
+			await ctx.send(txt)
+			
+		
 		await ctx.message.add_reaction(emoji_check)
 		
 bot.loop.create_task(bot_loop_60())
