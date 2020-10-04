@@ -20,12 +20,12 @@ def load_config_teams():
 	file = client.open("GuiOnBot config")	
 	feuille=file.worksheet("teams")
 
-	dict_team_tw={} # [[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles, gear, relic, [liste zeta], vitesse, nom court]}]]
+	dict_teams={} # [[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles min, gear min, étoiles reco, gear reco, [liste zeta], vitesse, nom court]}]]
 
 	liste_dict_feuille=feuille.get_all_records()
 	#print(liste_dict_feuille)
 	liste_teams=set([(lambda x:x['Nom équipe'])(x) for x in liste_dict_feuille])
-	print('\nDBG: liste_teams='+str(liste_teams))
+	#print('\nDBG: liste_teams='+str(liste_teams))
 	for team in liste_teams:
 		liste_dict_team=list(filter(lambda x : x['Nom équipe'] == team, liste_dict_feuille))
 		#print(liste_dict_team)
@@ -33,22 +33,22 @@ def load_config_teams():
 		liste_categories=sorted(set(complete_liste_categories), key=lambda x: complete_liste_categories.index(x))
 		
 		#print('liste_categories='+str(liste_categories))
-		dict_team_tw[team]=[[] for i in range(len(liste_categories))]
+		dict_teams[team]=[[] for i in range(len(liste_categories))]
 		index_categorie=-1
 		for categorie in liste_categories:
 			index_categorie+=1
-			dict_team_tw[team][index_categorie]=[categorie, 0, {}]
+			dict_teams[team][index_categorie]=[categorie, 0, {}]
 			liste_dict_categorie=list(filter(lambda x : x['Catégorie'] == categorie, liste_dict_team))
 			index_perso=0
 			for dict_perso in liste_dict_categorie:
 				index_perso+=1
-				dict_team_tw[team][index_categorie][1] = dict_perso['Min Catégorie']
-				dict_team_tw[team][index_categorie][2][dict_perso['Nom']]=[index_perso, dict_perso['Etoiles'], dict_perso['Gear'], [], dict_perso['Vitesse'], dict_perso['Nom court']]
+				dict_teams[team][index_categorie][1] = dict_perso['Min Catégorie']
+				dict_teams[team][index_categorie][2][dict_perso['Nom']]=[index_perso, dict_perso['* min'], dict_perso['G min'], dict_perso['* reco'], dict_perso['G reco'], [], dict_perso['Vitesse'], dict_perso['Nom court']]
 				for zeta in ['Zeta1', 'Zeta2', 'Zeta3']:
 					if dict_perso[zeta]!='':
-						dict_team_tw[team][index_categorie][2][dict_perso['Nom']][3].append(dict_perso[zeta])
-		#print('DBG: dict_team_tw='+str(dict_team_tw))
-	return liste_teams, dict_team_tw
+						dict_teams[team][index_categorie][2][dict_perso['Nom']][5].append(dict_perso[zeta])
+		#print('DBG: dict_teams='+str(dict_teams))
+	return liste_teams, dict_teams
 
 def load_config_players():
 	global client
@@ -106,5 +106,37 @@ def load_config_gt():
 		liste_territoires[priorite-1][1].append([ligne['Team'], ligne['Nombre'], ligne['Score mini']])
 
 	return liste_territoires
-#print(load_config_teams())	
+	
+def load_config_counter():
+	global client
+	
+	if client == None:
+		# use creds to create a client to interact with the Google Drive API
+		scope = ['https://spreadsheets.google.com/feeds',
+				 'https://www.googleapis.com/auth/drive']
+		creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+		client = gspread.authorize(creds)
+
+	file = client.open("GuiOnBot config")
+	feuille=file.worksheet("COUNTER")
+
+	liste_dict_feuille=feuille.get_all_records()
+	list_counter_teams=[]
+	
+	for ligne in liste_dict_feuille:
+		counter_team=['', [], 0]
+		for key in ligne.keys():
+			if key=='Adversaire':
+				counter_team[0]=ligne[key]
+			elif key=='Quantité souhaitée':
+				counter_team[2]=ligne[key]
+			elif key.startswith('Counter'):
+				if ligne[key]!='':
+					counter_team[1].append(ligne[key])
+		if counter_team[0]!='':
+			list_counter_teams.append(counter_team)
+	return list_counter_teams
+
+#MAIN
+#print(load_config_counter())
 		

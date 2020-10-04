@@ -8,7 +8,7 @@ import datetime
 import re
 from discord.ext import commands
 from discord import Embed
-from go import function_gt, guild_team, player_team, split_txt, refresh_cache, stats_cache, load_guild, assign_bt
+import go
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
 
@@ -33,7 +33,7 @@ async def bot_loop_60():
 			#clean_cache(cache_delete_minutes)
 			
 			#list_guild_allycodes=[(lambda x:str(x))(x) for x in dict_players]
-			refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
+			go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
 			await asyncio.sleep(60) #60 seconds for loop
 		except Exception as e:
 			print(e)
@@ -133,14 +133,14 @@ async def is_owner(ctx):
 			
 @bot.event
 async def on_ready():
-	load_guild('189341793', False)
+	go.load_guild('189341793', False)
 	print(f'{bot.user.name} has connected to Discord!')
 
 @bot.command(name='info', help='Statut du bot')
 async def info(ctx):
 	await ctx.message.add_reaction(emoji_thumb)
 
-	await ctx.send('GuiOn bot is UP\n'+stats_cache()+'\n'+str(cache_delete_minutes)+' minutes before deleting\n'+str(cache_refresh_minutes)+' minutes before refreshing\n')
+	await ctx.send('GuiOn bot is UP\n'+go.stats_cache()+'\n'+str(cache_delete_minutes)+' minutes before deleting\n'+str(cache_refresh_minutes)+' minutes before refreshing\n')
 	await ctx.message.add_reaction(emoji_check)
 	
 @bot.command(name='cmd', help='Réservé à GuiOn Ensai')
@@ -152,7 +152,7 @@ async def cmd(ctx, arg):
 	output = stream.read()
 	print('CMD: '+arg)
 	print(output)
-	for txt in split_txt(output, 2000):
+	for txt in go.split_txt(output, 2000):
 		await ctx.send('`'+txt+'`')
 	await ctx.message.add_reaction(emoji_check)
 	
@@ -177,77 +177,74 @@ async def gt(ctx, allycode, op_alycode):
 	if allycode=='KL':
 		allycode='189341793'
 		
-	ret_cmd=function_gt(allycode, op_alycode)
+	ret_cmd=go.function_gt(allycode, op_alycode)
 	if ret_cmd[0:3]=='ERR':
 		await ctx.send(ret_cmd)
 		await ctx.message.add_reaction(emoji_error)
 	else:
-		for txt in split_txt(ret_cmd, 2000):
+		for txt in go.split_txt(ret_cmd, 2000):
 			await ctx.send('`'+txt+'`')
 		await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='vtg', help="Vérifie la dispo d'une team dans la guilde")
+@bot.command(name='vtgX', help="Vérifie la dispo d'une team dans la guilde")
 async def vtg(ctx, allycode, *teams):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	if allycode=='KL':
 		allycode='189341793'
 	
-	ret_cmd=guild_team(allycode, teams, 1, False)
+	ret_cmd=go.guild_team(allycode, teams, 1, 100, 80, False)
 	for team in ret_cmd:
-		txt_team=ret_cmd[team]
-		for txt in split_txt(txt_team, 2000):
+		txt_team=ret_cmd[team][0]
+		for txt in go.split_txt(txt_team, 1000):
 			await ctx.send(txt)
 			
 	#Icône de confirmation de fin de commande dans le message d'origine
 	await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='vtj', help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
-async def vtj(ctx, allycode, *teams):
-	await ctx.message.add_reaction(emoji_thumb)
-	
-	ret_cmd=player_team(allycode, teams, 1, False)
-	for team in ret_cmd:
-		txt_team=ret_cmd[team]
-		for txt in split_txt(txt_team, 2000):
-			await ctx.send(txt)
-		
-	#Icône de confirmation de fin de commande dans le message d'origine
-	await ctx.message.add_reaction(emoji_check)
-
-@bot.command(name='vtg2', help="Comme vtg mais avec un autre scoring utilisé pour agt")
-async def vtg2(ctx, allycode, team):
+@bot.command(name='vtg2X', help="Comme vtg mais avec un autre scoring utilisé pour agt")
+async def vtg2(ctx, allycode, *teams):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	if allycode=='KL':
 		allycode='189341793'
 	
-	ret_cmd=guild_team(allycode, [team], 3, False)[team]
-	if ret_cmd[0:3]=='ERR':
-		await ctx.send(ret_cmd)
-		await ctx.message.add_reaction(emoji_error)
-	else:
-		#texte classique
-		for txt in split_txt(ret_cmd, 2000):
+	ret_cmd=go.guild_team(allycode, teams, 3, 100000, 80000, False)
+	for team in ret_cmd:
+		txt_team=ret_cmd[team][0]
+		for txt in go.split_txt(txt_team, 1000):
 			await ctx.send(txt)
 			
-		#Icône de confirmation de fin de commande dans le message d'origine
-		await ctx.message.add_reaction(emoji_check)
+	#Icône de confirmation de fin de commande dans le message d'origine
+	await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='agt', help="Assigne les équipes par territoire en BT")
+@bot.command(name='vtjX', help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
+async def vtj(ctx, allycode, *teams):
+	await ctx.message.add_reaction(emoji_thumb)
+	
+	ret_cmd=go.player_team(allycode, teams, 1, 100, 80, False)
+	for team in ret_cmd:
+		txt_team=ret_cmd[team]
+		for txt in go.split_txt(txt_team, 1000):
+			await ctx.send(txt)
+		
+	#Icône de confirmation de fin de commande dans le message d'origine
+	await ctx.message.add_reaction(emoji_check)
+
+@bot.command(name='agtX', help="Assigne les équipes par territoire en BT")
 async def agt(ctx, allycode):
 	await ctx.message.add_reaction(emoji_thumb)
 
 	if allycode=='KL':
 		allycode='189341793'
 			
-	ret_cmd=assign_bt(allycode, False)
+	ret_cmd=go.assign_bt(allycode, False)
 	if ret_cmd[0:3]=='ERR':
 		await ctx.send(ret_cmd)
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		#texte classique
-		for txt in split_txt(ret_cmd, 2000):
+		for txt in go.split_txt(ret_cmd, 2000):
 			await ctx.send(txt)
 			
 		#Icône de confirmation de fin de commande dans le message d'origine
@@ -351,10 +348,29 @@ async def vdp(ctx, *args):
 		else:
 			full_txt+='Aucune erreur de peloton\n'
 			
-		for txt in split_txt(full_txt, 2000):
+		for txt in go.split_txt(full_txt, 2000):
 			await output_channel.send(txt)
 			
 		
+		await ctx.message.add_reaction(emoji_check)
+		
+@bot.command(name='scg', help="Score de Contre pour la Guilde")
+async def scg(ctx, allycode):
+	await ctx.message.add_reaction(emoji_thumb)
+
+	if allycode=='KL':
+		allycode='189341793'
+			
+	ret_cmd=go.guild_counter_score(allycode)
+	if ret_cmd[0:3]=='ERR':
+		await ctx.send(ret_cmd)
+		await ctx.message.add_reaction(emoji_error)
+	else:
+		#texte classique
+		for txt in go.split_txt(ret_cmd, 2000):
+			await ctx.send(txt)
+			
+		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
 #MAIN		
