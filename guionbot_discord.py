@@ -39,6 +39,95 @@ async def bot_loop_60():
 			print(e)
 			await asyncio.sleep(60) #60 seconds for loop
 			
+async def get_eb_allocation(tbs_round):
+	# Lecture des affectation ECHOBOT
+	bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
+	dict_platoons_allocation={} #key=platton_name, value={key=perso, value=[player...]}
+	eb_phases=[]
+	eb_missions_full=[]
+	eb_missions_tmp=[]
+	async for message in bt_channel.history(limit=500):
+		if str(message.author)=='EchoStation#0000':
+			if (datetime.datetime.now() - message.created_at).days > 7:
+				#On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
+				break
+
+			if message.content.startswith(':information_source: **Overview** (Phase'):
+				numero_phase=re.search('\((.*?)\)', message.content).group(1)[-1]
+
+				#renumérotation des clés du dictionnaire avec la phase (si pas déjà lue)
+				#print(dict_platoons_allocation)
+				old_platoon_names=set(dict_platoons_allocation.keys())
+				for old_platoon_name in old_platoon_names:
+					new_platoon_name=old_platoon_name[0:3]+numero_phase+old_platoon_name[4:]
+					if old_platoon_name[3]=='X':
+						phase_position=numero_phase+'-'+old_platoon_name.split('-')[1]
+						#print(phase_position)
+						#print(eb_missions_full)
+						if not (phase_position in eb_missions_full):
+							dict_platoons_allocation[new_platoon_name]=dict_platoons_allocation[old_platoon_name]
+						#print('del dict_platoons_allocation['+old_platoon_name+']')
+						del dict_platoons_allocation[old_platoon_name]
+				#print(dict_platoons_allocation)
+				#print('=========================')
+				
+				#Ajout des phases lues dans la liste complète
+				for pos in eb_missions_tmp:
+					if not (numero_phase+'-'+pos) in eb_missions_full:
+						eb_missions_full.append(numero_phase+'-'+pos)
+				eb_missions_tmp=[]
+
+				if not (numero_phase in eb_phases):
+					eb_phases.append(numero_phase)
+					print('Lecture terminée de l\'affectation EchoBot pour la phase '+numero_phase)
+					
+				
+			if message.content.startswith('```prolog'):
+				position_territoire=re.search('\((.*?)\)', message.content).group(1)
+				eb_missions_tmp.append(position_territoire)
+				
+				for embed in message.embeds:
+					dict_embed=embed.to_dict()
+					if 'fields' in dict_embed:
+						#print(dict_embed)
+						#on garde le nom de la BT mais on met X comme numéro de phase
+						#le numéro de phase sera affecté plus tard
+						platoon_name=tbs_round[0:3]+'X-'+position_territoire+'-'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
+						for dict_perso in dict_embed['fields']:
+							for perso in dict_perso['value'].split('\n'):
+								char_name=perso[1:-1]
+								if not platoon_name in dict_platoons_allocation:
+									dict_platoons_allocation[platoon_name]={}
+								if not char_name in dict_platoons_allocation[platoon_name]:
+									dict_platoons_allocation[platoon_name][char_name]=[]
+								dict_platoons_allocation[platoon_name][char_name].append(dict_perso['name'])
+
+	return dict_platoons_allocation
+			
+async def get_webhook_from_channelname(channel_name):
+	try:
+		id_output_channel=int(channel_name[2:-1])
+	except Exception as e:
+		print(e)
+		return None, channel_name+' n\'est pas un channel valide'
+		
+	output_channel=bot.get_channel(id_output_channel)
+	if output_channel==None:
+		return None, 'Channel '+channel_name+'(id='+str(id_output_channel)+') introuvable'
+	
+	if id_output_channel==719211688166948914: #batailles de territoires
+		id_webhook=744169289908748298
+	else:
+		return None, 'Channel '+channel_name+'(id='+str(id_output_channel)+') sans webhook associé'
+
+	try:
+		output_webhook=await bot.fetch_webhook(id_webhook)
+	except Exception as e:
+		print(e)
+		return None, 'Webhook id='+str(id_webhook)+' introuvable'
+	
+	return output_webhook, ''
+	
 async def is_owner(ctx):
 	return ctx.author.id == 566552780647563285
 			
@@ -69,23 +158,17 @@ async def cmd(ctx, arg):
 	
 # @bot.command(name='test', help='Réservé à GuiOn Ensai')
 # @commands.check(is_owner)
-# async def test(ctx, allycode):
-	# await ctx.message.add_reaction(emoji_thumb)
+# async def test(ctx, *args):
 
-	# if allycode=='KL':
-		# allycode='189341793'
-			
-	# ret_cmd=assign_bt(allycode)
-	# if ret_cmd[0:3]=='ERR':
-		# await ctx.send(ret_cmd)
-		# await ctx.message.add_reaction(emoji_error)
+	# if len(args)==1:
+		# output_channel, err_msg=await get_webhook_from_channelname(args[0])
+		# if output_channel==None:
+			# await ctx.send(err_msg)
+			# output_channel=ctx.message.channel
 	# else:
-		# # texte classique
-		# for txt in split_txt(ret_cmd, 2000):
-			# await ctx.send(txt)
-			
-		# # Icône de confirmation de fin de commande dans le message d'origine
-		# await ctx.message.add_reaction(emoji_check)
+		# output_channel=ctx.message.channel
+
+	# await output_channel.send('test')
 	
 @bot.command(name='gt', help='Compare 2 guildes pour la GT')
 async def gt(ctx, allycode, op_alycode):
@@ -171,82 +254,32 @@ async def agt(ctx, allycode):
 		await ctx.message.add_reaction(emoji_check)
 
 @bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en TB")
-async def vdp(ctx):
+async def vdp(ctx, *args):
 	await ctx.message.add_reaction(emoji_thumb)
+	
+	#Sortie sur un autre channel si donné en paramètre
+	#la liste des channels autorisés est limitée, dans la fonction get_webhook_from_channelname
+	if len(args)==1:
+		output_channel, err_msg=await get_webhook_from_channelname(args[0])
+		if output_channel==None:
+			await ctx.send(err_msg)
+			output_channel=ctx.message.channel
+	else:
+		output_channel=ctx.message.channel
 
 	#Lecture du statut des pelotons sur warstats
-	tbs_phase, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page()
+	tbs_round, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page()
 	
 	#Recuperation des dernieres donnees sur gdrive
 	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name, discord id]]
 
-	if tbs_phase=='':
+	if tbs_round=='':
 		await ctx.send('Aucune BT en cours')
 		await ctx.message.add_reaction(emoji_error)
 	else:
-		print('Lecture terminée du statut BT sur warstats: phase '+tbs_phase)
+		print('Lecture terminée du statut BT sur warstats: round '+tbs_round)
 		
-		# Lecture des affectation ECHOBOT
-		bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
-		dict_platoons_allocation={} #key=platton_name, value={key=perso, value=[player...]}
-		eb_phases=[]
-		eb_missions_full=[]
-		eb_missions_tmp=[]
-		async for message in bt_channel.history(limit=500):
-			if str(message.author)=='EchoStation#0000':
-				if (datetime.datetime.now() - message.created_at).days > 7:
-					#On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
-					break
-
-				if message.content.startswith(':information_source: **Overview** (Phase'):
-					numero_phase=re.search('\((.*?)\)', message.content).group(1)[-1]
-
-					#renumérotation des clés du dictionnaire avec la phase (si pas déjà lue)
-					#print(dict_platoons_allocation)
-					old_platoon_names=set(dict_platoons_allocation.keys())
-					for old_platoon_name in old_platoon_names:
-						new_platoon_name=old_platoon_name[0:3]+numero_phase+old_platoon_name[4:]
-						if old_platoon_name[3]=='X':
-							phase_position=numero_phase+'-'+old_platoon_name.split('-')[1]
-							#print(phase_position)
-							#print(eb_missions_full)
-							if not (phase_position in eb_missions_full):
-								dict_platoons_allocation[new_platoon_name]=dict_platoons_allocation[old_platoon_name]
-							#print('del dict_platoons_allocation['+old_platoon_name+']')
-							del dict_platoons_allocation[old_platoon_name]
-					#print(dict_platoons_allocation)
-					#print('=========================')
-					
-					#Ajout des phases lues dans la liste complète
-					for pos in eb_missions_tmp:
-						if not (numero_phase+'-'+pos) in eb_missions_full:
-							eb_missions_full.append(numero_phase+'-'+pos)
-					eb_missions_tmp=[]
-
-					if not (numero_phase in eb_phases):
-						eb_phases.append(numero_phase)
-						print('Lecture terminée de l\'affectation EchoBot pour la phase '+numero_phase)
-						
-					
-				if message.content.startswith('```prolog'):
-					position_territoire=re.search('\((.*?)\)', message.content).group(1)
-					eb_missions_tmp.append(position_territoire)
-					
-					for embed in message.embeds:
-						dict_embed=embed.to_dict()
-						if 'fields' in dict_embed:
-							#print(dict_embed)
-							#on garde le nom de la BT mais on met X comme numéro de phase
-							#le numéro de phase sera affecté plus tard
-							platoon_name=tbs_phase[0:3]+'X-'+position_territoire+'-'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
-							for dict_perso in dict_embed['fields']:
-								for perso in dict_perso['value'].split('\n'):
-									char_name=perso[1:-1]
-									if not platoon_name in dict_platoons_allocation:
-										dict_platoons_allocation[platoon_name]={}
-									if not char_name in dict_platoons_allocation[platoon_name]:
-										dict_platoons_allocation[platoon_name][char_name]=[]
-									dict_platoons_allocation[platoon_name][char_name].append(dict_perso['name'])
+		dict_platoons_allocation = await get_eb_allocation(tbs_round)
 		
 		#Comparaison des dictionnaires
 		#Recherche des persos non-affectés
@@ -319,10 +352,11 @@ async def vdp(ctx):
 			full_txt+='Aucune erreur de peloton\n'
 			
 		for txt in split_txt(full_txt, 2000):
-			await ctx.send(txt)
+			await output_channel.send(txt)
 			
 		
 		await ctx.message.add_reaction(emoji_check)
-		
+
+#MAIN		
 bot.loop.create_task(bot_loop_60())
 bot.run(TOKEN)
