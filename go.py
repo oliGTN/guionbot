@@ -54,9 +54,10 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
 			file_path='CACHE'+os.path.sep+filename
 			file_stats=os.stat(file_path)
 
-			delta_atime_sec=time.time()-file_stats.st_atime
-			if (delta_atime_sec/60) > nb_minutes_delete:
-				print ('Remove '+filename+' (not accessed for '+str(int(delta_atime_sec/60))+' minutes)')
+			delta_mtime_sec=time.time()-file_stats.st_mtime
+			#print (filename+' (not accessed for '+str(int(delta_mtime_sec/60))+' minutes)')
+			if (delta_mtime_sec/60) > nb_minutes_delete:
+				print ('Remove '+filename+' (not accessed for '+str(int(delta_mtime_sec/60))+' minutes)')
 				os.remove(file_path)
 			
 	#LOOP through Guild files to recover player allycodes
@@ -966,14 +967,14 @@ def guild_counter_score(txt_allycode):
 		# dict_needed_teams[k]=list(dict_needed_teams[k])
 		# dict_needed_teams[k][0]=[]
 	#print(dict_needed_teams)
-	ret_guild_counter_score+='\n**Nombre de joueurs avec une équipe au niveau recommandé**\n'
+	ret_guild_counter_score+='\n**Nombre de joueurs avec une équipe au niveau recommandé (mini)**\n'
 	for nteam_key in dict_needed_teams.keys():
 		if dict_needed_teams[nteam_key][0][:3]=='ERR':
 			ret_guild_counter_score+=dict_needed_teams[nteam_key][0]+'\n'
 		else:
-			ret_guild_counter_score+=nteam_key+': '+str(dict_needed_teams[nteam_key][1])+'\n'
+			ret_guild_counter_score+=nteam_key+': '+str(dict_needed_teams[nteam_key][1])+' ('+str(dict_needed_teams[nteam_key][2])+')\n'
 			
-	ret_guild_counter_score+='\n**Capacité de contre, par adversaire**\n'
+	ret_guild_counter_score+='\n**Capacité de contre par adversaire au niveau recommandé (mini)**\n'
 	for cteam in list_counter_teams:
 		green_counters=0
 		amber_counters=0
@@ -981,7 +982,7 @@ def guild_counter_score(txt_allycode):
 			#print(dict_needed_teams[team])
 			green_counters+=dict_needed_teams[team][1]
 			amber_counters+=dict_needed_teams[team][2]
-		ret_guild_counter_score+=cteam[0]+': '+str(green_counters)+'/'+str(cteam[2])+' ('+str(amber_counters)+'/'+str(cteam[2])+')\n'
+		ret_guild_counter_score+='__'+cteam[0]+'__: '+str(green_counters)+'/'+str(cteam[2])+' ('+str(amber_counters)+'/'+str(cteam[2])+')\n'
 		
 	return ret_guild_counter_score
 			
@@ -995,8 +996,8 @@ def print_help():
 ########### MAIN #########
 me='189341793'
 #print(guild_counter_score(me))
-
 #print(player_team(me, ['JKR'], 3, 100000, 80000, False))
+refresh_cache(1440, 60, 1)
 
 
 
