@@ -12,11 +12,9 @@ import go
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
 
-#load_dotenv()
-#TOKEN = os.getenv('DISCORD_TOKEN')
+#TOKEN comes from https://discord.com/developers/ then settings / Bot / Token
 TOKEN = 'NzUyOTY5NjQ3MjMzNTY0NzAz.X1fXoQ.arxYkcPspOFTU5SeCooiKsgkZNQ'
 bot = commands.Bot(command_prefix='go.')
-#dict_players={}
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -25,6 +23,13 @@ emoji_error = '\N{CROSS MARK}'
 cache_delete_minutes=1440 #24 hours before deleting unused cache file
 cache_refresh_minutes=60 #60 minutes minimum to refresh data from the guild
 
+##############################################################
+# Function: bot_loop_60
+# Parameters: none
+# Purpose: cette fonction est exécutée toutes les 60 secondes
+#          elle rafraîchit les fichiers json récupérés de l'API swgoh
+# Output: none
+##############################################################
 async def bot_loop_60():
 	#global dict_players
 	await bot.wait_until_ready()
@@ -39,6 +44,13 @@ async def bot_loop_60():
 			print(e)
 			await asyncio.sleep(60) #60 seconds for loop
 			
+##############################################################
+# Function: get_eb_allocation
+# Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
+# Purpose: lit le channel #bateilles de territoire pour retouver
+#          l'affectation des pelotons par Echobot
+# Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
+##############################################################
 async def get_eb_allocation(tbs_round):
 	# Lecture des affectation ECHOBOT
 	bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
@@ -104,6 +116,14 @@ async def get_eb_allocation(tbs_round):
 
 	return dict_platoons_allocation
 			
+##############################################################
+# Function: get_webhook_from_channelname
+# Parameters: channel_name (string) > nom de channel sous la forme <#1234567890>
+# Purpose: récupère un webhook pour écrire dans le channel spécifié
+#          Cette fonction ne marche qu'avec le channel #bataille_de_territoire
+# Output: nominal > output_webhook (objet Webhook), ""
+#         si erreur > None, "message d'erreur" (string)
+##############################################################
 async def get_webhook_from_channelname(channel_name):
 	try:
 		id_output_channel=int(channel_name[2:-1])
@@ -128,14 +148,35 @@ async def get_webhook_from_channelname(channel_name):
 	
 	return output_webhook, ''
 	
+##############################################################
+# Function: is_owner
+# Parameters: ctx (objet Contexte)
+# Purpose: vérifie si le contexte appartient à GuiOn Ensai
+#          Le but est de limiter certains commandes aux développeurs
+# Output: True/False
+##############################################################
 async def is_owner(ctx):
 	return ctx.author.id == 566552780647563285
 			
+##############################################################
+# Event: on_ready
+# Parameters: none
+# Purpose: se lance quand le bot est connecté
+#          La première action consiste à recherger les infos de la guilde Kangoo Legends
+#          afin d'assurer un refresh permanent du CACHE des membres de la guilde
+# Output: none
+##############################################################
 @bot.event
 async def on_ready():
 	go.load_guild('189341793', False)
 	print(f'{bot.user.name} has connected to Discord!')
 
+##############################################################
+# Command: info
+# Parameters: ctx (objet Contexte)
+# Purpose: affiche un statut si le bot est ON, avec taille du CACHE
+# Display: statut si le bot est ON, avec taille du CACHE
+##############################################################
 @bot.command(name='info', help='Statut du bot')
 async def info(ctx):
 	await ctx.message.add_reaction(emoji_thumb)
@@ -143,6 +184,17 @@ async def info(ctx):
 	await ctx.send('GuiOn bot is UP\n'+go.stats_cache()+'\n'+str(cache_delete_minutes)+' minutes before deleting\n'+str(cache_refresh_minutes)+' minutes before refreshing\n')
 	await ctx.message.add_reaction(emoji_check)
 	
+##############################################################
+# Command: cmd
+# Parameters: ctx (objet Contexte), arg (string)
+# Purpose: exécute la commande donnée entre guillemets et renvoie le résultat
+#          ex: go.cmd "ls -ltr CACHE" (bot déployé sous Linux)
+#          ex: go.cmd "dir CACHE" (bot déployé sous Windows)
+# ATTENTION : cette commande peut potentiellement écraser des fichiers
+#            ou perturber fortement le fonctionnement du bot!
+#            (c'est pour ça qu'elle est réservée aux développeurs)
+# Display: output de la ligne de commande, comme dans une console
+##############################################################
 @bot.command(name='cmd', help='Réservé à GuiOn Ensai')
 @commands.check(is_owner)
 async def cmd(ctx, arg):
@@ -152,10 +204,17 @@ async def cmd(ctx, arg):
 	output = stream.read()
 	print('CMD: '+arg)
 	print(output)
-	for txt in go.split_txt(output, 2000):
+	for txt in go.split_txt(output, 1000):
 		await ctx.send('`'+txt+'`')
 	await ctx.message.add_reaction(emoji_check)
 	
+##############################################################
+# Command: test
+# Parameters: ça dépend...
+# Purpose: commande de test lors du dev. Doit être mise en commentaires
+#          avant déploiement en service
+# Display: ça dépend
+##############################################################
 # @bot.command(name='test', help='Réservé à GuiOn Ensai')
 # @commands.check(is_owner)
 # async def test(ctx, *args):
@@ -169,24 +228,15 @@ async def cmd(ctx, arg):
 		# output_channel=ctx.message.channel
 
 	# await output_channel.send('test')
-	
-@bot.command(name='gt', help='Compare 2 guildes pour la GT')
-async def gt(ctx, allycode, op_alycode):
-	await ctx.message.add_reaction(emoji_thumb)
 
-	if allycode=='KL':
-		allycode='189341793'
-		
-	ret_cmd=go.function_gt(allycode, op_alycode)
-	if ret_cmd[0:3]=='ERR':
-		await ctx.send(ret_cmd)
-		await ctx.message.add_reaction(emoji_error)
-	else:
-		for txt in go.split_txt(ret_cmd, 2000):
-			await ctx.send('`'+txt+'`')
-		await ctx.message.add_reaction(emoji_check)
-
-@bot.command(name='vtgX', help="Vérifie la dispo d'une team dans la guilde")
+##############################################################
+# Command: vtg
+# Parameters: code allié (string) ou "KL", une liste de teams séparées par des espaces ou "all"
+# Purpose: Vérification des Teams de la Guilde avec tri par progrès
+# Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
+#          ou plusieurs tableaux à la suite si plusieurs teams
+##############################################################
+@bot.command(name='vtg', help="Vérifie la dispo d'une team dans la guilde")
 async def vtg(ctx, allycode, *teams):
 	await ctx.message.add_reaction(emoji_thumb)
 
@@ -202,7 +252,14 @@ async def vtg(ctx, allycode, *teams):
 	#Icône de confirmation de fin de commande dans le message d'origine
 	await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='vtg2X', help="Comme vtg mais avec un autre scoring utilisé pour agt")
+##############################################################
+# Command: vtg2
+# Parameters: code allié (string) ou "KL", une liste de teams séparées par des espaces ou "all"
+# Purpose: Vérification des Teams de la Guilde avec tri par PG
+# Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
+#          ou plusieurs tableaux à la suite si plusieurs teams
+##############################################################
+@bot.command(name='vtg2', help="Comme vtg mais avec un autre scoring utilisé pour agt")
 async def vtg2(ctx, allycode, *teams):
 	await ctx.message.add_reaction(emoji_thumb)
 
@@ -218,7 +275,14 @@ async def vtg2(ctx, allycode, *teams):
 	#Icône de confirmation de fin de commande dans le message d'origine
 	await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='vtjX', help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
+##############################################################
+# Command: vtj
+# Parameters: code allié (string), une liste de teams séparées par des espaces ou "all"
+# Purpose: Vérification des Teams d'un joueur avec tri par progrès
+# Display: Une ligne par joueur avec des peros + stats en colonne
+#          ou plusieurs ligne à la suite si plusieurs teams
+##############################################################
+@bot.command(name='vtj', help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
 async def vtj(ctx, allycode, *teams):
 	await ctx.message.add_reaction(emoji_thumb)
 	
@@ -231,7 +295,13 @@ async def vtj(ctx, allycode, *teams):
 	#Icône de confirmation de fin de commande dans le message d'origine
 	await ctx.message.add_reaction(emoji_check)
 
-@bot.command(name='agtX', help="Assigne les équipes par territoire en BT")
+##############################################################
+# Command: agt
+# Parameters: code allié (string) ou "KL"
+# Purpose: Assignation Guerre de Territoire
+# Display: Une ligne par affectation "joueurX doit affecter teamY en territoireZ"
+##############################################################
+@bot.command(name='agt', help="Assigne les équipes par territoire en BT")
 async def agt(ctx, allycode):
 	await ctx.message.add_reaction(emoji_thumb)
 
@@ -244,12 +314,19 @@ async def agt(ctx, allycode):
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		#texte classique
-		for txt in go.split_txt(ret_cmd, 2000):
+		for txt in go.split_txt(ret_cmd, 1000):
 			await ctx.send(txt)
 			
 		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
+##############################################################
+# Command: vdp
+# Parameters: [optionnel] nom du channel où écrire les résultats (sous forme "#nom_du_channel")
+# Purpose: Vérification du déploiements de Pelotons
+# Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
+#          avec un groupement par phase puis un tri par joueur
+##############################################################
 @bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en TB")
 async def vdp(ctx, *args):
 	await ctx.message.add_reaction(emoji_thumb)
@@ -280,43 +357,27 @@ async def vdp(ctx, *args):
 		
 		#Comparaison des dictionnaires
 		#Recherche des persos non-affectés
-		#print(dict_platoons_done)
-		#print(dict_platoons_allocation)
-		#print(dict_player_allocations)
 		erreur_detectee=False
 		list_platoon_names = sorted(dict_platoons_done.keys())
 		phase_names_already_displayed=[]
 		list_txt=[] #[[joueur, peloton, txt], ...]
 		list_err=[]
 		for platoon_name in dict_platoons_done:
-			#print('platoon_name='+platoon_name)
 			phase_name=platoon_name[0:3]
 			if not phase_name in phase_names_already_displayed:
-				#list_txt.append('\n**Phase '+platoon_name[3]+'**')
 				phase_names_already_displayed.append(phase_name)
 			
 			for perso in dict_platoons_done[platoon_name]:
 				if '' in dict_platoons_done[platoon_name][perso]:
 					if platoon_name in dict_platoons_allocation:
-						# if perso == 'Faucon Millenium de Han':
-							# print (platoon_name+': '+perso)
-							# print(dict_platoons_done[platoon_name])
-							# print(dict_platoons_allocation[platoon_name])
 						if perso in dict_platoons_allocation[platoon_name]:
 							for allocated_player in dict_platoons_allocation[platoon_name][perso]:
 								if not allocated_player in dict_platoons_done[platoon_name][perso]:
 									erreur_detectee=True
-									alternative_allocation=''
-									#if allocated_player in dict_player_allocations:
-									#TO-DO ne marche pas en regardant es allocatoins sur plusieurs jours
-									#	if perso in dict_player_allocations[allocated_player]:
-									#		alternative_allocation=" *(mais l'a mis en "+dict_player_allocations[allocated_player][perso]+')*'
-
-									#print(allocated_player+' n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation)
 									if allocated_player in dict_players:
-										list_txt.append([allocated_player, platoon_name, '**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation])
+										list_txt.append([allocated_player, platoon_name, '**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name])
 									else: #joueur non-défini dans gsheets, on l'affiche quand même
-										list_txt.append([allocated_player, platoon_name, '**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name+alternative_allocation])
+										list_txt.append([allocated_player, platoon_name, '**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name])
 						else:
 							erreur_detectee=True
 							list_err.append('ERR: '+perso+' n\'a pas été affecté')
@@ -348,12 +409,19 @@ async def vdp(ctx, *args):
 		else:
 			full_txt+='Aucune erreur de peloton\n'
 			
-		for txt in go.split_txt(full_txt, 2000):
+		for txt in go.split_txt(full_txt, 1000):
 			await output_channel.send(txt)
 			
 		
 		await ctx.message.add_reaction(emoji_check)
 		
+##############################################################
+# Command: scg
+# Parameters: code allié (string) ou "KL"
+# Purpose: Score de Counter de la Guilde
+# Display: Un premier tableau donnant la dispo des équipes utilisées en counter
+#          Un 2e tableau donnant les possibilités de counter contre des équipes données
+##############################################################
 @bot.command(name='scg', help="Score de Contre pour la Guilde")
 async def scg(ctx, allycode):
 	await ctx.message.add_reaction(emoji_thumb)
@@ -367,12 +435,17 @@ async def scg(ctx, allycode):
 		await ctx.message.add_reaction(emoji_error)
 	else:
 		#texte classique
-		for txt in go.split_txt(ret_cmd, 2000):
+		for txt in go.split_txt(ret_cmd, 1000):
 			await ctx.send(txt)
 			
 		#Icône de confirmation de fin de commande dans le message d'origine
 		await ctx.message.add_reaction(emoji_check)
 
-#MAIN		
+##############################################################
+# MAIN EXECUTION
+##############################################################
+#création de la tâche périodique à 60 secondes
 bot.loop.create_task(bot_loop_60())
+
+#Lancement du bot
 bot.run(TOKEN)

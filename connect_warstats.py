@@ -425,7 +425,7 @@ def parse_warstats_page():
 	try:
 		page = urllib.request.urlopen(warstats_tbs_url)
 	except urllib.error.HTTPError as e:
-		return '', None
+		return '', None, None, None
 		
 	generic_parser = GenericTBSParser()
 	generic_parser.feed(str(page.read()))
@@ -435,7 +435,7 @@ def parse_warstats_page():
 	try:
 		page = urllib.request.urlopen(warstats_platoon_url)
 	except urllib.error.HTTPError as e:
-		return '', None
+		return '', None, None, None
 	
 	complete_dict_platoons={}
 	complete_dict_player_allocations={}

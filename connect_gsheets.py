@@ -4,8 +4,23 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+# client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
+# ou plusieurs fois le même (gain de temps)
 client=None
 
+##############################################################
+# Function: load_config_teams
+# Parameters: none
+# Purpose: lit l'onglet "teams" du fichier Sheets
+# Output: liste_teams (liste des noms d'équipe)
+#         dict_teams {key=team_name,
+#                     value=[[catégorie, nombre nécessaire,
+#                               {key=nom,
+#                                value=[id, étoiles min, gear min, étoiles reco, gear reco, [liste zeta], vitesse, nom court]
+#								}
+#							 ], ...]
+#					  }
+##############################################################
 def load_config_teams():
 	global client
 	global file_config
@@ -20,7 +35,7 @@ def load_config_teams():
 	file = client.open("GuiOnBot config")	
 	feuille=file.worksheet("teams")
 
-	dict_teams={} # [[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles min, gear min, étoiles reco, gear reco, [liste zeta], vitesse, nom court]}]]
+	dict_teams={} # {key=team_name, value=[[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles min, gear min, étoiles reco, gear reco, [liste zeta], vitesse, nom court]}]]}
 
 	liste_dict_feuille=feuille.get_all_records()
 	#print(liste_dict_feuille)
@@ -50,6 +65,12 @@ def load_config_teams():
 		#print('DBG: dict_teams='+str(dict_teams))
 	return liste_teams, dict_teams
 
+##############################################################
+# Function: load_config_players
+# Parameters: none
+# Purpose: lit l'onglet "players" du fichier Sheets
+# Output:  dict_players {key=IG name, value=[allycode, discord name, discord display name]}
+##############################################################
 def load_config_players():
 	global client
 	
@@ -81,6 +102,12 @@ def load_config_players():
 		
 	return dict_players
 
+##############################################################
+# Function: load_config_players
+# Parameters: none
+# Purpose: lit l'onglet "GT" du fichier Sheets
+# Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
+##############################################################
 def load_config_gt():
 	global client
 	
@@ -107,6 +134,12 @@ def load_config_gt():
 
 	return liste_territoires
 	
+##############################################################
+# Function: load_config_counter
+# Parameters: none
+# Purpose: lit l'onglet "COUNTER" du fichier Sheets
+# Output:  list_counter_teams [[nom équipe à contrer, [liste équipes qui peuvent contrer], nombre nécessaire], ...]
+##############################################################
 def load_config_counter():
 	global client
 	
@@ -137,6 +170,6 @@ def load_config_counter():
 			list_counter_teams.append(counter_team)
 	return list_counter_teams
 
-#MAIN
+#MAIN (DEBUG, à commenter avant mise en service)
 #print(load_config_counter())
 		
