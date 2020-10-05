@@ -432,9 +432,9 @@ def guild_team(txt_allycode, list_team_names, score_type, score_green, score_amb
 			for player in guild['roster']:
 				score, line, nogo=get_team_line_from_player(player['dict_player'], objectifs, score_type, score_green, score_amber, txt_mode, dict_player_discord)
 				tab_lines.append([score, line, nogo])
-				if score>=score_green:
+				if score>=score_green and not nogo:
 					count_green+=1
-				if score>=score_amber:
+				if score>=score_amber and not nogo:
 					count_amber+=1
 			
 			#Tri des nogo=False en premier, puis score décroissant
