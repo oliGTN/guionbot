@@ -646,7 +646,6 @@ def guild_counter_score(txt_allycode):
 		
 	return ret_guild_counter_score
 			
-	
 ########### MAIN (DEBUG uniquement, à commenter avant mise en service)#########
 me='189341793'
 #print(guild_counter_score(me))
