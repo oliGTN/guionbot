@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Source --> https://realpython.com/how-to-make-a-discord-bot-python/
 # CERTIFICATE_VERIFY_FAILED --> https://github.com/Rapptz/discord.py/issues/4159
 
@@ -20,8 +21,9 @@ bot = commands.Bot(command_prefix='go.')
 emoji_thumb = '\N{THUMBS UP SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 emoji_error = '\N{CROSS MARK}'
-cache_delete_minutes=1440 #24 hours before deleting unused cache file
-cache_refresh_minutes=60 #60 minutes minimum to refresh data from the guild
+cache_delete_minutes = 1440  #24 hours before deleting unused cache file
+cache_refresh_minutes = 60  #60 minutes minimum to refresh data from the guild
+
 
 ##############################################################
 # Function: bot_loop_60
@@ -31,19 +33,20 @@ cache_refresh_minutes=60 #60 minutes minimum to refresh data from the guild
 # Output: none
 ##############################################################
 async def bot_loop_60():
-	#global dict_players
-	await bot.wait_until_ready()
-	while not bot.is_closed():
-		try:
-			#clean_cache(cache_delete_minutes)
-			
-			#list_guild_allycodes=[(lambda x:str(x))(x) for x in dict_players]
-			go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
-			await asyncio.sleep(60) #60 seconds for loop
-		except Exception as e:
-			print(e)
-			await asyncio.sleep(60) #60 seconds for loop
-			
+    #global dict_players
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        try:
+            #clean_cache(cache_delete_minutes)
+
+            #list_guild_allycodes=[(lambda x:str(x))(x) for x in dict_players]
+            go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
+            await asyncio.sleep(60)  #60 seconds for loop
+        except Exception as e:
+            print(e)
+            await asyncio.sleep(60)  #60 seconds for loop
+
+
 ##############################################################
 # Function: get_eb_allocation
 # Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
@@ -52,70 +55,88 @@ async def bot_loop_60():
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
 async def get_eb_allocation(tbs_round):
-	# Lecture des affectation ECHOBOT
-	bt_channel=bot.get_channel(719211688166948914) #channel batailles de territoire
-	dict_platoons_allocation={} #key=platton_name, value={key=perso, value=[player...]}
-	eb_phases=[]
-	eb_missions_full=[]
-	eb_missions_tmp=[]
-	async for message in bt_channel.history(limit=500):
-		if str(message.author)=='EchoStation#0000':
-			if (datetime.datetime.now() - message.created_at).days > 7:
-				#On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
-				break
+    # Lecture des affectation ECHOBOT
+    bt_channel = bot.get_channel(
+        719211688166948914)  #channel batailles de territoire
+    dict_platoons_allocation = {
+    }  #key=platton_name, value={key=perso, value=[player...]}
+    eb_phases = []
+    eb_missions_full = []
+    eb_missions_tmp = []
+    async for message in bt_channel.history(limit=500):
+        if str(message.author) == 'EchoStation#0000':
+            if (datetime.datetime.now() - message.created_at).days > 7:
+                #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
+                break
 
-			if message.content.startswith(':information_source: **Overview** (Phase'):
-				numero_phase=re.search('\((.*?)\)', message.content).group(1)[-1]
+            if message.content.startswith(
+                    ':information_source: **Overview** (Phase'):
+                numero_phase = re.search('\((.*?)\)',
+                                         message.content).group(1)[-1]
 
-				#renumérotation des clés du dictionnaire avec la phase (si pas déjà lue)
-				#print(dict_platoons_allocation)
-				old_platoon_names=set(dict_platoons_allocation.keys())
-				for old_platoon_name in old_platoon_names:
-					new_platoon_name=old_platoon_name[0:3]+numero_phase+old_platoon_name[4:]
-					if old_platoon_name[3]=='X':
-						phase_position=numero_phase+'-'+old_platoon_name.split('-')[1]
-						#print(phase_position)
-						#print(eb_missions_full)
-						if not (phase_position in eb_missions_full):
-							dict_platoons_allocation[new_platoon_name]=dict_platoons_allocation[old_platoon_name]
-						#print('del dict_platoons_allocation['+old_platoon_name+']')
-						del dict_platoons_allocation[old_platoon_name]
-				#print(dict_platoons_allocation)
-				#print('=========================')
-				
-				#Ajout des phases lues dans la liste complète
-				for pos in eb_missions_tmp:
-					if not (numero_phase+'-'+pos) in eb_missions_full:
-						eb_missions_full.append(numero_phase+'-'+pos)
-				eb_missions_tmp=[]
+                #renumérotation des clés du dictionnaire avec la phase (si pas déjà lue)
+                #print(dict_platoons_allocation)
+                old_platoon_names = set(dict_platoons_allocation.keys())
+                for old_platoon_name in old_platoon_names:
+                    new_platoon_name = old_platoon_name[
+                        0:3] + numero_phase + old_platoon_name[4:]
+                    if old_platoon_name[3] == 'X':
+                        phase_position = numero_phase + '-' + old_platoon_name.split(
+                            '-')[1]
+                        #print(phase_position)
+                        #print(eb_missions_full)
+                        if not (phase_position in eb_missions_full):
+                            dict_platoons_allocation[
+                                new_platoon_name] = dict_platoons_allocation[
+                                    old_platoon_name]
+                        #print('del dict_platoons_allocation['+old_platoon_name+']')
+                        del dict_platoons_allocation[old_platoon_name]
+                #print(dict_platoons_allocation)
+                #print('=========================')
 
-				if not (numero_phase in eb_phases):
-					eb_phases.append(numero_phase)
-					print('Lecture terminée de l\'affectation EchoBot pour la phase '+numero_phase)
-					
-				
-			if message.content.startswith('```prolog'):
-				position_territoire=re.search('\((.*?)\)', message.content).group(1)
-				eb_missions_tmp.append(position_territoire)
-				
-				for embed in message.embeds:
-					dict_embed=embed.to_dict()
-					if 'fields' in dict_embed:
-						#print(dict_embed)
-						#on garde le nom de la BT mais on met X comme numéro de phase
-						#le numéro de phase sera affecté plus tard
-						platoon_name=tbs_round[0:3]+'X-'+position_territoire+'-'+re.search('\*\*(.*?)\*\*', dict_embed['description']).group(1)[-1]
-						for dict_perso in dict_embed['fields']:
-							for perso in dict_perso['value'].split('\n'):
-								char_name=perso[1:-1]
-								if not platoon_name in dict_platoons_allocation:
-									dict_platoons_allocation[platoon_name]={}
-								if not char_name in dict_platoons_allocation[platoon_name]:
-									dict_platoons_allocation[platoon_name][char_name]=[]
-								dict_platoons_allocation[platoon_name][char_name].append(dict_perso['name'])
+                #Ajout des phases lues dans la liste complète
+                for pos in eb_missions_tmp:
+                    if not (numero_phase + '-' + pos) in eb_missions_full:
+                        eb_missions_full.append(numero_phase + '-' + pos)
+                eb_missions_tmp = []
 
-	return dict_platoons_allocation
-			
+                if not (numero_phase in eb_phases):
+                    eb_phases.append(numero_phase)
+                    print(
+                        'Lecture terminée de l\'affectation EchoBot pour la phase '
+                        + numero_phase)
+
+            if message.content.startswith('```prolog'):
+                position_territoire = re.search('\((.*?)\)',
+                                                message.content).group(1)
+                eb_missions_tmp.append(position_territoire)
+
+                for embed in message.embeds:
+                    dict_embed = embed.to_dict()
+                    if 'fields' in dict_embed:
+                        #print(dict_embed)
+                        #on garde le nom de la BT mais on met X comme numéro de phase
+                        #le numéro de phase sera affecté plus tard
+                        platoon_name = tbs_round[
+                            0:3] + 'X-' + position_territoire + '-' + re.search(
+                                '\*\*(.*?)\*\*',
+                                dict_embed['description']).group(1)[-1]
+                        for dict_perso in dict_embed['fields']:
+                            for perso in dict_perso['value'].split('\n'):
+                                char_name = perso[1:-1]
+                                if not platoon_name in dict_platoons_allocation:
+                                    dict_platoons_allocation[
+                                        platoon_name] = {}
+                                if not char_name in dict_platoons_allocation[
+                                        platoon_name]:
+                                    dict_platoons_allocation[platoon_name][
+                                        char_name] = []
+                                dict_platoons_allocation[platoon_name][
+                                    char_name].append(dict_perso['name'])
+
+    return dict_platoons_allocation
+
+
 ##############################################################
 # Function: get_webhook_from_channelname
 # Parameters: channel_name (string) > nom de channel sous la forme <#1234567890>
@@ -125,29 +146,32 @@ async def get_eb_allocation(tbs_round):
 #         si erreur > None, "message d'erreur" (string)
 ##############################################################
 async def get_webhook_from_channelname(channel_name):
-	try:
-		id_output_channel=int(channel_name[2:-1])
-	except Exception as e:
-		print(e)
-		return None, channel_name+' n\'est pas un channel valide'
-		
-	output_channel=bot.get_channel(id_output_channel)
-	if output_channel==None:
-		return None, 'Channel '+channel_name+'(id='+str(id_output_channel)+') introuvable'
-	
-	if id_output_channel==719211688166948914: #batailles de territoires
-		id_webhook=744169289908748298
-	else:
-		return None, 'Channel '+channel_name+'(id='+str(id_output_channel)+') sans webhook associé'
+    try:
+        id_output_channel = int(channel_name[2:-1])
+    except Exception as e:
+        print(e)
+        return None, channel_name + ' n\'est pas un channel valide'
 
-	try:
-		output_webhook=await bot.fetch_webhook(id_webhook)
-	except Exception as e:
-		print(e)
-		return None, 'Webhook id='+str(id_webhook)+' introuvable'
-	
-	return output_webhook, ''
-	
+    output_channel = bot.get_channel(id_output_channel)
+    if output_channel == None:
+        return None, 'Channel ' + channel_name + '(id=' + str(
+            id_output_channel) + ') introuvable'
+
+    if id_output_channel == 719211688166948914:  #batailles de territoires
+        id_webhook = 744169289908748298
+    else:
+        return None, 'Channel ' + channel_name + '(id=' + str(
+            id_output_channel) + ') sans webhook associé'
+
+    try:
+        output_webhook = await bot.fetch_webhook(id_webhook)
+    except Exception as e:
+        print(e)
+        return None, 'Webhook id=' + str(id_webhook) + ' introuvable'
+
+    return output_webhook, ''
+
+
 ##############################################################
 # Function: is_owner
 # Parameters: ctx (objet Contexte)
@@ -156,8 +180,9 @@ async def get_webhook_from_channelname(channel_name):
 # Output: True/False
 ##############################################################
 async def is_owner(ctx):
-	return ctx.author.id == 566552780647563285
-			
+    return ctx.author.id == 566552780647563285
+
+
 ##############################################################
 # Event: on_ready
 # Parameters: none
@@ -168,8 +193,9 @@ async def is_owner(ctx):
 ##############################################################
 @bot.event
 async def on_ready():
-	go.load_guild('189341793', False)
-	print(f'{bot.user.name} has connected to Discord!')
+    go.load_guild('189341793', False)
+    print(f'{bot.user.name} has connected to Discord!')
+
 
 ##############################################################
 # Command: info
@@ -179,11 +205,14 @@ async def on_ready():
 ##############################################################
 @bot.command(name='info', help='Statut du bot')
 async def info(ctx):
-	await ctx.message.add_reaction(emoji_thumb)
+    await ctx.message.add_reaction(emoji_thumb)
 
-	await ctx.send('GuiOn bot is UP\n'+go.stats_cache()+'\n'+str(cache_delete_minutes)+' minutes before deleting\n'+str(cache_refresh_minutes)+' minutes before refreshing\n')
-	await ctx.message.add_reaction(emoji_check)
-	
+    await ctx.send('GuiOn bot is UP\n' + go.stats_cache() + '\n' +
+                   str(cache_delete_minutes) + ' minutes before deleting\n' +
+                   str(cache_refresh_minutes) + ' minutes before refreshing\n')
+    await ctx.message.add_reaction(emoji_check)
+
+
 ##############################################################
 # Command: cmd
 # Parameters: ctx (objet Contexte), arg (string)
@@ -198,16 +227,17 @@ async def info(ctx):
 @bot.command(name='cmd', help='Réservé à GuiOn Ensai')
 @commands.check(is_owner)
 async def cmd(ctx, arg):
-	await ctx.message.add_reaction(emoji_thumb)
+    await ctx.message.add_reaction(emoji_thumb)
 
-	stream = os.popen(arg)
-	output = stream.read()
-	print('CMD: '+arg)
-	print(output)
-	for txt in go.split_txt(output, 1000):
-		await ctx.send('`'+txt+'`')
-	await ctx.message.add_reaction(emoji_check)
-	
+    stream = os.popen(arg)
+    output = stream.read()
+    print('CMD: ' + arg)
+    print(output)
+    for txt in go.split_txt(output, 1000):
+        await ctx.send('`' + txt + '`')
+    await ctx.message.add_reaction(emoji_check)
+
+
 ##############################################################
 # Command: test
 # Parameters: ça dépend...
@@ -219,15 +249,16 @@ async def cmd(ctx, arg):
 # @commands.check(is_owner)
 # async def test(ctx, *args):
 
-	# if len(args)==1:
-		# output_channel, err_msg=await get_webhook_from_channelname(args[0])
-		# if output_channel==None:
-			# await ctx.send(err_msg)
-			# output_channel=ctx.message.channel
-	# else:
-		# output_channel=ctx.message.channel
+# if len(args)==1:
+# output_channel, err_msg=await get_webhook_from_channelname(args[0])
+# if output_channel==None:
+# await ctx.send(err_msg)
+# output_channel=ctx.message.channel
+# else:
+# output_channel=ctx.message.channel
 
-	# await output_channel.send('test')
+# await output_channel.send('test')
+
 
 ##############################################################
 # Command: vtg
@@ -238,19 +269,20 @@ async def cmd(ctx, arg):
 ##############################################################
 @bot.command(name='vtg', help="Vérifie la dispo d'une team dans la guilde")
 async def vtg(ctx, allycode, *teams):
-	await ctx.message.add_reaction(emoji_thumb)
+    await ctx.message.add_reaction(emoji_thumb)
 
-	if allycode=='KL':
-		allycode='189341793'
-	
-	ret_cmd=go.guild_team(allycode, teams, 1, 100, 80, False)
-	for team in ret_cmd:
-		txt_team=ret_cmd[team][0]
-		for txt in go.split_txt(txt_team, 1000):
-			await ctx.send(txt)
-			
-	#Icône de confirmation de fin de commande dans le message d'origine
-	await ctx.message.add_reaction(emoji_check)
+    if allycode == 'KL':
+        allycode = '189341793'
+
+    ret_cmd = go.guild_team(allycode, teams, 1, 100, 80, False)
+    for team in ret_cmd:
+        txt_team = ret_cmd[team][0]
+        for txt in go.split_txt(txt_team, 1000):
+            await ctx.send(txt)
+
+    #Icône de confirmation de fin de commande dans le message d'origine
+    await ctx.message.add_reaction(emoji_check)
+
 
 ##############################################################
 # Command: vtg2
@@ -259,21 +291,23 @@ async def vtg(ctx, allycode, *teams):
 # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
 #          ou plusieurs tableaux à la suite si plusieurs teams
 ##############################################################
-@bot.command(name='vtg2', help="Comme vtg mais avec un autre scoring utilisé pour agt")
+@bot.command(name='vtg2',
+             help="Comme vtg mais avec un autre scoring utilisé pour agt")
 async def vtg2(ctx, allycode, *teams):
-	await ctx.message.add_reaction(emoji_thumb)
+    await ctx.message.add_reaction(emoji_thumb)
 
-	if allycode=='KL':
-		allycode='189341793'
-	
-	ret_cmd=go.guild_team(allycode, teams, 3, 100000, 80000, False)
-	for team in ret_cmd:
-		txt_team=ret_cmd[team][0]
-		for txt in go.split_txt(txt_team, 1000):
-			await ctx.send(txt)
-			
-	#Icône de confirmation de fin de commande dans le message d'origine
-	await ctx.message.add_reaction(emoji_check)
+    if allycode == 'KL':
+        allycode = '189341793'
+
+    ret_cmd = go.guild_team(allycode, teams, 3, 100000, 80000, False)
+    for team in ret_cmd:
+        txt_team = ret_cmd[team][0]
+        for txt in go.split_txt(txt_team, 1000):
+            await ctx.send(txt)
+
+    #Icône de confirmation de fin de commande dans le message d'origine
+    await ctx.message.add_reaction(emoji_check)
+
 
 ##############################################################
 # Command: vtj
@@ -282,18 +316,20 @@ async def vtg2(ctx, allycode, *teams):
 # Display: Une ligne par joueur avec des peros + stats en colonne
 #          ou plusieurs ligne à la suite si plusieurs teams
 ##############################################################
-@bot.command(name='vtj', help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
+@bot.command(name='vtj',
+             help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
 async def vtj(ctx, allycode, *teams):
-	await ctx.message.add_reaction(emoji_thumb)
-	
-	ret_cmd=go.player_team(allycode, teams, 1, 100, 80, False)
-	for team in ret_cmd:
-		txt_team=ret_cmd[team]
-		for txt in go.split_txt(txt_team, 1000):
-			await ctx.send(txt)
-		
-	#Icône de confirmation de fin de commande dans le message d'origine
-	await ctx.message.add_reaction(emoji_check)
+    await ctx.message.add_reaction(emoji_thumb)
+
+    ret_cmd = go.player_team(allycode, teams, 1, 100, 80, False)
+    for team in ret_cmd:
+        txt_team = ret_cmd[team]
+        for txt in go.split_txt(txt_team, 1000):
+            await ctx.send(txt)
+
+    #Icône de confirmation de fin de commande dans le message d'origine
+    await ctx.message.add_reaction(emoji_check)
+
 
 ##############################################################
 # Command: agt
@@ -303,22 +339,23 @@ async def vtj(ctx, allycode, *teams):
 ##############################################################
 @bot.command(name='agt', help="Assigne les équipes par territoire en BT")
 async def agt(ctx, allycode):
-	await ctx.message.add_reaction(emoji_thumb)
+    await ctx.message.add_reaction(emoji_thumb)
 
-	if allycode=='KL':
-		allycode='189341793'
-			
-	ret_cmd=go.assign_bt(allycode, False)
-	if ret_cmd[0:3]=='ERR':
-		await ctx.send(ret_cmd)
-		await ctx.message.add_reaction(emoji_error)
-	else:
-		#texte classique
-		for txt in go.split_txt(ret_cmd, 1000):
-			await ctx.send(txt)
-			
-		#Icône de confirmation de fin de commande dans le message d'origine
-		await ctx.message.add_reaction(emoji_check)
+    if allycode == 'KL':
+        allycode = '189341793'
+
+    ret_cmd = go.assign_bt(allycode, False)
+    if ret_cmd[0:3] == 'ERR':
+        await ctx.send(ret_cmd)
+        await ctx.message.add_reaction(emoji_error)
+    else:
+        #texte classique
+        for txt in go.split_txt(ret_cmd, 1000):
+            await ctx.send(txt)
+
+        #Icône de confirmation de fin de commande dans le message d'origine
+        await ctx.message.add_reaction(emoji_check)
+
 
 ##############################################################
 # Command: vdp
@@ -329,92 +366,109 @@ async def agt(ctx, allycode):
 ##############################################################
 @bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en TB")
 async def vdp(ctx, *args):
-	await ctx.message.add_reaction(emoji_thumb)
-	
-	#Sortie sur un autre channel si donné en paramètre
-	#la liste des channels autorisés est limitée, dans la fonction get_webhook_from_channelname
-	if len(args)==1:
-		output_channel, err_msg=await get_webhook_from_channelname(args[0])
-		if output_channel==None:
-			await ctx.send(err_msg)
-			output_channel=ctx.message.channel
-	else:
-		output_channel=ctx.message.channel
+    await ctx.message.add_reaction(emoji_thumb)
 
-	#Lecture du statut des pelotons sur warstats
-	tbs_round, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page()
-	
-	#Recuperation des dernieres donnees sur gdrive
-	dict_players=load_config_players() # {key=IG name, value=[allycode, discord name, discord id]]
+    #Sortie sur un autre channel si donné en paramètre
+    #la liste des channels autorisés est limitée, dans la fonction get_webhook_from_channelname
+    if len(args) == 1:
+        output_channel, err_msg = await get_webhook_from_channelname(args[0])
+        if output_channel == None:
+            await ctx.send(err_msg)
+            output_channel = ctx.message.channel
+    else:
+        output_channel = ctx.message.channel
 
-	if tbs_round=='':
-		await ctx.send('Aucune BT en cours')
-		await ctx.message.add_reaction(emoji_error)
-	else:
-		print('Lecture terminée du statut BT sur warstats: round '+tbs_round)
-		
-		dict_platoons_allocation = await get_eb_allocation(tbs_round)
-		
-		#Comparaison des dictionnaires
-		#Recherche des persos non-affectés
-		erreur_detectee=False
-		list_platoon_names = sorted(dict_platoons_done.keys())
-		phase_names_already_displayed=[]
-		list_txt=[] #[[joueur, peloton, txt], ...]
-		list_err=[]
-		for platoon_name in dict_platoons_done:
-			phase_name=platoon_name[0:3]
-			if not phase_name in phase_names_already_displayed:
-				phase_names_already_displayed.append(phase_name)
-			
-			for perso in dict_platoons_done[platoon_name]:
-				if '' in dict_platoons_done[platoon_name][perso]:
-					if platoon_name in dict_platoons_allocation:
-						if perso in dict_platoons_allocation[platoon_name]:
-							for allocated_player in dict_platoons_allocation[platoon_name][perso]:
-								if not allocated_player in dict_platoons_done[platoon_name][perso]:
-									erreur_detectee=True
-									if allocated_player in dict_players:
-										list_txt.append([allocated_player, platoon_name, '**'+dict_players[allocated_player][2]+'** n\'a pas affecté '+perso+' en '+platoon_name])
-									else: #joueur non-défini dans gsheets, on l'affiche quand même
-										list_txt.append([allocated_player, platoon_name, '**'+allocated_player+'** n\'a pas affecté '+perso+' en '+platoon_name])
-						else:
-							erreur_detectee=True
-							list_err.append('ERR: '+perso+' n\'a pas été affecté')
-							print('ERR: '+perso+' n\'a pas été affecté')
-							print(dict_platoons_allocation[platoon_name].keys())
-		
-		full_txt=''
-		cur_phase=0
-		for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
-			if cur_phase!=int(txt[1][3]):
-				cur_phase=int(txt[1][3])
-				full_txt+='\n---- **Phase '+str(cur_phase)+'**\n'
-				
-			position=txt[1].split('-')
-			if position=='top':
-				open_for_position=list_open_territories[0]
-			elif position=='mid':
-				open_for_position=list_open_territories[1]
-			else: #bottom
-				open_for_position=list_open_territories[2]
-			if cur_phase<open_for_position:
-				full_txt+=txt[2]+' -- *et c\'est trop tard*\n'
-			else:
-				full_txt+=txt[2]+'\n'
-			
-		if erreur_detectee:
-			for txt in sorted(set(list_err)):
-				full_txt+=txt+'\n'
-		else:
-			full_txt+='Aucune erreur de peloton\n'
-			
-		for txt in go.split_txt(full_txt, 1000):
-			await output_channel.send(txt)
-			
-		
-		await ctx.message.add_reaction(emoji_check)
-		
+    #Lecture du statut des pelotons sur warstats
+    tbs_round, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page(
+    )
+
+    #Recuperation des dernieres donnees sur gdrive
+    dict_players = load_config_players(
+    )  # {key=IG name, value=[allycode, discord name, discord id]]
+
+    if tbs_round == '':
+        await ctx.send('Aucune BT en cours')
+        await ctx.message.add_reaction(emoji_error)
+    else:
+        print('Lecture terminée du statut BT sur warstats: round ' + tbs_round)
+
+        dict_platoons_allocation = await get_eb_allocation(tbs_round)
+
+        #Comparaison des dictionnaires
+        #Recherche des persos non-affectés
+        erreur_detectee = False
+        list_platoon_names = sorted(dict_platoons_done.keys())
+        phase_names_already_displayed = []
+        list_txt = []  #[[joueur, peloton, txt], ...]
+        list_err = []
+        for platoon_name in dict_platoons_done:
+            phase_name = platoon_name[0:3]
+            if not phase_name in phase_names_already_displayed:
+                phase_names_already_displayed.append(phase_name)
+
+            for perso in dict_platoons_done[platoon_name]:
+                if '' in dict_platoons_done[platoon_name][perso]:
+                    if platoon_name in dict_platoons_allocation:
+                        if perso in dict_platoons_allocation[platoon_name]:
+                            for allocated_player in dict_platoons_allocation[
+                                    platoon_name][perso]:
+                                if not allocated_player in dict_platoons_done[
+                                        platoon_name][perso]:
+                                    erreur_detectee = True
+                                    if allocated_player in dict_players:
+                                        list_txt.append([
+                                            allocated_player, platoon_name,
+                                            '**' +
+                                            dict_players[allocated_player][2] +
+                                            '** n\'a pas affecté ' + perso +
+                                            ' en ' + platoon_name
+                                        ])
+                                    else:  #joueur non-défini dans gsheets, on l'affiche quand même
+                                        list_txt.append([
+                                            allocated_player, platoon_name,
+                                            '**' + allocated_player +
+                                            '** n\'a pas affecté ' + perso +
+                                            ' en ' + platoon_name
+                                        ])
+                        else:
+                            erreur_detectee = True
+                            list_err.append('ERR: ' + perso +
+                                            ' n\'a pas été affecté')
+                            print('ERR: ' + perso + ' n\'a pas été affecté')
+                            print(
+                                dict_platoons_allocation[platoon_name].keys())
+
+        full_txt = ''
+        cur_phase = 0
+        for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
+            if cur_phase != int(txt[1][3]):
+                cur_phase = int(txt[1][3])
+                full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
+
+            position = txt[1].split('-')
+            if position == 'top':
+                open_for_position = list_open_territories[0]
+            elif position == 'mid':
+                open_for_position = list_open_territories[1]
+            else:  #bottom
+                open_for_position = list_open_territories[2]
+            if cur_phase < open_for_position:
+                full_txt += txt[2] + ' -- *et c\'est trop tard*\n'
+            else:
+                full_txt += txt[2] + '\n'
+
+        if erreur_detectee:
+            for txt in sorted(set(list_err)):
+                full_txt += txt + '\n'
+        else:
+            full_txt += 'Aucune erreur de peloton\n'
+
+        for txt in go.split_txt(full_txt, 1000):
+            await output_channel.send(txt)
+
+        await ctx.message.add_reaction(emoji_check)
+
+
 ##############################################################
 # Command: scg
 # Parameters: code allié (string) ou "KL"
@@ -424,22 +478,23 @@ async def vdp(ctx, *args):
 ##############################################################
 @bot.command(name='scg', help="Score de Contre pour la Guilde")
 async def scg(ctx, allycode):
-	await ctx.message.add_reaction(emoji_thumb)
+    await ctx.message.add_reaction(emoji_thumb)
 
-	if allycode=='KL':
-		allycode='189341793'
-			
-	ret_cmd=go.guild_counter_score(allycode)
-	if ret_cmd[0:3]=='ERR':
-		await ctx.send(ret_cmd)
-		await ctx.message.add_reaction(emoji_error)
-	else:
-		#texte classique
-		for txt in go.split_txt(ret_cmd, 1000):
-			await ctx.send(txt)
-			
-		#Icône de confirmation de fin de commande dans le message d'origine
-		await ctx.message.add_reaction(emoji_check)
+    if allycode == 'KL':
+        allycode = '189341793'
+
+    ret_cmd = go.guild_counter_score(allycode)
+    if ret_cmd[0:3] == 'ERR':
+        await ctx.send(ret_cmd)
+        await ctx.message.add_reaction(emoji_error)
+    else:
+        #texte classique
+        for txt in go.split_txt(ret_cmd, 1000):
+            await ctx.send(txt)
+
+        #Icône de confirmation de fin de commande dans le message d'origine
+        await ctx.message.add_reaction(emoji_check)
+
 
 ##############################################################
 # MAIN EXECUTION
