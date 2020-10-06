@@ -547,14 +547,21 @@ def player_team(txt_allycode, list_team_names, score_type, score_green,
 #          Cette fonction est utilisée pour afficher de grands textes dans Discord
 # Output: tableau de texte de taille acceptable
 ##############################################################
+FORCE_CUT_PATTERN = "SPLIT_HERE"
+
+
 def split_txt(txt, max_size):
     ret_split_txt = []
     remaining_txt = txt
     while len(txt) > max_size:
+        force_split = txt.rfind(FORCE_CUT_PATTERN, 0, max_size)
+        if force_split != -1:
+            ret_split_txt.append(txt[:force_split])
+            txt = txt[force_split + len(FORCE_CUT_PATTERN):]
+            continue
+
         last_cr = -1
-        for pos_char in range(0, max_size):
-            if txt[pos_char] == '\n':
-                last_cr = pos_char
+        last_cr = txt.rfind("\n", 0, max_size)
         if last_cr == -1:
             ret_split_txt.append(txt[-3] + '...')
             txt = ''
@@ -683,6 +690,16 @@ def assign_bt(allycode, txt_mode):
     return ret_assign_bt
 
 
+def score_of_interest(team_name, counter_matrix):
+    current_score = 0
+    for row in counter_matrix:
+        # Count if the team_name can counter the current team row
+        # Ignore the row if the team counters itself
+        if team_name in row[1] and row[0] != team_name:
+            current_score += 1
+    return current_score
+
+
 def guild_counter_score(txt_allycode):
     ret_guild_counter_score = ''
 
@@ -694,28 +711,78 @@ def guild_counter_score(txt_allycode):
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]
-    #print(dict_needed_teams)
-    ret_guild_counter_score += '\n**Nombre de joueurs avec une équipe au niveau recommandé (mini)**\n'
+    # print(list_counter_teams)
+
+    result = []
     for nteam_key in dict_needed_teams.keys():
         if dict_needed_teams[nteam_key][0][:3] == 'ERR':
-            ret_guild_counter_score += dict_needed_teams[nteam_key][0] + '\n'
+            result.append({
+                "team_name": None,
+                "rec_count": None,
+                "min_count": None,
+                "score": None,
+                "max_score": None,
+                "error": dict_needed_teams[nteam_key][0]
+            })
         else:
-            ret_guild_counter_score += '**' + nteam_key + '**: ' + str(
-                dict_needed_teams[nteam_key][1]) + ' (' + str(
-                    dict_needed_teams[nteam_key][2]) + ')\n'
+            result.append({
+                "team_name": nteam_key,
+                "rec_count": dict_needed_teams[nteam_key][1],
+                "min_count": dict_needed_teams[nteam_key][2],
+                "score": score_of_interest(nteam_key, list_counter_teams),
+                "max_score": len(list_counter_teams),
+                "error": None
+            })
 
-    ret_guild_counter_score += '\n**Capacité de contre par adversaire au niveau recommandé (mini)**\n'
-    for cteam in list_counter_teams:
+    result = sorted(
+        result,
+        key=lambda i:
+        (i['score'], i['rec_count'], i['min_count'], i['team_name']))
+
+    ret_guild_counter_score += """
+\n**Nombre de joueurs ayant l'équipe X**
+*Rec = Niveau recommandé / Min = Niveau minimum*
+*L'intérêt absolu mesure le nombre de fois que l'équipe X intervient en tant qu'équipe de contre*
+```
+{0:15}: {1:3} ↗ {2:3} - {3:5}
+""".format("Equipe", "Rec", "Min", "Intérêt absolu")
+
+    for line in result:
+        if line["error"]:
+            ret_guild_counter_score += line["error"] + '\n'
+            continue
+
+        ret_guild_counter_score += "{0:15}: {1:3} ↗"\
+                " {2:3} - {3:2}/{4:2}\n".format(
+                    line["team_name"],
+                    line["rec_count"],
+                    line["min_count"],
+                    line["score"],
+                    line["max_score"])
+
+    ret_guild_counter_score += f"```{FORCE_CUT_PATTERN}"
+
+    ret_guild_counter_score += """
+\n**Capacité de contre par adversaire**
+*Rec = Niveau recommandé / Min = Niveau minimum*
+```
+{0:15}: {1:3} ↗ {2:3} 🎯 {3:2}
+""".format("Equipe", "Rec", "Min", "Besoin cible")
+    for cteam in sorted(list_counter_teams):
         green_counters = 0
         amber_counters = 0
         for team in cteam[1]:
             #print(dict_needed_teams[team])
             green_counters += dict_needed_teams[team][1]
             amber_counters += dict_needed_teams[team][2]
-        ret_guild_counter_score += '**' + cteam[0] + '**: ' + str(
-            green_counters) + '/' + str(
-                cteam[2]) + ' (' + str(amber_counters) + '/' + str(
-                    cteam[2]) + ')\n'
+
+        ret_guild_counter_score += "{0:15}: {1:3} ↗"\
+                                   " {2:3} 🎯 {3:2}\n".format(
+                                       cteam[0],
+                                       green_counters,
+                                       amber_counters,
+                                       cteam[2])
+    ret_guild_counter_score += "```"
 
     return ret_guild_counter_score
 
