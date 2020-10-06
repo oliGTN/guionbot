@@ -3,8 +3,9 @@ import sys
 import json
 import time
 import os
+from functools import reduce
 from math import ceil
-from connect_gsheets import load_config_teams, load_config_players, load_config_gt, load_config_counter
+from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter
 
 #login password sur https://api.swgoh.help/profile
 creds = settings('GuiOnEnsai', '4yj6GfUSezVjPJKSKpR8', '123', 'abc')
@@ -624,8 +625,8 @@ def character_speed(dict_character):
     return total_speed
 
 
-def assign_bt(allycode, txt_mode):
-    ret_assign_bt = ''
+def assign_gt(allycode, txt_mode):
+    ret_assign_gt = ''
 
     dict_players = load_config_players(
     )  # {key=IG name, value=[allycode, display name]]
@@ -655,7 +656,7 @@ def assign_bt(allycode, txt_mode):
             tab_lignes_team = dict_teams[team[0]]
             #print(ret_function_gtt)
             if tab_lignes_team[0][0:3] == "ERR":
-                ret_assign_bt += nom_territoire + ': **WARNING** team inconnue ' + team[
+                ret_assign_gt += nom_territoire + ': **WARNING** team inconnue ' + team[
                     0] + '\n'
             else:
                 req_nombre = team[1]
@@ -671,26 +672,26 @@ def assign_bt(allycode, txt_mode):
                         if score_joueur >= req_score:
                             if req_nombre == '' or nb_joueurs_selectionnes < req_nombre:
                                 nb_joueurs_selectionnes += 1
-                                ret_assign_bt += nom_territoire + ': '
+                                ret_assign_gt += nom_territoire + ': '
                                 if nom_joueur in dict_players and not txt_mode:
-                                    ret_assign_bt += dict_players[nom_joueur][
+                                    ret_assign_gt += dict_players[nom_joueur][
                                         2]
                                 else:  #joueur non-défini dans gsheets ou mode texte
-                                    ret_assign_bt += nom_joueur
-                                ret_assign_bt += ' doit placer sa team ' + team[
+                                    ret_assign_gt += nom_joueur
+                                ret_assign_gt += ' doit placer sa team ' + team[
                                     0] + '\n'
                                 tab_lignes_team.remove(ligne)
 
                 if req_nombre != '' and nb_joueurs_selectionnes < req_nombre:
-                    ret_assign_bt += nom_territoire + ': **WARNING** pas assez de team ' + team[
+                    ret_assign_gt += nom_territoire + ': **WARNING** pas assez de team ' + team[
                         0] + '\n'
 
-            ret_assign_bt += '\n'
+            ret_assign_gt += '\n'
 
-    return ret_assign_bt
+    return ret_assign_gt
 
 
-def score_of_interest(team_name, counter_matrix):
+def score_of_counter_interest(team_name, counter_matrix):
     current_score = 0
     for row in counter_matrix:
         # Count if the team_name can counter the current team row
@@ -701,7 +702,12 @@ def score_of_interest(team_name, counter_matrix):
 
 
 def guild_counter_score(txt_allycode):
-    ret_guild_counter_score = ''
+    ret_guild_counter_score = f"""
+*Rec = Niveau recommandé / Min = Niveau minimum*
+*w/o TW Def = Idem en enlevant les équipes placées en défense d'une TW*
+*L'intérêt absolu mesure le nombre de fois que l'équipe X intervient en tant qu'équipe de contre*
+{FORCE_CUT_PATTERN}
+"""
 
     list_counter_teams = load_config_counter()
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
@@ -712,6 +718,10 @@ def guild_counter_score(txt_allycode):
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]
     # print(list_counter_teams)
+
+    gt_teams = load_config_gt()
+    gt_teams = [(name[0], name[1]) for name in
+                [teams for territory in gt_teams for teams in territory[1]]]
 
     result = []
     for nteam_key in dict_needed_teams.keys():
@@ -729,7 +739,8 @@ def guild_counter_score(txt_allycode):
                 "team_name": nteam_key,
                 "rec_count": dict_needed_teams[nteam_key][1],
                 "min_count": dict_needed_teams[nteam_key][2],
-                "score": score_of_interest(nteam_key, list_counter_teams),
+                "score": score_of_counter_interest(nteam_key,
+                                                   list_counter_teams),
                 "max_score": len(list_counter_teams),
                 "error": None
             })
@@ -741,22 +752,30 @@ def guild_counter_score(txt_allycode):
 
     ret_guild_counter_score += """
 \n**Nombre de joueurs ayant l'équipe X**
-*Rec = Niveau recommandé / Min = Niveau minimum*
-*L'intérêt absolu mesure le nombre de fois que l'équipe X intervient en tant qu'équipe de contre*
 ```
-{0:15}: {1:3} ↗ {2:3} - {3:5}
-""".format("Equipe", "Rec", "Min", "Intérêt absolu")
+{0:15}: {1:3} ↗ {2:3} | {3:10} - {4:5}
+""".format("Equipe", "Rec", "Min", "w/o TW Def", "Intérêt absolu")
 
     for line in result:
         if line["error"]:
             ret_guild_counter_score += line["error"] + '\n'
             continue
 
+        gt_subteams = list(
+            filter(lambda x: x[0] == line["team_name"], gt_teams))
+        needed_team_named = 0
+        if gt_subteams:
+            needed_team_named = reduce(
+                lambda x, y: x[1] + y[1],
+                gt_subteams) if len(gt_subteams) > 1 else gt_subteams[0][1]
+
         ret_guild_counter_score += "{0:15}: {1:3} ↗"\
-                " {2:3} - {3:2}/{4:2}\n".format(
+                " {2:3} | {3:3} ↗ {4:3}  - {5:2}/{6:2}\n".format(
                     line["team_name"],
                     line["rec_count"],
                     line["min_count"],
+                    max(0, line["rec_count"]-needed_team_named),
+                    max(0, line["min_count"]-needed_team_named),
                     line["score"],
                     line["max_score"])
 
@@ -764,23 +783,38 @@ def guild_counter_score(txt_allycode):
 
     ret_guild_counter_score += """
 \n**Capacité de contre par adversaire**
-*Rec = Niveau recommandé / Min = Niveau minimum*
 ```
-{0:15}: {1:3} ↗ {2:3} 🎯 {3:2}
-""".format("Equipe", "Rec", "Min", "Besoin cible")
+{0:15}: {1:3} ↗ {2:3} | {3:10} 🎯 {4:2}
+""".format("Equipe", "Rec", "Min", "w/o TW Def", "Besoin cible")
     for cteam in sorted(list_counter_teams):
         green_counters = 0
+        green_counters_wo_def = 0
         amber_counters = 0
+        amber_counters_wo_def = 0
         for team in cteam[1]:
-            #print(dict_needed_teams[team])
             green_counters += dict_needed_teams[team][1]
             amber_counters += dict_needed_teams[team][2]
 
+            # compute how many we need to set on TW defence
+            gt_subteams = list(filter(lambda x: x[0] == team, gt_teams))
+            needed_team_named = 0
+            if gt_subteams:
+                needed_team_named = reduce(
+                    lambda x, y: x[1] + y[1],
+                    gt_subteams) if len(gt_subteams) > 1 else gt_subteams[0][1]
+
+            green_counters_wo_def += dict_needed_teams[team][1]\
+                                   - needed_team_named
+            amber_counters_wo_def += dict_needed_teams[team][2]\
+                                   - needed_team_named
+
         ret_guild_counter_score += "{0:15}: {1:3} ↗"\
-                                   " {2:3} 🎯 {3:2}\n".format(
+                                   " {2:3} | {3:3} ↗ {4:3}  🎯 {5:2}\n".format(
                                        cteam[0],
                                        green_counters,
                                        amber_counters,
+                                       green_counters_wo_def,
+                                       amber_counters_wo_def,
                                        cteam[2])
     ret_guild_counter_score += "```"
 
