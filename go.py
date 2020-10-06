@@ -459,7 +459,7 @@ def guild_team(txt_allycode, list_team_names, score_type, score_green,
             ret_guild_team[
                 team_name] = 'ERREUR: team ' + team_name + ' inconnue. Liste=' + str(
                     liste_team_gt), 0, 0
-            print(ret_guild_team[team_name][0])
+            #print(ret_guild_team[team_name][0])
         else:
             objectifs = dict_team_gt[team_name]
             #print(objectifs)
