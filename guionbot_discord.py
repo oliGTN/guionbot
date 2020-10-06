@@ -337,7 +337,7 @@ async def vtj(ctx, allycode, *teams):
 # Purpose: Assignation Guerre de Territoire
 # Display: Une ligne par affectation "joueurX doit affecter teamY en territoireZ"
 ##############################################################
-@bot.command(name='agt', help="Assigne les équipes par territoire en BT")
+@bot.command(name='agt', help="Assigne les équipes par territoire en GT")
 async def agt(ctx, allycode):
     await ctx.message.add_reaction(emoji_thumb)
 
@@ -364,7 +364,7 @@ async def agt(ctx, allycode):
 # Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
 #          avec un groupement par phase puis un tri par joueur
 ##############################################################
-@bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en TB")
+@bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en BT")
 async def vdp(ctx, *args):
     await ctx.message.add_reaction(emoji_thumb)
 
