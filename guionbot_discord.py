@@ -267,7 +267,12 @@ async def cmd(ctx, arg):
 # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
 #          ou plusieurs tableaux à la suite si plusieurs teams
 ##############################################################
-@bot.command(name='vtg', help="Vérifie la dispo d'une team dans la guilde")
+@bot.command(name='vtg', brief="Vérifie la dispo d'une team dans la guilde",
+                         help="Vérifie la dispo d'une team dans la guilde\n\n"\
+                              "Exemple: go.vtg 192126111 all\n"\
+                              "Exemple: go.vtg 192126111 NS\n"\
+                              "Exemple: go.vtg 192126111 PADME NS DR\n"\
+                              "Exemple: go.vtg KL NS")
 async def vtg(ctx, allycode, *teams):
     await ctx.message.add_reaction(emoji_thumb)
 
@@ -292,7 +297,12 @@ async def vtg(ctx, allycode, *teams):
 #          ou plusieurs tableaux à la suite si plusieurs teams
 ##############################################################
 @bot.command(name='vtg2',
-             help="Comme vtg mais avec un autre scoring utilisé pour agt")
+             brief="Comme vtg mais avec un autre scoring utilisé pour agt",
+             help="Comme vtg mais avec un autre scoring utilisé pour agt\n\n"\
+                              "Exemple: go.vtg 192126111 all\n"\
+                              "Exemple: go.vtg 192126111 NS\n"\
+                              "Exemple: go.vtg 192126111 PADME NS DR\n"\
+                              "Exemple: go.vtg KL NS")
 async def vtg2(ctx, allycode, *teams):
     await ctx.message.add_reaction(emoji_thumb)
 
@@ -317,7 +327,11 @@ async def vtg2(ctx, allycode, *teams):
 #          ou plusieurs ligne à la suite si plusieurs teams
 ##############################################################
 @bot.command(name='vtj',
-             help="Vérifie la dispo d'une ou plusieurs teams chez un joueur")
+             brief="Vérifie la dispo d'une ou plusieurs teams chez un joueur",
+             help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
+                  "Exemple: go.vjt 192126111 all\n"\
+                  "Exemple: go.vjt 192126111 NS\n"\
+                  "Exemple: go.vjt 192126111 PADME NS DR")
 async def vtj(ctx, allycode, *teams):
     await ctx.message.add_reaction(emoji_thumb)
 
@@ -337,7 +351,9 @@ async def vtj(ctx, allycode, *teams):
 # Purpose: Assignation Guerre de Territoire
 # Display: Une ligne par affectation "joueurX doit affecter teamY en territoireZ"
 ##############################################################
-@bot.command(name='agt', help="Assigne les équipes par territoire en GT")
+@bot.command(name='agt', brief="Assigne les équipes par territoire en GT",
+                         help="Assigne les équipes par territoire en GT\n\n"\
+                              "Exemple: go.agt KL")
 async def agt(ctx, allycode):
     await ctx.message.add_reaction(emoji_thumb)
 
@@ -364,7 +380,10 @@ async def agt(ctx, allycode):
 # Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
 #          avec un groupement par phase puis un tri par joueur
 ##############################################################
-@bot.command(name='vdp', help="Vérification de Déploiement des Pelotons en BT")
+@bot.command(name='vdp',
+             brief="Vérification de Déploiement des Pelotons en BT",
+             help="Vérification de Déploiement des Pelotons en BT\n\n"\
+                  "Exemple : go.vdp #batailles-des-territoires")
 async def vdp(ctx, *args):
     await ctx.message.add_reaction(emoji_thumb)
 
@@ -476,7 +495,8 @@ async def vdp(ctx, *args):
 # Display: Un premier tableau donnant la dispo des équipes utilisées en counter
 #          Un 2e tableau donnant les possibilités de counter contre des équipes données
 ##############################################################
-@bot.command(name='scg', help="Score de Contre pour la Guilde")
+@bot.command(name='scg', help="Capacité de contre de la guilde\n\n<allie_code> "\
+             "peut être remplacer par 'KL'", brief="Capacité de contre de la guilde")
 async def scg(ctx, allycode):
     await ctx.message.add_reaction(emoji_thumb)
 
