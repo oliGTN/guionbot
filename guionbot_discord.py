@@ -344,7 +344,7 @@ async def agt(ctx, allycode):
     if allycode == 'KL':
         allycode = '189341793'
 
-    ret_cmd = go.assign_bt(allycode, False)
+    ret_cmd = go.assign_gt(allycode, False)
     if ret_cmd[0:3] == 'ERR':
         await ctx.send(ret_cmd)
         await ctx.message.add_reaction(emoji_error)
