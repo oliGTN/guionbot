@@ -495,8 +495,11 @@ async def vdp(ctx, *args):
 # Display: Un premier tableau donnant la dispo des équipes utilisées en counter
 #          Un 2e tableau donnant les possibilités de counter contre des équipes données
 ##############################################################
-@bot.command(name='scg', help="Capacité de contre de la guilde\n\n<allie_code> "\
-             "peut être remplacer par 'KL'", brief="Capacité de contre de la guilde")
+@bot.command(name='scg',
+             brief="Capacité de contre de la guilde",
+             help="Capacité de contre de la guilde\n\n"\
+                  "Exemple: go.scg 192126111\n"\
+                  "Exemple: go.scg KL")
 async def scg(ctx, allycode):
     await ctx.message.add_reaction(emoji_thumb)
 
