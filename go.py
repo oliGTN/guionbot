@@ -8,7 +8,7 @@ from math import ceil
 from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter
 
 #login password sur https://api.swgoh.help/profile
-creds = settings('GuiOnEnsai', '4yj6GfUSezVjPJKSKpR8', '123', 'abc')
+creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
 client = SWGOHhelp(creds)
 inactive_duration = 36  #hours
 
