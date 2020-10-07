@@ -13,8 +13,7 @@ import go
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
 
-#TOKEN comes from https://discord.com/developers/ then settings / Bot / Token
-TOKEN = 'NzUyOTY5NjQ3MjMzNTY0NzAz.X1fXoQ.arxYkcPspOFTU5SeCooiKsgkZNQ'
+TOKEN = os.environ['DISCORD_BOT_TOKEN']
 bot = commands.Bot(command_prefix='go.')
 
 #https://til.secretgeek.net/powershell/emoji_list.html

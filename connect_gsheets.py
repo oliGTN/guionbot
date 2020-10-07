@@ -2,6 +2,8 @@
 # bug: https://github.com/burnash/gspread/issues/513
 
 import gspread
+import os
+import json
 from oauth2client.service_account import ServiceAccountCredentials
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
@@ -29,7 +31,9 @@ def load_config_teams():
         # use creds to create a client to interact with the Google Drive API
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+        creds_envVar = os.environ['GAPI_CREDS']
+        creds_json = json.loads(creds_envVar)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
         client = gspread.authorize(creds)
 
     file = client.open("GuiOnBot config")    
@@ -78,7 +82,9 @@ def load_config_players():
         # use creds to create a client to interact with the Google Drive API
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+        creds_envVar = os.environ['GAPI_CREDS']
+        creds_json = json.loads(creds_envVar)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
         client = gspread.authorize(creds)
 
     file = client.open("GuiOnBot config")
@@ -115,7 +121,9 @@ def load_config_bt():
         # use creds to create a client to interact with the Google Drive API
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+        creds_envVar = os.environ['GAPI_CREDS']
+        creds_json = json.loads(creds_envVar)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
         client = gspread.authorize(creds)
 
     file = client.open("GuiOnBot config")
@@ -144,7 +152,9 @@ def load_config_gt():
         # use creds to create a client to interact with the Google Drive API
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+        creds_envVar = os.environ['GAPI_CREDS']
+        creds_json = json.loads(creds_envVar)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
         client = gspread.authorize(creds)
 
     file = client.open("GuiOnBot config")
@@ -176,7 +186,9 @@ def load_config_counter():
         # use creds to create a client to interact with the Google Drive API
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('GuiOnBot-46e15dffc1ad.json', scope)
+        creds_envVar = os.environ['GAPI_CREDS']
+        creds_json = json.loads(creds_envVar)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
         client = gspread.authorize(creds)
 
     file = client.open("GuiOnBot config")

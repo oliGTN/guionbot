@@ -1,4 +1,8 @@
-# Secret Google API json
+#HOWTO: https://buddy.works/guides/git-crypt
+
+# Secret scripts with environment variables
+launch_guionbot.bat filter=git-crypt diff=git-crypt
+#add here the equivalent Linux script
 
 #line to prevent encrypting the .gitattributes file itself
 .gitattributes !filter !diff
