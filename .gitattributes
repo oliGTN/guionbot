@@ -1,0 +1,4 @@
+# Secret Google API json
+
+#line to prevent encrypting the .gitattributes file itself
+.gitattributes !filter !diff
