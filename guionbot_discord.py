@@ -135,14 +135,13 @@ async def get_eb_allocation(tbs_round):
 
 
 ##############################################################
-# Function: get_webhook_from_channelname
+# Function: get_channel_from_channelname
 # Parameters: channel_name (string) > nom de channel sous la forme <#1234567890>
-# Purpose: récupère un webhook pour écrire dans le channel spécifié
-#          Cette fonction ne marche qu'avec le channel #bataille_de_territoire
-# Output: nominal > output_webhook (objet Webhook), ""
+# Purpose: récupère un objet channel pour écrire dans le channel spécifié
+# Output: nominal > output_channel (objet channel), ""
 #         si erreur > None, "message d'erreur" (string)
 ##############################################################
-async def get_webhook_from_channelname(channel_name):
+async def get_channel_from_channelname(channel_name):
     try:
         id_output_channel = int(channel_name[2:-1])
     except Exception as e:
@@ -151,22 +150,15 @@ async def get_webhook_from_channelname(channel_name):
 
     output_channel = bot.get_channel(id_output_channel)
     if output_channel == None:
-        return None, 'Channel ' + channel_name + '(id=' + str(
-            id_output_channel) + ') introuvable'
+        return None, 'Channel ' + channel_name + '(id=' \
+                    + str(id_output_channel) + ') introuvable'
 
-    if id_output_channel == 719211688166948914:  #batailles de territoires
-        id_webhook = 744169289908748298
-    else:
-        return None, 'Channel ' + channel_name + '(id=' + str(
-            id_output_channel) + ') sans webhook associé'
-
-    try:
-        output_webhook = await bot.fetch_webhook(id_webhook)
-    except Exception as e:
-        print(e)
-        return None, 'Webhook id=' + str(id_webhook) + ' introuvable'
-
-    return output_webhook, ''
+    if not output_channel.permissions_for(ctx.guild.me).send_messages:
+        output_channel = ctx.message.channel
+        return None, 'Il manque les droits d\'écriture dans ' \
+                    + channel_name)
+            
+   return output_channel, ''
 
 
 ##############################################################
@@ -241,21 +233,36 @@ async def cmd(ctx, arg):
 # Purpose: commande de test lors du dev. Doit être mise en commentaires
 #          avant déploiement en service
 # Display: ça dépend
-##############################################################
+#############################################################
 # @bot.command(name='test', help='Réservé aux admins')
 # @commands.check(is_owner)
 # async def test(ctx, *args):
 
-    # #Recuperation des dernieres donnees sur gdrive
-    # dict_players = load_config_players()[1]
-    
-    # allycode = args[0]
-    # if allycode == 'me':
-        # if ctx.author.id in dict_players.keys():
-            # allycode = str(dict_players[ctx.author.id])
-        
+    # if len(args) == 1:
+        # channel_name = args[0]
+        # try:
+            # id_output_channel = int(channel_name[2:-1])
+            # output_channel = bot.get_channel(id_output_channel)
+            # if output_channel == None:
+                # output_channel = ctx.message.channel
+                # await output_channel.send('Channel ' + channel_name \
+                                    # + '(id=' + str(id_output_channel) \
+                                    # + ') introuvable')
+            # if not output_channel.permissions_for(ctx.guild.me).send_messages:
+                # output_channel = ctx.message.channel
+                # await output_channel.send( \
+                    # 'Il me manque les droits d\'écriture dans ' \
+                    # + channel_name)
+        # except Exception as e:
+            # print(e)
+            # output_channel = ctx.message.channel
+            # await output_channel.send(channel_name + ' n\'est pas un channel valide')
+                
+    # else:
+        # output_channel = ctx.message.channel
 
-    # await ctx.send('test: '+allycode)
+
+    # await output_channel.send('test')
 
 
 ##############################################################
@@ -402,9 +409,8 @@ async def vdp(ctx, *args):
     await ctx.message.add_reaction(emoji_thumb)
 
     #Sortie sur un autre channel si donné en paramètre
-    #la liste des channels autorisés est limitée, dans la fonction get_webhook_from_channelname
     if len(args) == 1:
-        output_channel, err_msg = await get_webhook_from_channelname(args[0])
+        output_channel, err_msg = await get_channel_from_channelname(args[0])
         if output_channel == None:
             await ctx.send(err_msg)
             output_channel = ctx.message.channel
@@ -412,8 +418,7 @@ async def vdp(ctx, *args):
         output_channel = ctx.message.channel
 
     #Lecture du statut des pelotons sur warstats
-    tbs_round, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page(
-    )
+    tbs_round, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page()
 
     #Recuperation des dernieres donnees sur gdrive
     dict_players = load_config_players()[0]
