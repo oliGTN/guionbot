@@ -55,15 +55,13 @@ async def bot_loop_60():
 ##############################################################
 async def get_eb_allocation(tbs_round):
     # Lecture des affectation ECHOBOT
-    bt_channel = bot.get_channel(
-        719211688166948914)  #channel batailles de territoire
-    dict_platoons_allocation = {
-    }  #key=platton_name, value={key=perso, value=[player...]}
+    bt_channel = bot.get_channel(int(os.environ['EB_CHANNEL']))
+    dict_platoons_allocation = {}  #key=platton_name, value={key=perso, value=[player...]}
     eb_phases = []
     eb_missions_full = []
     eb_missions_tmp = []
     async for message in bt_channel.history(limit=500):
-        if str(message.author) == 'EchoStation#0000':
+        if str(message.author) == os.environ['EB_PROFILE']:
             if (datetime.datetime.now() - message.created_at).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
@@ -174,25 +172,25 @@ async def get_webhook_from_channelname(channel_name):
 ##############################################################
 # Function: is_owner
 # Parameters: ctx (objet Contexte)
-# Purpose: vérifie si le contexte appartient à GuiOn Ensai
+# Purpose: vérifie si le contexte appartient à un admin du bot
 #          Le but est de limiter certains commandes aux développeurs
 # Output: True/False
 ##############################################################
 async def is_owner(ctx):
-    return ctx.author.id == 566552780647563285
+    return ctx.author.id in os.environ['GO_ADMIN_IDS'].split(' ')
 
 
 ##############################################################
 # Event: on_ready
 # Parameters: none
 # Purpose: se lance quand le bot est connecté
-#          La première action consiste à recherger les infos de la guilde Kangoo Legends
+#          La première action consiste à recherger les infos de la guilde principale
 #          afin d'assurer un refresh permanent du CACHE des membres de la guilde
 # Output: none
 ##############################################################
 @bot.event
 async def on_ready():
-    go.load_guild('189341793', False)
+    go.load_guild(os.environ['MASTER_GUILD_ALLYCODE'], False)
     print(f'{bot.user.name} has connected to Discord!')
 
 
@@ -223,7 +221,7 @@ async def info(ctx):
 #            (c'est pour ça qu'elle est réservée aux développeurs)
 # Display: output de la ligne de commande, comme dans une console
 ##############################################################
-@bot.command(name='cmd', help='Réservé à GuiOn Ensai')
+@bot.command(name='cmd', help='Réservé aux administrateurs')
 @commands.check(is_owner)
 async def cmd(ctx, arg):
     await ctx.message.add_reaction(emoji_thumb)

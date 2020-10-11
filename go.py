@@ -16,9 +16,12 @@ inactive_duration = 36  #hours
 def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
     #Need to keep KEEPDIR to prevent removal of the directory by GIT
+    
+    #Firets step is to delete old files (eg: more than 24h)
     for filename in os.listdir('CACHE'):
         #print(filename)
-        if filename != 'KEEPDIR':
+        #The fake file KEEPDIR, and the master guild file, cannot be deleted
+        if filename != 'KEEPDIR' and filename != 'G'+os.environ['MASTER_GUILD_ALLYCODE'].json:
             file_path = 'CACHE' + os.path.sep + filename
             file_stats = os.stat(file_path)
 
@@ -30,6 +33,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
                 os.remove(file_path)
 
     #LOOP through Guild files to recover player allycodes
+    #Master guild file cannot be deleted to ensure keeping players updated
     list_allycodes = []
     for filename in os.listdir('CACHE'):
         #print(filename)
