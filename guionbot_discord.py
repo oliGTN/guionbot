@@ -177,7 +177,7 @@ async def get_webhook_from_channelname(channel_name):
 # Output: True/False
 ##############################################################
 async def is_owner(ctx):
-    return ctx.author.id in os.environ['GO_ADMIN_IDS'].split(' ')
+    return str(ctx.author.id) in os.environ['GO_ADMIN_IDS'].split(' ')
 
 
 ##############################################################
@@ -242,24 +242,25 @@ async def cmd(ctx, arg):
 #          avant déploiement en service
 # Display: ça dépend
 ##############################################################
-# @bot.command(name='test', help='Réservé à GuiOn Ensai')
+# @bot.command(name='test', help='Réservé aux admins')
 # @commands.check(is_owner)
 # async def test(ctx, *args):
 
-# if len(args)==1:
-# output_channel, err_msg=await get_webhook_from_channelname(args[0])
-# if output_channel==None:
-# await ctx.send(err_msg)
-# output_channel=ctx.message.channel
-# else:
-# output_channel=ctx.message.channel
+    # #Recuperation des dernieres donnees sur gdrive
+    # dict_players = load_config_players()[1]
+    
+    # allycode = args[0]
+    # if allycode == 'me':
+        # if ctx.author.id in dict_players.keys():
+            # allycode = str(dict_players[ctx.author.id])
+        
 
-# await output_channel.send('test')
+    # await ctx.send('test: '+allycode)
 
 
 ##############################################################
 # Command: vtg
-# Parameters: code allié (string) ou "KL", une liste de teams séparées par des espaces ou "all"
+# Parameters: code allié (string) ou "me", une liste de teams séparées par des espaces ou "all"
 # Purpose: Vérification des Teams de la Guilde avec tri par progrès
 # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
 #          ou plusieurs tableaux à la suite si plusieurs teams
@@ -269,13 +270,16 @@ async def cmd(ctx, arg):
                               "Exemple: go.vtg 192126111 all\n"\
                               "Exemple: go.vtg 192126111 NS\n"\
                               "Exemple: go.vtg 192126111 PADME NS DR\n"\
-                              "Exemple: go.vtg KL NS")
+                              "Exemple: go.vtg me NS")
 async def vtg(ctx, allycode, *teams):
     await ctx.message.add_reaction(emoji_thumb)
 
-    if allycode == 'KL':
-        allycode = '189341793'
-
+    #Special case of 'me' as allycode
+    dict_players = load_config_players()[1]
+    if allycode == 'me':
+        if ctx.author.id in dict_players.keys():
+            allycode = str(dict_players[ctx.author.id])
+            
     ret_cmd = go.guild_team(allycode, teams, 1, 100, 80, False)
     for team in ret_cmd:
         txt_team = ret_cmd[team][0]
@@ -288,7 +292,7 @@ async def vtg(ctx, allycode, *teams):
 
 ##############################################################
 # Command: vtg2
-# Parameters: code allié (string) ou "KL", une liste de teams séparées par des espaces ou "all"
+# Parameters: code allié (string) ou "me", une liste de teams séparées par des espaces ou "all"
 # Purpose: Vérification des Teams de la Guilde avec tri par PG
 # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
 #          ou plusieurs tableaux à la suite si plusieurs teams
@@ -299,12 +303,15 @@ async def vtg(ctx, allycode, *teams):
                               "Exemple: go.vtg 192126111 all\n"\
                               "Exemple: go.vtg 192126111 NS\n"\
                               "Exemple: go.vtg 192126111 PADME NS DR\n"\
-                              "Exemple: go.vtg KL NS")
+                              "Exemple: go.vtg me NS")
 async def vtg2(ctx, allycode, *teams):
     await ctx.message.add_reaction(emoji_thumb)
 
-    if allycode == 'KL':
-        allycode = '189341793'
+    #Special case of 'me' as allycode
+    dict_players = load_config_players()[1]
+    if allycode == 'me':
+        if ctx.author.id in dict_players.keys():
+            allycode = str(dict_players[ctx.author.id])
 
     ret_cmd = go.guild_team(allycode, teams, 3, 100000, 80000, False)
     for team in ret_cmd:
@@ -328,9 +335,16 @@ async def vtg2(ctx, allycode, *teams):
              help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
                   "Exemple: go.vjt 192126111 all\n"\
                   "Exemple: go.vjt 192126111 NS\n"\
-                  "Exemple: go.vjt 192126111 PADME NS DR")
+                  "Exemple: go.vjt 192126111 PADME NS DR\n"\
+                  "Exemple: go.vjt me NS")
 async def vtj(ctx, allycode, *teams):
     await ctx.message.add_reaction(emoji_thumb)
+
+    #Special case of 'me' as allycode
+    dict_players = load_config_players()[1]
+    if allycode == 'me':
+        if ctx.author.id in dict_players.keys():
+            allycode = str(dict_players[ctx.author.id])
 
     ret_cmd = go.player_team(allycode, teams, 1, 100, 80, False)
     for team in ret_cmd:
@@ -344,18 +358,21 @@ async def vtj(ctx, allycode, *teams):
 
 ##############################################################
 # Command: agt
-# Parameters: code allié (string) ou "KL"
+# Parameters: code allié (string) ou "me"
 # Purpose: Assignation Guerre de Territoire
 # Display: Une ligne par affectation "joueurX doit affecter teamY en territoireZ"
 ##############################################################
 @bot.command(name='agt', brief="Assigne les équipes par territoire en GT",
                          help="Assigne les équipes par territoire en GT\n\n"\
-                              "Exemple: go.agt KL")
+                              "Exemple: go.agt me")
 async def agt(ctx, allycode):
     await ctx.message.add_reaction(emoji_thumb)
 
-    if allycode == 'KL':
-        allycode = '189341793'
+    #Special case of 'me' as allycode
+    dict_players = load_config_players()[1]
+    if allycode == 'me':
+        if ctx.author.id in dict_players.keys():
+            allycode = str(dict_players[ctx.author.id])
 
     ret_cmd = go.assign_gt(allycode, False)
     if ret_cmd[0:3] == 'ERR':
@@ -399,8 +416,7 @@ async def vdp(ctx, *args):
     )
 
     #Recuperation des dernieres donnees sur gdrive
-    dict_players = load_config_players(
-    )  # {key=IG name, value=[allycode, discord name, discord id]]
+    dict_players = load_config_players()[0]
 
     if tbs_round == '':
         await ctx.send('Aucune BT en cours')
@@ -487,7 +503,7 @@ async def vdp(ctx, *args):
 
 ##############################################################
 # Command: scg
-# Parameters: code allié (string) ou "KL"
+# Parameters: code allié (string) ou "me"
 # Purpose: Score de Counter de la Guilde
 # Display: Un premier tableau donnant la dispo des équipes utilisées en counter
 #          Un 2e tableau donnant les possibilités de counter contre des équipes données
@@ -496,12 +512,15 @@ async def vdp(ctx, *args):
              brief="Capacité de contre de la guilde",
              help="Capacité de contre de la guilde\n\n"\
                   "Exemple: go.scg 192126111\n"\
-                  "Exemple: go.scg KL")
+                  "Exemple: go.scg me")
 async def scg(ctx, allycode):
     await ctx.message.add_reaction(emoji_thumb)
 
-    if allycode == 'KL':
-        allycode = '189341793'
+    #Special case of 'me' as allycode
+    dict_players = load_config_players()[1]
+    if allycode == 'me':
+        if ctx.author.id in dict_players.keys():
+            allycode = str(dict_players[ctx.author.id])
 
     ret_cmd = go.guild_counter_score(allycode)
     if ret_cmd[0:3] == 'ERR':

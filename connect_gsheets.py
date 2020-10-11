@@ -73,7 +73,7 @@ def load_config_teams():
 # Function: load_config_players
 # Parameters: none
 # Purpose: lit l'onglet "players" du fichier Sheets
-# Output:  dict_players {key=IG name, value=[allycode, discord name, discord display name]}
+# Output:  dict_players_by_IG {key=IG name, value=[allycode, discord name, discord display name]}
 ##############################################################
 def load_config_players():
     global client
@@ -92,21 +92,27 @@ def load_config_players():
 
     liste_dict_feuille=feuille.get_all_records()
     liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in liste_dict_feuille]
-    dict_players={} # {key=IG name, value=[allycode, discord name, discord display name]}
+    dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
+    dict_players_by_ID={} # {key=Discord ID, value=allycode}
 
     #print(liste_dict_feuille)
     for ligne in liste_dict_feuille:
+        #Fill dict_players_by_IG
         discord_id=ligne['Discord ID']
         if discord_id!='':
             if liste_discord_id.count(discord_id)>1:
                 #cas des comptes discord avec plusieurs comptes IG
-                dict_players[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], '<@'+str(discord_id)+'> ['+ligne['IG name']+']']
+                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], '<@'+str(discord_id)+'> ['+ligne['IG name']+']']
             else:
-                dict_players[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], '<@'+str(discord_id)+'>']
+                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], '<@'+str(discord_id)+'>']
         else:
-            dict_players[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], ligne['IG name']]
+            dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], ligne['IG name']]
+            
+        #Fill dict_players_by_ID
+        if discord_id!='':
+            dict_players_by_ID[discord_id] = ligne['Allycode']
         
-    return dict_players
+    return dict_players_by_IG, dict_players_by_ID
 
 ##############################################################
 # Function: load_config_players

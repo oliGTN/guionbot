@@ -445,8 +445,7 @@ def guild_team(txt_allycode, list_team_names, score_type, score_green,
 
     #Recuperation des dernieres donnees sur gdrive
     liste_team_gt, dict_team_gt = load_config_teams()
-    dict_player_discord = load_config_players(
-    )  # {key=IG name, value=[allycode, discord name]]
+    dict_player_discord = load_config_players()[0]
 
     #Get data for my guild
     guild = load_guild(txt_allycode, True)
@@ -504,8 +503,7 @@ def player_team(txt_allycode, list_team_names, score_type, score_green,
 
     #Recuperation des dernieres donnees sur gdrive
     liste_team_gt, dict_team_gt = load_config_teams()
-    dict_player_discord = load_config_players(
-    )  # {key=IG name, value=[allycode, discord name]]
+    dict_player_discord = load_config_players()[0]
 
     #Get data for my guild
     dict_player = load_player(txt_allycode)
@@ -632,8 +630,7 @@ def character_speed(dict_character):
 def assign_gt(allycode, txt_mode):
     ret_assign_gt = ''
 
-    dict_players = load_config_players(
-    )  # {key=IG name, value=[allycode, display name]]
+    dict_players = load_config_players()[0]
 
     liste_territoires = load_config_gt(
     )  # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
