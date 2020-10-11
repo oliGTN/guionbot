@@ -110,7 +110,7 @@ def load_config_players():
             
         #Fill dict_players_by_ID
         if discord_id!='':
-            dict_players_by_ID[discord_id] = ligne['Allycode']
+            dict_players_by_ID[discord_id] = [ligne['Allycode'], ligne['Officier']!='']
         
     return dict_players_by_IG, dict_players_by_ID
 
