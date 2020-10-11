@@ -21,7 +21,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     for filename in os.listdir('CACHE'):
         #print(filename)
         #The fake file KEEPDIR, and the master guild file, cannot be deleted
-        if filename != 'KEEPDIR' and filename != 'G'+os.environ['MASTER_GUILD_ALLYCODE'].json:
+        if filename != 'KEEPDIR' and filename != 'G'+os.environ['MASTER_GUILD_ALLYCODE']+'.json':
             file_path = 'CACHE' + os.path.sep + filename
             file_stats = os.stat(file_path)
 
