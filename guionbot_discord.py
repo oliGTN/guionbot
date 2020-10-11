@@ -8,7 +8,7 @@ import time
 import datetime
 import re
 from discord.ext import commands
-from discord import Embed
+from discord import Activity, ActivityType
 import go
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
@@ -200,6 +200,7 @@ def manage_me(ctx, allycode_txt):
 @bot.event
 async def on_ready():
     go.load_guild(os.environ['MASTER_GUILD_ALLYCODE'], False)
+    await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
     print(f'{bot.user.name} has connected to Discord!')
 
 
