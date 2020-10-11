@@ -115,9 +115,9 @@ def load_config_players():
     return dict_players_by_IG, dict_players_by_ID
 
 ##############################################################
-# Function: load_config_players
+# Function: load_config_bt
 # Parameters: none
-# Purpose: lit l'onglet "GT" du fichier Sheets
+# Purpose: lit l'onglet "BT" du fichier Sheets
 # Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
 ##############################################################
 def load_config_bt():
@@ -146,7 +146,7 @@ def load_config_bt():
     return liste_teams
 
 ##############################################################
-# Function: load_config_players
+# Function: load_config_gt
 # Parameters: none
 # Purpose: lit l'onglet "GT" du fichier Sheets
 # Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
