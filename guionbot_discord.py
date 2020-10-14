@@ -433,7 +433,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 phase_name = platoon_name[0:3]
                 if not phase_name in phase_names_already_displayed:
                     phase_names_already_displayed.append(phase_name)
-
+                    
                 for perso in dict_platoons_done[platoon_name]:
                     if '' in dict_platoons_done[platoon_name][perso]:
                         if platoon_name in dict_platoons_allocation:
