@@ -433,10 +433,14 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 phase_name = platoon_name[0:3]
                 if not phase_name in phase_names_already_displayed:
                     phase_names_already_displayed.append(phase_name)
-                    
+                print('dict_platoons_done['+platoon_name+']')
+                print(dict_platoons_done[platoon_name])
                 for perso in dict_platoons_done[platoon_name]:
+                    print(perso)
                     if '' in dict_platoons_done[platoon_name][perso]:
                         if platoon_name in dict_platoons_allocation:
+                            print(platoon_name)
+                            print(dict_platoons_allocation[platoon_name])
                             if perso in dict_platoons_allocation[platoon_name]:
                                 for allocated_player in dict_platoons_allocation[
                                         platoon_name][perso]:
@@ -445,6 +449,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                         erreur_detectee = True
                                         if allocated_player in dict_players:
                                             list_txt.append([
+                                                allocated_player, platoon_name,
+                                                '**' +
+                                                dict_players[allocated_player][2] +
+                                                '** n\'a pas affecté ' + perso +
+                                                ' en ' + platoon_name
+                                            ])
+                                            print([
                                                 allocated_player, platoon_name,
                                                 '**' +
                                                 dict_players[allocated_player][2] +
