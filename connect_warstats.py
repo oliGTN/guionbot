@@ -1,4 +1,6 @@
 import urllib.request
+import string
+import random
 from html.parser import HTMLParser
 
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/4090'
@@ -445,13 +447,23 @@ class TBSResumeParser(HTMLParser):
     def get_open_territories(self):
         return self.list_open_territories
 
+
+###############################################################
+# Function: fresh_urlopen
+# Description: create a url with a random and fake argument
+#              to force the server sending fresh data
+# Input: url (string)
+# Output: same as urllib.request.urlopen
+###############################################################
+def fresh_urlopen(url):
+    random_3letters=''.join(random.choice(string.ascii_lowercase) for i in range(3))
+    fresh_url = url+'?'+random_3letters+'='
+    return urllib.request.urlopen(fresh_url)
+
 def parse_warstats_page():
 
-    #clean web cache to get fresh data
-    urllib.request.urlcleanup()
-
     try:
-        page = urllib.request.urlopen(warstats_tbs_url)
+        page = fresh_urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
         return '', None, None, None
         
@@ -461,7 +473,7 @@ def parse_warstats_page():
             
     print(warstats_platoon_url)
     try:
-        page = urllib.request.urlopen(warstats_platoon_url)
+        page = fresh_urlopen(warstats_platoon_url)
     except urllib.error.HTTPError as e:
         return '', None, None, None
     
@@ -470,7 +482,8 @@ def parse_warstats_page():
     for phase in range(1,7):
         try:
             print('Lecture WARSTATS '+warstats_platoon_url+'/'+str(phase))
-            page = urllib.request.urlopen(warstats_platoon_url+'/'+str(phase))
+            page = fresh_urlopen(warstats_platoon_url+'/'+str(phase))
+            print(page.headers)
             platoon_parser = TBSPhaseParser()
             platoon_parser.feed(str(page.read()))
             complete_dict_platoons.update(platoon_parser.get_dict_platoons())
@@ -480,7 +493,7 @@ def parse_warstats_page():
     
     warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
     print('Lecture WARSTATS '+warstats_resume_url)
-    page = urllib.request.urlopen(warstats_resume_url)
+    page = fresh_urlopen(warstats_resume_url)
     resume_parser = TBSResumeParser()
     resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
     resume_parser.feed(str(page.read()))
