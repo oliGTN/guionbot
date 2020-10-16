@@ -279,32 +279,6 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # @commands.check(is_owner)
     # async def test(self, ctx, *args):
 
-        # if len(args) == 1:
-            # channel_name = args[0]
-            # try:
-                # id_output_channel = int(channel_name[2:-1])
-                # output_channel = bot.get_channel(id_output_channel)
-                # if output_channel == None:
-                    # output_channel = ctx.message.channel
-                    # await output_channel.send('Channel ' + channel_name \
-                                        # + '(id=' + str(id_output_channel) \
-                                        # + ') introuvable')
-                # if not output_channel.permissions_for(ctx.guild.me).send_messages:
-                    # output_channel = ctx.message.channel
-                    # await output_channel.send( \
-                        # 'Il me manque les droits d\'écriture dans ' \
-                        # + channel_name)
-            # except Exception as e:
-                # print(e)
-                # output_channel = ctx.message.channel
-                # await output_channel.send(channel_name + ' n\'est pas un channel valide')
-                    
-        # else:
-            # output_channel = ctx.message.channel
-
-
-        # await output_channel.send('test')    
-
 ##############################################################
 # Class: OfficerCog
 # Description: contains all officer commands
@@ -395,16 +369,22 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.command(name='vdp',
                  brief="Vérification de Déploiement des Pelotons en BT",
                  help="Vérification de Déploiement des Pelotons en BT\n\n"\
-                      "Exemple : go.vdp #batailles-des-territoires")
+                      "Exemple : go.vdp #batailles-des-territoires\n"\
+                      "Exemple : go.vdp no-mentions")
     async def vdp(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
+        display_mentions=True
         #Sortie sur un autre channel si donné en paramètre
         if len(args) == 1:
-            output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-            if output_channel == None:
-                await ctx.send('**ERR**: '+err_msg)
+            if args[0].startswith('no'):
+                display_mentions=False
                 output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
         else:
             output_channel = ctx.message.channel
 
@@ -442,7 +422,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                     if not allocated_player in dict_platoons_done[
                                             platoon_name][perso]:
                                         erreur_detectee = True
-                                        if allocated_player in dict_players:
+                                        if (allocated_player in dict_players) and display_mentions:
                                             list_txt.append([
                                                 allocated_player, platoon_name,
                                                 '**' +
@@ -450,7 +430,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                                 '** n\'a pas affecté ' + perso +
                                                 ' en ' + platoon_name
                                             ])
-                                        else:  #joueur non-défini dans gsheets, on l'affiche quand même
+                                        else:
+                                            #joueur non-défini dans gsheets ou mentions non autorisées,
+                                            # on l'affiche quand même
                                             list_txt.append([
                                                 allocated_player, platoon_name,
                                                 '**' + allocated_player +
