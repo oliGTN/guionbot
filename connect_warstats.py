@@ -108,6 +108,7 @@ dict_noms_warstats['Plo Koon\\\'s Jedi Starfighter']='Chasseur stellaire Jedi de
 dict_noms_warstats['Poe Dameron\\\'s X-wing']='X-Wing de Poe Dameron'
 dict_noms_warstats['Poggle the Lesser']='Poggle le bref'
 dict_noms_warstats['Princess Leia']='Princesse Leia'
+dict_noms_warstats['Qi\\\'ra']='Qi\'ra'
 dict_noms_warstats['Rebel Officer Leia Organa']='Officier rebelle Leia Organa'
 dict_noms_warstats['Resistance Hero Finn']='Héros de la Résistance Finn'
 dict_noms_warstats['Resistance Hero Poe']='Héros de la Résistance Poe'
@@ -451,6 +452,7 @@ class TBSResumeParser(HTMLParser):
 ###############################################################
 # Function: fresh_urlopen
 # Description: create a url with a random and fake argument
+#              and require a max-age parameter in header
 #              to force the server sending fresh data
 # Input: url (string)
 # Output: same as urllib.request.urlopen
@@ -458,7 +460,12 @@ class TBSResumeParser(HTMLParser):
 def fresh_urlopen(url):
     random_3letters=''.join(random.choice(string.ascii_lowercase) for i in range(3))
     fresh_url = url+'?'+random_3letters+'='
-    return urllib.request.urlopen(fresh_url)
+
+    req = urllib.request.Request(fresh_url)
+    req.add_header('Cache-Control', 'max-age=0')
+
+    print(fresh_url)
+    return urllib.request.urlopen(req)
 
 def parse_warstats_page():
 
@@ -471,7 +478,6 @@ def parse_warstats_page():
     generic_parser.feed(str(page.read()))
     warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
             
-    print(warstats_platoon_url)
     try:
         page = fresh_urlopen(warstats_platoon_url)
     except urllib.error.HTTPError as e:
@@ -481,9 +487,7 @@ def parse_warstats_page():
     complete_dict_player_allocations={}
     for phase in range(1,7):
         try:
-            print('Lecture WARSTATS '+warstats_platoon_url+'/'+str(phase))
             page = fresh_urlopen(warstats_platoon_url+'/'+str(phase))
-            print(page.headers)
             platoon_parser = TBSPhaseParser()
             platoon_parser.feed(str(page.read()))
             complete_dict_platoons.update(platoon_parser.get_dict_platoons())
@@ -492,7 +496,6 @@ def parse_warstats_page():
             print('WAR: page introuvable '+warstats_platoon_url+'/'+str(phase))
     
     warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
-    print('Lecture WARSTATS '+warstats_resume_url)
     page = fresh_urlopen(warstats_resume_url)
     resume_parser = TBSResumeParser()
     resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
