@@ -463,6 +463,7 @@ def fresh_urlopen(url):
 
     req = urllib.request.Request(fresh_url)
     req.add_header('Cache-Control', 'max-age=0')
+    req.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11')
 
     print(fresh_url)
     return urllib.request.urlopen(req)
