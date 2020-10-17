@@ -187,31 +187,33 @@ dict_platoon_names['HLS6']['B']='mid'
 dict_platoon_names['HLS6']['C']='bottom'
 
 class TBSPhaseParser(HTMLParser):
-    dict_platoons={} #key="A1" to "C6", value={} key=perso, value=[player, ...]
-    dict_player_allocations={} #key=player, value={ key=perso, value=platoon}
-    platoon_name=''
-    char_name=''
-    player_name=''
-    detected_phase=''
-    active_round=''
-    state_parser=-4
-    #-4: en recherche de h2
-    #-3: en recharche de data="Territory Battle"
-    #-2: en recherche de small
-    #-1: en recherche de data
-    #0: en recherche de div class=phases
-    #2: en recherche de a href
-    #3: en recherche de div class="card platoon"
-    #4: en recherche de div id
-    #5: en recherche de div class="char" ou "char filled"
-    #6: en recherche de img-title d'un perso rempli
-    #7: en recherche de img-title d'un perso NON rempli
-    #8: en recherche de div class=player
-    #9: en recherche de data
-    
-    state_parser2=0
-    #0: en recherche de i class="far fa-dot-circle red-text text-small"
-    #1: en recherche de a href
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.dict_platoons={} #key="A1" to "C6", value={} key=perso, value=[player, ...]
+        self.dict_player_allocations={} #key=player, value={ key=perso, value=platoon}
+        self.platoon_name=''
+        self.char_name=''
+        self.player_name=''
+        self.detected_phase=''
+        self.active_round=''
+        self.state_parser=-4
+        #-4: en recherche de h2
+        #-3: en recharche de data="Territory Battle"
+        #-2: en recherche de small
+        #-1: en recherche de data
+        #0: en recherche de div class=phases
+        #2: en recherche de a href
+        #3: en recherche de div class="card platoon"
+        #4: en recherche de div id
+        #5: en recherche de div class="char" ou "char filled"
+        #6: en recherche de img-title d'un perso rempli
+        #7: en recherche de img-title d'un perso NON rempli
+        #8: en recherche de div class=player
+        #9: en recherche de data
+        
+        self.state_parser2=0
+        #0: en recherche de i class="far fa-dot-circle red-text text-small"
+        #1: en recherche de a href
         
     def handle_starttag(self, tag, attrs):
         #PARSER 1 pour la phase décrite dans la page
@@ -358,12 +360,14 @@ class TBSPhaseParser(HTMLParser):
         return self.active_round
             
 class GenericTBSParser(HTMLParser):
-    warstats_battle_id=''
-    state_parser=0
-    #0: en recherche de h2
-    #1: en recherche de data=Territory Battles
-    #2: en recherche de div class=card
-    #3: en recherche de a href
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.warstats_battle_id=''
+        self.state_parser=0
+        #0: en recherche de h2
+        #1: en recherche de data=Territory Battles
+        #2: en recherche de div class=card
+        #3: en recherche de a href
         
     def handle_starttag(self, tag, attrs):
         if self.state_parser==0:
@@ -398,14 +402,16 @@ class GenericTBSParser(HTMLParser):
         return self.warstats_battle_id
         
 class TBSResumeParser(HTMLParser):
-    list_data=[]
-    list_open_territories=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
-    active_round=0
-    
-    state_parser=0
-    #0: en recherche de div id="resume"
-    #1: en recherche de div class="valign-wrapper
-    #2; en recherche de data
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.list_data=[]
+        self.list_open_territories=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
+        self.active_round=0
+        
+        self.state_parser=0
+        #0: en recherche de div id="resume"
+        #1: en recherche de div class="valign-wrapper
+        #2; en recherche de data
 
     def handle_starttag(self, tag, attrs):
         if self.state_parser==0:
@@ -463,6 +469,7 @@ def fresh_urlopen(url):
 
     req = urllib.request.Request(fresh_url)
     req.add_header('Cache-Control', 'max-age=0')
+    req.add_header('Cache-Control', 'no-store')
     req.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11')
 
     print(fresh_url)
@@ -489,6 +496,7 @@ def parse_warstats_page():
     for phase in range(1,7):
         try:
             page = fresh_urlopen(warstats_platoon_url+'/'+str(phase))
+            print(page.headers)
             platoon_parser = TBSPhaseParser()
             platoon_parser.feed(str(page.read()))
             complete_dict_platoons.update(platoon_parser.get_dict_platoons())
@@ -503,6 +511,8 @@ def parse_warstats_page():
     resume_parser.feed(str(page.read()))
     #print(resume_parser.get_open_territories())
     
+    for platoon in ['HLS5-mid-1', 'HLS5-mid-2', 'HLS5-mid-3', 'HLS5-top-1', 'HLS5-top-3']:
+        print(platoon+':\n'+str(complete_dict_platoons[platoon]))
 
     return platoon_parser.get_active_round(), complete_dict_platoons, complete_dict_player_allocations, resume_parser.get_open_territories()
 
