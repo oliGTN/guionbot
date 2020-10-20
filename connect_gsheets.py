@@ -5,10 +5,32 @@ import gspread
 import os
 import json
 from oauth2client.service_account import ServiceAccountCredentials
+import difflib
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
 client=None
+
+##############################################################
+# Function: get_gapi_client
+# Parameters: none
+# Purpose: crée l'objet global client pour utilisation par
+#          toutes les fonctions qui accèdent au fichier
+# Output: none
+##############################################################
+def get_gapi_client():
+    global client
+    if client == None:
+        # use creds to create a client to interact with the Google Drive API
+        scope = ['https://spreadsheets.google.com/feeds',
+                 'https://www.googleapis.com/auth/drive']
+        try:
+            creds_envVar = os.environ['GAPI_CREDS']
+            creds_json = json.loads(creds_envVar)
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
+            client = gspread.authorize(creds)
+        except KeyError as e:
+            print('ERR: variable d\'environment GAPI_CREDS non définie')
 
 ##############################################################
 # Function: load_config_teams
@@ -24,19 +46,9 @@ client=None
 #                      }
 ##############################################################
 def load_config_teams():
-    global client
-    global file_config
-    
-    if client == None:
-        # use creds to create a client to interact with the Google Drive API
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        creds_envVar = os.environ['GAPI_CREDS']
-        creds_json = json.loads(creds_envVar)
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-        client = gspread.authorize(creds)
-
-    file = client.open("GuiOnBot config")    
+    global client    
+    get_gapi_client()
+    file = client.open("GuiOnBot config")
     feuille=file.worksheet("teams")
 
     dict_teams={} # {key=team_name, value=[[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles min, gear min, étoiles reco, gear reco, [liste zeta], vitesse, nom court]}]]}
@@ -76,17 +88,8 @@ def load_config_teams():
 # Output:  dict_players_by_IG {key=IG name, value=[allycode, discord name, discord display name]}
 ##############################################################
 def load_config_players():
-    global client
-    
-    if client == None:
-        # use creds to create a client to interact with the Google Drive API
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        creds_envVar = os.environ['GAPI_CREDS']
-        creds_json = json.loads(creds_envVar)
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-        client = gspread.authorize(creds)
-
+    global client    
+    get_gapi_client()
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("players")
 
@@ -121,17 +124,8 @@ def load_config_players():
 # Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
 ##############################################################
 def load_config_bt():
-    global client
-    
-    if client == None:
-        # use creds to create a client to interact with the Google Drive API
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        creds_envVar = os.environ['GAPI_CREDS']
-        creds_json = json.loads(creds_envVar)
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-        client = gspread.authorize(creds)
-
+    global client    
+    get_gapi_client()
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("BT")
 
@@ -152,17 +146,8 @@ def load_config_bt():
 # Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
 ##############################################################
 def load_config_gt():
-    global client
-    
-    if client == None:
-        # use creds to create a client to interact with the Google Drive API
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        creds_envVar = os.environ['GAPI_CREDS']
-        creds_json = json.loads(creds_envVar)
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-        client = gspread.authorize(creds)
-
+    global client    
+    get_gapi_client()
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("GT")
 
@@ -186,17 +171,8 @@ def load_config_gt():
 # Output:  list_counter_teams [[nom équipe à contrer, [liste équipes qui peuvent contrer], nombre nécessaire], ...]
 ##############################################################
 def load_config_counter():
-    global client
-    
-    if client == None:
-        # use creds to create a client to interact with the Google Drive API
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        creds_envVar = os.environ['GAPI_CREDS']
-        creds_json = json.loads(creds_envVar)
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
-        client = gspread.authorize(creds)
-
+    global client    
+    get_gapi_client()
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("COUNTER")
 
@@ -217,6 +193,47 @@ def load_config_counter():
             list_counter_teams.append(counter_team)
     return list_counter_teams
 
+##############################################################
+# Function: load_config_units
+# Parameters: none
+# Purpose: lit l'onglet "units" du fichier Sheets
+# Output:  dict_units {key=alias, value=name}
+##############################################################
+def load_config_counter():
+    global client    
+    get_gapi_client()
+    file = client.open("GuiOnBot config")
+    feuille=file.worksheet("units")
+
+    liste_dict_feuille=feuille.get_all_records()
+    dict_units={}
+    
+    for ligne in liste_dict_feuille:
+        full_name=ligne['Character/Ship']
+        if full_name.lower() in dict_units:
+            if full_name != dict_units[full_name.lower()]:
+                print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()])
+        else:
+            dict_units[full_name.lower()]=full_name
+            
+        if ligne['Aliases'] != '':
+            for alias in ligne['Aliases'].split(','):
+                alias = alias.strip().lower()
+                if alias in dict_units:
+                    if dict_units[alias] != full_name:
+                        print('ERR: double définition de '+alias+': '+dict_units[alias]+' et '+full_name)
+                else:
+                    dict_units[alias]=full_name
+                
+    return dict_units
 #MAIN (DEBUG, à commenter avant mise en service)
-#print(load_config_counter())
-        
+# dict_units=load_config_counter()
+# while True:
+    # print('input perso:')
+    # perso=input()
+    # closest=difflib.get_close_matches(perso, dict_units.keys())
+    # if len(closest)<1:
+        # print('WAR: aucun personnage trouvé')
+    # else:
+        # print(dict_units[closest[0]])
+    
