@@ -570,12 +570,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
 
+    ##############################################################
+    # Command: spj
+    # Parameters: code allié (string) ou "me" / nom approximatif d'un perso
+    # Purpose: stats vitesse et pouvoir d'un perso
+    # Display: la vitess eet le pouvoir
+    ##############################################################
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
-                      "Exemple: go.spj JKR 123456789\n"\
-                      "Exemple: go.scg Bastila me")
-    async def spj(self, ctx, character, allycode):
+                      "Exemple: go.spj 123456789 JKR\n"\
+                      "Exemple: go.scg me Bastila")
+    async def spj(self, ctx, allycode, character):
         await ctx.message.add_reaction(emoji_thumb)
 
         allycode = manage_me(ctx, allycode)
