@@ -317,7 +317,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                   "Exemple: go.vtg_agt 192126111 NS\n"\
                                   "Exemple: go.vtg_agt 192126111 PADME NS DR\n"\
                                   "Exemple: go.vtg_agt me NS")
-    async def vtg_agt(ctx, allycode, *teams):
+    async def vtg_agt(self, ctx, allycode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
         allycode = manage_me(ctx, allycode)
@@ -570,6 +570,27 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
 
+    @commands.command(name='spj',
+                 brief="Stats de Perso d'un Joueur",
+                 help="Stats de Perso d'un Joueur\n\n"\
+                      "Exemple: go.spj JKR 123456789\n"\
+                      "Exemple: go.scg Bastila me")
+    async def spj(self, ctx, character, allycode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allycode = manage_me(ctx, allycode)
+
+        ret_cmd = go.print_character_stats(character, allycode)
+        if ret_cmd[0:3] == 'ERR':
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            #texte classique
+            for txt in go.split_txt(ret_cmd, 1000):
+                await ctx.send(txt)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
 # MAIN EXECUTION

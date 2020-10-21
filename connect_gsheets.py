@@ -5,7 +5,6 @@ import gspread
 import os
 import json
 from oauth2client.service_account import ServiceAccountCredentials
-import difflib
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
@@ -92,7 +91,6 @@ def load_config_players():
     get_gapi_client()
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("players")
-
     liste_dict_feuille=feuille.get_all_records()
     liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in liste_dict_feuille]
     dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
@@ -199,7 +197,7 @@ def load_config_counter():
 # Purpose: lit l'onglet "units" du fichier Sheets
 # Output:  dict_units {key=alias, value=name}
 ##############################################################
-def load_config_counter():
+def load_config_units():
     global client    
     get_gapi_client()
     file = client.open("GuiOnBot config")
@@ -227,13 +225,5 @@ def load_config_counter():
                 
     return dict_units
 #MAIN (DEBUG, à commenter avant mise en service)
-# dict_units=load_config_counter()
-# while True:
-    # print('input perso:')
-    # perso=input()
-    # closest=difflib.get_close_matches(perso, dict_units.keys())
-    # if len(closest)<1:
-        # print('WAR: aucun personnage trouvé')
-    # else:
-        # print(dict_units[closest[0]])
+
     

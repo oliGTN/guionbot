@@ -3,9 +3,10 @@ import sys
 import json
 import time
 import os
+import difflib
 from functools import reduce
 from math import ceil
-from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter
+from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter, load_config_units
 
 #login password sur https://api.swgoh.help/profile
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
@@ -282,7 +283,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                     character_nogo = True
 
                 #Vitesse (optionnel)
-                player_speed = character_speed(character)
+                player_speed, player_potency = get_character_stats(character)
                 req_speed = dict_perso_objectif[perso][6]
                 if req_speed != '':
                     progress_100 = progress_100 + 1
@@ -577,54 +578,97 @@ def split_txt(txt, max_size):
 
 
 ##############################################################
-# Function: character_speed
+# Function: get_character_stats
 # Parameters: dict_character > dictionaire tel que renvoyé par swgoh.help API (voir dans le json)
-# Purpose: renvoie la vitesse totale en fonction du gear, des équipements et des mods
-# Output: total_speed (integer)
+# Purpose: renvoie la vitesse et le pouvoir en fonction du gear, des équipements et des mods
+# Output: [total_speed (integer), total_potency (float)]
 ##############################################################
-def character_speed(dict_character):
+def get_character_stats(dict_character):
     equipment_stats = json.load(open('equipment_stats.json', 'r'))
     units_stats = json.load(open('units_stats.json', 'r'))
 
     #print('==============\n'+dict_character['nameKey'])
-    base_speed = units_stats[dict_character['defId']][dict_character['gear'] -
-                                                      1]
-    #print('base: '+str(base_speed))
-    #print(dict_character['equipped'])
+    base_speed = units_stats[dict_character['defId']][dict_character['gear'] - 1][0]
+    base_potency = units_stats[dict_character['defId']][dict_character['gear'] - 1][1]
+    #print('base: '+str(base_speed)+'/'+str(base_potency))
 
     eqpt_speed = 0
+    eqpt_potency = 0
     for eqpt in dict_character['equipped']:
-        eqpt_speed += equipment_stats[eqpt['equipmentId']]
-        #print('eqpt '+str(eqpt['equipmentId'])+': '+str(equipment_stats[eqpt['equipmentId']]))
+        eqpt_speed += equipment_stats[eqpt['equipmentId']][0]
+        eqpt_potency += equipment_stats[eqpt['equipmentId']][1]
+        #print('eqpt '+str(eqpt_speed)+'/'+str(eqpt_potency))
 
+    #Constants
+    SPEED_STAT_ID = 5
+    SPEED_MOD_SET = 4
+    POTENCY_STAT_ID = 17
+    POTENCY_MOD_SET = 7
+    
+    #Compute stats
     total_speed_mods = 0
-    all_speed_mods_level15 = True
+    nb_speed_mods_level15 = 0
     mod_speed = 0
+    total_potency_mods = 0
+    nb_potency_mods_level15 = 0
+    mod_potency = 0
     for mod in dict_character['mods']:
         #print(mod)
-        if mod['set'] == 4:
+        if mod['set'] == SPEED_MOD_SET:
             total_speed_mods += 1
-            if mod['level'] < 15:
-                all_speed_mods_level15 = False
-            #print('total_speed_mods '+str(total_speed_mods))
+            if mod['level'] == 15:
+                nb_speed_mods_level15 += 1               
+        elif mod['set'] == POTENCY_MOD_SET:
+            total_potency_mods += 1
+            if mod['level'] == 15:
+                nb_potency_mods_level15 += 1
 
-        if mod['primaryStat']['unitStat'] == 5:
+        if mod['primaryStat']['unitStat'] == SPEED_STAT_ID:
             mod_speed += mod['primaryStat']['value']
-            #print('mod primary: '+str(mod['primaryStat']['value']))
-        for secondary in mod['secondaryStat']:
-            if secondary['unitStat'] == 5:
-                mod_speed += secondary['value']
-                #print('mod secondary: '+str(secondary['value']))
+        elif mod['primaryStat']['unitStat'] == POTENCY_STAT_ID:
+            mod_potency += mod['primaryStat']['value']/100
+            #print('primary mod potency: '+str(mod_potency))
 
+        for secondary in mod['secondaryStat']:
+            if secondary['unitStat'] == SPEED_STAT_ID:
+                mod_speed += secondary['value']
+            elif secondary['unitStat'] == POTENCY_STAT_ID:
+                mod_potency += secondary['value']/100
+                #print('sec mod potency: '+str(mod_potency))
+ 
     if total_speed_mods < 4:
         total_speed = base_speed + eqpt_speed + mod_speed
     else:
-        if all_speed_mods_level15:
-            total_speed = int(base_speed * 1.10) + eqpt_speed + mod_speed
-        else:
+        if nb_speed_mods_level15 < 4:
             total_speed = int(base_speed * 1.05) + eqpt_speed + mod_speed
+        else:
+            total_speed = int(base_speed * 1.10) + eqpt_speed + mod_speed
 
-    return total_speed
+    if total_potency_mods < 2:
+        total_potency = base_potency + eqpt_potency + mod_potency
+    elif total_potency_mods < 4:
+        if nb_potency_mods_level15 < 2:
+            total_potency = base_potency + 0.075 + eqpt_potency + mod_potency
+        else:
+            total_potency = base_potency + .15 + eqpt_potency + mod_potency
+    elif total_potency_mods < 6:
+        if nb_potency_mods_level15 < 2:
+            total_potency = base_potency + 0.075 + 0.075 + eqpt_potency + mod_potency
+        elif nb_potency_mods_level15 < 4:
+            total_potency = base_potency + 0.075 + 0.15 + eqpt_potency + mod_potency
+        else:
+            total_potency = base_potency + 0.15 + 0.15 + eqpt_potency + mod_potency
+    else: #total_potency_mods == 6
+        if nb_potency_mods_level15 < 2:
+            total_potency = base_potency + 0.075 + 0.075 + 0.075 + eqpt_potency + mod_potency
+        elif nb_potency_mods_level15 < 4:
+            total_potency = base_potency + 0.075 + 0.075 + 0.15 + eqpt_potency + mod_potency
+        elif nb_potency_mods_level15 < 6:
+            total_potency = base_potency + 0.075 + 0.15 + 0.15 + eqpt_potency + mod_potency
+        else:
+            total_potency = base_potency + 0.15 + 0.15 + 0.15 + eqpt_potency + mod_potency
+
+    return total_speed, int(10000*total_potency)/100
 
 
 def assign_gt(allycode, txt_mode):
@@ -821,8 +865,33 @@ def guild_counter_score(txt_allycode):
 
     return ret_guild_counter_score
 
+def print_character_stats(character_alias, txt_allycode):
+    #Recuperation des dernieres donnees sur gdrive
+    dict_units = load_config_units()
+
+    #Get data for this player
+    dict_player = load_player(txt_allycode)
+    if isinstance(dict_player, str):
+        #error wile loading guild data
+        return 'ERREUR: joueur non trouvée pour code allié ' + txt_allycode
+       
+    #Get full character name
+    closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+    if len(closest_names)<1:
+        return('ERREUR: aucun personnage trouvé pour '+character_alias)
+    else:
+        character_name=dict_units[closest_names[0]]
+
+    for character in dict_player['roster']:
+        if character['nameKey'] == character_name:
+            speed, potency = get_character_stats(character)
+            return character_name+': vitesse='+str(speed)+', pouvoir='+str(potency)+"%"
+    
+    return character_name+' non trouvé chez '+txt_allycode
+
 ########### MAIN (DEBUG uniquement, à commenter avant mise en service)#########
-me = '189341793'
-#print(guild_counter_score(me))
-#print(player_team(me, ['GAS'], 1, 100, 80, False))
-#refresh_cache(1440, 60, 1)
+# me = '189341793'
+# while True:
+    # print('perso:')
+    # alias=input()
+    # print(print_character_stats(alias, me))
