@@ -636,6 +636,7 @@ def get_character_stats(dict_character):
                 mod_potency += secondary['value']/100
                 #print('sec mod potency: '+str(mod_potency))
  
+    #Bonus on speed mods (groups of 4)
     if total_speed_mods < 4:
         total_speed = base_speed + eqpt_speed + mod_speed
     else:
@@ -644,6 +645,7 @@ def get_character_stats(dict_character):
         else:
             total_speed = int(base_speed * 1.10) + eqpt_speed + mod_speed
 
+    #Bonus on potency mods (groups of 2)
     if total_potency_mods < 2:
         total_potency = base_potency + eqpt_potency + mod_potency
     elif total_potency_mods < 4:
@@ -865,7 +867,9 @@ def guild_counter_score(txt_allycode):
 
     return ret_guild_counter_score
 
-def print_character_stats(character_alias, txt_allycode):
+def print_character_stats(characters, txt_allycode):
+    ret_print_character_stats = ''
+
     #Recuperation des dernieres donnees sur gdrive
     dict_units = load_config_units()
 
@@ -873,25 +877,67 @@ def print_character_stats(character_alias, txt_allycode):
     dict_player = load_player(txt_allycode)
     if isinstance(dict_player, str):
         #error wile loading guild data
-        return 'ERREUR: joueur non trouvée pour code allié ' + txt_allycode
-       
-    #Get full character name
-    closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-    if len(closest_names)<1:
-        return('ERREUR: aucun personnage trouvé pour '+character_alias)
-    else:
-        character_name=dict_units[closest_names[0]]
-
-    for character in dict_player['roster']:
-        if character['nameKey'] == character_name:
-            speed, potency = get_character_stats(character)
-            return character_name+': vitesse='+str(speed)+', pouvoir='+str(potency)+"%"
+        return 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode
     
-    return character_name+' non trouvé chez '+txt_allycode
+    #manage sorting options
+    sort_option='name'
+    if characters[0] == '-v':
+        sort_option = 'speed'
+        characters = characters[1:]
+    elif characters[0] == '-p':
+        sort_option = 'potency'
+        characters = characters[1:]
+    
+    list_print_stats=[]
+    #Manage request for all characters
+    if 'all' in characters:
+        for character in dict_player['roster']:
+            if character['combatType'] == 1:
+                speed, potency = get_character_stats(character)
+                list_print_stats.append([speed, potency, character['nameKey']])
+    else:
+        list_character_names=[]
+        for character_alias in characters:
+            #Get full character name
+            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+            if len(closest_names)<1:
+                ret_print_character_stats += 'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+            else:
+                list_character_names.append(dict_units[closest_names[0]])
+
+        set_character_names = set(list_character_names)
+        for character in dict_player['roster']:
+            if character['nameKey'] in set_character_names:
+                if character['combatType'] == 1:
+                    speed, potency = get_character_stats(character)
+                    list_print_stats.append([speed, potency, character['nameKey']])
+                    list_character_names.remove(character['nameKey'])
+                else:
+                    ret_print_character_stats += 'INFO:' + character['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
+        
+        for character_name in list_character_names:
+            ret_print_character_stats +=  'INFO:' + character_name+' non trouvé chez '+txt_allycode+'\n'
+    
+    #Sort by speed then display
+    if sort_option == 'speed':
+        list_print_stats = sorted(list_print_stats, key=lambda x: -x[0])
+    elif sort_option == 'potency':
+        list_print_stats = sorted(list_print_stats, key=lambda x: -x[1])
+    else: # by name
+        list_print_stats = sorted(list_print_stats, key=lambda x: x[2])
+        
+    ret_print_character_stats += "{0:30}: {1:3} {2:7}".format("Perso", "Vit", "Pouvoir")
+    for print_stat_row in list_print_stats:
+        ret_print_character_stats += "\n{0:30.30}: {1:3} {2:6.2f}%".format(
+                                print_stat_row[2],
+                                print_stat_row[0],
+                                print_stat_row[1])
+    
+    return ret_print_character_stats
 
 ########### MAIN (DEBUG uniquement, à commenter avant mise en service)#########
 # me = '189341793'
 # while True:
     # print('perso:')
-    # alias=input()
+    # alias=[input()]
     # print(print_character_stats(alias, me))

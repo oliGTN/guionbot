@@ -579,21 +579,23 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
+                      "Potentiellement trié par vitesse (-v) ou pouvoir (-p)\n"\
                       "Exemple: go.spj 123456789 JKR\n"\
-                      "Exemple: go.scg me Bastila")
-    async def spj(self, ctx, allycode, character):
+                      "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
+                      "Exemple: go.spj me -p all")
+    async def spj(self, ctx, allycode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
         allycode = manage_me(ctx, allycode)
 
-        ret_cmd = go.print_character_stats(character, allycode)
+        ret_cmd = go.print_character_stats(characters, allycode)
         if ret_cmd[0:3] == 'ERR':
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
         else:
             #texte classique
             for txt in go.split_txt(ret_cmd, 1000):
-                await ctx.send(txt)
+                await ctx.send("```"+txt+"```")
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
