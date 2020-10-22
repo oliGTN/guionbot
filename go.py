@@ -878,7 +878,9 @@ def print_character_stats(characters, txt_allycode):
     if isinstance(dict_player, str):
         #error wile loading guild data
         return 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode
-    
+    else:
+        ret_print_character_stats += "Statistiques pour "+dict_player['name']
+        
     #manage sorting options
     sort_option='name'
     if characters[0] == '-v':
@@ -892,7 +894,7 @@ def print_character_stats(characters, txt_allycode):
     #Manage request for all characters
     if 'all' in characters:
         for character in dict_player['roster']:
-            if character['combatType'] == 1:
+            if character['combatType'] == 1 and character['level'] >= 50:
                 speed, potency = get_character_stats(character)
                 list_print_stats.append([speed, potency, character['nameKey']])
     else:
@@ -926,7 +928,9 @@ def print_character_stats(characters, txt_allycode):
     else: # by name
         list_print_stats = sorted(list_print_stats, key=lambda x: x[2])
         
-    ret_print_character_stats += "{0:30}: {1:3} {2:7}".format("Perso", "Vit", "Pouvoir")
+    ret_print_character_stats += """
+=====================================
+{0:30}: {1:3} {2:7}""".format("Perso", "Vit", "Pouvoir")
     for print_stat_row in list_print_stats:
         ret_print_character_stats += "\n{0:30.30}: {1:3} {2:6.2f}%".format(
                                 print_stat_row[2],
