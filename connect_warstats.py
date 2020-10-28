@@ -139,6 +139,7 @@ dict_noms_warstats['TIE Silencer']='TIE silencer'
 dict_noms_warstats['Tusken Raider']='Pillard Tusken'
 dict_noms_warstats['Tusken Shaman']='Chaman Tusken'
 dict_noms_warstats['Umbaran Starfighter']='Chasseur umbarien'
+dict_noms_warstats['URoRRuR\\\'R\\\'R']='URoRRuR\'R\'R'
 dict_noms_warstats['Vandor Chewbacca']='Chewbacca Vandor'
 dict_noms_warstats['Veteran Smuggler Chewbacca']='Contrebandier vétéran Chewbacca'
 dict_noms_warstats['Veteran Smuggler Han Solo']='Contrebandier vétéran Han Solo'
@@ -496,7 +497,7 @@ def parse_warstats_page():
     for phase in range(1,7):
         try:
             page = fresh_urlopen(warstats_platoon_url+'/'+str(phase))
-            print(page.headers)
+            #print(page.headers)
             platoon_parser = TBSPhaseParser()
             platoon_parser.feed(str(page.read()))
             complete_dict_platoons.update(platoon_parser.get_dict_platoons())
@@ -511,9 +512,6 @@ def parse_warstats_page():
     resume_parser.feed(str(page.read()))
     #print(resume_parser.get_open_territories())
     
-    for platoon in ['HLS5-mid-1', 'HLS5-mid-2', 'HLS5-mid-3', 'HLS5-top-1', 'HLS5-top-3']:
-        print(platoon+':\n'+str(complete_dict_platoons[platoon]))
-
     return platoon_parser.get_active_round(), complete_dict_platoons, complete_dict_player_allocations, resume_parser.get_open_territories()
 
 #MAIN
