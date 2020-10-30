@@ -466,12 +466,13 @@ class TBSResumeParser(HTMLParser):
 ###############################################################
 def fresh_urlopen(url):
     random_3letters=''.join(random.choice(string.ascii_lowercase) for i in range(3))
-    fresh_url = url+'?'+random_3letters+'='
+    #fresh_url = url+'?'+random_3letters+'='
+    fresh_url = url
 
     req = urllib.request.Request(fresh_url)
-    req.add_header('Cache-Control', 'max-age=0')
-    req.add_header('Cache-Control', 'no-store')
-    req.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11')
+    # req.add_header('Cache-Control', 'max-age=0')
+    # req.add_header('Cache-Control', 'no-store')
+    # req.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11')
 
     print(fresh_url)
     return urllib.request.urlopen(req)

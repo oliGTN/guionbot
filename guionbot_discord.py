@@ -449,12 +449,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
             full_txt = ''
             cur_phase = 0
+
             for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
                 if cur_phase != int(txt[1][3]):
                     cur_phase = int(txt[1][3])
                     full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
 
-                position = txt[1].split('-')
+                position = txt[1].split('-')[1]
                 if position == 'top':
                     open_for_position = list_open_territories[0]
                 elif position == 'mid':
