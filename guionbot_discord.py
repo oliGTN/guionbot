@@ -23,6 +23,15 @@ emoji_error = '\N{CROSS MARK}'
 cache_delete_minutes = 1440  #24 hours before deleting unused cache file
 cache_refresh_minutes = 60  #60 minutes minimum to refresh data from the guild
 
+dict_BT_missions={}
+dict_BT_missions['GDS']={}
+dict_BT_missions['GDS']['Droid Factory Mission']='GDS1-top'
+dict_BT_missions['GDS']['Canyons Mission']='GDS1-bottom'
+dict_BT_missions['GDS']['Core Ship Yards Mission']='GDS2-top'
+dict_BT_missions['GDS']['Separatist Command Mission']='GDS2-mid'
+dict_BT_missions['GDS']['Petranaki Arena Mission']='GDS2-bottom'
+dict_BT_missions['GDS']['Contested Airspace Mission']='GDS3-top'
+
 ##############################################################
 #                                                            #
 #                  FONCTIONS                                 #
@@ -72,70 +81,41 @@ async def get_eb_allocation(tbs_round):
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
 
-            if message.content.startswith(
-                    ':information_source: **Overview** (Phase'):
-                numero_phase = re.search('\((.*?)\)',
-                                         message.content).group(1)[-1]
-
-                #renumérotation des clés du dictionnaire avec la phase (si pas déjà lue)
-                #print(dict_platoons_allocation)
-                old_platoon_names = set(dict_platoons_allocation.keys())
-                for old_platoon_name in old_platoon_names:
-                    new_platoon_name = old_platoon_name[
-                        0:3] + numero_phase + old_platoon_name[4:]
-                    if old_platoon_name[3] == 'X':
-                        phase_position = numero_phase + '-' + old_platoon_name.split(
-                            '-')[1]
-                        #print(phase_position)
-                        #print(eb_missions_full)
-                        if not (phase_position in eb_missions_full):
-                            dict_platoons_allocation[
-                                new_platoon_name] = dict_platoons_allocation[
-                                    old_platoon_name]
-                        #print('del dict_platoons_allocation['+old_platoon_name+']')
-                        del dict_platoons_allocation[old_platoon_name]
-                #print(dict_platoons_allocation)
-                #print('=========================')
-
-                #Ajout des phases lues dans la liste complète
-                for pos in eb_missions_tmp:
-                    if not (numero_phase + '-' + pos) in eb_missions_full:
-                        eb_missions_full.append(numero_phase + '-' + pos)
-                eb_missions_tmp = []
-
-                if not (numero_phase in eb_phases):
-                    eb_phases.append(numero_phase)
-                    print(
-                        'Lecture terminée de l\'affectation EchoBot pour la phase '
-                        + numero_phase)
-
             if message.content.startswith('```prolog'):
-                position_territoire = re.search('\((.*?)\)',
-                                                message.content).group(1)
-                eb_missions_tmp.append(position_territoire)
-
-                for embed in message.embeds:
-                    dict_embed = embed.to_dict()
-                    if 'fields' in dict_embed:
-                        #print(dict_embed)
-                        #on garde le nom de la BT mais on met X comme numéro de phase
-                        #le numéro de phase sera affecté plus tard
-                        platoon_name = tbs_round[
-                            0:3] + 'X-' + position_territoire + '-' + re.search(
-                                '\*\*(.*?)\*\*',
-                                dict_embed['description']).group(1)[-1]
-                        for dict_perso in dict_embed['fields']:
-                            for perso in dict_perso['value'].split('\n'):
-                                char_name = perso[1:-1]
-                                if not platoon_name in dict_platoons_allocation:
-                                    dict_platoons_allocation[
-                                        platoon_name] = {}
-                                if not char_name in dict_platoons_allocation[
-                                        platoon_name]:
-                                    dict_platoons_allocation[platoon_name][
-                                        char_name] = []
-                                dict_platoons_allocation[platoon_name][
-                                    char_name].append(dict_perso['name'])
+                nom_territoire = re.search('```prolog\n(.*?) \((.*?)\)',
+                                            message.content).group(1)
+                #eb_missions_tmp.append(position_territoire)
+                if nom_territoire in dict_BT_missions[tbs_round[0:3]]:
+                    nom_position_territoire = dict_BT_missions[
+                                            tbs_round[0:3]][nom_territoire]
+                    #Check if this mission/territory has been allocated in previous message
+                    existing_platoons = [i for i in dict_platoons_allocation.keys()
+                                    if i.startswith(nom_position_territoire)]
+                    if len(existing_platoons) == 0:                    
+                        for embed in message.embeds:
+                            dict_embed = embed.to_dict()
+                            if 'fields' in dict_embed:
+                                #print(dict_embed)
+                                #on garde le nom de la BT mais on met X comme numéro de phase
+                                #le numéro de phase sera affecté plus tard
+                                platoon_name = (nom_position_territoire
+                                    + '-' + re.search('\*\*(.*?)\*\*',
+                                        dict_embed['description']).group(1)[-1])
+                                for dict_perso in dict_embed['fields']:
+                                    for perso in dict_perso['value'].split('\n'):
+                                        char_name = perso[1:-1]
+                                        if char_name != 'Filled in another phase':
+                                            if not platoon_name in dict_platoons_allocation:
+                                                dict_platoons_allocation[
+                                                    platoon_name] = {}
+                                            if not char_name in dict_platoons_allocation[
+                                                    platoon_name]:
+                                                dict_platoons_allocation[platoon_name][
+                                                    char_name] = []
+                                            dict_platoons_allocation[platoon_name][
+                                                char_name].append(dict_perso['name'])
+                else:
+                    print('Mission \"'+nom_territoire+'\" inconnue')
 
     return dict_platoons_allocation
 
@@ -401,7 +381,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             print('Lecture terminée du statut BT sur warstats: round ' + tbs_round)
 
             dict_platoons_allocation = await get_eb_allocation(tbs_round)
-
+            print(dict_platoons_allocation['GDS2-mid-1'])
+            print(dict_platoons_allocation['GDS2-mid-2'])
+            print(dict_platoons_allocation['GDS2-mid-3'])
+            print(dict_platoons_allocation['GDS2-mid-6'])
             #Comparaison des dictionnaires
             #Recherche des persos non-affectés
             erreur_detectee = False
@@ -442,7 +425,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                             else:
                                 erreur_detectee = True
                                 list_err.append('ERR: ' + perso +
-                                                ' n\'a pas été affecté')
+                                                ' n\'a pas été affecté ('+platoon_name+')')
                                 print('ERR: ' + perso + ' n\'a pas été affecté')
                                 print(
                                     dict_platoons_allocation[platoon_name].keys())
