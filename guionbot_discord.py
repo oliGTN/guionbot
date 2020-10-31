@@ -381,10 +381,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             print('Lecture terminée du statut BT sur warstats: round ' + tbs_round)
 
             dict_platoons_allocation = await get_eb_allocation(tbs_round)
-            print(dict_platoons_allocation['GDS2-mid-1'])
-            print(dict_platoons_allocation['GDS2-mid-2'])
-            print(dict_platoons_allocation['GDS2-mid-3'])
-            print(dict_platoons_allocation['GDS2-mid-6'])
+            
             #Comparaison des dictionnaires
             #Recherche des persos non-affectés
             erreur_detectee = False
