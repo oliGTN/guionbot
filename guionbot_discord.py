@@ -31,6 +31,8 @@ dict_BT_missions['GDS']['Core Ship Yards Mission']='GDS2-top'
 dict_BT_missions['GDS']['Separatist Command Mission']='GDS2-mid'
 dict_BT_missions['GDS']['Petranaki Arena Mission']='GDS2-bottom'
 dict_BT_missions['GDS']['Contested Airspace Mission']='GDS3-top'
+dict_BT_missions['GDS']['Battleground Mission']='GDS3-mid'
+dict_BT_missions['GDS']['Republic Fleet Mission']='GDS4-top'
 
 ##############################################################
 #                                                            #
