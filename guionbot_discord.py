@@ -65,7 +65,7 @@ async def bot_loop_60():
         for guild in bot.guilds:
             list_members=[]
             for role in guild.roles:
-                if role.name=='Kangoo-Legends' or role.name=='Officiers':
+                if role.name==os.environ['DISCORD_MEMBER_ROLE']:
                     for member in role.members:
                         if not member.id in dict_lastseen:
                             dict_lastseen[member.id]= [member.display_name, None]
