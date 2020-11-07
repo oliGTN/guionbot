@@ -224,6 +224,84 @@ def load_config_units():
                     dict_units[alias]=full_name
                 
     return dict_units
+##############################################################
+# Function: update_online_dates
+# Parameters: dict_lastseen
+#             {key=discord id,
+#              value=[discord name, date last seen (idle or online)]}
+# Purpose: met à jour la colonne "Last Online" de l'onglet "players"
+# Output:  none
+##############################################################
+def update_online_dates(dict_lastseen):
+    global client    
+    get_gapi_client()
+    file = client.open("GuiOnBot config")
+    feuille=file.worksheet("players")
+
+    #parsing title row
+    col_id=0
+    col_date=0
+    # print('feuille='+str(feuille))
+    c = 1
+    first_row=feuille.row_values(1)
+    for value in first_row:
+        # print('c='+str(c)+' value='+str(value))
+        if value=='Discord ID':
+            col_id=c
+        elif value=='Last Online':
+            col_date=c
+        c+=1
+
+    # print('col_id='+str(col_id))
+    # print('col_date='+str(col_date))
+    
+    ids=feuille.col_values(col_id)
+    online_dates=feuille.col_values(col_date)
+    
+    #print(online_dates)
+    #print(dict_lastseen.keys())
+    l = 1
+    for str_id in ids:
+        if l > 1:
+            if str_id=='':
+                if l > len(online_dates):
+                    online_dates.append([''])
+                else:
+                    online_dates[l-1] = ['']
+            else:
+                id=int(str_id)
+                if id in dict_lastseen:
+                    last_date=dict_lastseen[id][1]
+                    if last_date == None:
+                        if l > len(online_dates):
+                            online_dates.append([''])
+                        else:
+                            online_dates[l-1] = ['']
+                    else:
+                        last_date_value=last_date.strftime("%Y-%m-%d %H:%M:%S")
+                        if l > len(online_dates):
+                            online_dates.append([last_date_value])
+                        else:
+                            online_dates[l-1] = [last_date_value]
+                else:
+                    print('id '+str(id)+' not found among guild members')
+                    if l > len(online_dates):
+                        online_dates.append(['not found in Discord'])
+                    else:
+                        online_dates[l-1] = ['not found in Discord']
+                    
+                # print('id='+str(id)+' '+str(online_dates[l-1]))
+        else:
+            online_dates[l-1]=[online_dates[l-1]]
+        l+=1
+    # print(online_dates)
+    
+    column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
+    # print('column_letter='+str(column_letter))
+    # print('l='+str(l))
+    range_name=column_letter+'1:'+column_letter+str(l-1)
+    feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
+
 #MAIN (DEBUG, à commenter avant mise en service)
 
     

@@ -10,7 +10,7 @@ import re
 from discord.ext import commands
 from discord import Activity, ActivityType, Intents
 import go
-from connect_gsheets import load_config_players
+from connect_gsheets import load_config_players, update_online_dates
 from connect_warstats import parse_warstats_page
 
 TOKEN = os.environ['DISCORD_BOT_TOKEN']
@@ -38,7 +38,7 @@ dict_BT_missions['GDS']['Contested Airspace Mission']='GDS3-top'
 dict_BT_missions['GDS']['Battleground Mission']='GDS3-mid'
 dict_BT_missions['GDS']['Republic Fleet Mission']='GDS4-top'
 
-dict_lastseen={} #key=discord name, value=date last seen (idle or online)
+dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
 ##############################################################
 #                                                            #
@@ -58,30 +58,27 @@ async def bot_loop_60():
     #global dict_players
     await bot.wait_until_ready()
     while not bot.is_closed():
-        try:
-            #REFRESH and CLEAN CACHE DATA FROM SWGOH API²
-            go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
-            
-            #GET ONLINE AND MOBILE STATUS
-            for guild in bot.guilds:
-                list_members=[]
-                for role in guild.roles:
-                    if role.name=='Kangoo-Legends' or role.name=='Officiers':
-                        for member in role.members:
-                            if not member.display_name in dict_lastseen:
-                                dict_lastseen[member.display_name]= None
+        #REFRESH and CLEAN CACHE DATA FROM SWGOH API²
+        go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
+        
+        #GET ONLINE AND MOBILE STATUS
+        for guild in bot.guilds:
+            list_members=[]
+            for role in guild.roles:
+                if role.name=='Kangoo-Legends' or role.name=='Officiers':
+                    for member in role.members:
+                        if not member.id in dict_lastseen:
+                            dict_lastseen[member.id]= [member.display_name, None]
+                        
+                        if not(str(member.status) == 'offline' and
+                                str(member.mobile_status) == 'offline'):
+                            dict_lastseen[member.id]=[member.display_name, datetime.datetime.now()]
                             
-                            if not(str(member.status) == 'offline' and
-                                    str(member.mobile_status) == 'offline'):
-                                dict_lastseen[member.display_name]=datetime.datetime.now()
-                                
-                            list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
-            
-            await asyncio.sleep(60)  #60 seconds for loop
-        except Exception as e:
-            print(e)
-            await asyncio.sleep(60)  #60 seconds for loop
-
+                        list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
+        
+        update_online_dates(dict_lastseen)
+        
+        await asyncio.sleep(60)  #60 seconds for loop
 
 ##############################################################
 # Function: get_eb_allocation
@@ -265,7 +262,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def info(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
 
-        await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+'\n' +
+        await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+' (GMT)\n' +
                         go.stats_cache() + '\n' +
                         str(cache_delete_minutes) + ' minutes before deleting\n' +
                         str(cache_refresh_minutes) + ' minutes before refreshing\n')
@@ -273,26 +270,26 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         #Check online status of members
         list_members=[]
         for member in dict_lastseen:
-            if dict_lastseen[member]==None:
-                list_members.append([3600*24*9,     'jamais      - '+member])
+            if dict_lastseen[member][1]==None:
+                list_members.append([3600*24*9,     'jamais      - '+dict_lastseen[member][0]])
             else:
-                delta_time=datetime.datetime.now()-dict_lastseen[member]
+                delta_time=datetime.datetime.now()-dict_lastseen[member][1]
                 if delta_time.seconds<60:
-                    list_members.append([0,         'online      - '+member])
+                    list_members.append([0,         'online      - '+dict_lastseen[member][0]])
                 elif delta_time.seconds<60*10:
-                    list_members.append([60*10,     '< 10 min    - '+member])
+                    list_members.append([60*10,     '< 10 min    - '+dict_lastseen[member][0]])
                 elif delta_time.seconds<3600:
-                    list_members.append([3600,      '< 1 heure   - '+member])
+                    list_members.append([3600,      '< 1 heure   - '+dict_lastseen[member][0]])
                 elif delta_time.seconds<3600*12:
-                    list_members.append([3600*12,   '< 12 heures - '+member])
+                    list_members.append([3600*12,   '< 12 heures - '+dict_lastseen[member][0]])
                 elif delta_time.seconds<3600*24:
-                    list_members.append([3600*24,   '< 24 heures - '+member])
+                    list_members.append([3600*24,   '< 24 heures - '+dict_lastseen[member][0]])
                 elif delta_time.seconds<3600*48:
-                    list_members.append([3600*48,   '< 48 heures - '+member])
+                    list_members.append([3600*48,   '< 48 heures - '+dict_lastseen[member][0]])
                 elif delta_time.seconds<3600*24*7:
-                    list_members.append([3600*24*7, '< 1 semaine - '+member])
+                    list_members.append([3600*24*7, '< 1 semaine - '+dict_lastseen[member][0]])
                 else:
-                    list_members.append([3600*24*8, '> 1 semaine - '+member])
+                    list_members.append([3600*24*8, '> 1 semaine - '+dict_lastseen[member][0]])
         big_txt='== Online status for guild members ==\n'
         for line in sorted(list_members):
             big_txt+=line[1]+'\n'
