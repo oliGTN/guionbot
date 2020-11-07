@@ -8,13 +8,17 @@ import time
 import datetime
 import re
 from discord.ext import commands
-from discord import Activity, ActivityType
+from discord import Activity, ActivityType, Intents
 import go
 from connect_gsheets import load_config_players
 from connect_warstats import parse_warstats_page
 
 TOKEN = os.environ['DISCORD_BOT_TOKEN']
-bot = commands.Bot(command_prefix='go.')
+intents = Intents.default()
+intents.members = True
+intents.presences = True
+bot = commands.Bot(command_prefix='go.', intents=intents)
+bot_uptime=datetime.datetime.now()
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -33,6 +37,8 @@ dict_BT_missions['GDS']['Petranaki Arena Mission']='GDS2-bottom'
 dict_BT_missions['GDS']['Contested Airspace Mission']='GDS3-top'
 dict_BT_missions['GDS']['Battleground Mission']='GDS3-mid'
 dict_BT_missions['GDS']['Republic Fleet Mission']='GDS4-top'
+
+dict_lastseen={} #key=discord name, value=date last seen (idle or online)
 
 ##############################################################
 #                                                            #
@@ -53,10 +59,24 @@ async def bot_loop_60():
     await bot.wait_until_ready()
     while not bot.is_closed():
         try:
-            #clean_cache(cache_delete_minutes)
-
-            #list_guild_allycodes=[(lambda x:str(x))(x) for x in dict_players]
+            #REFRESH and CLEAN CACHE DATA FROM SWGOH API²
             go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
+            
+            #GET ONLINE AND MOBILE STATUS
+            for guild in bot.guilds:
+                list_members=[]
+                for role in guild.roles:
+                    if role.name=='Kangoo-Legends' or role.name=='Officiers':
+                        for member in role.members:
+                            if not member.display_name in dict_lastseen:
+                                dict_lastseen[member.display_name]= None
+                            
+                            if not(str(member.status) == 'offline' and
+                                    str(member.mobile_status) == 'offline'):
+                                dict_lastseen[member.display_name]=datetime.datetime.now()
+                                
+                            list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
+            
             await asyncio.sleep(60)  #60 seconds for loop
         except Exception as e:
             print(e)
@@ -245,9 +265,42 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def info(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
 
-        await ctx.send('GuiOn bot is UP\n' + go.stats_cache() + '\n' +
-                       str(cache_delete_minutes) + ' minutes before deleting\n' +
-                       str(cache_refresh_minutes) + ' minutes before refreshing\n')
+        await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+'\n' +
+                        go.stats_cache() + '\n' +
+                        str(cache_delete_minutes) + ' minutes before deleting\n' +
+                        str(cache_refresh_minutes) + ' minutes before refreshing\n')
+                       
+        #Check online status of members
+        list_members=[]
+        for member in dict_lastseen:
+            if dict_lastseen[member]==None:
+                list_members.append([3600*24*9,     'jamais      - '+member])
+            else:
+                delta_time=datetime.datetime.now()-dict_lastseen[member]
+                if delta_time.seconds<60:
+                    list_members.append([0,         'online      - '+member])
+                elif delta_time.seconds<60*10:
+                    list_members.append([60*10,     '< 10 min    - '+member])
+                elif delta_time.seconds<3600:
+                    list_members.append([3600,      '< 1 heure   - '+member])
+                elif delta_time.seconds<3600*12:
+                    list_members.append([3600*12,   '< 12 heures - '+member])
+                elif delta_time.seconds<3600*24:
+                    list_members.append([3600*24,   '< 24 heures - '+member])
+                elif delta_time.seconds<3600*48:
+                    list_members.append([3600*48,   '< 48 heures - '+member])
+                elif delta_time.seconds<3600*24*7:
+                    list_members.append([3600*24*7, '< 1 semaine - '+member])
+                else:
+                    list_members.append([3600*24*8, '> 1 semaine - '+member])
+        big_txt='== Online status for guild members ==\n'
+        for line in sorted(list_members):
+            big_txt+=line[1]+'\n'
+        for txt in go.split_txt(big_txt, 1000):
+            await ctx.send('`' + txt + '`')
+        
+        
+        
         await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
