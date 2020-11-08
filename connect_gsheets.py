@@ -274,6 +274,8 @@ def update_online_dates(dict_lastseen):
                             # Yet if the table did not contain this ID,
                             # create an empty cell so that next ID can be added properly
                             online_dates.append([''])
+                        else:
+                            online_dates[l-1] = [online_dates[l-1]]
                     else:
                         last_date_value=last_date.strftime("%Y-%m-%d %H:%M:%S")
                         if l > len(online_dates):
@@ -290,8 +292,10 @@ def update_online_dates(dict_lastseen):
                     
                 # print('id='+str(id)+' '+str(online_dates[l-1]))
         else:
+            # Title line. Need to keep it, changing the format to a list
             online_dates[l-1]=[online_dates[l-1]]
         l+=1
+    print(online_dates)
     
     column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
     range_name=column_letter+'1:'+column_letter+str(l-1)
