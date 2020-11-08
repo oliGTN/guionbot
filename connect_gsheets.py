@@ -241,29 +241,25 @@ def update_online_dates(dict_lastseen):
     #parsing title row
     col_id=0
     col_date=0
-    # print('feuille='+str(feuille))
+
     c = 1
     first_row=feuille.row_values(1)
     for value in first_row:
-        # print('c='+str(c)+' value='+str(value))
         if value=='Discord ID':
             col_id=c
         elif value=='Last Online':
             col_date=c
         c+=1
 
-    # print('col_id='+str(col_id))
-    # print('col_date='+str(col_date))
-    
     ids=feuille.col_values(col_id)
     online_dates=feuille.col_values(col_date)
     
-    #print(online_dates)
-    #print(dict_lastseen.keys())
+    #Looping through lines, through the ID column
     l = 1
     for str_id in ids:
         if l > 1:
             if str_id=='':
+                #no Discord ID > empty date
                 if l > len(online_dates):
                     online_dates.append([''])
                 else:
@@ -273,10 +269,11 @@ def update_online_dates(dict_lastseen):
                 if id in dict_lastseen:
                     last_date=dict_lastseen[id][1]
                     if last_date == None:
+                        # Not seen recently > no change
                         if l > len(online_dates):
+                            # Yet if the table did not contain this ID,
+                            # create an empty cell so that next ID can be added properly
                             online_dates.append([''])
-                        else:
-                            online_dates[l-1] = ['']
                     else:
                         last_date_value=last_date.strftime("%Y-%m-%d %H:%M:%S")
                         if l > len(online_dates):
@@ -284,6 +281,7 @@ def update_online_dates(dict_lastseen):
                         else:
                             online_dates[l-1] = [last_date_value]
                 else:
+                    # ID is gsheets does not match an ID in Discord
                     print('id '+str(id)+' not found among guild members')
                     if l > len(online_dates):
                         online_dates.append(['not found in Discord'])
@@ -294,11 +292,8 @@ def update_online_dates(dict_lastseen):
         else:
             online_dates[l-1]=[online_dates[l-1]]
         l+=1
-    # print(online_dates)
     
     column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
-    # print('column_letter='+str(column_letter))
-    # print('l='+str(l))
     range_name=column_letter+'1:'+column_letter+str(l-1)
     feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
 
