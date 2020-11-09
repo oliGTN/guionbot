@@ -372,14 +372,17 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         else:
             line += '\N{CROSS MARK}'
 
-    #Affichage des pseudos IG ou Discord
-    if dict_player['name'] in dict_player_discord:
-        if txt_mode:  # mode texte, pas de @ discord
-            line += '|' + dict_player['name'] + '\n'
-        else:
-            line += '|' + dict_player_discord[dict_player['name']][2] + '\n'
-    else:  #joueur non-défini dans gsheets
-        line += '|' + dict_player['name'] + '\n'
+    #Affichage des pseudos IG ou Discord - ON HOLD
+    # if dict_player['name'] in dict_player_discord:
+        # if txt_mode:  # mode texte, pas de @ discord
+            # line += '|' + dict_player['name'] + '\n'
+        # else:
+            # line += '|' + dict_player_discord[dict_player['name']][2] + '\n'
+    # else:  #joueur non-défini dans gsheets
+        # line += '|' + dict_player['name'] + '\n'
+
+    # Display the IG name only, as @mentions only pollute discord
+    line += '|' + dict_player['name'] + '\n'
 
     return score, line, score_nogo
 
@@ -941,7 +944,6 @@ def print_character_stats(characters, txt_allycode):
 
 ########### MAIN (DEBUG uniquement, à commenter avant mise en service)#########
 # me = '189341793'
-# while True:
-    # print('perso:')
-    # alias=[input()]
-    # print(print_character_stats(alias, me))
+# ret= guild_team(me, ['GEO-WAT'], 2, 100,80, True)
+# for a in ret:
+    # print(ret[a][0])
