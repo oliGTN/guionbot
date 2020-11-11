@@ -247,11 +247,12 @@ def update_online_dates(dict_lastseen):
     for value in first_row:
         if value=='Discord ID':
             col_id=c
-        elif value=='Last Online':
+        elif value=='Last Online (GMT)':
             col_date=c
         c+=1
 
     ids=feuille.col_values(col_id)
+    print('col_date='+str(col_date))
     online_dates=feuille.col_values(col_date)
     
     #Looping through lines, through the ID column
@@ -295,7 +296,6 @@ def update_online_dates(dict_lastseen):
             # Title line. Need to keep it, changing the format to a list
             online_dates[l-1]=[online_dates[l-1]]
         l+=1
-    print(online_dates)
     
     column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
     range_name=column_letter+'1:'+column_letter+str(l-1)
