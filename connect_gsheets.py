@@ -241,13 +241,14 @@ def update_online_dates(dict_lastseen):
     #parsing title row
     col_id=0
     col_date=0
+    date_column_title='Last Online (GMT)'
 
     c = 1
     first_row=feuille.row_values(1)
     for value in first_row:
         if value=='Discord ID':
             col_id=c
-        elif value=='Last Online (GMT)':
+        elif value==date_column_title:
             col_date=c
         c+=1
 
@@ -255,51 +256,54 @@ def update_online_dates(dict_lastseen):
     print('col_date='+str(col_date))
     online_dates=feuille.col_values(col_date)
     
-    #Looping through lines, through the ID column
-    l = 1
-    for str_id in ids:
-        if l > 1:
-            if str_id=='':
-                #no Discord ID > empty date
-                if l > len(online_dates):
-                    online_dates.append([''])
-                else:
-                    online_dates[l-1] = ['']
-            else:
-                id=int(str_id)
-                if id in dict_lastseen:
-                    last_date=dict_lastseen[id][1]
-                    if last_date == None:
-                        # Not seen recently > no change
-                        if l > len(online_dates):
-                            # Yet if the table did not contain this ID,
-                            # create an empty cell so that next ID can be added properly
-                            online_dates.append([''])
-                        else:
-                            online_dates[l-1] = [online_dates[l-1]]
-                    else:
-                        last_date_value=last_date.strftime("%Y-%m-%d %H:%M:%S")
-                        if l > len(online_dates):
-                            online_dates.append([last_date_value])
-                        else:
-                            online_dates[l-1] = [last_date_value]
-                else:
-                    # ID is gsheets does not match an ID in Discord
-                    print('id '+str(id)+' not found among guild members')
+    if col_date > 0:
+        #Looping through lines, through the ID column
+        l = 1
+        for str_id in ids:
+            if l > 1:
+                if str_id=='':
+                    #no Discord ID > empty date
                     if l > len(online_dates):
-                        online_dates.append(['not found in Discord'])
+                        online_dates.append([''])
                     else:
-                        online_dates[l-1] = ['not found in Discord']
-                    
-                # print('id='+str(id)+' '+str(online_dates[l-1]))
-        else:
-            # Title line. Need to keep it, changing the format to a list
-            online_dates[l-1]=[online_dates[l-1]]
-        l+=1
-    
-    column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
-    range_name=column_letter+'1:'+column_letter+str(l-1)
-    feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
+                        online_dates[l-1] = ['']
+                else:
+                    id=int(str_id)
+                    if id in dict_lastseen:
+                        last_date=dict_lastseen[id][1]
+                        if last_date == None:
+                            # Not seen recently > no change
+                            if l > len(online_dates):
+                                # Yet if the table did not contain this ID,
+                                # create an empty cell so that next ID can be added properly
+                                online_dates.append([''])
+                            else:
+                                online_dates[l-1] = [online_dates[l-1]]
+                        else:
+                            last_date_value=last_date.strftime("%Y-%m-%d %H:%M:%S")
+                            if l > len(online_dates):
+                                online_dates.append([last_date_value])
+                            else:
+                                online_dates[l-1] = [last_date_value]
+                    else:
+                        # ID is gsheets does not match an ID in Discord
+                        print('id '+str(id)+' not found among guild members')
+                        if l > len(online_dates):
+                            online_dates.append(['not found in Discord'])
+                        else:
+                            online_dates[l-1] = ['not found in Discord']
+                        
+                    # print('id='+str(id)+' '+str(online_dates[l-1]))
+            else:
+                # Title line. Need to keep it, changing the format to a list
+                online_dates[l-1]=[online_dates[l-1]]
+            l+=1
+        
+        column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
+        range_name=column_letter+'1:'+column_letter+str(l-1)
+        feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
+    else:
+        print('Column "'+date_column_title+'" not found >> online date not updated')
 
 #MAIN (DEBUG, à commenter avant mise en service)
 
