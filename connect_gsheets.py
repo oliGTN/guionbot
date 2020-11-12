@@ -253,11 +253,10 @@ def update_online_dates(dict_lastseen):
         c+=1
 
     ids=feuille.col_values(col_id)
-    print('col_date='+str(col_date))
-    online_dates=feuille.col_values(col_date)
     
     if col_date > 0:
         #Looping through lines, through the ID column
+        online_dates=feuille.col_values(col_date)
         l = 1
         for str_id in ids:
             if l > 1:
