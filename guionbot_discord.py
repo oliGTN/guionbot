@@ -64,7 +64,7 @@ async def bot_loop_60():
         
         #GET ONLINE AND MOBILE STATUS
         server_timezone=datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
-        guild_timezone=timezone('Europe/Paris')
+        guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
         print('server_timezone='+str(server_timezone))
         for guild in bot.guilds:
             list_members=[]
