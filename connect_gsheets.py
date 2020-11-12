@@ -241,7 +241,7 @@ def update_online_dates(dict_lastseen):
     #parsing title row
     col_id=0
     col_date=0
-    date_column_title='Last Online (GMT)'
+    date_column_title='Last Online'
 
     c = 1
     first_row=feuille.row_values(1)
