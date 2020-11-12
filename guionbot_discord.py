@@ -6,6 +6,7 @@ import os
 import asyncio
 import time
 import datetime
+from pytz import timezone
 import re
 from discord.ext import commands
 from discord import Activity, ActivityType, Intents
@@ -62,6 +63,9 @@ async def bot_loop_60():
         go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
         
         #GET ONLINE AND MOBILE STATUS
+        server_timezone=datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+        guild_timezone=timezone('Europe/Paris')
+        print('server_timezone='+str(server_timezone))
         for guild in bot.guilds:
             list_members=[]
             for role in guild.roles:
@@ -73,6 +77,8 @@ async def bot_loop_60():
                         if not(str(member.status) == 'offline' and
                                 str(member.mobile_status) == 'offline'):
                             dict_lastseen[member.id]=[member.display_name, datetime.datetime.now()]
+                            print('server_time='+str(datetime.datetime.now()))
+                            print('guild_time='+str(datetime.datetime.now(guild_timezone)))
                             
                         list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
         
