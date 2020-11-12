@@ -241,22 +241,22 @@ def update_online_dates(dict_lastseen):
     #parsing title row
     col_id=0
     col_date=0
+    id_column_title='Discord ID'
     date_column_title='Last Online'
 
     c = 1
     first_row=feuille.row_values(1)
     for value in first_row:
-        if value=='Discord ID':
+        if value==id_column_title:
             col_id=c
         elif value==date_column_title:
             col_date=c
         c+=1
 
-    ids=feuille.col_values(col_id)
-    print('col_date='+str(col_date))
-    online_dates=feuille.col_values(col_date)
-    
-    if col_date > 0:
+    if (col_date > 0) and (col_id > 0):
+        ids=feuille.col_values(col_id)
+        online_dates=feuille.col_values(col_date)
+
         #Looping through lines, through the ID column
         l = 1
         for str_id in ids:
@@ -303,7 +303,7 @@ def update_online_dates(dict_lastseen):
         range_name=column_letter+'1:'+column_letter+str(l-1)
         feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
     else:
-        print('Column "'+date_column_title+'" not found >> online date not updated')
+        print('At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
 
 #MAIN (DEBUG, à commenter avant mise en service)
 
