@@ -19,7 +19,8 @@ intents = Intents.default()
 intents.members = True
 intents.presences = True
 bot = commands.Bot(command_prefix='go.', intents=intents)
-bot_uptime=datetime.datetime.now()
+guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
+bot_uptime=datetime.datetime.now(guild_timezone)
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -112,7 +113,6 @@ async def bot_loop_60():
         go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
         
         #GET ONLINE AND MOBILE STATUS
-        guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
         for guild in bot.guilds:
             list_members=[]
             for role in guild.roles:
@@ -147,7 +147,7 @@ async def get_eb_allocation(tbs_round):
     eb_missions_tmp = []
     async for message in bt_channel.history(limit=500):
         if str(message.author) == os.environ['EB_PROFILE']:
-            if (datetime.datetime.now() - message.created_at).days > 7:
+            if (datetime.datetime.now(guild_timezone) - message.created_at).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
 
@@ -324,7 +324,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             if dict_lastseen[member][1]==None:
                 list_members.append([3600*24*9,     'jamais      - '+dict_lastseen[member][0]])
             else:
-                delta_time=datetime.datetime.now()-dict_lastseen[member][1]
+                delta_time=datetime.datetime.now(guild_timezone)-dict_lastseen[member][1]
                 if delta_time.seconds<60:
                     list_members.append([0,         'online      - '+dict_lastseen[member][0]])
                 elif delta_time.seconds<60*10:
