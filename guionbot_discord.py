@@ -147,7 +147,7 @@ async def get_eb_allocation(tbs_round):
     eb_missions_tmp = []
     async for message in bt_channel.history(limit=500):
         if str(message.author) == os.environ['EB_PROFILE']:
-            if (datetime.datetime.now(guild_timezone) - message.created_at).days > 7:
+            if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
 
