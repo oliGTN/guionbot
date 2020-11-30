@@ -236,7 +236,12 @@ def update_online_dates(dict_lastseen):
     global client    
     get_gapi_client()
     file = client.open("GuiOnBot config")
-    feuille=file.worksheet("players")
+    
+    try:
+        feuille=file.worksheet("players")
+    except requests.exceptions.ConnectionError as e:
+        print(e)
+        return
 
     #parsing title row
     col_id=0
