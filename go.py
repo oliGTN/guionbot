@@ -96,22 +96,36 @@ def stats_cache():
 
 
 def load_player(allycode):
-    f = None
-    try:
-        f = open('CACHE' + os.path.sep + allycode + '.json', 'r')
+    player_json_filename = 'CACHE' + os.path.sep + allycode + '.json'
+    if os.path.exists(player_json_filename):
+        f = open(player_json_filename, 'r')
         sys.stderr.write('loading cache for ' + str(allycode) + '...')
         ret_player = json.load(f)
-    except IOError:
+        f.close()
+    else:
         sys.stderr.write('requesting data for ' + str(allycode) + '...')
-        ret_player = client.get_data('player', allycode)[0]
-        f = open('CACHE' + os.path.sep + allycode + '.json', 'w')
-        f.write(json.dumps(ret_player, indent=4, sort_keys=True))
-    finally:
-        if not f is None:
-            f.close()
+        player_data = client.get_data('player', allycode)
+        if isinstance(player_data, list):
+            if len(player_data) > 0:
+                if len(player_data) > 1:
+                    print ('WAR: client.get_data(\'player\', '+allycode+
+                            ') has returned a list of size '+str(len(player_data)))
+                            
+                ret_player = player_data[0]
+                f = open(player_json_filename, 'w')
+                f.write(json.dumps(ret_player, indent=4, sort_keys=True))
+                f.close()
+            else:
+                print ('ERR: client.get_data(\'player\', '+allycode+
+                        ') has returned an empty list')
+                return None
+        else:
+            print ('ERR: client.get_data(\'player\', '+
+                    allycode+') has not returned a list')
+            return None
+
     sys.stderr.write(' ' + ret_player['name'] + '\n')
     return ret_player
-
 
 def load_guild(allycode, load_players):
     is_error = False
