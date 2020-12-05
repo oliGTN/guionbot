@@ -235,9 +235,9 @@ def load_config_units():
 def update_online_dates(dict_lastseen):
     global client    
     get_gapi_client()
-    file = client.open("GuiOnBot config")
     
     try:
+        file = client.open("GuiOnBot config")
         feuille=file.worksheet("players")
     except requests.exceptions.ConnectionError as e:
         print(e)
