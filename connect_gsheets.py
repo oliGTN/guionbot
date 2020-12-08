@@ -4,6 +4,7 @@
 import gspread
 import os
 import json
+import requests
 from oauth2client.service_account import ServiceAccountCredentials
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
@@ -85,6 +86,7 @@ def load_config_teams():
 # Parameters: none
 # Purpose: lit l'onglet "players" du fichier Sheets
 # Output:  dict_players_by_IG {key=IG name, value=[allycode, discord name, discord display name]}
+#          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
 def load_config_players():
     global client    
