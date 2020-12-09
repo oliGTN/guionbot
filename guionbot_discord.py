@@ -361,6 +361,15 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # @commands.command(name='test', help='Réservé aux admins')
     # @commands.check(is_owner)
     # async def test(self, ctx, *args):
+        # cmd_with_fields = args[0]
+        # dict_players_by_IG, dict_players_by_ID = load_config_players()
+        # for player_ID in dict_players_by_ID:
+            # player_allycode=dict_players_by_ID[player_ID][0]
+            # cmd_to_be_sent = cmd_with_fields.replace("$mention", '<@'+str(player_ID)+'>')\
+                                            # .replace("$allycode", str(player_allycode))
+            # print(cmd_to_be_sent)
+            # await ctx.send(cmd_to_be_sent)
+            # time.sleep(10)
 
 ##############################################################
 # Class: OfficerCog
@@ -658,7 +667,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Command: spj
     # Parameters: code allié (string) ou "me" / nom approximatif d'un perso
     # Purpose: stats vitesse et pouvoir d'un perso
-    # Display: la vitess eet le pouvoir
+    # Display: la vitess et le pouvoir
     ##############################################################
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
@@ -673,6 +682,34 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         allycode = manage_me(ctx, allycode)
 
         ret_cmd = go.print_character_stats(characters, allycode)
+        if ret_cmd[0:3] == 'ERR':
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            #texte classique
+            for txt in go.split_txt(ret_cmd, 1000):
+                await ctx.send("```"+txt+"```")
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: gdp
+    # Parameters: code allié (string) ou "me"
+    # Purpose: graph de distribution des PG des membres de la guilde
+    # Display: graph (#=actif, .=inactif depuis 36 heures)
+    ##############################################################
+    @commands.command(name='gdp',
+                 brief="Graphique des PG d'une guilde",
+                 help="Graphique des PG d'une guilde\n\n"\
+                      "Exemple: go.gdp me\n"\
+                      "Exemple: go.gdp 123456789")
+    async def gdp(self, ctx, allycode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allycode = manage_me(ctx, allycode)
+
+        ret_cmd = go.get_gp_distribution(allycode, 36)
         if ret_cmd[0:3] == 'ERR':
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)

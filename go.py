@@ -109,7 +109,8 @@ def load_player(allycode):
             if len(player_data) > 0:
                 if len(player_data) > 1:
                     print ('WAR: client.get_data(\'player\', '+allycode+
-                            ') has returned a list of size '+str(len(player_data)))
+                            ') has returned a list of size '+
+                            str(len(player_data)))
                             
                 ret_player = player_data[0]
                 f = open(player_json_filename, 'w')
@@ -956,8 +957,92 @@ def print_character_stats(characters, txt_allycode):
     
     return ret_print_character_stats
 
+def get_gp_graph(guild_stats, inactive_duration):
+	ret_print_gp_graph=''
+	dict_gp_clusters={} #key=gp group, value=[nb active, nb inactive]
+	for player in guild_stats:
+		#print(guild_stats[player])
+		gp=guild_stats[player][0]+guild_stats[player][1]
+		gp_key=int(gp/500000)/2
+		if gp_key in dict_gp_clusters:
+			if guild_stats[player][2] < inactive_duration:
+				dict_gp_clusters[gp_key][0] = dict_gp_clusters[gp_key][0] + 1
+			else:
+				dict_gp_clusters[gp_key][1] = dict_gp_clusters[gp_key][1] + 1
+		else:
+			if guild_stats[player][2] < inactive_duration:
+				dict_gp_clusters[gp_key] = [1, 0]
+			else:
+				dict_gp_clusters[gp_key] = [0, 1]
+
+	#print (dict_gp_clusters)	
+	#write line from the top = max bar size
+	max_cluster=max(dict_gp_clusters.values(), key=lambda p: p[0]+p[1])
+	line_graph=max_cluster[0]+max_cluster[1]
+	max_key=max(dict_gp_clusters.keys())
+	while line_graph > 0:
+		if (line_graph % 5) == 0:
+			line_txt="{:02d}".format(line_graph)
+		else:
+			line_txt='  '
+		for gp_key_x2 in range(0, int(max_key*2)+1):
+			gp_key=gp_key_x2 / 2
+			if gp_key in dict_gp_clusters:
+				#print(dict_gp_clusters[gp_key])
+				if dict_gp_clusters[gp_key][0] >= line_graph:
+					line_txt = line_txt + '    #'
+				elif dict_gp_clusters[gp_key][0]+dict_gp_clusters[gp_key][1] >= line_graph:
+					line_txt = line_txt + '    .'
+				else:
+					line_txt = line_txt + '     '
+			else:
+				line_txt = line_txt + '     '
+		ret_print_gp_graph+=line_txt+'\n'
+		line_graph=line_graph - 1
+	ret_print_gp_graph+='--'+'-----'*int(max(dict_gp_clusters.keys())*2+1)+'\n'
+
+	line_txt='   '
+	for gp_key_x2 in range(0, int(max_key*2)+1):
+		gp_key=gp_key_x2 / 2
+		if int(gp_key)==gp_key:
+			line_txt=line_txt+'   '+str(int(gp_key))+' '
+		else:
+			line_txt=line_txt+'  '+str(gp_key)
+	ret_print_gp_graph+=line_txt+'\n'
+
+	line_txt='   '
+	for gp_key_x2 in range(0, int(max_key*2)+1):
+		gp_key=gp_key_x2 / 2
+		if int(gp_key)==gp_key:
+			line_txt=line_txt+'  '+str(gp_key+0.5)
+		else:
+			line_txt=line_txt+'   '+str(int(gp_key+0.5))+' '
+	ret_print_gp_graph+=line_txt+'\n'
+	
+	return ret_print_gp_graph
+
+def get_guild_gp(guild):
+	guild_stats={}
+	for player in guild['roster']:
+		guild_stats[player['name']]=[player['gpChar'], player['gpShip'],
+                                    (time.time() - player['dict_player']['lastActivity']/1000)/3600]
+	return guild_stats
+
+def get_gp_distribution(allycode, inactive_duration):
+    ret_get_gp_distribution = ''
+    
+    #Get data for the guild
+    guild = load_guild(allycode, True)
+    guild_stats=get_guild_gp(guild)
+
+    #compute ASCII graphs
+    ret_get_gp_distribution = '==GP stats '+guild['name']+
+                            '== (. = inactif depuis '+
+                            str(inactive_duration)+' heures)'
+    ret_get_gp_distribution += get_gp_graph(guild_stats, inactive_duration)
+    
+    return ret_get_gp_distribution
+
 ########### MAIN (DEBUG uniquement, à commenter avant mise en service)#########
 # me = '189341793'
-# ret= guild_team(me, ['GEO-WAT'], 2, 100,80, True)
-# for a in ret:
-    # print(ret[a][0])
+# print(get_gp_distribution('339543222', 36))
