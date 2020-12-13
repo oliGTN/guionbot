@@ -210,11 +210,12 @@ def load_config_units():
     
     for ligne in liste_dict_feuille:
         full_name=ligne['Character/Ship']
+        id=ligne['ID']
         if full_name.lower() in dict_units:
             if full_name != dict_units[full_name.lower()]:
-                print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()])
+                print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
         else:
-            dict_units[full_name.lower()]=full_name
+            dict_units[full_name.lower()]=[full_name, id]
             
         if ligne['Aliases'] != '':
             for alias in ligne['Aliases'].split(','):
@@ -223,7 +224,7 @@ def load_config_units():
                     if dict_units[alias] != full_name:
                         print('ERR: double définition de '+alias+': '+dict_units[alias]+' et '+full_name)
                 else:
-                    dict_units[alias]=full_name
+                    dict_units[alias]=[full_name, id]
                 
     return dict_units
 ##############################################################
@@ -241,8 +242,8 @@ def update_online_dates(dict_lastseen):
     try:
         file = client.open("GuiOnBot config")
         feuille=file.worksheet("players")
-    except requests.exceptions.ConnectionError as e:
-        print(e)
+    except:
+        print("Unexpected error: "+str(sys.exc_info()[0]))
         return
 
     #parsing title row

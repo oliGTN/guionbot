@@ -923,7 +923,8 @@ def print_character_stats(characters, txt_allycode):
             if len(closest_names)<1:
                 ret_print_character_stats += 'INFO: aucun personnage trouvé pour '+character_alias+'\n'
             else:
-                list_character_names.append(dict_units[closest_names[0]])
+                [character_name, character_id]=dict_units[closest_names[0]]
+                list_character_names.append(character_name)
 
         set_character_names = set(list_character_names)
         for character in dict_player['roster']:
@@ -1043,6 +1044,122 @@ def get_gp_distribution(allycode, inactive_duration):
     
     return ret_get_gp_distribution
 
+def get_farm_duration(txt_allycode, character_alias, target_stats):
+    #target_stats=[rarity, gear, relic]
+    daily_yellow_energy=240+135
+    daily_red_energy=120+45
+    daily_blue_energy=240+45
+    
+    
+    equipment_stats = json.load(open('equipment_stats.json', 'r'))
+    units_stats = json.load(open('units_stats.json', 'r'))
+
+    #Recuperation des dernieres donnees sur gdrive
+    dict_units = load_config_units()
+
+    #Get data for this player
+    dict_player = load_player(txt_allycode)
+    if isinstance(dict_player, str):
+        #error wile loading guild data
+        return 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode
+
+    #Get full character name
+    closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+    if len(closest_names)<1:
+        print('INFO: aucun personnage trouvé pour '+character_alias)
+        return
+    else:
+        [character_name, character_id]=dict_units[closest_names[0]]
+
+    character_unlocked=False
+    for character in dict_player['roster']:
+        if character['defId'] == character_id:
+            character_unlocked=True
+            character_rarity=character['rarity']
+            character_gear=character['gear']
+            if character_gear < 13:
+                character_relic = 0
+            else:
+                character_relic = character['relic']['currentTier'] - 2
+            character_eqpt = [(lambda f:f['equipmentId'])(x) for x in character['equipped']]
+    
+    [energy_per_shard, shards_to_unlock] = units_stats[character_id][13]
+    if not character_unlocked:
+        print('locked')
+        #add requirements to unlock
+        cost_to_unlock = energy_per_shard*shards_to_unlock
+        
+        #define stats when unlocked
+        character_gear=1
+        if shards_to_unlock==10:
+            character_rarity=1
+        elif shards_to_unlock==25:
+            character_rarity=2
+        elif shards_to_unlock==50:
+            character_rarity=3
+        elif shards_to_unlock==80:
+            character_rarity=4
+        elif shards_to_unlock==145:
+            character_rarity=5
+        elif shards_to_unlock==230:
+            character_rarity=6
+        elif shards_to_unlock==330:
+            character_rarity=7
+        character_eqpt=[]
+
+    else:
+        cost_to_unlock=0
+
+        if character_gear<13:
+            if len(character_eqpt)>0:
+                print('G'+str(character_gear)+'+'+str(len(character_eqpt)))
+            else:
+                print('G'+str(character_gear))
+        else:
+            print('G'+str(character_gear)+'r'+str(character_relic))
+    
+    #remaining cost for rarity / stars
+    if character_rarity == 1:
+        missing_shards = 320
+    elif character_rarity == 2:
+        missing_shards = 305
+    elif character_rarity == 3:
+        missing_shards = 280
+    elif character_rarity == 4:
+        missing_shards = 250
+    elif character_rarity == 5:
+        missing_shards = 185
+    elif character_rarity == 6:
+        missing_shards = 100
+    elif character_rarity == 7:
+        missing_shards = 0
+        
+    cost_missing_shards = missing_shards*energy_per_shard
+    
+    #remaining cost for gear
+    if character_gear < target_stats[1]:
+        #When gear level not reached, define necessary eqpt
+        full_character_eqpt = units_stats[character_id][character_gear - 1][2]
+        missing_character_eqpt = [value for value in full_character_eqpt \
+                                    if not (value in character_eqpt)]
+        if character_gear<12:
+            for future_gear in range(character_gear, target_stats[1]):
+                missing_character_eqpt+=units_stats[character_id][future_gear - 1][2]
+
+        #print(missing_character_eqpt)
+        cost_missing_character_eqpt=0
+        for eqpt in missing_character_eqpt:
+            if equipment_stats[eqpt][3]>0:
+                cost_missing_character_eqpt+=equipment_stats[eqpt][3]
+    else:
+        cost_missing_character_eqpt=0
+
+    print(character_name)
+    print('cost_to_unlock: '+str(cost_to_unlock))
+    print('cost_missing_shards: '+str(cost_missing_shards))
+    print('cost_missing_character_eqpt: '+str(cost_missing_character_eqpt))
+
+
 ########### MAIN (DEBUG uniquement, à commenter avant mise en service)#########
-# me = '189341793'
-# print(get_gp_distribution('339543222', 36))
+# me = '533255719'
+# get_farm_duration(me, sys.argv[1], [int(sys.argv[2]), int(sys.argv[3]), 0])
