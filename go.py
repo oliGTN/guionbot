@@ -330,15 +330,15 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                 #Gear
                 req_gear_min = dict_perso_objectif[perso][2]
                 req_relic_min=0
-                if 'r' in req_gear_min:
-                    req_gear_min=int(req_gear_min[0:2])
+                if type(req_gear_min) == str:
                     req_relic_min=int(req_gear_min[-1])
+                    req_gear_min=int(req_gear_min[0:2])
                     
                 req_gear_reco = dict_perso_objectif[perso][4]
                 req_relic_reco=0
-                if 'r' in req_gear_reco:
-                    req_gear_reco=int(req_gear_reco[0:2])
+                if type(req_gear_reco) == str:
                     req_relic_reco=int(req_gear_reco[-1])
+                    req_gear_reco=int(req_gear_reco[0:2])
 
                 player_gear = character['gear']
                 progress_100 = progress_100 + 1
