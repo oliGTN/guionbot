@@ -13,6 +13,62 @@ creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], 
 client = SWGOHhelp(creds)
 inactive_duration = 36  #hours
 
+#Journey Guide
+journey_guide={}
+journey_guide['DARTHREVAN']=[['HK47', 7, 10, 0], 
+                            ['CANDEROUSORDO', 7, 10, 0], 
+                            ['CARTHONASI', 7, 10, 0], 
+                            ['BASTILASHANDARK', 7, 10, 0], 
+                            ['JUHANI', 7, 10, 0]]
+journey_guide['JEDIKNIGHTREVAN']=[['BASTILASHAN', 7, 9, 0], 
+                            ['JOLEEBINDO', 7, 9, 0], 
+                            ['T3_M4', 7, 9, 0], 
+                            ['MISSIONVAO', 7, 9, 0], 
+                            ['ZAALBAR', 7, 9, 0]]
+journey_guide['DARTHMALAK']=[['JEDIKNIGHTREVAN', 7, 12, 0], 
+                            ['BASTILASHAN', 7, 12, 0], 
+                            ['JOLEEBINDO', 7, 12, 0], 
+                            ['T3_M4', 7, 12, 0], 
+                            ['MISSIONVAO', 7, 12, 0], 
+                            ['ZAALBAR', 7, 12, 0],
+                            ['HK47', 7, 12, 0], 
+                            ['CANDEROUSORDO', 7, 12, 0], 
+                            ['CARTHONASI', 7, 12, 0], 
+                            ['BASTILASHANDARK', 7, 12, 0], 
+                            ['JUHANI', 7, 12, 0],
+                            ['DARTHREVAN', 7, 12, 0]]
+journey_guide['GENERALSKYWALKER']=[['GENERALKENOBI', 7, 13, 3], 
+                            ['AHSOKATANO', 7, 13, 3], 
+                            ['PADMEAMIDALA', 7, 13, 3], 
+                            ['SHAAKTI', 7, 13, 3], 
+                            ['ASAJVENTRESS', 7, 13, 3], 
+                            ['C3POLEGENDARY', 7, 13, 3],
+                            ['B1BATTLEDROIDV2', 7, 13, 3], 
+                            ['DROIDEKA', 7, 13, 3],
+                            ['MAGNAGUARD', 7, 13, 3], 
+                            ['B2SUPERBATTLEDROID', 7, 13, 3]]
+journey_guide['JEDIKNIGHTLUKE']=[['C3POLEGENDARY', 7, 13, 5], 
+                            ['VADER', 7, 13, 5], 
+                            ['CHEWBACCALEGENDARY', 7, 13, 5], 
+                            ['COMMANDERLUKESKYWALKER', 7, 13, 5], 
+                            ['HERMITYODA', 7, 13, 5], 
+                            ['ADMINISTRATORLANDO', 7, 13, 5],
+                            ['HOTHLEIA', 7, 13, 5], 
+                            ['WAMPA', 7, 13, 5],
+                            ['HOTHHAN', 7, 13, 5]]
+journey_guide['SUPREMELEADERKYLOREN']=[['KYLORENUNMASKED', 7, 13, 7], 
+                            ['FIRSTORDERTROOPER', 7, 13, 5], 
+                            ['FIRSTORDEROFFICERMALE', 7, 13, 5], 
+                            ['KYLOREN', 7, 13, 7],
+                            ['PHASMA', 7, 13, 5],
+                            ['FIRSTORDEREXECUTIONER', 7, 13, 5],
+                            ['SMUGGLERHAN', 7, 13, 3],
+                            ['FOSITHTROOPER', 7, 13, 5],
+                            ['FIRSTORDERSPECIALFORCESPILOT', 7, 13, 3],
+                            ['GENERALHUX', 7, 13, 5],
+                            ['FIRSTORDERTIEPILOT', 7, 13, 3],
+                            ['EMPERORPALPATINE', 7, 13, 7],
+                            ['CAPITALFINALIZER', 7, 0, 0]]
 
 def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
@@ -273,7 +329,17 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
 
                 #Gear
                 req_gear_min = dict_perso_objectif[perso][2]
+                req_relic_min=0
+                if 'r' in req_gear_min:
+                    req_gear_min=int(req_gear_min[0:2])
+                    req_relic_min=int(req_gear_min[-1])
+                    
                 req_gear_reco = dict_perso_objectif[perso][4]
+                req_relic_reco=0
+                if 'r' in req_gear_reco:
+                    req_gear_reco=int(req_gear_reco[0:2])
+                    req_relic_reco=int(req_gear_reco[-1])
+
                 player_gear = character['gear']
                 progress_100 = progress_100 + 1
                 progress = progress + min(1, player_gear / req_gear_reco)
@@ -606,8 +672,8 @@ def get_character_stats(dict_character):
     units_stats = json.load(open('units_stats.json', 'r'))
 
     #print('==============\n'+dict_character['nameKey'])
-    base_speed = units_stats[dict_character['defId']][dict_character['gear'] - 1][0]
-    base_potency = units_stats[dict_character['defId']][dict_character['gear'] - 1][1]
+    base_speed = units_stats[dict_character['defId']]['gear_stats'][dict_character['gear'] - 1][0]
+    base_potency = units_stats[dict_character['defId']]['gear_stats'][dict_character['gear'] - 1][1]
     #print('base: '+str(base_speed)+'/'+str(base_potency))
 
     eqpt_speed = 0
@@ -1044,50 +1110,80 @@ def get_gp_distribution(allycode, inactive_duration):
     
     return ret_get_gp_distribution
 
-def get_farm_duration(txt_allycode, character_alias, target_stats):
+def get_farm_cost_from_alias(txt_allycode, character_alias, target_stats):
     #target_stats=[rarity, gear, relic]
-    daily_yellow_energy=240+135
-    daily_red_energy=120+45
-    daily_blue_energy=240+45
     
-    
-    equipment_stats = json.load(open('equipment_stats.json', 'r'))
-    units_stats = json.load(open('units_stats.json', 'r'))
-
     #Recuperation des dernieres donnees sur gdrive
     dict_units = load_config_units()
+
+    #Get full character name
+    closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+    if len(closest_names)<1:
+        return [-1, 'ERREUR: aucun personnage trouvé pour '+character_alias]
+    else:
+        [character_name, character_id]=dict_units[closest_names[0]]
 
     #Get data for this player
     dict_player = load_player(txt_allycode)
     if isinstance(dict_player, str):
         #error wile loading guild data
-        return 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode
+        return [-1, 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode]
+        
+    return get_farm_cost_from_id(dict_player, character_id, target_stats)
 
-    #Get full character name
-    closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-    if len(closest_names)<1:
-        print('INFO: aucun personnage trouvé pour '+character_alias)
-        return
-    else:
-        [character_name, character_id]=dict_units[closest_names[0]]
+def get_farm_cost_from_id(dict_player, character_id, target_stats):
+    output_message=''
+
+    #target_stats=[rarity, gear, relic]
+
+    equipment_stats = json.load(open('equipment_stats.json', 'r'))
+    units_stats = json.load(open('units_stats.json', 'r'))
+
 
     character_unlocked=False
+    possible_to_unlock=True
     for character in dict_player['roster']:
         if character['defId'] == character_id:
             character_unlocked=True
             character_rarity=character['rarity']
-            character_gear=character['gear']
-            if character_gear < 13:
-                character_relic = 0
-            else:
-                character_relic = character['relic']['currentTier'] - 2
-            character_eqpt = [(lambda f:f['equipmentId'])(x) for x in character['equipped']]
+            character_is_ship=(character['combatType']==2)
+            
+            if not character_is_ship:
+                character_gear=character['gear']
+                if character_gear < 13:
+                    character_relic = 0
+                else:
+                    character_relic = character['relic']['currentTier'] - 2
+                character_eqpt = [(lambda f:f['equipmentId'])(x) for x in character['equipped']]
+            break
     
-    [energy_per_shard, shards_to_unlock] = units_stats[character_id][13]
+    [energy_per_shard, shards_to_unlock, list_pilots] = units_stats[character_id]['recipe']
+    cost_to_unlock=0
     if not character_unlocked:
-        print('locked')
         #add requirements to unlock
-        cost_to_unlock = energy_per_shard*shards_to_unlock
+        character_is_ship = units_stats[character_id]['is_ship']
+        if energy_per_shard == -1:
+            if character_id in journey_guide:
+                cost_to_unlock=0
+                for requirement in journey_guide[character_id]:
+                    req_id=requirement[0]
+                    req_rarity=requirement[1]
+                    req_gear=requirement[2]
+                    req_relic=requirement[3]
+                    [req_cost, req_msg] = get_farm_cost_from_id(dict_player, req_id, 
+                                        [req_rarity, req_gear, req_relic])
+                    cost_to_unlock+=req_cost
+                    output_message+=req_msg
+            else:
+                possible_to_unlock=False
+        else:
+            cost_to_unlock = energy_per_shard*shards_to_unlock
+            if len(list_pilots)>0:
+                for pilot in list_pilots:
+                    [req_cost, req_msg] = get_farm_cost_from_id(dict_player, pilot, 
+                                        [1, 1, 0])
+                    cost_to_unlock+=req_cost
+                    output_message+=req_msg
         
         #define stats when unlocked
         character_gear=1
@@ -1106,60 +1202,136 @@ def get_farm_duration(txt_allycode, character_alias, target_stats):
         elif shards_to_unlock==330:
             character_rarity=7
         character_eqpt=[]
-
-    else:
-        cost_to_unlock=0
-
-        if character_gear<13:
-            if len(character_eqpt)>0:
-                print('G'+str(character_gear)+'+'+str(len(character_eqpt)))
+        
+        #Add the character into the roster to simulate cost being paid
+        #this ervces for characters being used twice for computing cost
+        # eg: Mission needed at G9 for Revan then G12 for Malak
+        new_char={}
+        new_char['defId']=character_id
+        new_char['rarity']=target_stats[1]
+        if not character_is_ship:
+            new_char['gear']=target_stats[2]
+            new_char['relic']={}
+            if new_char['gear'] < 13:
+                new_char['relic']['currentTier'] = 1
             else:
-                print('G'+str(character_gear))
+                new_char['relic']['currentTier'] = target_stats[2]+2
+            new_char['equipped'] = []
+            new_char['combatType'] = 1
         else:
-            print('G'+str(character_gear)+'r'+str(character_relic))
+            new_char['combatType'] = 2
+            
+        dict_player['roster'].append(new_char)
+        
+    else:
+        #Modify the character stats into the roster to simulate cost being paid
+        #this ervces for characters being used twice for computing cost
+        # eg: Mission needed at G9 for Revan then G12 for Malak
+        dict_player['roster'].remove(character)
+
+        character['rarity']=target_stats[0]
+        if not character_is_ship:
+            character['gear']=target_stats[1]
+            if character['gear'] < 13:
+                character['relic']['currentTier'] = 1
+            else:
+                character['relic']['currentTier'] = target_stats[2]+2
+            character['equipped'] = []
+            character['combatType'] = 1
+        else:
+            character['combatType'] = 1
+            
+        dict_player['roster'].append(character)
+
     
     #remaining cost for rarity / stars
+    if target_stats[0] == 1:
+        target_shards = 10
+    elif target_stats[0] == 2:
+        target_shards = 25
+    elif target_stats[0] == 3:
+        target_shards = 50
+    elif target_stats[0] == 4:
+        target_shards = 80
+    elif target_stats[0] == 5:
+        target_shards = 145
+    elif target_stats[0] == 6:
+        target_shards = 230
+    elif target_stats[0] == 7:
+        target_shards = 330
+
     if character_rarity == 1:
-        missing_shards = 320
+        missing_shards = target_shards-10
     elif character_rarity == 2:
-        missing_shards = 305
+        missing_shards = target_shards-25
     elif character_rarity == 3:
-        missing_shards = 280
+        missing_shards = target_shards-50
     elif character_rarity == 4:
-        missing_shards = 250
+        missing_shards = target_shards-80
     elif character_rarity == 5:
-        missing_shards = 185
+        missing_shards = target_shards-145
     elif character_rarity == 6:
-        missing_shards = 100
+        missing_shards = target_shards-230
     elif character_rarity == 7:
-        missing_shards = 0
-        
-    cost_missing_shards = missing_shards*energy_per_shard
-    
-    #remaining cost for gear
-    if character_gear < target_stats[1]:
-        #When gear level not reached, define necessary eqpt
-        full_character_eqpt = units_stats[character_id][character_gear - 1][2]
-        missing_character_eqpt = [value for value in full_character_eqpt \
-                                    if not (value in character_eqpt)]
-        if character_gear<12:
-            for future_gear in range(character_gear, target_stats[1]):
-                missing_character_eqpt+=units_stats[character_id][future_gear - 1][2]
+        missing_shards = target_shards-330
 
-        #print(missing_character_eqpt)
-        cost_missing_character_eqpt=0
-        for eqpt in missing_character_eqpt:
-            if equipment_stats[eqpt][3]>0:
-                cost_missing_character_eqpt+=equipment_stats[eqpt][3]
+    if missing_shards>0:    
+        cost_missing_shards = missing_shards*energy_per_shard
     else:
-        cost_missing_character_eqpt=0
+        cost_missing_shards=0
+    
+    cost_missing_character_eqpt=0
+    if not character_is_ship:
+        #remaining cost for gear
+        if character_gear < target_stats[1]:
+            #When gear level not reached, define necessary eqpt
+            full_character_eqpt = units_stats[character_id]['gear_stats'][character_gear - 1][2]
+            missing_character_eqpt = [value for value in full_character_eqpt \
+                                        if not (value in character_eqpt)]
+            if character_gear<12:
+                for future_gear in range(character_gear, target_stats[1]):
+                    missing_character_eqpt+=units_stats[character_id]['gear_stats'][future_gear - 1][2]
 
-    print(character_name)
-    print('cost_to_unlock: '+str(cost_to_unlock))
-    print('cost_missing_shards: '+str(cost_missing_shards))
-    print('cost_missing_character_eqpt: '+str(cost_missing_character_eqpt))
+            #print(missing_character_eqpt)
+            cost_missing_character_eqpt=0
+            for eqpt in missing_character_eqpt:
+                if equipment_stats[eqpt][3]>0:
+                    cost_missing_character_eqpt+=equipment_stats[eqpt][3]
 
+    #Display name and current stats
+    if character_unlocked:
+        output_message+=character_id+' '+str(character_rarity)+'*'
+        if not character_is_ship:
+            if character_gear<13:
+                if len(character_eqpt)>0:
+                    output_message+=' G'+str(character_gear)+'+'+str(len(character_eqpt))
+                else:
+                    output_message+=' G'+str(character_gear)
+            else:
+                output_message+=' G'+str(character_gear)+'r'+str(character_relic)
+    elif not possible_to_unlock:
+        output_message+=character_id+': Impossible à débloquer !'
+    else:
+        output_message+=character_id+': à débloquer'
+    
+    #Display target stats
+    output_message+=' > '+str(target_stats[0])+'*'
+    if not character_is_ship:
+        if target_stats[1]<13:
+            output_message+=' G'+str(target_stats[1])
+        else:
+            output_message+=' G'+str(target_stats[1])+'r'+str(target_stats[2])
+    output_message+='\n'
+    
+    #Display cost of upgrade
+    output_message+='cost_to_unlock: '+str(int(cost_to_unlock))+'\n'
+    output_message+='cost_missing_shards: '+str(int(cost_missing_shards))+'\n'
+    output_message+='cost_missing_character_eqpt: '+str(int(cost_missing_character_eqpt))+'\n'
+
+    return [cost_to_unlock+cost_missing_shards+cost_missing_character_eqpt, output_message]
 
 ########### MAIN (DEBUG uniquement, à commenter avant mise en service)#########
-# me = '533255719'
-# get_farm_duration(me, sys.argv[1], [int(sys.argv[2]), int(sys.argv[3]), 0])
+# me = '415528742' #'189341793'
+# [cost, message]=get_farm_cost_from_alias(me, sys.argv[1], [int(sys.argv[2]), int(sys.argv[3]), 0])
+# print('cost='+str(int(cost)))
+# print(message)
