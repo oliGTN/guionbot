@@ -109,25 +109,28 @@ async def bot_loop_60():
     #global dict_players
     await bot.wait_until_ready()
     while not bot.is_closed():
-        #REFRESH and CLEAN CACHE DATA FROM SWGOH API²
-        go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
-        
-        #GET ONLINE AND MOBILE STATUS
-        for guild in bot.guilds:
-            list_members=[]
-            for role in guild.roles:
-                if role.name==os.environ['DISCORD_MEMBER_ROLE']:
-                    for member in role.members:
-                        if not member.id in dict_lastseen:
-                            dict_lastseen[member.id]= [member.display_name, None]
-                        
-                        if not(str(member.status) == 'offline' and
-                                str(member.mobile_status) == 'offline'):
-                            dict_lastseen[member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
+        try:
+            #REFRESH and CLEAN CACHE DATA FROM SWGOH API²
+            go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
+            
+            #GET ONLINE AND MOBILE STATUS
+            for guild in bot.guilds:
+                list_members=[]
+                for role in guild.roles:
+                    if role.name==os.environ['DISCORD_MEMBER_ROLE']:
+                        for member in role.members:
+                            if not member.id in dict_lastseen:
+                                dict_lastseen[member.id]= [member.display_name, None]
                             
-                        list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
-        
-        update_online_dates(dict_lastseen)
+                            if not(str(member.status) == 'offline' and
+                                    str(member.mobile_status) == 'offline'):
+                                dict_lastseen[member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
+                                
+                            list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
+            
+            update_online_dates(dict_lastseen)
+        except:
+            print("Unexpected error: "+str(sys.exc_info()[0]))
         
         await asyncio.sleep(60)  #60 seconds for loop
 
