@@ -3,6 +3,7 @@
 # CERTIFICATE_VERIFY_FAILED --> https://github.com/Rapptz/discord.py/issues/4159
 
 import os
+import sys
 import asyncio
 import time
 import datetime
@@ -720,6 +721,34 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #texte classique
             for txt in go.split_txt(ret_cmd, 1000):
                 await ctx.send("```"+txt+"```")
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: gvj
+    # Parameters: code allié (string) ou "me", nom d'un personnage
+    # Purpose: afficher le progrès vers un perso du guide de voyage
+    # Display: progrès général, et détai par catégorie
+    ##############################################################
+    @commands.command(name='gvj',
+                 brief="Progrès dans le guide de voyage pour un perso",
+                 help="Progrès dans le guide de voyage pour un perso\n\n"\
+                      "Exemple: go.gvj me GAS\n"\
+                      "Exemple: go.gvj 123456789 JKLS")
+    async def gvj(self, ctx, allycode, character_alias):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allycode = manage_me(ctx, allycode)
+
+        [progress, msg] = go.player_journey_progress(allycode, character_alias)
+        if progress == -1:
+            await ctx.send(msg)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            #texte classique
+            await ctx.send('**Progrès pour '+character_alias+': '+str(progress)+'%**')
+            await ctx.send('__Détails :__\n'+msg)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
