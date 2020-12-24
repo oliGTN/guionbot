@@ -748,9 +748,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             #texte classique
             player_name = msg.split('\n')[0]
-            player_name = msg.split('\n')[1]
+            character_name = msg.split('\n')[1]
             details='\n'.join(msg.split('\n')[2:])
-            await ctx.send('**Progrès de '+player_name+' pour '+character_alias+': '+str(progress)+'%**')
+            await ctx.send('**Progrès de '+player_name+' pour '+character_name+': '+str(progress)+'%**')
             await ctx.send('__Détails :__\n'+details)
 
             #Icône de confirmation de fin de commande dans le message d'origine
