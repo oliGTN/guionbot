@@ -13,7 +13,7 @@ creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], 
 client = SWGOHhelp(creds)
 inactive_duration = 36  #hours
 
-#Journey Guide
+#Journey Guide: [minimum required, [[name, stars, gear, relic, capa level, GP, module level], ...]]
 journey_guide={}
 journey_guide['DARTHREVAN']={}
 journey_guide['DARTHREVAN']['Persos']=[5, [['HK47', 7, 10, -1, 8, -1, 5], 
@@ -104,19 +104,36 @@ journey_guide['GRANDADMIRALTHRAWN']['Phoenix']=[5, [['HERASYNDULLAS3', 7, 9, -1,
                                         ['ZEBS3', 7, 9, -1, 7, -1, 5],
                                         ['KANANJARRUSS3', 7, 9, -1, 7, -1, 5]]]
 
-dict_guidevoyage={} # [nombre nécessaire, étoiles, relic, niveau capa, PG, module]
-dict_guidevoyage['GAS']=[[[], [], [], []], [[], [], [], []]]
-dict_guidevoyage['GAS'][0][0]=["Persos", 10, 7, -1, -1, 17700, -1, ['ASAJVENTRESS', 'PADMEAMIDALA', 'GENERALKENOBI', 'B2SUPERBATTLEDROID', 'MAGNAGUARD', 'C3POLEGENDARY', 'AHSOKATANO', 'DROIDEKA', 'B1BATTLEDROIDV2', 'SHAAKTI']]
-dict_guidevoyage['GAS'][0][1]=["Vaisseau amiral", 1, 7, -1, -1, 40000, -1, ['CAPITALJEDICRUISER', 'CAPITALNEGOTIATOR']]
-dict_guidevoyage['GAS'][0][2]=["Eta-2", 1, 7, -1, -1, 40000, -1, ['JEDISTARFIGHTERANAKIN']]
-dict_guidevoyage['GAS'][0][3]=["Vaisseaux", 3, 7, -1, -1, 40000, -1, ['JEDISTARFIGHTERAHSOKATANO', 'UMBARANSTARFIGHTER', 'ARC170REX', 'BLADEOFDORIN', 'JEDISTARFIGHTERCONSULAR', 'ARC170CLONESERGEANT', 'YWINGCLONEWARS']]
-dict_guidevoyage['GAS'][1][0]=["Persos", 10, 7, 3, 8, 22000, 6, ['ASAJVENTRESS', 'PADMEAMIDALA', 'GENERALKENOBI', 'B2SUPERBATTLEDROID', 'MAGNAGUARD', 'C3POLEGENDARY', 'AHSOKATANO', 'DROIDEKA', 'B1BATTLEDROIDV2', 'SHAAKTI']]
-dict_guidevoyage['GAS'][1][1]=["Vaisseau amiral", 1, 7, -1, 8, 50000, -1, ['CAPITALJEDICRUISER', 'CAPITALNEGOTIATOR']]
-dict_guidevoyage['GAS'][1][2]=["Eta-2", 1, 7, -1, 8, 50000, -1, ['JEDISTARFIGHTERANAKIN']]
-dict_guidevoyage['GAS'][1][3]=["Vaisseaux", 3, 7, -1, 8, 50000, -1, ['JEDISTARFIGHTERAHSOKATANO', 'UMBARANSTARFIGHTER', 'ARC170REX', 'BLADEOFDORIN', 'JEDISTARFIGHTERCONSULAR', 'ARC170CLONESERGEANT', 'YWINGCLONEWARS']]
-dict_guidevoyage['JKLS']=[[[], []]]
-dict_guidevoyage['JKLS'][0][0]=["Persos", 9, 7, 3, -1, -1, -1, ['COMMANDERLUKESKYWALKER', 'HOTHLEIA', 'HOTHHAN', 'WAMPA', 'CHEWBACCALEGENDARY', 'C3POLEGENDARY', 'VADER', 'ADMINISTRATORLANDO', 'HERMITYODA']]
-dict_guidevoyage['JKLS'][0][1]=["Vaisseaux", 2, 7, -1, -1, -1, -1, ['XWINGRED2', 'MILLENNIUMFALCON']]
+journey_guide['SITHPALPATINE']={}
+journey_guide['SITHPALPATINE']['Persos']=[14, [['EMPERORPALPATINE', 7, 13, 7, 8, -1, 5], 
+                                        ['DARTHVADER', 7, 13, 7, 8, -1, 5], 
+                                        ['ROYALGUARD', 7, 13, 3, 8, -1, 5], 
+                                        ['ADMIRALPIETT', 7, 13, 5, 8, -1, 5],
+                                        ['DIRECTORKRENNIC', 7, 13, 4, 8, -1, 5],
+                                        ['DARTHSIDIOUS', 7, 13, 7, 8, -1, 5],
+                                        ['DARTHMAUL', 7, 13, 4, 8, -1, 5],
+                                        ['COUNTDOOKU', 7, 13, 6, 8, -1, 5],
+                                        ['SITHMARAUDER', 7, 13, 7, 8, -1, 5],
+                                        ['ANAKINKNIGHT', 7, 13, 7, 8, -1, 5],
+                                        ['GRANDADMIRALTHRAWN', 7, 13, 6, 8, -1, 5],
+                                        ['VEERS', 7, 13, 3, 8, -1, 5],
+                                        ['COLONELSTARCK', 7, 13, 3, 8, -1, 5],
+                                        ['GRANDMOFFTARKIN', 7, 13, 3, 8, -1, 5]]]
+journey_guide['SITHPALPATINE']['Vaisseaux']=[1, [['TIEBOMBERIMPERIAL', 6, -1, -1, -1, -1, -1]]]
+
+# dict_guidevoyage={} # [nombre nécessaire, étoiles, relic, niveau capa, PG, module]
+# dict_guidevoyage['GAS']=[[[], [], [], []], [[], [], [], []]]
+# dict_guidevoyage['GAS'][0][0]=["Persos", 10, 7, -1, -1, 17700, -1, ['ASAJVENTRESS', 'PADMEAMIDALA', 'GENERALKENOBI', 'B2SUPERBATTLEDROID', 'MAGNAGUARD', 'C3POLEGENDARY', 'AHSOKATANO', 'DROIDEKA', 'B1BATTLEDROIDV2', 'SHAAKTI']]
+# dict_guidevoyage['GAS'][0][1]=["Vaisseau amiral", 1, 7, -1, -1, 40000, -1, ['CAPITALJEDICRUISER', 'CAPITALNEGOTIATOR']]
+# dict_guidevoyage['GAS'][0][2]=["Eta-2", 1, 7, -1, -1, 40000, -1, ['JEDISTARFIGHTERANAKIN']]
+# dict_guidevoyage['GAS'][0][3]=["Vaisseaux", 3, 7, -1, -1, 40000, -1, ['JEDISTARFIGHTERAHSOKATANO', 'UMBARANSTARFIGHTER', 'ARC170REX', 'BLADEOFDORIN', 'JEDISTARFIGHTERCONSULAR', 'ARC170CLONESERGEANT', 'YWINGCLONEWARS']]
+# dict_guidevoyage['GAS'][1][0]=["Persos", 10, 7, 3, 8, 22000, 6, ['ASAJVENTRESS', 'PADMEAMIDALA', 'GENERALKENOBI', 'B2SUPERBATTLEDROID', 'MAGNAGUARD', 'C3POLEGENDARY', 'AHSOKATANO', 'DROIDEKA', 'B1BATTLEDROIDV2', 'SHAAKTI']]
+# dict_guidevoyage['GAS'][1][1]=["Vaisseau amiral", 1, 7, -1, 8, 50000, -1, ['CAPITALJEDICRUISER', 'CAPITALNEGOTIATOR']]
+# dict_guidevoyage['GAS'][1][2]=["Eta-2", 1, 7, -1, 8, 50000, -1, ['JEDISTARFIGHTERANAKIN']]
+# dict_guidevoyage['GAS'][1][3]=["Vaisseaux", 3, 7, -1, 8, 50000, -1, ['JEDISTARFIGHTERAHSOKATANO', 'UMBARANSTARFIGHTER', 'ARC170REX', 'BLADEOFDORIN', 'JEDISTARFIGHTERCONSULAR', 'ARC170CLONESERGEANT', 'YWINGCLONEWARS']]
+# dict_guidevoyage['JKLS']=[[[], []]]
+# dict_guidevoyage['JKLS'][0][0]=["Persos", 9, 7, 3, -1, -1, -1, ['COMMANDERLUKESKYWALKER', 'HOTHLEIA', 'HOTHHAN', 'WAMPA', 'CHEWBACCALEGENDARY', 'C3POLEGENDARY', 'VADER', 'ADMINISTRATORLANDO', 'HERMITYODA']]
+# dict_guidevoyage['JKLS'][0][1]=["Vaisseaux", 2, 7, -1, -1, -1, -1, ['XWINGRED2', 'MILLENNIUMFALCON']]
 
 def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
@@ -1481,6 +1498,8 @@ def player_journey_progress(txt_allycode, character_alias):
 
     total_progress=0
     total_progress_100=0
+    ret_player_journey_progress+=dict_player['name']+'\n'
+    ret_player_journey_progress+=character_name+'\n'
     for sub_obj in objectifs:
         if sub_obj == 'initial shards':
             continue
