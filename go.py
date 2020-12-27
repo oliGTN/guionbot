@@ -13,96 +13,96 @@ creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], 
 client = SWGOHhelp(creds)
 inactive_duration = 36  #hours
 
-#Journey Guide: [minimum required, [[name, stars, gear, relic, capa level, GP, module level], ...]]
+#Journey Guide: [minimum required, [[name, stars, gear, relic, capa level, GP, module level, speed], ...]]
 journey_guide={}
 journey_guide['DARTHREVAN']={}
-journey_guide['DARTHREVAN']['Persos']=[5, [['HK47', 7, 10, -1, 8, -1, 5], 
-                                        ['CANDEROUSORDO', 7, 10, -1, 8, -1, 5], 
-                                        ['CARTHONASI', 7, 10, -1, 8, -1, 5], 
-                                        ['BASTILASHANDARK', 7, 10, -1, 8, -1, 5],
-                                        ['JUHANI', 7, 10, -1, 8, -1, 5]]]
+journey_guide['DARTHREVAN']['Persos']=[5, [['HK47', 7, 10, -1, 8, -1, 5, -1], 
+                                        ['CANDEROUSORDO', 7, 10, -1, 8, -1, 5, -1], 
+                                        ['CARTHONASI', 7, 10, -1, 8, -1, 5, -1], 
+                                        ['BASTILASHANDARK', 7, 10, -1, 8, -1, 5, -1],
+                                        ['JUHANI', 7, 10, -1, 8, -1, 5, -1]]]
                                         
 journey_guide['JEDIKNIGHTREVAN']={}
-journey_guide['JEDIKNIGHTREVAN']['Persos']=[5, [['BASTILASHAN', 7, 9, -1, 8, -1, 5], 
-                                        ['JOLEEBINDO', 7, 9, -1, 8, -1, 5], 
-                                        ['T3_M4', 7, 9, -1, 8, -1, 5],
-                                        ['MISSIONVAO', 7, 9, -1, 8, -1, 5],
-                                        ['ZAALBAR', 7, 9, -1, 8, -1, 5]]]
+journey_guide['JEDIKNIGHTREVAN']['Persos']=[5, [['BASTILASHAN', 7, 9, -1, 8, -1, 5, -1], 
+                                        ['JOLEEBINDO', 7, 9, -1, 8, -1, 5, -1], 
+                                        ['T3_M4', 7, 9, -1, 8, -1, 5, -1],
+                                        ['MISSIONVAO', 7, 9, -1, 8, -1, 5, -1],
+                                        ['ZAALBAR', 7, 9, -1, 8, -1, 5, -1]]]
                                         
 journey_guide['DARTHMALAK']={}
-journey_guide['DARTHMALAK']['Persos']=[12, [['JEDIKNIGHTREVAN', 7, 12, -1, 8, 20000, 6], 
-                                        ['BASTILASHAN', 7, 12, -1, 8, 20000, 6],
-                                        ['JOLEEBINDO', 7, 12, -1, 8, 20000, 6],
-                                        ['T3_M4', 7, 12, -1, 8, 20000, 6],
-                                        ['MISSIONVAO', 7, 12, -1, 8, 20000, 6],
-                                        ['ZAALBAR', 7, 12, -1, 8, 20000, 6],
-                                        ['HK47', 7, 12, -1, 8, 20000, 6],
-                                        ['CANDEROUSORDO', 7, 12, -1, 8, 20000, 6],
-                                        ['CARTHONASI', 7, 12, -1, 8, 20000, 6],
-                                        ['BASTILASHANDARK', 7, 12, -1, 8, 20000, 6],
-                                        ['JUHANI', 7, 12, -1, 8, 20000, 6],
+journey_guide['DARTHMALAK']['Persos']=[12, [['JEDIKNIGHTREVAN', 7, 12, -1, 8, 20000, 6, -1], 
+                                        ['BASTILASHAN', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['JOLEEBINDO', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['T3_M4', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['MISSIONVAO', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['ZAALBAR', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['HK47', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['CANDEROUSORDO', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['CARTHONASI', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['BASTILASHANDARK', 7, 12, -1, 8, 20000, 6, -1],
+                                        ['JUHANI', 7, 12, -1, 8, 20000, 6, -1],
                                         ['DARTHREVAN', 7, 12, -1, 8, 20000, 6]]]
 journey_guide['DARTHMALAK']['initial shards']=145
 
 journey_guide['GENERALSKYWALKER']={}
-journey_guide['GENERALSKYWALKER']['Persos']=[10, [['GENERALKENOBI', 7, 13, 3, 8, 22000, 6], 
-                                        ['AHSOKATANO', 7, 13, 3, 8, 22000, 6], 
-                                        ['PADMEAMIDALA', 7, 13, 3, 8, 22000, 6], 
-                                        ['SHAAKTI', 7, 13, 3, 8, 22000, 6], 
-                                        ['ASAJVENTRESS', 7, 13, 3, 8, 22000, 6], 
-                                        ['C3POLEGENDARY', 7, 13, 3, 8, 22000, 6],
-                                        ['B1BATTLEDROIDV2', 7, 13, 3, 8, 22000, 6], 
-                                        ['DROIDEKA', 7, 13, 3, 8, 22000, 6],
-                                        ['MAGNAGUARD', 7, 13, 3, 8, 22000, 6], 
+journey_guide['GENERALSKYWALKER']['Persos']=[10, [['GENERALKENOBI', 7, 13, 3, 8, 22000, 6, -1], 
+                                        ['AHSOKATANO', 7, 13, 3, 8, 22000, 6, -1], 
+                                        ['PADMEAMIDALA', 7, 13, 3, 8, 22000, 6, -1], 
+                                        ['SHAAKTI', 7, 13, 3, 8, 22000, 6, -1], 
+                                        ['ASAJVENTRESS', 7, 13, 3, 8, 22000, 6, -1], 
+                                        ['C3POLEGENDARY', 7, 13, 3, 8, 22000, 6, -1],
+                                        ['B1BATTLEDROIDV2', 7, 13, 3, 8, 22000, 6, -1], 
+                                        ['DROIDEKA', 7, 13, 3, 8, 22000, 6, -1],
+                                        ['MAGNAGUARD', 7, 13, 3, 8, 22000, 6, -1], 
                                         ['B2SUPERBATTLEDROID', 7, 13, 3, 8, 22000, 6]]]
-journey_guide['GENERALSKYWALKER']['Vaisseau amiral']=[1, [['CAPITALJEDICRUISER', 7, -1, -1, 8, 50000, -1], 
+journey_guide['GENERALSKYWALKER']['Vaisseau amiral']=[1, [['CAPITALJEDICRUISER', 7, -1, -1, 8, 50000, -1, -1], 
                                         ['CAPITALNEGOCIATOR', 7, -1, -1, 8, 50000, -1]]]
 journey_guide['GENERALSKYWALKER']['Eta-2']=[1, [['JEDISTARFIGHTERANAKIN', 7, -1, -1, 8, 50000, -1]]]
-journey_guide['GENERALSKYWALKER']['Vaisseaux']=[3, [['JEDISTARFIGHTERANAKIN', 7, -1, -1, 8, 50000, -1],
-                                        ['JEDISTARFIGHTERAHSOKATANO', 7, -1, -1, 8, 50000, -1],
-                                        ['UMBARANSTARFIGHTER', 7, -1, -1, 8, 50000, -1],
-                                        ['ARC170REX', 7, -1, -1, 8, 50000, -1],
-                                        ['BLADEOFDORIN', 7, -1, -1, 8, 50000, -1],
-                                        ['JEDISTARFIGHTERCONSULAR', 7, -1, -1, 8, 50000, -1],
-                                        ['ARC170CLONESERGEANT', 7, -1, -1, 8, 50000, -1],
-                                        ['YWINGCLONEWARS', 7, -1, -1, 8, 50000, -1]]]
+journey_guide['GENERALSKYWALKER']['Vaisseaux']=[3, [['JEDISTARFIGHTERANAKIN', 7, -1, -1, 8, 50000, -1, -1],
+                                        ['JEDISTARFIGHTERAHSOKATANO', 7, -1, -1, 8, 50000, -1, -1],
+                                        ['UMBARANSTARFIGHTER', 7, -1, -1, 8, 50000, -1, -1],
+                                        ['ARC170REX', 7, -1, -1, 8, 50000, -1, -1],
+                                        ['BLADEOFDORIN', 7, -1, -1, 8, 50000, -1, -1],
+                                        ['JEDISTARFIGHTERCONSULAR', 7, -1, -1, 8, 50000, -1, -1],
+                                        ['ARC170CLONESERGEANT', 7, -1, -1, 8, 50000, -1, -1],
+                                        ['YWINGCLONEWARS', 7, -1, -1, 8, 50000, -1, -1]]]
 journey_guide['GENERALSKYWALKER']['initial shards']=145
 
 journey_guide['JEDIKNIGHTLUKE']={}
-journey_guide['JEDIKNIGHTLUKE']['Persos']=[9, [['C3POLEGENDARY', 7, 13, 5, 8, -1, 5], 
-                                        ['VADER', 7, 13, 5, 8, -1, 5],
-                                        ['CHEWBACCALEGENDARY', 7, 13, 5, 8, -1, 5],
-                                        ['COMMANDERLUKESKYWALKER', 7, 13, 5, 8, -1, 5],
-                                        ['HERMITYODA', 7, 13, 5, 8, -1, 5],
-                                        ['ADMINISTRATORLANDO', 7, 13, 5, 8, -1, 5],
-                                        ['HOTHLEIA', 7, 13, 5, 8, -1, 5],
-                                        ['WAMPA', 7, 13, 5, 8, -1, 5],
-                                        ['HOTHHAN', 7, 13, 5, 8, -1, 5]]]
-journey_guide['JEDIKNIGHTLUKE']['Vaisseaux']=[2, [['XWINGRED2', 7, -1, -1, 7, 55000, -1], 
-                                        ['MILLENNIUMFALCON', 7, -1, -1, 7, 55000, -1]]]
+journey_guide['JEDIKNIGHTLUKE']['Persos']=[9, [['C3POLEGENDARY', 7, 13, 5, 8, -1, 5, -1], 
+                                        ['VADER', 7, 13, 5, 8, -1, 5, -1],
+                                        ['CHEWBACCALEGENDARY', 7, 13, 5, 8, -1, 5, -1],
+                                        ['COMMANDERLUKESKYWALKER', 7, 13, 5, 8, -1, 5, -1],
+                                        ['HERMITYODA', 7, 13, 5, 8, -1, 5, -1],
+                                        ['ADMINISTRATORLANDO', 7, 13, 5, 8, -1, 5, -1],
+                                        ['HOTHLEIA', 7, 13, 5, 8, -1, 5, -1],
+                                        ['WAMPA', 7, 13, 5, 8, -1, 5, -1],
+                                        ['HOTHHAN', 7, 13, 5, 8, -1, 5, -1]]]
+journey_guide['JEDIKNIGHTLUKE']['Vaisseaux']=[2, [['XWINGRED2', 7, -1, -1, 7, 55000, -1, -1], 
+                                        ['MILLENNIUMFALCON', 7, -1, -1, 7, 55000, -1, -1]]]
                                         
 journey_guide['SUPREMELEADERKYLOREN']={}
-journey_guide['SUPREMELEADERKYLOREN']['Persos']=[12, [['KYLORENUNMASKED', 7, 13, 7, 8, -1, 5], 
-                                        ['FIRSTORDERTROOPER', 7, 13, 5, 8, -1, 5], 
-                                        ['FIRSTORDEROFFICERMALE', 7, 13, 5, 8, -1, 5], 
-                                        ['KYLOREN', 7, 13, 7, 8, -1, 5],
-                                        ['PHASMA', 7, 13, 5, 8, -1, 5],
-                                        ['FIRSTORDEREXECUTIONER', 7, 13, 5, 8, -1, 5],
-                                        ['SMUGGLERHAN', 7, 13, 3, 8, -1, 5],
-                                        ['FOSITHTROOPER', 7, 13, 5, 8, -1, 5],
-                                        ['FIRSTORDERSPECIALFORCESPILOT', 7, 13, 3, 8, -1, 5],
-                                        ['GENERALHUX', 7, 13, 5, 8, -1, 5],
-                                        ['FIRSTORDERTIEPILOT', 7, 13, 3, 8, -1, 5],
-                                        ['EMPERORPALPATINE', 7, 13, 7, 8, -1, 5]]]
-journey_guide['SUPREMELEADERKYLOREN']['mships']=[1, [['CAPITALFINALIZER', 5, -1, -1, -1, -1, -1]]]
+journey_guide['SUPREMELEADERKYLOREN']['Persos']=[12, [['KYLORENUNMASKED', 7, 13, 7, 8, -1, 5, -1], 
+                                        ['FIRSTORDERTROOPER', 7, 13, 5, 8, -1, 5, -1], 
+                                        ['FIRSTORDEROFFICERMALE', 7, 13, 5, 8, -1, 5, -1], 
+                                        ['KYLOREN', 7, 13, 7, 8, -1, 5, -1],
+                                        ['PHASMA', 7, 13, 5, 8, -1, 5, -1],
+                                        ['FIRSTORDEREXECUTIONER', 7, 13, 5, 8, -1, 5, -1],
+                                        ['SMUGGLERHAN', 7, 13, 3, 8, -1, 5, -1],
+                                        ['FOSITHTROOPER', 7, 13, 5, 8, -1, 5, -1],
+                                        ['FIRSTORDERSPECIALFORCESPILOT', 7, 13, 3, 8, -1, 5, -1],
+                                        ['GENERALHUX', 7, 13, 5, 8, -1, 5, -1],
+                                        ['FIRSTORDERTIEPILOT', 7, 13, 3, 8, -1, 5, -1],
+                                        ['EMPERORPALPATINE', 7, 13, 7, 8, -1, 5, -1]]]
+journey_guide['SUPREMELEADERKYLOREN']['mships']=[1, [['CAPITALFINALIZER', 5, -1, -1, -1, -1, -1, -1]]]
 
 journey_guide['GRANDADMIRALTHRAWN']={}
-journey_guide['GRANDADMIRALTHRAWN']['Phoenix']=[5, [['HERASYNDULLAS3', 7, 9, -1, 7, -1, 5],
-                                        ['SABINEWRENS3', 7, 9, -1, 7, -1, 5],
-                                        ['CHOPPERS3', 7, 9, -1, 7, -1, 5],
-                                        ['EZRABRIDGERS3', 7, 9, -1, 7, -1, 5],
-                                        ['ZEBS3', 7, 9, -1, 7, -1, 5],
-                                        ['KANANJARRUSS3', 7, 9, -1, 7, -1, 5]]]
+journey_guide['GRANDADMIRALTHRAWN']['Phoenix']=[5, [['HERASYNDULLAS3', 7, 9, -1, 7, -1, 5, -1],
+                                        ['SABINEWRENS3', 7, 9, -1, 7, -1, 5, -1],
+                                        ['CHOPPERS3', 7, 9, -1, 7, -1, 5, -1],
+                                        ['EZRABRIDGERS3', 7, 9, -1, 7, -1, 5, -1],
+                                        ['ZEBS3', 7, 9, -1, 7, -1, 5, -1],
+                                        ['KANANJARRUSS3', 7, 9, -1, 7, -1, 5, -1]]]
 
 journey_guide['SITHPALPATINE']={}
 journey_guide['SITHPALPATINE']['Persos']=[14, [['EMPERORPALPATINE', 7, 13, 7, 8, -1, 5], 
@@ -118,8 +118,25 @@ journey_guide['SITHPALPATINE']['Persos']=[14, [['EMPERORPALPATINE', 7, 13, 7, 8,
                                         ['GRANDADMIRALTHRAWN', 7, 13, 6, 8, -1, 5],
                                         ['VEERS', 7, 13, 3, 8, -1, 5],
                                         ['COLONELSTARCK', 7, 13, 3, 8, -1, 5],
-                                        ['GRANDMOFFTARKIN', 7, 13, 3, 8, -1, 5]]]
-journey_guide['SITHPALPATINE']['Vaisseaux']=[1, [['TIEBOMBERIMPERIAL', 6, -1, -1, -1, -1, -1]]]
+                                        ['GRANDMOFFTARKIN', 7, 13, 3, 8, -1, 5, -1]]]
+journey_guide['SITHPALPATINE']['Vaisseaux']=[1, [['TIEBOMBERIMPERIAL', 6, -1, -1, -1, -1, -1, -1]]]
+
+journey_guide['GRANDMASTERLUKE']={}
+journey_guide['GRANDMASTERLUKE']['Persos']=[14, [['OLDBENKENOBI', 7, 13, 5, 8, -1, 5, -1], 
+                                        ['REYJEDITRAINING', 7, 13, 7, 8, -1, 5, -1], 
+                                        ['C3POLEGENDARY', 7, 13, 5, 8, -1, 5, -1], 
+                                        ['MONMOTHMA', 7, 13, 5, 8, -1, 5, -1],
+                                        ['C3POCHEWBACCA', 7, 13, 5, 8, -1, 5, -1],
+                                        ['JEDIKNIGHTLUKE', 7, 13, 7, 8, -1, 5, -1],
+                                        ['R2D2_LEGENDARY', 7, 13, 7, 8, -1, 5, -1],
+                                        ['HANSOLO', 7, 13, 6, 8, -1, 5, -1],
+                                        ['CHEWBACCALEGENDARY', 7, 13, 6, 8, -1, 5, -1],
+                                        ['PRINCESSLEIA', 7, 13, 3, 8, -1, 5, -1],
+                                        ['HERMITYODA', 7, 13, 5, 8, -1, 5, -1],
+                                        ['WEDGEANTILLES', 7, 13, 3, 8, -1, 5, -1],
+                                        ['BIGGSDARKLIGHTER', 7, 13, 3, 8, -1, 5, -1],
+                                        ['ADMINISTRATORLANDO', 7, 13, 5, 8, -1, 5, -1]]]
+journey_guide['GRANDMASTERLUKE']['Vaisseaux']=[1, [['YWINGREBEL', 6, -1, -1, -1, -1, -1, -1]]]
 
 # dict_guidevoyage={} # [nombre nécessaire, étoiles, relic, niveau capa, PG, module]
 # dict_guidevoyage['GAS']=[[[], [], [], []], [[], [], [], []]]
@@ -234,6 +251,11 @@ def load_player(allycode):
                             str(len(player_data)))
                             
                 ret_player = player_data[0]
+                player_roster = ret_player['roster'].copy()
+                ret_player['roster'] = {}
+                for character in player_roster:
+                    ret_player['roster'][character['defId']] = character
+                
                 f = open(player_json_filename, 'w')
                 f.write(json.dumps(ret_player, indent=4, sort_keys=True))
                 f.close()
@@ -344,137 +366,157 @@ def pad_txt2(txt):
 def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                               score_amber, txt_mode, dict_player_discord):
     #score_type :
-    #   1 : de 0 à 100% en fonction de [étoiles, gear, zetas].
-    #   2 : score = (2^^gear + 2^^relic)*vitesse > non-utilisé dans les commandes
+    #   1 : from 0 to 100% counting rarity/gear+relic/zetas... and 0 for each character below minimum
+    #   2 : Same as #1, but still counting scores below minimum
     #   3 : score = gp*vitesse/vitesse_requise
     #   * : Affichage d'une icône verte (100%), orange (>=80%) ou rouge
 
     line = ''
     #print('DBG: get_team_line_from_player '+dict_player['name'])
-    nb_levels = len(objectifs)
+    nb_subobjs = len(objectifs)
 
     #INIT tableau des resultats
-    tab_progress_player = [[] for i in range(nb_levels)]
-    for i_level in range(0, nb_levels):
-        nb_sub_obj = len(objectifs[i_level][2])
+    tab_progress_player = [[] for i in range(nb_subobjs)]
+    for i_subobj in range(0, nb_subobjs):
+        nb_chars = len(objectifs[i_subobj][2])
         if score_type == 1:
-            tab_progress_player[i_level] = [[0, '.     ', True]
-                                            for i in range(nb_sub_obj)]
+            tab_progress_player[i_subobj] = [[0, '.     ', True]
+                                            for i in range(nb_chars)]
         elif score_type == 2:
-            tab_progress_player[i_level] = [[0, '.         ', True]
-                                            for i in range(nb_sub_obj)]
+            tab_progress_player[i_subobj] = [[0, '.     ', True]
+                                            for i in range(nb_chars)]
         else:  #score_type==3
-            tab_progress_player[i_level] = [[0, '.         ', True]
-                                            for i in range(nb_sub_obj)]
+            tab_progress_player[i_subobj] = [[0, '.         ', True]
+                                            for i in range(nb_chars)]
 
-    #boucle sur les persos du joueur
-    for character in dict_player['roster']:
-        for i_level in range(0, nb_levels):
-            dict_perso_objectif = objectifs[i_level][2]
+    # Loop on categories within the goals
+    for i_subobj in range(0, nb_subobjs):
+        dict_char_subobj = objectifs[i_subobj][2]
 
+        for character_id in dict_char_subobj:
             progress = 0
             progress_100 = 0
-            #print(character['nameKey'])
-            #print(dict_perso_objectif)
-            if character['nameKey'] in dict_perso_objectif:
-                character_nogo = False
+            if character_id in dict_player['roster']:
+                # print('DBG: '+character_id+' trouvé')
+                character_roster = dict_player['roster'][character_id]
 
-                perso = character['nameKey']
-                i_sub_obj = dict_perso_objectif[perso][0]
-                #print(dict_perso_objectif[perso])
+                character_nogo = False
+                character_obj = dict_char_subobj[character_id]
+                i_character = character_obj[0]
+                #print(character_roster)
 
                 #Etoiles
-                req_rarity_min = dict_perso_objectif[perso][1]
-                req_rarity_reco = dict_perso_objectif[perso][3]
-                player_rarity = character['rarity']
+                req_rarity_min = character_obj[1]
+                req_rarity_reco = character_obj[3]
+                player_rarity = character_roster['rarity']
                 progress_100 = progress_100 + 1
                 progress = progress + min(1, player_rarity / req_rarity_reco)
                 if player_rarity < req_rarity_min:
                     character_nogo = True
-
+                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
+                
                 #Gear
-                req_gear_min = dict_perso_objectif[perso][2]
+                req_gear_min = character_obj[2]
                 req_relic_min=0
-                if type(req_gear_min) == str:
+                if req_gear_min == '':
+                    req_gear_min = 1
+                elif type(req_gear_min) == str:
                     req_relic_min=int(req_gear_min[-1])
-                    req_gear_min=int(req_gear_min[0:2])
+                    req_gear_min=13
                     
-                req_gear_reco = dict_perso_objectif[perso][4]
+                req_gear_reco = character_obj[4]
                 req_relic_reco=0
-                if type(req_gear_reco) == str:
+                if req_gear_reco == '':
+                    req_gear_reco = 1
+                elif type(req_gear_reco) == str:
                     req_relic_reco=int(req_gear_reco[-1])
-                    req_gear_reco=int(req_gear_reco[0:2])
+                    req_gear_reco=13
 
-                player_gear = character['gear']
-                progress_100 = progress_100 + 1
-                progress = progress + min(1, player_gear / req_gear_reco)
-                if player_gear < req_gear_min:
-                    character_nogo = True
-
+                player_gear = character_roster['gear']
                 if player_gear < 13:
                     player_relic = 0
                 else:
-                    player_relic = character['relic']['currentTier'] - 2
+                    player_relic = character_roster['relic']['currentTier'] - 2
+
+                progress_100 = progress_100 + 1
+                progress = progress + min(1, (player_gear+player_relic) / (req_gear_reco+req_relic_reco))
+                if (player_gear+player_relic) < (req_gear_min+req_relic_min):
+                    character_nogo = True
+                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 #Zetas
-                req_zetas = dict_perso_objectif[perso][5]
+                req_zetas = character_obj[5]
                 player_nb_zetas = 0
                 progress_100 += len(req_zetas)
-                for skill in character['skills']:
+                for skill in character_roster['skills']:
                     if skill['nameKey'] in req_zetas:
                         if skill['tier'] == 8:
                             player_nb_zetas += 1
                             progress += 1
                 if player_nb_zetas < len(req_zetas):
                     character_nogo = True
+                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 #Vitesse (optionnel)
-                player_speed, player_potency = get_character_stats(character)
-                req_speed = dict_perso_objectif[perso][6]
+                player_speed, player_potency = get_character_stats(character_roster)
+                req_speed = character_obj[6]
                 if req_speed != '':
                     progress_100 = progress_100 + 1
                     progress = progress + min(1, player_speed / req_speed)
                 else:
                     req_speed = player_speed
+                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
-                player_gp = character['gp']
+                player_gp = character_roster['gp']
 
-                tab_progress_player[i_level][i_sub_obj -
+                #Display
+                tab_progress_player[i_subobj][i_character -
                                              1][1] = str(player_rarity)
                 if player_gear < 13:
-                    tab_progress_player[i_level][
-                        i_sub_obj - 1][1] += '.' + "{:02d}".format(player_gear)
+                    tab_progress_player[i_subobj][
+                        i_character - 1][1] += '.' + "{:02d}".format(player_gear)
                 else:
-                    tab_progress_player[i_level][
-                        i_sub_obj - 1][1] += '.R' + str(player_relic)
-                tab_progress_player[i_level][
-                    i_sub_obj - 1][1] += '.' + str(player_nb_zetas)
+                    tab_progress_player[i_subobj][
+                        i_character - 1][1] += '.R' + str(player_relic)
+                tab_progress_player[i_subobj][
+                    i_character - 1][1] += '.' + str(player_nb_zetas)
 
                 if score_type == 1:
-                    tab_progress_player[i_level][
-                        i_sub_obj - 1][0] = progress / progress_100
+                    tab_progress_player[i_subobj][
+                        i_character - 1][0] = progress / progress_100
+                    tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
                 elif score_type == 2:
-                    tab_progress_player[i_level][i_sub_obj - 1][0] = (
-                        2**player_gear + 2**player_relic) * player_speed
-                    tab_progress_player[i_level][
-                        i_sub_obj -
-                        1][1] += '.' + "{:03d}".format(player_speed)
+                    tab_progress_player[i_subobj][
+                        i_character - 1][0] = progress / progress_100
+                    tab_progress_player[i_subobj][i_character - 1][2] = False
                 else:  #score_type==3
-                    tab_progress_player[i_level][i_sub_obj - 1][0] = int(
+                    tab_progress_player[i_subobj][i_character - 1][0] = int(
                         player_gp * player_speed / req_speed)
-                    tab_progress_player[i_level][
-                        i_sub_obj -
+                    tab_progress_player[i_subobj][
+                        i_character -
                         1][1] += '.' + "{:03d}".format(player_speed)
-                tab_progress_player[i_level][i_sub_obj - 1][2] = character_nogo
+                    tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
+                # print(tab_progress_player[i_subobj][i_character - 1])
+
+            else:
+                # character not found in player's roster
+                # print('DBG: '+character_subobj[0]+' pas trouvé dans '+str(dict_player['roster'].keys()))
+                character_roster = {'defId': character_id,
+                                    'rarity': 0,
+                                    'gear': 0,
+                                    'relic': {'currentTier': 1},
+                                    'skills': [],
+                                    'gp': 0,
+                                    'mods': []}
 
     #calcul du score global
     score = 0
     score100 = 0
     score_nogo = False
-    for i_level in range(0, nb_levels):
-        nb_sub_obj = len(objectifs[i_level][2])
-        for i_sub_obj in range(0, nb_sub_obj):
-            tab_progress_sub_obj = tab_progress_player[i_level][i_sub_obj]
+    for i_subobj in range(0, nb_subobjs):
+        nb_sub_obj = len(objectifs[i_subobj][2])
+        for i_character in range(0, nb_sub_obj):
+            tab_progress_sub_obj = tab_progress_player[i_subobj][i_character]
             #print('DBG: '+str(tab_progress_sub_obj))
             #line+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
             if not tab_progress_sub_obj[2]:
@@ -488,20 +530,23 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                 else:
                     line += pad_txt2(tab_progress_sub_obj[1]) + '|'
 
-        min_perso = objectifs[i_level][1]
-        #print('DBG: '+str(tab_progress_player[i_level]))
+        min_perso = objectifs[i_subobj][1]
+        # print('DBG: '+str(tab_progress_player[i_subobj]))
 
         #Extraction des scores pour les persos non-exclus
         tab_score_player_values = [(lambda f: (f[0] * (not f[2])))(x)
-                                   for x in tab_progress_player[i_level]]
+                                   for x in tab_progress_player[i_subobj]]
         score += sum(sorted(tab_score_player_values)[-min_perso:])
         score100 += min_perso
-
+        # print('DBG: score='+str(score)+' score100='+str(score100))
+        
         if 0.0 in sorted(tab_score_player_values)[-min_perso:]:
             score_nogo = True
 
     #pourcentage sur la moyenne
     if score_type == 1:
+        score = score / score100 * 100
+    elif score_type == 2:
         score = score / score100 * 100
 
     #affichage du score
@@ -575,7 +620,7 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
                     objectifs[i_level][0][0] + str(i_sub_obj + 1), 6)
             elif score_type == 2:
                 nom_sub_obj = pad_txt(
-                    objectifs[i_level][0][0] + str(i_sub_obj + 1), 10)
+                    objectifs[i_level][0][0] + str(i_sub_obj + 1), 6)
             else:
                 nom_sub_obj = pad_txt(
                     objectifs[i_level][0][0] + str(i_sub_obj + 1), 10)
@@ -743,10 +788,11 @@ def get_character_stats(dict_character):
 
     eqpt_speed = 0
     eqpt_potency = 0
-    for eqpt in dict_character['equipped']:
-        eqpt_speed += equipment_stats[eqpt['equipmentId']][0]
-        eqpt_potency += equipment_stats[eqpt['equipmentId']][1]
-        #print('eqpt '+str(eqpt_speed)+'/'+str(eqpt_potency))
+    if 'equipped' in dict_character:
+        for eqpt in dict_character['equipped']:
+            eqpt_speed += equipment_stats[eqpt['equipmentId']][0]
+            eqpt_potency += equipment_stats[eqpt['equipmentId']][1]
+            #print('eqpt '+str(eqpt_speed)+'/'+str(eqpt_potency))
 
     #Constants
     SPEED_STAT_ID = 5
@@ -761,29 +807,30 @@ def get_character_stats(dict_character):
     total_potency_mods = 0
     nb_potency_mods_level15 = 0
     mod_potency = 0
-    for mod in dict_character['mods']:
-        #print(mod)
-        if mod['set'] == SPEED_MOD_SET:
-            total_speed_mods += 1
-            if mod['level'] == 15:
-                nb_speed_mods_level15 += 1               
-        elif mod['set'] == POTENCY_MOD_SET:
-            total_potency_mods += 1
-            if mod['level'] == 15:
-                nb_potency_mods_level15 += 1
+    if 'mods' in dict_character:
+        for mod in dict_character['mods']:
+            #print(mod)
+            if mod['set'] == SPEED_MOD_SET:
+                total_speed_mods += 1
+                if mod['level'] == 15:
+                    nb_speed_mods_level15 += 1               
+            elif mod['set'] == POTENCY_MOD_SET:
+                total_potency_mods += 1
+                if mod['level'] == 15:
+                    nb_potency_mods_level15 += 1
 
-        if mod['primaryStat']['unitStat'] == SPEED_STAT_ID:
-            mod_speed += mod['primaryStat']['value']
-        elif mod['primaryStat']['unitStat'] == POTENCY_STAT_ID:
-            mod_potency += mod['primaryStat']['value']/100
-            #print('primary mod potency: '+str(mod_potency))
+            if mod['primaryStat']['unitStat'] == SPEED_STAT_ID:
+                mod_speed += mod['primaryStat']['value']
+            elif mod['primaryStat']['unitStat'] == POTENCY_STAT_ID:
+                mod_potency += mod['primaryStat']['value']/100
+                #print('primary mod potency: '+str(mod_potency))
 
-        for secondary in mod['secondaryStat']:
-            if secondary['unitStat'] == SPEED_STAT_ID:
-                mod_speed += secondary['value']
-            elif secondary['unitStat'] == POTENCY_STAT_ID:
-                mod_potency += secondary['value']/100
-                #print('sec mod potency: '+str(mod_potency))
+            for secondary in mod['secondaryStat']:
+                if secondary['unitStat'] == SPEED_STAT_ID:
+                    mod_speed += secondary['value']
+                elif secondary['unitStat'] == POTENCY_STAT_ID:
+                    mod_potency += secondary['value']/100
+                    #print('sec mod potency: '+str(mod_potency))
  
     #Bonus on speed mods (groups of 4)
     if total_speed_mods < 4:
@@ -1042,12 +1089,13 @@ def print_character_stats(characters, txt_allycode):
     list_print_stats=[]
     #Manage request for all characters
     if 'all' in characters:
-        for character in dict_player['roster']:
+        for character_name in dict_player['roster']:
+            character = dict_player['roster'][character_name]
             if character['combatType'] == 1 and character['level'] >= 50:
                 speed, potency = get_character_stats(character)
                 list_print_stats.append([speed, potency, character['nameKey']])
     else:
-        list_character_names=[]
+        list_character_ids=[]
         for character_alias in characters:
             #Get full character name
             closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
@@ -1055,20 +1103,19 @@ def print_character_stats(characters, txt_allycode):
                 ret_print_character_stats += 'INFO: aucun personnage trouvé pour '+character_alias+'\n'
             else:
                 [character_name, character_id]=dict_units[closest_names[0]]
-                list_character_names.append(character_name)
+                list_character_ids.append(character_id)
 
-        set_character_names = set(list_character_names)
-        for character in dict_player['roster']:
-            if character['nameKey'] in set_character_names:
+        for character_id in list_character_ids:
+            if character_id in dict_player['roster']:
+                character = dict_player['roster'][character_id]
                 if character['combatType'] == 1:
                     speed, potency = get_character_stats(character)
                     list_print_stats.append([speed, potency, character['nameKey']])
-                    list_character_names.remove(character['nameKey'])
                 else:
-                    ret_print_character_stats += 'INFO:' + character['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
+                    ret_print_character_stats += 'INFO:' + character_name+' est un vaisseau, stats non accessibles pour le moment\n'
         
-        for character_name in list_character_names:
-            ret_print_character_stats +=  'INFO:' + character_name+' non trouvé chez '+txt_allycode+'\n'
+            else:
+                ret_print_character_stats +=  'INFO:' + character_name+' non trouvé chez '+txt_allycode+'\n'
     
     #Sort by speed then display
     if sort_option == 'speed':
@@ -1190,7 +1237,7 @@ def get_farm_cost_from_alias(txt_allycode, character_alias, target_stats):
 
     #Get data for this player
     if txt_allycode == '0':
-        dict_player = {'roster' : []}
+        dict_player = {'roster' : {}}
     else:
         dict_player = load_player(txt_allycode)
         if isinstance(dict_player, str):
@@ -1207,23 +1254,21 @@ def get_farm_cost_from_id(dict_player, character_id, target_stats):
     equipment_stats = json.load(open('equipment_stats.json', 'r'))
     units_stats = json.load(open('units_stats.json', 'r'))
 
-
     character_unlocked=False
     possible_to_unlock=True
-    for character in dict_player['roster']:
-        if character['defId'] == character_id:
-            character_unlocked=True
-            character_rarity=character['rarity']
-            character_is_ship=(character['combatType']==2)
-            
-            if not character_is_ship:
-                character_gear=character['gear']
-                if character_gear < 13:
-                    character_relic = 0
-                else:
-                    character_relic = character['relic']['currentTier'] - 2
-                character_eqpt = [(lambda f:f['equipmentId'])(x) for x in character['equipped']]
-            break
+    if character_id in dict_player['roster']:
+        character = dict_player['roster'][character_id]
+        character_unlocked=True
+        character_rarity=character['rarity']
+        character_is_ship=(character['combatType']==2)
+        
+        if not character_is_ship:
+            character_gear=character['gear']
+            if character_gear < 13:
+                character_relic = 0
+            else:
+                character_relic = character['relic']['currentTier'] - 2
+            character_eqpt = [(lambda f:f['equipmentId'])(x) for x in character['equipped']]
     
     [energy_per_shard, shards_to_unlock, list_pilots] = units_stats[character_id]['recipe']
     cost_to_unlock=0
@@ -1323,7 +1368,7 @@ def get_farm_cost_from_id(dict_player, character_id, target_stats):
         #Modify the character stats into the roster to simulate cost being paid
         #this serves for characters being used twice for computing cost
         # eg: Mission needed at G9 for Revan then G12 for Malak
-        dict_player['roster'].remove(character)
+        dict_player['roster'].remove(character_id)
 
         character['rarity']=target_stats[0]
         if not character_is_ship:
@@ -1337,7 +1382,7 @@ def get_farm_cost_from_id(dict_player, character_id, target_stats):
         else:
             character['combatType'] = 1
             
-        dict_player['roster'].append(character)
+        dict_player['roster'][character_id]=character
 
     
     #remaining cost for rarity / stars
@@ -1427,79 +1472,87 @@ def get_farm_cost_from_id(dict_player, character_id, target_stats):
     return [cost_to_unlock+cost_missing_shards+cost_missing_character_eqpt, output_message]
 
 def player_journey_progress(txt_allycode, character_alias):
-    ret_player_journey_progress = ''
-    
     #Recuperation des dernieres donnees sur gdrive
     dict_units = load_config_units()
 
     #Get full character name
     closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
     if len(closest_names)<1:
-        return [-1, 'ERREUR: aucun personnage trouvé pour '+character_alias]
+        return [-1, 'ERR: aucun personnage trouvé pour '+character_alias, '', '', []]
     else:
         [character_name, character_id]=dict_units[closest_names[0]]
 
     if character_id in journey_guide:
         objectifs=journey_guide[character_id]
     else:
-        return [-1, 'ERR: Guide de voyage inconnu pour '+character_id+'\n'+
-                    'Valeurs autorisées : '+str(journey_guide.keys())]
+        return [-1, 'ERR: guide de voyage inconnu pour '+character_id+'\n'+
+                    'Valeurs autorisées : '+str(journey_guide.keys()), '', '', []]
 
     dict_player = load_player(txt_allycode)
     if isinstance(dict_player, str):
         #error wile loading guild data
-        return [-1, 'ERR: joueur non trouvé pour code allié ' + txt_allycode]
+        return [-1, 'ERR: joueur non trouvé pour code allié ' + txt_allycode, '', '', []]
         
     tab_progress_player={}
-    for character in dict_player['roster']:
-        for sub_obj in objectifs:
-            if sub_obj == 'initial shards':
-                continue
-            
-            list_chars_subobj = objectifs[sub_obj][1]
-            list_char_names_subobj = [x[0] for x in list_chars_subobj]
-            
-            if not sub_obj in tab_progress_player:
-                tab_progress_player[sub_obj]=[]
-            
+    for sub_obj in objectifs:
+        if sub_obj == 'initial shards':
+            continue
+        
+        tab_progress_player[sub_obj]=[]
+        
+        for character_subobj in objectifs[sub_obj][1]:
             progress=0
             progress_100=0
-            if character['defId'] in list_char_names_subobj:
-                # print('DBG: '+character['defId'])
-                pos_char = list_char_names_subobj.index(character['defId'])
+            
+            if character_subobj[0] in dict_player['roster']:
+                # print('DBG: '+character_subobj[0]+' trouvé')
+                character_roster = dict_player['roster'][character_subobj[0]]
+            else:
+                # character not found in player's roster
+                # print('DBG: '+character_subobj[0]+' pas trouvé dans '+str(dict_player['roster'].keys()))
+                character_roster = {'defId': character_subobj[0],
+                                    'rarity': 0,
+                                    'gear': 0,
+                                    'relic': {'currentTier': 1},
+                                    'skills': [],
+                                    'gp': 0,
+                                    'mods': []}
                 
-                if objectifs[sub_obj][1][pos_char][1] != -1:
+            if character_subobj[1] != -1:
+                progress_100=progress_100+1
+                progress=progress+min(1, character_roster['rarity']/character_subobj[1])
+            if character_subobj[2] != -1:
+                progress_100=progress_100+1
+                progress=progress+min(1, character_roster['gear']/character_subobj[2])
+            if character_subobj[3] != -1:
+                progress_100=progress_100+1
+                if character_roster['relic']['currentTier'] > 1:
+                    progress=progress+min(1, (character_roster['relic']['currentTier']-2)/character_subobj[3])
+            if character_subobj[4] != -1:
+                for skill in character_roster['skills']:
                     progress_100=progress_100+1
-                    progress=progress+min(1, character['rarity']/objectifs[sub_obj][1][pos_char][1])
-                if objectifs[sub_obj][1][pos_char][2] != -1:
+                    if skill['tier'] == skill['tiers']:
+                        progress=progress+1
+                    else:
+                        progress=progress+min(1, skill['tier']/character_subobj[4])
+            if character_subobj[5] != -1:
+                progress_100=progress_100+1
+                progress=progress+min(1, character_roster['gp']/character_subobj[5])
+            if character_subobj[6] != -1:
+                for mod in character_roster['mods']:
                     progress_100=progress_100+1
-                    progress=progress+min(1, character['gear']/objectifs[sub_obj][1][pos_char][2])
-                if objectifs[sub_obj][1][pos_char][3] != -1:
-                    progress_100=progress_100+1
-                    if character['relic']['currentTier'] > 1:
-                        progress=progress+min(1, (character['relic']['currentTier']-2)/objectifs[sub_obj][1][pos_char][3])
-                if objectifs[sub_obj][1][pos_char][4] != -1:
-                    for skill in character['skills']:
-                        progress_100=progress_100+1
-                        if skill['tier'] == skill['tiers']:
-                            progress=progress+1
-                        else:
-                            progress=progress+min(1, skill['tier']/objectifs[sub_obj][1][pos_char][4])
-                if objectifs[sub_obj][1][pos_char][5] != -1:
-                    progress_100=progress_100+1
-                    progress=progress+min(1, character['gp']/objectifs[sub_obj][1][pos_char][5])
-                if objectifs[sub_obj][1][pos_char][6] != -1:
-                    for mod in character['mods']:
-                        progress_100=progress_100+1
-                        progress=progress+min(1, mod['pips']/objectifs[sub_obj][1][pos_char][6])
-                tab_progress_player[sub_obj].append(progress/progress_100)
-                # print('DBG: '+character['defId']+':'+str(progress/progress_100))
-                # print('DBG: '+character['defId']+':'+str(tab_progress_player))
+                    progress=progress+min(1, mod['pips']/character_subobj[6])
+            tab_progress_player[sub_obj].append(progress/progress_100)
+            # print('DBG: '+character_roster['defId']+':'+str(progress/progress_100))
+            # print('DBG: '+character_roster['defId']+':'+str(tab_progress_player))
 
-    total_progress=0
-    total_progress_100=0
-    ret_player_journey_progress+=dict_player['name']+'\n'
-    ret_player_journey_progress+=character_name+'\n'
+    # Then compute the progress for each character who has its own journey guide
+    # eg: JKLS progress for journey guide of JMLS
+    # TO-DO
+
+    list_progress = []
+    total_progress = 0
+    total_progress_100 = 0
     for sub_obj in objectifs:
         if sub_obj == 'initial shards':
             continue
@@ -1516,12 +1569,9 @@ def player_journey_progress(txt_allycode, character_alias):
         # print('DBG: '+str(tab_progress_sub_obj))
         progress=sum(tab_progress_sub_obj)
 
-        ret_player_journey_progress+=sub_obj
-        ret_player_journey_progress+=': '+str(int(progress/min_nb_sub_obj*100))+'%\n'
+        list_progress.append([sub_obj, progress/min_nb_sub_obj, min_nb_sub_obj])
+        
+        total_progress_100+=min_nb_sub_obj
+        total_progress+=progress
 
-        total_progress=total_progress+progress
-        total_progress_100=total_progress_100+min_nb_sub_obj
-    ret_player_journey_progress+='Total'
-    ret_player_journey_progress+=': '+str(int(total_progress/total_progress_100*100))+'%\n'
-
-    return [int(total_progress/total_progress_100*100), ret_player_journey_progress]
+    return [total_progress/total_progress_100, '', dict_player['name'], character_name, list_progress]

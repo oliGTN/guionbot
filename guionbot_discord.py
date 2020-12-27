@@ -620,10 +620,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='vtj',
                  brief="Vérifie la dispo d'une ou plusieurs teams chez un joueur",
                  help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
-                      "Exemple: go.vjt 192126111 all\n"\
-                      "Exemple: go.vjt 192126111 NS\n"\
-                      "Exemple: go.vjt 192126111 PADME NS DR\n"\
-                      "Exemple: go.vjt me NS")
+                      "Exemple: go.vtj 192126111 all\n"\
+                      "Exemple: go.vtj 192126111 NS\n"\
+                      "Exemple: go.vtj 192126111 PADME NS DR\n"\
+                      "Exemple: go.vtj me NS")
     async def vtj(self, ctx, allycode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -741,17 +741,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
 
-        [progress, msg] = go.player_journey_progress(allycode, character_alias)
+        [progress, msg, player_name, character_name, list_progress] = go.player_journey_progress(allycode, character_alias)
         if progress == -1:
             await ctx.send(msg)
             await ctx.message.add_reaction(emoji_error)
         else:
-            #texte classique
-            player_name = msg.split('\n')[0]
-            character_name = msg.split('\n')[1]
-            details='\n'.join(msg.split('\n')[2:])
-            await ctx.send('**Progrès de '+player_name+' pour '+character_name+': '+str(progress)+'%**')
-            await ctx.send('__Détails :__\n'+details)
+            await ctx.send('Progrès de **'+player_name+'** pour **'+character_name+'**: '+str(int(progress*100))+'%')
+            await ctx.send('__Détails :__\n')
+            for prog in list_progress:
+                prog_name = prog[0]
+                prog_rate = prog[1]
+                prog_weight = prog[2]
+                await ctx.send('- '+prog_name+'('+str(prog_weight)+'): '+str(int(prog_rate*100))+'%')
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)

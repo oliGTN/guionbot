@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import requests
+import difflib
 from oauth2client.service_account import ServiceAccountCredentials
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
@@ -52,7 +53,13 @@ def load_config_teams():
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("teams")
 
-    dict_teams={} # {key=team_name, value=[[catégorie, nombre nécessaire, {key=nom, value=[id, étoiles min, gear min, étoiles reco, gear reco, [liste zeta], vitesse, nom court]}]]}
+    #Get latest dictionary for character names
+    dict_units = load_config_units()
+
+    #Get latest definition of teams
+    dict_teams={} # {team_name: [[catégorie, nombre nécessaire,
+                  #               {character_id: [index, étoiles min, gear min, étoiles reco, gear reco,
+                  #                               [liste zeta], vitesse, nom court]}]]}
 
     liste_dict_feuille=feuille.get_all_records()
     #print(liste_dict_feuille)
@@ -74,11 +81,19 @@ def load_config_teams():
             index_perso=0
             for dict_perso in liste_dict_categorie:
                 index_perso+=1
-                dict_teams[team][index_categorie][1] = dict_perso['Min Catégorie']
-                dict_teams[team][index_categorie][2][dict_perso['Nom']]=[index_perso, dict_perso['* min'], dict_perso['G min'], dict_perso['* reco'], dict_perso['G reco'], [], dict_perso['Vitesse'], dict_perso['Nom court']]
-                for zeta in ['Zeta1', 'Zeta2', 'Zeta3']:
-                    if dict_perso[zeta]!='':
-                        dict_teams[team][index_categorie][2][dict_perso['Nom']][5].append(dict_perso[zeta])
+                
+                closest_names=difflib.get_close_matches(dict_perso['Nom'].lower(), dict_units.keys(), 3)
+                if len(closest_names)<1:
+                    sys.stderr.write('INFO: aucun personnage trouvé pour '+dict_perso['Nom']+' > ignoré\n')
+                else:
+                    [character_name, character_id]=dict_units[closest_names[0]]
+
+                    dict_teams[team][index_categorie][1] = dict_perso['Min Catégorie']
+                    dict_teams[team][index_categorie][2][character_id]=[index_perso, dict_perso['* min'], dict_perso['G min'], dict_perso['* reco'], dict_perso['G reco'], [], dict_perso['Vitesse'], dict_perso['Nom court']]
+                    for zeta in ['Zeta1', 'Zeta2', 'Zeta3']:
+                        if dict_perso[zeta]!='':
+                            dict_teams[team][index_categorie][2][character_id][5].append(dict_perso[zeta])
+                    
         #print('DBG: dict_teams='+str(dict_teams))
     return liste_teams, dict_teams
 
@@ -198,7 +213,7 @@ def load_config_counter():
 # Function: load_config_units
 # Parameters: none
 # Purpose: lit l'onglet "units" du fichier Sheets
-# Output:  dict_units {key=alias, value=name}
+# Output:  dict_units {key=alias, value=[name, id]}
 ##############################################################
 def load_config_units():
     global client    
