@@ -179,6 +179,8 @@ async def get_eb_allocation(tbs_round):
                                     for perso in dict_perso['value'].split('\n'):
                                         char_name = perso[1:-1]
                                         if char_name != 'Filled in another phase':
+                                            if char_name[0:4]=='*` *':
+                                                char_name=char_name[4:]
                                             if not platoon_name in dict_platoons_allocation:
                                                 dict_platoons_allocation[
                                                     platoon_name] = {}
@@ -540,8 +542,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                 list_err.append('ERR: ' + perso +
                                                 ' n\'a pas été affecté ('+platoon_name+')')
                                 print('ERR: ' + perso + ' n\'a pas été affecté')
-                                print(
-                                    dict_platoons_allocation[platoon_name].keys())
+                                print(dict_platoons_allocation[platoon_name].keys())
 
             full_txt = ''
             cur_phase = 0

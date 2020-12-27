@@ -266,6 +266,7 @@ def load_player(allycode):
         else:
             print ('ERR: client.get_data(\'player\', '+
                     allycode+') has not returned a list')
+            print (player_data)
             return None
 
     sys.stderr.write(' ' + ret_player['name'] + '\n')
