@@ -101,7 +101,7 @@ def load_config_teams():
 # Function: load_config_players
 # Parameters: none
 # Purpose: lit l'onglet "players" du fichier Sheets
-# Output:  dict_players_by_IG {key=IG name, value=[allycode, discord name, discord display name]}
+# Output:  dict_players_by_IG {key=IG name, value=[allycode, discord name, <@id>]}
 #          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
 def load_config_players():
@@ -112,7 +112,7 @@ def load_config_players():
     liste_dict_feuille=feuille.get_all_records()
     liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in liste_dict_feuille]
     dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
-    dict_players_by_ID={} # {key=Discord ID, value=allycode}
+    dict_players_by_ID={} # {key=discord ID, value=[allycode, isOfficer]}
 
     #print(liste_dict_feuille)
     for ligne in liste_dict_feuille:

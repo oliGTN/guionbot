@@ -14,6 +14,7 @@ from discord import Activity, ActivityType, Intents
 import go
 from connect_gsheets import load_config_players, update_online_dates
 from connect_warstats import parse_warstats_page
+import connect_cleardb
 
 TOKEN = os.environ['DISCORD_BOT_TOKEN']
 intents = Intents.default()
@@ -357,6 +358,28 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         
         await ctx.message.add_reaction(emoji_check)
 
+    ##############################################################
+    # Command: sql
+    # Parameters: ctx (objet Contexte), arg (string)
+    # Purpose: exécute la reqête donnée entre guillemets et renvoie le résultat
+    #          ex: go.sql "SELECT * FROM members"
+    # ATTENTION : cette commande peut potentiellement modifier la DB
+    #            ou perturber fortement le fonctionnement du bot!
+    #            (c'est pour ça qu'elle est réservée aux développeurs)
+    # Display: output de la requête, s'il y en a un
+    ##############################################################
+    @commands.command(name='sql', help='Lance une requête SQL dans la database')
+    @commands.check(is_owner)
+    async def sql(self, ctx, arg):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        output = connect_cleardb.simple_query(arg)
+        print('SQL: ' + arg)
+        for row in output:
+            print(row)
+            await ctx.send('`' + str(row) + '`')
+        await ctx.message.add_reaction(emoji_check)
+        
     ##############################################################
     # Command: test
     # Parameters: ça dépend...
