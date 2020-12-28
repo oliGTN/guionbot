@@ -353,9 +353,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             big_txt+=line[1]+'\n'
         for txt in go.split_txt(big_txt, 1000):
             await ctx.send('`' + txt + '`')
-        
-        
-        
+              
         await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
@@ -375,9 +373,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         output = connect_cleardb.simple_query(arg)
         print('SQL: ' + arg)
+        output_txt=''
         for row in output:
-            print(row)
-            await ctx.send('`' + str(row) + '`')
+            output_txt+=str(row)+'\n'
+        print(output_txt)
+        for txt in go.split_txt(output_txt, 1000):
+            await ctx.send('`' + txt + '`')
+        
         await ctx.message.add_reaction(emoji_check)
         
     ##############################################################
