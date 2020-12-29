@@ -7,6 +7,7 @@ import difflib
 from functools import reduce
 from math import ceil
 from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter, load_config_units
+import connect_cleardb
 
 #login password sur https://api.swgoh.help/profile
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
@@ -251,14 +252,20 @@ def load_player(allycode):
                             str(len(player_data)))
                             
                 ret_player = player_data[0]
+                
+                # update DB
+                connect_cleardb.update_player(ret_player)
+
                 player_roster = ret_player['roster'].copy()
                 ret_player['roster'] = {}
                 for character in player_roster:
                     ret_player['roster'][character['defId']] = character
                 
+                #update json file
                 f = open(player_json_filename, 'w')
                 f.write(json.dumps(ret_player, indent=4, sort_keys=True))
                 f.close()
+                
             else:
                 print ('ERR: client.get_data(\'player\', '+allycode+
                         ') has returned an empty list')

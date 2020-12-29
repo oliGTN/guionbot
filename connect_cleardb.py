@@ -5,6 +5,9 @@ import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import go
 import connect_gsheets
+import datetime
+
+dict_forbidden_columns = {'index': 'index_'}
 
 def connect():
     # Recover DB information from URL
@@ -99,3 +102,50 @@ def simple_query(query):
         db.close()
     
     return rows
+    
+def update_player(dict_player):
+    try:
+        db=connect()
+        cursor = db.cursor()
+        
+        p_allyCode = dict_player['allyCode']
+        p_guildName = dict_player['guildName']
+        p_id = dict_player['id']
+
+        p_lastActivity_player = dict_player['lastActivity']
+        p_lastActivity_ts = datetime.datetime.fromtimestamp(p_lastActivity_player/1000)
+        p_lastActivity = p_lastActivity_ts.strftime('%Y-%m-%d %H:%M:%S')
+
+        p_level = dict_player['level']
+        p_name = dict_player['name']
+        p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
+        
+        
+        run_query(cursor, "CALL update_player("+
+                                str(p_allyCode)+","+
+                                "'"+p_guildName+"',"+
+                                "'"+p_id+"',"+
+                                "'"+p_lastActivity+"',"+
+                                str(p_level)+","+
+                                "'"+p_name+"',"+
+                                str(p_poUTCOffsetMinutes)+")", True)
+
+        db.commit()
+        print('DB commit OK')
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+        db.close()
+
+def run_query(cursor, query, display):
+    try:
+        if display:
+            print(query)
+        cursor.execute(query)
+    except Error as error:
+        print(error)
+
+
+    
