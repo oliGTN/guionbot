@@ -31,13 +31,14 @@ def connect():
     # Connect to DB
     cleardb_conn = None
     try:
-        print('Connecting to MySQL database...')
+        # print('Connecting to MySQL database...')
         cleardb_conn = mysql.connector.connect(host=url.hostname,
                                        database=url.path[1:],
                                        user=url.username,
                                        password=url.password)
         if cleardb_conn.is_connected():
-            print('Connected to MySQL database')
+            # print('Connected to MySQL database')
+            pass
         else:
             print('Connection failed')
 
@@ -70,11 +71,6 @@ def insert_members():
         db=connect()
         cursor = db.cursor()
         cursor.executemany(query, list_members)
-        
-        if cursor.lastrowid:
-            print('last insert id', cursor.lastrowid)
-        else:
-            print('last insert id not found')
 
         db.commit()
     except Error as error:
@@ -83,6 +79,7 @@ def insert_members():
     finally:
         cursor.close()
         db.close()
+        # print('Connection to MySQL closed')
 
 def simple_query(query):
     rows = []
@@ -90,8 +87,12 @@ def simple_query(query):
         db=connect()
         cursor = db.cursor()
         
-        cursor.execute(query)
-        rows = cursor.fetchall()
+        results = cursor.execute(query, multi=True)
+        for cur in results:
+            # rows.append('cursor: '+ str(cur))
+            if cur.with_rows:
+                for fetch in cur.fetchall():
+                    rows.append(str(fetch))
         
         db.commit()
     except Error as error:
@@ -108,6 +109,7 @@ def update_player(dict_player):
         db=connect()
         cursor = db.cursor()
         
+        # Update basic player information
         p_allyCode = dict_player['allyCode']
         p_guildName = dict_player['guildName']
         p_id = dict_player['id']
@@ -120,7 +122,6 @@ def update_player(dict_player):
         p_name = dict_player['name']
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
         
-        
         run_query(cursor, "CALL update_player("+
                                 str(p_allyCode)+","+
                                 "'"+p_guildName+"',"+
@@ -128,10 +129,81 @@ def update_player(dict_player):
                                 "'"+p_lastActivity+"',"+
                                 str(p_level)+","+
                                 "'"+p_name+"',"+
-                                str(p_poUTCOffsetMinutes)+")", True)
+                                str(p_poUTCOffsetMinutes)+","+
+                                "@player_id)")
+        cursor.execute("SELECT @player_id")                        
+        p_player_id = cursor.fetchall()[0][0]
+        # print('p_player_id: '+str(p_player_id))
+        
+        # Update the roster
+        list_values_roster=[]
+        for character in dict_player['roster']:
+            p_combatType = character['combatType']
+            p_defId = character['defId']
+            p_gear = character['gear']
+            p_gp = character['gp']
+            p_level = character['level']
+            p_nameKey = character['nameKey']
+            p_rarity = character['rarity']
+            p_relic_currentTier = 0
+            if character['relic'] != None:
+                p_relic_currentTier = character['relic']['currentTier']
+                            
+            mod_definition_txt=""
+            for mod in character['mods']:
+                mod_level = mod['level']
+                mod_pips = mod['pips']
+                mod_primaryStat_unitStat = mod['primaryStat']['unitStat']
+                mod_primaryStat_value = mod['primaryStat']['value']
+                
+                mod_secondaryStat_unitstats=[]
+                mod_secondaryStat_values=[]
+                mod_secondaryStat1_unitstat=0
+                mod_secondaryStat1_value=0
+                mod_secondaryStat2_unitstat=0
+                mod_secondaryStat2_value=0
+                mod_secondaryStat3_unitstat=0
+                mod_secondaryStat3_value=0
+                mod_secondaryStat4_unitstat=0
+                mod_secondaryStat4_value=0
+                for sec_stat in mod['secondaryStat']:
+                    mod_secondaryStat_unitstats.append(sec_stat['unitStat'])
+                    mod_secondaryStat_values.append(sec_stat['value'])
+                if len(mod_secondaryStat_unitstats)>0:
+                    mod_secondaryStat1_unitstat = mod_secondaryStat_unitstats[0]
+                    mod_secondaryStat1_value = mod_secondaryStat_values[0]
+                if len(mod_secondaryStat_unitstats)>1:
+                    mod_secondaryStat2_unitstat = mod_secondaryStat_unitstats[1]
+                    mod_secondaryStat2_value = mod_secondaryStat_values[1]
+                if len(mod_secondaryStat_unitstats)>2:
+                    mod_secondaryStat3_unitstat = mod_secondaryStat_unitstats[2]
+                    mod_secondaryStat3_value = mod_secondaryStat_values[2]
+                if len(mod_secondaryStat_unitstats)>3:
+                    mod_secondaryStat4_unitstat = mod_secondaryStat_unitstats[3]
+                    mod_secondaryStat4_value = mod_secondaryStat_values[3]
+                    
+                mod_set = mod['set']
+                mod_slot = mod['slot']
+                mod_tier = mod['tier']
+        
+                mod_definition_txt+=str(mod_level)+","+ \
+                                    str(mod_pips)+","+ \
+                                    str(mod_primaryStat_unitStat)+","+str(mod_primaryStat_value)+","+ \
+                                    str(mod_secondaryStat1_unitstat)+","+str(mod_secondaryStat1_value)+","+ \
+                                    str(mod_secondaryStat2_unitstat)+","+str(mod_secondaryStat2_value)+","+ \
+                                    str(mod_secondaryStat3_unitstat)+","+str(mod_secondaryStat3_value)+","+ \
+                                    str(mod_secondaryStat4_unitstat)+","+str(mod_secondaryStat4_value)+","+ \
+                                    str(mod_set)+","+ \
+                                    str(mod_slot)+","+ \
+                                    str(mod_tier)+"|"
 
+            list_values_roster.append((p_player_id, p_combatType, p_defId, p_gear, p_gp, p_level,
+                                       p_nameKey, p_rarity, p_relic_currentTier, mod_definition_txt))
+
+        query = "CALL update_roster(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        run_querymany(cursor, query, list_values_roster)
+        
         db.commit()
-        print('DB commit OK')
     except Error as error:
         print(error)
         
@@ -139,11 +211,18 @@ def update_player(dict_player):
         cursor.close()
         db.close()
 
-def run_query(cursor, query, display):
+def run_query(cursor, query):
     try:
-        if display:
-            print(query)
+        # print(query)
         cursor.execute(query)
+    except Error as error:
+        print(error)
+
+def run_querymany(cursor, query, values):
+    try:
+        # print('query: '+query)
+        # print('values: '+str(values))
+        cursor.executemany(query, values)
     except Error as error:
         print(error)
 

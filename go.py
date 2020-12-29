@@ -238,11 +238,12 @@ def load_player(allycode):
     player_json_filename = 'CACHE' + os.path.sep + allycode + '.json'
     if os.path.exists(player_json_filename):
         f = open(player_json_filename, 'r')
-        sys.stderr.write('loading cache for ' + str(allycode) + '...')
+        sys.stdout.write('loading cache for ' + str(allycode) + '...')
         ret_player = json.load(f)
+        sys.stdout.write(' ' + ret_player['name'] + '\n')
         f.close()
     else:
-        sys.stderr.write('requesting data for ' + str(allycode) + '...')
+        sys.stdout.write('requesting data for ' + str(allycode) + '...')
         player_data = client.get_data('player', allycode)
         if isinstance(player_data, list):
             if len(player_data) > 0:
@@ -252,6 +253,7 @@ def load_player(allycode):
                             str(len(player_data)))
                             
                 ret_player = player_data[0]
+                sys.stdout.write(' ' + ret_player['name'] + '\n')
                 
                 # update DB
                 connect_cleardb.update_player(ret_player)
@@ -276,37 +278,36 @@ def load_player(allycode):
             print (player_data)
             return None
 
-    sys.stderr.write(' ' + ret_player['name'] + '\n')
     return ret_player
 
 def load_guild(allycode, load_players):
     is_error = False
 
     #rechargement systématique des infos de guilde (liste des membres)
-    sys.stderr.write('>Requesting guild data for allycode ' + allycode +
+    sys.stdout.write('>Requesting guild data for allycode ' + allycode +
                      '...\n')
     client_data = client.get_data('guild', allycode)
     if isinstance(client_data, dict):
         #error code
         ret_guild = str(client)
-        sys.stderr.write('ERR: ' + ret_guild + '\n')
+        sys.stdout.write('ERR: ' + ret_guild + '\n')
         is_error = True
     else:  #list
         ret_guild = client_data[0]
         f = open('CACHE' + os.path.sep + 'G' + allycode + '.json', 'w')
         f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
-        sys.stderr.write('Guild found: ' + ret_guild['name'] + '\n')
+        sys.stdout.write('Guild found: ' + ret_guild['name'] + '\n')
         f.close()
 
     if load_players and not is_error:
         #add player data after saving the guild in json
         total_players = len(ret_guild['roster'])
-        sys.stderr.write('Total players in guild: ' + str(total_players) +
+        sys.stdout.write('Total players in guild: ' + str(total_players) +
                          '\n')
         i_player = 0
         for player in ret_guild['roster']:
             i_player = i_player + 1
-            sys.stderr.write(str(i_player) + ': ')
+            sys.stdout.write(str(i_player) + ': ')
             player['dict_player'] = load_player(str(player['allyCode']))
 
     return ret_guild
