@@ -201,7 +201,7 @@ def update_player(dict_player):
                                        p_nameKey, p_rarity, p_relic_currentTier, mod_definition_txt))
 
         query = "CALL update_roster(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        run_querymany(cursor, query, list_values_roster)
+        # run_querymany(cursor, query, list_values_roster)
         
         db.commit()
     except Error as error:
