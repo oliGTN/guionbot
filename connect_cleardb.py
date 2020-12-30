@@ -13,8 +13,8 @@ def connect():
     # Recover DB information from URL
     urllib.parse.uses_netloc.append('mysql')
     try:
-        if 'CLEARDB_DATABASE_URL' in os.environ:
-            url = urllib.parse.urlparse(os.environ['CLEARDB_DATABASE_URL'])
+        if 'MYSQL_DATABASE_URL' in os.environ:
+            url = urllib.parse.urlparse(os.environ['MYSQL_DATABASE_URL'])
             # 'NAME': url.path[1:],
             # 'USER': url.username,
             # 'PASSWORD': url.password,
@@ -22,7 +22,7 @@ def connect():
             # 'PORT': url.port,
                 
         else:
-            print('ERR: environment variable "CLEARDB_DATABASE_URL" not set')
+            print('ERR: environment variable "MYSQL_DATABASE_URL" not set')
             return
     except Exception:
         print('Unexpected error:', sys.exc_info())
