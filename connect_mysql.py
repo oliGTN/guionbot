@@ -91,8 +91,32 @@ def simple_query(query):
         for cur in results:
             # rows.append('cursor: '+ str(cur))
             if cur.with_rows:
-                for fetch in cur.fetchall():
-                    rows.append(str(fetch))
+                results = cur.fetchall()
+            
+                widths = []
+                columns = []
+                tavnit = '|'
+                separator = '+' 
+                
+                index = 0
+                for cd in cur.description:
+                    max_col_length = max(list(map(lambda x: len(str(x[index])), results)))
+                    widths.append(max(max_col_length, len(cd[0])))
+                    columns.append(cd[0])
+                    index+=1
+
+                for w in widths:
+                    tavnit += " %-"+"%s.%ss |" % (w,w)
+                    separator += '-'*w + '--+'
+
+                rows.append(separator)
+                rows.append(tavnit % tuple(columns))
+                rows.append(separator)
+
+                for fetch in results:
+                    rows.append(tavnit % fetch)
+
+                rows.append(separator)
         
         db.commit()
     except Error as error:

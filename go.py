@@ -7,7 +7,7 @@ import difflib
 from functools import reduce
 from math import ceil
 from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter, load_config_units
-import connect_cleardb
+import connect_mysql
 
 #login password sur https://api.swgoh.help/profile
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
@@ -256,7 +256,7 @@ def load_player(allycode):
                 sys.stdout.write(' ' + ret_player['name'] + '\n')
                 
                 # update DB
-                connect_cleardb.update_player(ret_player)
+                connect_mysql.update_player(ret_player)
 
                 player_roster = ret_player['roster'].copy()
                 ret_player['roster'] = {}

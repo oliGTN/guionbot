@@ -14,7 +14,7 @@ from discord import Activity, ActivityType, Intents
 import go
 from connect_gsheets import load_config_players, update_online_dates
 from connect_warstats import parse_warstats_page
-import connect_cleardb
+import connect_mysql
 
 TOKEN = os.environ['DISCORD_BOT_TOKEN']
 intents = Intents.default()
@@ -371,7 +371,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def sql(self, ctx, arg):
         await ctx.message.add_reaction(emoji_thumb)
 
-        output = connect_cleardb.simple_query(arg)
+        output = connect_mysql.simple_query(arg)
         print('SQL: ' + arg)
         output_txt=''
         for row in output:
