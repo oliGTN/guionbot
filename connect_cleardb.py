@@ -121,35 +121,22 @@ def update_player(dict_player):
         p_level = dict_player['level']
         p_name = dict_player['name']
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
-        
-        run_query(cursor, "CALL update_player("+
-                                str(p_allyCode)+","+
-                                "'"+p_guildName+"',"+
-                                "'"+p_id+"',"+
-                                "'"+p_lastActivity+"',"+
-                                str(p_level)+","+
-                                "'"+p_name+"',"+
-                                str(p_poUTCOffsetMinutes)+","+
-                                "@player_id)")
-        cursor.execute("SELECT @player_id")                        
-        p_player_id = cursor.fetchall()[0][0]
-        # print('p_player_id: '+str(p_player_id))
-        
+              
         # Update the roster
-        list_values_roster=[]
+        roster_definition_txt="" #separator /
         for character in dict_player['roster']:
-            p_combatType = character['combatType']
-            p_defId = character['defId']
-            p_gear = character['gear']
-            p_gp = character['gp']
-            p_level = character['level']
-            p_nameKey = character['nameKey']
-            p_rarity = character['rarity']
-            p_relic_currentTier = 0
+            c_combatType = character['combatType']
+            c_defId = character['defId']
+            c_gear = character['gear']
+            c_gp = character['gp']
+            c_level = character['level']
+            c_nameKey = ''
+            c_rarity = character['rarity']
+            c_relic_currentTier = 0
             if character['relic'] != None:
-                p_relic_currentTier = character['relic']['currentTier']
+                c_relic_currentTier = character['relic']['currentTier']
                             
-            mod_definition_txt=""
+            mod_definition_txt="" #separator |
             for mod in character['mods']:
                 mod_level = mod['level']
                 mod_pips = mod['pips']
@@ -197,12 +184,27 @@ def update_player(dict_player):
                                     str(mod_slot)+","+ \
                                     str(mod_tier)+"|"
 
-            list_values_roster.append((p_player_id, p_combatType, p_defId, p_gear, p_gp, p_level,
-                                       p_nameKey, p_rarity, p_relic_currentTier, mod_definition_txt))
+            roster_definition_txt+=str(c_combatType)+","+ \
+                                   c_defId+","+ \
+                                   str(c_gear)+","+ \
+                                   str(c_gp)+","+ \
+                                   str(c_level)+","+ \
+                                   c_nameKey+","+ \
+                                   str(c_rarity)+","+ \
+                                   str(c_relic_currentTier)+","+ \
+                                   mod_definition_txt+"/"
 
-        query = "CALL update_roster(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        # run_querymany(cursor, query, list_values_roster)
-        
+        # Launch the unique update with all information
+        run_query(cursor, "CALL update_player("+
+                                str(p_allyCode)+","+
+                                "'"+p_guildName+"',"+
+                                "'"+p_id+"',"+
+                                "'"+p_lastActivity+"',"+
+                                str(p_level)+","+
+                                "'"+p_name+"',"+
+                                str(p_poUTCOffsetMinutes)+","+
+                                "'"+roster_definition_txt+"')")
+          
         db.commit()
     except Error as error:
         print(error)
@@ -213,7 +215,7 @@ def update_player(dict_player):
 
 def run_query(cursor, query):
     try:
-        # print(query)
+        #print(query)
         cursor.execute(query)
     except Error as error:
         print(error)
