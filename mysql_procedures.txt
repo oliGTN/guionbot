@@ -1,0 +1,589 @@
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_db_size`()
+BEGIN
+	SELECT table_schema AS "Database", 
+	ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS "Size (MB)" 
+	FROM information_schema.TABLES 
+	GROUP BY table_schema;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `refresh_tables`()
+BEGIN
+	# TABLE players
+    IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'players') THEN
+        DROP TABLE players;
+	END IF;
+    CREATE TABLE players
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        allyCode INT,
+        guildName VARCHAR(255),
+        player_id VARCHAR(30),
+        lastActivity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        level INT,
+        name VARCHAR(255),
+        poUTCOffsetMinutes INT,
+        lastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+    
+	# TABLE roster
+    IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'roster') THEN
+        DROP TABLE roster;
+	END IF;
+    CREATE TABLE roster
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        player_id INT,
+        combatType INT,
+        defId VARCHAR(255),
+        gear INT,
+        gp INT,
+        level INT,
+        nameKey VARCHAR(255),
+        rarity INT,
+        relic_currentTier INT
+	);
+        
+	# TABLE mods
+    IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'mods') THEN
+        DROP TABLE mods;
+	END IF;
+    CREATE TABLE mods
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        roster_id INT,
+        level INT,
+        pips INT,
+        primaryStat_unitStat INT,
+        primaryStat_value FLOAT,
+        secondaryStat1_unitStat INT,
+        secondaryStat1_value FLOAT,
+        secondaryStat2_unitStat INT,
+        secondaryStat2_value FLOAT,
+        secondaryStat3_unitStat INT,
+        secondaryStat3_value FLOAT,
+        secondaryStat4_unitStat INT,
+        secondaryStat4_value FLOAT,
+        mod_set INT,
+        slot INT,
+        tier INT
+	);
+    
+	# TABLE debug
+    IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'debug') THEN
+        DROP TABLE debug;
+	END IF;
+    CREATE TABLE debug
+    (
+		txt MEDIUMTEXT
+	);
+    
+	# TABLE units
+    IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'units') THEN
+        DROP TABLE units;
+	END IF;
+    CREATE TABLE units
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        baseId VARCHAR(255),
+        combatType INT,
+        descKey TEXT,
+        forceAlignment INT,
+        unit_id VARCHAR(255),
+        nameKey VARCHAR(255),
+        obtainable BOOL
+	);
+
+	# TABLE unit_tiers
+    IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'unit_tiers') THEN
+        DROP TABLE unit_tiers;
+	END IF;
+    CREATE TABLE unit_tiers
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        unit_id INT,
+        equipmentSet1 VARCHAR(255),
+        equipmentSet2 VARCHAR(255),
+        equipmentSet3 VARCHAR(255),
+        equipmentSet4 VARCHAR(255),
+        equipmentSet5 VARCHAR(255),
+        equipmentSet6 VARCHAR(255),
+        tier INT
+	);
+    
+	# TABLE unit_stats
+    IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'unit_stats') THEN
+        DROP TABLE unit_stats;
+	END IF;
+    CREATE TABLE unit_stats
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        unit_tier_id INT,
+        scalar INT,
+        statValueDecimal INT,
+        uiDisplayOverrideValue INT,
+        unitStatId INT,
+        unscaledDecimalValue BIGINT
+	);
+    
+	# TABLE guild_teams
+	DROP TABLE IF EXISTS guild_teams;
+	CREATE TABLE guild_teams
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        name VARCHAR(255)
+	);
+
+	# TABLE guild_subteams
+	DROP TABLE IF EXISTS guild_subteams;
+	CREATE TABLE guild_subteams
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        team_id VARCHAR(255),
+        name VARCHAR(255),
+        minimum INT
+	);
+    
+	# TABLE guild_team_roster
+	DROP TABLE IF EXISTS guild_team_roster;
+	CREATE TABLE guild_team_roster
+    (
+		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+        subteam_id VARCHAR(255),
+        unit_id VARCHAR(255),
+        rarity_min INT,
+        gear_min VARCHAR(2),
+        rarity_reco INT,
+        gear_reco VARCHAR(2)
+	);
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_mods`(
+	IN p_roster_id INT,
+    IN mod_definition_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_mods');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
+	#INSERT INTO debug(txt) VALUES(CONCAT('mod_definition_txt=', mod_definition_txt));
+
+	DELETE FROM mods WHERE roster_id = p_roster_id;
+	iterator:
+	LOOP
+		-- exit the loop if the list seems empty or was null;
+		-- this extra caution is necessary to avoid an endless loop in the proc.
+		IF CHAR_LENGTH(TRIM(mod_definition_txt)) = 0 OR mod_definition_txt IS NULL THEN
+			LEAVE iterator;
+		END IF;
+
+		-- capture the next value from the list
+		SET @next_mod = SUBSTRING_INDEX(mod_definition_txt,'|',1);
+		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_mods @next_mod=', @next_mod));
+
+		-- save the length of the captured value; we will need to remove this
+		-- many characters + 1 from the beginning of the string 
+		-- before the next iteration
+		SET @next_mod_len = CHAR_LENGTH(@next_mod);
+
+		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		SET @mod_level = SUBSTRING_INDEX(@next_mod,',',1);
+		SET @mod_pips = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',2),',',-1);
+		SET @mod_primaryStat_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',3),',',-1);
+		SET @mod_primaryStat_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',4),',',-1);
+		SET @mod_secondaryStat1_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',5),',',-1);
+		SET @mod_secondaryStat1_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',6),',',-1);
+		SET @mod_secondaryStat2_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',7),',',-1);
+		SET @mod_secondaryStat2_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',8),',',-1);
+		SET @mod_secondaryStat3_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',9),',',-1);
+		SET @mod_secondaryStat3_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',10),',',-1);
+		SET @mod_secondaryStat4_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',11),',',-1);
+		SET @mod_secondaryStat4_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',12),',',-1);
+		SET @mod_set = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',13),',',-1);
+		SET @mod_slot = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',14),',',-1);
+		SET @mod_tier = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',15),',',-1);
+
+		-- insert the extracted value into the target table
+		INSERT INTO mods (roster_id) VALUES (p_roster_id);
+        SET @mod_id = LAST_INSERT_ID();
+		UPDATE mods SET
+			level = @mod_level,
+            pips = @mod_pips,
+            primaryStat_unitStat = @mod_primaryStat_unitStat,
+            primaryStat_value = @mod_primaryStat_value,
+            secondaryStat1_unitStat = @mod_secondaryStat1_unitStat,
+            secondaryStat1_value = @mod_secondaryStat1_value,
+            secondaryStat2_unitStat = @mod_secondaryStat2_unitStat,
+            secondaryStat2_value = @mod_secondaryStat2_value,
+            secondaryStat3_unitStat = @mod_secondaryStat3_unitStat,
+            secondaryStat3_value = @mod_secondaryStat3_value,
+            secondaryStat4_unitStat = @mod_secondaryStat4_unitStat,
+            secondaryStat4_value = @mod_secondaryStat4_value,
+            mod_set = @mod_set,
+            slot = @mod_slot,
+            tier = @mod_tier
+            WHERE id = @mod_id;
+            
+		-- rewrite the original string using the `INSERT()` string function,
+		-- args are original string, start position, how many characters to remove, 
+		-- and what to "insert" in their place (in this case, we "insert"
+		-- an empty string, which removes _nextlen + 1 characters)
+		SET mod_definition_txt = INSERT(mod_definition_txt,1,@next_mod_len + 1,'');
+	END LOOP;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_player`(
+	IN p_allyCode INT,
+    IN p_guildName VARCHAR(255),
+    IN p_player_id VARCHAR(30),
+    IN p_lastActivity DATETIME,
+    IN p_level int,
+    IN p_name VARCHAR(255),
+    IN p_poUTCOffsetMinutes INT,
+    IN roster_definition_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_player');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_allyCode=', p_allyCode));
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_name=', p_name));
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_level=', p_level));
+
+	IF NOT EXISTS (SELECT * FROM players WHERE allyCode = p_allyCode) THEN
+		INSERT INTO players(allyCode) VALUES(p_allyCode);
+    END IF;
+	IF p_allyCode IN (SELECT allyCode FROM players where (CURRENT_TIMESTAMP-lastUpdated)> 3600)
+    THEN
+		UPDATE players SET
+			guildName = p_guildName,
+			player_id = p_player_id,
+			lastActivity = p_lastActivity,
+			level = p_level,
+			name = p_name,
+			poUTCOffsetMinutes = p_poUTCOffsetMinutes,
+			lastUpdated = CURRENT_TIMESTAMP
+			WHERE allyCode = p_allyCode;
+		
+		SET @p_player_id = (SELECT id FROM players WHERE allyCode = p_allyCode);
+		CALL update_roster(@p_player_id, roster_definition_txt);
+	END IF;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster`(
+	IN p_player_id INT,
+    IN roster_definition_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_roster');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_player_id=', p_player_id));
+	#INSERT INTO debug(txt) VALUES(CONCAT('roster_definition_txt=', roster_definition_txt));
+	iterator:
+	LOOP
+		-- exit the loop if the list seems empty or was null;
+		-- this extra caution is necessary to avoid an endless loop in the proc.
+		IF CHAR_LENGTH(TRIM(roster_definition_txt)) = 0 OR roster_definition_txt IS NULL THEN
+			LEAVE iterator;
+		END IF;
+
+		-- capture the next value from the list
+		SET @next_roster = SUBSTRING_INDEX(roster_definition_txt,'/',1);
+		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_roster @next_roster=', @next_roster));
+
+		-- save the length of the captured value; we will need to remove this
+		-- many characters + 1 from the beginning of the string 
+		-- before the next iteration
+		SET @next_roster_len = CHAR_LENGTH(@next_roster);
+
+		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		SET @p_combatType = SUBSTRING_INDEX(@next_roster,',',1);
+		SET @p_defId = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',2),',',-1);
+		SET @p_gear = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',3),',',-1);
+		SET @p_gp = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',4),',',-1);
+		SET @p_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',5),',',-1);
+		SET @p_nameKey = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',6),',',-1);
+		SET @p_rarity = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',7),',',-1);
+		SET @p_relic_currentTier = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',8),',',-1);
+
+		SET @before_mod_definition = SUBSTRING_INDEX(@next_roster,',',8);
+		SET @pos_mod_definition = CHAR_LENGTH(@before_mod_definition);
+		SET @mod_definition_txt = INSERT(@next_roster,1,@pos_mod_definition + 1,'');
+
+		CALL update_roster_element(
+			p_player_id,
+			@p_combatType,
+			@p_defId,
+			@p_gear,
+			@p_gp,
+			@p_level,
+			@p_nameKey,
+			@p_rarity,
+			@p_relic_currentTier,
+			@mod_definition_txt);
+            
+		-- rewrite the original string using the `INSERT()` string function,
+		-- args are original string, start position, how many characters to remove, 
+		-- and what to "insert" in their place (in this case, we "insert"
+		-- an empty string, which removes _nextlen + 1 characters)
+		SET roster_definition_txt = INSERT(roster_definition_txt,1,@next_roster_len + 1,'');
+	END LOOP;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_element`(
+	IN p_player_id INT,
+	IN p_combatType INT,
+    IN p_defId VARCHAR(255),
+    IN p_gear INT,
+    IN p_gp INT,
+    IN p_level INT,
+    IN p_nameKey VARCHAR(255),
+    IN p_rarity INT,
+    IN p_relic_currentTier INT,
+    IN mod_definition_txt MEDIUMTEXT
+    )
+BEGIN
+    #INSERT INTO debug(txt) VALUES('START update_roster_element');
+    #INSERT INTO debug(txt) VALUES(CONCAT('p_player_id=', p_player_id));
+    #INSERT INTO debug(txt) VALUES(CONCAT('p_defId=', p_defId));
+    #INSERT INTO debug(txt) VALUES(CONCAT('mod_definition_txt=', mod_definition_txt));
+
+	IF NOT EXISTS (SELECT * FROM roster WHERE player_id = p_player_id AND defId = p_defId) THEN
+		INSERT INTO roster(player_id,defId) VALUES(p_player_id,p_defId);
+    END IF;
+    UPDATE roster SET
+		combatType = p_combatType,
+        gear = p_gear,
+        gp = p_gp,
+        level = p_level,
+        nameKey = p_nameKey,
+        rarity = p_rarity,
+        relic_currentTier = p_relic_currentTier
+        WHERE player_id = p_player_id AND defId = p_defId;
+
+	SET @roster_id = (SELECT id FROM roster WHERE player_id = p_player_id AND defId = p_defId);
+    CALL update_mods(@roster_id, mod_definition_txt);
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_tiers`(
+	IN p_unit_id INT,
+    IN tier_definition_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_tiers');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_unit_id=', p_unit_id));
+	#INSERT INTO debug(txt) VALUES(CONCAT('tier_definition_txt=', tier_definition_txt));
+    
+	iterator:
+	LOOP
+		-- exit the loop if the list seems empty or was null;
+		-- this extra caution is necessary to avoid an endless loop in the proc.
+		IF CHAR_LENGTH(TRIM(tier_definition_txt)) = 0 OR tier_definition_txt IS NULL THEN
+			LEAVE iterator;
+		END IF;
+
+		-- capture the next value from the list
+		SET @next_tiers = SUBSTRING_INDEX(tier_definition_txt,'/',1);
+		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_tiers @next_tiers=', @next_tiers));
+
+		-- save the length of the captured value; we will need to remove this
+		-- many characters + 1 from the beginning of the string 
+		-- before the next iteration
+		SET @next_tiers_len = CHAR_LENGTH(@next_tiers);
+
+		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		SET @p_equipmentSet1 = SUBSTRING_INDEX(@next_tiers,',',1);
+		SET @p_equipmentSet2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',2),',',-1);
+		SET @p_equipmentSet3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',3),',',-1);
+		SET @p_equipmentSet4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',4),',',-1);
+		SET @p_equipmentSet5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',5),',',-1);
+		SET @p_equipmentSet6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',6),',',-1);
+		SET @p_tier = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',7),',',-1);
+
+		SET @before_stat_definition = SUBSTRING_INDEX(@next_tiers,',',7);
+		SET @pos_stat_definition = CHAR_LENGTH(@before_stat_definition);
+		SET @stat_definition_txt = INSERT(@next_tiers,1,@pos_stat_definition + 1,'');
+
+		CALL update_tier_element(
+			p_unit_id,
+			@p_equipmentSet1,
+			@p_equipmentSet2,
+			@p_equipmentSet3,
+			@p_equipmentSet4,
+			@p_equipmentSet5,
+			@p_equipmentSet6,
+			@p_tier,
+			@stat_definition_txt);
+            
+		-- rewrite the original string using the `INSERT()` string function,
+		-- args are original string, start position, how many characters to remove, 
+		-- and what to "insert" in their place (in this case, we "insert"
+		-- an empty string, which removes _nextlen + 1 characters)
+		SET tier_definition_txt = INSERT(tier_definition_txt,1,@next_tiers_len + 1,'');
+	END LOOP;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_tier_element`(
+	IN p_unit_id INT,
+	IN p_equipmentSet1 VARCHAR(255),
+	IN p_equipmentSet2 VARCHAR(255),
+	IN p_equipmentSet3 VARCHAR(255),
+	IN p_equipmentSet4 VARCHAR(255),
+	IN p_equipmentSet5 VARCHAR(255),
+	IN p_equipmentSet6 VARCHAR(255),
+	IN p_tier INT,
+    IN stat_definition_txt MEDIUMTEXT
+    )
+BEGIN
+    #INSERT INTO debug(txt) VALUES('START update_tier_element');
+    #INSERT INTO debug(txt) VALUES(CONCAT('p_unit_id=', p_unit_id));
+    #INSERT INTO debug(txt) VALUES(CONCAT('p_tier=', p_tier));
+    #INSERT INTO debug(txt) VALUES(CONCAT('stat_definition_txt=', stat_definition_txt));
+
+	IF NOT EXISTS (SELECT * FROM unit_tiers WHERE unit_id = p_unit_id AND tier = p_tier) THEN
+		INSERT INTO unit_tiers(unit_id,tier) VALUES(p_unit_id,p_tier);
+    END IF;
+    UPDATE unit_tiers SET
+		equipmentSet1 = p_equipmentSet1,
+		equipmentSet2 = p_equipmentSet2,
+		equipmentSet3 = p_equipmentSet3,
+		equipmentSet4 = p_equipmentSet4,
+		equipmentSet5 = p_equipmentSet5,
+		equipmentSet6 = p_equipmentSet6
+        WHERE unit_id = p_unit_id AND tier = p_tier;
+
+	SET @unit_tier_id = (SELECT id FROM unit_tiers WHERE unit_id = p_unit_id AND tier = p_tier);
+    CALL update_unit_stats(@unit_tier_id, stat_definition_txt);
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_unit`(
+	p_baseId VARCHAR(255),
+	p_combatType INT,
+	p_descKey TEXT,
+	p_forceAlignment INT,
+	p_unit_id VARCHAR(255),
+	p_nameKey VARCHAR(255),
+	p_obtainable BOOL,
+    tier_definition_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_unit');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_unit_id=', p_unit_id));
+
+	IF NOT EXISTS (SELECT * FROM units WHERE unit_id = p_unit_id) THEN
+		INSERT INTO units(unit_id) VALUES(p_unit_id);
+    END IF;
+    UPDATE units SET
+		baseId = p_baseId,
+		combatType = p_combatType,
+		descKey = p_descKey,
+		forceAlignment = p_forceAlignment,
+		unit_id = p_unit_id,
+		nameKey = p_nameKey,
+		obtainable = p_obtainable
+        WHERE unit_id = p_unit_id;
+	
+    SET @p_current_id = (SELECT id FROM units WHERE unit_id = p_unit_id);
+    CALL update_tiers(@p_current_id, tier_definition_txt);
+    
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_unit_stats`(
+	IN p_unit_tier_id INT,
+    IN stat_definition_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_unit_stats');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_unit_tier_id=', p_unit_tier_id));
+	#INSERT INTO debug(txt) VALUES(CONCAT('stat_definition_txt=', stat_definition_txt));
+
+	DELETE FROM unit_stats WHERE unit_tier_id = p_unit_tier_id;
+	iterator:
+	LOOP
+		-- exit the loop if the list seems empty or was null;
+		-- this extra caution is necessary to avoid an endless loop in the proc.
+		IF CHAR_LENGTH(TRIM(stat_definition_txt)) = 0 OR stat_definition_txt IS NULL THEN
+			LEAVE iterator;
+		END IF;
+
+		-- capture the next value from the list
+		SET @next_stat = SUBSTRING_INDEX(stat_definition_txt,'|',1);
+		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_unit_stats @next_stat=', @next_stat));
+
+		-- save the length of the captured value; we will need to remove this
+		-- many characters + 1 from the beginning of the string 
+		-- before the next iteration
+		SET @next_stat_len = CHAR_LENGTH(@next_stat);
+
+		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		SET @stat_scalar = SUBSTRING_INDEX(@next_stat,',',1);
+		SET @stat_statValueDecimal = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',2),',',-1);
+		SET @stat_uiDisplayOverrideValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',3),',',-1);
+		SET @stat_unitStatId = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',4),',',-1);
+		SET @stat_unscaledDecimalValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',5),',',-1);
+
+		-- insert the extracted value into the target table
+		INSERT INTO unit_stats (unit_tier_id) VALUES (p_unit_tier_id);
+        SET @stat_id = LAST_INSERT_ID();
+		UPDATE unit_stats SET
+			scalar = @stat_scalar,
+            statValueDecimal = @stat_statValueDecimal,
+            uiDisplayOverrideValue = @stat_uiDisplayOverrideValue,
+            unitStatId = @stat_unitStatId,
+            unscaledDecimalValue = @stat_unscaledDecimalValue
+            WHERE id = @stat_id;
+            
+		-- rewrite the original string using the `INSERT()` string function,
+		-- args are original string, start position, how many characters to remove, 
+		-- and what to "insert" in their place (in this case, we "insert"
+		-- an empty string, which removes _nextlen + 1 characters)
+		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
+	END LOOP;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `vtg`(
+	IN team_name VARCHAR(255)
+    )
+BEGIN
+	DROP VIEW IF EXISTS players_team_roster_extended;
+
+	SELECT
+		GROUP_CONCAT(DISTINCT
+			CONCAT(
+				'case when defId = ''',
+				unit_id,
+				''' then CONCAT(roster.rarity_txt, ''.'', case when roster.gear < 13 then roster.gear else concat(''R'', roster.relic_currentTier_txt) end) end AS ',
+				unit_id
+			)
+		) INTO @sql_case
+	FROM
+	(
+		SELECT guild_team_roster.unit_id
+		FROM guild_team_roster
+		JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
+		JOIN guild_teams ON guild_teams.id = guild_subteams.team_id
+		WHERE guild_teams.name = team_name
+	) AS T;  
+    
+	SELECT
+		GROUP_CONCAT(DISTINCT
+			CONCAT(
+				'GROUP_CONCAT(',
+				unit_id,
+				') AS ',
+				unit_id
+			)
+		) INTO @sql_sum
+	FROM
+    (
+		SELECT guild_team_roster.unit_id
+		FROM guild_team_roster
+		JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
+		JOIN guild_teams ON guild_teams.id = guild_subteams.team_id
+		WHERE guild_teams.name = team_name
+	) AS T;
+    
+	SET @sql1 = CONCAT('CREATE VIEW players_team_roster_extended AS ( ',
+					'SELECT players.name, roster.defId, ',
+					@sql_case,
+					' FROM (SELECT *, CAST(rarity AS CHAR(10)) as rarity_txt, CAST(relic_currentTier AS CHAR(10)) as relic_currentTier_txt FROM roster) AS roster',
+                    ' JOIN players ON players.id = roster.player_id)');
+	PREPARE stmt FROM @sql1;
+	EXECUTE stmt;
+
+	SET @sql2 = CONCAT('SELECT name, ',
+					@sql_sum,
+					' FROM players_team_roster_extended '
+					'GROUP BY name');
+	PREPARE stmt FROM @sql2;
+	EXECUTE stmt;
+
+	DEALLOCATE PREPARE stmt;
+
+	DROP VIEW players_team_roster_extended;
+END

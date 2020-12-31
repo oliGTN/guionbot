@@ -3,8 +3,6 @@ import sys
 import urllib.parse
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
-import go
-import connect_gsheets
 import datetime
 
 dict_forbidden_columns = {'index': 'index_'}
@@ -237,20 +235,136 @@ def update_player(dict_player):
         cursor.close()
         db.close()
 
+def update_unit(dict_unit):
+    try:
+        db=connect()
+        cursor = db.cursor()
+        
+        # Update basic unit information
+        u_baseId = dict_unit['baseId']
+        u_combatType = dict_unit['combatType']
+        u_descKey = dict_unit['descKey']
+        u_forceAlignment = dict_unit['forceAlignment']
+        u_unit_id = dict_unit['id']
+        u_nameKey = dict_unit['nameKey']
+        u_obtainable = dict_unit['obtainable']
+              
+        tier_definition_txt="" #separator /
+        # Update the baseStats as tier 0
+        t_equipmentSet1 = 0
+        t_equipmentSet2 = 0
+        t_equipmentSet3 = 0
+        t_equipmentSet4 = 0
+        t_equipmentSet5 = 0
+        t_equipmentSet6 = 0
+        t_tier = 0
+
+        stat_definition_txt="" #separator |
+        for stat in dict_unit['baseStat']['statList']:
+            s_scalar = stat['scalar']
+            s_statValueDecimal = stat['statValueDecimal']
+            s_uiDisplayOverrideValue = stat['uiDisplayOverrideValue']
+            s_unitStatId = stat['unitStatId']
+            s_unscaledDecimalValue = stat['unscaledDecimalValue']
+        
+            stat_definition_txt+=str(s_scalar)+","+ \
+                                 str(s_statValueDecimal)+","+ \
+                                 str(s_uiDisplayOverrideValue)+","+ \
+                                 str(s_unitStatId)+","+ \
+                                 str(s_unscaledDecimalValue)+"|"
+                                 
+        tier_definition_txt+=str(t_equipmentSet1)+","+ \
+                             str(t_equipmentSet1)+","+ \
+                             str(t_equipmentSet1)+","+ \
+                             str(t_equipmentSet1)+","+ \
+                             str(t_equipmentSet1)+","+ \
+                             str(t_equipmentSet1)+","+ \
+                             str(t_equipmentSet1)+","+ \
+                             stat_definition_txt+"/"
+        
+        # Update the baseStats per tier in unitTierList
+        for tier in dict_unit['unitTierList']:
+            t_equipmentSet1 = tier['equipmentSetList'][0]
+            t_equipmentSet2 = tier['equipmentSetList'][1]
+            t_equipmentSet3 = tier['equipmentSetList'][2]
+            t_equipmentSet4 = tier['equipmentSetList'][3]
+            t_equipmentSet5 = tier['equipmentSetList'][4]
+            t_equipmentSet6 = tier['equipmentSetList'][5]
+            t_tier = tier['tier']
+
+            stat_definition_txt="" #separator |
+            for stat in tier['baseStat']['statList']:
+                s_scalar = stat['scalar']
+                s_statValueDecimal = stat['statValueDecimal']
+                s_uiDisplayOverrideValue = stat['uiDisplayOverrideValue']
+                s_unitStatId = stat['unitStatId']
+                s_unscaledDecimalValue = stat['unscaledDecimalValue']
+            
+                stat_definition_txt+=str(s_scalar)+","+ \
+                                     str(s_statValueDecimal)+","+ \
+                                     str(s_uiDisplayOverrideValue)+","+ \
+                                     str(s_unitStatId)+","+ \
+                                     str(s_unscaledDecimalValue)+"|"
+            tier_definition_txt+=t_equipmentSet1+","+ \
+                                 t_equipmentSet2+","+ \
+                                 t_equipmentSet3+","+ \
+                                 t_equipmentSet4+","+ \
+                                 t_equipmentSet5+","+ \
+                                 t_equipmentSet6+","+ \
+                                 str(t_tier)+","+ \
+                                 stat_definition_txt+"/"
+
+        # Launch the unique update with all information
+        print("CALL update_unit("+
+                                "'"+u_baseId+"',"+
+                                str(u_combatType)+","+
+                                "'"+u_descKey+"',"+
+                                str(u_forceAlignment)+","+
+                                "'"+u_unit_id+"',"+
+                                "'"+u_nameKey+"',"+
+                                str(u_obtainable)+","+
+                                "'"+tier_definition_txt+"')")
+        cursor.callproc('update_unit', (u_baseId,
+                                        u_combatType,
+                                        u_descKey,
+                                        u_forceAlignment,
+                                        u_unit_id,
+                                        u_nameKey,
+                                        u_obtainable,
+                                        tier_definition_txt))
+          
+        db.commit()
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+        db.close()
+        
 def run_query(cursor, query):
     try:
-        #print(query)
+        print(query)
         cursor.execute(query)
     except Error as error:
         print(error)
 
-def run_querymany(cursor, query, values):
+def export_procedures():
     try:
-        # print('query: '+query)
-        # print('values: '+str(values))
-        cursor.executemany(query, values)
+        db=connect()
+        cursor = db.cursor()
+        cursor.execute("SHOW PROCEDURE STATUS")
+        results = cursor.fetchall()
+        for r in results:
+            proc_name = r[1]
+            cursor.execute("SHOW CREATE PROCEDURE "+proc_name)
+            for line in cursor.fetchall():
+                print (line[2])
+        
     except Error as error:
         print(error)
-
+        
+    finally:
+        cursor.close()
+        db.close()
 
     
