@@ -244,6 +244,7 @@ def load_player(allycode):
         f.close()
     else:
         sys.stdout.write('requesting data for ' + str(allycode) + '...')
+        sys.stdout.flush()
         player_data = client.get_data('player', allycode)
         if isinstance(player_data, list):
             if len(player_data) > 0:
@@ -253,10 +254,13 @@ def load_player(allycode):
                             str(len(player_data)))
                             
                 ret_player = player_data[0]
-                sys.stdout.write(' ' + ret_player['name'] + '\n')
+                sys.stdout.write(' ' + ret_player['name'])
+                sys.stdout.flush()
                 
                 # update DB
                 connect_mysql.update_player(ret_player)
+                sys.stdout.write('.')
+                sys.stdout.flush()
 
                 player_roster = ret_player['roster'].copy()
                 ret_player['roster'] = {}
@@ -267,6 +271,7 @@ def load_player(allycode):
                 f = open(player_json_filename, 'w')
                 f.write(json.dumps(ret_player, indent=4, sort_keys=True))
                 f.close()
+                sys.stdout.write('.\n')
                 
             else:
                 print ('ERR: client.get_data(\'player\', '+allycode+

@@ -143,7 +143,7 @@ def update_player(dict_player):
         p_level = dict_player['level']
         p_name = dict_player['name']
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
-              
+                      
         # Update the roster
         roster_definition_txt="" #separator /
         for character in dict_player['roster']:
@@ -154,9 +154,14 @@ def update_player(dict_player):
             c_level = character['level']
             c_nameKey = ''
             c_rarity = character['rarity']
+            
             c_relic_currentTier = 0
             if character['relic'] != None:
                 c_relic_currentTier = character['relic']['currentTier']
+
+            c_equipped = ['', '', '', '', '', '']
+            for eqpt in character['equipped']:
+                c_equipped[eqpt['slot']] = eqpt['equipmentId']
                             
             mod_definition_txt="" #separator |
             for mod in character['mods']:
@@ -214,18 +219,25 @@ def update_player(dict_player):
                                    c_nameKey+","+ \
                                    str(c_rarity)+","+ \
                                    str(c_relic_currentTier)+","+ \
+                                   str(c_equipped[0])+","+ \
+                                   str(c_equipped[1])+","+ \
+                                   str(c_equipped[2])+","+ \
+                                   str(c_equipped[3])+","+ \
+                                   str(c_equipped[4])+","+ \
+                                   str(c_equipped[5])+","+ \
                                    mod_definition_txt+"/"
 
         # Launch the unique update with all information
-        run_query(cursor, "CALL update_player("+
-                                str(p_allyCode)+","+
-                                "'"+p_guildName+"',"+
-                                "'"+p_id+"',"+
-                                "'"+p_lastActivity+"',"+
-                                str(p_level)+","+
-                                "'"+p_name+"',"+
-                                str(p_poUTCOffsetMinutes)+","+
-                                "'"+roster_definition_txt+"')")
+        query_parameters = (p_allyCode,
+                            p_guildName,
+                            p_id,
+                            p_lastActivity,
+                            p_level,
+                            p_name,
+                            p_poUTCOffsetMinutes,
+                            roster_definition_txt)
+        # print("CALL update_player"+str(query_parameters))
+        cursor.callproc('update_player', query_parameters)
           
         db.commit()
     except Error as error:
@@ -315,23 +327,16 @@ def update_unit(dict_unit):
                                  stat_definition_txt+"/"
 
         # Launch the unique update with all information
-        print("CALL update_unit("+
-                                "'"+u_baseId+"',"+
-                                str(u_combatType)+","+
-                                "'"+u_descKey+"',"+
-                                str(u_forceAlignment)+","+
-                                "'"+u_unit_id+"',"+
-                                "'"+u_nameKey+"',"+
-                                str(u_obtainable)+","+
-                                "'"+tier_definition_txt+"')")
-        cursor.callproc('update_unit', (u_baseId,
-                                        u_combatType,
-                                        u_descKey,
-                                        u_forceAlignment,
-                                        u_unit_id,
-                                        u_nameKey,
-                                        u_obtainable,
-                                        tier_definition_txt))
+        query_parameters = (u_baseId,
+                            u_combatType,
+                            u_descKey,
+                            u_forceAlignment,
+                            u_unit_id,
+                            u_nameKey,
+                            u_obtainable,
+                            tier_definition_txt)
+        print("CALL update_unit"+str(query_parameters))
+        cursor.callproc('update_unit', query_parameters)
           
         db.commit()
     except Error as error:
