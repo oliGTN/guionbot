@@ -343,7 +343,7 @@ def update_unit(dict_unit):
         
 def run_query(cursor, query):
     try:
-        print(query)
+        # print(query)
         cursor.execute(query)
     except Error as error:
         print(error)
