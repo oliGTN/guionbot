@@ -29,13 +29,13 @@ def connect():
     # Connect to DB
     cleardb_conn = None
     try:
-        # print('Connecting to MySQL database...')
+        print('Connecting to MySQL database...')
         cleardb_conn = mysql.connector.connect(host=url.hostname,
                                        database=url.path[1:],
                                        user=url.username,
                                        password=url.password)
         if cleardb_conn.is_connected():
-            # print('Connected to MySQL database')
+            print('Connected to MySQL database')
             pass
         else:
             print('Connection failed')
@@ -337,6 +337,117 @@ def update_unit(dict_unit):
                             tier_definition_txt)
         print("CALL update_unit"+str(query_parameters))
         cursor.callproc('update_unit', query_parameters)
+          
+        db.commit()
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+        db.close()
+
+def update_eqpt(dict_eqpt):
+    try:
+        db=connect()
+        cursor = db.cursor()
+        
+        # Update basic unit information
+        e_eqpt_id = dict_eqpt['id']
+        e_mark = dict_eqpt['mark']
+        e_nameKey = dict_eqpt['nameKey']
+        e_recipeId = dict_eqpt['recipeId']
+        e_requiredLevel = dict_eqpt['requiredLevel']
+        e_requiredRarity = dict_eqpt['requiredRarity']
+        e_sellValue_bonusQuantity = dict_eqpt['sellValue']['bonusQuantity']
+        e_sellValue_currency = dict_eqpt['sellValue']['currency']
+        e_sellValue_quantity = dict_eqpt['sellValue']['quantity']
+        e_tier = dict_eqpt['tier']
+        e_type = dict_eqpt['type']
+              
+        stat_lookup_raid_definition_txt=""
+        
+        # get equipmentStat
+        nb_stat = 0
+        for stat in dict_eqpt['equipmentStat']['statList']:
+            s_scalar = stat['scalar']
+            s_statValueDecimal = stat['statValueDecimal']
+            s_uiDisplayOverrideValue = stat['uiDisplayOverrideValue']
+            s_unitStatId = stat['unitStatId']
+            s_unscaledDecimalValue = stat['unscaledDecimalValue']
+        
+            stat_lookup_raid_definition_txt+=str(s_scalar)+","+ \
+                                             str(s_statValueDecimal)+","+ \
+                                             str(s_uiDisplayOverrideValue)+","+ \
+                                             str(s_unitStatId)+","+ \
+                                             str(s_unscaledDecimalValue)+"|"
+            nb_stat+=1
+        
+        #remove last | and add a /
+        if nb_stat > 0:
+            stat_lookup_raid_definition_txt = stat_lookup_raid_definition_txt[:-1]
+        stat_lookup_raid_definition_txt = stat_lookup_raid_definition_txt+'/'
+        
+        # get lookupMissionList
+        nb_lookupMission = 0
+        for mission in dict_eqpt['lookupMissionList']:
+            m_event = mission['event']
+            m_campaignId = mission['missionIdentifier']['campaignId']
+            m_campaignMapId = mission['missionIdentifier']['campaignMapId']
+            m_campaignMissionId = mission['missionIdentifier']['campaignMissionId']
+            m_campaignNodeDifficulty = mission['missionIdentifier']['campaignNodeDifficulty']
+            m_campaignNodeId = mission['missionIdentifier']['campaignNodeId']
+        
+            stat_lookup_raid_definition_txt+=str(int(m_event))+","+ \
+                                             m_campaignId+","+ \
+                                             m_campaignMapId+","+ \
+                                             m_campaignMissionId+","+ \
+                                             str(m_campaignNodeDifficulty)+","+ \
+                                             m_campaignNodeId+"|"
+            nb_lookupMission+=1
+
+        #remove last | and add a /
+        if nb_lookupMission > 0:
+            stat_lookup_raid_definition_txt = stat_lookup_raid_definition_txt[:-1]
+        stat_lookup_raid_definition_txt = stat_lookup_raid_definition_txt+'/'
+
+        # get raidLookupList
+        nb_raidMission = 0
+        for mission in dict_eqpt['raidLookupList']:
+            m_event = mission['event']
+            m_campaignId = mission['missionIdentifier']['campaignId']
+            m_campaignMapId = mission['missionIdentifier']['campaignMapId']
+            m_campaignMissionId = mission['missionIdentifier']['campaignMissionId']
+            m_campaignNodeDifficulty = mission['missionIdentifier']['campaignNodeDifficulty']
+            m_campaignNodeId = mission['missionIdentifier']['campaignNodeId']
+        
+            stat_lookup_raid_definition_txt+=str(int(m_event))+","+ \
+                                             m_campaignId+","+ \
+                                             m_campaignMapId+","+ \
+                                             m_campaignMissionId+","+ \
+                                             str(m_campaignNodeDifficulty)+","+ \
+                                             m_campaignNodeId+"|"
+            nb_raidMission+=1
+
+        #remove last |
+        if nb_raidMission > 0:
+            stat_lookup_raid_definition_txt = stat_lookup_raid_definition_txt[:-1]
+
+        # Launch the unique update with all information
+        query_parameters = (e_eqpt_id,
+                            e_mark,
+                            e_nameKey,
+                            e_recipeId,
+                            e_requiredLevel,
+                            e_requiredRarity,
+                            e_sellValue_bonusQuantity,
+                            e_sellValue_currency,
+                            e_sellValue_quantity,
+                            e_tier,
+                            e_type,
+                            stat_lookup_raid_definition_txt)
+                            
+        print("CALL update_equipment"+str(query_parameters))
+        cursor.callproc('update_equipment', query_parameters)
           
         db.commit()
     except Error as error:
