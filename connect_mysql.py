@@ -29,13 +29,13 @@ def connect():
     # Connect to DB
     cleardb_conn = None
     try:
-        print('Connecting to MySQL database...')
+        # print('Connecting to MySQL database...')
         cleardb_conn = mysql.connector.connect(host=url.hostname,
                                        database=url.path[1:],
                                        user=url.username,
                                        password=url.password)
         if cleardb_conn.is_connected():
-            print('Connected to MySQL database')
+            # print('Connected to MySQL database')
             pass
         else:
             print('Connection failed')
