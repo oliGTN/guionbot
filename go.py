@@ -846,6 +846,10 @@ def get_character_stats(dict_character):
                     mod_potency += secondary['value']/100
                     #print('sec mod potency: '+str(mod_potency))
  
+    # print('DBG base_speed='+str(base_speed))
+    # print('DBG eqpt_speed='+str(eqpt_speed))
+    # print('DBG mod_speed='+str(mod_speed))
+    
     #Bonus on speed mods (groups of 4)
     if total_speed_mods < 4:
         total_speed = base_speed + eqpt_speed + mod_speed
