@@ -711,7 +711,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
 
-        ret_cmd = go.print_character_stats(characters, allycode)
+        if len(characters) > 0:
+            ret_cmd = go.print_character_stats(characters, allycode)
+        else:
+            ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
+            
         if ret_cmd[0:3] == 'ERR':
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
