@@ -4,6 +4,7 @@ import json
 import time
 import os
 import difflib
+import math
 from functools import reduce
 from math import ceil
 from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter, load_config_units
@@ -138,20 +139,6 @@ journey_guide['GRANDMASTERLUKE']['Persos']=[14, [['OLDBENKENOBI', 7, 13, 5, 8, -
                                         ['BIGGSDARKLIGHTER', 7, 13, 3, 8, -1, 5, -1],
                                         ['ADMINISTRATORLANDO', 7, 13, 5, 8, -1, 5, -1]]]
 journey_guide['GRANDMASTERLUKE']['Vaisseaux']=[1, [['YWINGREBEL', 6, -1, -1, -1, -1, -1, -1]]]
-
-# dict_guidevoyage={} # [nombre nécessaire, étoiles, relic, niveau capa, PG, module]
-# dict_guidevoyage['GAS']=[[[], [], [], []], [[], [], [], []]]
-# dict_guidevoyage['GAS'][0][0]=["Persos", 10, 7, -1, -1, 17700, -1, ['ASAJVENTRESS', 'PADMEAMIDALA', 'GENERALKENOBI', 'B2SUPERBATTLEDROID', 'MAGNAGUARD', 'C3POLEGENDARY', 'AHSOKATANO', 'DROIDEKA', 'B1BATTLEDROIDV2', 'SHAAKTI']]
-# dict_guidevoyage['GAS'][0][1]=["Vaisseau amiral", 1, 7, -1, -1, 40000, -1, ['CAPITALJEDICRUISER', 'CAPITALNEGOTIATOR']]
-# dict_guidevoyage['GAS'][0][2]=["Eta-2", 1, 7, -1, -1, 40000, -1, ['JEDISTARFIGHTERANAKIN']]
-# dict_guidevoyage['GAS'][0][3]=["Vaisseaux", 3, 7, -1, -1, 40000, -1, ['JEDISTARFIGHTERAHSOKATANO', 'UMBARANSTARFIGHTER', 'ARC170REX', 'BLADEOFDORIN', 'JEDISTARFIGHTERCONSULAR', 'ARC170CLONESERGEANT', 'YWINGCLONEWARS']]
-# dict_guidevoyage['GAS'][1][0]=["Persos", 10, 7, 3, 8, 22000, 6, ['ASAJVENTRESS', 'PADMEAMIDALA', 'GENERALKENOBI', 'B2SUPERBATTLEDROID', 'MAGNAGUARD', 'C3POLEGENDARY', 'AHSOKATANO', 'DROIDEKA', 'B1BATTLEDROIDV2', 'SHAAKTI']]
-# dict_guidevoyage['GAS'][1][1]=["Vaisseau amiral", 1, 7, -1, 8, 50000, -1, ['CAPITALJEDICRUISER', 'CAPITALNEGOTIATOR']]
-# dict_guidevoyage['GAS'][1][2]=["Eta-2", 1, 7, -1, 8, 50000, -1, ['JEDISTARFIGHTERANAKIN']]
-# dict_guidevoyage['GAS'][1][3]=["Vaisseaux", 3, 7, -1, 8, 50000, -1, ['JEDISTARFIGHTERAHSOKATANO', 'UMBARANSTARFIGHTER', 'ARC170REX', 'BLADEOFDORIN', 'JEDISTARFIGHTERCONSULAR', 'ARC170CLONESERGEANT', 'YWINGCLONEWARS']]
-# dict_guidevoyage['JKLS']=[[[], []]]
-# dict_guidevoyage['JKLS'][0][0]=["Persos", 9, 7, 3, -1, -1, -1, ['COMMANDERLUKESKYWALKER', 'HOTHLEIA', 'HOTHHAN', 'WAMPA', 'CHEWBACCALEGENDARY', 'C3POLEGENDARY', 'VADER', 'ADMINISTRATORLANDO', 'HERMITYODA']]
-# dict_guidevoyage['JKLS'][0][1]=["Vaisseaux", 2, 7, -1, -1, -1, -1, ['XWINGRED2', 'MILLENNIUMFALCON']]
 
 def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
@@ -789,102 +776,195 @@ def split_txt(txt, max_size):
 # Function: get_character_stats
 # Parameters: dict_character > dictionaire tel que renvoyé par swgoh.help API (voir dans le json)
 # Purpose: renvoie la vitesse et le pouvoir en fonction du gear, des équipements et des mods
-# Output: [total_speed (integer), total_potency (float)]
+# Output: [base_stats[1:61], eqpt_stats[1:61], mod_stats[1:61]]
 ##############################################################
 def get_character_stats(dict_character):
-    equipment_stats = json.load(open('equipment_stats.json', 'r'))
-    units_stats = json.load(open('units_stats.json', 'r'))
+    gameData = json.load(open('gameData.json', 'r'))
 
-    #print('==============\n'+dict_character['nameKey'])
-    base_speed = units_stats[dict_character['defId']]['gear_stats'][dict_character['gear'] - 1][0]
-    base_potency = units_stats[dict_character['defId']]['gear_stats'][dict_character['gear'] - 1][1]
-    #print('base: '+str(base_speed)+'/'+str(base_potency))
+    char_defId = dict_character['defId']
+    char_gear = dict_character['gear']
+    char_rarity = dict_character['rarity']
+    char_level = dict_character['level']
+    char_relic_currentTier = 0
+    if 'currentTier' in dict_character['relic']:
+        char_relic_currentTier = dict_character['relic']['currentTier']
 
-    eqpt_speed = 0
-    eqpt_potency = 0
+    ########################################
+    # getCharRawStats from crinolo
+    ########################################
+
+    # Base stats of the character, up to G12
+    base_stats = {}
+    for i in range(1, 62):
+        base_stats[i] = 0
+    for statID in gameData['unitData'][char_defId]['gearLvl'][str(char_gear)]['stats']:
+        base_stats[int(statID)] = gameData['unitData'][char_defId]['gearLvl'][str(char_gear)]['stats'][statID]
+    # print('base_stats='+str(base_stats))
+
+    growthModifiers_stats = {2:0, 3:0, 4:0}
+    for statID in gameData['unitData'][char_defId]['growthModifiers'][str(char_rarity)]:
+        growthModifiers_stats[int(statID)] = gameData['unitData'][char_defId]['growthModifiers'][str(char_rarity)][statID]
+    # print('growthModifiers_stats='+str(growthModifiers_stats))
+    
+    # manage equipment
+    gear_stats = {}
+    for i in range(1, 62):
+        gear_stats[i] = 0
+        
     if 'equipped' in dict_character:
         for eqpt in dict_character['equipped']:
-            eqpt_speed += equipment_stats[eqpt['equipmentId']][0]
-            eqpt_potency += equipment_stats[eqpt['equipmentId']][1]
-            #print('eqpt '+str(eqpt_speed)+'/'+str(eqpt_potency))
-
-    #Constants
-    SPEED_STAT_ID = 5
-    SPEED_MOD_SET = 4
-    POTENCY_STAT_ID = 17
-    POTENCY_MOD_SET = 7
+            gearStats = gameData['gearData'][eqpt['equipmentId']]['stats']
+            for statID in gearStats:
+                if (statID == '2' or statID == '3' or statID == '4'):
+                    # Primary Stat, applies before mods
+                    base_stats[ int(statID) ] += gearStats[ statID ]
+                else:
+                    #Secondary Stat, applies after mods
+                    gear_stats[ int(statID) ] += gearStats[ statID ]
     
-    #Compute stats
-    total_speed_mods = 0
-    nb_speed_mods_level15 = 0
-    mod_speed = 0
-    total_potency_mods = 0
-    nb_potency_mods_level15 = 0
-    mod_potency = 0
+    # Manage relic level (base_stats stop at G12)
+    if (char_relic_currentTier > 2):
+        # calculate stats from relics
+        relic = gameData['relicData'][ gameData['unitData'][char_defId]['relic'][ str(char_relic_currentTier) ] ];
+        for statID in relic['stats']:
+            base_stats[ int(statID) ] += relic['stats'][ statID ]
+            
+        for statID in relic['gms']:
+            growthModifiers_stats[ int(statID) ] += relic['gms'][ statID ]
+            
+    ########################################
+    # calculateBaseStats from crinolo
+    ########################################
+    # calculate bonus Primary stats from Growth Modifiers:
+    base_stats[2] += math.floor( growthModifiers_stats[2] * char_level ) # Strength
+    base_stats[3] += math.floor( growthModifiers_stats[3] * char_level ) # Agility
+    base_stats[4] += math.floor( growthModifiers_stats[4] * char_level ) # Tactics
+    # print('base_stats='+str(base_stats))
+    
+    if 61 in base_stats:
+        # calculate effects of Mastery on Secondary stats:
+        mms = gameData['crTables'][ gameData['unitData'][char_defId]['masteryModifierID'] ]
+        for statID in mms:
+            base_stats[ int(statID) ] += base_stats[61]*mms[ statID ]
+    # print('base_stats='+str(base_stats))
+
+    # calculate effects of Primary stats on Secondary stats:
+    base_stats[1] = base_stats[1] + base_stats[2] * 18;                                          # Health += STR * 18
+    base_stats[6] = math.floor( base_stats[6] + base_stats[ gameData['unitData'][char_defId]['primaryStat'] ] * 1.4 )           # Ph. Damage += MainStat * 1.4
+    base_stats[7] = math.floor( base_stats[7] + base_stats[4] * 2.4 )                            # Sp. Damage += TAC * 2.4
+    base_stats[8] = math.floor( base_stats[8] + base_stats[2] * 0.14 + base_stats[3] * 0.07 )    # Armor += STR*0.14 + AGI*0.07
+    base_stats[9] = math.floor( base_stats[9] + base_stats[4] * 0.1 )                            # Resistance += TAC * 0.1
+    base_stats[14] = math.floor( base_stats[14] + base_stats[3] * 0.4 )                          # Ph. Crit += AGI * 0.4
+    # add hard-coded minimums or potentially missing stats
+    base_stats[12] = base_stats[12] + (24 * 1e8)  # Dodge (24 -> 2%)
+    base_stats[13] = base_stats[13] + (24 * 1e8)  # Deflection (24 -> 2%)
+    base_stats[15] = base_stats[15]               # Sp. Crit
+    base_stats[16] = base_stats[16] + (150 * 1e6) # +150% Crit Damage
+    base_stats[18] = base_stats[18] + (15 * 1e6)  # +15% Tenacity
+    # print('base_stats='+str(base_stats))
+
+    ########################################
+    # calculateModStats from crinolo
+    ########################################
+    rawModStats = {}
+    for i in range(1, 62):
+        rawModStats[i] = 0
+        
+    modStats = {}
+    for i in range(1, 62):
+        modStats[i] = 0
+        
     if 'mods' in dict_character:
+        setBonuses = {}
         for mod in dict_character['mods']:
-            #print(mod)
-            if mod['set'] == SPEED_MOD_SET:
-                total_speed_mods += 1
-                if mod['level'] == 15:
-                    nb_speed_mods_level15 += 1               
-            elif mod['set'] == POTENCY_MOD_SET:
-                total_potency_mods += 1
-                if mod['level'] == 15:
-                    nb_potency_mods_level15 += 1
-
-            if mod['primaryStat']['unitStat'] == SPEED_STAT_ID:
-                mod_speed += mod['primaryStat']['value']
-            elif mod['primaryStat']['unitStat'] == POTENCY_STAT_ID:
-                mod_potency += mod['primaryStat']['value']/100
-                #print('primary mod potency: '+str(mod_potency))
-
-            for secondary in mod['secondaryStat']:
-                if secondary['unitStat'] == SPEED_STAT_ID:
-                    mod_speed += secondary['value']
-                elif secondary['unitStat'] == POTENCY_STAT_ID:
-                    mod_potency += secondary['value']/100
-                    #print('sec mod potency: '+str(mod_potency))
- 
-    # print('DBG base_speed='+str(base_speed))
-    # print('DBG eqpt_speed='+str(eqpt_speed))
-    # print('DBG mod_speed='+str(mod_speed))
+            # add to set bonuses counters (same for both formats)
+            if (mod['set'] in setBonuses) :
+                # set bonus already found, increment
+                setBonuses[ mod['set'] ]['count'] += 1
+            else :
+                # new set bonus, create object
+                setBonuses[ mod['set'] ]={'count':1, 'maxLevel':0}
+            if (mod['level'] == 15):
+                setBonuses[ mod['set'] ]['maxLevel'] += 1
     
-    #Bonus on speed mods (groups of 4)
-    if total_speed_mods < 4:
-        total_speed = base_speed + eqpt_speed + mod_speed
-    else:
-        if nb_speed_mods_level15 < 4:
-            total_speed = int(base_speed * 1.05) + eqpt_speed + mod_speed
-        else:
-            total_speed = int(base_speed * 1.10) + eqpt_speed + mod_speed
 
-    #Bonus on potency mods (groups of 2)
-    if total_potency_mods < 2:
-        total_potency = base_potency + eqpt_potency + mod_potency
-    elif total_potency_mods < 4:
-        if nb_potency_mods_level15 < 2:
-            total_potency = base_potency + 0.075 + eqpt_potency + mod_potency
-        else:
-            total_potency = base_potency + .15 + eqpt_potency + mod_potency
-    elif total_potency_mods < 6:
-        if nb_potency_mods_level15 < 2:
-            total_potency = base_potency + 0.075 + 0.075 + eqpt_potency + mod_potency
-        elif nb_potency_mods_level15 < 4:
-            total_potency = base_potency + 0.075 + 0.15 + eqpt_potency + mod_potency
-        else:
-            total_potency = base_potency + 0.15 + 0.15 + eqpt_potency + mod_potency
-    else: #total_potency_mods == 6
-        if nb_potency_mods_level15 < 2:
-            total_potency = base_potency + 0.075 + 0.075 + 0.075 + eqpt_potency + mod_potency
-        elif nb_potency_mods_level15 < 4:
-            total_potency = base_potency + 0.075 + 0.075 + 0.15 + eqpt_potency + mod_potency
-        elif nb_potency_mods_level15 < 6:
-            total_potency = base_potency + 0.075 + 0.15 + 0.15 + eqpt_potency + mod_potency
-        else:
-            total_potency = base_potency + 0.15 + 0.15 + 0.15 + eqpt_potency + mod_potency
+            # using /player.roster format
+            stat = mod['primaryStat']
+            if (stat['unitStat'] == 1 or
+                stat['unitStat'] == 5 or
+                stat['unitStat'] == 28 or
+                stat['unitStat'] == 41 or
+                stat['unitStat'] == 42):
+                # Flat stats
+                scaleStatValue = stat['value'] * 1e8
+            else:
+                # Percent stats
+                scaleStatValue = stat['value'] * 1e6
+            
+            rawModStats[ stat['unitStat'] ] += scaleStatValue
+            
+            for stat in mod['secondaryStat']:
+                if (stat['unitStat'] == 1 or
+                    stat['unitStat'] == 5 or
+                    stat['unitStat'] == 28 or
+                    stat['unitStat'] == 41 or
+                    stat['unitStat'] == 42):
+                    # Flat stats
+                    scaleStatValue = stat['value'] * 1e8
+                else:
+                    # Percent stats
+                    scaleStatValue = stat['value'] * 1e6
+                
+                rawModStats[ stat['unitStat'] ] += scaleStatValue
+            
 
-    return total_speed, int(10000*total_potency)/100
+    # print('rawModStats='+str(rawModStats))
+    # print('setBonuses='+str(setBonuses))
+    # add stats given by set bonuses
+    for setID in setBonuses:
+        setDef = gameData['modSetData'][str(setID)]
+        count = setBonuses[setID]['count']
+        maxCount = setBonuses[setID]['maxLevel']
+        multiplier = math.floor(count / setDef['count']) + math.floor(maxCount / setDef['count'])
+        rawModStats[ setDef['id'] ] += (setDef['value'] * multiplier)
+    # print('rawModStats='+str(rawModStats))
+
+    # calculate actual stat bonuses from mods
+    for statID in rawModStats:
+        value = rawModStats[ statID ]
+        if statID == 41: # Offense
+            modStats[6] += value # Ph. Damage
+            modStats[7] += value # Sp. Damage
+        elif statID == 42: # Defense
+            modStats[8] += value # Armor
+            modStats[9] += value # Resistance
+        elif statID == 48: # Offense %
+            modStats[6] = math.floor( modStats[6] + base_stats[6] * 1e-8 * value) # Ph. Damage
+            modStats[7] = math.floor( modStats[7] + base_stats[7] * 1e-8 * value) # Sp. Damage
+        elif statID == 49: # Defense %
+            modStats[8] = math.floor( modStats[8] + base_stats[8] * 1e-8 * value) # Armor
+            modStats[9] = math.floor( modStats[9] + base_stats[9] * 1e-8 * value) # Resistance
+        elif statID == 53: # Crit Chance
+            modStats[21] += value # Ph. Crit Chance
+            modStats[22] += value # Sp. Crit Chance
+        elif statID == 54: # Crit Avoid
+            modStats[35] += value # Ph. Crit Avoid
+            modStats[36] += value # Ph. Crit Avoid
+        elif statID == 55: # Heatlth %
+            modStats[1] = math.floor( modStats[1] + base_stats[1] * 1e-8 * value) # Health
+        elif statID == 56: # Protection %
+            modStats[28] = math.floor( modStats[28] + base_stats[28] * 1e-8 * value) # Protection may not exist in base
+        elif statID == 57: # Speed %
+            modStats[5] = math.floor( modStats[5] + base_stats[5] * 1e-8 * value) # Speed
+        else:
+            # other stats add like flat values
+            modStats[ statID ] += value
+    
+
+    # print('base_stats='+str(base_stats))
+    # print('gear_stats='+str(gear_stats))
+    # print('modStats='+str(modStats))
+    return base_stats, gear_stats, modStats
 
 
 def assign_gt(allycode, txt_mode):
@@ -1093,15 +1173,20 @@ def print_character_stats(characters, txt_allycode):
         #error wile loading guild data
         return 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode
     else:
-        ret_print_character_stats += "Statistiques pour "+dict_player['name']
-        
+        ret_print_character_stats += "Statistiques pour "+dict_player['name']+'\n'
+    
+    list_stats_for_display=[[5, "Vit", False, 'v'],
+                            [6, "DegPhy", False, 'd'],
+                            [7, "DegSpé", False, ''],
+                            [1, "Santé", False, 's'],
+                            [28, "Protec", False, ''],
+                            [17, "Pouvoir", True, 'p'],
+                            [18, "Ténacité", True, '']]
+    
     #manage sorting options
     sort_option='name'
-    if characters[0] == '-v':
-        sort_option = 'speed'
-        characters = characters[1:]
-    elif characters[0] == '-p':
-        sort_option = 'potency'
+    if characters[0][0] == '-':
+        sort_option = characters[0][1:]
         characters = characters[1:]
     
     list_print_stats=[]
@@ -1110,8 +1195,12 @@ def print_character_stats(characters, txt_allycode):
         for character_name in dict_player['roster']:
             character = dict_player['roster'][character_name]
             if character['combatType'] == 1 and character['level'] >= 50:
-                speed, potency = get_character_stats(character)
-                list_print_stats.append([speed, potency, character['nameKey']])
+                base_stats, gear_stats, mod_stats = get_character_stats(character)
+                total_stats = {}
+                for stat in base_stats:
+                    total_stats[stat] = base_stats[stat]+gear_stats[stat]+mod_stats[stat]
+                
+                list_print_stats.append([character['nameKey'], total_stats])
     else:
         list_character_ids=[]
         for character_alias in characters:
@@ -1127,31 +1216,44 @@ def print_character_stats(characters, txt_allycode):
             if character_id in dict_player['roster']:
                 character = dict_player['roster'][character_id]
                 if character['combatType'] == 1:
-                    speed, potency = get_character_stats(character)
-                    list_print_stats.append([speed, potency, character['nameKey']])
+                    base_stats, gear_stats, mod_stats = get_character_stats(character)
+                    total_stats = {}
+                    for stat in base_stats:
+                        total_stats[stat] = base_stats[stat]+gear_stats[stat]+mod_stats[stat]
+                    list_print_stats.append([character['nameKey'], total_stats])
                 else:
-                    ret_print_character_stats += 'INFO:' + character_name+' est un vaisseau, stats non accessibles pour le moment\n'
+                    ret_print_character_stats += 'INFO:' + character['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
         
             else:
-                ret_print_character_stats +=  'INFO:' + character_name+' non trouvé chez '+txt_allycode+'\n'
+                ret_print_character_stats +=  'INFO:' + character_id+' non trouvé chez '+txt_allycode+'\n'
     
-    #Sort by speed then display
-    if sort_option == 'speed':
-        list_print_stats = sorted(list_print_stats, key=lambda x: -x[0])
-    elif sort_option == 'potency':
-        list_print_stats = sorted(list_print_stats, key=lambda x: -x[1])
-    else: # by name
-        list_print_stats = sorted(list_print_stats, key=lambda x: x[2])
+    # Default sort by name
+    list_print_stats = sorted(list_print_stats, key=lambda x: x[0])
+    # Sort by specified stat
+    for stat in list_stats_for_display:
+        if sort_option == stat[3]:
+            list_print_stats = sorted(list_print_stats, key=lambda x: -x[1][stat[0]])
         
-    ret_print_character_stats += """
-=====================================
-{0:30}: {1:3} {2:7}""".format("Perso", "Vit", "Pouvoir")
+    ret_print_character_stats += "=====================================\n"
+    max_size_char = max([len(x[0]) for x in list_print_stats])
+    ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format("Perso")
+    for stat in list_stats_for_display:
+        ret_print_character_stats += stat[1]+' '
+    ret_print_character_stats += "\n"
+
     for print_stat_row in list_print_stats:
-        ret_print_character_stats += "\n{0:30.30}: {1:3} {2:6.2f}%".format(
-                                print_stat_row[2],
-                                print_stat_row[0],
-                                print_stat_row[1])
+        ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format(print_stat_row[0])
+        for stat in list_stats_for_display:
+            stat_value = print_stat_row[1][stat[0]]
+            if stat[2]:
+                # Percent value
+                ret_print_character_stats += ("{0:"+str(len(stat[1])-1)+".2f}% ").format(stat_value/1e6)
+            else:
+                # Flat value
+                ret_print_character_stats += ("{0:"+str(len(stat[1]))+"} ").format(int(stat_value/1e8))
     
+        ret_print_character_stats += "\n"
+
     return ret_print_character_stats
 
 def get_gp_graph(guild_stats, inactive_duration):

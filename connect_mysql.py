@@ -259,7 +259,6 @@ def update_unit(dict_unit):
         u_forceAlignment = dict_unit['forceAlignment']
         u_unit_id = dict_unit['id']
         u_nameKey = dict_unit['nameKey']
-        u_obtainable = dict_unit['obtainable']
               
         tier_definition_txt="" #separator /
         # Update the baseStats as tier 0
@@ -333,7 +332,6 @@ def update_unit(dict_unit):
                             u_forceAlignment,
                             u_unit_id,
                             u_nameKey,
-                            u_obtainable,
                             tier_definition_txt)
         print("CALL update_unit"+str(query_parameters))
         cursor.callproc('update_unit', query_parameters)
@@ -456,13 +454,92 @@ def update_eqpt(dict_eqpt):
     finally:
         cursor.close()
         db.close()
-        
-def run_query(cursor, query):
+
+def update_gameData(dict_gameData):
     try:
-        # print(query)
-        cursor.execute(query)
+        db=connect()
+        cursor = db.cursor()
+        
+        # update crTables with mastery information
+        mastery_definition_txt="" #separator |
+        for key in dict_gameData['crTables']:
+            if key[-8:] == '_mastery':
+                masteryModifierID = key
+                
+                stat_definition_txt = ''
+                for stat in dict_gameData['crTables'][masteryModifierID]:
+                    stat_id = stat
+                    stat_value = dict_gameData['crTables'][masteryModifierID][stat]
+                    
+                    stat_definition_txt+=str(stat_id)+","+ \
+                                         str(stat_value)+"|"
+                                 
+                #remove last |
+                stat_definition_txt = stat_definition_txt[:-1]
+
+                mastery_definition_txt+=masteryModifierID+","+ \
+                                        stat_definition_txt+"/"
+        
+        #remove last /
+        mastery_definition_txt = mastery_definition_txt[:-1]
+
+        # Launch the unique update with all information
+        query_parameters = (mastery_definition_txt,)
+        print("CALL update_mastery"+str(query_parameters))
+        cursor.callproc('update_mastery', query_parameters)
+          
+        ######################################################
+        # update growthModifier and primaryStat for units
+        units_definition_txt="" #separator |
+        for unit_id in dict_gameData['unitData']:
+            print(unit_id)
+            primaryStat = dict_gameData['unitData'][unit_id]['primaryStat']
+            
+            masteryModifierID = ''
+            if 'masteryModifierID' in dict_gameData['unitData'][unit_id]:
+                masteryModifierID = dict_gameData['unitData'][unit_id]['masteryModifierID']
+            
+            growth_definition_txt = ''  #separator /
+            for rarity in dict_gameData['unitData'][unit_id]['growthModifiers']:
+                value2 = dict_gameData['unitData'][unit_id]['growthModifiers'][rarity]['2']
+                value3 = dict_gameData['unitData'][unit_id]['growthModifiers'][rarity]['3']
+                value4 = dict_gameData['unitData'][unit_id]['growthModifiers'][rarity]['4']
+                
+                growth_definition_txt+=rarity+","+ \
+                                       str(value2)+","+ \
+                                       str(value3)+","+ \
+                                       str(value4)+"|"
+                             
+            #remove last |
+            growth_definition_txt = growth_definition_txt[:-1]
+
+            units_definition_txt+=unit_id+","+ \
+                                   str(primaryStat)+","+ \
+                                   masteryModifierID+","+ \
+                                   growth_definition_txt+"/"
+        
+        #remove last /
+        units_definition_txt = units_definition_txt[:-1]
+
+        # Launch the unique update with all information
+        query_parameters = (units_definition_txt,)
+        print("CALL update_units_gameData"+str(query_parameters))
+        cursor.callproc('update_units_gameData', query_parameters)
+        
+        db.commit()
     except Error as error:
         print(error)
+        
+    finally:
+        cursor.close()
+        db.close()
+        
+# def run_query(cursor, query):
+    # try:
+        # print(query)
+        # cursor.execute(query)
+    # except Error as error:
+        # print(error)
 
 def export_procedures():
     try:
