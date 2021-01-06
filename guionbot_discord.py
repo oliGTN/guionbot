@@ -702,7 +702,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
-                      "Potentiellement trié par vitesse (-v) ou pouvoir (-p)\n"\
+                      "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
                       "Exemple: go.spj 123456789 JKR\n"\
                       "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
                       "Exemple: go.spj me -p all")
