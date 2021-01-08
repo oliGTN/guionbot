@@ -500,19 +500,20 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
 
                 #Vitesse (optionnel)
                 req_speed = character_obj[6]
-                if req_speed != 0 and req_speed != '':
-                    if character_roster['combatType'] == 1:
-                        base_stats, gear_stats, mod_stats = get_character_stats(character_roster)
-                        player_speed = base_stats[5]+gear_stats[5]+mod_stats[5]
-                        req_speed = character_obj[6]
-                        if req_speed != '':
-                            progress_100 = progress_100 + 1
-                            progress = progress + min(1, player_speed / req_speed)
-                        else:
-                            req_speed = player_speed
-                        # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
+                if character_roster['combatType'] == 1:
+                    base_stats, gear_stats, mod_stats = get_character_stats(character_roster)
+                    player_speed = base_stats[5]+gear_stats[5]+mod_stats[5]
+                    req_speed = character_obj[6]
+                    if req_speed != '':
+                        progress_100 = progress_100 + 1
+                        progress = progress + min(1, player_speed / req_speed)
                     else:
-                        print('WAR: impossible to compute stats for ship '+character_id)
+                        req_speed = player_speed
+                    # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
+                else:
+                    print('WAR: impossible to compute stats for ship '+character_id)
+                    player_speed = 1
+                    req_speed = 1
 
                 player_gp = character_roster['gp']
 
