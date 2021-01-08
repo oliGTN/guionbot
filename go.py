@@ -1278,32 +1278,34 @@ def print_character_stats(characters, txt_allycode):
             else:
                 ret_print_character_stats +=  'INFO:' + character_id+' non trouvé chez '+txt_allycode+'\n'
     
-    # Default sort by name
-    list_print_stats = sorted(list_print_stats, key=lambda x: x[0])
-    # Sort by specified stat
-    for stat in list_stats_for_display:
-        if sort_option == stat[3]:
-            list_print_stats = sorted(list_print_stats, key=lambda x: -x[1][stat[0]])
-        
-    ret_print_character_stats += "=====================================\n"
-    max_size_char = max([len(x[0]) for x in list_print_stats])
-    ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format("Perso")
-    for stat in list_stats_for_display:
-        ret_print_character_stats += stat[1]+' '
-    ret_print_character_stats += "\n"
-
-    for print_stat_row in list_print_stats:
-        ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format(print_stat_row[0])
+    if len (list_print_stats)>0:
+        # Default sort by name
+        list_print_stats = sorted(list_print_stats, key=lambda x: x[0])
+        # Sort by specified stat
         for stat in list_stats_for_display:
-            stat_value = print_stat_row[1][stat[0]]
-            if stat[2]:
-                # Percent value
-                ret_print_character_stats += ("{0:"+str(len(stat[1])-1)+".2f}% ").format(stat_value/1e6)
-            else:
-                # Flat value
-                ret_print_character_stats += ("{0:"+str(len(stat[1]))+"} ").format(int(stat_value/1e8))
-    
+            if sort_option == stat[3]:
+                list_print_stats = sorted(list_print_stats, key=lambda x: -x[1][stat[0]])
+        
+        ret_print_character_stats += "=====================================\n"
+        max_size_char = max([len(x[0]) for x in list_print_stats])
+        ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format("Perso")
+        
+        for stat in list_stats_for_display:
+            ret_print_character_stats += stat[1]+' '
         ret_print_character_stats += "\n"
+
+        for print_stat_row in list_print_stats:
+            ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format(print_stat_row[0])
+            for stat in list_stats_for_display:
+                stat_value = print_stat_row[1][stat[0]]
+                if stat[2]:
+                    # Percent value
+                    ret_print_character_stats += ("{0:"+str(len(stat[1])-1)+".2f}% ").format(stat_value/1e6)
+                else:
+                    # Flat value
+                    ret_print_character_stats += ("{0:"+str(len(stat[1]))+"} ").format(int(stat_value/1e8))
+        
+            ret_print_character_stats += "\n"
 
     return ret_print_character_stats
 
