@@ -89,10 +89,7 @@ def load_config_teams():
                     [character_name, character_id]=dict_units[closest_names[0]]
 
                     dict_teams[team][index_categorie][1] = dict_perso['Min Catégorie']
-                    dict_teams[team][index_categorie][2][character_id]=[index_perso, dict_perso['* min'], dict_perso['G min'], dict_perso['* reco'], dict_perso['G reco'], [], dict_perso['Vitesse'], dict_perso['Nom court']]
-                    for zeta in ['Zeta1', 'Zeta2', 'Zeta3']:
-                        if dict_perso[zeta]!='':
-                            dict_teams[team][index_categorie][2][character_id][5].append(dict_perso[zeta])
+                    dict_teams[team][index_categorie][2][character_id]=[index_perso, dict_perso['* min'], dict_perso['G min'], dict_perso['* reco'], dict_perso['G reco'], dict_perso['Zetas'], dict_perso['Vitesse'], dict_perso['Nom court']]
                     
         #print('DBG: dict_teams='+str(dict_teams))
     return liste_teams, dict_teams

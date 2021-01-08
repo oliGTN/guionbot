@@ -363,6 +363,44 @@ def pad_txt2(txt):
 
     return ret_pad_txt
 
+def get_zeta_from_shorts(character_id, zeta_shorts):
+    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+    
+    req_zeta_ids = []
+    for zeta in zeta_shorts:
+        zeta_standard = zeta.upper().replace(' ', '')
+        if zeta_standard == '':
+            continue
+        elif zeta_standard[0] == 'B':
+            zeta_id = 'B'
+        elif zeta_standard[0] == 'S':
+            zeta_id = 'S'
+            if zeta_standard[-1] in '0123456789':
+                zeta_id += zeta_standard[-1]
+            else:
+                zeta_id += '1'
+        elif zeta_standard[0] == 'C' or zeta_standard[0] == 'L':
+            zeta_id = 'L'
+        elif zeta_standard[0] == 'U':
+            zeta_id = 'U'
+            if zeta_standard[-1] in '0123456789':
+                zeta_id += zeta_standard[-1]
+            else:
+                zeta_id += '1'
+
+            # Manage the galactic legends
+            if (zeta_id not in dict_zetas[character_id] or \
+                dict_zetas[character_id][zeta_id][0] == 'Placeholder') and \
+                'GL' in dict_zetas[character_id]:
+                zeta_id = 'GL'
+        
+        if zeta_id in dict_zetas[character_id]:
+            if dict_zetas[character_id][zeta_id][1]:
+                req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
+        else:
+            print('WAR: cannot find zeta '+zeta+' for '+character_id)
+    
+    return req_zeta_ids
 
 def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                               score_amber, txt_mode, dict_player_discord):
@@ -375,7 +413,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
     line = ''
     #print('DBG: get_team_line_from_player '+dict_player['name'])
     nb_subobjs = len(objectifs)
-
+    
     #INIT tableau des resultats
     tab_progress_player = [[] for i in range(nb_subobjs)]
     for i_subobj in range(0, nb_subobjs):
@@ -446,27 +484,35 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                 # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 #Zetas
-                req_zetas = character_obj[5]
+                req_zetas = character_obj[5].split(',')
+                req_zeta_names = [x[1] for x in get_zeta_from_shorts(character_id, req_zetas)]
+                        
                 player_nb_zetas = 0
-                progress_100 += len(req_zetas)
+                progress_100 += len(req_zeta_names)
                 for skill in character_roster['skills']:
-                    if skill['nameKey'] in req_zetas:
+                    if skill['nameKey'] in req_zeta_names:
                         if skill['tier'] == 8:
                             player_nb_zetas += 1
                             progress += 1
-                if player_nb_zetas < len(req_zetas):
+                if player_nb_zetas < len(req_zeta_names):
                     character_nogo = True
                 # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 #Vitesse (optionnel)
-                player_speed, player_potency = get_character_stats(character_roster)
                 req_speed = character_obj[6]
-                if req_speed != '':
-                    progress_100 = progress_100 + 1
-                    progress = progress + min(1, player_speed / req_speed)
-                else:
-                    req_speed = player_speed
-                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
+                if req_speed != 0 and req_speed != '':
+                    if character_roster['combatType'] == 1:
+                        base_stats, gear_stats, mod_stats = get_character_stats(character_roster)
+                        player_speed = base_stats[5]+gear_stats[5]+mod_stats[5]
+                        req_speed = character_obj[6]
+                        if req_speed != '':
+                            progress_100 = progress_100 + 1
+                            progress = progress + min(1, player_speed / req_speed)
+                        else:
+                            req_speed = player_speed
+                        # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
+                    else:
+                        print('WAR: impossible to compute stats for ship '+character_id)
 
                 player_gp = character_roster['gp']
 
@@ -600,14 +646,18 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
                     perso_gear_min = objectifs[i_level][2][perso][2]
                     perso_rarity_reco = objectifs[i_level][2][perso][3]
                     perso_gear_reco = objectifs[i_level][2][perso][4]
-                    perso_zetas = objectifs[i_level][2][perso][5]
+
+                    #Zetas
+                    req_zetas = objectifs[i_level][2][perso][5].split(',')
+                    req_zeta_names = [x[1] for x in get_zeta_from_shorts(perso, req_zetas)]
+                    
                     entete += '**' + objectifs[i_level][0][0] + str(
                         i_sub_obj + 1) + '**: ' + perso + ' (' + str(
                             perso_rarity_min) + 'G' + str(
                                 perso_gear_min) + ' à ' + str(
                                     perso_rarity_reco) + 'G' + str(
                                         perso_gear_reco) + ', zetas=' + str(
-                                            perso_zetas) + ')\n'
+                                            req_zeta_names) + ')\n'
 
     #ligne d'entete
     entete += '\n'

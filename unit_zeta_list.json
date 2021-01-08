@@ -1,0 +1,6649 @@
+{
+    "AAYLASECURA": {
+        "B": [
+            "Frappe inspirante",
+            false,
+            "basicskill_AAYLASECURA"
+        ],
+        "L": [
+            "Bravoure Jedi",
+            false,
+            "leaderskill_AAYLASECURA"
+        ],
+        "S1": [
+            "Survivante",
+            false,
+            "specialskill_AAYLASECURA01"
+        ],
+        "U1": [
+            "Riposte sup\u00e9rieure",
+            false,
+            "uniqueskill_AAYLASECURA01"
+        ]
+    },
+    "ADMINISTRATORLANDO": {
+        "B": [
+            "Tir du flambeur",
+            false,
+            "basicskill_ADMINISTRATORLANDO"
+        ],
+        "L": [
+            "Rapide et en vrac",
+            false,
+            "leaderskill_ADMINISTRATORLANDO"
+        ],
+        "S1": [
+            "Doubler la mise",
+            false,
+            "specialskill_ADMINISTRATORLANDO01"
+        ],
+        "U1": [
+            "Gros joueur",
+            false,
+            "uniqueskill_ADMINISTRATORLANDO01"
+        ]
+    },
+    "ADMIRALACKBAR": {
+        "B": [
+            "Tir rapide",
+            false,
+            "basicskill_ADMIRALACKBAR"
+        ],
+        "L": [
+            "Coordination rebelle",
+            false,
+            "leaderskill_ADMIRALACKBAR"
+        ],
+        "S1": [
+            "C'est un pi\u00e8ge\u00a0!",
+            false,
+            "specialskill_ADMIRALACKBAR01"
+        ],
+        "S2": [
+            "G\u00e9nie tactique",
+            false,
+            "specialskill_ADMIRALACKBAR02"
+        ]
+    },
+    "ADMIRALPIETT": {
+        "B": [
+            "Puissance de feu renforc\u00e9e",
+            false,
+            "basicskill_ADMIRALPIETT"
+        ],
+        "L": [
+            "Commandant z\u00e9l\u00e9",
+            false,
+            "leaderskill_ADMIRALPIETT"
+        ],
+        "S1": [
+            "Ambition imp\u00e9riale",
+            false,
+            "specialskill_ADMIRALPIETT01"
+        ],
+        "S2": [
+            "Frappe sous-orbitale",
+            true,
+            "specialskill_ADMIRALPIETT02"
+        ],
+        "U1": [
+            "Le Pi\u00e8ge de l'Empereur",
+            true,
+            "uniqueskill_ADMIRALPIETT01"
+        ]
+    },
+    "AHSOKATANO": {
+        "B": [
+            "Taillade contr\u00f4l\u00e9e",
+            false,
+            "basicskill_AHSOKATANO"
+        ],
+        "L": [
+            "Grandes foul\u00e9es",
+            false,
+            "leaderskill_AHSOKATANO"
+        ],
+        "S1": [
+            "Man\u0153uvre de protection",
+            false,
+            "specialskill_AHSOKATANO01"
+        ],
+        "U1": [
+            "Padawan t\u00e9m\u00e9raire",
+            true,
+            "uniqueskill_AHSOKATANO01"
+        ]
+    },
+    "AMILYNHOLDO": {
+        "B": [
+            "Tir calcul\u00e9",
+            false,
+            "basicskill_AMILYNHOLDO"
+        ],
+        "S1": [
+            "Destruction totale",
+            false,
+            "specialskill_AMILYNHOLDO01"
+        ],
+        "S2": [
+            "R\u00e9pit",
+            false,
+            "specialskill_AMILYNHOLDO02"
+        ],
+        "U1": [
+            "T\u00e9m\u00e9rit\u00e9 discr\u00e8te",
+            true,
+            "uniqueskill_AMILYNHOLDO01"
+        ]
+    },
+    "AMILYNHOLDO_RADDUS": {
+        "B": [
+            "Tir calcul\u00e9",
+            false,
+            "basicskill_AMILYNHOLDO"
+        ],
+        "S1": [
+            "Destruction totale",
+            false,
+            "specialskill_AMILYNHOLDO01"
+        ],
+        "S2": [
+            "R\u00e9pit",
+            false,
+            "specialskill_AMILYNHOLDO02"
+        ],
+        "U1": [
+            "T\u00e9m\u00e9rit\u00e9 discr\u00e8te",
+            true,
+            "uniqueskill_AMILYNHOLDO01"
+        ]
+    },
+    "ANAKINKNIGHT": {
+        "B": [
+            "Habilet\u00e9 au sabre laser",
+            false,
+            "basicskill_ANAKINKNIGHT"
+        ],
+        "L": [
+            "\u00c0 l'attaque",
+            false,
+            "leaderskill_ANAKINKNIGHT"
+        ],
+        "S1": [
+            "Assaut accablant",
+            false,
+            "specialskill_ANAKINKNIGHT01"
+        ],
+        "U1": [
+            "Fureur vertueuse",
+            true,
+            "uniqueskill_ANAKINKNIGHT01"
+        ]
+    },
+    "ARC170CLONESERGEANT": {
+        "B": [
+            "Canons lat\u00e9raux",
+            false,
+            "basicskill_ARC170CLONESERGEANT"
+        ],
+        "S1": [
+            "Frappe de torpilles",
+            false,
+            "specialskill_ARC170CLONESERGEANT01"
+        ],
+        "S2": [
+            "Surcharge",
+            false,
+            "specialskill_ARC170CLONESERGEANT02"
+        ],
+        "U1": [
+            "Am\u00e9lioration structurelle",
+            false,
+            "hardwareskill_ARC170CLONESERGEANT01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "ARC170REX": {
+        "B": [
+            "D\u00e9tente sensible",
+            false,
+            "basicskill_arc170rex"
+        ],
+        "S1": [
+            "Coordination de la R\u00e9publique",
+            false,
+            "specialskill_arc170rex"
+        ],
+        "U1": [
+            "Pr\u00eat et apte",
+            false,
+            "uniqueskill_arc170rex"
+        ],
+        "U2": [
+            "Personne ne reste derri\u00e8re",
+            false,
+            "hardwareskill_arc170rex"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "ARCTROOPER501ST": {
+        "B": [
+            "Tirs crois\u00e9s",
+            false,
+            "basicskill_ARCTROOPER501ST"
+        ],
+        "S1": [
+            "Donner le commandement",
+            false,
+            "specialskill_ARCTROOPER501ST01"
+        ],
+        "U1": [
+            "Arsenal du CRA",
+            true,
+            "uniqueskill_ARCTROOPER501ST01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "[c][ffff33]Tourelle blaster[-][/c]",
+            false,
+            ""
+        ]
+    },
+    "ASAJVENTRESS": {
+        "B": [
+            "Frappe cruelle",
+            false,
+            "basicskill_ASAJVENTRESS"
+        ],
+        "L": [
+            "C\u00e9l\u00e9rit\u00e9 des S\u0153urs de la nuit",
+            true,
+            "leaderskill_ASAJVENTRESS"
+        ],
+        "S1": [
+            "Peur dans les coeurs",
+            false,
+            "specialskill_ASAJVENTRESS01"
+        ],
+        "S2": [
+            "Courroux infini",
+            false,
+            "specialskill_ASAJVENTRESS02"
+        ],
+        "U1": [
+            "Carnage",
+            true,
+            "uniqueskill_ASAJVENTRESS01"
+        ]
+    },
+    "AURRA_SING": {
+        "B": [
+            "Coup affaiblissant",
+            false,
+            "basicskill_AURRA_SING"
+        ],
+        "L": [
+            "Plan d'action",
+            true,
+            "leaderskill_AURRA_SING"
+        ],
+        "S1": [
+            "Tohu-bohu",
+            false,
+            "specialskill_AURRA_SING01"
+        ],
+        "S2": [
+            "Sniper d'exception",
+            true,
+            "specialskill_AURRA_SING02"
+        ],
+        "U1": [
+            "Tueuse impitoyable",
+            false,
+            "uniqueskill_AURRA_SING01"
+        ],
+        "U2": [
+            "Prime d'Aurra Sing",
+            false,
+            "contractskill_AURRA_SING01"
+        ]
+    },
+    "AWAKENEDREY": {
+        "B": [
+            "Frappe changeante",
+            false,
+            "basicskill_AWAKENEDREY"
+        ],
+        "S1": [
+            "Influence",
+            false,
+            "specialskill_AWAKENEDREY01"
+        ],
+        "U1": [
+            "Frappes cibl\u00e9es",
+            false,
+            "uniqueskill_AWAKENEDREY01"
+        ]
+    },
+    "B1BATTLEDROIDV2": {
+        "B": [
+            "Barrage de B1",
+            false,
+            "basicskill_b1battledroidv2"
+        ],
+        "S1": [
+            "An\u00e9antissez-les\u00a0!",
+            false,
+            "specialskill_b1battledroidv2_01"
+        ],
+        "U1": [
+            "Cinq sur cinq",
+            false,
+            "uniqueskill_b1battledroidv2_01"
+        ],
+        "U2": [
+            "Bataillon de dro\u00efdes",
+            true,
+            "uniqueskill_b1battledroidv2_02"
+        ]
+    },
+    "B2SUPERBATTLEDROID": {
+        "B": [
+            "Bras massifs",
+            false,
+            "basicskill_B2SUPERBATTLEDROID"
+        ],
+        "S1": [
+            "Fauchage",
+            false,
+            "specialskill_B2SUPERBATTLEDROID01"
+        ],
+        "U1": [
+            "Barrage impitoyable",
+            false,
+            "uniqueskill_B2SUPERBATTLEDROID01"
+        ],
+        "U2": [
+            "Protocole de r\u00e9action",
+            true,
+            "uniqueskill_B2SUPERBATTLEDROID02"
+        ]
+    },
+    "BARRISSOFFEE": {
+        "B": [
+            "Frappe revigorante",
+            false,
+            "basicskill_BARRISSOFFEE"
+        ],
+        "L": [
+            "Personne ne reste derri\u00e8re",
+            false,
+            "leaderskill_BARRISSOFFEE"
+        ],
+        "S1": [
+            "Gu\u00e9risseuse de Force",
+            false,
+            "specialskill_BARRISSOFFEE01"
+        ],
+        "U1": [
+            "Convalescence rapide",
+            true,
+            "uniqueskill_BARRISSOFFEE01"
+        ]
+    },
+    "BASTILASHAN": {
+        "B": [
+            "Assaut Jedi",
+            false,
+            "basicskill_BASTILASHAN"
+        ],
+        "L": [
+            "Initiative",
+            true,
+            "leaderskill_BASTILASHAN"
+        ],
+        "S1": [
+            "Ralliement",
+            false,
+            "specialskill_BASTILASHAN01"
+        ],
+        "S2": [
+            "Sabotage des d\u00e9fenses",
+            false,
+            "specialskill_BASTILASHAN02"
+        ],
+        "U1": [
+            "M\u00e9ditation de combat l\u00e9gendaire",
+            false,
+            "uniqueskill_BASTILASHAN01"
+        ],
+        "U2": [
+            "Lien de Force",
+            false,
+            "uniqueskill_BASTILASHAN02"
+        ]
+    },
+    "BASTILASHANDARK": {
+        "B": [
+            "Assaut Sith",
+            false,
+            "basicskill_BASTILASHANDARK"
+        ],
+        "S1": [
+            "Foudre furieuse",
+            false,
+            "specialskill_BASTILASHANDARK01"
+        ],
+        "S2": [
+            "Peur",
+            false,
+            "specialskill_BASTILASHANDARK02"
+        ],
+        "U1": [
+            "M\u00e9ditation de combat corrompue",
+            false,
+            "uniqueskill_BASTILASHANDARK01"
+        ],
+        "U2": [
+            "Apprenti Sith",
+            true,
+            "uniqueskill_BASTILASHANDARK02"
+        ],
+        "U3": [
+            "Lien de Force",
+            false,
+            "uniqueskill_BASTILASHANDARK03"
+        ]
+    },
+    "BAZEMALBUS": {
+        "B": [
+            "Canon \u00e0 r\u00e9p\u00e9tition lourd",
+            false,
+            "basicskill_BAZEMALBUS"
+        ],
+        "S1": [
+            "D\u00e9chargement",
+            false,
+            "specialskill_BAZEMALBUS01"
+        ],
+        "S2": [
+            "Violentes repr\u00e9sailles",
+            false,
+            "specialskill_BAZEMALBUS02"
+        ],
+        "U1": [
+            "Pour Jedha",
+            false,
+            "uniqueskill_BAZEMALBUS01"
+        ],
+        "U2": [
+            "Courage intr\u00e9pide",
+            false,
+            "uniqueskill_BAZEMALBUS02"
+        ]
+    },
+    "BB8": {
+        "B": [
+            "Arc \u00e0 souder",
+            false,
+            "basicskill_BB8"
+        ],
+        "S1": [
+            "Transfert de donn\u00e9es confidentielles",
+            false,
+            "specialskill_BB801"
+        ],
+        "S2": [
+            "Avenir lucide",
+            false,
+            "specialskill_BB802"
+        ],
+        "U1": [
+            "Suivre le rythme",
+            true,
+            "uniqueskill_BB801"
+        ],
+        "U2": [
+            "Protocole d'auto-pr\u00e9servation",
+            true,
+            "uniqueskill_BB802"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "BIGGSDARKLIGHTER": {
+        "B": [
+            "Vis\u00e9e de cadet",
+            false,
+            "basicskill_BIGGSDARKLIGHTER"
+        ],
+        "S1": [
+            "Compagnon d'armes",
+            false,
+            "specialskill_BIGGSDARKLIGHTER01"
+        ],
+        "U1": [
+            "Pouss\u00e9e d'adr\u00e9naline",
+            false,
+            "uniqueskill_BIGGSDARKLIGHTER01"
+        ]
+    },
+    "BISTAN": {
+        "B": [
+            "Explosion",
+            false,
+            "basicskill_BISTAN"
+        ],
+        "S1": [
+            "Fr\u00e9n\u00e9sie",
+            false,
+            "specialskill_BISTAN01"
+        ],
+        "S2": [
+            "Tactiques d'artilleur",
+            false,
+            "specialskill_BISTAN02"
+        ],
+        "U1": [
+            "Charg\u00e9 \u00e0 bloc",
+            false,
+            "uniqueskill_BISTAN01"
+        ]
+    },
+    "BLADEOFDORIN": {
+        "B": [
+            "Assaut coordonn\u00e9",
+            false,
+            "basicskill_BLADEOFDORIN"
+        ],
+        "S1": [
+            "Charge motivante",
+            false,
+            "specialskill_BLADEOFDORIN01"
+        ],
+        "S2": [
+            "Ailes de la R\u00e9publique",
+            false,
+            "specialskill_BLADEOFDORIN02"
+        ],
+        "U1": [
+            "Commandant du 104e bataillon",
+            false,
+            "hardwareskill_BLADEOFDORIN01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "BOBAFETT": {
+        "B": [
+            "Carabine EE-3",
+            false,
+            "basicskill_BOBAFETT"
+        ],
+        "L": [
+            "Mort ou vif",
+            false,
+            "leaderskill_BOBAFETT"
+        ],
+        "S1": [
+            "Mort venue du ciel",
+            false,
+            "specialskill_BOBAFETT01"
+        ],
+        "S2": [
+            "Ex\u00e9cution",
+            false,
+            "specialskill_BOBAFETT02"
+        ],
+        "U1": [
+            "D\u00e9termination du chasseur de primes",
+            true,
+            "uniqueskill_BOBAFETT01"
+        ],
+        "U2": [
+            "Prime de Boba Fett",
+            false,
+            "contractskill_BOBAFETT01"
+        ]
+    },
+    "BODHIROOK": {
+        "B": [
+            "Dans le viseur",
+            false,
+            "basicskill_BODHIROOK"
+        ],
+        "S1": [
+            "\u00c9claireur",
+            false,
+            "specialskill_BODHIROOK01"
+        ],
+        "S2": [
+            "Communications intercept\u00e9es",
+            false,
+            "specialskill_BODHIROOK02"
+        ],
+        "U1": [
+            "Double devoir",
+            true,
+            "uniqueskill_BODHIROOK01"
+        ]
+    },
+    "BOSSK": {
+        "B": [
+            "S'attaquer aux plus faibles",
+            false,
+            "basicskill_BOSSK"
+        ],
+        "L": [
+            "En chasse",
+            true,
+            "leaderskill_BOSSK"
+        ],
+        "S1": [
+            "Partie de chasse",
+            false,
+            "specialskill_BOSSK01"
+        ],
+        "S2": [
+            "Instincts de pr\u00e9dateur",
+            false,
+            "specialskill_BOSSK02"
+        ],
+        "U1": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U2": [
+            "Rage trandoshanne",
+            true,
+            "uniqueskill_BOSSK01"
+        ],
+        "U3": [
+            "Prime de Bossk",
+            false,
+            "contractskill_BOSSK01"
+        ]
+    },
+    "C3POCHEWBACCA": {
+        "B": [
+            "Tir effr\u00e9n\u00e9",
+            false,
+            "basicskill_C3POCHEWBACCA"
+        ],
+        "S1": [
+            "Distraction brillante",
+            false,
+            "specialskill_C3POCHEWBACCA01"
+        ],
+        "S2": [
+            "Rage de Chewie",
+            true,
+            "specialskill_C3POCHEWBACCA02"
+        ],
+        "U1": [
+            "Il faut que je pr\u00e9vienne les autres",
+            false,
+            "uniqueskill_C3POCHEWBACCA"
+        ],
+        "U2": [
+            "EMPTY",
+            false,
+            ""
+        ]
+    },
+    "C3POLEGENDARY": {
+        "B": [
+            "Ruse d\u00e9routante",
+            false,
+            "basicskill_C3POLEGENDARY"
+        ],
+        "S1": [
+            "Oh, juste Ciel\u00a0!",
+            true,
+            "specialskill_C3POLEGENDARY01"
+        ],
+        "U1": [
+            "Dro\u00efde de protocole",
+            false,
+            "uniqueskill_C3POLEGENDARY01"
+        ],
+        "U2": [
+            "Attendez-moi\u00a0!",
+            true,
+            "uniqueskill_C3POLEGENDARY02"
+        ],
+        "U3": [
+            "Interm\u00e9diaire",
+            false,
+            "uniqueskill_C3POLEGENDARY03"
+        ],
+        "U4": [
+            "Relations cyborg",
+            false,
+            "uniqueskill_C3POLEGENDARY04"
+        ],
+        "U5": [
+            "M\u00e9diateur agit\u00e9",
+            false,
+            "uniqueskill_C3POLEGENDARY05"
+        ]
+    },
+    "CADBANE": {
+        "B": [
+            "Porte-flingue",
+            false,
+            "basicskill_CADBANE"
+        ],
+        "L": [
+            "\u00c0 votre service",
+            false,
+            "leaderskill_CADBANE"
+        ],
+        "S1": [
+            "Gant \u00e9tourdissant",
+            false,
+            "specialskill_CADBANE01"
+        ],
+        "U1": [
+            "Le juste prix",
+            false,
+            "uniqueskill_CADBANE01"
+        ],
+        "U2": [
+            "Prime de Cad Bane",
+            false,
+            "contractskill_CADBANE01"
+        ]
+    },
+    "CANDEROUSORDO": {
+        "B": [
+            "Assaut interminable",
+            false,
+            "basicskill_CANDEROUSORDO"
+        ],
+        "S1": [
+            "Puissance de feu implacable",
+            false,
+            "specialskill_CANDEROUSORDO01"
+        ],
+        "U1": [
+            "V\u00e9t\u00e9ran mandalorien",
+            false,
+            "uniqueskill_CANDEROUSORDO02"
+        ],
+        "U2": [
+            "J'aime les d\u00e9fis",
+            true,
+            "uniqueskill_CANDEROUSORDO01"
+        ]
+    },
+    "CAPITALCHIMAERA": {
+        "B": [
+            "Frappe mesur\u00e9e",
+            false,
+            "basicskill_CAPITALCHIMAERA"
+        ],
+        "S1": [
+            "L'art de la guerre",
+            false,
+            "specialskill_CAPITALCHIMAERA01"
+        ],
+        "S2": [
+            "Rayon tracteur de Phylon\u00a007",
+            false,
+            "specialskill_CAPITALCHIMAERA02"
+        ],
+        "S3": [
+            "Domination strat\u00e9gique",
+            false,
+            "specialskill_CAPITALCHIMAERA03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "Loyaut\u00e9 farouche",
+            false,
+            "uniqueskill_CAPITALCHIMAERA01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CAPITALFINALIZER": {
+        "B": [
+            "Saccage",
+            false,
+            "basicskill_CAPITALFINALIZER"
+        ],
+        "S1": [
+            "Apaisement",
+            false,
+            "specialskill_CAPITALFINALIZER01"
+        ],
+        "S2": [
+            "Ravages",
+            false,
+            "specialskill_CAPITALFINALIZER02"
+        ],
+        "S3": [
+            "Espoirs d\u00e9truits",
+            false,
+            "specialskill_CAPITALFINALIZER03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "Deux coups d'avance",
+            false,
+            "uniqueskill_CAPITALFINALIZER01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CAPITALJEDICRUISER": {
+        "B": [
+            "Frappe juste",
+            false,
+            "basicskill_CAPITALJEDICRUISER"
+        ],
+        "S1": [
+            "Tenez bon",
+            false,
+            "specialskill_CAPITALJEDICRUISER01"
+        ],
+        "S2": [
+            "La chance sourit aux audacieux",
+            false,
+            "specialskill_CAPITALJEDICRUISER02"
+        ],
+        "S3": [
+            "Convergence",
+            false,
+            "specialskill_CAPITALJEDICRUISER03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "Vertu et puissance",
+            false,
+            "uniqueskill_CAPITALJEDICRUISER01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CAPITALMALEVOLENCE": {
+        "B": [
+            "Feu\u00a0!",
+            false,
+            "basicskill_CAPITALMALEVOLENCE"
+        ],
+        "S1": [
+            "Charge du Malveillant",
+            false,
+            "specialskill_CAPITALMALEVOLENCE01"
+        ],
+        "S2": [
+            "Tous les canons, feu\u00a0!",
+            false,
+            "specialskill_CAPITALMALEVOLENCE02"
+        ],
+        "S3": [
+            "Canon ionique, feu\u00a0!",
+            false,
+            "specialskill_CAPITALMALEVOLENCE03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "Qu'ils viennent",
+            false,
+            "uniqueskill_CAPITALMALEVOLENCE01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CAPITALMONCALAMARICRUISER": {
+        "B": [
+            "Canons Mon Calamari",
+            false,
+            "basicskill_CAPITALMONCALAMARICRUISER"
+        ],
+        "S1": [
+            "Prendre l'avantage",
+            false,
+            "specialskill_CAPITALMONCALAMARICRUISER01"
+        ],
+        "S2": [
+            "Salve provocatrice",
+            false,
+            "specialskill_CAPITALMONCALAMARICRUISER02"
+        ],
+        "S3": [
+            "Plan de ma\u00eetre",
+            false,
+            "specialskill_CAPITALMONCALAMARICRUISER03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "Rassemblement",
+            false,
+            "uniqueskill_CAPITALMONCALAMARICRUISER01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CAPITALNEGOTIATOR": {
+        "B": [
+            "Timing impeccable",
+            false,
+            "basicskill_CAPITALNEGOTIATOR"
+        ],
+        "S1": [
+            "Protection de la R\u00e9publique",
+            false,
+            "specialskill_CAPITALNEGOTIATOR01"
+        ],
+        "S2": [
+            "Mobilisation",
+            false,
+            "specialskill_CAPITALNEGOTIATOR02"
+        ],
+        "S3": [
+            "Assaut de Y-wing",
+            false,
+            "specialskill_CAPITALNEGOTIATOR03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "R\u00e9solution de la R\u00e9publique",
+            false,
+            "uniqueskill_CAPITALNEGOTIATOR01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CAPITALRADDUS": {
+        "B": [
+            "Man\u0153uvres hors pair",
+            false,
+            "basicskill_CAPITALRADDUS"
+        ],
+        "S1": [
+            "D\u00e9flecteurs de secours",
+            false,
+            "specialskill_CAPITALRADDUS01"
+        ],
+        "S2": [
+            "Survie",
+            false,
+            "specialskill_CAPITALRADDUS02"
+        ],
+        "S3": [
+            "Man\u0153uvres Holdo",
+            false,
+            "specialskill_CAPITALRADDUS03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "Maintenir le cap",
+            false,
+            "uniqueskill_CAPITALRADDUS01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CAPITALSTARDESTROYER": {
+        "B": [
+            "Batteries de turbolaser",
+            false,
+            "basicskill_CAPITALSTARDESTROYER"
+        ],
+        "S1": [
+            "D\u00e9cret ex\u00e9cutif",
+            false,
+            "specialskill_CAPITALSTARDESTROYER01"
+        ],
+        "S2": [
+            "Canon ionique lourd",
+            false,
+            "specialskill_CAPITALSTARDESTROYER02"
+        ],
+        "S3": [
+            "Assaut imp\u00e9rial",
+            false,
+            "specialskill_CAPITALSTARDESTROYER03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "La victoire co\u00fbte que co\u00fbte",
+            false,
+            "uniqueskill_CAPITALSTARDESTROYER01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CARADUNE": {
+        "B": [
+            "Combattante de cantina",
+            false,
+            "basicskill_CARADUNE"
+        ],
+        "S1": [
+            "Strat\u00e9gie improvis\u00e9e",
+            false,
+            "specialskill_CARADUNE01"
+        ],
+        "U1": [
+            "Infiltration",
+            false,
+            "uniqueskill_CARADUNE01"
+        ],
+        "U2": [
+            "Ex-shock trooper rebelle",
+            true,
+            "uniqueskill_CARADUNE02"
+        ]
+    },
+    "CARTHONASI": {
+        "B": [
+            "Tir fulgurant",
+            false,
+            "basicskill_carthonasi"
+        ],
+        "L": [
+            "Soldat de l'Ancienne R\u00e9publique",
+            true,
+            "leaderskill_carthonasi"
+        ],
+        "S1": [
+            "Tirs continus",
+            false,
+            "specialskill_carthonasi"
+        ],
+        "U1": [
+            "Entra\u00eenement de soldat",
+            false,
+            "uniqueskill_carthonasi"
+        ]
+    },
+    "CASSIANANDOR": {
+        "B": [
+            "Deux coups d'avance",
+            false,
+            "basicskill_CASSIANANDOR"
+        ],
+        "S1": [
+            "Grenade \u00e9tourdissante",
+            false,
+            "specialskill_CASSIANANDOR01"
+        ],
+        "S2": [
+            "Tir paralysant",
+            false,
+            "specialskill_CASSIANANDOR02"
+        ],
+        "U1": [
+            "Pr\u00e9parer le terrain",
+            true,
+            "uniqueskill_CASSIANANDOR01"
+        ]
+    },
+    "CC2224": {
+        "B": [
+            "Frappe alpha",
+            false,
+            "basicskill_CC2224"
+        ],
+        "L": [
+            "Commandant de la Compagnie Fant\u00f4me",
+            true,
+            "leaderskill_CC2224"
+        ],
+        "S1": [
+            "Canon \u00e9lectromagn\u00e9tique du RT-TT",
+            false,
+            "specialskill_CC222401"
+        ],
+        "S2": [
+            "212e Bataillon d'Attaque",
+            false,
+            "specialskill_CC222402"
+        ]
+    },
+    "CHEWBACCALEGENDARY": {
+        "B": [
+            "Tir surcharg\u00e9",
+            false,
+            "basicskill_CHEWBACCALEGENDARY"
+        ],
+        "S1": [
+            "Pulv\u00e9risation",
+            false,
+            "specialskill_CHEWBACCALEGENDARY01"
+        ],
+        "S2": [
+            "Carnage \u00e0 l'arbal\u00e8te",
+            false,
+            "specialskill_CHEWBACCALEGENDARY02"
+        ],
+        "U1": [
+            "Ami fid\u00e8le",
+            true,
+            "uniqueskill_CHEWBACCALEGENDARY01"
+        ],
+        "U2": [
+            "Wookiee courrouc\u00e9",
+            true,
+            "uniqueskill_CHEWBACCALEGENDARY02"
+        ]
+    },
+    "CHIEFCHIRPA": {
+        "B": [
+            "Frappe bondissante",
+            false,
+            "basicskill_CHIEFCHIRPA"
+        ],
+        "L": [
+            "Tactiques simples",
+            true,
+            "leaderskill_CHIEFCHIRPA"
+        ],
+        "S1": [
+            "Secrets ancestraux",
+            false,
+            "specialskill_CHIEFCHIRPA01"
+        ],
+        "S2": [
+            "Harmonie tribale",
+            false,
+            "specialskill_CHIEFCHIRPA02"
+        ]
+    },
+    "CHIEFNEBIT": {
+        "B": [
+            "Tir protecteur",
+            false,
+            "basicskill_CHIEFNEBIT"
+        ],
+        "L": [
+            "Groupes de raid",
+            false,
+            "leaderskill_CHIEFNEBIT"
+        ],
+        "S1": [
+            "N\u00e9gociations g\u00eanantes",
+            false,
+            "specialskill_CHIEFNEBIT01"
+        ],
+        "S2": [
+            "Embuscade dans le d\u00e9sert",
+            false,
+            "specialskill_CHIEFNEBIT02"
+        ]
+    },
+    "CHIRRUTIMWE": {
+        "B": [
+            "Frappe au b\u00e2ton",
+            false,
+            "basicskill_CHIRRUTIMWE"
+        ],
+        "S1": [
+            "Tel que le veut la Force",
+            false,
+            "specialskill_CHIRRUTIMWE01"
+        ],
+        "S2": [
+            "D\u00e9termination",
+            false,
+            "specialskill_CHIRRUTIMWE02"
+        ],
+        "U1": [
+            "Indomptable volont\u00e9",
+            false,
+            "uniqueskill_CHIRRUTIMWE01"
+        ],
+        "U2": [
+            "Endurance immuable",
+            false,
+            "uniqueskill_CHIRRUTIMWE02"
+        ]
+    },
+    "CHOPPERS3": {
+        "B": [
+            "Charge t\u00e9m\u00e9raire",
+            false,
+            "basicskill_CHOPPERS3"
+        ],
+        "S1": [
+            "Tas de ferraille acari\u00e2tre",
+            false,
+            "specialskill_CHOPPERS301"
+        ],
+        "S2": [
+            "Menace m\u00e9tallique",
+            false,
+            "specialskill_CHOPPERS302"
+        ],
+        "U1": [
+            "Protocoles de maintenance",
+            false,
+            "uniqueskill_CHOPPERS301"
+        ]
+    },
+    "CLONESERGEANTPHASEI": {
+        "B": [
+            "Blaster rotatif Z-6",
+            false,
+            "basicskill_CLONESERGEANTPHASEI"
+        ],
+        "S1": [
+            "Tir de suppression",
+            false,
+            "specialskill_CLONESERGEANTPHASEI01"
+        ],
+        "U1": [
+            "Feu concentr\u00e9",
+            false,
+            "uniqueskill_CLONESERGEANTPHASEI01"
+        ]
+    },
+    "CLONEWARSCHEWBACCA": {
+        "B": [
+            "Arbal\u00e8te laser",
+            false,
+            "basicskill_CLONEWARSCHEWBACCA"
+        ],
+        "L": [
+            "D\u00e9termination Wookiee",
+            false,
+            "leaderskill_CLONEWARSCHEWBACCA"
+        ],
+        "S1": [
+            "Rage wookiee",
+            false,
+            "specialskill_CLONEWARSCHEWBACCA02"
+        ],
+        "S2": [
+            "Rugissement de d\u00e9fi",
+            true,
+            "specialskill_CLONEWARSCHEWBACCA01"
+        ]
+    },
+    "COLONELSTARCK": {
+        "B": [
+            "Tir d\u00e9bilitant",
+            false,
+            "basicskill_COLONELSTARCK"
+        ],
+        "S1": [
+            "Scannez toutes les fr\u00e9quences",
+            false,
+            "specialskill_COLONELSTARCK01"
+        ],
+        "S2": [
+            "Barrage Blizzard\u00a04",
+            false,
+            "specialskill_COLONELSTARCK02"
+        ],
+        "U1": [
+            "Renseignements de l'Empire",
+            true,
+            "uniqueskill_COLONELSTARCK01"
+        ]
+    },
+    "COMMANDERLUKESKYWALKER": {
+        "B": [
+            "Frappe destin\u00e9e",
+            false,
+            "basicskill_COMMANDERLUKESKYWALKER"
+        ],
+        "L": [
+            "Man\u0153uvres rebelles",
+            true,
+            "leaderskill_COMMANDERLUKESKYWALKER"
+        ],
+        "S1": [
+            "Utiliser la Force",
+            false,
+            "specialskill_COMMANDERLUKESKYWALKER01"
+        ],
+        "S2": [
+            "Appel aux armes",
+            false,
+            "specialskill_COMMANDERLUKESKYWALKER02"
+        ],
+        "U1": [
+            "Apprendre \u00e0 se ma\u00eetriser",
+            true,
+            "uniqueskill_COMMANDERLUKESKYWALKER01"
+        ],
+        "U2": [
+            "Tout est li\u00e9",
+            true,
+            "uniqueskill_COMMANDERLUKESKYWALKER02"
+        ]
+    },
+    "COMMANDSHUTTLE": {
+        "B": [
+            "Tirs d\u00e9fensifs",
+            false,
+            "basicskill_commandshuttle"
+        ],
+        "S1": [
+            "Raid surprise",
+            false,
+            "specialskill_commandshuttle01"
+        ],
+        "S2": [
+            "Brigade d'intervention",
+            false,
+            "specialskill_commandshuttle02"
+        ],
+        "S3": [
+            "Dispositif de brouillage avanc\u00e9",
+            false,
+            "specialskill_commandshuttle03"
+        ],
+        "U1": [
+            "Z\u00e8le du Premier Ordre",
+            false,
+            "uniqueskill_commandshuttle01"
+        ],
+        "U2": [
+            "Ex\u00e9cuteur du Premier Ordre",
+            false,
+            "hardwareskill_commandshuttle"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CORUSCANTUNDERWORLDPOLICE": {
+        "B": [
+            "Assaut non l\u00e9tal",
+            false,
+            "basicskill_CORUSCANTUNDERWORLDPOLICE"
+        ],
+        "S1": [
+            "R\u00e9gulation des foules non l\u00e9tale",
+            false,
+            "specialskill_CORUSCANTUNDERWORLDPOLICE01"
+        ],
+        "U1": [
+            "Sp\u00e9cialiste des attaques non l\u00e9tales",
+            false,
+            "uniqueskill_CORUSCANTUNDERWORLDPOLICE01"
+        ]
+    },
+    "COUNTDOOKU": {
+        "B": [
+            "Pression entravante",
+            false,
+            "basicskill_COUNTDOOKU"
+        ],
+        "L": [
+            "Connexions n\u00e9fastes",
+            false,
+            "leaderskill_COUNTDOOKU"
+        ],
+        "S1": [
+            "\u00c9clair de Force",
+            false,
+            "specialskill_COUNTDOOKU01"
+        ],
+        "S2": [
+            "Ma\u00eetre de Makashi",
+            false,
+            "specialskill_COUNTDOOKU02"
+        ],
+        "U1": [
+            "Riposte parfaite",
+            true,
+            "uniqueskill_COUNTDOOKU01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "CT210408": {
+        "B": [
+            "Tir de soutien",
+            false,
+            "basicskill_CT210408"
+        ],
+        "S1": [
+            "Grenade IEM",
+            false,
+            "specialskill_CT210408"
+        ],
+        "U1": [
+            "Bien re\u00e7u",
+            false,
+            "uniqueskill_ct21040801"
+        ],
+        "U2": [
+            "Escouade Domino",
+            true,
+            "uniqueskill_ct21040802"
+        ]
+    },
+    "CT5555": {
+        "B": [
+            "Doubles blasters DC-17",
+            false,
+            "basicskill_CT5555"
+        ],
+        "L": [
+            "Soldat clone v\u00e9t\u00e9ran",
+            false,
+            "leaderskill_CT5555"
+        ],
+        "S1": [
+            "Tir de couverture",
+            false,
+            "specialskill_CT555501"
+        ],
+        "U1": [
+            "Escouade Domino",
+            true,
+            "uniqueskill_CT555501"
+        ],
+        "U2": [
+            "Conscience tactique",
+            true,
+            "uniqueskill_CT555502"
+        ]
+    },
+    "CT7567": {
+        "B": [
+            "Tir imminent",
+            false,
+            "basicskill_REX"
+        ],
+        "L": [
+            "Fr\u00e8res d'armes",
+            false,
+            "leaderskill_REX"
+        ],
+        "S1": [
+            "Formation",
+            false,
+            "specialskill_REX01"
+        ],
+        "S2": [
+            "Avantage a\u00e9rien",
+            false,
+            "specialskill_REX02"
+        ],
+        "U1": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U2": [
+            "Capitaine de la 501e",
+            true,
+            "uniqueskill_REX01"
+        ]
+    },
+    "DAKA": {
+        "B": [
+            "Coup subtil",
+            false,
+            "basicskill_DAKA"
+        ],
+        "L": [
+            "Ancienne des S\u0153urs de la nuit",
+            false,
+            "leaderskill_DAKA"
+        ],
+        "S1": [
+            "Chant de r\u00e9surrection",
+            false,
+            "specialskill_DAKA01"
+        ],
+        "U1": [
+            "Rempiler",
+            true,
+            "uniqueskill_DAKA01"
+        ]
+    },
+    "DARTHMALAK": {
+        "B": [
+            "D\u00e9chiquetage",
+            false,
+            "basicskill_DARTHMALAK"
+        ],
+        "S1": [
+            "Torture",
+            false,
+            "specialskill_DARTHMALAK01"
+        ],
+        "S2": [
+            "Drain de vie",
+            false,
+            "specialskill_DARTHMALAK02"
+        ],
+        "U1": [
+            "Terreur gla\u00e7ante",
+            true,
+            "uniqueskill_DARTHMALAK01"
+        ],
+        "U2": [
+            "Les dents de la vie",
+            true,
+            "uniqueskill_DARTHMALAK02"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U5": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "DARTHNIHILUS": {
+        "B": [
+            "Soif incessante",
+            false,
+            "basicskill_DARTHNIHILUS"
+        ],
+        "L": [
+            "Puissance du vide",
+            true,
+            "leaderskill_DARTHNIHILUS"
+        ],
+        "S1": [
+            "Drain de Force",
+            false,
+            "specialskill_DARTHNIHILUS01"
+        ],
+        "S2": [
+            "Annihilation",
+            false,
+            "specialskill_DARTHNIHILUS02"
+        ],
+        "U1": [
+            "Seigneur de la faim",
+            true,
+            "uniqueskill_DARTHNIHILUS01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "DARTHREVAN": {
+        "B": [
+            "Lac\u00e9ration",
+            false,
+            "basicskill_DARTHREVAN"
+        ],
+        "L": [
+            "Seigneur des Sith",
+            true,
+            "leaderskill_DARTHREVAN"
+        ],
+        "S1": [
+            "Temp\u00eate de Force",
+            false,
+            "specialskill_DARTHREVAN01"
+        ],
+        "S2": [
+            "Folie",
+            false,
+            "specialskill_DARTHREVAN02"
+        ],
+        "U1": [
+            "Conqu\u00e9rant",
+            true,
+            "uniqueskill_DARTHREVAN01"
+        ],
+        "U2": [
+            "Sc\u00e9l\u00e9rat",
+            true,
+            "uniqueskill_DARTHREVAN02"
+        ]
+    },
+    "DARTHSIDIOUS": {
+        "B": [
+            "Toucher mortel",
+            false,
+            "basicskill_DARTHSIDIOUS"
+        ],
+        "L": [
+            "Pouvoir illimit\u00e9",
+            false,
+            "leaderskill_DARTHSIDIOUS"
+        ],
+        "S1": [
+            "Coups d\u00e9moralisants",
+            false,
+            "specialskill_DARTHSIDIOUS01"
+        ],
+        "U1": [
+            "Sadisme jubilatoire",
+            true,
+            "uniqueskill_DARTHSIDIOUS01"
+        ]
+    },
+    "DARTHSION": {
+        "B": [
+            "Rage obscure",
+            false,
+            "basicskill_DARTHSION"
+        ],
+        "S1": [
+            "Tourment",
+            false,
+            "specialskill_DARTHSION01"
+        ],
+        "S2": [
+            "Destruction de volont\u00e9",
+            false,
+            "specialskill_DARTHSION02"
+        ],
+        "S3": [
+            "Tenu par la haine",
+            false,
+            "specialskill_DARTHSION03"
+        ],
+        "U1": [
+            "Seigneur de la douleur",
+            true,
+            "uniqueskill_DARTHSION01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "DARTHTRAYA": {
+        "B": [
+            "Frappe trompeuse",
+            false,
+            "basicskill_DARTHTRAYA"
+        ],
+        "L": [
+            "La compassion est faiblesse.",
+            true,
+            "leaderskill_DARTHTRAYA"
+        ],
+        "S1": [
+            "Temp\u00eate de sabre",
+            false,
+            "specialskill_DARTHTRAYA01"
+        ],
+        "S2": [
+            "Isolation",
+            false,
+            "specialskill_DARTHTRAYA02"
+        ],
+        "U1": [
+            "Seigneur de la trahison",
+            true,
+            "uniqueskill_DARTHTRAYA01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "DATHCHA": {
+        "B": [
+            "Attaque \u00e9clair",
+            false,
+            "basicskill_DATHCHA"
+        ],
+        "L": [
+            "Exp\u00e9dition \u00e0 la casse",
+            false,
+            "leaderskill_DATHCHA"
+        ],
+        "S1": [
+            "Instincts d'\u00e9claireur",
+            false,
+            "specialskill_DATHCHA01"
+        ],
+        "U1": [
+            "Chasseur de dro\u00efdes",
+            false,
+            "uniqueskill_DATHCHA01"
+        ]
+    },
+    "DEATHTROOPER": {
+        "B": [
+            "Traque",
+            false,
+            "basicskill_DEATHTROOPER"
+        ],
+        "S1": [
+            "Grenade de Death Trooper",
+            false,
+            "specialskill_DEATHTROOPER01"
+        ],
+        "S2": [
+            "Ex\u00e9cution",
+            false,
+            "specialskill_DEATHTROOPER02"
+        ],
+        "U1": [
+            "Garde de Krennic",
+            true,
+            "uniqueskill_DEATHTROOPER01"
+        ]
+    },
+    "DENGAR": {
+        "B": [
+            "Cible acquise",
+            false,
+            "basicskill_DENGAR"
+        ],
+        "L": [
+            "\u00c9panouissement professionnel",
+            false,
+            "leaderskill_DENGAR"
+        ],
+        "S1": [
+            "Explosion et fracas",
+            false,
+            "specialskill_DENGAR01"
+        ],
+        "S2": [
+            "Carnage Min\u00e9",
+            false,
+            "specialskill_DENGAR02"
+        ],
+        "U1": [
+            "V\u00e9t\u00e9ran grisonnant",
+            true,
+            "uniqueskill_DENGAR01"
+        ],
+        "U2": [
+            "Prime de Dengar",
+            false,
+            "contractskill_DENGAR01"
+        ]
+    },
+    "DIRECTORKRENNIC": {
+        "B": [
+            "Tester les d\u00e9fenses.",
+            false,
+            "basicskill_DIRECTORKRENNIC"
+        ],
+        "L": [
+            "Directeur de la division de recherche en armes avanc\u00e9es",
+            true,
+            "leaderskill_DIRECTORKRENNIC"
+        ],
+        "S1": [
+            "Attaque de Death Trooper",
+            false,
+            "specialskill_DIRECTORKRENNIC01"
+        ],
+        "S2": [
+            "Armement exp\u00e9rimental",
+            false,
+            "specialskill_DIRECTORKRENNIC02"
+        ],
+        "U1": [
+            "Puissance incommensurable",
+            false,
+            "uniqueskill_DIRECTORKRENNIC01"
+        ]
+    },
+    "DROIDEKA": {
+        "B": [
+            "Double canon blaster",
+            false,
+            "basicskill_DROIDEKA"
+        ],
+        "S1": [
+            "Armement destructeur",
+            false,
+            "specialskill_DROIDEKA01"
+        ],
+        "S2": [
+            "R\u00e9volution reconstructrice",
+            false,
+            "specialskill_DROIDEKA02"
+        ],
+        "U1": [
+            "G\u00e9n\u00e9rateur de bouclier d\u00e9flecteur",
+            true,
+            "uniqueskill_DROIDEKA01"
+        ]
+    },
+    "EBONHAWK": {
+        "B": [
+            "Tourelles laser lourdes",
+            false,
+            "basicskill_EBONHAWK"
+        ],
+        "S1": [
+            "Puissant pilote",
+            false,
+            "specialskill_EBONHAWK01"
+        ],
+        "S2": [
+            "Scanners de brouillage",
+            false,
+            "specialskill_EBONHAWK02"
+        ],
+        "U1": [
+            "Cargo critique",
+            false,
+            "uniqueskill_EBONHAWK01"
+        ],
+        "U2": [
+            "Livraison sp\u00e9ciale",
+            false,
+            "hardwareskill_EBONHAWK01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "EETHKOTH": {
+        "B": [
+            "Frappe transper\u00e7ante",
+            false,
+            "basicskill_EETHKOTH"
+        ],
+        "L": [
+            "Fid\u00e8le d\u00e9fenseur Jedi",
+            false,
+            "leaderskill_EETHKOTH"
+        ],
+        "S1": [
+            "Pouss\u00e9e de Force",
+            false,
+            "specialskill_EETHKOTH01"
+        ],
+        "U1": [
+            "Sp\u00e9cialiste anti-dro\u00efdes",
+            false,
+            "uniqueskill_EETHKOTH01"
+        ]
+    },
+    "EMBO": {
+        "B": [
+            "Tir renversant",
+            false,
+            "basicskill_EMBO"
+        ],
+        "L": [
+            "Le tueur silencieux",
+            true,
+            "leaderskill_EMBO"
+        ],
+        "S1": [
+            "Casque de guerre kyuzo",
+            false,
+            "specialskill_EMBO01"
+        ],
+        "U1": [
+            "Tradition Kyuzo",
+            true,
+            "uniqueskill_EMBO01"
+        ],
+        "U2": [
+            "Prime d\u2019Embo",
+            false,
+            "contractskill_EMBO01"
+        ]
+    },
+    "EMPERORPALPATINE": {
+        "B": [
+            "Foudre",
+            false,
+            "basicskill_EMPERORPALPATINE"
+        ],
+        "L": [
+            "Empereur de l'Empire galactique",
+            true,
+            "leaderskill_EMPERORPALPATINE"
+        ],
+        "S1": [
+            "Pouvoir du C\u00f4t\u00e9 Obscur",
+            false,
+            "specialskill_EMPERORPALPATINE01"
+        ],
+        "S2": [
+            "Envahi par la haine",
+            false,
+            "specialskill_EMPERORPALPATINE02"
+        ],
+        "U1": [
+            "Fin cr\u00e9pitante",
+            true,
+            "uniqueskill_EMPERORPALPATINE01"
+        ]
+    },
+    "EMPERORSSHUTTLE": {
+        "B": [
+            "Offensive agressive",
+            false,
+            "basicskill_emperorsshuttle"
+        ],
+        "S1": [
+            "Influence de l\u2019Empereur",
+            false,
+            "specialskill_emperorsshuttle01"
+        ],
+        "S2": [
+            "Escorte royale",
+            false,
+            "specialskill_emperorsshuttle02"
+        ],
+        "U1": [
+            "Formation de combat \u00e9prouv\u00e9e",
+            false,
+            "uniqueskill_emperorsshuttle01"
+        ],
+        "U2": [
+            "EMPTY",
+            false,
+            ""
+        ],
+        "U3": [
+            "Confusion imp\u00e9riale",
+            false,
+            "hardwareskill_emperorsshuttle01"
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "ENFYSNEST": {
+        "B": [
+            "Taillade cruelle",
+            false,
+            "basicskill_ENFYSNEST"
+        ],
+        "S1": [
+            "Impact fulgurant",
+            false,
+            "specialskill_ENFYSNEST01"
+        ],
+        "S2": [
+            "D\u00e9charge de kin\u00e9tite",
+            false,
+            "specialskill_ENFYSNEST02"
+        ],
+        "U1": [
+            "Instinct de combat",
+            true,
+            "uniqueskill_ENFYSNEST01"
+        ]
+    },
+    "EPIXFINN": {
+        "B": [
+            "Tir r\u00e9parateur",
+            false,
+            "basicskill_EPIXFINN"
+        ],
+        "S1": [
+            "Force d'esprit",
+            false,
+            "specialskill_EPIXFINN01"
+        ],
+        "S2": [
+            "Appel de ralliement",
+            false,
+            "specialskill_EPIXFINN02"
+        ],
+        "U1": [
+            "Lueur de la R\u00e9sistance",
+            true,
+            "uniqueskill_EPIXFINN01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U4": [
+            "RALLY",
+            false,
+            ""
+        ],
+        "U5": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "EPIXPOE": {
+        "B": [
+            "Tir de recul",
+            false,
+            "basicskill_EPIXPOE"
+        ],
+        "S1": [
+            "Assaut optique",
+            false,
+            "specialskill_EPIXPOE01"
+        ],
+        "S2": [
+            "Bravade au blaster",
+            false,
+            "specialskill_EPIXPOE02"
+        ],
+        "U1": [
+            "Lueur de la R\u00e9sistance",
+            true,
+            "uniqueskill_EPIXPOE01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "EWOKELDER": {
+        "B": [
+            "Frappe du guide",
+            false,
+            "basicskill_EWOKELDER"
+        ],
+        "S1": [
+            "Soigneur tribal",
+            false,
+            "specialskill_EWOKELDER01"
+        ],
+        "S2": [
+            "Pouvoir de la for\u00eat",
+            false,
+            "specialskill_EWOKELDER02"
+        ],
+        "U1": [
+            "EMPTY",
+            false,
+            ""
+        ]
+    },
+    "EWOKSCOUT": {
+        "B": [
+            "Embuscade ewok",
+            false,
+            "basicskill_EWOKSCOUT"
+        ],
+        "S1": [
+            "Ruade \u00e9clair",
+            false,
+            "specialskill_EWOKSCOUT01"
+        ],
+        "U1": [
+            "Tactiques tribales",
+            false,
+            "uniqueskill_EWOKSCOUT01"
+        ]
+    },
+    "EZRABRIDGERS3": {
+        "B": [
+            "Frappe \u00e9clair",
+            false,
+            "basicskill_EZRABRIDGERS3"
+        ],
+        "S1": [
+            "R\u00e9volte",
+            true,
+            "specialskill_EZRABRIDGERS301"
+        ],
+        "S2": [
+            "Observer et apprendre",
+            false,
+            "specialskill_EZRABRIDGERS302"
+        ],
+        "U1": [
+            "Intr\u00e9pide",
+            false,
+            "uniqueskill_EZRABRIDGERS301"
+        ]
+    },
+    "FINN": {
+        "B": [
+            "Tir pr\u00e9cis",
+            false,
+            "basicskill_FINN"
+        ],
+        "L": [
+            "Tactiques \u00e9quilibr\u00e9es",
+            true,
+            "leaderskill_FINN"
+        ],
+        "S1": [
+            "Tenir bon",
+            false,
+            "specialskill_FINN01"
+        ],
+        "S2": [
+            "Assaut",
+            false,
+            "specialskill_FINN02"
+        ]
+    },
+    "FIRSTORDEREXECUTIONER": {
+        "B": [
+            "Jugement",
+            false,
+            "basicskill_FIRSTORDEREXECUTIONER"
+        ],
+        "S1": [
+            "Peine capitale",
+            false,
+            "specialskill_FIRSTORDEREXECUTIONER01"
+        ],
+        "U1": [
+            "Ordre total",
+            false,
+            "uniqueskill_FIRSTORDEREXECUTIONER01"
+        ]
+    },
+    "FIRSTORDEROFFICERMALE": {
+        "B": [
+            "Capitaliser",
+            false,
+            "basicskill_FIRSTORDEROFFICERMALE"
+        ],
+        "S1": [
+            "Ordres de bataille",
+            false,
+            "specialskill_FIRSTORDEROFFICERMALE01"
+        ],
+        "S2": [
+            "Tir immobilisant",
+            false,
+            "specialskill_FIRSTORDEROFFICERMALE02"
+        ]
+    },
+    "FIRSTORDERSPECIALFORCESPILOT": {
+        "B": [
+            "Riposte",
+            false,
+            "basicskill_FIRSTORDERSPECIALFORCESPILOT"
+        ],
+        "S1": [
+            "Tir de barrage",
+            false,
+            "specialskill_FIRSTORDERSPECIALFORCESPILOT01"
+        ],
+        "S2": [
+            "D\u00e9flagration accablante",
+            false,
+            "specialskill_FIRSTORDERSPECIALFORCESPILOT02"
+        ]
+    },
+    "FIRSTORDERTIEPILOT": {
+        "B": [
+            "Coup double",
+            false,
+            "basicskill_FIRSTORDERTIEPILOT"
+        ],
+        "S1": [
+            "Flingueur",
+            false,
+            "specialskill_FIRSTORDERTIEPILOT01"
+        ],
+        "U1": [
+            "\u0152il vif",
+            true,
+            "uniqueskill_FIRSTORDERTIEPILOT01"
+        ]
+    },
+    "FIRSTORDERTROOPER": {
+        "B": [
+            "Tir entravant",
+            false,
+            "basicskill_FIRSTORDERTROOPER"
+        ],
+        "S1": [
+            "Ordre implacable",
+            false,
+            "specialskill_FIRSTORDERTROOPER01"
+        ],
+        "U1": [
+            "Tir de riposte",
+            true,
+            "uniqueskill_FIRSTORDERTROOPER01"
+        ]
+    },
+    "FOSITHTROOPER": {
+        "B": [
+            "Frappe Sith",
+            false,
+            "basicskill_FOSITHTROOPER"
+        ],
+        "S1": [
+            "D\u00e9flagration vengeresse",
+            false,
+            "specialskill_FOSITHTROOPER01"
+        ],
+        "S2": [
+            "R\u00e9surgence de pouvoir",
+            false,
+            "specialskill_FOSITHTROOPER02"
+        ],
+        "U1": [
+            "H\u00e9ritage de l'Empereur",
+            true,
+            "uniqueskill_FOSITHTROOPER01"
+        ],
+        "U2": [
+            "H\u00e9ritage de l'Empereur",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "FOTF_DEVASTATOR": {
+        "B": [
+            "Batterie de turbolaser XX-9",
+            false,
+            "basicskill_FOTF_DEVASTATOR"
+        ],
+        "S1": [
+            "Ordre impos\u00e9",
+            false,
+            "specialskill_FOTF_DEVASTATOR01"
+        ],
+        "S2": [
+            "Salve du canon ionique",
+            false,
+            "specialskill_FOTF_DEVASTATOR02"
+        ],
+        "S3": [
+            "Charge imp\u00e9riale",
+            false,
+            "specialskill_FOTF_DEVASTATOR03"
+        ],
+        "S4": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "La victoire par le pouvoir",
+            false,
+            "uniqueskill_FOTF_DEVASTATOR01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "FOTF_VADER": {
+        "B": [
+            "Taillade terrifiante",
+            false,
+            "basicskill_VADER"
+        ],
+        "L": [
+            "R\u00e8gne de terreur",
+            true,
+            "leaderskill_VADER"
+        ],
+        "S1": [
+            "\u00c9crasement de Force",
+            false,
+            "specialskill_VADER02"
+        ],
+        "S2": [
+            "Lame abatteuse",
+            false,
+            "specialskill_VADER01"
+        ],
+        "U1": [
+            "Aucune fuite possible",
+            true,
+            "uniqueskill_VADER01"
+        ]
+    },
+    "FULCRUMAHSOKA": {
+        "B": [
+            "Frappe \u00e9quilibr\u00e9e",
+            false,
+            "basicskill_FULCRUMAHSOKA"
+        ],
+        "S1": [
+            "M\u00e9ditation",
+            false,
+            "specialskill_FULCRUMAHSOKA01"
+        ],
+        "S2": [
+            "Tourbillon",
+            true,
+            "specialskill_FULCRUMAHSOKA02"
+        ],
+        "U1": [
+            "Pers\u00e9v\u00e9rance",
+            false,
+            "uniqueskill_FULCRUMAHSOKA01"
+        ]
+    },
+    "GAMORREANGUARD": {
+        "B": [
+            "Hach\u00e9 menu",
+            false,
+            "basicskill_GAMORREANGUARD"
+        ],
+        "S1": [
+            "Intervention muscl\u00e9e",
+            false,
+            "specialskill_GAMORREANGUARD01"
+        ],
+        "S2": [
+            "Exposition",
+            false,
+            "specialskill_GAMORREANGUARD02"
+        ]
+    },
+    "GARSAXON": {
+        "B": [
+            "En chasse",
+            false,
+            "basicskill_GARSAXON"
+        ],
+        "L": [
+            "Repr\u00e9sailles mandaloriennes",
+            true,
+            "leaderskill_GARSAXON"
+        ],
+        "S1": [
+            "Embuscade organis\u00e9e",
+            false,
+            "specialskill_GARSAXON01"
+        ],
+        "U1": [
+            "Vengeance du Vice-Roi",
+            false,
+            "uniqueskill_GARSAXON01"
+        ]
+    },
+    "GAUNTLETSTARFIGHTER": {
+        "B": [
+            "Assaut Gauntlet",
+            false,
+            "basicskill_GAUNTLETSTARFIGHTER"
+        ],
+        "S1": [
+            "Coup de fouet",
+            false,
+            "specialskill_GAUNTLETSTARFIGHTER01"
+        ],
+        "S2": [
+            "Lance-missiles \u00e0 protons",
+            false,
+            "specialskill_GAUNTLETSTARFIGHTER02"
+        ],
+        "U1": [
+            "Man\u0153uvrabilit\u00e9 sup\u00e9rieure",
+            false,
+            "uniqueskill_GAUNTLETSTARFIGHTER01"
+        ],
+        "U2": [
+            "Vice-Roi de Mandalore",
+            false,
+            "hardwareskill_GAUNTLETSTARFIGHTER01"
+        ]
+    },
+    "GENERALHUX": {
+        "B": [
+            "Tir imp\u00e9rieux",
+            false,
+            "basicskill_GENERALHUX"
+        ],
+        "L": [
+            "Soumettez-vous au Premier Ordre",
+            false,
+            "leaderskill_GENERALHUX"
+        ],
+        "S1": [
+            "Tir accablant",
+            false,
+            "specialskill_GENERALHUX01"
+        ],
+        "S2": [
+            "Plan perfide",
+            false,
+            "specialskill_GENERALHUX02"
+        ],
+        "U1": [
+            "Ambition infinie",
+            true,
+            "uniqueskill_GENERALHUX01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GENERALKENOBI": {
+        "B": [
+            "Frappe intuitive",
+            false,
+            "basicskill_GENERALKENOBI"
+        ],
+        "L": [
+            "Commandant du 212e\u00a0Bataillon d'Attaque",
+            false,
+            "leaderskill_GENERALKENOBI"
+        ],
+        "S1": [
+            "Le n\u00e9gociateur",
+            false,
+            "specialskill_GENERALKENOBI01"
+        ],
+        "S2": [
+            "Menez la charge",
+            false,
+            "specialskill_GENERALKENOBI02"
+        ],
+        "U1": [
+            "Soresu",
+            true,
+            "uniqueskill_GENERALKENOBI01"
+        ]
+    },
+    "GENERALSKYWALKER": {
+        "B": [
+            "Taillade furieuse",
+            true,
+            "basicskill_GENERALSKYWALKER"
+        ],
+        "L": [
+            "G\u00e9n\u00e9ral de la 501e",
+            true,
+            "leaderskill_GENERALSKYWALKER"
+        ],
+        "S1": [
+            "Frappe d\u00e9chirante",
+            false,
+            "specialskill_GENERALSKYWALKER01"
+        ],
+        "S2": [
+            "Pr\u00e9hension de Force",
+            false,
+            "specialskill_GENERALSKYWALKER02"
+        ],
+        "U1": [
+            "L'\u00c9lu",
+            true,
+            "uniqueskill_GENERALSKYWALKER01"
+        ],
+        "U2": [
+            "H\u00e9ros sans peur",
+            true,
+            "uniqueskill_GENERALSKYWALKER02"
+        ]
+    },
+    "GEONOSIANBROODALPHA": {
+        "B": [
+            "Frappe de bouclier",
+            false,
+            "basicskill_GEONOSIANBROODALPHA"
+        ],
+        "L": [
+            "Essaim G\u00e9onosien",
+            true,
+            "leaderskill_GEONOSIANBROODALPHA"
+        ],
+        "S1": [
+            "Coup de glaive",
+            false,
+            "specialskill_GEONOSIANBROODALPHA01"
+        ],
+        "S2": [
+            "Conscription",
+            false,
+            "specialskill_GEONOSIANBROODALPHA02"
+        ],
+        "U1": [
+            "Volont\u00e9 de la reine",
+            true,
+            "uniqueskill_GEONOSIANBROODALPHA01"
+        ],
+        "U2": [
+            "[c][ffff33]Brute G\u00e9onosienne[-][/c]",
+            false,
+            "uniqueskill_GEONOSIANBROODALPHA02"
+        ]
+    },
+    "GEONOSIANSOLDIER": {
+        "B": [
+            "Avanc\u00e9es agressives",
+            false,
+            "basicskill_GEONOSIANSOLDIER"
+        ],
+        "S1": [
+            "Nu\u00e9e",
+            false,
+            "specialskill_GEONOSIANSOLDIER01"
+        ],
+        "U1": [
+            "Tactiques collectives",
+            false,
+            "uniqueskill_GEONOSIANSOLDIER01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GEONOSIANSPY": {
+        "B": [
+            "Feinte",
+            false,
+            "basicskill_GEONOSIANSPY"
+        ],
+        "S1": [
+            "Frappe silencieuse",
+            false,
+            "specialskill_GEONOSIANSPY01"
+        ],
+        "S2": [
+            "Renseignements interdits",
+            false,
+            "specialskill_GEONOSIANSPY02"
+        ],
+        "U1": [
+            "Tactiques collectives",
+            false,
+            "uniqueskill_GEONOSIANSPY01"
+        ]
+    },
+    "GEONOSIANSTARFIGHTER1": {
+        "B": [
+            "Sup\u00e9riorit\u00e9 a\u00e9rienne",
+            false,
+            "basicskill_GEONOSIANSTARFIGHTER1"
+        ],
+        "S1": [
+            "Cible de choix",
+            false,
+            "specialskill_GEONOSIANSTARFIGHTER101"
+        ],
+        "U1": [
+            "Rancune",
+            false,
+            "uniqueskill_GEONOSIANSTARFIGHTER101"
+        ],
+        "U2": [
+            "Dispositif r\u00e9pulseur - Contr\u00f4le",
+            false,
+            "hardwareskill_GEONOSIANSTARFIGHTER101"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GEONOSIANSTARFIGHTER2": {
+        "B": [
+            "Premi\u00e8re ligne",
+            false,
+            "basicskill_GEONOSIANSTARFIGHTER2"
+        ],
+        "S1": [
+            "Assaut s\u00e9paratiste",
+            false,
+            "specialskill_GEONOSIANSTARFIGHTER201"
+        ],
+        "U1": [
+            "Nu\u00e9e agressive",
+            false,
+            "uniqueskill_GEONOSIANSTARFIGHTER201"
+        ],
+        "U2": [
+            "Dispositif r\u00e9pulseur - Guidage",
+            false,
+            "hardwareskill_GEONOSIANSTARFIGHTER201"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GEONOSIANSTARFIGHTER3": {
+        "B": [
+            "D\u00e9moralisation",
+            false,
+            "basicskill_GEONOSIANSTARFIGHTER3"
+        ],
+        "S1": [
+            "Tir surprise",
+            false,
+            "specialskill_GEONOSIANSTARFIGHTER301"
+        ],
+        "U1": [
+            "Op\u00e9rations clandestines",
+            false,
+            "uniqueskill_GEONOSIANSTARFIGHTER301"
+        ],
+        "U2": [
+            "Dispositif r\u00e9pulseur - Ruse",
+            false,
+            "hardwareskill_GEONOSIANSTARFIGHTER301"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GHOST": {
+        "B": [
+            "Double canon laser MS-2B",
+            false,
+            "basicskill_GHOST"
+        ],
+        "S1": [
+            "Brouilleur statique",
+            false,
+            "specialskill_GHOST01"
+        ],
+        "S2": [
+            "Attaque totale",
+            false,
+            "specialskill_GHOST02"
+        ],
+        "S3": [
+            "Cibles faciles",
+            false,
+            "specialskill_GHOST03"
+        ],
+        "U1": [
+            "Capteurs brouill\u00e9s",
+            false,
+            "uniqueskill_GHOST01"
+        ],
+        "U2": [
+            "Reconnaissance",
+            false,
+            "hardwareskill_GHOST01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GLREY": {
+        "B": [
+            "Progression implacable",
+            true,
+            "basicskill_GLREY"
+        ],
+        "GL": [
+            "L\u00e9gende galactique",
+            true,
+            "uniqueskill_GALACTICLEGEND01"
+        ],
+        "L": [
+            "Sagesse des textes sacr\u00e9s",
+            true,
+            "leaderskill_GLREY"
+        ],
+        "S1": [
+            "\u00c9nergie vitale",
+            true,
+            "specialskill_GLREY01"
+        ],
+        "S2": [
+            "Tourbillon brutal",
+            true,
+            "specialskill_GLREY02"
+        ],
+        "S3": [
+            "H\u00e9riti\u00e8re des Jedi",
+            false,
+            ""
+        ],
+        "U1": [
+            "Inspiration \u00e9vidente",
+            true,
+            "uniqueskill_GLREY01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GRANDADMIRALTHRAWN": {
+        "B": [
+            "Manipulation",
+            false,
+            "basicskill_GRANDADMIRALTHRAWN"
+        ],
+        "L": [
+            "Strat\u00e8ge l\u00e9gendaire",
+            true,
+            "leaderskill_GRANDADMIRALTHRAWN"
+        ],
+        "S1": [
+            "Fracture",
+            false,
+            "specialskill_GRANDADMIRALTHRAWN01"
+        ],
+        "S2": [
+            "Ordre du Grand Amiral",
+            false,
+            "specialskill_GRANDADMIRALTHRAWN02"
+        ],
+        "U1": [
+            "Fluctuations",
+            true,
+            "uniqueskill_GRANDADMIRALTHRAWN01"
+        ]
+    },
+    "GRANDMASTERLUKE": {
+        "B": [
+            "Explosion indomptable",
+            true,
+            "basicskill_GRANDMASTERLUKE"
+        ],
+        "GL": [
+            "L\u00e9gende galactique",
+            true,
+            "uniqueskill_GALACTICLEGEND01"
+        ],
+        "L": [
+            "L\u00e9gende des Jedi",
+            true,
+            "leaderskill_GRANDMASTERLUKE"
+        ],
+        "S1": [
+            "Le socle sur lequel ils croissent",
+            true,
+            "specialskill_GRANDMASTERLUKE01"
+        ],
+        "S2": [
+            "Afflux",
+            true,
+            "specialskill_GRANDMASTERLUKE02"
+        ],
+        "S3": [
+            "R\u00e9sistance h\u00e9ro\u00efque",
+            false,
+            ""
+        ],
+        "U1": [
+            "H\u00e9ritage Jedi",
+            true,
+            "uniqueskill_GRANDMASTERLUKE01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "GRANDMASTERYODA": {
+        "B": [
+            "Ataru",
+            false,
+            "basicskill_GRANDMASTERYODA"
+        ],
+        "L": [
+            "Les conseils du Grand Ma\u00eetre",
+            true,
+            "leaderskill_GRANDMASTERYODA"
+        ],
+        "S1": [
+            "Coup de ma\u00eetre",
+            false,
+            "specialskill_GRANDMASTERYODA01"
+        ],
+        "S2": [
+            "Force inexorable",
+            false,
+            "specialskill_GRANDMASTERYODA02"
+        ],
+        "S3": [
+            "M\u00e9ditation de combat",
+            true,
+            "specialskill_GRANDMASTERYODA03"
+        ]
+    },
+    "GRANDMOFFTARKIN": {
+        "B": [
+            "Attaque du Grand Moff",
+            false,
+            "basicskill_GRANDMOFFTARKIN"
+        ],
+        "L": [
+            "Resserrer l'\u00e9tau",
+            true,
+            "leaderskill_GRANDMOFFTARKIN"
+        ],
+        "S1": [
+            "Puissance de feu ultime",
+            false,
+            "specialskill_GRANDMOFFTARKIN01"
+        ],
+        "S2": [
+            "Techniques d'intimidation",
+            false,
+            "specialskill_GRANDMOFFTARKIN02"
+        ],
+        "U1": [
+            "R\u00e9solution implacable",
+            true,
+            "uniqueskill_GRANDMOFFTARKIN01"
+        ]
+    },
+    "GREEDO": {
+        "B": [
+            "Qui a tir\u00e9 le premier\u00a0?",
+            false,
+            "basicskill_GREEDO"
+        ],
+        "L": [
+            "Embuscade",
+            false,
+            "leaderskill_GREEDO"
+        ],
+        "S1": [
+            "Sabotage explosif",
+            false,
+            "specialskill_GREEDO01"
+        ],
+        "S2": [
+            "Menacer",
+            true,
+            "specialskill_GREEDO02"
+        ],
+        "U1": [
+            "Si tu ne r\u00e9ussis pas du premier coup",
+            false,
+            "uniqueskill_GREEDO01"
+        ],
+        "U2": [
+            "Prime de Greedo",
+            false,
+            "contractskill_GREEDO01"
+        ]
+    },
+    "GREEFKARGA": {
+        "B": [
+            "Tir double",
+            false,
+            "basicskill_GREEFKARGA"
+        ],
+        "L": [
+            "La loyaut\u00e9, \u00e7a paie",
+            false,
+            "leaderskill_GREEFKARGA"
+        ],
+        "S1": [
+            "Refroidis",
+            true,
+            "specialskill_GREEFKARGA01"
+        ],
+        "S2": [
+            "Offre am\u00e9lior\u00e9e",
+            true,
+            "specialskill_GREEFKARGA02"
+        ],
+        "U1": [
+            "Chef de la Guilde",
+            false,
+            "uniqueskill_GREEFKARGA01"
+        ],
+        "U2": [
+            "Prime de Greef Karga",
+            false,
+            "contractskill_GREEFKARGA01"
+        ]
+    },
+    "GRIEVOUS": {
+        "B": [
+            "Assaut furieux",
+            false,
+            "basicskill_GRIEVOUS"
+        ],
+        "L": [
+            "Pr\u00e9sence intimidante",
+            true,
+            "leaderskill_GRIEVOUS"
+        ],
+        "S1": [
+            "Blessures de Grievous",
+            false,
+            "specialskill_GRIEVOUS01"
+        ],
+        "S2": [
+            "Terreur rampante",
+            false,
+            "specialskill_GRIEVOUS02"
+        ],
+        "U1": [
+            "Monstruosit\u00e9 m\u00e9tallique",
+            true,
+            "uniqueskill_GRIEVOUS01"
+        ]
+    },
+    "GRIEVOUS_MARQUEE": {
+        "B": [
+            "Assaut furieux",
+            false,
+            "basicskill_GRIEVOUS"
+        ],
+        "L": [
+            "Pr\u00e9sence intimidante",
+            true,
+            "leaderskill_GRIEVOUS"
+        ],
+        "S1": [
+            "Blessures de Grievous",
+            false,
+            "specialskill_GRIEVOUS01"
+        ],
+        "S2": [
+            "Terreur rampante",
+            false,
+            "specialskill_GRIEVOUS02"
+        ],
+        "U1": [
+            "Monstruosit\u00e9 m\u00e9tallique",
+            true,
+            "uniqueskill_GRIEVOUS01"
+        ]
+    },
+    "HANSOLO": {
+        "B": [
+            "D\u00e9gaine rapide",
+            false,
+            "basicskill_HANSOLO"
+        ],
+        "S1": [
+            "Tireur d'\u00e9lite",
+            false,
+            "specialskill_HANSOLO01"
+        ],
+        "S2": [
+            "Tu sais, moi et les probabilit\u00e9s\u2026",
+            false,
+            "specialskill_HANSOLO02"
+        ],
+        "U1": [
+            "Tirer le premier",
+            true,
+            "uniqueskill_HANSOLO01"
+        ]
+    },
+    "HERASYNDULLAS3": {
+        "B": [
+            "Berner",
+            false,
+            "basicskill_HERASYNDULLAS3"
+        ],
+        "L": [
+            "Envers et contre tous",
+            false,
+            "leaderskill_HERASYNDULLAS3"
+        ],
+        "S1": [
+            "Exploiter ses forces",
+            true,
+            "specialskill_HERASYNDULLAS301"
+        ],
+        "S2": [
+            "Plan de secours",
+            false,
+            "specialskill_HERASYNDULLAS302"
+        ],
+        "U1": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U2": [
+            "UNIQUEABILITY_HERASYNDULLAS301_NAME",
+            false,
+            ""
+        ]
+    },
+    "HERMITYODA": {
+        "B": [
+            "Protection du Ma\u00eetre",
+            false,
+            "basicskill_HERMITYODA"
+        ],
+        "S1": [
+            "Entra\u00eenement du Ma\u00eetre",
+            false,
+            "specialskill_HERMITYODA01"
+        ],
+        "S2": [
+            "L'\u00e9nergie \u00e9mane de la Force",
+            true,
+            "specialskill_HERMITYODA02"
+        ],
+        "U1": [
+            "En exil",
+            false,
+            "uniqueskill_HERMITYODA01"
+        ],
+        "U2": [
+            "Fais-le. Ou ne le fais pas.",
+            true,
+            "uniqueskill_HERMITYODA02"
+        ]
+    },
+    "HK47": {
+        "B": [
+            "Demande\u00a0: Cr\u00e8ve, sac \u00e0 viande\u00a0!",
+            false,
+            "basicskill_HK47"
+        ],
+        "L": [
+            "\u00c9limination cibl\u00e9e",
+            false,
+            "leaderskill_HK47"
+        ],
+        "S1": [
+            "Chaos",
+            false,
+            "specialskill_HK4701"
+        ],
+        "S2": [
+            "Protocole d'assassinat",
+            false,
+            "specialskill_HK4702"
+        ],
+        "U1": [
+            "Autoreconstruction",
+            true,
+            "uniqueskill_HK4701"
+        ],
+        "U2": [
+            "Loyaut\u00e9 envers le cr\u00e9ateur",
+            true,
+            "uniqueskill_HK4702"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "HOTHHAN": {
+        "B": [
+            "Tir incapacitant",
+            false,
+            "basicskill_HOTHHAN"
+        ],
+        "S1": [
+            "Profil bas",
+            false,
+            "specialskill_HOTHHAN01"
+        ],
+        "S2": [
+            "Recherche et sauvetage",
+            false,
+            "specialskill_HOTHHAN02"
+        ],
+        "U1": [
+            "Juste \u00e0 temps",
+            true,
+            "uniqueskill_HOTHHAN01"
+        ],
+        "U2": [
+            "Juste \u00e0 temps",
+            false,
+            ""
+        ]
+    },
+    "HOTHLEIA": {
+        "B": [
+            "Repousser",
+            false,
+            "basicskill_HOTHLEIA"
+        ],
+        "L": [
+            "Commandante de premi\u00e8re ligne",
+            false,
+            "leaderskill_HOTHLEIA"
+        ],
+        "S1": [
+            "Barrage rebelle",
+            false,
+            "specialskill_HOTHLEIA01"
+        ],
+        "U1": [
+            "Intr\u00e9pide",
+            true,
+            "uniqueskill_HOTHLEIA01"
+        ],
+        "U2": [
+            "EMPTY",
+            false,
+            ""
+        ]
+    },
+    "HOTHREBELSCOUT": {
+        "B": [
+            "Man\u0153uvres audacieuses",
+            false,
+            "basicskill_HOTHREBELSCOUT"
+        ],
+        "S1": [
+            "Assaut des Rebelles",
+            false,
+            "specialskill_HOTHREBELSCOUT01"
+        ],
+        "U1": [
+            "Espoir de l'Alliance",
+            false,
+            "uniqueskill_HOTHREBELSCOUT01"
+        ]
+    },
+    "HOTHREBELSOLDIER": {
+        "B": [
+            "Tir de couverture",
+            false,
+            "basicskill_HOTHREBELSOLDIER"
+        ],
+        "S1": [
+            "Tenir bon",
+            false,
+            "specialskill_HOTHREBELSOLDIER01"
+        ],
+        "U1": [
+            "\u00c9lan des rebelles",
+            false,
+            "uniqueskill_HOTHREBELSOLDIER01"
+        ]
+    },
+    "HOUNDSTOOTH": {
+        "B": [
+            "Croc et griffe",
+            false,
+            "basicskill_HOUNDSTOOTH"
+        ],
+        "S1": [
+            "Pr\u00e9dateur vorace",
+            false,
+            "specialskill_HOUNDSTOOTH01"
+        ],
+        "U1": [
+            "Barricade trandoshanne",
+            false,
+            "uniqueskill_HOUNDSTOOTH01"
+        ],
+        "U2": [
+            "Poursuite de la proie",
+            false,
+            "hardwareskill_HOUNDSTOOTH01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "HUMANTHUG": {
+        "B": [
+            "BASICABILITY_MOB ENFORCER_NAME",
+            false,
+            "basicskill_HUMANTHUG"
+        ],
+        "S1": [
+            "SPECIALABILITY_MOB ENFORCER01_NAME",
+            false,
+            "specialskill_HUMANTHUG01"
+        ],
+        "U1": [
+            "Cran de la p\u00e8gre",
+            false,
+            "uniqueskill_HUMANTHUG01"
+        ]
+    },
+    "HYENABOMBER": {
+        "B": [
+            "Explosion de pr\u00e9cision",
+            false,
+            "basicskill_HYENABOMBER"
+        ],
+        "S1": [
+            "Salve synchronis\u00e9e",
+            false,
+            "specialskill_HYENABOMBER01"
+        ],
+        "U1": [
+            "Comm\u00e9rage",
+            false,
+            "uniqueskill_HYENABOMBER01"
+        ],
+        "U2": [
+            "Photor\u00e9cepteurs",
+            false,
+            "hardwareskill_HYENABOMBER01"
+        ]
+    },
+    "IG11": {
+        "B": [
+            "Avantage sensoriel",
+            false,
+            "basicskill_IG11"
+        ],
+        "S1": [
+            "FONCTION\u00a0: PROT\u00c9GER",
+            false,
+            "specialskill_IG1101"
+        ],
+        "S2": [
+            "Protocole d'infirmier dro\u00efde",
+            false,
+            "specialskill_IG1102"
+        ],
+        "U1": [
+            "Faveur de l'Enfant",
+            true,
+            "uniqueskill_IG1101"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "IG2000": {
+        "B": [
+            "Faiblesse d\u00e9tect\u00e9e",
+            false,
+            "basicskill_IG2000"
+        ],
+        "S1": [
+            "Amortisseurs inertiels d\u00e9sactiv\u00e9s",
+            false,
+            "specialskill_IG20001"
+        ],
+        "U1": [
+            "Protocole de r\u00e9paration",
+            false,
+            "uniqueskill_IG20001"
+        ],
+        "U2": [
+            "Initialisation du programme offensif",
+            false,
+            "hardwareskill_IG20001"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "IG86SENTINELDROID": {
+        "B": [
+            "Frappe de pr\u00e9cision",
+            false,
+            "basicskill_IG86SENTINELDROID"
+        ],
+        "S1": [
+            "Tactiques de dro\u00efde assassin",
+            false,
+            "specialskill_IG86SENTINELDROID01"
+        ],
+        "U1": [
+            "Tactique d'escouade dro\u00efde",
+            false,
+            "uniqueskill_IG86SENTINELDROID01"
+        ]
+    },
+    "IG88": {
+        "B": [
+            "Blessure mortelle",
+            false,
+            "basicskill_IG88"
+        ],
+        "L": [
+            "Poursuivant ing\u00e9nieux",
+            false,
+            "leaderskill_IG88"
+        ],
+        "S1": [
+            "Tir rapide",
+            false,
+            "specialskill_IG8801"
+        ],
+        "U1": [
+            "Algorithme de vis\u00e9e adaptatif",
+            true,
+            "uniqueskill_IG8801"
+        ],
+        "U2": [
+            "Prime de IG-88",
+            false,
+            "contractskill_IG8801"
+        ]
+    },
+    "IMAGUNDI": {
+        "B": [
+            "D\u00e9chirure",
+            false,
+            "basicskill_IMAGUNDI"
+        ],
+        "L": [
+            "Strat\u00e8ge Jedi",
+            false,
+            "leaderskill_IMAGUNDI"
+        ],
+        "S1": [
+            "R\u00e9primande",
+            false,
+            "specialskill_IMAGUNDI01"
+        ],
+        "U1": [
+            "Baroud d'honneur",
+            false,
+            "uniqueskill_IMAGUNDI01"
+        ]
+    },
+    "IMPERIALPROBEDROID": {
+        "B": [
+            "Blasters de pr\u00e9cision",
+            false,
+            "basicskill_IMPERIALPROBEDROID"
+        ],
+        "S1": [
+            "D\u00e9tection",
+            false,
+            "specialskill_IMPERIALPROBEDROID01"
+        ],
+        "S2": [
+            "Autodestruction",
+            false,
+            "specialskill_IMPERIALPROBEDROID02"
+        ],
+        "U1": [
+            "Logistique imp\u00e9riale",
+            true,
+            "uniqueskill_IMPERIALPROBEDROID01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "IMPERIALSUPERCOMMANDO": {
+        "B": [
+            "Prendre l'avantage",
+            false,
+            "basicskill_IMPERIALSUPERCOMMANDO"
+        ],
+        "S1": [
+            "Tactiques sup\u00e9rieures",
+            false,
+            "specialskill_IMPERIALSUPERCOMMANDO01"
+        ],
+        "U1": [
+            "Pr\u00e9dominance",
+            false,
+            "uniqueskill_IMPERIALSUPERCOMMANDO01"
+        ]
+    },
+    "JANGOFETT": {
+        "B": [
+            "Tir d\u00e9loyal",
+            false,
+            "basicskill_JANGOFETT"
+        ],
+        "L": [
+            "Gagner du terrain",
+            true,
+            "leaderskill_JANGOFETT"
+        ],
+        "S1": [
+            "Explosion de shrapnel",
+            false,
+            "specialskill_JANGOFETT01"
+        ],
+        "S2": [
+            "Conflagration",
+            false,
+            "specialskill_JANGOFETT02"
+        ],
+        "U1": [
+            "Mauvaise r\u00e9putation",
+            true,
+            "uniqueskill_JANGOFETT01"
+        ],
+        "U2": [
+            "Prime de Jango Fett",
+            false,
+            "contractskill_JANGOFETT01"
+        ]
+    },
+    "JAWA": {
+        "B": [
+            "Exploitation de faiblesse",
+            false,
+            "basicskill_JAWA"
+        ],
+        "S1": [
+            "\u00c9tourdissement surprise",
+            false,
+            "specialskill_JAWA01"
+        ],
+        "U1": [
+            "Tactiques d'embuscade",
+            false,
+            "uniqueskill_JAWA01"
+        ]
+    },
+    "JAWAENGINEER": {
+        "B": [
+            "D\u00e9tonateur Miniature",
+            false,
+            "basicskill_JAWAENGINEER"
+        ],
+        "S1": [
+            "Remontant",
+            false,
+            "specialskill_JAWAENGINEER01"
+        ],
+        "S2": [
+            "Recalibrage",
+            false,
+            "specialskill_JAWAENGINEER02"
+        ],
+        "U1": [
+            "Moment D\u00e9cisif",
+            false,
+            "uniqueskill_JAWAENGINEER01"
+        ]
+    },
+    "JAWASCAVENGER": {
+        "B": [
+            "D\u00e9mant\u00e8lement",
+            false,
+            "basicskill_JAWASCAVENGER"
+        ],
+        "S1": [
+            "Bombe artisanale",
+            false,
+            "specialskill_JAWASCAVENGER01"
+        ],
+        "U1": [
+            "Une ligne dans le sable",
+            false,
+            "uniqueskill_JAWASCAVENGER01"
+        ],
+        "U2": [
+            "\u00c9quipement recycl\u00e9",
+            false,
+            "uniqueskill_JAWASCAVENGER02"
+        ]
+    },
+    "JEDIKNIGHTCONSULAR": {
+        "B": [
+            "Frappe au sabre",
+            false,
+            "basicskill_JEDIKNIGHTCONSULAR"
+        ],
+        "S1": [
+            "Gu\u00e9rison Jedi",
+            false,
+            "specialskill_JEDIKNIGHTCONSULAR01"
+        ],
+        "S2": [
+            "L'attaque comme d\u00e9fense",
+            false,
+            "specialskill_JEDIKNIGHTCONSULAR02"
+        ]
+    },
+    "JEDIKNIGHTGUARDIAN": {
+        "B": [
+            "Coup de sabre",
+            false,
+            "basicskill_JEDIKNIGHTGUARDIAN"
+        ],
+        "S1": [
+            "Lancer de sabre",
+            false,
+            "specialskill_JEDIKNIGHTGUARDIAN01"
+        ],
+        "U1": [
+            "D\u00e9fenseur de l'Ordre",
+            false,
+            "uniqueskill_JEDIKNIGHTGUARDIAN01"
+        ]
+    },
+    "JEDIKNIGHTLUKE": {
+        "B": [
+            "Frappe pr\u00e9dominante",
+            false,
+            "basicskill_JEDIKNIGHTLUKE"
+        ],
+        "L": [
+            "Le retour du Jedi",
+            true,
+            "leaderskill_JEDIKNIGHTLUKE"
+        ],
+        "S1": [
+            "Avanc\u00e9e vaillante",
+            false,
+            "specialskill_JEDIKNIGHTLUKE01"
+        ],
+        "S2": [
+            "R\u00e9pulsion",
+            false,
+            "specialskill_JEDIKNIGHTLUKE02"
+        ],
+        "U1": [
+            "D\u00e9termination du Chevalier Jedi",
+            true,
+            "uniqueskill_JEDIKNIGHTLUKE01"
+        ],
+        "U2": [
+            "EMPTY",
+            false,
+            ""
+        ]
+    },
+    "JEDIKNIGHTREVAN": {
+        "B": [
+            "Charge f\u00e9roce",
+            false,
+            "basicskill_JEDIKNIGHTREVAN"
+        ],
+        "L": [
+            "G\u00e9n\u00e9ral",
+            true,
+            "leaderskill_JEDIKNIGHTREVAN"
+        ],
+        "S1": [
+            "Ma\u00eetre strat\u00e8ge",
+            false,
+            "specialskill_JEDIKNIGHTREVAN01"
+        ],
+        "S2": [
+            "Concentration directe",
+            true,
+            "specialskill_JEDIKNIGHTREVAN02"
+        ],
+        "U1": [
+            "Sauveur",
+            false,
+            "uniqueskill_JEDIKNIGHTREVAN01"
+        ],
+        "U2": [
+            "H\u00e9ros",
+            true,
+            "uniqueskill_JEDIKNIGHTREVAN02"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "JEDISTARFIGHTERAHSOKATANO": {
+        "B": [
+            "Tir instinctif",
+            false,
+            "basicskill_JEDISTARFIGHTERAHSOKATANO"
+        ],
+        "S1": [
+            "D\u00e9sactivation",
+            false,
+            "specialskill_JEDISTARFIGHTERAHSOKATANO01"
+        ],
+        "S2": [
+            "Volte-face",
+            false,
+            "specialskill_JEDISTARFIGHTERAHSOKATANO02"
+        ],
+        "U1": [
+            "Man\u0153uvre rus\u00e9e",
+            false,
+            "hardwareskill_JEDISTARFIGHTERAHSOKATANO01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "JEDISTARFIGHTERANAKIN": {
+        "B": [
+            "Verrouill\u00e9",
+            false,
+            "basicskill_JEDISTARFIGHTERANAKIN"
+        ],
+        "S1": [
+            "Assaut imminent",
+            false,
+            "specialskill_JEDISTARFIGHTERANAKIN01"
+        ],
+        "U1": [
+            "D\u00e9ferlement de puissance",
+            false,
+            "uniqueskill_JEDISTARFIGHTERANAKIN01"
+        ],
+        "U2": [
+            "Approche agressive",
+            false,
+            "hardwareskill_JEDISTARFIGHTERANAKIN01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "JEDISTARFIGHTERCONSULAR": {
+        "B": [
+            "D\u00e9fenseur de la R\u00e9publique",
+            false,
+            "basicskill_JEDISTARFIGHTERCONSULAR"
+        ],
+        "S1": [
+            "Assaut mesur\u00e9",
+            false,
+            "specialskill_JEDISTARFIGHTERCONSULAR01"
+        ],
+        "S2": [
+            "Stabilisation",
+            false,
+            "specialskill_JEDISTARFIGHTERCONSULAR02"
+        ],
+        "U1": [
+            "Gardien de la R\u00e9publique",
+            false,
+            "hardwareskill_JEDISTARFIGHTERCONSULAR01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "JKL_GR75": {
+        "B": [
+            "Esquive rapide",
+            false,
+            "basicskill_GR75_JKL"
+        ],
+        "S1": [
+            "D\u00e9termination rebelle",
+            false,
+            "specialskill_GR75_JKL_01"
+        ],
+        "S2": [
+            "Appeler les renforts",
+            false,
+            ""
+        ],
+        "U1": [
+            "Vaisseau non-combattant",
+            false,
+            "uniqueskill_GR75_JKL_01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "JKL_PILOT": {
+        "B": [
+            "Tir de couverture",
+            false,
+            "basicskill_HOTHREBELSOLDIER"
+        ],
+        "S1": [
+            "Tenir bon",
+            false,
+            "specialskill_HOTHREBELSOLDIER01"
+        ],
+        "U1": [
+            "\u00c9lan des rebelles",
+            false,
+            "uniqueskill_HOTHREBELSOLDIER01"
+        ]
+    },
+    "JOLEEBINDO": {
+        "B": [
+            "Aucune alternative",
+            false,
+            "basicskill_JOLEEBINDO"
+        ],
+        "S1": [
+            "Eh, c'est \u00e0 toi",
+            false,
+            "specialskill_JOLEEBINDO01"
+        ],
+        "S2": [
+            "\u00c7a doit faire mal",
+            true,
+            "specialskill_JOLEEBINDO02"
+        ],
+        "U1": [
+            "Cessez de m'interrompre\u00a0!",
+            false,
+            "uniqueskill_JOLEEBINDO01"
+        ],
+        "U2": [
+            "Exp\u00e9rience et sagesse",
+            false,
+            "uniqueskill_JOLEEBINDO02"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "JUHANI": {
+        "B": [
+            "Frappe furieuse",
+            false,
+            "basicskill_juhani"
+        ],
+        "S1": [
+            "Esbroufe",
+            false,
+            "specialskill_juhani01"
+        ],
+        "S2": [
+            "Racl\u00e9e repentie",
+            false,
+            "specialskill_juhani02"
+        ],
+        "U1": [
+            "R\u00e9sistance Cathar",
+            true,
+            "uniqueskill_juhani01"
+        ]
+    },
+    "JYNERSO": {
+        "B": [
+            "\u00c0 l'attaque",
+            false,
+            "basicskill_JYNERSO"
+        ],
+        "L": [
+            "Dans la m\u00eal\u00e9e",
+            true,
+            "leaderskill_JYNERSO"
+        ],
+        "S1": [
+            "Contre-attaque rebelle",
+            false,
+            "specialskill_JYNERSO01"
+        ],
+        "S2": [
+            "Frappe \u00e0 la matraque",
+            false,
+            "specialskill_JYNERSO02"
+        ],
+        "U1": [
+            "D\u00e9termination farouche",
+            true,
+            "uniqueskill_JYNERSO01"
+        ]
+    },
+    "K2SO": {
+        "B": [
+            "Poing en alliage carbo-plas",
+            false,
+            "basicskill_K2SO"
+        ],
+        "S1": [
+            "Charge conductrice",
+            false,
+            "specialskill_K2SO01"
+        ],
+        "U1": [
+            "Ex\u00e9cuteur",
+            false,
+            "uniqueskill_K2SO01"
+        ],
+        "U2": [
+            "Dro\u00efde imp\u00e9rial reprogramm\u00e9",
+            true,
+            "uniqueskill_K2SO02"
+        ]
+    },
+    "KANANJARRUSS3": {
+        "B": [
+            "Frappe accablante",
+            false,
+            "basicskill_KANANJARRUSS3"
+        ],
+        "S1": [
+            "Intervention",
+            false,
+            "specialskill_KANANJARRUSS301"
+        ],
+        "S2": [
+            "D\u00e9fense totale",
+            true,
+            "specialskill_KANANJARRUSS302"
+        ],
+        "U1": [
+            "Esprit d\u00e9gag\u00e9",
+            false,
+            "uniqueskill_KANANJARRUSS301"
+        ],
+        "U2": [
+            "Esprit d\u00e9gag\u00e9",
+            false,
+            ""
+        ]
+    },
+    "KIADIMUNDI": {
+        "B": [
+            "Frappe versatile",
+            false,
+            "basicskill_kiadimundi"
+        ],
+        "S1": [
+            "Forme adaptative",
+            false,
+            "specialskill_kiadimundi01"
+        ],
+        "S2": [
+            "Estoc d\u00e9cisif",
+            false,
+            "specialskill_kiadimundi02"
+        ],
+        "U1": [
+            "Conseil Jedi",
+            true,
+            "uniqueskill_kiadimundi01"
+        ],
+        "U2": [
+            "Ma\u00eetre des formes",
+            false,
+            "uniqueskill_kiadimundi02"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "KITFISTO": {
+        "B": [
+            "Ma\u00eetrise du sabre laser",
+            false,
+            "basicskill_KITFISTO"
+        ],
+        "L": [
+            "Protecteur Jedi",
+            false,
+            "leaderskill_KITFISTO"
+        ],
+        "S1": [
+            "Renversement de situation",
+            false,
+            "specialskill_KITFISTO01"
+        ],
+        "U1": [
+            "Ma\u00eetrise sup\u00e9rieure du sabre laser",
+            false,
+            "uniqueskill_KITFISTO01"
+        ]
+    },
+    "KUIIL": {
+        "B": [
+            "Tactique de l'ing\u00e9nieur",
+            false,
+            "basicskill_KUIIL"
+        ],
+        "S1": [
+            "Tir volta\u00efque",
+            false,
+            "specialskill_KUIIL01"
+        ],
+        "S2": [
+            "J'ai parl\u00e9",
+            false,
+            "specialskill_KUIIL02"
+        ],
+        "U1": [
+            "Sagesse sauvage",
+            true,
+            "uniqueskill_KUIIL01"
+        ]
+    },
+    "KYLOREN": {
+        "B": [
+            "Entaille furieuse",
+            false,
+            "basicskill_KYLOREN"
+        ],
+        "S1": [
+            "Imp\u00e9tuosit\u00e9",
+            false,
+            "specialskill_KYLOREN01"
+        ],
+        "S2": [
+            "Outrage",
+            true,
+            "specialskill_KYLOREN02"
+        ],
+        "U1": [
+            "Implacable",
+            false,
+            "uniqueskill_KYLOREN01"
+        ]
+    },
+    "KYLORENUNMASKED": {
+        "B": [
+            "Frappe agressive",
+            false,
+            "basicskill_KYLORENUNMASKED"
+        ],
+        "L": [
+            "Poursuite implacable",
+            true,
+            "leaderskill_KYLORENUNMASKED"
+        ],
+        "S1": [
+            "Halte",
+            false,
+            "specialskill_KYLORENUNMASKED01"
+        ],
+        "S2": [
+            "Rage contr\u00f4l\u00e9e",
+            false,
+            "specialskill_KYLORENUNMASKED02"
+        ],
+        "U1": [
+            "Marqu\u00e9",
+            true,
+            "uniqueskill_KYLORENUNMASKED01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "L3_37": {
+        "B": [
+            "Charge audacieuse",
+            false,
+            "basicskill_l3_37"
+        ],
+        "S1": [
+            "Lueur d'espoir",
+            false,
+            "specialskill_l3_37_01"
+        ],
+        "U1": [
+            "Pour les dro\u00efdes",
+            true,
+            "uniqueskill_l3_37_01"
+        ],
+        "U2": [
+            "Auto-modification",
+            false,
+            "uniqueskill_l3_37_02"
+        ]
+    },
+    "LOBOT": {
+        "B": [
+            "Agressivit\u00e9 calcul\u00e9e",
+            false,
+            "basicskill_LOBOT"
+        ],
+        "L": [
+            "Intelligence collective",
+            false,
+            "leaderskill_LOBOT"
+        ],
+        "S1": [
+            "Optimisation",
+            false,
+            "specialskill_LOBOT01"
+        ],
+        "U1": [
+            "Traitement parall\u00e8le",
+            false,
+            "uniqueskill_LOBOT01"
+        ]
+    },
+    "LOGRAY": {
+        "B": [
+            "Frappe mystique",
+            false,
+            "basicskill_LOGRAY"
+        ],
+        "S1": [
+            "Hypnose",
+            false,
+            "specialskill_LOGRAY01"
+        ],
+        "S2": [
+            "Visions proph\u00e9tiques",
+            false,
+            "specialskill_LOGRAY02"
+        ],
+        "U1": [
+            "Clairvoyance de chaman",
+            true,
+            "uniqueskill_LOGRAY01"
+        ]
+    },
+    "LUKESKYWALKER": {
+        "B": [
+            "Tireur d'\u00e9lite de la fronti\u00e8re",
+            false,
+            "basicskill_LUKESKYWALKER"
+        ],
+        "L": [
+            "Un nouvel espoir",
+            true,
+            "leaderskill_LUKESKYWALKER"
+        ],
+        "S1": [
+            "Dans le mille",
+            false,
+            "specialskill_LUKESKYWALKER01"
+        ],
+        "U1": [
+            "Dans le viseur",
+            true,
+            "uniqueskill_LUKESKYWALKER01"
+        ]
+    },
+    "LUMINARAUNDULI": {
+        "B": [
+            "Flux de Force",
+            false,
+            "basicskill_LUMINARAUNDULI"
+        ],
+        "L": [
+            "Foul\u00e9es \u00e9l\u00e9gantes",
+            true,
+            "leaderskill_LUMINARAUNDULI"
+        ],
+        "S1": [
+            "Explosion de Force",
+            false,
+            "specialskill_LUMINARAUNDULI01"
+        ],
+        "S2": [
+            "B\u00e9n\u00e9diction de l'experte en gu\u00e9rison",
+            false,
+            "specialskill_LUMINARAUNDULI02"
+        ]
+    },
+    "MACEWINDU": {
+        "B": [
+            "Assaut invincible",
+            false,
+            "basicskill_MACEWINDU"
+        ],
+        "L": [
+            "Vaapad",
+            false,
+            "leaderskill_MACEWINDU"
+        ],
+        "S1": [
+            "Ch\u00e2timent",
+            false,
+            "specialskill_MACEWINDU01"
+        ],
+        "U1": [
+            "Point de rupture",
+            false,
+            "uniqueskill_MACEWINDU01"
+        ]
+    },
+    "MAGMATROOPER": {
+        "B": [
+            "Ligne de feu",
+            false,
+            "basicskill_MAGMATROOPER"
+        ],
+        "S1": [
+            "Implosion thermique",
+            false,
+            "specialskill_MAGMATROOPER01"
+        ],
+        "U1": [
+            "Formation au danger",
+            false,
+            "uniqueskill_MAGMATROOPER01"
+        ]
+    },
+    "MAGNAGUARD": {
+        "B": [
+            "Assaut au b\u00e2ton statique",
+            false,
+            "basicskill_MAGNAGUARD"
+        ],
+        "S1": [
+            "Perturbation",
+            false,
+            "specialskill_MAGNAGUARD01"
+        ],
+        "S2": [
+            "Frappe \u00e9tourdissante",
+            true,
+            "specialskill_MAGNAGUARD02"
+        ],
+        "U1": [
+            "Assaut implacable",
+            false,
+            "uniqueskill_MAGNAGUARD01"
+        ]
+    },
+    "MAUL": {
+        "B": [
+            "Temp\u00eate d\u00e9cha\u00een\u00e9e",
+            false,
+            "basicskill_MAUL"
+        ],
+        "L": [
+            "T\u00e9n\u00e8bres dansantes",
+            true,
+            "leaderskill_MAUL"
+        ],
+        "S1": [
+            "Tourbillon de lames",
+            false,
+            "specialskill_MAUL01"
+        ],
+        "U1": [
+            "Pouvoir de la haine",
+            false,
+            "uniqueskill_MAUL01"
+        ]
+    },
+    "MILLENNIUMFALCON": {
+        "B": [
+            "Modifications sp\u00e9ciales",
+            false,
+            "basicskill_MILLENNIUMFALCON"
+        ],
+        "S1": [
+            "Regarde \u00e7a",
+            false,
+            "specialskill_MILLENNIUMFALCON01"
+        ],
+        "S2": [
+            "On met la gomme\u00a0!",
+            false,
+            "specialskill_MILLENNIUMFALCON02"
+        ],
+        "U1": [
+            "Peut-\u00eatre que ce coucou est moche \u00e0 voir",
+            false,
+            "uniqueskill_MILLENNIUMFALCON01"
+        ],
+        "U2": [
+            "Youhou\u00a0!",
+            false,
+            "hardwareskill_MILLENNIUMFALCON01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "MILLENNIUMFALCONEP7": {
+        "B": [
+            "Quad Laser",
+            false,
+            "basicskill_MILLENNIUMFALCONEP7"
+        ],
+        "S1": [
+            "Gambit",
+            false,
+            "specialskill_MILLENNIUMFALCONEP701"
+        ],
+        "S2": [
+            "Inversion de pouss\u00e9e",
+            false,
+            "specialskill_MILLENNIUMFALCONEP702"
+        ],
+        "U1": [
+            "Contre toute attente",
+            false,
+            "uniqueskill_MILLENNIUMFALCONEP701"
+        ],
+        "U2": [
+            "Acc\u00e9l\u00e9rateur de pouss\u00e9e",
+            false,
+            "hardwareskill_MILLENNIUMFALCONEP701"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "MILLENNIUMFALCONPRISTINE": {
+        "B": [
+            "Doubler la mise",
+            false,
+            "basicskill_MILLENNIUMFALCONPRISTINE"
+        ],
+        "S1": [
+            "Bouclez vos ceintures",
+            false,
+            "specialskill_MILLENNIUMFALCONPRISTINE01"
+        ],
+        "S2": [
+            "Am\u00e9lioration calcul\u00e9e",
+            false,
+            "specialskill_MILLENNIUMFALCONPRISTINE02"
+        ],
+        "U1": [
+            "Pile ou face",
+            false,
+            "uniqueskill_MILLENNIUMFALCONPRISTINE01"
+        ],
+        "U2": [
+            "\u00c0 fond les manettes",
+            false,
+            "hardwareskill_MILLENNIUMFALCONPRISTINE01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "MISSIONVAO": {
+        "B": [
+            "Ne clignez pas des yeux",
+            false,
+            "basicskill_MISSIONVAO"
+        ],
+        "S1": [
+            "D\u00e9brouillardise",
+            false,
+            "specialskill_MISSIONVAO01"
+        ],
+        "U1": [
+            "Me voil\u00e0\u00a0!",
+            false,
+            "uniqueskill_MISSIONVAO01"
+        ],
+        "U2": [
+            "Big\u00a0Z et moi, pour toujours",
+            true,
+            "uniqueskill_MISSIONVAO02"
+        ]
+    },
+    "MOFFGIDEONS1": {
+        "B": [
+            "Tir perturbateur",
+            false,
+            "basicskill_MOFFGIDEONS1"
+        ],
+        "L": [
+            "D\u00e9ploiement tactique",
+            true,
+            "leaderskill_MOFFGIDEONS1"
+        ],
+        "S1": [
+            "Fente au sabre noir",
+            false,
+            "specialskill_MOFFGIDEONS101"
+        ],
+        "S2": [
+            "Ma\u00eetriser la situation",
+            true,
+            "specialskill_MOFFGIDEONS102"
+        ],
+        "U1": [
+            "Conna\u00eetre son adversaire",
+            false,
+            "uniqueskill_MOFFGIDEONS101"
+        ],
+        "U2": [
+            "Conna\u00eetre son adversaire",
+            false,
+            ""
+        ]
+    },
+    "MONMOTHMA": {
+        "B": [
+            "Au service de la paix",
+            false,
+            "basicskill_MONMOTHMA"
+        ],
+        "L": [
+            "Chanceli\u00e8re de l'Alliance",
+            true,
+            "leaderskill_MONMOTHMA"
+        ],
+        "S1": [
+            "Restauration de la R\u00e9publique",
+            false,
+            "specialskill_MONMOTHMA01"
+        ],
+        "S2": [
+            "Promotion de terrain",
+            false,
+            "specialskill_MONMOTHMA02"
+        ],
+        "U1": [
+            "[c][ffff33]Soldat rebelle[-][/c]",
+            false,
+            ""
+        ],
+        "U2": [
+            "La r\u00e9bellion nous appartient",
+            true,
+            "uniqueskill_MONMOTHMA01"
+        ],
+        "U3": [
+            "[c][ffff33]Soldat rebelle[-][/c]",
+            false,
+            ""
+        ],
+        "U4": [
+            "RALLY",
+            false,
+            ""
+        ]
+    },
+    "MOTHERTALZIN": {
+        "B": [
+            "Ichor luminescent",
+            false,
+            "basicskill_MOTHERTALZIN"
+        ],
+        "L": [
+            "La Grande M\u00e8re",
+            true,
+            "leaderskill_MOTHERTALZIN"
+        ],
+        "S1": [
+            "Magie noire",
+            false,
+            "specialskill_MOTHERTALZIN01"
+        ],
+        "S2": [
+            "Lame des esprits",
+            false,
+            "specialskill_MOTHERTALZIN02"
+        ],
+        "U1": [
+            "Infection pestilentielle",
+            true,
+            "uniqueskill_MOTHERTALZIN01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "NIGHTSISTERACOLYTE": {
+        "B": [
+            "Frappe depuis les ombres",
+            false,
+            "basicskill_NIGHTSISTERACOLYTE"
+        ],
+        "S1": [
+            "Magie sacrificielle",
+            false,
+            "specialskill_NIGHTSISTERACOLYTE01"
+        ],
+        "U1": [
+            "Fastes de la victoire",
+            false,
+            "uniqueskill_NIGHTSISTERACOLYTE01"
+        ]
+    },
+    "NIGHTSISTERINITIATE": {
+        "B": [
+            "Entaille",
+            false,
+            "basicskill_NIGHTSISTERINITIATE"
+        ],
+        "S1": [
+            "D\u00e9coupage",
+            false,
+            "specialskill_NIGHTSISTERINITIATE01"
+        ],
+        "S2": [
+            "Frappe incapacitante",
+            false,
+            "specialskill_NIGHTSISTERINITIATE02"
+        ],
+        "U1": [
+            "Repr\u00e9sailles des S\u0153urs de la Nuit",
+            true,
+            "uniqueskill_NIGHTSISTERINITIATE01"
+        ]
+    },
+    "NIGHTSISTERSPIRIT": {
+        "B": [
+            "\u00c9treinte spectrale",
+            false,
+            "basicskill_NIGHTSISTERSPIRIT"
+        ],
+        "S1": [
+            "Possession",
+            false,
+            "specialskill_NIGHTSISTERSPIRIT01"
+        ],
+        "U1": [
+            "Esprit malveillant",
+            false,
+            "uniqueskill_NIGHTSISTERSPIRIT01"
+        ]
+    },
+    "NIGHTSISTERZOMBIE": {
+        "B": [
+            "Fl\u00e9au",
+            false,
+            "basicskill_NIGHTSISTERZOMBIE"
+        ],
+        "S1": [
+            "Voracit\u00e9",
+            false,
+            "specialskill_NIGHTSISTERZOMBIE01"
+        ],
+        "U1": [
+            "Arm\u00e9e \u00e9ternelle",
+            false,
+            "uniqueskill_NIGHTSISTERZOMBIE01"
+        ],
+        "U2": [
+            "Sacrifice immortel",
+            false,
+            "uniqueskill_NIGHTSISTERZOMBIE02"
+        ]
+    },
+    "NUTEGUNRAY": {
+        "B": [
+            "N\u00e9gociations difficiles",
+            false,
+            "basicskill_NUTEGUNRAY"
+        ],
+        "L": [
+            "Subterfuge ill\u00e9gal",
+            false,
+            "leaderskill_NUTEGUNRAY"
+        ],
+        "S1": [
+            "Transactions douteuses",
+            false,
+            "specialskill_NUTEGUNRAY01"
+        ],
+        "S2": [
+            "Motivation",
+            false,
+            "specialskill_NUTEGUNRAY02"
+        ],
+        "U1": [
+            "Pouvoir du Vice-Roi",
+            true,
+            "uniqueskill_NUTEGUNRAY01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "OLDBENKENOBI": {
+        "B": [
+            "Forme \u00e9l\u00e9gante",
+            false,
+            "basicskill_OLDBENKENOBI"
+        ],
+        "L": [
+            "Vieux chevalier Jedi",
+            false,
+            "leaderskill_OLDBENKENOBI"
+        ],
+        "S1": [
+            "Ruses de Jedi",
+            false,
+            "specialskill_OLDBENKENOBI01"
+        ],
+        "S2": [
+            "Protecteur d\u00e9vou\u00e9",
+            true,
+            "specialskill_OLDBENKENOBI02"
+        ],
+        "U1": [
+            "Si tu me terrasses...",
+            true,
+            "uniqueskill_OLDBENKENOBI01"
+        ]
+    },
+    "PADMEAMIDALA": {
+        "B": [
+            "N\u00e9gociation muscl\u00e9e",
+            false,
+            "basicskill_PADMEAMIDALA"
+        ],
+        "L": [
+            "Courage in\u00e9branlable",
+            true,
+            "leaderskill_PADMEAMIDALA"
+        ],
+        "S1": [
+            "Plan rus\u00e9",
+            false,
+            "specialskill_PADMEAMIDALA01"
+        ],
+        "S2": [
+            "Assaut gracieux",
+            false,
+            "specialskill_PADMEAMIDALA02"
+        ],
+        "U1": [
+            "Toujours le choix",
+            true,
+            "uniqueskill_PADMEAMIDALA01"
+        ]
+    },
+    "PAO": {
+        "B": [
+            "Frappe v\u00e9h\u00e9mente",
+            false,
+            "basicskill_PAO"
+        ],
+        "S1": [
+            "Sa'kalla\u00a0!",
+            false,
+            "specialskill_PAO01"
+        ],
+        "S2": [
+            "Grenade sonique",
+            false,
+            "specialskill_PAO02"
+        ],
+        "U1": [
+            "Pour Pipada",
+            true,
+            "uniqueskill_PAO01"
+        ]
+    },
+    "PAPLOO": {
+        "B": [
+            "Frappe vigilante",
+            false,
+            "basicskill_PAPLOO"
+        ],
+        "S1": [
+            "Diversion",
+            false,
+            "specialskill_PAPLOO01"
+        ],
+        "S2": [
+            "Galvanisation",
+            false,
+            "specialskill_PAPLOO02"
+        ],
+        "U1": [
+            "Sans retenue",
+            true,
+            "uniqueskill_PAPLOO01"
+        ]
+    },
+    "PHANTOM2": {
+        "B": [
+            "D\u00e9robade",
+            false,
+            "basicskill_PHANTOM2"
+        ],
+        "S1": [
+            "Cibles en vue",
+            false,
+            "specialskill_PHANTOM201"
+        ],
+        "S2": [
+            "Impact maximum",
+            false,
+            "specialskill_PHANTOM202"
+        ],
+        "U1": [
+            "Chopper multi-fonctions",
+            false,
+            "uniqueskill_PHANTOM201"
+        ],
+        "U2": [
+            "Tactiques de distraction",
+            false,
+            "uniqueskill_PHANTOM202"
+        ],
+        "U3": [
+            "Frappe discr\u00e8te",
+            false,
+            "hardwareskill_PHANTOM201"
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "PHASMA": {
+        "B": [
+            "Ravage",
+            false,
+            "basicskill_PHASMA"
+        ],
+        "L": [
+            "Feu \u00e0 volont\u00e9",
+            true,
+            "leaderskill_PHASMA"
+        ],
+        "S1": [
+            "Marche victorieuse",
+            false,
+            "specialskill_PHASMA01"
+        ],
+        "S2": [
+            "Fusillade",
+            false,
+            "specialskill_PHASMA02"
+        ]
+    },
+    "PLOKOON": {
+        "B": [
+            "Coup \u00e9touffant",
+            false,
+            "basicskill_PLOKOON"
+        ],
+        "L": [
+            "Veille",
+            false,
+            "leaderskill_PLOKOON"
+        ],
+        "S1": [
+            "Jugement de Force",
+            false,
+            "specialskill_PLOKOON01"
+        ],
+        "S2": [
+            "Prise de commandement",
+            false,
+            "specialskill_PLOKOON02"
+        ]
+    },
+    "POE": {
+        "B": [
+            "Tir provocateur",
+            false,
+            "basicskill_POE"
+        ],
+        "L": [
+            "As de la R\u00e9sistance",
+            false,
+            "leaderskill_POE"
+        ],
+        "S1": [
+            "Bravade de la R\u00e9sistance",
+            false,
+            "specialskill_POE01"
+        ],
+        "U1": [
+            "Vantardise",
+            false,
+            "uniqueskill_POE01"
+        ]
+    },
+    "POGGLETHELESSER": {
+        "B": [
+            "Mort martiale",
+            false,
+            "basicskill_POGGLETHELESSER"
+        ],
+        "L": [
+            "Archiduc",
+            false,
+            "leaderskill_POGGLETHELESSER"
+        ],
+        "S1": [
+            "D\u00e9termination du seigneur de guerre",
+            false,
+            "specialskill_POGGLETHELESSER01"
+        ],
+        "U1": [
+            "Tactiques collectives",
+            false,
+            "uniqueskill_POGGLETHELESSER01"
+        ]
+    },
+    "PRINCESSLEIA": {
+        "B": [
+            "D\u00e9tente sensible",
+            false,
+            "basicskill_PRINCESSLEIA"
+        ],
+        "L": [
+            "Coeur de la R\u00e9bellion",
+            false,
+            "leaderskill_PRINCESSLEIA"
+        ],
+        "S1": [
+            "Tactiques des Rebelles",
+            false,
+            "specialskill_PRINCESSLEIA01"
+        ],
+        "U1": [
+            "Contre vents et mar\u00e9es",
+            true,
+            "uniqueskill_PRINCESSLEIA01"
+        ]
+    },
+    "QIRA": {
+        "B": [
+            "Double attaque meurtri\u00e8re",
+            false,
+            "basicskill_QIRA"
+        ],
+        "L": [
+            "Ressources du vaurien",
+            false,
+            "leaderskill_QIRA"
+        ],
+        "S1": [
+            "Explosion diffus\u00e9e",
+            false,
+            "specialskill_QIRA01"
+        ],
+        "S2": [
+            "Op\u00e9ration group\u00e9e",
+            false,
+            "specialskill_QIRA02"
+        ],
+        "U1": [
+            "Acharnement",
+            true,
+            "uniqueskill_QIRA01"
+        ]
+    },
+    "QUIGONJINN": {
+        "B": [
+            "Frappe rapide",
+            false,
+            "basicskill_QUIGONJINN"
+        ],
+        "L": [
+            "Exercices d'agilit\u00e9",
+            true,
+            "leaderskill_QUIGONJINN"
+        ],
+        "S1": [
+            "Assaut synchronis\u00e9",
+            false,
+            "specialskill_QUIGONJINN01"
+        ],
+        "S2": [
+            "Coup humiliant",
+            false,
+            "specialskill_QUIGONJINN02"
+        ]
+    },
+    "R2D2_LEGENDARY": {
+        "B": [
+            "D\u00e9charge \u00e9lectrique",
+            false,
+            "basicskill_R2D2_LEGENDARY"
+        ],
+        "S1": [
+            "\u00c9cran de fum\u00e9e",
+            false,
+            "specialskill_R2D2_LEGENDARY01"
+        ],
+        "S2": [
+            "Improvisation",
+            false,
+            "specialskill_R2D2_LEGENDARY02"
+        ],
+        "U1": [
+            "Analyse de combat",
+            true,
+            "uniqueskill_R2D2_LEGENDARY01"
+        ],
+        "U2": [
+            "Traitement de donn\u00e9es",
+            true,
+            "uniqueskill_R2D2_LEGENDARY02"
+        ]
+    },
+    "RANGETROOPER": {
+        "B": [
+            "En joue",
+            false,
+            "basicskill_RANGETROOPER"
+        ],
+        "S1": [
+            "Stabilisation",
+            false,
+            "specialskill_RANGETROOPER01"
+        ],
+        "U1": [
+            "Force du nombre",
+            false,
+            "uniqueskill_RANGETROOPER01"
+        ]
+    },
+    "RESISTANCEPILOT": {
+        "B": [
+            "Tir \u00e0 la hanche",
+            false,
+            "basicskill_RESISTANCEPILOT"
+        ],
+        "S1": [
+            "Plans d\u00e9jou\u00e9s",
+            false,
+            "specialskill_RESISTANCEPILOT01"
+        ],
+        "U1": [
+            "En plein vol",
+            false,
+            "uniqueskill_RESISTANCEPILOT01"
+        ]
+    },
+    "RESISTANCETROOPER": {
+        "B": [
+            "D\u00e9busquer",
+            false,
+            "basicskill_RESISTANCETROOPER"
+        ],
+        "S1": [
+            "Frappe opportune",
+            false,
+            "specialskill_RESISTANCETROOPER01"
+        ],
+        "U1": [
+            "Tactiques de gu\u00e9rilla",
+            false,
+            "uniqueskill_RESISTANCETROOPER01"
+        ]
+    },
+    "REY": {
+        "B": [
+            "Frappe changeante",
+            false,
+            "basicskill_REY"
+        ],
+        "S1": [
+            "Influence",
+            false,
+            "specialskill_REY01"
+        ],
+        "S2": [
+            "D\u00e9luge de coups",
+            false,
+            "specialskill_REY02"
+        ],
+        "U1": [
+            "Frappes cibl\u00e9es",
+            true,
+            "uniqueskill_REY01"
+        ]
+    },
+    "REYJEDITRAINING": {
+        "B": [
+            "Frappes li\u00e9es",
+            false,
+            "basicskill_REYJEDITRAINING"
+        ],
+        "L": [
+            "Pr\u00e9sence charismatique",
+            true,
+            "leaderskill_REYJEDITRAINING"
+        ],
+        "S1": [
+            "Taillade rebelle",
+            false,
+            "specialskill_REYJEDITRAINING01"
+        ],
+        "S2": [
+            "Ruse mentale",
+            false,
+            "specialskill_REYJEDITRAINING02"
+        ],
+        "U1": [
+            "Protectrice vertueuse",
+            true,
+            "uniqueskill_REYJEDITRAINING01"
+        ],
+        "U2": [
+            "Perspicacit\u00e9",
+            true,
+            "uniqueskill_REYJEDITRAINING02"
+        ]
+    },
+    "ROSETICO": {
+        "B": [
+            "Tir vaillant",
+            false,
+            "basicskill_ROSETICO"
+        ],
+        "S1": [
+            "Bravoure et d\u00e9termination",
+            false,
+            "specialskill_ROSETICO01"
+        ],
+        "S2": [
+            "Matraque \u00e9lectrique",
+            false,
+            "specialskill_ROSETICO02"
+        ],
+        "U1": [
+            "Esprit vaillant",
+            true,
+            "uniqueskill_ROSETICO01"
+        ]
+    },
+    "ROYALGUARD": {
+        "B": [
+            "Pique de Force",
+            false,
+            "basicskill_ROYALGUARD"
+        ],
+        "S1": [
+            "Phalange imp\u00e9riale",
+            false,
+            "specialskill_ROYALGUARD01"
+        ],
+        "U1": [
+            "D\u00e9fenseur acharn\u00e9",
+            false,
+            "uniqueskill_ROYALGUARD01"
+        ]
+    },
+    "SABINEWRENS3": {
+        "B": [
+            "Blasters sur les hanches",
+            false,
+            "basicskill_SABINEWRENS3"
+        ],
+        "S1": [
+            "Frappe au sabre noir",
+            false,
+            "specialskill_SABINEWRENS301"
+        ],
+        "S2": [
+            "D\u00e9molition",
+            true,
+            "specialskill_SABINEWRENS302"
+        ],
+        "U1": [
+            "Contre-offensive",
+            false,
+            "uniqueskill_SABINEWRENS301"
+        ]
+    },
+    "SAVAGEOPRESS": {
+        "B": [
+            "Coup ahurissant",
+            false,
+            "basicskill_SAVAGEOPRESS"
+        ],
+        "L": [
+            "La souffrance, c'est pour les faibles",
+            false,
+            "leaderskill_SAVAGEOPRESS"
+        ],
+        "S1": [
+            "Surpuissance",
+            false,
+            "specialskill_SAVAGEOPRESS01"
+        ],
+        "U1": [
+            "Brute",
+            true,
+            "uniqueskill_SAVAGEOPRESS01"
+        ],
+        "U2": [
+            "EMPTY",
+            false,
+            ""
+        ]
+    },
+    "SCARIFREBEL": {
+        "B": [
+            "Ardeur",
+            false,
+            "basicskill_SCARIFREBEL"
+        ],
+        "S1": [
+            "Entr\u00e9e explosive",
+            false,
+            "specialskill_SCARIFREBEL01"
+        ],
+        "U1": [
+            "Faire ou mourir",
+            false,
+            "uniqueskill_SCARIFREBEL01"
+        ]
+    },
+    "SHAAKTI": {
+        "B": [
+            "Frappe courageuse",
+            false,
+            "basicskill_SHAAKTI"
+        ],
+        "L": [
+            "L'unit\u00e9 gagne la guerre",
+            true,
+            "leaderskill_SHAAKTI"
+        ],
+        "S1": [
+            "Escouade d'assaut",
+            false,
+            "specialskill_SHAAKTI01"
+        ],
+        "S2": [
+            "Exercices d'entra\u00eenement",
+            false,
+            "specialskill_SHAAKTI02"
+        ],
+        "U1": [
+            "R\u00e9flexes d\u00e9cupl\u00e9s",
+            true,
+            "uniqueskill_SHAAKTI01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "SHORETROOPER": {
+        "B": [
+            "Armes de vis\u00e9e",
+            false,
+            "basicskill_SHORETROOPER"
+        ],
+        "S1": [
+            "Regroupement",
+            false,
+            "specialskill_SHORETROOPER01"
+        ],
+        "U1": [
+            "Monter la garde",
+            false,
+            "uniqueskill_SHORETROOPER01"
+        ]
+    },
+    "SITHASSASSIN": {
+        "B": [
+            "Exploitation de faiblesse",
+            false,
+            "basicskill_SITHASSASSIN"
+        ],
+        "S1": [
+            "Voile sombre",
+            false,
+            "specialskill_SITHASSASSIN01"
+        ],
+        "S2": [
+            "\u00c9lectrocution",
+            false,
+            "specialskill_SITHASSASSIN02"
+        ]
+    },
+    "SITHBOMBER": {
+        "B": [
+            "Barrage laser",
+            false,
+            "basicskill_sithbomber"
+        ],
+        "S1": [
+            "Bombardement",
+            false,
+            "specialskill_sithbomber01"
+        ],
+        "U1": [
+            "Cible inestimable",
+            false,
+            "uniqueskill_sithbomber01"
+        ],
+        "U2": [
+            "Bombardier en renfort",
+            false,
+            "hardwareskill_sithbomber01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "SITHFIGHTER": {
+        "B": [
+            "\u00c9touffement",
+            false,
+            "basicskill_SITHFIGHTER"
+        ],
+        "S1": [
+            "Premier coup",
+            false,
+            "specialskill_SITHFIGHTER01"
+        ],
+        "U1": [
+            "Tactiques de horde",
+            false,
+            "uniqueskill_SITHFIGHTER01"
+        ],
+        "U2": [
+            "Man\u0153uvrabilit\u00e9 extr\u00eame",
+            false,
+            "hardwareskill_SITHFIGHTER01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "SITHINFILTRATOR": {
+        "B": [
+            "Canons d'effroi",
+            false,
+            "basicskill_SITHINFILTRATOR"
+        ],
+        "S1": [
+            "Dissimulation",
+            false,
+            "specialskill_SITHINFILTRATOR01"
+        ],
+        "U1": [
+            "Menace de l'ombre",
+            false,
+            "uniqueskill_SITHINFILTRATOR01"
+        ],
+        "U2": [
+            "Ombre d\u00e9rivante",
+            false,
+            "hardwareskill_SITHINFILTRATOR01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "SITHMARAUDER": {
+        "B": [
+            "La puissance par la passion",
+            false,
+            "basicskill_SITHMARAUDER"
+        ],
+        "S1": [
+            "La victoire par le pouvoir",
+            false,
+            "specialskill_SITHMARAUDER01"
+        ],
+        "U1": [
+            "La Force me lib\u00e9rera",
+            false,
+            "uniqueskill_SITHMARAUDER01"
+        ]
+    },
+    "SITHPALPATINE": {
+        "B": [
+            "Duperie",
+            true,
+            "basicskill_SITHPALPATINE"
+        ],
+        "GL": [
+            "L\u00e9gende galactique",
+            true,
+            "uniqueskill_GALACTICLEGEND01"
+        ],
+        "L": [
+            "\u00c9ternel Sith",
+            true,
+            "leaderskill_SITHPALPATINE"
+        ],
+        "S1": [
+            "Tant pis pour toi, Jedi",
+            true,
+            "specialskill_SITHPALPATINE01"
+        ],
+        "S2": [
+            "Destin d\u00e9nou\u00e9",
+            true,
+            "specialskill_SITHPALPATINE02"
+        ],
+        "S3": [
+            "Je suis tous les Sith",
+            false,
+            ""
+        ],
+        "U1": [
+            "Semer la discorde",
+            true,
+            "uniqueskill_SITHPALPATINE01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "SITHTROOPER": {
+        "B": [
+            "Explosion de disrupteur",
+            false,
+            "basicskill_SITHTROOPER"
+        ],
+        "S1": [
+            "Barrage pourpre",
+            false,
+            "specialskill_SITHTROOPER01"
+        ],
+        "U1": [
+            "L'h\u00e9ritage de Vaiken",
+            false,
+            "uniqueskill_SITHTROOPER01"
+        ]
+    },
+    "SLAVE1": {
+        "B": [
+            "Double canon blaster rotatif",
+            false,
+            "basicskill_slave1"
+        ],
+        "S1": [
+            "Torpilles \u00e0 protons",
+            false,
+            "specialskill_slave101"
+        ],
+        "S2": [
+            "Charge sismique",
+            false,
+            "specialskill_slave102"
+        ],
+        "U1": [
+            "Offensive g\u00e9n\u00e9rale",
+            false,
+            "hardwareskill_slave101"
+        ],
+        "U2": [
+            "EMPTY",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "SMUGGLERCHEWBACCA": {
+        "B": [
+            "Tirs explosifs",
+            false,
+            "basicskill_SMUGGLERCHEWBACCA"
+        ],
+        "S1": [
+            "Coup furieux",
+            false,
+            "specialskill_SMUGGLERCHEWBACCA01"
+        ],
+        "U1": [
+            "Rapport de la R\u00e9sistance",
+            false,
+            "uniqueskill_SMUGGLERCHEWBACCA02"
+        ],
+        "U2": [
+            "Laisse gagner le Wookiee",
+            true,
+            "uniqueskill_SMUGGLERCHEWBACCA01"
+        ]
+    },
+    "SMUGGLERHAN": {
+        "B": [
+            "Tir ultime",
+            false,
+            "basicskill_SMUGGLERHAN"
+        ],
+        "S1": [
+            "Je peux essayer\u00a0?",
+            false,
+            "specialskill_SMUGGLERHAN01"
+        ],
+        "U1": [
+            "Rapport de la R\u00e9sistance",
+            false,
+            "uniqueskill_SMUGGLERHAN02"
+        ],
+        "U2": [
+            "Escroquerie",
+            true,
+            "uniqueskill_SMUGGLERHAN01"
+        ]
+    },
+    "SNOWTROOPER": {
+        "B": [
+            "Assaut des troupes de choc",
+            false,
+            "basicskill_SNOWTROOPER"
+        ],
+        "S1": [
+            "Assaut irr\u00e9sistible",
+            false,
+            "specialskill_SNOWTROOPER01"
+        ],
+        "U1": [
+            "Entra\u00eenement d'assaut",
+            false,
+            "uniqueskill_SNOWTROOPER"
+        ]
+    },
+    "STORMTROOPER": {
+        "B": [
+            "Pr\u00e9cision imp\u00e9riale",
+            false,
+            "basicskill_STORMTROOPER01"
+        ],
+        "S1": [
+            "Bravade du stormtrooper",
+            false,
+            "specialskill_STORMTROOPER01"
+        ],
+        "U1": [
+            "Mur de stormtroopers",
+            true,
+            "uniqueskill_STORMTROOPER01"
+        ]
+    },
+    "STORMTROOPERHAN": {
+        "B": [
+            "Tir m\u00e9fiant",
+            false,
+            "basicskill_STORMTROOPERHAN"
+        ],
+        "L": [
+            "Plan B",
+            false,
+            "leaderskill_STORMTROOPERHAN"
+        ],
+        "S1": [
+            "Attirer le feu",
+            false,
+            "specialskill_STORMTROOPERHAN01"
+        ],
+        "U1": [
+            "Bluff",
+            true,
+            "uniqueskill_STORMTROOPERHAN01"
+        ]
+    },
+    "SUNFAC": {
+        "B": [
+            "Intimidation",
+            false,
+            "basicskill_SUNFAC"
+        ],
+        "S1": [
+            "Subjuguer",
+            false,
+            "specialskill_SUNFAC01"
+        ],
+        "S2": [
+            "Frappe malveillante",
+            false,
+            "specialskill_SUNFAC02"
+        ],
+        "U1": [
+            "Tactiques collectives",
+            false,
+            "uniqueskill_SUNFAC01"
+        ]
+    },
+    "SUPREMELEADERKYLOREN": {
+        "B": [
+            "Assaut brutal",
+            true,
+            "basicskill_SUPREMELEADERKYLOREN"
+        ],
+        "GL": [
+            "L\u00e9gende galactique",
+            true,
+            "uniqueskill_GALACTICLEGEND01"
+        ],
+        "L": [
+            "Supr\u00eame Leader",
+            true,
+            "leaderskill_SUPREMELEADERKYLOREN"
+        ],
+        "S1": [
+            "Frappe statique",
+            true,
+            "specialskill_SUPREMELEADERKYLOREN01"
+        ],
+        "S2": [
+            "Charge furieuse",
+            true,
+            "specialskill_SUPREMELEADERKYLOREN02"
+        ],
+        "S3": [
+            "Rage profonde",
+            false,
+            ""
+        ],
+        "U1": [
+            "Appuyer l'avantage",
+            true,
+            "uniqueskill_SUPREMELEADERKYLOREN01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "T3_M4": {
+        "B": [
+            "D\u00e9sactivation",
+            false,
+            "basicskill_t3_m4"
+        ],
+        "S1": [
+            "Kit de r\u00e9paration",
+            false,
+            "specialskill_t3_m4_01"
+        ],
+        "S2": [
+            "Projecteur de carbonite",
+            false,
+            "specialskill_t3_m4_02"
+        ],
+        "U1": [
+            "Am\u00e9lioration de tactique de combat",
+            true,
+            "uniqueskill_t3_m4_01"
+        ],
+        "U2": [
+            "Fou du volant",
+            true,
+            "uniqueskill_t3_m4_02"
+        ]
+    },
+    "TALIA": {
+        "B": [
+            "Frappe affaiblissante",
+            false,
+            "basicskill_TALIA"
+        ],
+        "L": [
+            "Agilit\u00e9 des S\u0153urs de la Nuit",
+            false,
+            "leaderskill_TALIA"
+        ],
+        "S1": [
+            "Eaux de la Vie",
+            false,
+            "specialskill_TALIA01"
+        ],
+        "S2": [
+            "Assaut laborieux",
+            false,
+            "specialskill_TALIA02"
+        ]
+    },
+    "TEEBO": {
+        "B": [
+            "Manipulation furtive",
+            false,
+            "basicskill_TEEBO"
+        ],
+        "L": [
+            "Gu\u00e9rilla",
+            false,
+            "leaderskill_TEEBO"
+        ],
+        "S1": [
+            "Techniques de diversion ewoks",
+            false,
+            "specialskill_TEEBO01"
+        ],
+        "S2": [
+            "Rabaissement",
+            false,
+            "specialskill_TEEBO02"
+        ]
+    },
+    "THEMANDALORIAN": {
+        "B": [
+            "Tir vif",
+            false,
+            "basicskill_THEMANDALORIAN"
+        ],
+        "L": [
+            "Acquisitions",
+            true,
+            "leaderskill_THEMANDALORIAN"
+        ],
+        "S1": [
+            "Transpercer",
+            false,
+            "specialskill_THEMANDALORIAN01"
+        ],
+        "U1": [
+            "Chasseur de primes disciplin\u00e9",
+            true,
+            "uniqueskill_THEMANDALORIAN01"
+        ],
+        "U2": [
+            "Prime du Mandalorien",
+            false,
+            "contractskill_THEMANDALORIAN"
+        ]
+    },
+    "TIEADVANCED": {
+        "B": [
+            "Pr\u00e9cision mortelle",
+            false,
+            "basicskill_TIEADVANCED"
+        ],
+        "S1": [
+            "C'est dans la poche",
+            false,
+            "specialskill_TIEADVANCED01"
+        ],
+        "U1": [
+            "Syst\u00e8me de vis\u00e9e avanc\u00e9e",
+            false,
+            "uniqueskill_TIEADVANCED01"
+        ],
+        "U2": [
+            "Pr\u00e9sence mena\u00e7ante",
+            false,
+            "hardwareskill_TIEADVANCED01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "TIEBOMBERIMPERIAL": {
+        "B": [
+            "Canons laser L-s1",
+            false,
+            "basicskill_TIEBOMBERIMPERIAL"
+        ],
+        "S1": [
+            "Bombardement protonique",
+            false,
+            "specialskill_TIEBOMBERIMPERIAL01"
+        ],
+        "U1": [
+            "Double module",
+            false,
+            "uniqueskill_TIEBOMBERIMPERIAL01"
+        ],
+        "U2": [
+            "En r\u00e9serve",
+            false,
+            "hardwareskill_TIEBOMBERIMPERIAL"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "TIEFIGHTERFIRSTORDER": {
+        "B": [
+            "Cible verrouill\u00e9e",
+            false,
+            "basicskill_TIEFIGHTERFIRSTORDER"
+        ],
+        "S1": [
+            "Rafale",
+            false,
+            "specialskill_TIEFIGHTERFIRSTORDER01"
+        ],
+        "U1": [
+            "Poursuite implacable",
+            false,
+            "uniqueskill_TIEFIGHTERFIRSTORDER01"
+        ],
+        "U2": [
+            "Protocole de communication des raids",
+            false,
+            "hardwareskill_TIEFIGHTERFIRSTORDER01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "TIEFIGHTERFOSF": {
+        "B": [
+            "Canons laser L-s9.6",
+            false,
+            "basicskill_TIEFIGHTERFOSF"
+        ],
+        "S1": [
+            "Double offensive",
+            false,
+            "specialskill_TIEFIGHTERFOSF01"
+        ],
+        "S2": [
+            "Missile \u00e0 concussion",
+            false,
+            "specialskill_TIEFIGHTERFOSF02"
+        ],
+        "U1": [
+            "Pr\u00e9cision sup\u00e9rieure",
+            false,
+            "hardwareskill_TIEFIGHTERFOSF01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "TIEFIGHTERIMPERIAL": {
+        "B": [
+            "Canon laser L-s1",
+            false,
+            "basicskill_TIEFIGHTERIMPERIAL"
+        ],
+        "S1": [
+            "Ordinateur de vis\u00e9e T-s8",
+            false,
+            "specialskill_TIEFIGHTERIMPERIAL01"
+        ],
+        "U1": [
+            "Propulseurs de contr\u00f4le",
+            false,
+            "uniqueskill_TIEFIGHTERIMPERIAL02"
+        ],
+        "U2": [
+            "Double moteur ionique",
+            false,
+            "hardwareskill_TIEFIGHTERIMPERIAL01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "TIEFIGHTERPILOT": {
+        "B": [
+            "Ordinateur de vis\u00e9e",
+            false,
+            "basicskill_TIEFIGHTERPILOT"
+        ],
+        "S1": [
+            "Frappe TIE",
+            false,
+            "specialskill_TIEFIGHTERPILOT01"
+        ],
+        "U1": [
+            "Man\u0153uvres d'\u00e9vasion",
+            false,
+            "uniqueskill_TIEFIGHTERPILOT01"
+        ]
+    },
+    "TIEREAPER": {
+        "B": [
+            "Batterie d\u00e9fensive",
+            false,
+            "basicskill_TIEREAPER"
+        ],
+        "S1": [
+            "Interf\u00e9rence lourde",
+            false,
+            "specialskill_TIEREAPER01"
+        ],
+        "S2": [
+            "Soutien imp\u00e9rial",
+            false,
+            "specialskill_TIEREAPER02"
+        ],
+        "U1": [
+            "Voyage sinistre",
+            false,
+            "uniqueskill_TIEREAPER01"
+        ],
+        "U2": [
+            "Formation d\u00e9fensive",
+            false,
+            "hardwareskill_TIEREAPER01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "TIESILENCER": {
+        "B": [
+            "Progression subversive",
+            false,
+            "basicskill_TIESILENCER"
+        ],
+        "S1": [
+            "Avantage total",
+            false,
+            "specialskill_TIESILENCER01"
+        ],
+        "U1": [
+            "Rage fr\u00e9n\u00e9tique",
+            false,
+            "uniqueskill_TIESILENCER01"
+        ],
+        "U2": [
+            "Postcombustion",
+            false,
+            "hardwareskill_TIESILENCER01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "TUSKENRAIDER": {
+        "B": [
+            "Tir de fusil",
+            false,
+            "basicskill_TUSKENRAIDER"
+        ],
+        "S1": [
+            "Embuscade Tusken",
+            false,
+            "specialskill_TUSKENRAIDER01"
+        ],
+        "U1": [
+            "Force du nombre",
+            false,
+            "uniqueskill_TUSKENRAIDER01"
+        ]
+    },
+    "TUSKENSHAMAN": {
+        "B": [
+            "Toxines du d\u00e9sert",
+            false,
+            "basicskill_TUSKENSHAMAN"
+        ],
+        "S1": [
+            "Rite de sauvagerie",
+            false,
+            "specialskill_TUSKENSHAMAN01"
+        ],
+        "U1": [
+            "Ma\u00eetre conteur",
+            false,
+            "uniqueskill_TUSKENSHAMAN01"
+        ]
+    },
+    "UGNAUGHT": {
+        "B": [
+            "Br\u00e8che",
+            false,
+            "basicskill_UGNAUGHT"
+        ],
+        "S1": [
+            "Experts en dro\u00efdes",
+            false,
+            "specialskill_UGNAUGHT01"
+        ],
+        "U1": [
+            "Un coup d'avance",
+            false,
+            "uniqueskill_UGNAUGHT01"
+        ]
+    },
+    "UMBARANSTARFIGHTER": {
+        "B": [
+            "Armes \u00e0 plasma",
+            false,
+            "basicskill_UMBARANSTARFIGHTER"
+        ],
+        "S1": [
+            "Missiles umbariens",
+            false,
+            "specialskill_UMBARANSTARFIGHTER01"
+        ],
+        "U1": [
+            "Pilotage t\u00e9m\u00e9raire",
+            false,
+            "uniqueskill_UMBARANSTARFIGHTER01"
+        ],
+        "U2": [
+            "Syst\u00e8mes de d\u00e9fense avanc\u00e9s",
+            false,
+            "hardwareskill_UMBARANSTARFIGHTER01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "URORRURRR": {
+        "B": [
+            "\u00c9crasement au b\u00e2ton gaffi",
+            false,
+            "basicskill_URORRURRR"
+        ],
+        "L": [
+            "Chef Tusken",
+            false,
+            "leaderskill_URORRURRR"
+        ],
+        "S1": [
+            "Ils marchent en file indienne pour dissimuler leur nombre",
+            false,
+            "specialskill_URORRURRR01"
+        ],
+        "U1": [
+            "Instincts d'embusqu\u00e9",
+            false,
+            "uniqueskill_URORRURRR01"
+        ]
+    },
+    "UWINGROGUEONE": {
+        "B": [
+            "Pionnier",
+            false,
+            "basicskill_uwingrogueone"
+        ],
+        "S1": [
+            "\u00c9valuation des menaces",
+            false,
+            "specialskill_uwingrogueone01"
+        ],
+        "S2": [
+            "Frappe de gu\u00e9rilla",
+            false,
+            "specialskill_uwingrogueone02"
+        ],
+        "S3": [
+            "Tactiques d'infiltration",
+            false,
+            "specialskill_uwingrogueone03"
+        ],
+        "U1": [
+            "\u00c9viter tout contact",
+            false,
+            "uniqueskill_uwingrogueone01"
+        ],
+        "U2": [
+            "Reconnaissance rebelle",
+            false,
+            "hardwareskill_uwingrogueone01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "UWINGSCARIF": {
+        "B": [
+            "Coup d'ouverture",
+            false,
+            "basicskill_UWINGSCARIF"
+        ],
+        "S1": [
+            "Mission de reconnaissance",
+            false,
+            "specialskill_UWINGSCARIF01"
+        ],
+        "U1": [
+            "Plan d'attaque",
+            false,
+            "uniqueskill_UWINGSCARIF01"
+        ],
+        "U2": [
+            "Communications tactiques",
+            false,
+            "uniqueskill_UWINGSCARIF02"
+        ],
+        "U3": [
+            "Quadripropulseurs",
+            false,
+            "hardwareskill_UWINGSCARIF01"
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "VADER": {
+        "B": [
+            "Taillade terrifiante",
+            false,
+            "basicskill_VADER"
+        ],
+        "L": [
+            "R\u00e8gne de terreur",
+            true,
+            "leaderskill_VADER"
+        ],
+        "S1": [
+            "\u00c9crasement de Force",
+            false,
+            "specialskill_VADER02"
+        ],
+        "S2": [
+            "Lame abatteuse",
+            false,
+            "specialskill_VADER01"
+        ],
+        "S3": [
+            "Massacre implacable",
+            true,
+            "specialskill_VADER03"
+        ],
+        "U1": [
+            "Aucune fuite possible",
+            true,
+            "uniqueskill_VADER01"
+        ]
+    },
+    "VEERS": {
+        "B": [
+            "Attaque hardie",
+            false,
+            "basicskill_VEERS"
+        ],
+        "L": [
+            "Commandant d'assaut imp\u00e9rial",
+            false,
+            "leaderskill_VEERS"
+        ],
+        "S1": [
+            "Assaut impitoyable",
+            false,
+            "specialskill_VEERS01"
+        ],
+        "U1": [
+            "Tacticien agressif",
+            true,
+            "uniqueskill_VEERS01"
+        ]
+    },
+    "VISASMARR": {
+        "B": [
+            "Souffle t\u00e9l\u00e9kin\u00e9tique",
+            false,
+            "basicskill_VISASMARR"
+        ],
+        "S1": [
+            "Soins obscurs",
+            false,
+            "specialskill_VISASMARR01"
+        ],
+        "S2": [
+            "Frappe perforante",
+            false,
+            "specialskill_VISASMARR02"
+        ],
+        "U1": [
+            "Retour vers la lumi\u00e8re",
+            true,
+            "uniqueskill_VISASMARR01"
+        ]
+    },
+    "VULTUREDROID": {
+        "B": [
+            "Attaque implacable",
+            false,
+            "basicskill_VULTUREDROID"
+        ],
+        "S1": [
+            "Missile de la discorde",
+            false,
+            "specialskill_VULTUREDROID01"
+        ],
+        "U1": [
+            "Essaim meurtrier",
+            false,
+            "uniqueskill_VULTUREDROID01"
+        ],
+        "U2": [
+            "Barrage de vibro dro\u00efdes",
+            false,
+            "hardwareskill_VULTUREDROID01"
+        ]
+    },
+    "VULTUREDROID_tb": {
+        "B": [
+            "Assaut incessant",
+            false,
+            "basicskill_VULTUREDROID_tb"
+        ],
+        "S1": [
+            "Missile de la discorde",
+            false,
+            "specialskill_VULTUREDROID01_tb"
+        ],
+        "U1": [
+            "Terreur intimidante",
+            false,
+            "uniqueskill_VULTUREDROID01_tb"
+        ],
+        "U2": [
+            "Dro\u00efdes de sabotage",
+            false,
+            "hardwareskill_VULTUREDROID01_tb"
+        ]
+    },
+    "WAMPA": {
+        "B": [
+            "Bam\u00a0!",
+            false,
+            "basicskill_WAMPA"
+        ],
+        "S1": [
+            "Brise-glace",
+            false,
+            "specialskill_WAMPA01"
+        ],
+        "S2": [
+            "Adversaire d\u00e9cha\u00een\u00e9",
+            true,
+            "specialskill_WAMPA02"
+        ],
+        "U1": [
+            "Rage furieuse",
+            false,
+            "uniqueskill_WAMPA01"
+        ],
+        "U2": [
+            "B\u00eate bless\u00e9e",
+            true,
+            "uniqueskill_WAMPA02"
+        ],
+        "U3": [
+            "B\u00eate bless\u00e9e",
+            false,
+            ""
+        ]
+    },
+    "WATTAMBOR": {
+        "B": [
+            "Base binaire",
+            false,
+            "basicskill_WATTAMBOR"
+        ],
+        "S1": [
+            "D\u00e9charge d'\u00e9nergie",
+            false,
+            "specialskill_WATTAMBOR01"
+        ],
+        "U1": [
+            "Superviseur",
+            false,
+            "uniqueskill_WATTAMBOR01"
+        ],
+        "U2": [
+            "Production de masse",
+            true,
+            "uniqueskill_WATTAMBOR02"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "WEDGEANTILLES": {
+        "B": [
+            "Tirs cibl\u00e9s",
+            false,
+            "basicskill_WEDGEANTILLES"
+        ],
+        "L": [
+            "H\u00e9ro\u00efsme rebelle",
+            false,
+            "leaderskill_WEDGEANTILLES"
+        ],
+        "S1": [
+            "Frappe de l'Escadron Red",
+            false,
+            "specialskill_WEDGEANTILLES01"
+        ],
+        "U1": [
+            "Red leader",
+            false,
+            "uniqueskill_WEDGEANTILLES01"
+        ]
+    },
+    "WICKET": {
+        "B": [
+            "Coup inquisiteur",
+            false,
+            "basicskill_WICKET"
+        ],
+        "S1": [
+            "Embuscade sylvestre",
+            false,
+            "specialskill_WICKET01"
+        ],
+        "S2": [
+            "Frappe de gu\u00e9rilla",
+            false,
+            "specialskill_WICKET02"
+        ],
+        "U1": [
+            "Tactique furtive",
+            true,
+            "uniqueskill_WICKET01"
+        ]
+    },
+    "XANADUBLOOD": {
+        "B": [
+            "Brise-coque",
+            false,
+            "basicskill_XANADUBLOOD"
+        ],
+        "S1": [
+            "Stratag\u00e8me Rogue",
+            false,
+            "specialskill_XANADUBLOOD01"
+        ],
+        "U1": [
+            "La cape et l'\u00e9p\u00e9e",
+            false,
+            "uniqueskill_XANADUBLOOD01"
+        ],
+        "U2": [
+            "Au c\u0153ur de la faille",
+            false,
+            "hardwareskill_XANADUBLOOD01"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "XWINGBLACKONE": {
+        "B": [
+            "Assurer ses arri\u00e8res",
+            false,
+            "basicskill_XWINGBLACKONE"
+        ],
+        "S1": [
+            "Tir parfait",
+            false,
+            "specialskill_XWINGBLACKONE01"
+        ],
+        "S2": [
+            "Tomb\u00e9 du ciel",
+            false,
+            "specialskill_XWINGBLACKONE02"
+        ],
+        "U1": [
+            "Entr\u00e9e dramatique",
+            false,
+            "hardwareskill_XWINGBLACKONE01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "XWINGRED2": {
+        "B": [
+            "Canons laser KX9",
+            false,
+            "basicskill_XWINGRED2"
+        ],
+        "S1": [
+            "Les yeux sur la br\u00e8che",
+            false,
+            "specialskill_XWINGRED201"
+        ],
+        "U1": [
+            "Montrer la voie",
+            false,
+            "uniqueskill_XWINGRED201"
+        ],
+        "U2": [
+            "Trouver la faille",
+            false,
+            "hardwareskill_XWINGRED201"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "XWINGRED3": {
+        "B": [
+            "En plein dans le mille",
+            false,
+            "basicskill_XWINGRED3"
+        ],
+        "S1": [
+            "Man\u0153uvre acad\u00e9mique",
+            false,
+            "specialskill_XWINGRED301"
+        ],
+        "U1": [
+            "Assaut audacieux",
+            false,
+            "uniqueskill_XWINGRED301"
+        ],
+        "U2": [
+            "R\u00e9glage des moteurs",
+            false,
+            "hardwareskill_XWINGRED301"
+        ],
+        "U3": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "XWINGRESISTANCE": {
+        "B": [
+            "Course poursuite",
+            false,
+            "basicskill_XWINGRESISTANCE"
+        ],
+        "S1": [
+            "Je m'en charge\u00a0!",
+            false,
+            "specialskill_XWINGRESISTANCE01"
+        ],
+        "S2": [
+            "Chaos",
+            false,
+            "specialskill_XWINGRESISTANCE02"
+        ],
+        "U1": [
+            "Formation en escouade",
+            false,
+            "hardwareskill_XWINGRESISTANCE01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
+    "YOUNGCHEWBACCA": {
+        "B": [
+            "D\u00e9cha\u00eenement",
+            false,
+            "basicskill_YOUNGCHEWBACCA"
+        ],
+        "S1": [
+            "Combattant de la libert\u00e9",
+            false,
+            "specialskill_YOUNGCHEWBACCA01"
+        ],
+        "U1": [
+            "La B\u00eate",
+            false,
+            "uniqueskill_YOUNGCHEWBACCA01"
+        ],
+        "U2": [
+            "Protecteur f\u00e9roce",
+            true,
+            "uniqueskill_YOUNGCHEWBACCA02"
+        ]
+    },
+    "YOUNGHAN": {
+        "B": [
+            "Coup en tra\u00eetre",
+            false,
+            "basicskill_YOUNGHAN"
+        ],
+        "S1": [
+            "Pr\u00e9dominance",
+            false,
+            "specialskill_YOUNGHAN01"
+        ],
+        "S2": [
+            "Juste \u00e0 temps",
+            false,
+            "specialskill_YOUNGHAN02"
+        ],
+        "U1": [
+            "Pr\u00eat \u00e0 tout",
+            true,
+            "uniqueskill_YOUNGHAN01"
+        ]
+    },
+    "YOUNGLANDO": {
+        "B": [
+            "Tir silencieux",
+            false,
+            "basicskill_YOUNGLANDO"
+        ],
+        "S1": [
+            "En veine",
+            false,
+            "specialskill_YOUNGLANDO_01"
+        ],
+        "S2": [
+            "Choix du croupier",
+            false,
+            "specialskill_YOUNGLANDO_02"
+        ],
+        "U1": [
+            "Timing parfait",
+            true,
+            "uniqueskill_YOUNGLANDO_01"
+        ],
+        "U2": [
+            "EMPTY",
+            false,
+            ""
+        ]
+    },
+    "YWINGCLONEWARS": {
+        "B": [
+            "Double canon laser",
+            false,
+            "basicskill_YWINGCLONEWARS"
+        ],
+        "S1": [
+            "Larguez les torpilles\u00a0!",
+            false,
+            "specialskill_YWINGCLONEWARS01"
+        ],
+        "U1": [
+            "Avantage astrom\u00e9cano",
+            false,
+            "uniqueskill_YWINGCLONEWARS01"
+        ],
+        "U2": [
+            "Proc\u00e9dure de secours",
+            false,
+            "hardwareskill_YWINGCLONEWARS"
+        ]
+    },
+    "YWINGREBEL": {
+        "B": [
+            "Canons \u00e0 ions SW-4",
+            false,
+            "basicskill_YWINGREBEL"
+        ],
+        "S1": [
+            "Torpilles ioniques",
+            false,
+            "specialskill_YWINGREBEL01"
+        ],
+        "U1": [
+            "G\u00e9n\u00e9rateur de bouclier Chempat",
+            false,
+            "uniqueskill_YWINGREBEL01"
+        ],
+        "U2": [
+            "Ordinateur de rep\u00e9rage rebelle",
+            false,
+            "hardwareskill_YWINGREBEL"
+        ]
+    },
+    "ZAALBAR": {
+        "B": [
+            "Alli\u00e9 fid\u00e8le",
+            false,
+            "basicskill_ZAALBAR"
+        ],
+        "S1": [
+            "Puissante explosion",
+            false,
+            "specialskill_ZAALBAR01"
+        ],
+        "U1": [
+            "Wookiee coriace",
+            false,
+            "uniqueskill_ZAALBAR01"
+        ],
+        "U2": [
+            "Gardien de Mission",
+            true,
+            "uniqueskill_ZAALBAR02"
+        ]
+    },
+    "ZAMWESELL": {
+        "B": [
+            "Tir d\u00e9tonant",
+            false,
+            "basicskill_ZAMWESELL"
+        ],
+        "L": [
+            "On s'\u00e9clate",
+            false,
+            "leaderskill_ZAMWESELL"
+        ],
+        "S1": [
+            "\u00c7a colle",
+            false,
+            "specialskill_ZAMWESELL01"
+        ],
+        "S2": [
+            "\u00c9lectro-lunettes",
+            false,
+            "specialskill_ZAMWESELL02"
+        ],
+        "U1": [
+            "M\u00e9tamorphe",
+            true,
+            "uniqueskill_ZAMWESELL01"
+        ],
+        "U2": [
+            "Prime de Zam",
+            false,
+            "contractskill_ZAMWESELL01"
+        ]
+    },
+    "ZEBS3": {
+        "B": [
+            "Torgnole",
+            false,
+            "basicskill_ZEBS3"
+        ],
+        "S1": [
+            "Impact d\u00e9stabilisant",
+            true,
+            "specialskill_ZEBS301"
+        ],
+        "S2": [
+            "Garde d'honneur",
+            false,
+            "specialskill_ZEBS302"
+        ],
+        "U1": [
+            "Imperturbable",
+            false,
+            "uniqueskill_ZEBS301"
+        ]
+    }
+}
