@@ -23,112 +23,9 @@ BEGIN
 	# From units to unit_tiers then unit_stats
 	SELECT * FROM unit_tiers WHERE unit_id NOT IN (SELECT id FROM units);
 	DELETE FROM unit_tiers WHERE unit_id NOT IN (SELECT id FROM units);
-	SELECT * FROM eqpt_missionList WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
-	DELETE FROM eqpt_missionList WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
+	SELECT * FROM unit_stats WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
+	DELETE FROM unit_stats WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
 
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `create_growth_tier`(
-	IN p_unit_baseId VARCHAR(255), # baseId (eg: PADMEAMIDALA)
-    IN growth_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	INSERT INTO debug(txt) VALUES('START create_growth_tier');
-	INSERT INTO debug(txt) VALUES(CONCAT('p_unit_baseId=', p_unit_baseId));
-
-	SELECT id INTO @p_unit_id FROM units WHERE unit_id = p_unit_baseId;
-	INSERT INTO debug(txt) VALUES(CONCAT('p_unit_id=', @p_unit_id));
-    
-	# Clean growth_tiers and growth_stats as they will be created again
-	DELETE FROM unit_growth_stats WHERE unit_growth_tier_id IN (
-		SELECT unit_growth_tiers.id FROM unit_growth_tiers
-		JOIN units ON units.id = unit_growth_tiers.unit_id
-		WHERE units.id = @p_unit_id);
-	DELETE FROM unit_growth_tiers WHERE unit_id IN (
-		SELECT units.id FROM units
-		WHERE units.id = @p_unit_id);
-
-	iterator:
-	LOOP
-		INSERT INTO debug(txt) VALUES(CONCAT('growth_definition_txt=', growth_definition_txt));
-
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
-		IF CHAR_LENGTH(TRIM(growth_definition_txt)) = 0 OR growth_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		-- capture the next value from the list
-		SET @next_growth = SUBSTRING_INDEX(growth_definition_txt,'|',1);
-
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
-		SET @next_growth_len = CHAR_LENGTH(@next_growth);
-
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
-		SET @rarity = SUBSTRING_INDEX(@next_growth,',',1);
-		SET @value2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_growth,',',2),',',-1);
-		SET @value3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_growth,',',3),',',-1);
-		SET @value4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_growth,',',4),',',-1);
-
-		-- insert the extracted value into the target table
-		INSERT INTO unit_growth_tiers (unit_id, rarity) VALUES (@p_unit_id, @rarity);
-        SET @tier_id = LAST_INSERT_ID();
-		INSERT INTO unit_growth_stats (unit_growth_tier_id, unitStatId, unscaledDecimalValue) VALUES (@tier_id, 2, @value2);
-		INSERT INTO unit_growth_stats (unit_growth_tier_id, unitStatId, unscaledDecimalValue) VALUES (@tier_id, 3, @value3);
-		INSERT INTO unit_growth_stats (unit_growth_tier_id, unitStatId, unscaledDecimalValue) VALUES (@tier_id, 4, @value4);
-            
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
-		SET growth_definition_txt = INSERT(growth_definition_txt,1,@next_growth_len + 1,'');
-	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `create_mastery_stats`(
-	IN p_masteryModifierID VARCHAR(255),
-    IN stat_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	#INSERT INTO debug(txt) VALUES('START create_mastery_stats');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_masteryModifierID=', p_masteryModifierID));
-	#INSERT INTO debug(txt) VALUES(CONCAT('stat_definition_txt=', stat_definition_txt));
-
-	DELETE FROM unit_mastery_stats WHERE masteryModifierID = p_masteryModifierID;
-	iterator:
-	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
-		IF CHAR_LENGTH(TRIM(stat_definition_txt)) = 0 OR stat_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		-- capture the next value from the list
-		SET @next_stat = SUBSTRING_INDEX(stat_definition_txt,'|',1);
-
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
-		SET @next_stat_len = CHAR_LENGTH(@next_stat);
-
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
-		SET @stat_unitStatId = SUBSTRING_INDEX(@next_stat,',',1);
-		SET @stat_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',2),',',-1);
-
-		-- insert the extracted value into the target table
-		INSERT INTO unit_mastery_stats (masteryModifierID) VALUES (p_masteryModifierID);
-        SET @stat_id = LAST_INSERT_ID();
-		UPDATE unit_mastery_stats SET
-            unitStatId = @stat_unitStatId,
-            value = @stat_value
-            WHERE id = @stat_id;
-            
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
-		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
-	END LOOP;
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_db_size`()
 BEGIN
@@ -387,9 +284,7 @@ BEGIN
         descKey TEXT,
         forceAlignment INT,
         unit_id VARCHAR(255),
-        nameKey VARCHAR(255),
-        primaryStat INT,
-        masteryModifierID VARCHAR(255)
+        nameKey VARCHAR(255)
 	);
 
 	# TABLE unit_tiers
@@ -420,35 +315,6 @@ BEGIN
         unscaledDecimalValue BIGINT
 	);
     
-	# TABLE unit_growth_tiers
-    DROP TABLE IF EXISTS unit_growth_tiers;
-    CREATE TABLE unit_growth_tiers
-    (
-		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-        unit_id INT,
-        rarity INT
-	);
-    
-	# TABLE unit_growth_stats
-    DROP TABLE IF EXISTS unit_growth_stats;
-    CREATE TABLE unit_growth_stats
-    (
-		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-        unit_growth_tier_id INT,
-        unitStatId INT,
-        unscaledDecimalValue BIGINT
-	);
-    
-	# TABLE unit_mastery_stats
-    DROP TABLE IF EXISTS unit_mastery_stats;
-    CREATE TABLE unit_mastery_stats
-    (
-		id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
-        masteryModifierID VARCHAR(255),
-        unitStatId INT,
-        value FLOAT
-	);
-
 	# TABLE guild_teams
 	DROP TABLE IF EXISTS guild_teams;
 	CREATE TABLE guild_teams
@@ -677,48 +543,6 @@ BEGIN
     CALL update_eqpt_missionList(@p_current_id, 'mission', @lookup_definition_txt);
     CALL update_eqpt_missionList(@p_current_id, 'raid', @raid_definition_txt);
     
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_mastery`(
-    IN mastery_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	INSERT INTO debug(txt) VALUES('START update_mastery');
-	INSERT INTO debug(txt) VALUES(CONCAT('mastery_definition_txt=', mastery_definition_txt));
-    
-	iterator:
-	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
-		IF CHAR_LENGTH(TRIM(mastery_definition_txt)) = 0 OR mastery_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		-- capture the next value from the list
-		SET @next_mastery = SUBSTRING_INDEX(mastery_definition_txt,'/',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_tiers @next_mastery=', @next_mastery));
-
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
-		SET @next_mastery_len = CHAR_LENGTH(@next_mastery);
-
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
-		SET @p_masteryModifierID = SUBSTRING_INDEX(@next_mastery,',',1);
-
-		SET @before_stat_definition = SUBSTRING_INDEX(@next_mastery,',',1);
-		SET @pos_stat_definition = CHAR_LENGTH(@before_stat_definition);
-		SET @stat_definition_txt = INSERT(@next_mastery,1,@pos_stat_definition + 1,'');
-        
-		CALL create_mastery_stats(
-			@p_masteryModifierID,
-			@stat_definition_txt);
-            
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
-		SET mastery_definition_txt = INSERT(mastery_definition_txt,1,@next_mastery_len + 1,'');
-	END LOOP;
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_mods`(
 	IN p_roster_id INT,
@@ -1096,56 +920,6 @@ BEGIN
     SET @p_current_id = (SELECT id FROM units WHERE unit_id = p_unit_id);
     CALL update_tiers(@p_current_id, tier_definition_txt);
     
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_units_gameData`(
-    IN units_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	INSERT INTO debug(txt) VALUES('START update_units_gameData');
-    
-	iterator:
-	LOOP
-		INSERT INTO debug(txt) VALUES(CONCAT('units_definition_txt=', units_definition_txt));
-        
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
-		IF CHAR_LENGTH(TRIM(units_definition_txt)) = 0 OR units_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		-- capture the next value from the list
-		SET @next_unit = SUBSTRING_INDEX(units_definition_txt,'/',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_tiers @next_unit=', @next_unit));
-
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
-		SET @next_unit_len = CHAR_LENGTH(@next_unit);
-
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
-		SET @p_unit_it = SUBSTRING_INDEX(@next_unit,',',1);
-		SET @p_primaryStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_unit,',',2),',',-1);
-		SET @p_masteryModifierID = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_unit,',',3),',',-1);
-
-		SET @before_growth_definition = SUBSTRING_INDEX(@next_unit,',',3);
-		SET @pos_growth_definition = CHAR_LENGTH(@before_growth_definition);
-		SET @growth_definition_txt = INSERT(@next_unit,1,@pos_growth_definition + 1,'');
-        
-		UPDATE units SET
-			primaryStat = @p_primaryStat,
-            masteryModifierID = @p_masteryModifierID
-            WHERE unit_id = @p_unit_it;
-        
-		CALL create_growth_tier(
-			@p_unit_it,
-			@growth_definition_txt);
-            
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
-		SET units_definition_txt = INSERT(units_definition_txt,1,@next_unit_len + 1,'');
-	END LOOP;
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_unit_stats`(
 	IN p_unit_tier_id INT,
