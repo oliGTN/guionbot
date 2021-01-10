@@ -750,6 +750,7 @@ def player_team(txt_allycode, list_team_names, score_type, score_green,
 
     #Recuperation des dernieres donnees sur gdrive
     liste_team_gt, dict_team_gt = load_config_teams()
+    
     dict_player_discord = load_config_players()[0]
 
     #Get data for my guild

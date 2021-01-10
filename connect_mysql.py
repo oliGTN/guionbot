@@ -45,31 +45,79 @@ def connect():
     
     return cleardb_conn
     
-def insert_members():
-    dict_players_by_IG, dict_players_by_ID = connect_gsheets.load_config_players()
-    query = "INSERT INTO members(allycode,ig_name,discord_id,is_officier) " \
-            "VALUES(%s,%s,%s,%s)"
-
-    list_members=[]
-    for ig_name in dict_players_by_IG:
-        # print(ig_name)
-        # print(dict_players_by_IG[ig_name])
-        allycode = str(dict_players_by_IG[ig_name][0])
-        display_name = dict_players_by_IG[ig_name][2]
-        if display_name[0] == '<':
-            discord_id = str(display_name[2:20])
-            is_officer = dict_players_by_ID[int(discord_id)][1]
-        else:
-            discord_id = ''
-            is_officer = False
-        list_members.append((allycode, ig_name, discord_id, int(is_officer)))
-        # print(list_members)
-        
+def update_guild_teams(dict_team):
+#         dict_teams {key=team_name,
+#                     value=[[catégorie, nombre nécessaire,
+#                               {key=nom,
+#                                value=[id, étoiles min, gear min, étoiles reco,
+#                                       gear reco, liste zeta, vitesse, nom court]
+#                                }
+#                             ], ...]
+#                      }
     try:
         db=connect()
         cursor = db.cursor()
-        cursor.executemany(query, list_members)
 
+        guild_teams_txt = ""
+        # "JKR/Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important;1|GENERALKENOBI...\DR/Requis..."
+        
+        for team_name in dict_team:
+            team = dict_team[team_name]
+            
+            subteams_txt = ""
+            # Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important...
+            for sub_team in team:
+                subteam_name = sub_team[0]
+                subteam_min = sub_team[1]
+                subteam_toons = sub_team[2]
+                
+                toons_txt = ""
+                # JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA...
+                for toon_id in subteam_toons:
+                    toon = subteam_toons[toon_id]
+                    toon_rarity_min = toon[1]
+                    toon_gear_min = toon[2]
+                    toon_rarity_reco = toon[3]
+                    toon_gear_reco = toon[4]
+                    toon_zetas = toon[5]
+                    toon_speed = toon[6]
+                    toon_capaLevel = ""
+                    toon_modLevel = ""
+                    toon_pg_min = ""
+                    
+                    toons_txt += toon_id + ";" + \
+                                 str(toon_rarity_min) + ";" + \
+                                 str(toon_gear_min) + ";" + \
+                                 str(toon_rarity_reco) + ";" + \
+                                 str(toon_gear_reco) + ";" + \
+                                 str(toon_speed) + ";" + \
+                                 str(toon_capaLevel) + ";" + \
+                                 str(toon_modLevel) + ";" + \
+                                 str(toon_pg_min) + ";" + \
+                                 str(toon_zetas) + "|"
+                
+                # remove last "|"
+                toons_txt = toons_txt[:-1]
+                
+                subteams_txt += subteam_name + ";" + \
+                                str(subteam_min) + "|" + \
+                                toons_txt + "/"
+
+            # remove last "/"
+            subteams_txt = subteams_txt[:-1]
+            
+            guild_teams_txt += team_name + "/" + \
+                               subteams_txt + "\\"
+       
+        # remove last "\"
+        subteams_txt = subteams_txt[:-1]
+
+            
+        # Launch the unique update with all information
+        query_parameters = (guild_teams_txt,)
+        # print("CALL update_guild_teams"+str(query_parameters))
+        cursor.callproc('update_guild_teams', query_parameters)
+        
         db.commit()
     except Error as error:
         print(error)
@@ -77,7 +125,6 @@ def insert_members():
     finally:
         cursor.close()
         db.close()
-        # print('Connection to MySQL closed')
 
 def simple_query(query):
     rows = []
@@ -541,10 +588,12 @@ def update_gameData(dict_gameData):
     # except Error as error:
         # print(error)
 
-def export_procedures():
+def export_procedures_and_tables():
     try:
         db=connect()
         cursor = db.cursor()
+        
+        #procedures
         cursor.execute("SHOW PROCEDURE STATUS")
         results = cursor.fetchall()
         for r in results:
@@ -553,6 +602,15 @@ def export_procedures():
             for line in cursor.fetchall():
                 print (line[2])
         
+        #tables
+        cursor.execute("SHOW TABLES")
+        results = cursor.fetchall()
+        for r in results:
+            table_name = r[0]
+            cursor.execute("SHOW CREATE TABLE "+table_name)
+            for line in cursor.fetchall():
+                print (line[1])
+                
     except Error as error:
         print(error)
         

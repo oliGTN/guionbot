@@ -7,6 +7,7 @@ import sys
 import json
 import requests
 import difflib
+import connect_mysql
 from oauth2client.service_account import ServiceAccountCredentials
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
@@ -42,7 +43,8 @@ def get_gapi_client():
 #         dict_teams {key=team_name,
 #                     value=[[catégorie, nombre nécessaire,
 #                               {key=nom,
-#                                value=[id, étoiles min, gear min, étoiles reco, gear reco, [liste zeta], vitesse, nom court]
+#                                value=[id, étoiles min, gear min, étoiles reco,
+#                                       gear reco, liste zeta, vitesse, nom court]
 #                                }
 #                             ], ...]
 #                      }
@@ -89,9 +91,19 @@ def load_config_teams():
                     [character_name, character_id]=dict_units[closest_names[0]]
 
                     dict_teams[team][index_categorie][1] = dict_perso['Min Catégorie']
-                    dict_teams[team][index_categorie][2][character_id]=[index_perso, dict_perso['* min'], dict_perso['G min'], dict_perso['* reco'], dict_perso['G reco'], dict_perso['Zetas'], dict_perso['Vitesse'], dict_perso['Nom court']]
-                    
-        #print('DBG: dict_teams='+str(dict_teams))
+                    dict_teams[team][index_categorie][2][character_id]=[index_perso,
+                                                                        dict_perso['* min'],
+                                                                        dict_perso['G min'],
+                                                                        dict_perso['* reco'],
+                                                                        dict_perso['G reco'],
+                                                                        dict_perso['Zetas'],
+                                                                        dict_perso['Vitesse'],
+                                                                        dict_perso['Nom court']]
+    
+    #Update DB
+    connect_mysql.update_guild_teams(dict_teams)
+    
+    #print('DBG: dict_teams='+str(dict_teams))
     return liste_teams, dict_teams
 
 ##############################################################
