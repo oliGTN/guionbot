@@ -320,40 +320,18 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def info(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
 
+        # get the DB information
+        output = connect_mysql.simple_query("CALL get_db_size()")
+        output_txt=''
+        for row in output:
+            output_txt+=str(row)+'\n'
+
         await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+' (GMT)\n' +
                         go.stats_cache() + '\n' +
                         str(cache_delete_minutes) + ' minutes before deleting\n' +
-                        str(cache_refresh_minutes) + ' minutes before refreshing\n')
-                       
-        #Check online status of members
-        list_members=[]
-        for member in dict_lastseen:
-            if dict_lastseen[member][1]==None:
-                list_members.append([3600*24*9,     'jamais      - '+dict_lastseen[member][0]])
-            else:
-                delta_time=datetime.datetime.now(guild_timezone)-dict_lastseen[member][1]
-                if delta_time.seconds<60:
-                    list_members.append([0,         'online      - '+dict_lastseen[member][0]])
-                elif delta_time.seconds<60*10:
-                    list_members.append([60*10,     '< 10 min    - '+dict_lastseen[member][0]])
-                elif delta_time.seconds<3600:
-                    list_members.append([3600,      '< 1 heure   - '+dict_lastseen[member][0]])
-                elif delta_time.seconds<3600*12:
-                    list_members.append([3600*12,   '< 12 heures - '+dict_lastseen[member][0]])
-                elif delta_time.seconds<3600*24:
-                    list_members.append([3600*24,   '< 24 heures - '+dict_lastseen[member][0]])
-                elif delta_time.seconds<3600*48:
-                    list_members.append([3600*48,   '< 48 heures - '+dict_lastseen[member][0]])
-                elif delta_time.seconds<3600*24*7:
-                    list_members.append([3600*24*7, '< 1 semaine - '+dict_lastseen[member][0]])
-                else:
-                    list_members.append([3600*24*8, '> 1 semaine - '+dict_lastseen[member][0]])
-        big_txt='== Online status for guild members ==\n'
-        for line in sorted(list_members):
-            big_txt+=line[1]+'\n'
-        for txt in go.split_txt(big_txt, 1000):
-            await ctx.send('`' + txt + '`')
-              
+                        str(cache_refresh_minutes) + ' minutes before refreshing\n' +
+                        '``` '+output_txt[1:]+'```')
+
         await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
