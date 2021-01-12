@@ -126,8 +126,9 @@ def update_guild_teams(dict_team):
         cursor.close()
         db.close()
 
-def simple_query(query):
+def simple_query(query, txt_mode):
     rows = []
+    tuples = []
     try:
         db=connect()
         cursor = db.cursor()
@@ -137,6 +138,7 @@ def simple_query(query):
             # rows.append('cursor: '+ str(cur))
             if cur.with_rows:
                 results = cur.fetchall()
+                tuples. append(results)
             
                 widths = []
                 columns = []
@@ -171,7 +173,10 @@ def simple_query(query):
         cursor.close()
         db.close()
     
-    return rows
+    if txt_mode:
+        return rows
+    else:
+        return tuples
     
 def update_player(dict_player):
     try:

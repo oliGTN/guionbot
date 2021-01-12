@@ -8,6 +8,7 @@ import asyncio
 import time
 import datetime
 from pytz import timezone
+import difflib
 import re
 from discord.ext import commands
 from discord import Activity, ActivityType, Intents
@@ -230,13 +231,40 @@ async def get_channel_from_channelname(ctx, channel_name):
 # Output: code allié (string)
 ##############################################################
 def manage_me(ctx, allycode_txt):
-    ret_allycode_txt = allycode_txt
-
     #Special case of 'me' as allycode
-    if ret_allycode_txt == 'me':
+    if allycode_txt == 'me':
         dict_players = load_config_players()[1]
         if ctx.author.id in dict_players.keys():
             ret_allycode_txt = str(dict_players[ctx.author.id][0])
+        else:
+            ret_allycode_txt = 'ERR: \"me\" ne fait pas partie de la guilde'
+    elif allycode_txt[:3] == '<@!':
+        # discord @mention
+        discord_id_txt = allycode_txt[3:-1]
+        print('INFO: cmd launched with discord @mention '+allycode_txt)
+        dict_players = load_config_players()[1]
+        if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players.keys():
+            ret_allycode_txt = str(dict_players[int(discord_id_txt)][0])
+        else:
+            ret_allycode_txt = 'ERR: '+allycode_txt+' ne fait pas partie de la guilde'
+    elif not allycode_txt.isnumeric():
+        # Look for the name among known player names
+        results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
+        list_names = [x[0] for x in results[0]]
+        
+        closest_names=difflib.get_close_matches(allycode_txt, list_names, 1)
+        if len(closest_names)<1:
+            ret_allycode_txt = 'ERR: '+allycode_txt+' ne fait pas partie des joueurs connus'
+        else:
+            print('INFO: cmd launched with name that looks like '+closest_names[0])
+            ret_allycode_txt = 'ERR: '+closest_names[0]+' ne fait pas partie des joueurs connus'
+            for r in results[0]:
+                if r[0] == closest_names[0]:
+                    ret_allycode_txt = str(r[1])
+
+    else:
+        # number >> allyCode
+        ret_allycode_txt = allycode_txt
     
     return ret_allycode_txt
 
@@ -321,7 +349,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_thumb)
 
         # get the DB information
-        output = connect_mysql.simple_query("CALL get_db_size()")
+        output = connect_mysql.simple_query("CALL get_db_size()", True)
         output_txt=''
         for row in output:
             output_txt+=str(row)+'\n'
@@ -349,7 +377,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def sql(self, ctx, arg):
         await ctx.message.add_reaction(emoji_thumb)
 
-        output = connect_mysql.simple_query(arg)
+        output = connect_mysql.simple_query(arg, True)
         print('SQL: ' + arg)
         output_txt=''
         for row in output:
@@ -422,15 +450,18 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         await ctx.message.add_reaction(emoji_thumb)
 
         allycode = manage_me(ctx, allycode)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            ret_cmd = go.guild_team(allycode, teams, 3, 100000, 80000, False)
+            for team in ret_cmd:
+                txt_team = ret_cmd[team][0]
+                for txt in go.split_txt(txt_team, 1000):
+                    await ctx.send(txt)
 
-        ret_cmd = go.guild_team(allycode, teams, 3, 100000, 80000, False)
-        for team in ret_cmd:
-            txt_team = ret_cmd[team][0]
-            for txt in go.split_txt(txt_team, 1000):
-                await ctx.send(txt)
-
-        #Icône de confirmation de fin de commande dans le message d'origine
-        await ctx.message.add_reaction(emoji_check)
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: agt
@@ -447,17 +478,21 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         allycode = manage_me(ctx, allycode)
 
-        ret_cmd = go.assign_gt(allycode, False)
-        if ret_cmd[0:3] == 'ERR':
-            await ctx.send(ret_cmd)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            #texte classique
-            for txt in go.split_txt(ret_cmd, 1000):
-                await ctx.send(txt)
+            ret_cmd = go.assign_gt(allycode, False)
+            if ret_cmd[0:3] == 'ERR':
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in go.split_txt(ret_cmd, 1000):
+                    await ctx.send(txt)
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: vdp
@@ -605,14 +640,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
                 
-        ret_cmd = go.guild_team(allycode, teams, 1, 100, 80, False)
-        for team in ret_cmd:
-            txt_team = ret_cmd[team][0]
-            for txt in go.split_txt(txt_team, 1000):
-                await ctx.send(txt)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            ret_cmd = go.guild_team(allycode, teams, 1, 100, 80, False)
+            for team in ret_cmd:
+                txt_team = ret_cmd[team][0]
+                for txt in go.split_txt(txt_team, 1000):
+                    await ctx.send(txt)
 
-        #Icône de confirmation de fin de commande dans le message d'origine
-        await ctx.message.add_reaction(emoji_check)
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: vtj
@@ -633,14 +672,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
 
-        ret_cmd = go.player_team(allycode, teams, 1, 100, 80, False)
-        for team in ret_cmd:
-            txt_team = ret_cmd[team]
-            for txt in go.split_txt(txt_team, 1000):
-                await ctx.send(txt)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            ret_cmd = go.player_team(allycode, teams, 1, 100, 80, False)
+            for team in ret_cmd:
+                txt_team = ret_cmd[team]
+                for txt in go.split_txt(txt_team, 1000):
+                    await ctx.send(txt)
 
-        #Icône de confirmation de fin de commande dans le message d'origine
-        await ctx.message.add_reaction(emoji_check)
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: scg
@@ -659,17 +702,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
 
-        ret_cmd = go.guild_counter_score(allycode)
-        if ret_cmd[0:3] == 'ERR':
-            await ctx.send(ret_cmd)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            #texte classique
-            for txt in go.split_txt(ret_cmd, 1000):
-                await ctx.send(txt)
+            ret_cmd = go.guild_counter_score(allycode)
+            if ret_cmd[0:3] == 'ERR':
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in go.split_txt(ret_cmd, 1000):
+                    await ctx.send(txt)
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: spj
@@ -689,21 +736,25 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
 
-        if len(characters) > 0:
-            ret_cmd = go.print_character_stats(characters, allycode)
-        else:
-            ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
-            
-        if ret_cmd[0:3] == 'ERR':
-            await ctx.send(ret_cmd)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            #texte classique
-            for txt in go.split_txt(ret_cmd, 1000):
-                await ctx.send("```"+txt+"```")
+            if len(characters) > 0:
+                ret_cmd = go.print_character_stats(characters, allycode)
+            else:
+                ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
+                
+            if ret_cmd[0:3] == 'ERR':
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in go.split_txt(ret_cmd, 1000):
+                    await ctx.send("```"+txt+"```")
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: gdp
@@ -721,17 +772,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
 
-        ret_cmd = go.get_gp_distribution(allycode, 36)
-        if ret_cmd[0:3] == 'ERR':
-            await ctx.send(ret_cmd)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            #texte classique
-            for txt in go.split_txt(ret_cmd, 1000):
-                await ctx.send("```"+txt+"```")
+            ret_cmd = go.get_gp_distribution(allycode, 36)
+            if ret_cmd[0:3] == 'ERR':
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in go.split_txt(ret_cmd, 1000):
+                    await ctx.send("```"+txt+"```")
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: gvj
@@ -749,21 +804,25 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allycode = manage_me(ctx, allycode)
 
-        [progress, msg, player_name, character_name, list_progress] = go.player_journey_progress(allycode, character_alias)
-        if progress == -1:
-            await ctx.send(msg)
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            await ctx.send('Progrès de **'+player_name+'** pour **'+character_name+'**: '+str(int(progress*100))+'%')
-            await ctx.send('__Détails :__\n')
-            for prog in list_progress:
-                prog_name = prog[0]
-                prog_rate = prog[1]
-                prog_weight = prog[2]
-                await ctx.send('- '+prog_name+'('+str(prog_weight)+'): '+str(int(prog_rate*100))+'%')
+            [progress, msg, player_name, character_name, list_progress] = go.player_journey_progress(allycode, character_alias)
+            if progress == -1:
+                await ctx.send(msg)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                await ctx.send('Progrès de **'+player_name+'** pour **'+character_name+'**: '+str(int(progress*100))+'%')
+                await ctx.send('__Détails :__\n')
+                for prog in list_progress:
+                    prog_name = prog[0]
+                    prog_rate = prog[1]
+                    prog_weight = prog[2]
+                    await ctx.send('- '+prog_name+'('+str(prog_weight)+'): '+str(int(prog_rate*100))+'%')
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
 # MAIN EXECUTION

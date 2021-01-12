@@ -1280,8 +1280,9 @@ def print_character_stats(characters, txt_allycode):
                 ret_print_character_stats +=  'INFO:' + character_id+' non trouvé chez '+txt_allycode+'\n'
     
     if len (list_print_stats)>0:
-        # Default sort by name
-        list_print_stats = sorted(list_print_stats, key=lambda x: x[0])
+        # Default sort by name in case of "all"
+        if 'all' in characters:
+            list_print_stats = sorted(list_print_stats, key=lambda x: x[0])
         # Sort by specified stat
         for stat in list_stats_for_display:
             if sort_option == stat[3]:
