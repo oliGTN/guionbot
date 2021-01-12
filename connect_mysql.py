@@ -192,7 +192,8 @@ def update_player(dict_player):
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
                       
         # Update the roster
-        roster_definition_txt="" #separator /
+        roster_definition_txt="" #separator \
+        # 1,MAGMATROOPER,gear,gp,level,,rarity,relicTier,eq1,eq2,eq3,eq4,eq5,eq6/<mod1>|<mod2>/capa1,lvl1|capa2,lvl2\capa3,lvl3\1,GREEFKARGA...
         for character in dict_player['roster']:
             c_combatType = character['combatType']
             c_defId = character['defId']
@@ -211,6 +212,8 @@ def update_player(dict_player):
                 c_equipped[eqpt['slot']] = eqpt['equipmentId']
                             
             mod_definition_txt="" #separator |
+            # level,pips,sPrim,vPrim,sSec1,vSec1,sSec2,vSec2,sSec3,vSec3,sSec4,vSec4,set,slot,tier
+            mod_count = 0
             for mod in character['mods']:
                 mod_level = mod['level']
                 mod_pips = mod['pips']
@@ -257,6 +260,35 @@ def update_player(dict_player):
                                     str(mod_set)+","+ \
                                     str(mod_slot)+","+ \
                                     str(mod_tier)+"|"
+                mod_count+=1
+                
+            # remove last "|"
+            if mod_count>0:
+                mod_definition_txt = mod_definition_txt[:-1]
+
+            capa_definition_txt="" #separator |
+            # name,level,isZeta (name = B, L, Un, Sn, GL | isZeta = 0 or 1)
+            capa_count = 0
+            for capa in character['skills']:
+                capa_name = capa['id']
+                capa_level = capa['tier']
+                capa_isZeta = capa['isZeta']
+                
+                capa_shortname = capa_name[0].upper()
+                if capa_name[-1] in '0123456789':
+                    capa_shortname += capa_name[-1]
+                    
+                if capa_name == 'uniqueskill_GALACTICLEGEND01':
+                    capa_shortname = 'GL'
+        
+                capa_definition_txt+=capa_shortname+","+ \
+                                    str(capa_level)+","+ \
+                                    str(int(capa_isZeta))+"|"
+                capa_count+=1
+                
+            # remove last "|"
+            if capa_count>0:
+                capa_definition_txt = capa_definition_txt[:-1]
 
             roster_definition_txt+=str(c_combatType)+","+ \
                                    c_defId+","+ \
@@ -271,8 +303,12 @@ def update_player(dict_player):
                                    str(c_equipped[2])+","+ \
                                    str(c_equipped[3])+","+ \
                                    str(c_equipped[4])+","+ \
-                                   str(c_equipped[5])+","+ \
-                                   mod_definition_txt+"/"
+                                   str(c_equipped[5])+"/"+ \
+                                   mod_definition_txt+"/" + \
+                                   capa_definition_txt+"\\"
+
+        # remove last "\"
+        roster_definition_txt = roster_definition_txt[:-1]
 
         # Launch the unique update with all information
         query_parameters = (p_allyCode,

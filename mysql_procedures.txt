@@ -592,19 +592,19 @@ BEGIN
             
 		# Refresh equipment list
 		IF NOT (@mod_primaryStat_unitStat = 0) THEN
-			INSERT INTO mod_stats(mod_id,type,unitStat,value) VALUES(@mod_id,'primary',@mod_primaryStat_unitStat,@mod_primaryStat_value);
+			INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,TRUE,@mod_primaryStat_unitStat,@mod_primaryStat_value);
 		END IF;
 		IF NOT (@mod_secondaryStat1_unitStat = 0) THEN
-			INSERT INTO mod_stats(mod_id,type,unitStat,value) VALUES(@mod_id,'secondary',@mod_secondaryStat1_unitStat,@mod_secondaryStat1_value);
+			INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,FALSE,@mod_secondaryStat1_unitStat,@mod_secondaryStat1_value);
 		END IF;
 		IF NOT (@mod_secondaryStat2_unitStat = 0) THEN
-			INSERT INTO mod_stats(mod_id,type,unitStat,value) VALUES(@mod_id,'secondary',@mod_secondaryStat2_unitStat,@mod_secondaryStat2_value);
+			INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,FALSE,@mod_secondaryStat2_unitStat,@mod_secondaryStat2_value);
 		END IF;
 		IF NOT (@mod_secondaryStat3_unitStat = 0) THEN
-			INSERT INTO mod_stats(mod_id,type,unitStat,value) VALUES(@mod_id,'secondary',@mod_secondaryStat3_unitStat,@mod_secondaryStat3_value);
+			INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,FALSE,@mod_secondaryStat3_unitStat,@mod_secondaryStat3_value);
 		END IF;
 		IF NOT (@mod_secondaryStat4_unitStat = 0) THEN
-			INSERT INTO mod_stats(mod_id,type,unitStat,value) VALUES(@mod_id,'secondary',@mod_secondaryStat4_unitStat,@mod_secondaryStat4_value);
+			INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,FALSE,@mod_secondaryStat4_unitStat,@mod_secondaryStat4_value);
 		END IF;
             
 		-- rewrite the original string using the `INSERT()` string function,
@@ -645,8 +645,20 @@ BEGIN
 			lastUpdated = CURRENT_TIMESTAMP
 			WHERE allyCode = p_allyCode;
 		
-		SET @p_player_id = (SELECT id FROM players WHERE allyCode = p_allyCode);
-		CALL update_roster(@p_player_id, roster_definition_txt);
+		SET @player_md5 = (SELECT md5 FROM players WHERE players.allyCode = p_allyCode);
+		SET @new_md5 = MD5(roster_definition_txt);
+        #INSERT INTO debug(txt) VALUES(CONCAT('@player_md5=', @player_md5));
+        #INSERT INTO debug(txt) VALUES(CONCAT('@new_md5=', @new_md5));
+        IF NOT @player_md5 = @new_md5 THEN
+			SET @p_player_id = (SELECT id FROM players WHERE allyCode = p_allyCode);
+			CALL update_roster(@p_player_id, roster_definition_txt);
+            
+			UPDATE players SET
+				md5 = MD5(roster_definition_txt)
+			WHERE players.id = @p_player_id;
+		#ELSE INSERT INTO debug(txt) VALUES('Identical MD5 > no change');
+		END IF;
+	#ELSE INSERT INTO debug(txt) VALUES('recent update > no change');
 	END IF;
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster`(
@@ -658,7 +670,7 @@ BEGIN
 	#INSERT INTO debug(txt) VALUES(CONCAT('p_player_id=', p_player_id));
 	#INSERT INTO debug(txt) VALUES(CONCAT('roster_definition_txt=', roster_definition_txt));
 
-	# Clean mods and equipment as they will be created again
+	# Clean mods and equipment and skills as they will be created again
 	DELETE FROM mod_stats WHERE mod_id IN (
 		SELECT mods.id FROM mods
 		JOIN roster ON roster.id = mods.roster_id
@@ -667,6 +679,9 @@ BEGIN
 		SELECT roster.id FROM roster
 		WHERE roster.player_id = p_player_id);
 	DELETE FROM roster_eqpt WHERE roster_id IN (
+		SELECT roster.id FROM roster
+		WHERE roster.player_id = p_player_id);
+	DELETE FROM roster_skills WHERE roster_id IN (
 		SELECT roster.id FROM roster
 		WHERE roster.player_id = p_player_id);
 
@@ -679,7 +694,7 @@ BEGIN
 		END IF;
 
 		-- capture the next value from the list
-		SET @next_roster = SUBSTRING_INDEX(roster_definition_txt,'/',1);
+		SET @next_roster = SUBSTRING_INDEX(roster_definition_txt,'\\',1);
 		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_roster @next_roster=', @next_roster));
 
 		-- save the length of the captured value; we will need to remove this
@@ -688,24 +703,24 @@ BEGIN
 		SET @next_roster_len = CHAR_LENGTH(@next_roster);
 
 		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
-		SET @p_combatType = SUBSTRING_INDEX(@next_roster,',',1);
-		SET @p_defId = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',2),',',-1);
-		SET @p_gear = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',3),',',-1);
-		SET @p_gp = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',4),',',-1);
-		SET @p_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',5),',',-1);
-		SET @p_nameKey = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',6),',',-1);
-		SET @p_rarity = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',7),',',-1);
-		SET @p_relic_currentTier = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',8),',',-1);
-		SET @p_equipped1 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',9),',',-1);
-		SET @p_equipped2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',10),',',-1);
-		SET @p_equipped3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',11),',',-1);
-		SET @p_equipped4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',12),',',-1);
-		SET @p_equipped5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',13),',',-1);
-		SET @p_equipped6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,',',14),',',-1);
-
-		SET @before_mod_definition = SUBSTRING_INDEX(@next_roster,',',14);
-		SET @pos_mod_definition = CHAR_LENGTH(@before_mod_definition);
-		SET @mod_definition_txt = INSERT(@next_roster,1,@pos_mod_definition + 1,'');
+		SET @base_definition_txt = SUBSTRING_INDEX(@next_roster,'/',1);
+		SET @p_combatType = SUBSTRING_INDEX(@base_definition_txt,',',1);
+		SET @p_defId = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',2),',',-1);
+		SET @p_gear = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',3),',',-1);
+		SET @p_gp = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',4),',',-1);
+		SET @p_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',5),',',-1);
+		SET @p_nameKey = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',6),',',-1);
+		SET @p_rarity = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',7),',',-1);
+		SET @p_relic_currentTier = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',8),',',-1);
+		SET @p_equipped1 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',9),',',-1);
+		SET @p_equipped2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',10),',',-1);
+		SET @p_equipped3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',11),',',-1);
+		SET @p_equipped4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',12),',',-1);
+		SET @p_equipped5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',13),',',-1);
+		SET @p_equipped6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',14),',',-1);
+        
+		SET @mod_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',2),'/',-1);
+		SET @capa_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',3),'/',-1);
 
 		CALL update_roster_element(
 			p_player_id,
@@ -723,7 +738,8 @@ BEGIN
 			@p_equipped4,
 			@p_equipped5,
 			@p_equipped6,
-			@mod_definition_txt);
+			@mod_definition_txt,
+			@capa_definition_txt);
             
 		-- rewrite the original string using the `INSERT()` string function,
 		-- args are original string, start position, how many characters to remove, 
@@ -748,13 +764,15 @@ CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_element`(
     IN p_equipped4 VARCHAR(255),
     IN p_equipped5 VARCHAR(255),
     IN p_equipped6 VARCHAR(255),
-    IN mod_definition_txt MEDIUMTEXT
+    IN mod_definition_txt MEDIUMTEXT,
+    IN capa_definition_txt MEDIUMTEXT
     )
 BEGIN
     #INSERT INTO debug(txt) VALUES('START update_roster_element');
     #INSERT INTO debug(txt) VALUES(CONCAT('p_player_id=', p_player_id));
     #INSERT INTO debug(txt) VALUES(CONCAT('p_defId=', p_defId));
     #INSERT INTO debug(txt) VALUES(CONCAT('mod_definition_txt=', mod_definition_txt));
+    #INSERT INTO debug(txt) VALUES(CONCAT('capa_definition_txt=', capa_definition_txt));
 
 	IF NOT EXISTS (SELECT * FROM roster WHERE player_id = p_player_id AND defId = p_defId) THEN
 		INSERT INTO roster(player_id,defId) VALUES(p_player_id,p_defId);
@@ -771,6 +789,7 @@ BEGIN
 
 	SET @roster_id = (SELECT id FROM roster WHERE player_id = p_player_id AND defId = p_defId);
     CALL update_mods(@roster_id, mod_definition_txt);
+    CALL update_roster_skills(@roster_id, capa_definition_txt);
     
     # Refresh equipment list
     #DELETE FROM roster_eqpt WHERE roster_id = @roster_id;
@@ -792,6 +811,53 @@ BEGIN
 	IF NOT (p_equipped6 = '') THEN
 		INSERT INTO roster_eqpt(roster_id,equipment_id) VALUES(@roster_id,p_equipped6);
     END IF;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_skills`(
+	IN p_roster_id INT,
+    IN capa_definition_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_roster_skills');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
+	#INSERT INTO debug(txt) VALUES(CONCAT('capa_definition_txt=', capa_definition_txt));
+
+	iterator:
+	LOOP
+		-- exit the loop if the list seems empty or was null;
+		-- this extra caution is necessary to avoid an endless loop in the proc.
+		IF CHAR_LENGTH(TRIM(capa_definition_txt)) = 0 OR capa_definition_txt IS NULL THEN
+			LEAVE iterator;
+		END IF;
+
+		-- capture the next value from the list
+		SET @next_skill = SUBSTRING_INDEX(capa_definition_txt,'|',1);
+		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_roster_skills @next_skill=', @next_skill));
+
+		-- save the length of the captured value; we will need to remove this
+		-- many characters + 1 from the beginning of the string 
+		-- before the next iteration
+		SET @next_skill_len = CHAR_LENGTH(@next_skill);
+
+		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		SET @skill_name = SUBSTRING_INDEX(@next_skill,',',1);
+		SET @skill_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_skill,',',2),',',-1);
+		SET @skill_isZeta = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_skill,',',3),',',-1);
+
+		-- insert the extracted value into the target table
+		INSERT INTO roster_skills (roster_id) VALUES (p_roster_id);
+        SET @skill_id = LAST_INSERT_ID();
+		UPDATE roster_skills SET
+			name = @skill_name,
+            level = @skill_level,
+            isZeta = @skill_isZeta
+            WHERE id = @skill_id;
+            
+		-- rewrite the original string using the `INSERT()` string function,
+		-- args are original string, start position, how many characters to remove, 
+		-- and what to "insert" in their place (in this case, we "insert"
+		-- an empty string, which removes _nextlen + 1 characters)
+		SET capa_definition_txt = INSERT(capa_definition_txt,1,@next_skill_len + 1,'');
+	END LOOP;
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_subteam_toons`(
     IN p_subteam_id INT,
@@ -1154,7 +1220,7 @@ CREATE TABLE `guild_teams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) DEFAULT NULL,
   `lastUpdated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `md5` varchar(45) DEFAULT 'zz',
+  `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=97 DEFAULT CHARSET=latin1
 CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `mod_ids` AS (select `mods`.`id` AS `id` from ((`mods` join `roster` on((`mods`.`roster_id` = `roster`.`id`))) join `players` on((`players`.`id` = `roster`.`player_id`))) where (`players`.`name` = 'Gui On Ensai'))
@@ -1164,11 +1230,11 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFI
 CREATE TABLE `mod_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `mod_id` int(11) DEFAULT NULL,
-  `type` varchar(10) DEFAULT NULL,
+  `isPrimary` tinyint(4) DEFAULT NULL,
   `unitStat` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=34743571 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=38732192 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1178,7 +1244,7 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8473277 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=9308693 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -1189,8 +1255,9 @@ CREATE TABLE `players` (
   `name` varchar(255) DEFAULT NULL,
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=148 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=123 DEFAULT CHARSET=latin1
 CREATE TABLE `roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player_id` int(11) DEFAULT NULL,
@@ -1203,13 +1270,21 @@ CREATE TABLE `roster` (
   `rarity` int(11) DEFAULT NULL,
   `relic_currentTier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26488 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=26495 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3372395 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=3760220 DEFAULT CHARSET=latin1
+CREATE TABLE `roster_skills` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roster_id` int(11) DEFAULT NULL,
+  `name` varchar(45) DEFAULT NULL,
+  `level` int(11) DEFAULT NULL,
+  `isZeta` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5419 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_tier_id` int(11) DEFAULT NULL,
