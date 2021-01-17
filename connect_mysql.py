@@ -194,6 +194,15 @@ def update_player(dict_player):
 
         p_level = dict_player['level']
         p_name = dict_player['name']
+        p_arena_char_rank = dict_player['arena']['char']['rank']
+        p_arena_ship_rank = dict_player['arena']['ship']['rank']
+
+        for stat in dict_player['stats']:
+            if stat['nameKey'] == "Puissance Galactique (personnages)\u00a0:":
+                p_char_gp = stat['value']
+            elif stat['nameKey'] == "Puissance Galactique (vaisseaux)\u00a0:":
+                p_ship_gp = stat['value']
+
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
                       
         # Update the roster
@@ -322,6 +331,10 @@ def update_player(dict_player):
                             p_lastActivity,
                             p_level,
                             p_name,
+                            p_arena_char_rank,
+                            p_arena_ship_rank,
+                            p_char_gp,
+                            p_ship_gp,
                             p_poUTCOffsetMinutes,
                             roster_definition_txt)
         # print("CALL update_player"+str(query_parameters))
