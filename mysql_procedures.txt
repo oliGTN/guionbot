@@ -34,6 +34,18 @@ BEGIN
 	FROM information_schema.TABLES 
 	GROUP BY table_schema;
 END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_guild_gp`(
+	IN delta_days INT)
+BEGIN
+	SELECT SUM(char_gp)+SUM(ship_gp) AS total_gp, SUM(char_gp) AS char_gp, SUM(ship_gp) AS ship_gp FROM (
+		SELECT players.name, MAX(gp_history.char_gp) AS char_gp, MAX(gp_history.ship_gp) AS ship_gp
+        FROM players
+        LEFT JOIN gp_history
+        ON gp_history.player_id = players.id
+        WHERE TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) >= delta_days*24*3600 AND TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) <= (delta_days+2)*24*3600
+        GROUP BY players.id
+	) AS T;
+END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_unit_speed`(
 	IN p_allyCode INT,
     IN p_sort_by_speed BOOL
@@ -637,7 +649,8 @@ BEGIN
 	IF NOT EXISTS (SELECT * FROM players WHERE allyCode = p_allyCode) THEN
 		INSERT INTO players(allyCode) VALUES(p_allyCode);
     END IF;
-	IF p_allyCode IN (SELECT allyCode FROM players where (CURRENT_TIMESTAMP-lastUpdated)> 3600)
+    # TO-DO: check if this test with lastUpdated is still valuable when removing files completely
+	IF p_allyCode IN (SELECT allyCode FROM players where TIMESTAMPDIFF(SECOND,lastUpdated,CURRENT_TIMESTAMP)> 60)
     THEN
 		SET @p_player_id = (SELECT id FROM players WHERE allyCode = p_allyCode);
 		UPDATE players SET
@@ -668,11 +681,12 @@ BEGIN
 		END IF;
         
         # update the gp_history table
-        SET @delta_TS_last_history = (SELECT CURRENT_TIMESTAMP - MAX(date) FROM gp_history WHERE player_id = @p_player_id);
-        IF (@delta_TS_last_history > 24*3600) THEN
+        SET @delta_TS_last_history = (SELECT TIMESTAMPDIFF(SECOND,MAX(date),CURRENT_TIMESTAMP) FROM gp_history WHERE player_id = @p_player_id);
+        IF (ISNULL(@delta_TS_last_history) OR (@delta_TS_last_history > 24*3600)) THEN
 			# the history is saved every 24h only
 			INSERT INTO gp_history(player_id, char_gp, ship_gp, arena_char_rank, arena_ship_rank)
 				VALUES(@p_player_id, p_char_gp, p_ship_gp, p_arena_char_rank, p_arena_ship_rank);
+		#ELSE INSERT INTO debug(txt) VALUES(CONCAT('@delta_TS_last_history=', @delta_TS_last_history));
 		END IF;
 	#ELSE INSERT INTO debug(txt) VALUES('recent update > no change');
 	END IF;
@@ -1219,7 +1233,7 @@ CREATE TABLE `gp_history` (
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_subteams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `team_id` int(11) DEFAULT NULL,
@@ -1260,7 +1274,7 @@ CREATE TABLE `mod_stats` (
   `unitStat` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=40398836 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=40643924 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1270,7 +1284,7 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9657262 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=9708561 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -1300,13 +1314,13 @@ CREATE TABLE `roster` (
   `rarity` int(11) DEFAULT NULL,
   `relic_currentTier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26558 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=26561 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3927978 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=3954000 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_skills` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1314,7 +1328,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=359426 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=413345 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_tier_id` int(11) DEFAULT NULL,

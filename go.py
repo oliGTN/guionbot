@@ -1392,7 +1392,7 @@ def get_gp_distribution(allycode, inactive_duration):
     #compute ASCII graphs
     ret_get_gp_distribution = '==GP stats '+guild['name']+ \
                             '== (. = inactif depuis '+ \
-                            str(inactive_duration)+' heures)'
+                            str(inactive_duration)+' heures)\n'
     ret_get_gp_distribution += get_gp_graph(guild_stats, inactive_duration)
     
     return ret_get_gp_distribution
