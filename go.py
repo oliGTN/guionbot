@@ -16,7 +16,6 @@ import connect_mysql
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
 client = SWGOHhelp(creds)
 inactive_duration = 36  #hours
-sys.stdout.reconfigure(encoding='utf-8')
 
 #Journey Guide: [minimum required, [[name, stars, gear, relic, capa level, GP, module level, speed], ...]]
 journey_guide={}
