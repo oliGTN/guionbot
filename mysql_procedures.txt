@@ -628,11 +628,11 @@ BEGIN
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_player`(
 	IN p_allyCode INT,
-    IN p_guildName VARCHAR(255),
+    IN p_guildName VARCHAR(255) CHARSET utf8,
     IN p_player_id VARCHAR(30),
     IN p_lastActivity DATETIME,
     IN p_level int,
-    IN p_name VARCHAR(255),
+    IN p_name VARCHAR(255) CHARSET utf8,
     IN p_arena_char_rank INT,
     IN p_arena_ship_rank INT,
     IN p_char_gp INT,
@@ -641,54 +641,54 @@ CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_player`(
     IN roster_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_player');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_allyCode=', p_allyCode));
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_name=', p_name));
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_level=', p_level));
+	SET CHARACTER SET utf8;
+	SET character_set_results=utf8;
+	SET character_set_client=utf8;
+	SET character_set_connection=utf8;
+    
+	INSERT INTO debug(txt) VALUES('START update_player');
+	INSERT INTO debug(txt) VALUES(CONCAT('p_allyCode=', p_allyCode));
+	INSERT INTO debug(txt) VALUES(CONCAT('p_name=', p_name));
+	INSERT INTO debug(txt) VALUES(CONCAT('p_level=', p_level));
 
 	IF NOT EXISTS (SELECT * FROM players WHERE allyCode = p_allyCode) THEN
 		INSERT INTO players(allyCode) VALUES(p_allyCode);
     END IF;
-    # TO-DO: check if this test with lastUpdated is still valuable when removing files completely
-	IF p_allyCode IN (SELECT allyCode FROM players where TIMESTAMPDIFF(SECOND,lastUpdated,CURRENT_TIMESTAMP)> 60)
-    THEN
-		SET @p_player_id = (SELECT id FROM players WHERE allyCode = p_allyCode);
-		UPDATE players SET
-			guildName = p_guildName,
-			player_id = p_player_id,
-			lastActivity = p_lastActivity,
-			level = p_level,
-			name = p_name,
-			arena_char_rank = p_arena_char_rank,
-			arena_ship_rank = p_arena_ship_rank,
-			char_gp = p_char_gp,
-			ship_gp = p_ship_gp,
-			poUTCOffsetMinutes = p_poUTCOffsetMinutes,
-			lastUpdated = CURRENT_TIMESTAMP
-			WHERE allyCode = p_allyCode;
-		
-		SET @player_md5 = (SELECT md5 FROM players WHERE players.allyCode = p_allyCode);
-		SET @new_md5 = MD5(roster_definition_txt);
-        #INSERT INTO debug(txt) VALUES(CONCAT('@player_md5=', @player_md5));
-        #INSERT INTO debug(txt) VALUES(CONCAT('@new_md5=', @new_md5));
-        IF NOT @player_md5 = @new_md5 THEN
-			CALL update_roster(@p_player_id, roster_definition_txt);
+	SET @p_player_id = (SELECT id FROM players WHERE allyCode = p_allyCode);
+	UPDATE players SET
+		guildName = p_guildName,
+		player_id = p_player_id,
+		lastActivity = p_lastActivity,
+		level = p_level,
+		name = p_name,
+		arena_char_rank = p_arena_char_rank,
+		arena_ship_rank = p_arena_ship_rank,
+		char_gp = p_char_gp,
+		ship_gp = p_ship_gp,
+		poUTCOffsetMinutes = p_poUTCOffsetMinutes,
+		lastUpdated = CURRENT_TIMESTAMP
+		WHERE allyCode = p_allyCode;
+	
+	SET @player_md5 = (SELECT md5 FROM players WHERE players.allyCode = p_allyCode);
+	SET @new_md5 = MD5(roster_definition_txt);
+	#INSERT INTO debug(txt) VALUES(CONCAT('@player_md5=', @player_md5));
+	#INSERT INTO debug(txt) VALUES(CONCAT('@new_md5=', @new_md5));
+	IF NOT @player_md5 = @new_md5 THEN
+		CALL update_roster(@p_player_id, roster_definition_txt);
 
-			UPDATE players SET
-				md5 = MD5(roster_definition_txt)
-			WHERE players.id = @p_player_id;
-		#ELSE INSERT INTO debug(txt) VALUES('Identical MD5 > no change');
-		END IF;
-        
-        # update the gp_history table
-        SET @delta_TS_last_history = (SELECT TIMESTAMPDIFF(SECOND,MAX(date),CURRENT_TIMESTAMP) FROM gp_history WHERE player_id = @p_player_id);
-        IF (ISNULL(@delta_TS_last_history) OR (@delta_TS_last_history > 24*3600)) THEN
-			# the history is saved every 24h only
-			INSERT INTO gp_history(player_id, char_gp, ship_gp, arena_char_rank, arena_ship_rank)
-				VALUES(@p_player_id, p_char_gp, p_ship_gp, p_arena_char_rank, p_arena_ship_rank);
-		#ELSE INSERT INTO debug(txt) VALUES(CONCAT('@delta_TS_last_history=', @delta_TS_last_history));
-		END IF;
-	#ELSE INSERT INTO debug(txt) VALUES('recent update > no change');
+		UPDATE players SET
+			md5 = MD5(roster_definition_txt)
+		WHERE players.id = @p_player_id;
+	#ELSE INSERT INTO debug(txt) VALUES('Identical MD5 > no change');
+	END IF;
+	
+	# update the gp_history table
+	SET @delta_TS_last_history = (SELECT TIMESTAMPDIFF(SECOND,MAX(date),CURRENT_TIMESTAMP) FROM gp_history WHERE player_id = @p_player_id);
+	IF (ISNULL(@delta_TS_last_history) OR (@delta_TS_last_history > 24*3600)) THEN
+		# the history is saved every 24h only
+		INSERT INTO gp_history(player_id, char_gp, ship_gp, arena_char_rank, arena_ship_rank)
+			VALUES(@p_player_id, p_char_gp, p_ship_gp, p_arena_char_rank, p_arena_ship_rank);
+	#ELSE INSERT INTO debug(txt) VALUES(CONCAT('@delta_TS_last_history=', @delta_TS_last_history));
 	END IF;
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster`(
@@ -1184,7 +1184,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFI
 CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `base_stat_view` AS (select `roster`.`id` AS `roster_id`,`roster`.`defId` AS `char_name`,`unit_stats`.`unitStatId` AS `base_statId`,`unit_stats`.`statValueDecimal` AS `base_statValue` from (((`roster` join `units` on((`units`.`baseId` = `roster`.`defId`))) join `unit_tiers` on(((`unit_tiers`.`unit_id` = `units`.`id`) and (`unit_tiers`.`tier` = `roster`.`gear`)))) join `unit_stats` on((`unit_stats`.`unit_tier_id` = `unit_tiers`.`id`))))
 CREATE TABLE `debug` (
   `txt` mediumtext
-) ENGINE=InnoDB DEFAULT CHARSET=latin1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 CREATE TABLE `eqpt_missionList` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `equipment_id` int(11) DEFAULT NULL,
@@ -1224,6 +1224,9 @@ CREATE TABLE `equipment` (
   `type` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=562 DEFAULT CHARSET=latin1
+CREATE TABLE `foo` (
+  `v` varchar(10) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
 CREATE TABLE `gp_history` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player_id` int(11) DEFAULT NULL,
@@ -1233,7 +1236,7 @@ CREATE TABLE `gp_history` (
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=142 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_subteams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `team_id` int(11) DEFAULT NULL,
@@ -1274,7 +1277,7 @@ CREATE TABLE `mod_stats` (
   `unitStat` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=40643924 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=41104224 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1284,12 +1287,12 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9708561 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=9803652 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
   `guildName` varchar(255) DEFAULT NULL,
-  `player_id` varchar(30) DEFAULT NULL,
+  `player_id` varchar(30) CHARACTER SET latin1 DEFAULT NULL,
   `lastActivity` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `level` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
@@ -1299,9 +1302,9 @@ CREATE TABLE `players` (
   `ship_gp` int(11) DEFAULT NULL,
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `md5` varchar(32) DEFAULT 'zz',
+  `md5` varchar(32) CHARACTER SET latin1 DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=147 DEFAULT CHARSET=utf8
 CREATE TABLE `roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player_id` int(11) DEFAULT NULL,
@@ -1314,13 +1317,13 @@ CREATE TABLE `roster` (
   `rarity` int(11) DEFAULT NULL,
   `relic_currentTier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26561 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=34051 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3954000 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=3999143 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_skills` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1328,7 +1331,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=413345 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=511575 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_tier_id` int(11) DEFAULT NULL,

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from swgohhelp import SWGOHhelp, settings
 import sys
 import json
@@ -14,6 +16,7 @@ import connect_mysql
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
 client = SWGOHhelp(creds)
 inactive_duration = 36  #hours
+sys.stdout.reconfigure(encoding='utf-8')
 
 #Journey Guide: [minimum required, [[name, stars, gear, relic, capa level, GP, module level, speed], ...]]
 journey_guide={}
@@ -166,7 +169,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
         #print(filename)
         if filename[0] == 'G':
             file_path = 'CACHE' + os.path.sep + filename
-            for line in open(file_path).readlines():
+            for line in open(file_path, 'r', encoding='utf-8').readlines():
                 if line[13:21] == 'allyCode':
                     list_allycodes.append(line[24:33])
     #remove duplicates
@@ -224,7 +227,7 @@ def stats_cache():
 def load_player(allycode):
     player_json_filename = 'CACHE' + os.path.sep + allycode + '.json'
     if os.path.exists(player_json_filename):
-        f = open(player_json_filename, 'r')
+        f = open(player_json_filename, 'r', encoding='utf-8')
         sys.stdout.write('loading cache for ' + str(allycode) + '...')
         ret_player = json.load(f)
         sys.stdout.write(' ' + ret_player['name'] + '\n')
@@ -255,7 +258,7 @@ def load_player(allycode):
                     ret_player['roster'][character['defId']] = character
                 
                 #update json file
-                f = open(player_json_filename, 'w')
+                f = open(player_json_filename, 'w', encoding='utf-8')
                 f.write(json.dumps(ret_player, indent=4, sort_keys=True))
                 f.close()
                 sys.stdout.write('.\n')
@@ -273,23 +276,36 @@ def load_player(allycode):
     return ret_player
 
 def load_guild(allycode, load_players):
+    
     is_error = False
 
     #rechargement systématique des infos de guilde (liste des membres)
     sys.stdout.write('>Requesting guild data for allycode ' + allycode +
                      '...\n')
     client_data = client.get_data('guild', allycode)
-    if isinstance(client_data, dict):
-        #error code
-        ret_guild = str(client)
-        sys.stdout.write('ERR: ' + ret_guild + '\n')
-        is_error = True
-    else:  #list
-        ret_guild = client_data[0]
-        f = open('CACHE' + os.path.sep + 'G' + allycode + '.json', 'w')
-        f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
-        sys.stdout.write('Guild found: ' + ret_guild['name'] + '\n')
-        f.close()
+    if isinstance(client_data, list):
+        if len(client_data) > 0:
+            if len(client_data) > 1:
+                print ('WAR: client.get_data(\'guild\', '+allycode+
+                        ') has returned a list of size '+
+                        str(len(player_data)))            
+                        
+            ret_guild = client_data[0]
+            f = open('CACHE' + os.path.sep + 'G' + allycode + '.json', 'w', encoding='utf-8')
+            f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
+            sys.stdout.write('Guild found: ' + ret_guild['name'] + '\n')
+            f.close()
+            
+        else:
+            print ('ERR: client.get_data(\'guild\', '+allycode+
+                    ') has returned an empty list')
+            return None
+    else:
+        print ('ERR: client.get_data(\'guild\', '+
+                allycode+') has not returned a list')
+        print (client_data)
+        return None
+
 
     if load_players and not is_error:
         #add player data after saving the guild in json
@@ -1387,6 +1403,9 @@ def get_gp_distribution(allycode, inactive_duration):
     
     #Get data for the guild
     guild = load_guild(allycode, True)
+    if guild == None:
+        return "ERR: cannot get guild data from SWGOH.HELP API"
+        
     guild_stats=get_guild_gp(guild)
 
     #compute ASCII graphs
