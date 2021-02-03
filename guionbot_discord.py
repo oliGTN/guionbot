@@ -109,7 +109,6 @@ dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (id
 # Output: none
 ##############################################################
 async def bot_loop_60():
-    #global dict_players
     await bot.wait_until_ready()
     while not bot.is_closed():
         try:
@@ -132,8 +131,9 @@ async def bot_loop_60():
                             list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
             update_online_dates(dict_lastseen)
-        except:
-            print("Unexpected error: "+str(sys.exc_info()[0]))
+        except Exception as e:
+            print("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
+            print(e)
         
         await asyncio.sleep(60)  #60 seconds for loop
 
@@ -741,7 +741,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
-                ret_cmd = go.print_character_stats(characters, allycode)
+                ret_cmd = go.print_character_stats(characters, allycode, False)
             else:
                 ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
                 
@@ -755,7 +755,43 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
+    
+    ##############################################################
+    # Command: spg
+    # Parameters: code allié (string) ou "me" / nom approximatif d'un perso
+    # Purpose: stats vitesse et pouvoir d'un perso sur toute la guilde
+    # Display: la vitess et le pouvoir
+    ##############################################################
+    @commands.command(name='spg',
+                 brief="Stats de Perso d'une Guilde",
+                 help="Stats de Perso d'une Guilde\n\n"\
+                      "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
+                      "Exemple: go.spg 123456789 JKR\n"\
+                      "Exemple: go.spj me -v \"Dark Maul\"")
+    async def spg(self, ctx, allycode, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
 
+        allycode = manage_me(ctx, allycode)
+
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            if len(characters) > 0:
+                ret_cmd = go.print_character_stats(characters, allycode, True)
+            else:
+                ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
+                
+            if ret_cmd[0:3] == 'ERR':
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in go.split_txt(ret_cmd, 1000):
+                    await ctx.send("```"+txt+"```")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
     ##############################################################
     # Command: gdp
     # Parameters: code allié (string) ou "me"

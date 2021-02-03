@@ -11,11 +11,11 @@ from functools import reduce
 from math import ceil
 from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter, load_config_units
 import connect_mysql
+import goutils
 
 #login password sur https://api.swgoh.help/profile
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
 client = SWGOHhelp(creds)
-inactive_duration = 36  #hours
 
 #Journey Guide: [minimum required, [[name, stars, gear, relic, capa level, GP, module level, speed], ...]]
 journey_guide={}
@@ -146,68 +146,25 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
     #Need to keep KEEPDIR to prevent removal of the directory by GIT
     
-    #Firets step is to delete old files (eg: more than 24h)
-    for filename in os.listdir('CACHE'):
-        #print(filename)
-        #The fake file KEEPDIR, and the master guild file, cannot be deleted
-        if filename != 'KEEPDIR' and filename != 'G'+os.environ['MASTER_GUILD_ALLYCODE']+'.json':
-            file_path = 'CACHE' + os.path.sep + filename
-            file_stats = os.stat(file_path)
+    # Get the allyOcdes to be refreshed
+    # the query gets all allyCodes form all guilds that have been updated
+    # in the latest 7 days, and the player not updated in the last <refresh_rate_minutes> minutes
+    query = "SELECT allyCode from players WHERE guildName IN ( \
+                SELECT name \
+                FROM guilds \
+                WHERE timestampdiff(DAY, lastUpdated, CURRENT_TIMESTAMP)<=7 \
+            ) \
+            AND timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)>"+str(refresh_rate_minutes)+" \
+            ORDER BY lastUpdated ASC"
+    list_allyCodes = connect_mysql.get_column(query)
 
-            delta_mtime_sec = time.time() - file_stats.st_mtime
-            #print (filename+' (not modified for '+str(int(delta_mtime_sec/60))+' minutes)')
-            if (delta_mtime_sec / 60) > nb_minutes_delete:
-                print('Remove ' + filename + ' (not accessed for ' +
-                      str(int(delta_mtime_sec / 60)) + ' minutes)')
-                os.remove(file_path)
+    #Compute the amount of players to be refreshed based on global refresh rate
+    nb_refresh_players = ceil(
+        len(list_allyCodes) / nb_minutes_refresh * refresh_rate_minutes)
+    print('Refreshing ' + str(nb_refresh_players) + ' files')
 
-    #LOOP through Guild files to recover player allycodes
-    #Master guild file cannot be deleted to ensure keeping players updated
-    list_allycodes = []
-    for filename in os.listdir('CACHE'):
-        #print(filename)
-        if filename[0] == 'G':
-            file_path = 'CACHE' + os.path.sep + filename
-            for line in open(file_path, 'r', encoding='utf-8').readlines():
-                if line[13:21] == 'allyCode':
-                    list_allycodes.append(line[24:33])
-    #remove duplicates
-    list_allycodes = [x for x in set(list_allycodes)]
-    #print('DBG: list_allycodes='+str(list_allycodes))
-
-    #Compute the amount of files to be refreshed based on global refresh rate
-    nb_refresh_files = ceil(
-        len(list_allycodes) / nb_minutes_refresh * refresh_rate_minutes)
-    print('Refreshing ' + str(nb_refresh_files) + ' files')
-
-    #LOOP through files to check modification date
-    list_filenames_mtime = []
-    for filename in os.listdir('CACHE'):
-        if filename[:-5] in list_allycodes:
-            file_path = 'CACHE' + os.path.sep + filename
-            file_stats = os.stat(file_path)
-            list_filenames_mtime.append([filename, file_stats.st_mtime])
-            list_allycodes.remove(filename[:-5])
-    #sort by mtime
-    list_filenames_mtime = sorted(list_filenames_mtime, key=lambda x: x[1])
-    #print('DBG: list_filenames_mtime='+str(list_filenames_mtime))
-
-    remaining_files_to_refresh = nb_refresh_files
-    #Start creating non-existing files
-    for allycode in list_allycodes[:remaining_files_to_refresh]:
-        #print('DBG: create '+allycode)
-        load_player(allycode)
-        remaining_files_to_refresh -= 1
-
-    #Then refresh oldest existing files
-    for filename_mtime in list_filenames_mtime[:remaining_files_to_refresh]:
-        allycode = filename_mtime[0][:-5]
-        file_path = 'CACHE' + os.path.sep + filename_mtime[0]
-        #print('DBG: refresh '+allycode)
-        os.remove(file_path)
-        load_player(allycode)
-        remaining_files_to_refresh -= 1
-
+    for allyCode in list_allyCodes[:nb_refresh_players]:
+        load_player(str(allyCode), False)
 
 def stats_cache():
     sum_size = 0
@@ -223,22 +180,25 @@ def stats_cache():
         int(sum_size / 1024 / 1024 * 10) / 10) + ' MB'
 
 
-def load_player(allycode):
-    player_json_filename = 'CACHE' + os.path.sep + allycode + '.json'
-    if os.path.exists(player_json_filename):
-        f = open(player_json_filename, 'r', encoding='utf-8')
-        sys.stdout.write('loading cache for ' + str(allycode) + '...')
-        ret_player = json.load(f)
-        sys.stdout.write(' ' + ret_player['name'] + '\n')
-        f.close()
+def load_player(txt_allyCode, force_update):
+    query_result = connect_mysql.get_line("SELECT \
+                        (timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)<=60), \
+                        name \
+                        FROM players WHERE allyCode = '"+txt_allyCode+"'")
+    if len(query_result)>0:
+        recent_player = query_result[0]
+        player_name = query_result[1]
     else:
-        sys.stdout.write('requesting data for ' + str(allycode) + '...')
+        recent_player = 0
+
+    if not recent_player or force_update:
+        sys.stdout.write('requesting data for ' + txt_allyCode + '...')
         sys.stdout.flush()
-        player_data = client.get_data('player', allycode)
+        player_data = client.get_data('player', txt_allyCode)
         if isinstance(player_data, list):
             if len(player_data) > 0:
                 if len(player_data) > 1:
-                    print ('WAR: client.get_data(\'player\', '+allycode+
+                    print ('WAR: client.get_data(\'player\', '+txt_allyCode+
                             ') has returned a list of size '+
                             str(len(player_data)))
                             
@@ -248,167 +208,92 @@ def load_player(allycode):
                 
                 # update DB
                 connect_mysql.update_player(ret_player)
-                sys.stdout.write('.')
-                sys.stdout.flush()
-
-                player_roster = ret_player['roster'].copy()
-                ret_player['roster'] = {}
-                for character in player_roster:
-                    ret_player['roster'][character['defId']] = character
-                
-                #update json file
-                f = open(player_json_filename, 'w', encoding='utf-8')
-                f.write(json.dumps(ret_player, indent=4, sort_keys=True))
-                f.close()
                 sys.stdout.write('.\n')
+                sys.stdout.flush()
                 
             else:
-                print ('ERR: client.get_data(\'player\', '+allycode+
+                print ('ERR: client.get_data(\'player\', '+txt_allyCode+
                         ') has returned an empty list')
-                return None
+                return 'ERR: allyCode '+txt_allyCode+' not found'
+
         else:
             print ('ERR: client.get_data(\'player\', '+
-                    allycode+') has not returned a list')
+                    txt_allyCode+') has not returned a list')
             print (player_data)
-            return None
+            return 'ERR: allyCode '+txt_allyCode+' not found'
 
-    return ret_player
-
-def load_guild(allycode, load_players):
+    else:
+        sys.stdout.write(player_name + ' OK\n')
     
-    is_error = False
+    return 'OK'
 
+def load_guild(txt_allyCode, load_players):
+    
     #rechargement systématique des infos de guilde (liste des membres)
-    sys.stdout.write('>Requesting guild data for allycode ' + allycode +
+    sys.stdout.write('>Requesting guild data for allyCode ' + txt_allyCode +
                      '...\n')
-    client_data = client.get_data('guild', allycode)
+    client_data = client.get_data('guild', txt_allyCode)
     if isinstance(client_data, list):
         if len(client_data) > 0:
             if len(client_data) > 1:
-                print ('WAR: client.get_data(\'guild\', '+allycode+
+                print ('WAR: client.get_data(\'guild\', '+txt_allyCode+
                         ') has returned a list of size '+
                         str(len(player_data)))            
                         
             ret_guild = client_data[0]
-            f = open('CACHE' + os.path.sep + 'G' + allycode + '.json', 'w', encoding='utf-8')
-            f.write(json.dumps(ret_guild, indent=4, sort_keys=True))
-            sys.stdout.write('Guild found: ' + ret_guild['name'] + '\n')
-            f.close()
-            
+            list_allyCodes = [x["allyCode"] for x in ret_guild["roster"]]
+            connect_mysql.update_guild(ret_guild)
+
         else:
-            print ('ERR: client.get_data(\'guild\', '+allycode+
+            print ('ERR: client.get_data(\'guild\', '+txt_allyCode+
                     ') has returned an empty list')
-            return None
+            return 'ERR: canot fetch guild fo allyCode '+txt_allyCode
+
     else:
         print ('ERR: client.get_data(\'guild\', '+
-                allycode+') has not returned a list')
+                txt_allyCode+') has not returned a list')
         print (client_data)
-        return None
+        return 'ERR: canot fetch guild fo allyCode '+txt_allyCode
 
 
-    if load_players and not is_error:
-        #add player data after saving the guild in json
+    if load_players:
+        #Get players and update status from DB
+        recent_players = connect_mysql.get_table( "\
+            SELECT \
+            (timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)<=60), \
+            allyCode \
+            FROM players \
+            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode = '"+txt_allyCode+"')")
+        dict_recent_players={}
+        for line in recent_players:
+            dict_recent_players[line[1]]=line[0]
+                
+        #add player data
         total_players = len(ret_guild['roster'])
-        sys.stdout.write('Total players in guild: ' + str(total_players) +
-                         '\n')
+        sys.stdout.write('Total players in guild: ' + 
+                            str(total_players) + '\n')
         i_player = 0
         for player in ret_guild['roster']:
             i_player = i_player + 1
             sys.stdout.write(str(i_player) + ': ')
-            player['dict_player'] = load_player(str(player['allyCode']))
-
-    return ret_guild
-
-
-##############################################################
-# Function: pad_txt
-# Parameters: txt (string) > texte à modifier
-#             size (intereger) > taille cible pour le texte
-# Purpose: ajoute des espaces pour atteindre la taille souhaitée
-# Output: ret_pad_txt (string) = txt avec des espaces au bout
-##############################################################
-def pad_txt(txt, size):
-    if len(txt) < size:
-        ret_pad_txt = txt + ' ' * (size - len(txt))
-    else:
-        ret_pad_txt = txt[:size]
-
-    return ret_pad_txt
-
-
-##############################################################
-# Function: pad_txt2
-# Parameters: txt (string) > texte à modifier
-# Purpose: ajoute des espaces pour atteindre la taille souhaitée
-#          dans un affichae Discord où les caractères n'ont pas la même taille
-#          Le texte est mis à la taille la plus large possible pour un texte de ce nombre de caractères (cas pire)
-# Output: ret_pad_txt (string) = txt avec des espaces au bout
-##############################################################
-def pad_txt2(txt):
-    #pixels mesurés en entrant 20 fois le caractère entre 2 "|"
-    size_chars = {}
-    size_chars['0'] = 12.3
-    size_chars['1'] = 7.1
-    size_chars['2'] = 10.7
-    size_chars['3'] = 10.5
-    size_chars['4'] = 11.9
-    size_chars['5'] = 10.6
-    size_chars['6'] = 11.4
-    size_chars['7'] = 10.6
-    size_chars['8'] = 11.4
-    size_chars['9'] = 11.4
-    size_chars[' '] = 4.5
-    size_chars['R'] = 11.3
-    size_chars['I'] = 5.3
-    size_chars['.'] = 4.4
-    padding_char = ' '
-
-    size_txt = 0
-    nb_sizeable_chars = 0
-    for c in size_chars:
-        size_txt += txt.count(c) * size_chars[c]
-        nb_sizeable_chars += txt.count(c)
-        #print ('DBG: c='+c+' size_txt='+str(size_txt)+' nb_sizeable_chars='+str(nb_sizeable_chars))
-
-    max_size = nb_sizeable_chars * max(size_chars.values())
-    nb_padding = round((max_size - size_txt) / size_chars[padding_char])
-    #print('DBG: max_size='+str(max_size)+'size='+str(size_txt)+' nb_padding='+str(nb_padding))
-    ret_pad_txt = txt + padding_char * nb_padding
-    #print('DBG: x'+txt+'x > x'+ret_pad_txt+'x')
-
-    return ret_pad_txt
+            
+            if not player['allyCode'] in dict_recent_players.keys():
+                load_player(str(player['allyCode']), False)
+            elif not dict_recent_players[player['allyCode']]:
+                load_player(str(player['allyCode']), False)
+            else:
+                sys.stdout.write(player['name']+" OK\n")
+    
+    return "OK"
 
 def get_zeta_from_shorts(character_id, zeta_shorts):
     dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
     
     req_zeta_ids = []
     for zeta in zeta_shorts:
-        zeta_standard = zeta.upper().replace(' ', '')
-        if zeta_standard == '':
+        zeta_id = get_zeta_id_from_short(character_id, zeta)
+        if zeta_id == '':
             continue
-        elif zeta_standard[0] == 'B':
-            zeta_id = 'B'
-        elif zeta_standard[0] == 'S':
-            zeta_id = 'S'
-            if zeta_standard[-1] in '0123456789':
-                zeta_id += zeta_standard[-1]
-            else:
-                zeta_id += '1'
-        elif zeta_standard[0] == 'C' or zeta_standard[0] == 'L':
-            zeta_id = 'L'
-        elif zeta_standard[0] == 'U':
-            zeta_id = 'U'
-            if zeta_standard[-1] in '0123456789':
-                zeta_id += zeta_standard[-1]
-            else:
-                zeta_id += '1'
-
-            # Manage the galactic legends
-            if (zeta_id not in dict_zetas[character_id] or \
-                dict_zetas[character_id][zeta_id][0] == 'Placeholder') and \
-                'GL' in dict_zetas[character_id]:
-                zeta_id = 'GL'
-        
         if zeta_id in dict_zetas[character_id]:
             if dict_zetas[character_id][zeta_id][1]:
                 req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
@@ -416,6 +301,37 @@ def get_zeta_from_shorts(character_id, zeta_shorts):
             print('WAR: cannot find zeta '+zeta+' for '+character_id)
     
     return req_zeta_ids
+
+def get_zeta_id_from_short(character_id, zeta_short):
+    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+
+    zeta_standard = zeta_short.upper().replace(' ', '')
+    if zeta_standard == '':
+        return ''
+    elif zeta_standard[0] == 'B':
+        zeta_id = 'B'
+    elif zeta_standard[0] == 'S':
+        zeta_id = 'S'
+        if zeta_standard[-1] in '0123456789':
+            zeta_id += zeta_standard[-1]
+        else:
+            zeta_id += '1'
+    elif zeta_standard[0] == 'C' or zeta_standard[0] == 'L':
+        zeta_id = 'L'
+    elif zeta_standard[0] == 'U':
+        zeta_id = 'U'
+        if zeta_standard[-1] in '0123456789':
+            zeta_id += zeta_standard[-1]
+        else:
+            zeta_id += '1'
+
+        # Manage the galactic legends
+        if (zeta_id not in dict_zetas[character_id] or \
+            dict_zetas[character_id][zeta_id][0] == 'Placeholder') and \
+            'GL' in dict_zetas[character_id]:
+            zeta_id = 'GL'
+    
+    return zeta_id
 
 def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                               score_amber, txt_mode, dict_player_discord):
@@ -426,7 +342,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
     #   * : Affichage d'une icône verte (100%), orange (>=80%) ou rouge
 
     line = ''
-    #print('DBG: get_team_line_from_player '+dict_player['name'])
+    # print('DBG: get_team_line_from_player '+dict_player['name'])
     nb_subobjs = len(objectifs)
     
     #INIT tableau des resultats
@@ -496,39 +412,43 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                 progress = progress + min(1, (player_gear+player_relic) / (req_gear_reco+req_relic_reco))
                 if (player_gear+player_relic) < (req_gear_min+req_relic_min):
                     character_nogo = True
+                # print('DBG: player_gear='+str(player_gear)+' player_relic='+str(player_relic))
+                # print('DBG: req_gear_min='+str(req_gear_min)+' req_relic_min='+str(req_relic_min))
+                # print('DBG: character_nogo='+str(character_nogo))
                 # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 #Zetas
                 req_zetas = character_obj[5].split(',')
-                req_zeta_names = [x[1] for x in get_zeta_from_shorts(character_id, req_zetas)]
+                req_zeta_ids = [get_zeta_id_from_short(character_id, x) for x in req_zetas]
+                req_zeta_ids = list(filter(lambda x: x != '', req_zeta_ids))
                         
                 player_nb_zetas = 0
-                progress_100 += len(req_zeta_names)
+                progress_100 += len(req_zeta_ids)
                 for skill in character_roster['skills']:
-                    if skill['nameKey'] in req_zeta_names:
+                    if skill['id'] in req_zeta_ids:
                         if skill['tier'] == 8:
                             player_nb_zetas += 1
                             progress += 1
-                if player_nb_zetas < len(req_zeta_names):
+                if player_nb_zetas < len(req_zeta_ids):
                     character_nogo = True
                 # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
-                #Vitesse (optionnel)
-                req_speed = character_obj[6]
-                if character_roster['combatType'] == 1:
-                    base_stats, gear_stats, mod_stats = get_character_stats(character_roster)
-                    player_speed = base_stats[5]+gear_stats[5]+mod_stats[5]
-                    req_speed = character_obj[6]
-                    if req_speed != '':
-                        progress_100 = progress_100 + 1
-                        progress = progress + min(1, player_speed / req_speed)
-                    else:
-                        req_speed = player_speed
-                    # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
-                else:
-                    print('WAR: impossible to compute stats for ship '+character_id)
-                    player_speed = 1
-                    req_speed = 1
+                # #Vitesse (optionnel)
+                # req_speed = character_obj[6]
+                # if character_roster['combatType'] == 1:
+                    # base_stats, gear_stats, mod_stats = goutils.get_character_stats(character_roster)
+                    # player_speed = base_stats[5]+gear_stats[5]+mod_stats[5]
+                    # req_speed = character_obj[6]
+                    # if req_speed != '':
+                        # progress_100 = progress_100 + 1
+                        # progress = progress + min(1, player_speed / req_speed)
+                    # else:
+                        # req_speed = player_speed
+                    # # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
+                # else:
+                    # print('WAR: impossible to compute stats for ship '+character_id)
+                    # player_speed = 1
+                    # req_speed = 1
 
                 player_gp = character_roster['gp']
 
@@ -701,7 +621,7 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
     return entete
 
 
-def guild_team(txt_allycode, list_team_names, score_type, score_green,
+def guild_team(txt_allyCode, team_name, score_type, score_green,
                score_amber, txt_mode):
     ret_guild_team = {}
 
@@ -709,57 +629,74 @@ def guild_team(txt_allycode, list_team_names, score_type, score_green,
     liste_team_gt, dict_team_gt = load_config_teams()
     dict_player_discord = load_config_players()[0]
 
-    #Get data for my guild
-    guild = load_guild(txt_allycode, True)
-    if isinstance(guild, str):
+    #Load or update data for the guild
+    ret = load_guild(txt_allyCode, True)
+    if ret != "OK":
         #error wile loading guild data
-        return 'ERREUR: guilde non trouvée pour code allié ' + txt_allycode
+        return 'ERREUR: guilde non trouvée pour code allié ' + txt_allyCode
 
-    if 'all' in list_team_names:
-        list_team_names = liste_team_gt
+    #recreate guild roster
+    print("Get guild data from DB...")
+    guild_data = connect_mysql.get_table(" \
+        SELECT allyCode, players.name, defId, rarity, gear, relic_currentTier, combatType, gp, \
+        roster_skills.name, roster_skills.level, roster_skills.isZeta \
+        FROM roster \
+        JOIN players ON players.id = roster.player_id \
+        LEFT JOIN roster_skills ON roster_skills.roster_id = roster.id \
+        WHERE guildName IN (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
+        AND defId IN ( \
+            SELECT unit_id \
+            FROM guild_team_roster \
+            JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id \
+            JOIN guild_teams ON guild_teams.id = guild_subteams.team_id \
+            WHERE guild_teams.name = '"+team_name+"' \
+        ) \
+        ORDER BY allyCode, defId")
 
-    for team_name in list_team_names:
-        ret_team = ''
-        if not team_name in dict_team_gt:
-            ret_guild_team[
-                team_name] = 'ERREUR: team ' + team_name + ' inconnue. Liste=' + str(
-                    liste_team_gt), 0, 0
-            #print(ret_guild_team[team_name][0])
-        else:
-            objectifs = dict_team_gt[team_name]
-            #print(objectifs)
+    print("Recreate dict_players...")
+    dict_players = create_dict_guild_for_teams(guild_data)
+    print("-> OK")
 
-            if len(list_team_names) == 1:
-                ret_team += get_team_entete(team_name, objectifs, score_type,
-                                            txt_mode)
-            else:
-                ret_team += 'Team ' + team_name + '\n'
+    # Apply team objectives on guild roster
+    ret_team=''
+    if not team_name in dict_team_gt:
+        ret_guild_team[
+            team_name] = 'ERREUR: team ' + team_name + ' inconnue. Liste=' + str(
+                liste_team_gt), 0, 0
+        #print(ret_guild_team[team_name][0])
+    else:
+        objectifs = dict_team_gt[team_name]
+        #print(objectifs)
 
-            #resultats par joueur
-            tab_lines = []
-            count_green = 0
-            count_amber = 0
-            for player in guild['roster']:
-                score, line, nogo = get_team_line_from_player(
-                    player['dict_player'], objectifs, score_type, score_green,
-                    score_amber, txt_mode, dict_player_discord)
-                tab_lines.append([score, line, nogo])
-                if score >= score_green and not nogo:
-                    count_green += 1
-                if score >= score_amber and not nogo:
-                    count_amber += 1
+        ret_team += get_team_entete(team_name, objectifs, score_type,
+                                    txt_mode)
 
-            #Tri des nogo=False en premier, puis score décroissant
-            for score, txt, nogo in sorted(tab_lines,
-                                           key=lambda x: (x[2], -x[0])):
-                ret_team += txt
+        #resultats par joueur
+        tab_lines = []
+        count_green = 0
+        count_amber = 0
+        for txt_allyCode in dict_players:
+            dict_player = dict_players[txt_allyCode]
+            score, line, nogo = get_team_line_from_player(
+                dict_player, objectifs, score_type, score_green,
+                score_amber, txt_mode, dict_player_discord)
+            tab_lines.append([score, line, nogo])
+            if score >= score_green and not nogo:
+                count_green += 1
+            if score >= score_amber and not nogo:
+                count_amber += 1
 
-            ret_guild_team[team_name] = ret_team, count_green, count_amber
+        #Tri des nogo=False en premier, puis score décroissant
+        for score, txt, nogo in sorted(tab_lines,
+                                       key=lambda x: (x[2], -x[0])):
+            ret_team += txt
+
+        ret_guild_team[team_name] = ret_team, count_green, count_amber
 
     return ret_guild_team
 
 
-def player_team(txt_allycode, list_team_names, score_type, score_green,
+def player_team(txt_allyCode, list_team_names, score_type, score_green,
                 score_amber, txt_mode):
     ret_player_team = {}
 
@@ -768,28 +705,54 @@ def player_team(txt_allycode, list_team_names, score_type, score_green,
     
     dict_player_discord = load_config_players()[0]
 
-    #Get data for my guild
-    dict_player = load_player(txt_allycode)
-    if isinstance(dict_player, str):
+    #Load or update data for the player
+    ret = load_player(txt_allyCode, False)
+    if ret != 'OK':
         #error wile loading guild data
-        return 'ERREUR: joueur non trouvée pour code allié ' + txt_allycode
+        return 'ERREUR: joueur non trouvée pour code allié ' + txt_allyCode
 
     if 'all' in list_team_names:
         list_team_names = liste_team_gt
-
+        
+    #recreate player roster
+    print("Get player data from DB...")
+    query = "SELECT allyCode, players.name, defId, rarity, gear, relic_currentTier, combatType, gp, \
+            roster_skills.name, roster_skills.level, roster_skills.isZeta \
+            FROM roster \
+            JOIN players ON players.id = roster.player_id \
+            LEFT JOIN roster_skills ON roster_skills.roster_id = roster.id \
+            WHERE allyCode='"+txt_allyCode+"' \
+            AND defId IN ( \
+                SELECT unit_id \
+                FROM guild_team_roster \
+                JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id \
+                JOIN guild_teams ON guild_teams.id = guild_subteams.team_id \
+                WHERE ("
+    for team_name in list_team_names:
+        query += "guild_teams.name = '"+team_name+"' OR "
+    query = query[:-3] + ")) ORDER BY allyCode, defId"
+    
+    player_data = connect_mysql.get_table(query)
+    if len(player_data) > 0:
+        print("Recreate dict_player...")
+        dict_player = create_dict_player_for_teams(player_data)
+        print("-> OK")
+    else:
+        print("no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names)+"...")
+    
+    # Compute teams for this player
     for team_name in list_team_names:
         ret_team = ''
         if not team_name in dict_team_gt:
-            ret_player_team[
-                team_name] = 'ERREUR: team ' + team_name + ' inconnue. Liste=' + str(
-                    liste_team_gt)
+            ret_player_team[team_name] = 'ERREUR: team ' + \
+                    team_name + ' inconnue. Liste=' + str(liste_team_gt)
         else:
             objectifs = dict_team_gt[team_name]
             #print(objectifs)
 
             if len(list_team_names) == 1:
-                ret_team += get_team_entete(team_name, objectifs, score_type,
-                                            txt_mode)
+                ret_team += get_team_entete(team_name, objectifs, \
+                                            score_type, txt_mode)
             else:
                 ret_team += 'Team ' + team_name + '\n'
 
@@ -804,243 +767,13 @@ def player_team(txt_allycode, list_team_names, score_type, score_green,
     return ret_player_team
 
 
-##############################################################
-# Function: split_txt
-# Parameters: txt (string) > long texte à couper en morceaux
-#             max_size (int) > taille max d'un morceau
-# Purpose: découpe un long texte en morceaux de taille maximale donnée
-#          en coupant des lignes entières (caractère '\n')
-#          Cette fonction est utilisée pour afficher de grands textes dans Discord
-# Output: tableau de texte de taille acceptable
-##############################################################
-FORCE_CUT_PATTERN = "SPLIT_HERE"
-
-
-def split_txt(txt, max_size):
-    ret_split_txt = []
-    remaining_txt = txt
-    while len(txt) > max_size:
-        force_split = txt.rfind(FORCE_CUT_PATTERN, 0, max_size)
-        if force_split != -1:
-            ret_split_txt.append(txt[:force_split])
-            txt = txt[force_split + len(FORCE_CUT_PATTERN):]
-            continue
-
-        last_cr = -1
-        last_cr = txt.rfind("\n", 0, max_size)
-        if last_cr == -1:
-            ret_split_txt.append(txt[-3] + '...')
-            txt = ''
-        else:
-            ret_split_txt.append(txt[:last_cr])
-            txt = txt[last_cr + 1:]
-    ret_split_txt.append(txt)
-
-    return ret_split_txt
-
-
-##############################################################
-# Function: get_character_stats
-# Parameters: dict_character > dictionaire tel que renvoyé par swgoh.help API (voir dans le json)
-# Purpose: renvoie la vitesse et le pouvoir en fonction du gear, des équipements et des mods
-# Output: [base_stats[1:61], eqpt_stats[1:61], mod_stats[1:61]]
-##############################################################
-def get_character_stats(dict_character):
-    gameData = json.load(open('gameData.json', 'r'))
-
-    char_defId = dict_character['defId']
-    char_gear = dict_character['gear']
-    char_rarity = dict_character['rarity']
-    char_level = dict_character['level']
-    char_relic_currentTier = 0
-    if 'currentTier' in dict_character['relic']:
-        char_relic_currentTier = dict_character['relic']['currentTier']
-
-    ########################################
-    # getCharRawStats from crinolo
-    ########################################
-
-    # Base stats of the character, up to G12
-    base_stats = {}
-    for i in range(1, 62):
-        base_stats[i] = 0
-    for statID in gameData['unitData'][char_defId]['gearLvl'][str(char_gear)]['stats']:
-        base_stats[int(statID)] = gameData['unitData'][char_defId]['gearLvl'][str(char_gear)]['stats'][statID]
-    # print('base_stats='+str(base_stats))
-
-    growthModifiers_stats = {2:0, 3:0, 4:0}
-    for statID in gameData['unitData'][char_defId]['growthModifiers'][str(char_rarity)]:
-        growthModifiers_stats[int(statID)] = gameData['unitData'][char_defId]['growthModifiers'][str(char_rarity)][statID]
-    # print('growthModifiers_stats='+str(growthModifiers_stats))
-    
-    # manage equipment
-    gear_stats = {}
-    for i in range(1, 62):
-        gear_stats[i] = 0
-        
-    if 'equipped' in dict_character:
-        for eqpt in dict_character['equipped']:
-            gearStats = gameData['gearData'][eqpt['equipmentId']]['stats']
-            for statID in gearStats:
-                if (statID == '2' or statID == '3' or statID == '4'):
-                    # Primary Stat, applies before mods
-                    base_stats[ int(statID) ] += gearStats[ statID ]
-                else:
-                    #Secondary Stat, applies after mods
-                    gear_stats[ int(statID) ] += gearStats[ statID ]
-    
-    # Manage relic level (base_stats stop at G12)
-    if (char_relic_currentTier > 2):
-        # calculate stats from relics
-        relic = gameData['relicData'][ gameData['unitData'][char_defId]['relic'][ str(char_relic_currentTier) ] ];
-        for statID in relic['stats']:
-            base_stats[ int(statID) ] += relic['stats'][ statID ]
-            
-        for statID in relic['gms']:
-            growthModifiers_stats[ int(statID) ] += relic['gms'][ statID ]
-            
-    ########################################
-    # calculateBaseStats from crinolo
-    ########################################
-    # calculate bonus Primary stats from Growth Modifiers:
-    base_stats[2] += math.floor( growthModifiers_stats[2] * char_level ) # Strength
-    base_stats[3] += math.floor( growthModifiers_stats[3] * char_level ) # Agility
-    base_stats[4] += math.floor( growthModifiers_stats[4] * char_level ) # Tactics
-    # print('base_stats='+str(base_stats))
-    
-    if 61 in base_stats:
-        # calculate effects of Mastery on Secondary stats:
-        mms = gameData['crTables'][ gameData['unitData'][char_defId]['masteryModifierID'] ]
-        for statID in mms:
-            base_stats[ int(statID) ] += base_stats[61]*mms[ statID ]
-    # print('base_stats='+str(base_stats))
-
-    # calculate effects of Primary stats on Secondary stats:
-    base_stats[1] = base_stats[1] + base_stats[2] * 18;                                          # Health += STR * 18
-    base_stats[6] = math.floor( base_stats[6] + base_stats[ gameData['unitData'][char_defId]['primaryStat'] ] * 1.4 )           # Ph. Damage += MainStat * 1.4
-    base_stats[7] = math.floor( base_stats[7] + base_stats[4] * 2.4 )                            # Sp. Damage += TAC * 2.4
-    base_stats[8] = math.floor( base_stats[8] + base_stats[2] * 0.14 + base_stats[3] * 0.07 )    # Armor += STR*0.14 + AGI*0.07
-    base_stats[9] = math.floor( base_stats[9] + base_stats[4] * 0.1 )                            # Resistance += TAC * 0.1
-    base_stats[14] = math.floor( base_stats[14] + base_stats[3] * 0.4 )                          # Ph. Crit += AGI * 0.4
-    # add hard-coded minimums or potentially missing stats
-    base_stats[12] = base_stats[12] + (24 * 1e8)  # Dodge (24 -> 2%)
-    base_stats[13] = base_stats[13] + (24 * 1e8)  # Deflection (24 -> 2%)
-    base_stats[15] = base_stats[15]               # Sp. Crit
-    base_stats[16] = base_stats[16] + (150 * 1e6) # +150% Crit Damage
-    base_stats[18] = base_stats[18] + (15 * 1e6)  # +15% Tenacity
-    # print('base_stats='+str(base_stats))
-
-    ########################################
-    # calculateModStats from crinolo
-    ########################################
-    rawModStats = {}
-    for i in range(1, 62):
-        rawModStats[i] = 0
-        
-    modStats = {}
-    for i in range(1, 62):
-        modStats[i] = 0
-        
-    if 'mods' in dict_character:
-        setBonuses = {}
-        for mod in dict_character['mods']:
-            # add to set bonuses counters (same for both formats)
-            if (mod['set'] in setBonuses) :
-                # set bonus already found, increment
-                setBonuses[ mod['set'] ]['count'] += 1
-            else :
-                # new set bonus, create object
-                setBonuses[ mod['set'] ]={'count':1, 'maxLevel':0}
-            if (mod['level'] == 15):
-                setBonuses[ mod['set'] ]['maxLevel'] += 1
-    
-
-            # using /player.roster format
-            stat = mod['primaryStat']
-            if (stat['unitStat'] == 1 or
-                stat['unitStat'] == 5 or
-                stat['unitStat'] == 28 or
-                stat['unitStat'] == 41 or
-                stat['unitStat'] == 42):
-                # Flat stats
-                scaleStatValue = stat['value'] * 1e8
-            else:
-                # Percent stats
-                scaleStatValue = stat['value'] * 1e6
-            
-            rawModStats[ stat['unitStat'] ] += scaleStatValue
-            
-            for stat in mod['secondaryStat']:
-                if (stat['unitStat'] == 1 or
-                    stat['unitStat'] == 5 or
-                    stat['unitStat'] == 28 or
-                    stat['unitStat'] == 41 or
-                    stat['unitStat'] == 42):
-                    # Flat stats
-                    scaleStatValue = stat['value'] * 1e8
-                else:
-                    # Percent stats
-                    scaleStatValue = stat['value'] * 1e6
-                
-                rawModStats[ stat['unitStat'] ] += scaleStatValue
-            
-
-    # print('rawModStats='+str(rawModStats))
-    # print('setBonuses='+str(setBonuses))
-    # add stats given by set bonuses
-    for setID in setBonuses:
-        setDef = gameData['modSetData'][str(setID)]
-        count = setBonuses[setID]['count']
-        maxCount = setBonuses[setID]['maxLevel']
-        multiplier = math.floor(count / setDef['count']) + math.floor(maxCount / setDef['count'])
-        rawModStats[ setDef['id'] ] += (setDef['value'] * multiplier)
-    # print('rawModStats='+str(rawModStats))
-
-    # calculate actual stat bonuses from mods
-    for statID in rawModStats:
-        value = rawModStats[ statID ]
-        if statID == 41: # Offense
-            modStats[6] += value # Ph. Damage
-            modStats[7] += value # Sp. Damage
-        elif statID == 42: # Defense
-            modStats[8] += value # Armor
-            modStats[9] += value # Resistance
-        elif statID == 48: # Offense %
-            modStats[6] = math.floor( modStats[6] + base_stats[6] * 1e-8 * value) # Ph. Damage
-            modStats[7] = math.floor( modStats[7] + base_stats[7] * 1e-8 * value) # Sp. Damage
-        elif statID == 49: # Defense %
-            modStats[8] = math.floor( modStats[8] + base_stats[8] * 1e-8 * value) # Armor
-            modStats[9] = math.floor( modStats[9] + base_stats[9] * 1e-8 * value) # Resistance
-        elif statID == 53: # Crit Chance
-            modStats[21] += value # Ph. Crit Chance
-            modStats[22] += value # Sp. Crit Chance
-        elif statID == 54: # Crit Avoid
-            modStats[35] += value # Ph. Crit Avoid
-            modStats[36] += value # Ph. Crit Avoid
-        elif statID == 55: # Heatlth %
-            modStats[1] = math.floor( modStats[1] + base_stats[1] * 1e-8 * value) # Health
-        elif statID == 56: # Protection %
-            modStats[28] = math.floor( modStats[28] + base_stats[28] * 1e-8 * value) # Protection may not exist in base
-        elif statID == 57: # Speed %
-            modStats[5] = math.floor( modStats[5] + base_stats[5] * 1e-8 * value) # Speed
-        else:
-            # other stats add like flat values
-            modStats[ statID ] += value
-    
-
-    # print('base_stats='+str(base_stats))
-    # print('gear_stats='+str(gear_stats))
-    # print('modStats='+str(modStats))
-    return base_stats, gear_stats, modStats
-
-
-def assign_gt(allycode, txt_mode):
+def assign_gt(allyCode, txt_mode):
     ret_assign_gt = ''
 
     dict_players = load_config_players()[0]
 
-    liste_territoires = load_config_gt(
-    )  # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
+    liste_territoires = load_config_gt()
+        # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
     liste_team_names = []
     for territoire in liste_territoires:
         for team in territoire[1]:
@@ -1049,7 +782,7 @@ def assign_gt(allycode, txt_mode):
     #print(liste_team_names)
 
     #Calcule des meilleures joueurs pour chaque team
-    dict_teams = guild_team(allycode, liste_team_names, 3, -1, -1, True)
+    dict_teams = guild_team(allyCode, liste_team_names, 3, -1, -1, True)
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1109,7 +842,7 @@ def score_of_counter_interest(team_name, counter_matrix):
     return current_score
 
 
-def guild_counter_score(txt_allycode):
+def guild_counter_score(txt_allyCode):
     ret_guild_counter_score = f"""
 *Rec = Niveau recommandé / Min = Niveau minimum*
 *w/o TW Def = Idem en enlevant les équipes placées en défense d'une TW*
@@ -1120,7 +853,7 @@ def guild_counter_score(txt_allycode):
     list_counter_teams = load_config_counter()
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
-    dict_needed_teams = guild_team(txt_allycode, list_needed_teams, 1, 100, 80,
+    dict_needed_teams = guild_team(txt_allyCode, list_needed_teams, 1, 100, 80,
                                    True)
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
@@ -1228,24 +961,16 @@ def guild_counter_score(txt_allycode):
 
     return ret_guild_counter_score
 
-def print_character_stats(characters, txt_allycode):
+def print_character_stats(characters, txt_allyCode, compute_guild):
     ret_print_character_stats = ''
 
     #Recuperation des dernieres donnees sur gdrive
     dict_units = load_config_units()
 
-    #Get data for this player
-    dict_player = load_player(txt_allycode)
-    if isinstance(dict_player, str):
-        #error wile loading guild data
-        return 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode
-    else:
-        ret_print_character_stats += "Statistiques pour "+dict_player['name']+'\n'
-    
     list_stats_for_display=[[5, "Vit", False, 'v'],
                             [6, "DegPhy", False, 'd'],
                             [7, "DegSpé", False, ''],
-                            [1, "Santé", False, 's'],
+                            [1, " Santé", False, 's'],
                             [28, "Protec", False, ''],
                             [17, "Pouvoir", True, 'p'],
                             [18, "Ténacité", True, '']]
@@ -1255,57 +980,195 @@ def print_character_stats(characters, txt_allycode):
     if characters[0][0] == '-':
         sort_option = characters[0][1:]
         characters = characters[1:]
-    
-    list_print_stats=[]
-    #Manage request for all characters
-    if 'all' in characters:
-        for character_name in dict_player['roster']:
-            character = dict_player['roster'][character_name]
-            if character['combatType'] == 1 and character['level'] >= 50:
-                base_stats, gear_stats, mod_stats = get_character_stats(character)
-                total_stats = {}
-                for stat in base_stats:
-                    total_stats[stat] = base_stats[stat]+gear_stats[stat]+mod_stats[stat]
-                
-                list_print_stats.append([character['nameKey'], total_stats])
-    else:
-        list_character_ids=[]
-        for character_alias in characters:
-            #Get full character name
-            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-            if len(closest_names)<1:
-                ret_print_character_stats += 'INFO: aucun personnage trouvé pour '+character_alias+'\n'
-            else:
-                [character_name, character_id]=dict_units[closest_names[0]]
-                list_character_ids.append(character_id)
-
-        for character_id in list_character_ids:
-            if character_id in dict_player['roster']:
-                character = dict_player['roster'][character_id]
-                if character['combatType'] == 1:
-                    base_stats, gear_stats, mod_stats = get_character_stats(character)
-                    total_stats = {}
-                    for stat in base_stats:
-                        total_stats[stat] = base_stats[stat]+gear_stats[stat]+mod_stats[stat]
-                    list_print_stats.append([character['nameKey'], total_stats])
-                else:
-                    ret_print_character_stats += 'INFO:' + character['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
         
+    if not compute_guild:
+        #only one player, potentially several characters
+        
+        #Get data for this player
+        ret = load_player(txt_allyCode, False)
+        if ret != 'OK':
+            #error wile loading guild data
+            return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
+        
+        #Manage request for all characters
+        if 'all' in characters:
+            print("Get player_data from DB...")
+            query ="SELECT players.name, defId, units.nameKey, \
+                    roster.combatType, rarity, gear, relic_currentTier, unitStatId, sum(unscaledDecimalValue) \
+                    FROM roster \
+                    LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
+                    JOIN players ON players.id = roster.player_id \
+                    JOIN units ON units.unit_id = roster.defId \
+                    WHERE players.allyCode = '"+txt_allyCode+"' \
+                    AND roster.combatType=1 AND roster.level >= 50 \
+                    AND ("
+            for display_stat in list_stats_for_display:
+                query += "unitStatId = "+str(display_stat[0])+" OR "
+            query = query[:-3] + ") \
+                    GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
+                    ORDER BY players.name, units.nameKey, unitStatId"
+            
+            player_data = connect_mysql.get_table(query)
+            player_name = player_data[0][0]
+            list_character_ids=set([x[1] for x in player_data])
+            
+        else:
+            #specific list of characters for one player
+            list_character_ids=[]
+            for character_alias in characters:
+                #Get full character name
+                closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+                if len(closest_names)<1:
+                    ret_print_character_stats += \
+                        'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+                else:
+                    [character_name, character_id]=dict_units[closest_names[0]]
+                    list_character_ids.append(character_id)
+
+            print("Get player_data from DB...")
+            query ="SELECT players.name, defId, units.nameKey, \
+                    roster.combatType, rarity, gear, relic_currentTier, unitStatId, sum(unscaledDecimalValue) \
+                    FROM roster \
+                    LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
+                    JOIN players ON players.id = roster.player_id \
+                    JOIN units ON units.unit_id = roster.defId \
+                    WHERE players.allyCode = '"+txt_allyCode+"' \
+                    AND ("
+            for character_id in list_character_ids:
+                query += "defId = '"+character_id+"' OR "
+            query = query[:-3] + ") \
+                    AND roster.combatType=1 AND roster.level >= 50 \
+                    AND ("
+            for display_stat in list_stats_for_display:
+                query += "unitStatId = "+str(display_stat[0])+" OR "
+            query = query[:-3] + ") \
+                    GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
+                    ORDER BY players.name, units.nameKey, unitStatId"
+
+            player_data = connect_mysql.get_table(query)
+            player_name = player_data[0][0]
+
+        dict_stats = goutils.create_dict_stats(player_data)
+        
+        list_print_stats=[]
+        dict_player = dict_stats[player_name]
+        for character_id in list_character_ids:
+            if character_id in dict_player:
+                if dict_player[character_id]["combatType"] == 1:
+                    character_name = dict_player[character_id]["nameKey"]
+                    character_rarity = str(dict_player[character_id]["rarity"])+"*"
+                    character_gear = dict_player[character_id]["gear"]
+                    if character_gear == 13:
+                        character_relic = dict_player[character_id]["relic"]["currentTier"]
+                        character_gear = "R"+str(character_relic-2)
+                    else:
+                        character_gear="G"+str(character_gear)
+                    character_stats = dict_player[character_id]["stats"]
+                    
+                    list_print_stats.append([character_name, character_rarity+character_gear, character_stats])
+                        
+                else:
+                    ret_print_character_stats += 'INFO:' + dict_player[character_id]['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
+            
             else:
-                ret_print_character_stats +=  'INFO:' + character_id+' non trouvé chez '+txt_allycode+'\n'
+                ret_print_character_stats +=  'INFO:' + character_id+' non trouvé chez '+txt_allyCode+'\n'
+
+        ret_print_character_stats += "Statistiques pour "+player_name+'\n'
+
+    elif len(characters) == 1 and characters[0] != "all":
+        #Compute stats at guild level, only one character
+        
+        #Get data for the guild and associated players
+        ret = load_guild(txt_allyCode, True)
+        if ret != 'OK':
+            return "ERR: cannot get guild data from SWGOH.HELP API"
+        
+        #Get character_id
+        character_alias = characters[0]
+        closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+        if len(closest_names)<1:
+            ret_print_character_stats += \
+                'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+        else:
+            [character_name, character_id]=dict_units[closest_names[0]]
+                    
+        print("Get guild from DB...")
+        guild_data = connect_mysql.get_table(" \
+            SELECT players.name, players.allyCode, defId, units.nameKey, \
+            roster.combatType, gear, rarity, \
+            roster.level, relic_currentTier, equipment_id \
+            FROM roster \
+            LEFT JOIN roster_eqpt ON roster_eqpt.roster_id = roster.id \
+            JOIN players ON players.id = roster.player_id \
+            JOIN units ON units.unit_id = roster.defId \
+            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode ='"+txt_allyCode+"') \
+            AND defId='"+character_id+"' \
+            ORDER BY players.allyCode")
+        
+        character_name = guild_data[0][3]
+        character_id = guild_data[0][2]
+        character_combatType = guild_data[0][4]
+        if character_combatType != 1:
+            return 'INFO:' + character['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
+        
+        print("Get player_mods from DB...")
+        guild_mods = connect_mysql.get_table(" \
+            SELECT players.allyCode, defId, mods.id, mods.level, mod_set, unitStat, value \
+            FROM mods \
+            JOIN mod_stats ON mod_stats.mod_id = mods.id \
+            JOIN roster ON mods.roster_id = roster.id \
+            JOIN players ON players.id = roster.player_id \
+            JOIN units ON units.unit_id = roster.defId \
+            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode ='"+txt_allyCode+"') \
+            AND defId='"+character_id+"' \
+            ORDER BY players.allyCode, mods.id")
+        
+        print("Recreate dict_players...")
+        dict_players = create_dict_guild_for_stats(guild_data, guild_mods)
+        print("-> OK")
+        
+        list_print_stats=[]
+        for txt_allyCode in dict_players:
+            dict_player = dict_players[txt_allyCode]
+            base_stats, gear_stats, mod_stats = \
+                goutils.get_character_stats(dict_player["roster"][character_id])
+            
+            total_stats = {}
+            for stat in base_stats:
+                total_stats[stat] = base_stats[stat]+gear_stats[stat]+mod_stats[stat]
+            
+            player_name = dict_player["name"]
+            character_rarity = str(dict_player["roster"][character_id]["rarity"])+"*"
+            character_gear = dict_player["roster"][character_id]["gear"]
+            if character_gear == 13:
+                character_relic = dict_player["roster"][character_id]["relic"]["currentTier"]
+                character_gear = "R"+str(character_relic-2)
+            else:
+                character_gear="G"+str(character_gear)
+            list_print_stats.append([player_name, character_rarity+character_gear, total_stats])
+        
+        ret_print_character_stats += "Statistiques pour "+character_name+'\n'
+    
+    else:
+        return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
     if len (list_print_stats)>0:
-        # Default sort by name in case of "all"
-        if 'all' in characters:
+        # Default sort by character name in case of "all" for characters
+        # or by player name if guild statistics
+        if 'all' in characters or compute_guild:
             list_print_stats = sorted(list_print_stats, key=lambda x: x[0])
+            
         # Sort by specified stat
         for stat in list_stats_for_display:
             if sort_option == stat[3]:
-                list_print_stats = sorted(list_print_stats, key=lambda x: -x[1][stat[0]])
+                list_print_stats = sorted(list_print_stats, key=lambda x: -x[2][stat[0]])
         
         ret_print_character_stats += "=====================================\n"
         max_size_char = max([len(x[0]) for x in list_print_stats])
-        ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format("Perso")
+        if compute_guild:
+            ret_print_character_stats += ("{0:"+str(max_size_char)+"}: {1:5} ").format("Perso", "*+G")
+        else:
+            ret_print_character_stats += ("{0:"+str(max_size_char)+"}: {1:5} ").format("Joueur", "*+G")
         
         for stat in list_stats_for_display:
             ret_print_character_stats += stat[1]+' '
@@ -1313,8 +1176,12 @@ def print_character_stats(characters, txt_allycode):
 
         for print_stat_row in list_print_stats:
             ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format(print_stat_row[0])
+            ret_print_character_stats += ("{0:5} ").format(print_stat_row[1])
             for stat in list_stats_for_display:
-                stat_value = print_stat_row[1][stat[0]]
+                if stat[0] in print_stat_row[2]:
+                    stat_value = print_stat_row[2][stat[0]]
+                else:
+                    stat_value = 0
                 if stat[2]:
                     # Percent value
                     ret_print_character_stats += ("{0:"+str(len(stat[1])-1)+".2f}% ").format(stat_value/1e6)
@@ -1397,11 +1264,11 @@ def get_guild_gp(guild):
                                     (time.time() - player['dict_player']['lastActivity']/1000)/3600]
 	return guild_stats
 
-def get_gp_distribution(allycode, inactive_duration):
+def get_gp_distribution(allyCode, inactive_duration):
     ret_get_gp_distribution = ''
     
-    #Get data for the guild
-    guild = load_guild(allycode, True)
+    #Load or update data for the guild
+    load_guild(txt_allyCode, True)
     if guild == None:
         return "ERR: cannot get guild data from SWGOH.HELP API"
         
@@ -1415,7 +1282,7 @@ def get_gp_distribution(allycode, inactive_duration):
     
     return ret_get_gp_distribution
 
-def get_farm_cost_from_alias(txt_allycode, character_alias, target_stats):
+def get_farm_cost_from_alias(txt_allyCode, character_alias, target_stats):
     #target_stats=[rarity, gear, relic]
     
     #Recuperation des dernieres donnees sur gdrive
@@ -1429,13 +1296,13 @@ def get_farm_cost_from_alias(txt_allycode, character_alias, target_stats):
         [character_name, character_id]=dict_units[closest_names[0]]
 
     #Get data for this player
-    if txt_allycode == '0':
+    if txt_allyCode == '0':
         dict_player = {'roster' : {}}
     else:
-        dict_player = load_player(txt_allycode)
+        dict_player = load_player(txt_allyCode, False)
         if isinstance(dict_player, str):
             #error wile loading guild data
-            return [-1, 'ERREUR: joueur non trouvé pour code allié ' + txt_allycode]
+            return [-1, 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode]
         
     return get_farm_cost_from_id(dict_player, character_id, target_stats)
 
@@ -1664,7 +1531,7 @@ def get_farm_cost_from_id(dict_player, character_id, target_stats):
 
     return [cost_to_unlock+cost_missing_shards+cost_missing_character_eqpt, output_message]
 
-def player_journey_progress(txt_allycode, character_alias):
+def player_journey_progress(txt_allyCode, character_alias):
     #Recuperation des dernieres donnees sur gdrive
     dict_units = load_config_units()
 
@@ -1681,10 +1548,10 @@ def player_journey_progress(txt_allycode, character_alias):
         return [-1, 'ERR: guide de voyage inconnu pour '+character_id+'\n'+
                     'Valeurs autorisées : '+str(journey_guide.keys()), '', '', []]
 
-    dict_player = load_player(txt_allycode)
+    dict_player = load_player(txt_allyCode, False)
     if isinstance(dict_player, str):
         #error wile loading guild data
-        return [-1, 'ERR: joueur non trouvé pour code allié ' + txt_allycode, '', '', []]
+        return [-1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, '', '', []]
         
     tab_progress_player={}
     for sub_obj in objectifs:

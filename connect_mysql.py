@@ -4,47 +4,53 @@ import urllib.parse
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import datetime
+import goutils
 
-dict_forbidden_columns = {'index': 'index_'}
+mysql_db = None
 
-def connect():
-    # Recover DB information from URL
-    urllib.parse.uses_netloc.append('mysql')
-    try:
-        if 'MYSQL_DATABASE_URL' in os.environ:
-            url = urllib.parse.urlparse(os.environ['MYSQL_DATABASE_URL'])
-            # 'NAME': url.path[1:],
-            # 'USER': url.username,
-            # 'PASSWORD': url.password,
-            # 'HOST': url.hostname,
-            # 'PORT': url.port,
-                
-        else:
-            print('ERR: environment variable "MYSQL_DATABASE_URL" not set')
+def db_connect():
+    global mysql_db
+    if mysql_db == None or not mysql_db.is_connected():
+        # if mysql_db == None:
+            # print("First connection to mysql")
+        # else:
+            # print("New connection to mysql")
+            
+        # Recover DB information from URL
+        urllib.parse.uses_netloc.append('mysql')
+        try:
+            if 'MYSQL_DATABASE_URL' in os.environ:
+                url = urllib.parse.urlparse(os.environ['MYSQL_DATABASE_URL'])
+                # 'NAME': url.path[1:],
+                # 'USER': url.username,
+                # 'PASSWORD': url.password,
+                # 'HOST': url.hostname,
+                # 'PORT': url.port,
+                    
+            else:
+                print('ERR: environment variable "MYSQL_DATABASE_URL" not set')
+                return
+        except Exception:
+            print('Unexpected error in connect:', sys.exc_info())
             return
-    except Exception:
-        print('Unexpected error:', sys.exc_info())
-        return
-    
-    # Connect to DB
-    cleardb_conn = None
-    try:
-        # print('Connecting to MySQL database...')
-        cleardb_conn = mysql.connector.connect(host=url.hostname,
-                                       database=url.path[1:],
-                                       user=url.username,
-                                       password=url.password)
-        if cleardb_conn.is_connected():
-            # print('Connected to MySQL database')
-            pass
-        else:
-            print('Connection failed')
+        
+        # Connect to DB
+        mysql_db = None
+        try:
+            # print('Connecting to MySQL database...')
+            mysql_db = mysql.connector.connect(host=url.hostname,
+                                           database=url.path[1:],
+                                           user=url.username,
+                                           password=url.password)
+            if mysql_db.is_connected():
+                # print('Connected to MySQL database')
+                pass
+            else:
+                print('Connection failed')
 
-    except Error as e:
-        print(e)
-    
-    return cleardb_conn
-    
+        except Error as e:
+            print('Exception during connect: '+str(e))
+        
 def update_guild_teams(dict_team):
 #         dict_teams {key=team_name,
 #                     value=[[catégorie, nombre nécessaire,
@@ -55,8 +61,8 @@ def update_guild_teams(dict_team):
 #                             ], ...]
 #                      }
     try:
-        db=connect()
-        cursor = db.cursor()
+        db_connect()
+        cursor = mysql_db.cursor()
 
         guild_teams_txt = ""
         # "JKR/Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important;1|GENERALKENOBI...\DR/Requis..."
@@ -118,70 +124,174 @@ def update_guild_teams(dict_team):
         # print("CALL update_guild_teams"+str(query_parameters))
         cursor.callproc('update_guild_teams', query_parameters)
         
-        db.commit()
+        mysql_db.commit()
     except Error as error:
         print(error)
         
     finally:
         cursor.close()
-        db.close()
+        # db.close()
 
 def simple_query(query, txt_mode):
     rows = []
     tuples = []
     try:
-        db=connect()
-        cursor = db.cursor()
+        db_connect()
+        cursor = mysql_db.cursor()
         
         results = cursor.execute(query, multi=True)
         for cur in results:
             # rows.append('cursor: '+ str(cur))
             if cur.with_rows:
                 results = cur.fetchall()
-                tuples. append(results)
+                tuples.append(results)
             
-                widths = []
-                columns = []
-                tavnit = '|'
-                separator = '+' 
-                
-                index = 0
-                for cd in cur.description:
-                    max_col_length = max(list(map(lambda x: len(str(x[index])), results)))
-                    widths.append(max(max_col_length, len(cd[0])))
-                    columns.append(cd[0])
-                    index+=1
+                if txt_mode:
+                    widths = []
+                    columns = []
+                    tavnit = '|'
+                    separator = '+' 
+                    
+                    index = 0
+                    for cd in cur.description:
+                        print(results)
+                        max_col_length = max(list(map(lambda x: len(str(x[index])), results)))
+                        widths.append(max(max_col_length, len(cd[0])))
+                        columns.append(cd[0])
+                        index+=1
 
-                for w in widths:
-                    tavnit += " %-"+"%s.%ss |" % (w,w)
-                    separator += '-'*w + '--+'
+                    for w in widths:
+                        tavnit += " %-"+"%s.%ss |" % (w,w)
+                        separator += '-'*w + '--+'
 
-                rows.append(separator)
-                rows.append(tavnit % tuple(columns))
-                rows.append(separator)
+                    rows.append(separator)
+                    rows.append(tavnit % tuple(columns))
+                    rows.append(separator)
 
-                for fetch in results:
-                    rows.append(tavnit % fetch)
+                    for fetch in results:
+                        rows.append(tavnit % fetch)
 
-                rows.append(separator)
+                    rows.append(separator)
         
-        db.commit()
+        mysql_db.commit()
     except Error as error:
         print(error)
         
     finally:
         cursor.close()
-        db.close()
+        # db.close()
     
     if txt_mode:
         return rows
     else:
         return tuples
+
+def get_value(query):
+    tuples = []
+    try:
+        db_connect()
+        cursor = mysql_db.cursor()
+        
+        results = cursor.execute(query, multi=True)
+        for cur in results:
+            # rows.append('cursor: '+ str(cur))
+            if cur.with_rows:
+                results = cur.fetchall()
+                tuples.append(results)
+
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
     
+    print(query)
+    print(tuples)
+    return tuples[0][0][0]
+        
+def get_column(query):
+    tuples = []
+    try:
+        db_connect()
+        cursor = mysql_db.cursor()
+        
+        results = cursor.execute(query, multi=True)
+        for cur in results:
+            # rows.append('cursor: '+ str(cur))
+            if cur.with_rows:
+                results = cur.fetchall()
+                tuples.append(results)
+
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+
+    return [x[0] for x in tuples[0]]
+    
+def get_line(query):
+    tuples = []
+    try:
+        db_connect()
+        cursor = mysql_db.cursor()
+        
+        results = cursor.execute(query, multi=True)
+        for cur in results:
+            # rows.append('cursor: '+ str(cur))
+            if cur.with_rows:
+                results = cur.fetchall()
+                tuples.append(results)
+
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+    return tuples[0][0]
+    
+def get_table(query):
+    tuples = []
+    try:
+        db_connect()
+        cursor = mysql_db.cursor()
+        cursor.arraysize=1000
+
+        results = cursor.execute(query, multi=True)
+        for cur in results:
+            # rows.append('cursor: '+ str(cur))
+            if cur.with_rows:
+                results = cur.fetchall()
+                tuples.append(results)
+
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+
+    return tuples[0]
+
+def update_guild(dict_guild):
+    try:
+        db_connect()
+        cursor = mysql_db.cursor()
+        
+        cursor.execute("REPLACE INTO guilds(name) VALUES('"+dict_guild["name"]+"')")
+          
+        mysql_db.commit()
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+        # db.close()       
+        
+        
 def update_player(dict_player):
     try:
-        db=connect()
-        cursor = db.cursor()
+        db_connect()
+        cursor = mysql_db.cursor()
         
         # Update basic player information
         p_allyCode = dict_player['allyCode']
@@ -225,6 +335,7 @@ def update_player(dict_player):
             for eqpt in character['equipped']:
                 c_equipped[eqpt['slot']] = eqpt['equipmentId']
                             
+            ## GET DEFINITION OF MODS ##
             mod_definition_txt="" #separator |
             # level,pips,sPrim,vPrim,sSec1,vSec1,sSec2,vSec2,sSec3,vSec3,sSec4,vSec4,set,slot,tier
             mod_count = 0
@@ -280,6 +391,7 @@ def update_player(dict_player):
             if mod_count>0:
                 mod_definition_txt = mod_definition_txt[:-1]
 
+            ## GET DEFINITION OF CAPACITIES ##
             capa_definition_txt="" #separator |
             # name,level,isZeta (name = B, L, Un, Sn, GL | isZeta = 0 or 1)
             capa_count = 0
@@ -304,6 +416,34 @@ def update_player(dict_player):
             if capa_count>0:
                 capa_definition_txt = capa_definition_txt[:-1]
 
+            ## GET DEFINITION OF STATS ##
+            base_stats, gear_stats, mod_stats = \
+                goutils.get_character_stats(character)
+            
+            if base_stats != None:
+                stat_definition_txt="" #separator |
+                # stat id,value,"base" or "gear" or "mod"
+                stat_count = 0
+                for [stat_type, stat_list] in [["base", base_stats],
+                                               ["gear", gear_stats],
+                                               ["mod", mod_stats]]:
+                    for stat_id in range(1, 62):
+                        stat_value = stat_list[stat_id]
+
+                        if stat_value != 0:
+                            stat_definition_txt+=str(stat_id)+","+ \
+                                                str(stat_value)+","+ \
+                                                stat_type+"|"
+                            stat_count+=1
+                    
+                # remove last "|"
+                if stat_count>0:
+                    stat_definition_txt = stat_definition_txt[:-1]
+            else:
+                #no stats for ships
+                stat_definition_txt = ''
+
+            ## FINALIZE DEFINITION OF CHARACTER WITH CAPAS, MODS,STATS ##
             roster_definition_txt+=str(c_combatType)+","+ \
                                    c_defId+","+ \
                                    str(c_gear)+","+ \
@@ -319,7 +459,8 @@ def update_player(dict_player):
                                    str(c_equipped[4])+","+ \
                                    str(c_equipped[5])+"/"+ \
                                    mod_definition_txt+"/" + \
-                                   capa_definition_txt+"\\"
+                                   capa_definition_txt+"/" + \
+                                   stat_definition_txt+"\\"
 
         # remove last "\"
         roster_definition_txt = roster_definition_txt[:-1]
@@ -338,20 +479,20 @@ def update_player(dict_player):
                             p_poUTCOffsetMinutes,
                             roster_definition_txt)
         # print("CALL update_player"+str(query_parameters))
-        cursor.callproc('update_player', query_parameters)
+        cursor.callproc('update_player2', query_parameters)
           
-        db.commit()
+        mysql_db.commit()
     except Error as error:
         print(error)
         
     finally:
         cursor.close()
-        db.close()
+        # db.close()
 
 def update_unit(dict_unit):
     try:
-        db=connect()
-        cursor = db.cursor()
+        db_connect()
+        cursor = mysql_db.cursor()
         
         # Update basic unit information
         u_baseId = dict_unit['baseId']
@@ -437,18 +578,18 @@ def update_unit(dict_unit):
         print("CALL update_unit"+str(query_parameters))
         cursor.callproc('update_unit', query_parameters)
           
-        db.commit()
+        mysql_db.commit()
     except Error as error:
         print(error)
         
     finally:
         cursor.close()
-        db.close()
+        # db.close()
 
 def update_eqpt(dict_eqpt):
     try:
-        db=connect()
-        cursor = db.cursor()
+        db_connect()
+        cursor = mysql_db.cursor()
         
         # Update basic unit information
         e_eqpt_id = dict_eqpt['id']
@@ -548,18 +689,18 @@ def update_eqpt(dict_eqpt):
         print("CALL update_equipment"+str(query_parameters))
         cursor.callproc('update_equipment', query_parameters)
           
-        db.commit()
+        mysql_db.commit()
     except Error as error:
         print(error)
         
     finally:
         cursor.close()
-        db.close()
+        # db.close()
 
 def update_gameData(dict_gameData):
     try:
-        db=connect()
-        cursor = db.cursor()
+        db_connect()
+        cursor = mysql_db.cursor()
         
         # update crTables with mastery information
         mastery_definition_txt="" #separator |
@@ -627,13 +768,13 @@ def update_gameData(dict_gameData):
         print("CALL update_units_gameData"+str(query_parameters))
         cursor.callproc('update_units_gameData', query_parameters)
         
-        db.commit()
+        mysql_db.commit()
     except Error as error:
         print(error)
         
     finally:
         cursor.close()
-        db.close()
+        # db.close()
         
 # def run_query(cursor, query):
     # try:
@@ -644,8 +785,8 @@ def update_gameData(dict_gameData):
 
 def export_procedures_and_tables():
     try:
-        db=connect()
-        cursor = db.cursor()
+        db_connect()
+        cursor = mysql_db.cursor()
         
         #procedures
         cursor.execute("SHOW PROCEDURE STATUS")
@@ -670,6 +811,6 @@ def export_procedures_and_tables():
         
     finally:
         cursor.close()
-        db.close()
+        # db.close()
 
     
