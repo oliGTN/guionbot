@@ -994,7 +994,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         if 'all' in characters:
             print("Get player_data from DB...")
             query ="SELECT players.name, defId, units.nameKey, \
-                    roster.combatType, rarity, gear, relic_currentTier, unitStatId, sum(unscaledDecimalValue) \
+                    roster.combatType, rarity, gear, relic_currentTier, \
+                    ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                     FROM roster \
                     LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
                     JOIN players ON players.id = roster.player_id \
@@ -1004,13 +1005,12 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     AND ("
             for display_stat in list_stats_for_display:
                 query += "unitStatId = "+str(display_stat[0])+" OR "
-            query = query[:-3] + ") \
+            query += "isnull(unitStatId)) \
                     GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
                     ORDER BY players.name, units.nameKey, unitStatId"
             
-            player_data = connect_mysql.get_table(query)
-            player_name = player_data[0][0]
-            list_character_ids=set([x[1] for x in player_data])
+            db_stat_data = connect_mysql.get_table(query)
+            list_character_ids=set([x[1] for x in db_stat_data])
             
         else:
             #specific list of characters for one player
@@ -1027,7 +1027,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
 
             print("Get player_data from DB...")
             query ="SELECT players.name, defId, units.nameKey, \
-                    roster.combatType, rarity, gear, relic_currentTier, unitStatId, sum(unscaledDecimalValue) \
+                    roster.combatType, rarity, gear, relic_currentTier, \
+                    ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                     FROM roster \
                     LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
                     JOIN players ON players.id = roster.player_id \
@@ -1037,42 +1038,18 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             for character_id in list_character_ids:
                 query += "defId = '"+character_id+"' OR "
             query = query[:-3] + ") \
-                    AND roster.combatType=1 AND roster.level >= 50 \
                     AND ("
             for display_stat in list_stats_for_display:
                 query += "unitStatId = "+str(display_stat[0])+" OR "
-            query = query[:-3] + ") \
+            query += "isnull(unitStatId)) \
                     GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
                     ORDER BY players.name, units.nameKey, unitStatId"
 
-            player_data = connect_mysql.get_table(query)
-            player_name = player_data[0][0]
-
-        dict_stats = goutils.create_dict_stats(player_data)
-        
-        list_print_stats=[]
-        dict_player = dict_stats[player_name]
-        for character_id in list_character_ids:
-            if character_id in dict_player:
-                if dict_player[character_id]["combatType"] == 1:
-                    character_name = dict_player[character_id]["nameKey"]
-                    character_rarity = str(dict_player[character_id]["rarity"])+"*"
-                    character_gear = dict_player[character_id]["gear"]
-                    if character_gear == 13:
-                        character_relic = dict_player[character_id]["relic"]["currentTier"]
-                        character_gear = "R"+str(character_relic-2)
-                    else:
-                        character_gear="G"+str(character_gear)
-                    character_stats = dict_player[character_id]["stats"]
-                    
-                    list_print_stats.append([character_name, character_rarity+character_gear, character_stats])
-                        
-                else:
-                    ret_print_character_stats += 'INFO:' + dict_player[character_id]['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
+            db_stat_data = connect_mysql.get_table(query)
             
-            else:
-                ret_print_character_stats +=  'INFO:' + character_id+' non trouvé chez '+txt_allyCode+'\n'
-
+        player_name = db_stat_data[0][0]
+        list_player_names = [player_name]
+        
         ret_print_character_stats += "Statistiques pour "+player_name+'\n'
 
     elif len(characters) == 1 and characters[0] != "all":
@@ -1092,66 +1069,64 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         else:
             [character_name, character_id]=dict_units[closest_names[0]]
                     
-        print("Get guild from DB...")
-        guild_data = connect_mysql.get_table(" \
-            SELECT players.name, players.allyCode, defId, units.nameKey, \
-            roster.combatType, gear, rarity, \
-            roster.level, relic_currentTier, equipment_id \
-            FROM roster \
-            LEFT JOIN roster_eqpt ON roster_eqpt.roster_id = roster.id \
-            JOIN players ON players.id = roster.player_id \
-            JOIN units ON units.unit_id = roster.defId \
-            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode ='"+txt_allyCode+"') \
-            AND defId='"+character_id+"' \
-            ORDER BY players.allyCode")
-        
-        character_name = guild_data[0][3]
-        character_id = guild_data[0][2]
-        character_combatType = guild_data[0][4]
-        if character_combatType != 1:
-            return 'INFO:' + character['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
-        
-        print("Get player_mods from DB...")
-        guild_mods = connect_mysql.get_table(" \
-            SELECT players.allyCode, defId, mods.id, mods.level, mod_set, unitStat, value \
-            FROM mods \
-            JOIN mod_stats ON mod_stats.mod_id = mods.id \
-            JOIN roster ON mods.roster_id = roster.id \
-            JOIN players ON players.id = roster.player_id \
-            JOIN units ON units.unit_id = roster.defId \
-            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode ='"+txt_allyCode+"') \
-            AND defId='"+character_id+"' \
-            ORDER BY players.allyCode, mods.id")
-        
-        print("Recreate dict_players...")
-        dict_players = create_dict_guild_for_stats(guild_data, guild_mods)
-        print("-> OK")
-        
-        list_print_stats=[]
-        for txt_allyCode in dict_players:
-            dict_player = dict_players[txt_allyCode]
-            base_stats, gear_stats, mod_stats = \
-                goutils.get_character_stats(dict_player["roster"][character_id])
-            
-            total_stats = {}
-            for stat in base_stats:
-                total_stats[stat] = base_stats[stat]+gear_stats[stat]+mod_stats[stat]
-            
-            player_name = dict_player["name"]
-            character_rarity = str(dict_player["roster"][character_id]["rarity"])+"*"
-            character_gear = dict_player["roster"][character_id]["gear"]
-            if character_gear == 13:
-                character_relic = dict_player["roster"][character_id]["relic"]["currentTier"]
-                character_gear = "R"+str(character_relic-2)
-            else:
-                character_gear="G"+str(character_gear)
-            list_print_stats.append([player_name, character_rarity+character_gear, total_stats])
+        print("Get guild_data from DB...")
+        query ="SELECT players.name, defId, units.nameKey, \
+                roster.combatType, rarity, gear, relic_currentTier, \
+                ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
+                FROM roster \
+                LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
+                JOIN players ON players.id = roster.player_id \
+                JOIN units ON units.unit_id = roster.defId \
+                WHERE players.guildName IN (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
+                AND defId = '"+character_id+"' \
+                AND ("
+        for display_stat in list_stats_for_display:
+            query += "unitStatId = "+str(display_stat[0])+" OR "
+        query += "isnull(unitStatId)) \
+                GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
+                ORDER BY players.name, units.nameKey, unitStatId"
+
+        db_stat_data = connect_mysql.get_table(query)
+        list_character_ids=[character_id]
+        list_player_names=set([x[0] for x in db_stat_data])
         
         ret_print_character_stats += "Statistiques pour "+character_name+'\n'
     
     else:
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
+    # Generate dict with statistics
+    dict_stats = goutils.create_dict_stats(db_stat_data)
+    
+    # Create all lines before display
+    list_print_stats=[]
+    for player_name in list_player_names:
+        dict_player = dict_stats[player_name]
+        for character_id in list_character_ids:
+            if character_id in dict_player:
+                if dict_player[character_id]["combatType"] == 1:
+                    character_name = dict_player[character_id]["nameKey"]
+                    character_rarity = str(dict_player[character_id]["rarity"])+"*"
+                    character_gear = dict_player[character_id]["gear"]
+                    if character_gear == 13:
+                        character_relic = dict_player[character_id]["relic"]["currentTier"]
+                        character_gear = "R"+str(character_relic-2)
+                    else:
+                        character_gear="G"+str(character_gear)
+                    character_stats = dict_player[character_id]["stats"]
+                    
+                    if compute_guild:
+                        line_header = player_name
+                    else:
+                        line_header = character_name
+                    list_print_stats.append([line_header, character_rarity+character_gear, character_stats])
+                        
+                else:
+                    ret_print_character_stats += 'INFO: ' + dict_player[character_id]['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
+            
+            else:
+                ret_print_character_stats +=  'INFO: ' + character_id+' non trouvé chez '+player_name+'\n'
+
     if len (list_print_stats)>0:
         # Default sort by character name in case of "all" for characters
         # or by player name if guild statistics
@@ -1161,7 +1136,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         # Sort by specified stat
         for stat in list_stats_for_display:
             if sort_option == stat[3]:
-                list_print_stats = sorted(list_print_stats, key=lambda x: -x[2][stat[0]])
+                list_print_stats = sorted(list_print_stats,
+                    key=lambda x: -x[2][stat[0]] if stat[0] in x[2] else 0)
         
         ret_print_character_stats += "=====================================\n"
         max_size_char = max([len(x[0]) for x in list_print_stats])

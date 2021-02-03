@@ -481,15 +481,15 @@ def create_dict_player_for_teams(player_data):
                                       
     return dict_player
     
-def create_dict_stats(player_data):
+def create_dict_stats(db_stat_data):
     dict_players={}
 
     cur_name = ''
-    cur_defId = ''
-    for line in player_data:
+    for line in db_stat_data:
         line_name = line[0]
         if cur_name != line_name:
             dict_players[line_name]={}
+            cur_defId = ''
             cur_name = line_name
         
         line_defId = line[1]
@@ -510,6 +510,7 @@ def create_dict_stats(player_data):
             
         line_unitStatId = line[7]
         line_unscaledDecimalValue = line[8]
+
         dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
             int(line_unscaledDecimalValue)
                                       
