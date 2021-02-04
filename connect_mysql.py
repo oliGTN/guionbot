@@ -85,7 +85,14 @@ def update_guild_teams(dict_team):
                     toon_gear_min = toon[2]
                     toon_rarity_reco = toon[3]
                     toon_gear_reco = toon[4]
-                    toon_zetas = toon[5]
+                    
+                    toon_zetas = ''
+                    for zeta in toon[5].split(","):
+                        zeta_id = goutils.get_zeta_id_from_short(toon_id, zeta)
+                        toon_zetas += zeta_id+","
+                    if len(toon_zetas)>0:
+                        toon_zetas = toon_zetas[:-1]
+                    
                     toon_speed = toon[6]
                     toon_capaLevel = ""
                     toon_modLevel = ""
@@ -121,7 +128,7 @@ def update_guild_teams(dict_team):
             
         # Launch the unique update with all information
         query_parameters = (guild_teams_txt,)
-        # print("CALL update_guild_teams"+str(query_parameters))
+        print("CALL update_guild_teams"+str(query_parameters))
         cursor.callproc('update_guild_teams', query_parameters)
         
         mysql_db.commit()

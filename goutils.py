@@ -515,3 +515,50 @@ def create_dict_stats(db_stat_data):
             int(line_unscaledDecimalValue)
                                       
     return dict_players
+    
+def get_zeta_from_shorts(character_id, zeta_shorts):
+    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+    
+    req_zeta_ids = []
+    for zeta in zeta_shorts:
+        zeta_id = get_zeta_id_from_short(character_id, zeta)
+        if zeta_id == '':
+            continue
+        if zeta_id in dict_zetas[character_id]:
+            if dict_zetas[character_id][zeta_id][1]:
+                req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
+        else:
+            print('WAR: cannot find zeta '+zeta+' for '+character_id)
+    
+    return req_zeta_ids
+
+def get_zeta_id_from_short(character_id, zeta_short):
+    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+
+    zeta_standard = zeta_short.upper().replace(' ', '')
+    if zeta_standard == '':
+        return ''
+    elif zeta_standard[0] == 'B':
+        zeta_id = 'B'
+    elif zeta_standard[0] == 'S':
+        zeta_id = 'S'
+        if zeta_standard[-1] in '0123456789':
+            zeta_id += zeta_standard[-1]
+        else:
+            zeta_id += '1'
+    elif zeta_standard[0] == 'C' or zeta_standard[0] == 'L':
+        zeta_id = 'L'
+    elif zeta_standard[0] == 'U':
+        zeta_id = 'U'
+        if zeta_standard[-1] in '0123456789':
+            zeta_id += zeta_standard[-1]
+        else:
+            zeta_id += '1'
+
+        # Manage the galactic legends
+        if (zeta_id not in dict_zetas[character_id] or \
+            dict_zetas[character_id][zeta_id][0] == 'Placeholder') and \
+            'GL' in dict_zetas[character_id]:
+            zeta_id = 'GL'
+    
+    return zeta_id

@@ -372,6 +372,11 @@ BEGIN
 	#INSERT INTO debug(txt) VALUES(CONCAT('subteams_txt=', subteams_txt));
 
 	# DELETE subteams and associated roster before creating it again
+    DELETE FROM guild_team_roster_zetas WHERE roster_id IN (
+		SELECT guild_team_roster.id FROM guild_team_roster
+        JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
+        WHERE guild_subteams.team_id = p_team_id
+	);
     DELETE FROM guild_team_roster WHERE subteam_id IN (
 		SELECT id FROM guild_subteams WHERE team_id = p_team_id
 	);
@@ -410,7 +415,7 @@ BEGIN
             minimum = @subteam_minimum
 		WHERE id = @subteam_id;
 
-		CALL update_subteam_toons(@subteam_id, @toons_txt);
+		CALL update_guild_subteam_toons(@subteam_id, @toons_txt);
             
 		-- rewrite the original string using the `INSERT()` string function,
 		-- args are original string, start position, how many characters to remove, 
@@ -424,7 +429,7 @@ CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_guild_subteam_toons
     IN toons_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_subteam_toons');
+	#INSERT INTO debug(txt) VALUES('START update_guild_subteam_toons');
 	#INSERT INTO debug(txt) VALUES(CONCAT('p_subteam_id=', p_subteam_id));
 	#INSERT INTO debug(txt) VALUES(CONCAT('toons_txt=', toons_txt));
 
@@ -472,7 +477,9 @@ BEGIN
             pg_min = CASE @toon_pg_min WHEN '' THEN NULL ELSE @toon_pg_min END,
             zetaList = @toon_zetas
 		WHERE id = @roster_id;
-            
+
+		CALL update_guild_team_zetas(@roster_id, @toon_zetas);
+        
 		-- rewrite the original string using the `INSERT()` string function,
 		-- args are original string, start position, how many characters to remove, 
 		-- and what to "insert" in their place (in this case, we "insert"
@@ -525,7 +532,7 @@ BEGIN
 		SET @new_md5 = MD5(@subteams_txt);
         IF NOT @team_md5 = @new_md5 THEN
 			SET @team_id = (SELECT id FROM guild_teams WHERE guild_teams.name = @team_name);
-			CALL update_guild_subteam_toons(@team_id, @subteams_txt);
+			CALL update_guild_subteams(@team_id, @subteams_txt);
             
 			UPDATE guild_teams SET
 				md5 = MD5(@subteams_txt)
@@ -549,6 +556,42 @@ BEGIN
 		SELECT id FROM guild_teams WHERE lastUpdated < @currentUpdateTS
 	);
     DELETE FROM guild_teams WHERE lastUpdated < @currentUpdateTS;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_guild_team_zetas`(
+    IN p_roster_id INT,
+    IN zetas_txt MEDIUMTEXT
+    )
+BEGIN
+	#INSERT INTO debug(txt) VALUES('START update_guild_team_zetas');
+	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
+	#INSERT INTO debug(txt) VALUES(CONCAT('zetas_txt=', zetas_txt));
+
+	iterator:
+	LOOP
+		-- exit the loop if the list seems empty or was null;
+		-- this extra caution is necessary to avoid an endless loop in the proc.
+		IF CHAR_LENGTH(TRIM(zetas_txt)) = 0 OR zetas_txt IS NULL THEN
+			LEAVE iterator;
+		END IF;
+
+		-- capture the next value from the list
+		SET @next_zeta = SUBSTRING_INDEX(zetas_txt,',',1);
+		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_subteam_toons @next_zeta=', @next_zeta));
+        
+		-- save the length of the captured value; we will need to remove this
+		-- many characters + 1 from the beginning of the string 
+		-- before the next iteration
+		SET @next_zeta_len = CHAR_LENGTH(@next_zeta);
+        
+        -- insert the extracted value into the target table
+		INSERT INTO guild_team_roster_zetas(roster_id, name) VALUES(p_roster_id, @next_zeta);
+        
+		-- rewrite the original string using the `INSERT()` string function,
+		-- args are original string, start position, how many characters to remove, 
+		-- and what to "insert" in their place (in this case, we "insert"
+		-- an empty string, which removes _nextlen + 1 characters)
+		SET zetas_txt = INSERT(zetas_txt,1,@next_zeta_len + 1,'');
+	END LOOP;
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_mods`(
 	IN p_roster_id INT,
@@ -1168,67 +1211,6 @@ BEGIN
 		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
 	END LOOP;
 END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_subteam_toons`(
-    IN p_subteam_id INT,
-    IN toons_txt MEDIUMTEXT
-    )
-BEGIN
-	INSERT INTO debug(txt) VALUES('START update_subteam_toons');
-	INSERT INTO debug(txt) VALUES(CONCAT('p_subteam_id=', p_subteam_id));
-	INSERT INTO debug(txt) VALUES(CONCAT('toons_txt=', toons_txt));
-
-	iterator:
-	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
-		IF CHAR_LENGTH(TRIM(toons_txt)) = 0 OR toons_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		-- capture the next value from the list
-		SET @next_toon = SUBSTRING_INDEX(toons_txt,'|',1);
-		INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_subteam_toons @next_toon=', @next_toon));
-
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
-		SET @next_toon_len = CHAR_LENGTH(@next_toon);
-
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
-		SET @toon_id = SUBSTRING_INDEX(@next_toon,';',1);
-		SET @toon_rarity_min = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',2),';',-1);
-		SET @toon_gear_min = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',3),';',-1);
-		SET @toon_rarity_reco = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',4),';',-1);
-		SET @toon_gear_reco = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',5),';',-1);
-		SET @toon_speed = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',6),';',-1);
-		SET @toon_capaLevel = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',7),';',-1);
-		SET @toon_modLevel = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',8),';',-1);
-		SET @toon_pg_min = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',9),';',-1);
-		SET @toon_zetas = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',10),';',-1);
-        
-        -- insert the extracted value into the target table
-		INSERT INTO guild_team_roster(subteam_id) VALUES(p_subteam_id);
-        SET @roster_id = LAST_INSERT_ID();
-        UPDATE guild_team_roster SET
-			unit_id = @toon_id,
-            rarity_min = CASE @toon_rarity_min WHEN '' THEN NULL ELSE @toon_rarity_min END,
-            gear_min = @toon_gear_min,
-            rarity_reco = CASE @toon_rarity_reco WHEN '' THEN NULL ELSE @toon_rarity_reco END,
-            gear_reco = @toon_gear_reco,
-            speed = CASE @toon_speed WHEN '' THEN NULL ELSE @toon_speed END,
-            capaLevel = CASE @toon_capaLevel WHEN '' THEN NULL ELSE @toon_capaLevel END,
-            modLevel = CASE @toon_modLevel WHEN '' THEN NULL ELSE @toon_modLevel END,
-            pg_min = CASE @toon_pg_min WHEN '' THEN NULL ELSE @toon_pg_min END,
-            zetaList = @toon_zetas
-		WHERE id = @roster_id;
-            
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
-		SET toons_txt = INSERT(toons_txt,1,@next_toon_len + 1,'');
-	END LOOP;
-END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_tiers`(
 	IN p_unit_id INT,
     IN tier_definition_txt MEDIUMTEXT
@@ -1398,67 +1380,6 @@ BEGIN
 		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
 	END LOOP;
 END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `vtg`(
-	IN team_name VARCHAR(255)
-    )
-BEGIN
-	DROP VIEW IF EXISTS players_team_roster_extended;
-
-	SELECT
-		GROUP_CONCAT(DISTINCT
-			CONCAT(
-				'case when defId = ''',
-				unit_id,
-				''' then CONCAT(roster.rarity_txt, ''.'', case when roster.gear < 13 then roster.gear else concat(''R'', roster.relic_currentTier_txt) end) end AS ',
-				unit_id
-			)
-		) INTO @sql_case
-	FROM
-	(
-		SELECT guild_team_roster.unit_id
-		FROM guild_team_roster
-		JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
-		JOIN guild_teams ON guild_teams.id = guild_subteams.team_id
-		WHERE guild_teams.name = team_name
-	) AS T;  
-    
-	SELECT
-		GROUP_CONCAT(DISTINCT
-			CONCAT(
-				'GROUP_CONCAT(',
-				unit_id,
-				') AS ',
-				unit_id
-			)
-		) INTO @sql_sum
-	FROM
-    (
-		SELECT guild_team_roster.unit_id
-		FROM guild_team_roster
-		JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
-		JOIN guild_teams ON guild_teams.id = guild_subteams.team_id
-		WHERE guild_teams.name = team_name
-	) AS T;
-    
-	SET @sql1 = CONCAT('CREATE VIEW players_team_roster_extended AS ( ',
-					'SELECT players.name, roster.defId, ',
-					@sql_case,
-					' FROM (SELECT *, CAST(rarity AS CHAR(10)) as rarity_txt, CAST(relic_currentTier AS CHAR(10)) as relic_currentTier_txt FROM roster) AS roster',
-                    ' JOIN players ON players.id = roster.player_id)');
-	PREPARE stmt FROM @sql1;
-	EXECUTE stmt;
-
-	SET @sql2 = CONCAT('SELECT name, ',
-					@sql_sum,
-					' FROM players_team_roster_extended '
-					'GROUP BY name');
-	PREPARE stmt FROM @sql2;
-	EXECUTE stmt;
-
-	DEALLOCATE PREPARE stmt;
-
-	DROP VIEW players_team_roster_extended;
-END
 CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `base_speed_view` AS (select `players`.`name` AS `player_name`,`players`.`allyCode` AS `allyCode`,`roster`.`defId` AS `char_name`,`roster`.`gear` AS `gear`,(`unit_stats`.`statValueDecimal` / 10000) AS `base_speed` from ((((`players` join `roster` on((`players`.`id` = `roster`.`player_id`))) join `units` on((`units`.`baseId` = `roster`.`defId`))) join `unit_tiers` on(((`unit_tiers`.`unit_id` = `units`.`id`) and (`unit_tiers`.`tier` = `roster`.`gear`)))) join `unit_stats` on((`unit_stats`.`unit_tier_id` = `unit_tiers`.`id`))) where (`unit_stats`.`unitStatId` = 5))
 CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `base_stat_view` AS (select `roster`.`id` AS `roster_id`,`roster`.`defId` AS `char_name`,`unit_stats`.`unitStatId` AS `base_statId`,`unit_stats`.`statValueDecimal` AS `base_statValue` from (((`roster` join `units` on((`units`.`baseId` = `roster`.`defId`))) join `unit_tiers` on(((`unit_tiers`.`unit_id` = `units`.`id`) and (`unit_tiers`.`tier` = `roster`.`gear`)))) join `unit_stats` on((`unit_stats`.`unit_tier_id` = `unit_tiers`.`id`))))
 CREATE TABLE `debug` (
@@ -1512,14 +1433,14 @@ CREATE TABLE `gp_history` (
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=840 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=940 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_subteams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `team_id` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=88 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=307 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_team_roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `subteam_id` varchar(255) DEFAULT NULL,
@@ -1534,14 +1455,20 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=368 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1490 DEFAULT CHARSET=latin1
+CREATE TABLE `guild_team_roster_zetas` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roster_id` int(11) DEFAULT NULL,
+  `name` varchar(2) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=474 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_teams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) DEFAULT NULL,
   `lastUpdated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=97 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=251 DEFAULT CHARSET=latin1
 CREATE TABLE `guilds` (
   `name` varchar(255) NOT NULL DEFAULT 'noname',
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1558,7 +1485,7 @@ CREATE TABLE `mod_stats` (
   `unitStat` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=45582929 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=46502455 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1568,7 +1495,7 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10739370 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=10931633 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -1585,7 +1512,7 @@ CREATE TABLE `players` (
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `md5` varchar(32) CHARACTER SET latin1 DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=238 DEFAULT CHARSET=utf8
+) ENGINE=InnoDB AUTO_INCREMENT=288 DEFAULT CHARSET=utf8
 CREATE TABLE `roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player_id` int(11) DEFAULT NULL,
@@ -1598,13 +1525,13 @@ CREATE TABLE `roster` (
   `rarity` int(11) DEFAULT NULL,
   `relic_currentTier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=49101 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=59391 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4457761 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=4548365 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_skills` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1612,7 +1539,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1466420 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1663899 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1620,7 +1547,7 @@ CREATE TABLE `roster_stats` (
   `unscaledDecimalValue` bigint(20) DEFAULT NULL,
   `type` varchar(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=25722 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=158161 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_tier_id` int(11) DEFAULT NULL,

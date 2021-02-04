@@ -286,53 +286,6 @@ def load_guild(txt_allyCode, load_players):
     
     return "OK"
 
-def get_zeta_from_shorts(character_id, zeta_shorts):
-    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
-    
-    req_zeta_ids = []
-    for zeta in zeta_shorts:
-        zeta_id = get_zeta_id_from_short(character_id, zeta)
-        if zeta_id == '':
-            continue
-        if zeta_id in dict_zetas[character_id]:
-            if dict_zetas[character_id][zeta_id][1]:
-                req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
-        else:
-            print('WAR: cannot find zeta '+zeta+' for '+character_id)
-    
-    return req_zeta_ids
-
-def get_zeta_id_from_short(character_id, zeta_short):
-    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
-
-    zeta_standard = zeta_short.upper().replace(' ', '')
-    if zeta_standard == '':
-        return ''
-    elif zeta_standard[0] == 'B':
-        zeta_id = 'B'
-    elif zeta_standard[0] == 'S':
-        zeta_id = 'S'
-        if zeta_standard[-1] in '0123456789':
-            zeta_id += zeta_standard[-1]
-        else:
-            zeta_id += '1'
-    elif zeta_standard[0] == 'C' or zeta_standard[0] == 'L':
-        zeta_id = 'L'
-    elif zeta_standard[0] == 'U':
-        zeta_id = 'U'
-        if zeta_standard[-1] in '0123456789':
-            zeta_id += zeta_standard[-1]
-        else:
-            zeta_id += '1'
-
-        # Manage the galactic legends
-        if (zeta_id not in dict_zetas[character_id] or \
-            dict_zetas[character_id][zeta_id][0] == 'Placeholder') and \
-            'GL' in dict_zetas[character_id]:
-            zeta_id = 'GL'
-    
-    return zeta_id
-
 def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                               score_amber, txt_mode, dict_player_discord):
     #score_type :
@@ -419,7 +372,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
 
                 #Zetas
                 req_zetas = character_obj[5].split(',')
-                req_zeta_ids = [get_zeta_id_from_short(character_id, x) for x in req_zetas]
+                req_zeta_ids = [goutils.get_zeta_id_from_short(character_id, x) for x in req_zetas]
                 req_zeta_ids = list(filter(lambda x: x != '', req_zeta_ids))
                         
                 player_nb_zetas = 0
@@ -501,17 +454,17 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         for i_character in range(0, nb_sub_obj):
             tab_progress_sub_obj = tab_progress_player[i_subobj][i_character]
             #print('DBG: '+str(tab_progress_sub_obj))
-            #line+=pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
+            #line+=goutils.pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
             if not tab_progress_sub_obj[2]:
                 if txt_mode:
                     line += tab_progress_sub_obj[1] + '|'
                 else:
-                    line += '**' + pad_txt2(tab_progress_sub_obj[1]) + '**|'
+                    line += '**' + goutils.pad_txt2(tab_progress_sub_obj[1]) + '**|'
             else:
                 if txt_mode:
                     line += tab_progress_sub_obj[1] + '|'
                 else:
-                    line += pad_txt2(tab_progress_sub_obj[1]) + '|'
+                    line += goutils.pad_txt2(tab_progress_sub_obj[1]) + '|'
 
         min_perso = objectifs[i_subobj][1]
         # print('DBG: '+str(tab_progress_player[i_subobj]))
@@ -585,7 +538,7 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
 
                     #Zetas
                     req_zetas = objectifs[i_level][2][perso][5].split(',')
-                    req_zeta_names = [x[1] for x in get_zeta_from_shorts(perso, req_zetas)]
+                    req_zeta_names = [x[1] for x in goutils.get_zeta_from_shorts(perso, req_zetas)]
                     
                     entete += '**' + objectifs[i_level][0][0] + str(
                         i_sub_obj + 1) + '**: ' + perso + ' (' + str(
@@ -603,18 +556,18 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
         for i_sub_obj in range(0, nb_sub_obj):
             #print('DBG:'+str(objectifs[i_level][0][0]+str(i_sub_obj)))
             if score_type == 1:
-                nom_sub_obj = pad_txt(
+                nom_sub_obj = goutils.pad_txt(
                     objectifs[i_level][0][0] + str(i_sub_obj + 1), 6)
             elif score_type == 2:
-                nom_sub_obj = pad_txt(
+                nom_sub_obj = goutils.pad_txt(
                     objectifs[i_level][0][0] + str(i_sub_obj + 1), 6)
             else:
-                nom_sub_obj = pad_txt(
+                nom_sub_obj = goutils.pad_txt(
                     objectifs[i_level][0][0] + str(i_sub_obj + 1), 10)
             if txt_mode:
                 entete += nom_sub_obj + '|'
             else:
-                entete += pad_txt2(nom_sub_obj) + '|'
+                entete += goutils.pad_txt2(nom_sub_obj) + '|'
 
     entete += 'GLOB|Joueur\n'
 
@@ -735,7 +688,7 @@ def player_team(txt_allyCode, list_team_names, score_type, score_green,
     player_data = connect_mysql.get_table(query)
     if len(player_data) > 0:
         print("Recreate dict_player...")
-        dict_player = create_dict_player_for_teams(player_data)
+        dict_player = goutils.create_dict_player_for_teams(player_data)
         print("-> OK")
     else:
         print("no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names)+"...")
