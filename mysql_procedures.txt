@@ -31,6 +31,135 @@ BEGIN
 	DELETE FROM unit_stats WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
 
 END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `compute_teams_for_player`(
+	IN p_allyCode INT
+)
+BEGIN
+  DECLARE done BOOLEAN DEFAULT FALSE;
+  DECLARE _id VARCHAR(255);
+  DECLARE cur CURSOR FOR SELECT name FROM guild_teams;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done := TRUE;
+
+  OPEN cur;
+
+  testLoop: LOOP
+    FETCH cur INTO _id;
+    IF done THEN
+      LEAVE testLoop;
+    END IF;
+    CALL compute_team_for_player(p_allyCode, _id);
+  END LOOP testLoop;
+
+  CLOSE cur;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `compute_team_for_guild`(
+	IN p_allyCode INT,
+    IN p_team_name VARCHAR(255)
+)
+BEGIN
+  DECLARE done BOOLEAN DEFAULT FALSE;
+  DECLARE _id BIGINT UNSIGNED;
+  DECLARE cur CURSOR FOR SELECT allyCode FROM players WHERE guildName IN (SELECT guildName FROM players WHERE allyCode = p_allyCode);
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done := TRUE;
+
+  OPEN cur;
+
+  testLoop: LOOP
+    FETCH cur INTO _id;
+    IF done THEN
+      LEAVE testLoop;
+    END IF;
+    CALL compute_team_for_player(_id, p_team_name);
+  END LOOP testLoop;
+
+  CLOSE cur;
+END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `compute_team_for_player`(
+	IN p_allyCode INT,
+    IN P_team_name VARCHAR(255)
+)
+BEGIN
+	INSERT INTO debug(txt) VALUES(CONCAT(p_allyCode, ',', P_team_name, ',', CURRENT_TIMESTAMP));
+
+	DELETE FROM guild_team_progress WHERE allyCode = p_allyCode AND team_name = p_team_name;
+    INSERT INTO guild_team_progress (allyCode, team_name) VALUES(p_allyCode, p_team_name);
+    UPDATE guild_team_progress
+    LEFT JOIN
+    (
+		SELECT
+		p_allyCode AS allyCode,
+		p_team_name AS team_name,
+		GROUP_CONCAT(roster SEPARATOR '|') AS roster,
+		GROUP_CONCAT(rarity_gear_zeta SEPARATOR '|') AS rarity_gear_zeta,
+		sum(progress*min)/sum(min) AS progress
+		FROM
+        (
+			SELECT
+			subteam_name,
+			min,
+			GROUP_CONCAT(unit_id SEPARATOR '|') AS roster,
+			GROUP_CONCAT(rarity_gear_txt SEPARATOR '|') as rarity_gear_zeta,
+			CALC(SUBSTRING_INDEX(GROUP_CONCAT(progress SEPARATOR '+'), '+', min))/MIN(min) as progress
+			FROM
+			(
+				SELECT
+				guild_subteams.name as subteam_name,
+				guild_subteams.minimum as min,
+				guild_team_roster.unit_id,
+				@gear_relic_reco := CASE WHEN LEFT(gear_reco,1) = 'R' THEN 13 + right(gear_reco,1) ELSE gear_reco END AS gear_relic_reco,
+				@gear_relic_min := CASE WHEN LEFT(gear_min,1) = 'R' THEN 13 + right(gear_min,1) ELSE gear_min END AS gear_relic_min,
+				@gear_relic := CASE WHEN gear = 13 THEN 11 + relic_currentTier ELSE gear END AS gear_relic,
+				@gear_relic_txt := CASE WHEN gear = 13 THEN CONCAT('R', relic_currentTier-2) ELSE LPAD(gear,2,'0') END AS gear_relic_txt,
+				IFNULL(CONCAT(rarity, '.', @gear_relic_txt, '.', zeta_count), '      ') AS rarity_gear_txt,
+				@rarity_gear_nogo := CASE WHEN IFNULL(rarity,0) < rarity_min OR IFNULL(@gear_relic,0) < @gear_relic_min THEN 1 ELSE 0 END AS rarity_gear_nogo,
+				CASE WHEN @rarity_gear_nogo = 0 THEN
+					IFNULL(
+						CASE WHEN roster.combatType = 1 THEN
+							(LEAST(rarity/rarity_reco, 1.0)*rarity_reco + LEAST(@gear_relic/@gear_relic_reco, 1.0)*@gear_relic_reco + zeta_progress*zeta_count)
+							/ (rarity_reco + @gear_relic_reco + zeta_count)
+						ELSE
+							LEAST(rarity/rarity_reco, 1.0)
+						END
+					, 0) 
+				ELSE 0 END AS progress
+				FROM guild_team_roster
+				LEFT JOIN roster ON guild_team_roster.unit_id = roster.defId AND roster.player_id IN (SELECT players.id FROM players WHERE allyCode = p_allyCode)
+				JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
+				JOIN guild_teams ON guild_teams.id = guild_subteams.team_id
+				LEFT JOIN 
+				(
+					SELECT
+					guild_teams.name as team_name,
+					unit_id,
+					#guild_team_roster_zetas.name AS req_zeta,
+					#roster_skills.name as roster_zeta
+					SUM(CASE WHEN ISNULL(roster_skills.name) THEN 0 ELSE 1 END) as zeta_count,
+					SUM(CASE WHEN IFNULL(guild_team_roster_zetas.name,'') = IFNULL(roster_skills.name,'') THEN 1 ELSE 0 END) / COUNT(unit_id) as zeta_progress
+					FROM guild_team_roster
+					JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
+					JOIN guild_teams ON guild_teams.id = guild_subteams.team_id
+					LEFT JOIN guild_team_roster_zetas ON guild_team_roster_zetas.roster_id = guild_team_roster.id
+					LEFT JOIN roster ON guild_team_roster.unit_id = roster.defId
+					LEFT JOIN roster_skills ON roster_skills.roster_id = roster.id AND roster_skills.name = guild_team_roster_zetas.name AND roster_skills.level=8
+					JOIN players ON players.id = roster.player_id
+					WHERE allyCode = p_allyCode
+					AND guild_teams.name = p_team_name
+					GROUP BY allyCode,guild_teams.name,unit_id
+				) zeta_progress
+				ON zeta_progress.team_name = guild_teams.name AND zeta_progress.unit_id = guild_team_roster.unit_id
+				WHERE guild_teams.name = p_team_name
+				ORDER BY guild_subteams.id ASC, progress DESC
+			) t_roster_progress
+			GROUP BY subteam_name, min
+		) t_subteam_progress
+    ) t_team_progress
+    ON t_team_progress.allyCode = guild_team_progress.allyCode AND t_team_progress.team_name = guild_team_progress.team_name
+    SET
+		guild_team_progress.roster = t_team_progress.roster,
+		guild_team_progress.rarity_gear_zeta = t_team_progress.rarity_gear_zeta,
+		guild_team_progress.progress = t_team_progress.progress
+		WHERE guild_team_progress.allyCode = p_allyCode AND guild_team_progress.team_name = p_team_name;
+END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_db_size`()
 BEGIN
 	SELECT table_schema AS "Database", 
@@ -1380,8 +1509,6 @@ BEGIN
 		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
 	END LOOP;
 END
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `base_speed_view` AS (select `players`.`name` AS `player_name`,`players`.`allyCode` AS `allyCode`,`roster`.`defId` AS `char_name`,`roster`.`gear` AS `gear`,(`unit_stats`.`statValueDecimal` / 10000) AS `base_speed` from ((((`players` join `roster` on((`players`.`id` = `roster`.`player_id`))) join `units` on((`units`.`baseId` = `roster`.`defId`))) join `unit_tiers` on(((`unit_tiers`.`unit_id` = `units`.`id`) and (`unit_tiers`.`tier` = `roster`.`gear`)))) join `unit_stats` on((`unit_stats`.`unit_tier_id` = `unit_tiers`.`id`))) where (`unit_stats`.`unitStatId` = 5))
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `base_stat_view` AS (select `roster`.`id` AS `roster_id`,`roster`.`defId` AS `char_name`,`unit_stats`.`unitStatId` AS `base_statId`,`unit_stats`.`statValueDecimal` AS `base_statValue` from (((`roster` join `units` on((`units`.`baseId` = `roster`.`defId`))) join `unit_tiers` on(((`unit_tiers`.`unit_id` = `units`.`id`) and (`unit_tiers`.`tier` = `roster`.`gear`)))) join `unit_stats` on((`unit_stats`.`unit_tier_id` = `unit_tiers`.`id`))))
 CREATE TABLE `debug` (
   `txt` mediumtext
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
@@ -1397,8 +1524,6 @@ CREATE TABLE `eqpt_missionList` (
   `campaignNodeId` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1986 DEFAULT CHARSET=latin1
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `eqpt_speed_view` AS (select `players`.`allyCode` AS `allyCode`,`roster`.`defId` AS `char_name`,(sum(`eqpt_stats`.`statValueDecimal`) / 10000) AS `eqpt_speed` from ((((`players` join `roster` on((`players`.`id` = `roster`.`player_id`))) join `roster_eqpt` on((`roster`.`id` = `roster_eqpt`.`roster_id`))) join `equipment` on((`roster_eqpt`.`equipment_id` = `equipment`.`equipment_id`))) join `eqpt_stats` on((`equipment`.`id` = `eqpt_stats`.`equipment_id`))) where (`eqpt_stats`.`unitStatId` = 5) group by `players`.`allyCode`,`roster`.`defId`)
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `eqpt_stat_view` AS (select `roster`.`id` AS `roster_id`,`roster`.`defId` AS `char_name`,`eqpt_stats`.`unitStatId` AS `eqpt_statId`,sum(`eqpt_stats`.`statValueDecimal`) AS `eqpt_statValue` from (((`roster` join `roster_eqpt` on((`roster`.`id` = `roster_eqpt`.`roster_id`))) join `equipment` on((`roster_eqpt`.`equipment_id` = `equipment`.`equipment_id`))) join `eqpt_stats` on((`equipment`.`id` = `eqpt_stats`.`equipment_id`))) group by `roster`.`id`,`roster`.`defId`,`eqpt_stats`.`unitStatId`)
 CREATE TABLE `eqpt_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `equipment_id` int(11) DEFAULT NULL,
@@ -1433,14 +1558,23 @@ CREATE TABLE `gp_history` (
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=940 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=990 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_subteams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `team_id` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=307 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=309 DEFAULT CHARSET=latin1
+CREATE TABLE `guild_team_progress` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `allyCode` int(11) DEFAULT NULL,
+  `team_name` varchar(255) DEFAULT NULL,
+  `roster` varchar(255) DEFAULT NULL,
+  `rarity_gear_zeta` varchar(255) DEFAULT NULL,
+  `progress` float DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=255 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_team_roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `subteam_id` varchar(255) DEFAULT NULL,
@@ -1455,7 +1589,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1490 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1502 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_team_roster_zetas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1474,10 +1608,6 @@ CREATE TABLE `guilds` (
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `mod_ids` AS (select `mods`.`id` AS `id` from ((`mods` join `roster` on((`mods`.`roster_id` = `roster`.`id`))) join `players` on((`players`.`id` = `roster`.`player_id`))) where (`players`.`name` = 'Gui On Ensai'))
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `mod_modifier_view` AS (select `roster`.`id` AS `roster_id`,`roster`.`defId` AS `char_name`,`mods`.`mod_set` AS `mod_set`,count(`mods`.`mod_set`) AS `mod_count`,sum((`mods`.`level` = 15)) AS `lvl15_count` from (`roster` join `mods` on((`roster`.`id` = `mods`.`roster_id`))) group by `roster`.`id`,`roster`.`defId`,`mods`.`mod_set`)
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `mod_speed_view` AS (select `players`.`allyCode` AS `allyCode`,`roster`.`defId` AS `char_name`,sum(`mod_stats`.`value`) AS `mod_speed` from (((`players` join `roster` on((`players`.`id` = `roster`.`player_id`))) join `mods` on((`roster`.`id` = `mods`.`roster_id`))) join `mod_stats` on((`mods`.`id` = `mod_stats`.`mod_id`))) where (`mod_stats`.`unitStat` = 5) group by `players`.`allyCode`,`roster`.`defId`)
-CREATE ALGORITHM=UNDEFINED DEFINER=`freedbtech_guionensai`@`%` SQL SECURITY DEFINER VIEW `mod_stat_view` AS (select `roster`.`id` AS `roster_id`,`roster`.`defId` AS `char_name`,`mod_stats`.`unitStat` AS `mod_statId`,sum(`mod_stats`.`value`) AS `mod_statValue` from ((`roster` join `mods` on((`roster`.`id` = `mods`.`roster_id`))) join `mod_stats` on((`mods`.`id` = `mod_stats`.`mod_id`))) group by `roster`.`id`,`roster`.`defId`,`mod_stats`.`unitStat`)
 CREATE TABLE `mod_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `mod_id` int(11) DEFAULT NULL,
@@ -1485,7 +1615,7 @@ CREATE TABLE `mod_stats` (
   `unitStat` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=46502455 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=46759606 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1495,7 +1625,7 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10931633 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=10985645 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -1525,13 +1655,13 @@ CREATE TABLE `roster` (
   `rarity` int(11) DEFAULT NULL,
   `relic_currentTier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=59391 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=59394 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4548365 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=4572681 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_skills` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1539,7 +1669,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1663899 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1716188 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
