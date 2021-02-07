@@ -12,6 +12,7 @@ from math import ceil
 from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter, load_config_units
 import connect_mysql
 import goutils
+FORCE_CUT_PATTERN = "SPLIT_HERE"
 
 #login password sur https://api.swgoh.help/profile
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
@@ -154,7 +155,6 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
                 FROM guilds \
                 WHERE timestampdiff(DAY, lastUpdated, CURRENT_TIMESTAMP)<=7 \
             ) \
-            AND timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)>"+str(refresh_rate_minutes)+" \
             ORDER BY lastUpdated ASC"
     list_allyCodes = connect_mysql.get_column(query)
 
@@ -164,7 +164,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     print('Refreshing ' + str(nb_refresh_players) + ' files')
 
     for allyCode in list_allyCodes[:nb_refresh_players]:
-        load_player(str(allyCode), False)
+        load_player(str(allyCode), True)
 
 def stats_cache():
     sum_size = 0
@@ -287,7 +287,7 @@ def load_guild(txt_allyCode, load_players):
     return "OK"
 
 def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
-                              score_amber, txt_mode, dict_player_discord):
+                              score_amber, txt_mode, player_name):
     #score_type :
     #   1 : from 0 to 100% counting rarity/gear+relic/zetas... and 0 for each character below minimum
     #   2 : Same as #1, but still counting scores below minimum
@@ -319,9 +319,8 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         for character_id in dict_char_subobj:
             progress = 0
             progress_100 = 0
-            if character_id in dict_player['roster']:
+            if character_id in dict_player:
                 # print('DBG: '+character_id+' trouvé')
-                character_roster = dict_player['roster'][character_id]
 
                 character_nogo = False
                 character_obj = dict_char_subobj[character_id]
@@ -331,7 +330,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                 #Etoiles
                 req_rarity_min = character_obj[1]
                 req_rarity_reco = character_obj[3]
-                player_rarity = character_roster['rarity']
+                player_rarity = dict_player[character_id]['rarity']
                 progress_100 = progress_100 + 1
                 progress = progress + min(1, player_rarity / req_rarity_reco)
                 if player_rarity < req_rarity_min:
@@ -355,11 +354,11 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                     req_relic_reco=int(req_gear_reco[-1])
                     req_gear_reco=13
 
-                player_gear = character_roster['gear']
+                player_gear = dict_player[character_id]['gear']
                 if player_gear < 13:
                     player_relic = 0
                 else:
-                    player_relic = character_roster['relic']['currentTier'] - 2
+                    player_relic = dict_player[character_id]['relic_currentTier'] - 2
 
                 progress_100 = progress_100 + 1
                 progress = progress + min(1, (player_gear+player_relic) / (req_gear_reco+req_relic_reco))
@@ -377,33 +376,27 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                         
                 player_nb_zetas = 0
                 progress_100 += len(req_zeta_ids)
-                for skill in character_roster['skills']:
-                    if skill['id'] in req_zeta_ids:
-                        if skill['tier'] == 8:
+                for zeta in dict_player[character_id]['zetas']:
+                    if zeta in req_zeta_ids:
+                        if dict_player[character_id]['zetas'][zeta] == 8:
                             player_nb_zetas += 1
                             progress += 1
                 if player_nb_zetas < len(req_zeta_ids):
                     character_nogo = True
                 # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
-                # #Vitesse (optionnel)
-                # req_speed = character_obj[6]
-                # if character_roster['combatType'] == 1:
-                    # base_stats, gear_stats, mod_stats = goutils.get_character_stats(character_roster)
-                    # player_speed = base_stats[5]+gear_stats[5]+mod_stats[5]
-                    # req_speed = character_obj[6]
-                    # if req_speed != '':
-                        # progress_100 = progress_100 + 1
-                        # progress = progress + min(1, player_speed / req_speed)
-                    # else:
-                        # req_speed = player_speed
-                    # # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
-                # else:
-                    # print('WAR: impossible to compute stats for ship '+character_id)
-                    # player_speed = 1
-                    # req_speed = 1
+                #Vitesse (optionnel)
+                req_speed = character_obj[6]
+                player_speed = dict_player[character_id]['speed']
+                req_speed = character_obj[6]
+                if req_speed != '':
+                    progress_100 = progress_100 + 1
+                    progress = progress + min(1, player_speed / req_speed)
+                else:
+                    req_speed = player_speed
+                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
-                player_gp = character_roster['gp']
+                player_gp = dict_player[character_id]['gp']
 
                 #Display
                 tab_progress_player[i_subobj][i_character -
@@ -437,13 +430,14 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
             else:
                 # character not found in player's roster
                 # print('DBG: '+character_subobj[0]+' pas trouvé dans '+str(dict_player['roster'].keys()))
-                character_roster = {'defId': character_id,
-                                    'rarity': 0,
-                                    'gear': 0,
-                                    'relic': {'currentTier': 1},
-                                    'skills': [],
-                                    'gp': 0,
-                                    'mods': []}
+                dict_player[character_id] = {"rarity": 0,
+                                            "gear": 0,
+                                            "rarity": 0,
+                                            "gear": 0,
+                                            "relic_currentTier": 0,
+                                            "gp": 0,
+                                            "speed": 0,
+                                            "zetas": {}}
 
     #calcul du score global
     score = 0
@@ -499,17 +493,8 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         else:
             line += '\N{CROSS MARK}'
 
-    #Affichage des pseudos IG ou Discord - ON HOLD
-    # if dict_player['name'] in dict_player_discord:
-        # if txt_mode:  # mode texte, pas de @ discord
-            # line += '|' + dict_player['name'] + '\n'
-        # else:
-            # line += '|' + dict_player_discord[dict_player['name']][2] + '\n'
-    # else:  #joueur non-défini dans gsheets
-        # line += '|' + dict_player['name'] + '\n'
-
     # Display the IG name only, as @mentions only pollute discord
-    line += '|' + dict_player['name'] + '\n'
+    line += '|' + player_name + '\n'
 
     return score, line, score_nogo
 
@@ -573,151 +558,146 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
 
     return entete
 
-
-def guild_team(txt_allyCode, team_name, score_type, score_green,
-               score_amber, txt_mode):
-    ret_guild_team = {}
-
-    #Recuperation des dernieres donnees sur gdrive
-    liste_team_gt, dict_team_gt = load_config_teams()
-    dict_player_discord = load_config_players()[0]
-
-    #Load or update data for the guild
-    ret = load_guild(txt_allyCode, True)
-    if ret != "OK":
-        #error wile loading guild data
-        return 'ERREUR: guilde non trouvée pour code allié ' + txt_allyCode
-
-    #recreate guild roster
-    print("Get guild data from DB...")
-    guild_data = connect_mysql.get_table(" \
-        SELECT allyCode, players.name, defId, rarity, gear, relic_currentTier, combatType, gp, \
-        roster_skills.name, roster_skills.level, roster_skills.isZeta \
-        FROM roster \
-        JOIN players ON players.id = roster.player_id \
-        LEFT JOIN roster_skills ON roster_skills.roster_id = roster.id \
-        WHERE guildName IN (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
-        AND defId IN ( \
-            SELECT unit_id \
-            FROM guild_team_roster \
-            JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id \
-            JOIN guild_teams ON guild_teams.id = guild_subteams.team_id \
-            WHERE guild_teams.name = '"+team_name+"' \
-        ) \
-        ORDER BY allyCode, defId")
-
-    print("Recreate dict_players...")
-    dict_players = create_dict_guild_for_teams(guild_data)
-    print("-> OK")
-
-    # Apply team objectives on guild roster
-    ret_team=''
-    if not team_name in dict_team_gt:
-        ret_guild_team[
-            team_name] = 'ERREUR: team ' + team_name + ' inconnue. Liste=' + str(
-                liste_team_gt), 0, 0
-        #print(ret_guild_team[team_name][0])
-    else:
-        objectifs = dict_team_gt[team_name]
-        #print(objectifs)
-
-        ret_team += get_team_entete(team_name, objectifs, score_type,
-                                    txt_mode)
-
-        #resultats par joueur
-        tab_lines = []
-        count_green = 0
-        count_amber = 0
-        for txt_allyCode in dict_players:
-            dict_player = dict_players[txt_allyCode]
-            score, line, nogo = get_team_line_from_player(
-                dict_player, objectifs, score_type, score_green,
-                score_amber, txt_mode, dict_player_discord)
-            tab_lines.append([score, line, nogo])
-            if score >= score_green and not nogo:
-                count_green += 1
-            if score >= score_amber and not nogo:
-                count_amber += 1
-
-        #Tri des nogo=False en premier, puis score décroissant
-        for score, txt, nogo in sorted(tab_lines,
-                                       key=lambda x: (x[2], -x[0])):
-            ret_team += txt
-
-        ret_guild_team[team_name] = ret_team, count_green, count_amber
-
-    return ret_guild_team
-
-
-def player_team(txt_allyCode, list_team_names, score_type, score_green,
-                score_amber, txt_mode):
-    ret_player_team = {}
+def get_team_progress(list_team_names, txt_allyCode, compute_guild,
+                        score_type, score_green, score_amber, txt_mode):
+                        
+    ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
     liste_team_gt, dict_team_gt = load_config_teams()
     
-    dict_player_discord = load_config_players()[0]
-
-    #Load or update data for the player
-    ret = load_player(txt_allyCode, False)
-    if ret != 'OK':
-        #error wile loading guild data
-        return 'ERREUR: joueur non trouvée pour code allié ' + txt_allyCode
+    if not compute_guild:
+        #only one player, potentially several teams
+        
+        #Load or update data for the player
+        ret = load_player(txt_allyCode, False)
+        if ret != 'OK':
+            #error wile loading guild data
+            return 'ERREUR: joueur non trouvée pour code allié ' + txt_allyCode
+            
+    else:
+        #Get data for the guild and associated players
+        ret = load_guild(txt_allyCode, True)
+        if ret != 'OK':
+            return "ERR: cannot get guild data from SWGOH.HELP API"
 
     if 'all' in list_team_names:
         list_team_names = liste_team_gt
         
-    #recreate player roster
+    #Get player data
     print("Get player data from DB...")
-    query = "SELECT allyCode, players.name, defId, rarity, gear, relic_currentTier, combatType, gp, \
-            roster_skills.name, roster_skills.level, roster_skills.isZeta \
-            FROM roster \
-            JOIN players ON players.id = roster.player_id \
-            LEFT JOIN roster_skills ON roster_skills.roster_id = roster.id \
-            WHERE allyCode='"+txt_allyCode+"' \
-            AND defId IN ( \
-                SELECT unit_id \
-                FROM guild_team_roster \
-                JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id \
-                JOIN guild_teams ON guild_teams.id = guild_subteams.team_id \
-                WHERE ("
-    for team_name in list_team_names:
-        query += "guild_teams.name = '"+team_name+"' OR "
-    query = query[:-3] + ")) ORDER BY allyCode, defId"
+    query = "SELECT players.name, \
+            guild_teams.name, \
+            guild_team_roster.unit_id, \
+            rarity, \
+            gear, \
+            relic_currentTier, \
+            gp, \
+            unscaledDecimalValue/1e8 as speed \
+            FROM players \
+            JOIN guild_teams \
+            JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
+            JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id \
+            JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.player_id = players.id \
+            JOIN roster_stats ON roster_stats.roster_id = roster.id AND roster_stats.unitStatId = 5\n"
+    if not compute_guild:
+        query += "WHERE allyCode = '"+txt_allyCode+"'\n"
+    else:
+        query += "WHERE players.guildName IN \
+                (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
+    if not 'all' in list_team_names:
+        query += "AND("
+        for team_name in list_team_names:
+            query += "guild_teams.name = '"+team_name+"' OR "
+        query = query[:-3] + ")\n"
+       
+    query += "ORDER BY allyCode, guild_teams.name, guild_team_roster.id"
     
+    #print(query)
     player_data = connect_mysql.get_table(query)
+    #print(player_data)
+    
+    print("Get zeta data from DB...")
+    query = "SELECT players.name, \
+            guild_teams.name, \
+            guild_team_roster.unit_id, \
+            guild_team_roster_zetas.name as zeta, \
+            roster_skills.level \
+            FROM players \
+            JOIN guild_teams \
+            JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
+            JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id \
+            JOIN guild_team_roster_zetas ON guild_team_roster_zetas.roster_id = guild_team_roster.id \
+            JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.player_id = players.id \
+            JOIN roster_skills ON roster_skills.roster_id = roster.id AND roster_skills.name = guild_team_roster_zetas.name \n"
+    if not compute_guild:
+        query += "WHERE allyCode = '"+txt_allyCode+"'\n"
+    else:
+        query += "WHERE players.guildName IN \
+                (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
+    if not 'all' in list_team_names:
+        query += "AND("
+        for team_name in list_team_names:
+            query += "guild_teams.name = '"+team_name+"' OR "
+        query = query[:-3] + ")\n"
+       
+    query += "ORDER BY allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
+    
+    #print(query)
+    player_zeta_data = connect_mysql.get_table(query)
+    #print(player_zeta_data)
+        
     if len(player_data) > 0:
-        print("Recreate dict_player...")
-        dict_player = goutils.create_dict_player_for_teams(player_data)
+        print("Recreate dict_teams...")
+        dict_teams = goutils.create_dict_teams(player_data, player_zeta_data)
         print("-> OK")
     else:
         print("no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names)+"...")
     
+    
     # Compute teams for this player
     for team_name in list_team_names:
-        ret_team = ''
         if not team_name in dict_team_gt:
-            ret_player_team[team_name] = 'ERREUR: team ' + \
+            ret_get_team_progress[team_name] = 'ERREUR: team ' + \
                     team_name + ' inconnue. Liste=' + str(liste_team_gt)
         else:
+            ret_team = ''
             objectifs = dict_team_gt[team_name]
             #print(objectifs)
 
-            if len(list_team_names) == 1:
+            if len(list_team_names) == 1 and len(dict_teams.keys()):
                 ret_team += get_team_entete(team_name, objectifs, \
                                             score_type, txt_mode)
             else:
                 ret_team += 'Team ' + team_name + '\n'
 
-            #resultats par joueur
-            score, line, nogo = get_team_line_from_player(
-                dict_player, objectifs, score_type, score_green, score_amber,
-                txt_mode, dict_player_discord)
-            ret_team += line
+            tab_lines = []
+            count_green = 0
+            count_amber = 0
+            for player_name in dict_teams:
+                if team_name in dict_teams[player_name]:
+                    dict_player = dict_teams[player_name][team_name]
+                else:
+                    dict_player = {}
+                    
+                #resultats par joueur
+                score, line, nogo = get_team_line_from_player(
+                    dict_player, objectifs, score_type, score_green, score_amber,
+                    txt_mode, player_name)
+                tab_lines.append([score, line, nogo])
+                if score >= score_green and not nogo:
+                    count_green += 1
+                if score >= score_amber and not nogo:
+                    count_amber += 1
 
-            ret_player_team[team_name] = ret_team
+            #Tri des nogo=False en premier, puis score décroissant
+            for score, txt, nogo in sorted(tab_lines,
+                                           key=lambda x: (x[2], -x[0])):
+                ret_team += txt
 
-    return ret_player_team
+            ret_get_team_progress[team_name] = ret_team, count_green, count_amber
+
+    return ret_get_team_progress
 
 
 def assign_gt(allyCode, txt_mode):
@@ -806,8 +786,8 @@ def guild_counter_score(txt_allyCode):
     list_counter_teams = load_config_counter()
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
-    dict_needed_teams = guild_team(txt_allyCode, list_needed_teams, 1, 100, 80,
-                                   True)
+    dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True,
+                                            1, 100, 80, True)
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]

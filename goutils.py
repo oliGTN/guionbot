@@ -72,7 +72,6 @@ def pad_txt2(txt):
 ##############################################################
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 
-
 def split_txt(txt, max_size):
     ret_split_txt = []
     remaining_txt = txt
@@ -294,192 +293,68 @@ def get_character_stats(dict_character):
     # print('gear_stats='+str(gear_stats))
     # print('modStats='+str(modStats))
     return base_stats, gear_stats, modStats
-
-
-def create_dict_player_for_stats(player_data, player_mods):
-    dict_player={"level": player_data[0][5],
-                "name": player_data[0][0],
-                "roster": {}}
     
-    cur_defId = ''
+def create_dict_teams(player_data, player_zeta_data):
+    dict_players={}
+
+    cur_playername = ''
     for line in player_data:
-        line_defId = line[2]
-        if cur_defId != line_defId:
-            line_nameKey = line[3]
-            line_combatType = line[4]
-            line_gear = line[5]
-            line_rarity = line[6]
-            line_level = line[7]
-            line_relic_currentTier = line[8]
-            dict_player["roster"][line_defId] = {"defId": line_defId,
-                                                 "nameKey": line_nameKey,
-                                                 "combatType": line_combatType,
-                                                 "gear": line_gear,
-                                                 "rarity": line_rarity,
-                                                 "level": line_level,
-                                                 "relic": {"currentTier": line_relic_currentTier},
-                                                 "equipped": [],
-                                                 "mods": []}
-            cur_defId = line_defId
-            
-        line_eqpt = line[9]
-        dict_player["roster"][line_defId]["equipped"].append({"equipmentId": str(line_eqpt)})
-    
-    cur_mod_id = -1
-    for line in player_mods:
-        line_defId = line[0]
-        line_mod_id = line[1]
-        if cur_mod_id != line_mod_id:
-            line_mod_level = line[2]
-            line_mod_set = line[3]
-            dict_player["roster"][line_defId]["mods"].append({"level": line_mod_level,
-                                                              "set": line_mod_set,
-                                                              "secondaryStat": []})
-            cur_mod_id = line_mod_id
-            
-        line_unitStat = line[4]
-        line_value = line[5]
-        # all stats are considered secondary as it does not change the global computation
-        dict_player["roster"][line_defId]["mods"][-1] \
-            ["secondaryStat"].append({"unitStat": line_unitStat,
-                                      "value": line_value})
-                                      
-    return dict_player
-    
-def create_dict_guild_for_stats(guild_data, guild_mods):
-    dict_players={}
-    
-    cur_allyCode = ''
-    for line in guild_data:
-        line_allyCode = str(line[1])
-        if cur_allyCode != line_allyCode:
-            line_name = line[0]
-            line_defId = line[2]
-            line_nameKey = line[3]
-            line_combatType = line[4]
-            line_gear = line[5]
-            line_rarity = line[6]
-            line_level = line[7]
-            line_relic_currentTier = line[8]
-            dict_players[line_allyCode] = {"allyCode": line_allyCode,
-                                           "name": line_name,
-                                           "roster": {line_defId: {}}}
-            
-            dict_players[line_allyCode]["roster"] \
-                [line_defId] = { "defId": line_defId,
-                                 "nameKey": line_nameKey,
-                                 "combatType": line_combatType,
-                                 "gear": line_gear,
-                                 "rarity": line_rarity,
-                                 "level": line_level,
-                                 "relic": {"currentTier": line_relic_currentTier},
-                                 "equipped": [],
-                                 "mods": []}
-            cur_allyCode = line_allyCode
-            
-        line_eqpt = line[9]
-        dict_players[line_allyCode]["roster"][line_defId] \
-            ["equipped"].append({"equipmentId": str(line_eqpt)})
-    
-    cur_mod_id = -1
-    for line in guild_mods:
-        line_allyCode = str(line[0])
-        line_defId = line[1]
-        line_mod_id = line[2]
-        if cur_mod_id != line_mod_id:
-            line_mod_level = line[3]
-            line_mod_set = line[4]
-            dict_players[line_allyCode]["roster"][line_defId] \
-                ["mods"].append({ "level": line_mod_level,
-                                  "set": line_mod_set,
-                                  "secondaryStat": []})
-            cur_mod_id = line_mod_id
-            
-        line_unitStat = line[5]
-        line_value = line[6]
-        # all stats are considered secondary as it does not change the global computation
-        dict_players[line_allyCode]["roster"][line_defId]["mods"][-1] \
-            ["secondaryStat"].append({"unitStat": line_unitStat,
-                                      "value": line_value})
-                                      
-    return dict_players
-    
-def create_dict_guild_for_teams(guild_data):
-    dict_players={}
-    
-    cur_allyCode = ''
-    cur_defId = ''
-    for line in guild_data:
-        line_allyCode = str(line[0])
-        line_name = str(line[1])
-        if cur_allyCode != line_allyCode:
-            dict_players[line_allyCode] = {"allyCode": line_allyCode,
-                                           "name": line_name,
-                                           "roster": {}}
-            cur_allyCode = line_allyCode
+        line_playername = line[0]
+        if cur_playername != line_playername:
+            dict_players[line_playername]={}
+            cur_teamname = ''
+            cur_playername = line_playername
+        
+        line_teamname = line[1]
+        if cur_teamname != line_teamname:
+            dict_players[line_playername][line_teamname]={}
+            cur_defId = ''
+            cur_teamname = line_teamname
         
         line_defId = line[2]
         if cur_defId != line_defId:
             line_rarity = line[3]
             line_gear = line[4]
             line_relic_currentTier = line[5]
-            line_combatType = line[6]
-            line_gp = line[7]
-            
-            dict_players[line_allyCode]["roster"] \
-                [line_defId] = { "defId": line_defId,
-                                 "combatType": line_combatType,
-                                 "gear": line_gear,
-                                 "gp": line_gp,
-                                 "rarity": line_rarity,
-                                 "relic": {"currentTier": line_relic_currentTier},
-                                 "skills": []}
+            line_gp = line[6]
+            line_speed = line[7]
+            dict_players[line_playername][line_teamname][line_defId]={ \
+                    "rarity": line_rarity,
+                    "gear": line_gear,
+                    "rarity": line_rarity,
+                    "gear": line_gear,
+                    "relic_currentTier": line_relic_currentTier,
+                    "gp": line_gp,
+                    "speed": line_speed,
+                    "zetas": {}}
             cur_defId = line_defId
             
-        line_skill_name = line[8]
-        line_skill_level = line[9]
-        line_skill_isZeta = line[10]
-        dict_players[line_allyCode]["roster"][line_defId] \
-            ["skills"].append({"id": line_skill_name,
-                                "tier": line_skill_level,
-                                "isZeta": (line_skill_isZeta==1)})
-                                      
-    return dict_players
-    
-def create_dict_player_for_teams(player_data):
-    dict_player={"allyCode": player_data[0][0],
-                "name": player_data[0][1],
-                "roster": {}}
-    
-    cur_defId = ''
-    for line in player_data:
+    for line in player_zeta_data:
+        line_playername = line[0]
+        if cur_playername != line_playername:
+            cur_teamname = ''
+            cur_playername = line_playername
+        
+        line_teamname = line[1]
+        if cur_teamname != line_teamname:
+            cur_defId = ''
+            cur_teamname = line_teamname
+        
         line_defId = line[2]
         if cur_defId != line_defId:
-            line_rarity = line[3]
-            line_gear = line[4]
-            line_relic_currentTier = line[5]
-            line_combatType = line[6]
-            line_gp = line[7]
-            
-            dict_player["roster"][line_defId] = { \
-                                 "defId": line_defId,
-                                 "combatType": line_combatType,
-                                 "gear": line_gear,
-                                 "gp": line_gp,
-                                 "rarity": line_rarity,
-                                 "relic": {"currentTier": line_relic_currentTier},
-                                 "skills": []}
+            cur_zeta = ''
             cur_defId = line_defId
+
+        line_zeta = line[3]
+        if cur_zeta != line_zeta:
+            line_level = line[4]
+            dict_players[line_playername][line_teamname]\
+                [line_defId]["zetas"][line_zeta]=line_level
+
+            cur_zeta = line_zeta
             
-        line_skill_name = line[8]
-        line_skill_level = line[9]
-        line_skill_isZeta = line[10]
-        dict_player["roster"][line_defId]["skills"].append({ \
-                                "id": line_skill_name,
-                                "tier": line_skill_level,
-                                "isZeta": (line_skill_isZeta==1)})
-                                      
-    return dict_player
+    #print(dict_players)
+    return dict_players
     
 def create_dict_stats(db_stat_data):
     dict_players={}

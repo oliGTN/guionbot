@@ -128,7 +128,7 @@ def update_guild_teams(dict_team):
             
         # Launch the unique update with all information
         query_parameters = (guild_teams_txt,)
-        print("CALL update_guild_teams"+str(query_parameters))
+        #print("CALL update_guild_teams"+str(query_parameters))
         cursor.callproc('update_guild_teams', query_parameters)
         
         mysql_db.commit()
@@ -161,7 +161,7 @@ def simple_query(query, txt_mode):
                     
                     index = 0
                     for cd in cur.description:
-                        print(results)
+                        #print(results)
                         max_col_length = max(list(map(lambda x: len(str(x[index])), results)))
                         widths.append(max(max_col_length, len(cd[0])))
                         columns.append(cd[0])
@@ -212,8 +212,8 @@ def get_value(query):
     finally:
         cursor.close()
     
-    print(query)
-    print(tuples)
+    # print(query)
+    # print(tuples)
     return tuples[0][0][0]
         
 def get_column(query):
@@ -239,6 +239,7 @@ def get_column(query):
     
 def get_line(query):
     tuples = []
+    #print("get_line("+query+")")
     try:
         db_connect()
         cursor = mysql_db.cursor()
@@ -255,7 +256,11 @@ def get_line(query):
         
     finally:
         cursor.close()
-    return tuples[0][0]
+    
+    if len(tuples[0]) == 0:
+        return []
+    else:
+        return tuples[0][0]
     
 def get_table(query):
     tuples = []
@@ -447,8 +452,9 @@ def update_player(dict_player):
                 if stat_count>0:
                     stat_definition_txt = stat_definition_txt[:-1]
             else:
-                #no stats for ships
-                stat_definition_txt = ''
+                #no stats for ships. Need to define at least speed
+                # to allow computation of progress of teams
+                stat_definition_txt = '5,0,base'
 
             ## FINALIZE DEFINITION OF CHARACTER WITH CAPAS, MODS,STATS ##
             roster_definition_txt+=str(c_combatType)+","+ \
