@@ -150,7 +150,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     # Get the allyOcdes to be refreshed
     # the query gets all allyCodes form all guilds that have been updated
     # in the latest 7 days, and the player not updated in the last <refresh_rate_minutes> minutes
-    query = "SELECT allyCode from players WHERE guildName IN ( \
+    query = "SELECT allyCode from players WHERE guildName = ( \
                 SELECT name \
                 FROM guilds \
                 WHERE timestampdiff(DAY, lastUpdated, CURRENT_TIMESTAMP)<=7 \
@@ -603,7 +603,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     if not compute_guild:
         query += "WHERE allyCode = '"+txt_allyCode+"'\n"
     else:
-        query += "WHERE players.guildName IN \
+        query += "WHERE players.guildName = \
                 (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
     if not 'all' in list_team_names:
         query += "AND("
@@ -633,7 +633,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     if not compute_guild:
         query += "WHERE allyCode = '"+txt_allyCode+"'\n"
     else:
-        query += "WHERE players.guildName IN \
+        query += "WHERE players.guildName = \
                 (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
     if not 'all' in list_team_names:
         query += "AND("
@@ -1010,7 +1010,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                 LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
                 JOIN players ON players.id = roster.player_id \
                 JOIN units ON units.unit_id = roster.defId \
-                WHERE players.guildName IN (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
+                WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
                 AND defId = '"+character_id+"' \
                 AND ("
         for display_stat in list_stats_for_display:
