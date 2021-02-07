@@ -329,6 +329,7 @@ def create_dict_teams(player_data, player_zeta_data):
                     "zetas": {}}
             cur_defId = line_defId
             
+    cur_playername = ''
     for line in player_zeta_data:
         line_playername = line[0]
         if cur_playername != line_playername:
