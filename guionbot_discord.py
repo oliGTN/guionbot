@@ -113,8 +113,9 @@ async def bot_loop_60():
     await bot.wait_until_ready()
     while not bot.is_closed():
         try:
-            #REFRESH and CLEAN CACHE DATA FROM SWGOH API²
-            go.refresh_cache(cache_delete_minutes, cache_refresh_minutes, 1)
+            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
+            await bot.loop.run_in_executor(None, 
+                go.refresh_cache, cache_delete_minutes, cache_refresh_minutes, 1)
             
             #GET ONLINE AND MOBILE STATUS
             for guild in bot.guilds:
@@ -455,7 +456,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = go.get_team_progress(teams, allycode, True, 3, 100000, 80000, False)
+            ret_cmd = await bot.loop.run_in_executor(None,
+                go.get_team_progress, teams, allycode, True, 3, 100000, 80000, False)
             for team in ret_cmd:
                 txt_team = ret_cmd[team][0]
                 for txt in goutils.split_txt(txt_team, 1000):
@@ -483,7 +485,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = go.assign_gt(allycode, False)
+            ret_cmd = await bot.loop.run_in_executor(None,
+                go.assign_gt, allycode, False)
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)
@@ -645,7 +648,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = go.get_team_progress(teams, allycode, True, 1, 100, 80, False)
+            ret_cmd = await bot.loop.run_in_executor(None,
+                go.get_team_progress, teams, allycode, True, 1, 100, 80, False)
             for team in ret_cmd:
                 txt_team = ret_cmd[team][0]
                 for txt in goutils.split_txt(txt_team, 1000):
@@ -677,7 +681,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = go.get_team_progress(teams, allycode, False, 1, 100, 80, False)
+            ret_cmd = await bot.loop.run_in_executor(None,
+                go.get_team_progress, teams, allycode, False, 1, 100, 80, False)
             for team in ret_cmd:
                 txt_team = ret_cmd[team][0]
                 for txt in goutils.split_txt(txt_team, 1000):
@@ -707,7 +712,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = go.guild_counter_score(allycode)
+            ret_cmd = await bot.loop.run_in_executor(None,
+                go.guild_counter_score, allycode)
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)
@@ -742,7 +748,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
-                ret_cmd = go.print_character_stats(characters, allycode, False)
+                ret_cmd = await bot.loop.run_in_executor(None,
+                    go.print_character_stats, characters, allycode, False)
             else:
                 ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
                 
@@ -779,7 +786,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
-                ret_cmd = go.print_character_stats(characters, allycode, True)
+                ret_cmd = await bot.loop.run_in_executor(None,
+                    go.print_character_stats, characters, allycode, True)
             else:
                 ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
                 
@@ -813,7 +821,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = go.get_gp_distribution(allycode, 36)
+            ret_cmd = await bot.loop.run_in_executor(None,
+                go.get_gp_distribution, allycode, 36)
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)
@@ -831,35 +840,35 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher le progrès vers un perso du guide de voyage
     # Display: progrès général, et détai par catégorie
     ##############################################################
-    @commands.command(name='gvj',
-                 brief="Progrès dans le guide de voyage pour un perso",
-                 help="Progrès dans le guide de voyage pour un perso\n\n"\
-                      "Exemple: go.gvj me GAS\n"\
-                      "Exemple: go.gvj 123456789 JKLS")
-    async def gvj(self, ctx, allycode, character_alias):
-        await ctx.message.add_reaction(emoji_thumb)
+    # @commands.command(name='gvj',
+                 # brief="Progrès dans le guide de voyage pour un perso",
+                 # help="Progrès dans le guide de voyage pour un perso\n\n"\
+                      # "Exemple: go.gvj me GAS\n"\
+                      # "Exemple: go.gvj 123456789 JKLS")
+    # async def gvj(self, ctx, allycode, character_alias):
+        # await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        # allycode = manage_me(ctx, allycode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            [progress, msg, player_name, character_name, list_progress] = go.player_journey_progress(allycode, character_alias)
-            if progress == -1:
-                await ctx.send(msg)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                await ctx.send('Progrès de **'+player_name+'** pour **'+character_name+'**: '+str(int(progress*100))+'%')
-                await ctx.send('__Détails :__\n')
-                for prog in list_progress:
-                    prog_name = prog[0]
-                    prog_rate = prog[1]
-                    prog_weight = prog[2]
-                    await ctx.send('- '+prog_name+'('+str(prog_weight)+'): '+str(int(prog_rate*100))+'%')
+        # if allycode[0:3] == 'ERR':
+            # await ctx.send(allycode)
+            # await ctx.message.add_reaction(emoji_error)
+        # else:
+            # [progress, msg, player_name, character_name, list_progress] = go.player_journey_progress(allycode, character_alias)
+            # if progress == -1:
+                # await ctx.send(msg)
+                # await ctx.message.add_reaction(emoji_error)
+            # else:
+                # await ctx.send('Progrès de **'+player_name+'** pour **'+character_name+'**: '+str(int(progress*100))+'%')
+                # await ctx.send('__Détails :__\n')
+                # for prog in list_progress:
+                    # prog_name = prog[0]
+                    # prog_rate = prog[1]
+                    # prog_weight = prog[2]
+                    # await ctx.send('- '+prog_name+'('+str(prog_weight)+'): '+str(int(prog_rate*100))+'%')
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                # #Icône de confirmation de fin de commande dans le message d'origine
+                # await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
 # MAIN EXECUTION

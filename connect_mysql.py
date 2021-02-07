@@ -9,7 +9,8 @@ import goutils
 mysql_db = None
 
 def db_connect():
-    global mysql_db
+    #global mysql_db
+    mysql_db = None
     if mysql_db == None or not mysql_db.is_connected():
         # if mysql_db == None:
             # print("First connection to mysql")
@@ -50,6 +51,8 @@ def db_connect():
 
         except Error as e:
             print('Exception during connect: '+str(e))
+            
+    return mysql_db
         
 def update_guild_teams(dict_team):
 #         dict_teams {key=team_name,
@@ -61,7 +64,7 @@ def update_guild_teams(dict_team):
 #                             ], ...]
 #                      }
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
 
         guild_teams_txt = ""
@@ -143,7 +146,7 @@ def simple_query(query, txt_mode):
     rows = []
     tuples = []
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         results = cursor.execute(query, multi=True)
@@ -196,7 +199,7 @@ def simple_query(query, txt_mode):
 def get_value(query):
     tuples = []
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         results = cursor.execute(query, multi=True)
@@ -219,8 +222,10 @@ def get_value(query):
 def get_column(query):
     tuples = []
     try:
-        db_connect()
+        mysql_db = db_connect()
+        #print("DBG: mysql_db="+str(mysql_db))
         cursor = mysql_db.cursor()
+        #print("DBG: cursor="+str(cursor))
         
         results = cursor.execute(query, multi=True)
         for cur in results:
@@ -241,8 +246,10 @@ def get_line(query):
     tuples = []
     #print("get_line("+query+")")
     try:
-        db_connect()
+        mysql_db = db_connect()
+        #print("DBG: mysql_db="+str(mysql_db))
         cursor = mysql_db.cursor()
+        #print("DBG: cursor="+str(cursor))
         
         results = cursor.execute(query, multi=True)
         for cur in results:
@@ -265,14 +272,19 @@ def get_line(query):
 def get_table(query):
     tuples = []
     try:
-        db_connect()
+        #print("DBG: get_table db_connect")
+        mysql_db = db_connect()
+        #print("DBG: get_table cursor")
+        #print("DBG: mysql_db="+str(mysql_db))
         cursor = mysql_db.cursor()
-        cursor.arraysize=1000
+        #print("DBG: cursor="+str(cursor))
 
+        #print("DBG: get_table execute "+query)
         results = cursor.execute(query, multi=True)
         for cur in results:
             # rows.append('cursor: '+ str(cur))
             if cur.with_rows:
+                #print("DBG: get_table fetchall")
                 results = cur.fetchall()
                 tuples.append(results)
 
@@ -282,11 +294,12 @@ def get_table(query):
     finally:
         cursor.close()
 
+    #print("DBG: get_table return")
     return tuples[0]
 
 def update_guild(dict_guild):
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         cursor.execute("REPLACE INTO guilds(name) VALUES('"+dict_guild["name"]+"')")
@@ -302,7 +315,7 @@ def update_guild(dict_guild):
         
 def update_player(dict_player):
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         # Update basic player information
@@ -504,7 +517,7 @@ def update_player(dict_player):
 
 def update_unit(dict_unit):
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         # Update basic unit information
@@ -601,7 +614,7 @@ def update_unit(dict_unit):
 
 def update_eqpt(dict_eqpt):
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         # Update basic unit information
@@ -712,7 +725,7 @@ def update_eqpt(dict_eqpt):
 
 def update_gameData(dict_gameData):
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         # update crTables with mastery information
@@ -798,7 +811,7 @@ def update_gameData(dict_gameData):
 
 def export_procedures_and_tables():
     try:
-        db_connect()
+        mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         #procedures

@@ -317,7 +317,7 @@ def create_dict_teams(player_data, player_zeta_data):
             line_gear = line[4]
             line_relic_currentTier = line[5]
             line_gp = line[6]
-            line_speed = line[7]
+            line_speed = int(line[7])
             dict_players[line_playername][line_teamname][line_defId]={ \
                     "rarity": line_rarity,
                     "gear": line_gear,

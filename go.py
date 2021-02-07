@@ -150,18 +150,28 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     # Get the allyOcdes to be refreshed
     # the query gets all allyCodes form all guilds that have been updated
     # in the latest 7 days, and the player not updated in the last <refresh_rate_minutes> minutes
-    query = "SELECT allyCode from players WHERE guildName = ( \
+    query = "SELECT allyCode from players WHERE guildName IN ( \
                 SELECT name \
                 FROM guilds \
                 WHERE timestampdiff(DAY, lastUpdated, CURRENT_TIMESTAMP)<=7 \
             ) \
             ORDER BY lastUpdated ASC"
     list_allyCodes = connect_mysql.get_column(query)
+    query = "SELECT allyCode from players WHERE guildName IN ( \
+                SELECT name \
+                FROM guilds \
+                WHERE timestampdiff(DAY, lastUpdated, CURRENT_TIMESTAMP)<=7 \
+            ) \
+            AND timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)>"+str(nb_minutes_refresh)+" \
+            ORDER BY lastUpdated ASC"
+    list_outdated_allyCodes = connect_mysql.get_column(query)
 
     #Compute the amount of players to be refreshed based on global refresh rate
     nb_refresh_players = ceil(
         len(list_allyCodes) / nb_minutes_refresh * refresh_rate_minutes)
-    print('Refreshing ' + str(nb_refresh_players) + ' files')
+    nb_refresh_outdated_players = ceil(
+        len(list_outdated_allyCodes) / nb_minutes_refresh * refresh_rate_minutes)
+    print('Refreshing ' + str(nb_refresh_players) + '+' + str(nb_refresh_outdated_players) + ' files')
 
     for allyCode in list_allyCodes[:nb_refresh_players]:
         load_player(str(allyCode), True)
@@ -418,7 +428,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                     tab_progress_player[i_subobj][
                         i_character - 1][0] = progress / progress_100
                     tab_progress_player[i_subobj][i_character - 1][2] = False
-                else:  #score_type==3
+                else:  #score_type==3)
                     tab_progress_player[i_subobj][i_character - 1][0] = int(
                         player_gp * player_speed / req_speed)
                     tab_progress_player[i_subobj][
@@ -593,7 +603,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             gear, \
             relic_currentTier, \
             gp, \
-            unscaledDecimalValue/1e8 as speed \
+            SUM(unscaledDecimalValue/1e8) as speed \
             FROM players \
             JOIN guild_teams \
             JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
@@ -611,7 +621,9 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             query += "guild_teams.name = '"+team_name+"' OR "
         query = query[:-3] + ")\n"
        
-    query += "ORDER BY allyCode, guild_teams.name, guild_team_roster.id"
+    query += "GROUP BY players.name, guild_teams.name, guild_team_roster.unit_id, \
+            rarity, gear, relic_currentTier, gp \
+            ORDER BY players.name, guild_teams.name"
     
     #print(query)
     player_data = connect_mysql.get_table(query)
@@ -714,8 +726,8 @@ def assign_gt(allyCode, txt_mode):
     liste_team_names = [x for x in set(liste_team_names)]
     #print(liste_team_names)
 
-    #Calcule des meilleures joueurs pour chaque team
-    dict_teams = guild_team(allyCode, liste_team_names, 3, -1, -1, True)
+    #Calcule des meilleurs joueurs pour chaque team
+    dict_teams = get_team_progress(liste_team_names, allyCode, True, 3, -1, -1, True)
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1075,9 +1087,9 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         ret_print_character_stats += "=====================================\n"
         max_size_char = max([len(x[0]) for x in list_print_stats])
         if compute_guild:
-            ret_print_character_stats += ("{0:"+str(max_size_char)+"}: {1:5} ").format("Perso", "*+G")
-        else:
             ret_print_character_stats += ("{0:"+str(max_size_char)+"}: {1:5} ").format("Joueur", "*+G")
+        else:
+            ret_print_character_stats += ("{0:"+str(max_size_char)+"}: {1:5} ").format("Perso", "*+G")
         
         for stat in list_stats_for_display:
             ret_print_character_stats += stat[1]+' '
@@ -1173,18 +1185,28 @@ def get_guild_gp(guild):
                                     (time.time() - player['dict_player']['lastActivity']/1000)/3600]
 	return guild_stats
 
-def get_gp_distribution(allyCode, inactive_duration):
+def get_gp_distribution(txt_allyCode, inactive_duration):
     ret_get_gp_distribution = ''
     
     #Load or update data for the guild
-    load_guild(txt_allyCode, True)
-    if guild == None:
+    # Need to load players also to get their lastActivity
+    ret = load_guild(txt_allyCode, True)
+    if ret != 'OK':
         return "ERR: cannot get guild data from SWGOH.HELP API"
         
-    guild_stats=get_guild_gp(guild)
+    query = "SELECT guildName, allyCode, char_gp, ship_gp, \
+            timestampdiff(HOUR, lastActivity, CURRENT_TIMESTAMP) \
+            FROM players \
+            WHERE guildName = (SELECT guildName FROM players WHERE allyCode = "+txt_allyCode+")"
+    guild_db_data = connect_mysql.get_table(query)
+    #guild_stats=get_guild_gp(guild)
+    guild_name = guild_db_data[0][0]
+    guild_stats = {}
+    for line in guild_db_data:
+        guild_stats[line[1]] = [line[2], line[3], line[4]]
 
     #compute ASCII graphs
-    ret_get_gp_distribution = '==GP stats '+guild['name']+ \
+    ret_get_gp_distribution = '==GP stats '+guild_name+ \
                             '== (. = inactif depuis '+ \
                             str(inactive_duration)+' heures)\n'
     ret_get_gp_distribution += get_gp_graph(guild_stats, inactive_duration)
