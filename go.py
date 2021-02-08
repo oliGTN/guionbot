@@ -150,17 +150,17 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
     # Get the allyOcdes to be refreshed
     # the query gets all allyCodes form all guilds that have been updated
     # in the latest 7 days, and the player not updated in the last <refresh_rate_minutes> minutes
-    query = "SELECT allyCode from players WHERE guildName IN ( \
-                SELECT name \
-                FROM guilds \
-                WHERE timestampdiff(DAY, lastUpdated, CURRENT_TIMESTAMP)<=7 \
+    query = "SELECT allyCode from players WHERE guildName = ( \
+                SELECT guildName \
+                FROM players \
+                WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+" \
             ) \
             ORDER BY lastUpdated ASC"
     list_allyCodes = connect_mysql.get_column(query)
-    query = "SELECT allyCode from players WHERE guildName IN ( \
-                SELECT name \
-                FROM guilds \
-                WHERE timestampdiff(DAY, lastUpdated, CURRENT_TIMESTAMP)<=7 \
+    query = "SELECT allyCode from players WHERE guildName = ( \
+                SELECT guildName \
+                FROM players \
+                WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+" \
             ) \
             AND timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)>"+str(nb_minutes_refresh)+" \
             ORDER BY lastUpdated ASC"
