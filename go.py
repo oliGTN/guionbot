@@ -173,7 +173,7 @@ def refresh_cache(nb_minutes_delete, nb_minutes_refresh, refresh_rate_minutes):
         len(list_outdated_allyCodes) / nb_minutes_refresh * refresh_rate_minutes)
     print('Refreshing ' + str(nb_refresh_players) + '+' + str(nb_refresh_outdated_players) + ' files')
 
-    for allyCode in list_allyCodes[:nb_refresh_players]:
+    for allyCode in list_allyCodes[:(nb_refresh_players+nb_refresh_outdated_players)]:
         load_player(str(allyCode), True)
 
 def stats_cache():
