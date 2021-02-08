@@ -30,8 +30,6 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 emoji_thumb = '\N{THUMBS UP SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 emoji_error = '\N{CROSS MARK}'
-cache_delete_minutes = 1440  #24 hours before deleting unused cache file
-cache_refresh_minutes = 60  #60 minutes minimum to refresh data from the guild
 
 dict_BT_missions={}
 dict_BT_missions['HLS']={}
@@ -112,10 +110,10 @@ dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (id
 async def bot_loop_60():
     await bot.wait_until_ready()
     while not bot.is_closed():
+        t_start = time.time()
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-            await bot.loop.run_in_executor(None, 
-                go.refresh_cache, cache_delete_minutes, cache_refresh_minutes, 1)
+            await bot.loop.run_in_executor(None, go.refresh_cache)
             
             #GET ONLINE AND MOBILE STATUS
             for guild in bot.guilds:
@@ -137,7 +135,12 @@ async def bot_loop_60():
             print("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
             print(e)
         
-        await asyncio.sleep(60)  #60 seconds for loop
+        t_end = time.time()
+        loop_duration = 60 * int(os.environ['REFRESH_RATE_BOT_MINUTES'])
+        waiting_time = max(0, loop_duration - (t_end - t_start))
+        
+        # Wait X seconds before next loop
+        await asyncio.sleep(waiting_time)
 
 ##############################################################
 # Function: get_eb_allocation

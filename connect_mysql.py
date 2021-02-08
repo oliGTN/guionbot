@@ -195,6 +195,25 @@ def simple_query(query, txt_mode):
         return rows
     else:
         return tuples
+        
+        
+def simple_callproc(proc_name, args):
+    rows = []
+    tuples = []
+    try:
+        mysql_db = db_connect()
+        cursor = mysql_db.cursor()
+        #print("simple_callproc: "+proc_name+" "+str(args))
+        ret=cursor.callproc(proc_name, args)
+        #print(ret)
+        
+        mysql_db.commit()
+    except Error as error:
+        print(error)
+        
+    finally:
+        cursor.close()
+        # db.close()
 
 def get_value(query):
     tuples = []
