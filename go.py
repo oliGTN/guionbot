@@ -59,7 +59,7 @@ def refresh_cache():
     
     #Check the amount of stored guilds, and remove if too many
     query = "SELECT name FROM guilds \
-            WHERE guildName != (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
+            WHERE name != (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
             ORDER BY lastUpdated DESC"
     list_nonmaster_guilds = connect_mysql.get_column(query)
     keep_max_non_master_guilds = int(os.environ['KEEP_MAX_NONMASTER_GUILDS'])
