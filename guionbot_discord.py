@@ -834,42 +834,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
-    ##############################################################
-    # Command: gvj
-    # Parameters: code allié (string) ou "me", nom d'un personnage
-    # Purpose: afficher le progrès vers un perso du guide de voyage
-    # Display: progrès général, et détai par catégorie
-    ##############################################################
-    # @commands.command(name='gvj',
-                 # brief="Progrès dans le guide de voyage pour un perso",
-                 # help="Progrès dans le guide de voyage pour un perso\n\n"\
-                      # "Exemple: go.gvj me GAS\n"\
-                      # "Exemple: go.gvj 123456789 JKLS")
-    # async def gvj(self, ctx, allycode, character_alias):
-        # await ctx.message.add_reaction(emoji_thumb)
-
-        # allycode = manage_me(ctx, allycode)
-
-        # if allycode[0:3] == 'ERR':
-            # await ctx.send(allycode)
-            # await ctx.message.add_reaction(emoji_error)
-        # else:
-            # [progress, msg, player_name, character_name, list_progress] = go.player_journey_progress(allycode, character_alias)
-            # if progress == -1:
-                # await ctx.send(msg)
-                # await ctx.message.add_reaction(emoji_error)
-            # else:
-                # await ctx.send('Progrès de **'+player_name+'** pour **'+character_name+'**: '+str(int(progress*100))+'%')
-                # await ctx.send('__Détails :__\n')
-                # for prog in list_progress:
-                    # prog_name = prog[0]
-                    # prog_rate = prog[1]
-                    # prog_weight = prog[2]
-                    # await ctx.send('- '+prog_name+'('+str(prog_weight)+'): '+str(int(prog_rate*100))+'%')
-
-                # #Icône de confirmation de fin de commande dans le message d'origine
-                # await ctx.message.add_reaction(emoji_check)
-
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
