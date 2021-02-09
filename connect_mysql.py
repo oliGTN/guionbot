@@ -462,7 +462,7 @@ def update_player(dict_player):
 
             ## GET DEFINITION OF STATS ##
             base_stats, gear_stats, mod_stats = \
-                goutils.get_character_stats(character)
+                goutils.get_unit_stats(character, dict_player)
             
             if base_stats != None:
                 stat_definition_txt="" #separator |
