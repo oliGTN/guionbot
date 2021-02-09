@@ -291,7 +291,7 @@ def manage_me(ctx, allycode_txt):
 async def on_ready():
     go.load_guild(os.environ['MASTER_GUILD_ALLYCODE'], False)
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
-    print(f'{bot.user.name} has connected to Discord!')
+    print(f'\n{bot.user.name} has connected to Discord!')
 
 
 ##############################################################
@@ -354,15 +354,21 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_thumb)
 
         # get the DB information
-        output = connect_mysql.simple_query("CALL get_db_size()", True)
         output_txt=''
-        for row in output:
+        output_size = connect_mysql.simple_query("CALL get_db_size()", True)
+        for row in output_size:
             output_txt+=str(row)+'\n'
 
+        output_players = connect_mysql.simple_query("SELECT guildName AS Guilde, \
+                                                    count(*) as Joueurs \
+                                                    FROM players \
+                                                    GROUP BY guildName", True)
+        output_txt += "\n"
+        for row in output_players:
+            output_txt+=str(row)+'\n'
+
+
         await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+' (GMT)\n' +
-                        go.stats_cache() + '\n' +
-                        str(cache_delete_minutes) + ' minutes before deleting\n' +
-                        str(cache_refresh_minutes) + ' minutes before refreshing\n' +
                         '``` '+output_txt[1:]+'```')
 
         await ctx.message.add_reaction(emoji_check)
