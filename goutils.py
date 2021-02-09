@@ -101,13 +101,89 @@ def split_txt(txt, max_size):
 # Purpose: renvoie la vitesse et le pouvoir en fonction du gear, des équipements et des mods
 # Output: [base_stats[1:61], eqpt_stats[1:61], mod_stats[1:61]]
 ##############################################################
-def get_character_stats(dict_character):
-    
+def get_unit_stats(dict_unit, dict_player):
+    if dict_unit['combatType'] == 2:
+        return get_ship_stats(dict_unit, dict_player)
+    else:
+        return get_character_stats(dict_unit)
+
+def get_ship_stats(ship, dict_player):
     gameData = json.load(open('gameData.json', 'r'))
 
-    if dict_character['combatType'] == 2:
-        #no stats for ships
-        return None, None, None
+    list_crewId = [x["unitId"] for x in ship["crew"]]
+    print(list_crewId)
+    crew = list(filter(lambda x: x["defId"] in list_crewId, dict_player["roster"]))
+    print(crew)
+    stats = getShipRawStats(ship, crew, gameData)
+    print(stats)
+    stats = calculateBaseStats(stats, ship["level"], ship["defId"])
+    stats = formatStats(stats, ship["level"])
+    stats = renameStats(stats)
+    
+def getShipRawStats(ship, crew, gameData):
+    unitData = gameData["unitData"]
+    crTables = gameData["crTables"]
+    
+    # ensure crew is the correct crew
+    if len(crew) != len(unitData[ship["defId"]]["crew"]):
+        print("Incorrect number of crew members for ship "+ship["defId"])
+
+    for char in crew:
+        print(char)
+        if not char["defId"] in unitData[ship["defId"]]["crew"]:
+            print("Unit "+char["defId"]+" is not in "+ship["defId"]+"'s crew")
+
+    # if still here, crew is good -- go ahead and determine stats
+    crewRating = getCrewRating(crew, gameData)
+    stats = {"base": unitData[ship["defId"]]["stats"],
+            "crew": {},
+            "growthModifiers": unitData[ship["defId"]]["growthModifiers"][str(ship["rarity"])]}
+
+    for txt_statID in unitData[ship["defId"]]["crewStats"]:
+        statValue = unitData[ship["defId"]]["crewStats"][txt_statID]
+        statID = int(txt_statID)
+        # stats 1-15 and 28 all have final integer values
+        # other stats require decimals -- shrink to 8 digits of precision through 'unscaled' values this calculator uses
+        stats["crew"][ statID ] = statValue * \
+                                    crTables["shipRarityFactor"][str(ship["rarity"])] * \
+                                    crewRating
+
+    return stats
+
+def getCrewRating(crew, gameData):
+    crTables = gameData["crTables"]
+
+    totalCR = 0
+    for char in crew:
+        crewRating = 0
+        crewRating += crTables["unitLevelCR"][ str(char["level"]) ] + \
+                      crTables["crewRarityCR"][ str(char["rarity"]) ] # add CR from level/rarity
+        
+        for gearLvl in range(1, char["gear"]):
+            crewRating += crTables["gearPieceCR"][ str(gearLvl) ] * 6 # add CR from complete gear levels
+
+        crewRating += crTables["gearPieceCR"][ str(char["gear"]) ] * len(char["equipped"]) # add CR from currently equipped gear
+        
+        for skill in char["skills"]:
+            crewRating += getSkillCrewRating(skill, gameData) # add CR from ability levels
+        for mod in char["mods"]:
+            crewRating += crTables["modRarityLevelCR"][ str(mod["pips"]) ][ str(mod["level"]) ] # add CR from mods
+
+        if char["relic"]["currentTier"] > 2:
+            crewRating += crTables["relicTierCR"][ str(char["relic"]["currentTier"]) ]
+            crewRating += char["level"] * \
+                    crTables["relicTierLevelFactor"][ str(char["relic"]["currentTier"]) ]
+
+        return crewRating;
+
+    return totalCR # * crTables.crewSizeFactor[ crew.length ];
+
+def getSkillCrewRating(skill, gameData):
+    crTables = gameData["crTables"]
+    return crTables["abilityLevelCR"][ str(skill["tier"]) ]
+
+def get_character_stats(dict_character):
+    gameData = json.load(open('gameData.json', 'r'))
         
     char_defId = dict_character['defId']
     char_gear = dict_character['gear']
