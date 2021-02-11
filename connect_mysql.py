@@ -5,6 +5,7 @@ import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import datetime
 import goutils
+import connect_crinolo
 
 mysql_db = None
 
@@ -333,6 +334,9 @@ def update_guild(dict_guild):
         
         
 def update_player(dict_player):
+    #Start by getting all stats for the player
+    dict_player = connect_crinolo.add_stats(dict_player)
+
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
@@ -460,18 +464,13 @@ def update_player(dict_player):
             if capa_count>0:
                 capa_definition_txt = capa_definition_txt[:-1]
 
-            ## GET DEFINITION OF STATS ##
-            base_stats, gear_stats, mod_stats = \
-                goutils.get_character_stats(character)
-            
-            if base_stats != None:
-                stat_definition_txt="" #separator |
-                # stat id,value,"base" or "gear" or "mod"
-                stat_count = 0
-                for [stat_type, stat_list] in [["base", base_stats],
-                                               ["gear", gear_stats],
-                                               ["mod", mod_stats]]:
-                    for stat_id in range(1, 62):
+            ## SET DEFINITION OF STATS ##
+            stat_definition_txt="" #separator |
+            stat_count = 0
+            for stat_type in ["base", "gear", "mods", "crew"]:
+                if stat_type in character["stats"]:
+                    stat_list = character["stats"][stat_type]
+                    for stat_id in stat_list:
                         stat_value = stat_list[stat_id]
 
                         if stat_value != 0:
@@ -480,13 +479,9 @@ def update_player(dict_player):
                                                 stat_type+"|"
                             stat_count+=1
                     
-                # remove last "|"
-                if stat_count>0:
-                    stat_definition_txt = stat_definition_txt[:-1]
-            else:
-                #no stats for ships. Need to define at least speed
-                # to allow computation of progress of teams
-                stat_definition_txt = '5,0,base'
+            # remove last "|"
+            if stat_count>0:
+                stat_definition_txt = stat_definition_txt[:-1]
 
             ## FINALIZE DEFINITION OF CHARACTER WITH CAPAS, MODS,STATS ##
             roster_definition_txt+=str(c_combatType)+","+ \
@@ -524,7 +519,7 @@ def update_player(dict_player):
                             p_poUTCOffsetMinutes,
                             roster_definition_txt)
         # print("CALL update_player"+str(query_parameters))
-        cursor.callproc('update_player2', query_parameters)
+        cursor.callproc('update_player', query_parameters)
           
         mysql_db.commit()
     except Error as error:
