@@ -2,7 +2,6 @@
 
 from swgohhelp import SWGOHhelp, settings
 import sys
-import json
 import time
 import os
 import difflib
@@ -952,15 +951,18 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         dict_player = dict_stats[player_name]
         for character_id in list_character_ids:
             if character_id in dict_player:
-                if dict_player[character_id]["combatType"] == 1:
+                # if dict_player[character_id]["combatType"] == 1:
                     character_name = dict_player[character_id]["nameKey"]
                     character_rarity = str(dict_player[character_id]["rarity"])+"*"
                     character_gear = dict_player[character_id]["gear"]
-                    if character_gear == 13:
-                        character_relic = dict_player[character_id]["relic"]["currentTier"]
-                        character_gear = "R"+str(character_relic-2)
-                    else:
-                        character_gear="G"+str(character_gear)
+                    if dict_player[character_id]["combatType"] == 1:
+                        if character_gear == 13:
+                            character_relic = dict_player[character_id]["relic"]["currentTier"]
+                            character_gear = "R"+str(character_relic-2)
+                        else:
+                            character_gear="G"+str(character_gear)
+                    else: #ship
+                        character_gear=''
                     character_stats = dict_player[character_id]["stats"]
                     
                     if compute_guild:
@@ -969,8 +971,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                         line_header = character_name
                     list_print_stats.append([line_header, character_rarity+character_gear, character_stats])
                         
-                else:
-                    ret_print_character_stats += 'INFO: ' + dict_player[character_id]['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
+                # else:
+                    # ret_print_character_stats += 'INFO: ' + dict_player[character_id]['nameKey']+' est un vaisseau, stats non accessibles pour le moment\n'
             
             else:
                 ret_print_character_stats +=  'INFO: ' + character_id+' non trouvé chez '+player_name+'\n'
