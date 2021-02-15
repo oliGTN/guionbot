@@ -538,7 +538,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             output_channel = ctx.message.channel
 
         #Lecture du statut des pelotons sur warstats
-        tbs_round, dict_platoons_done, dict_player_allocations, list_open_territories = parse_warstats_page()
+        tbs_round, dict_platoons_done, \
+            dict_player_allocations, \
+            list_open_territories = parse_warstats_page()
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players = load_config_players()[0]
