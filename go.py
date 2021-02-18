@@ -54,7 +54,8 @@ def refresh_cache():
         load_player(str(allyCode), True)
         
     #Refresh one player from non-master guild
-    load_player(str(list_nonmaster_allyCodes[0]), True)
+    if len(list_nonmaster_allyCodes) >0:
+        load_player(str(list_nonmaster_allyCodes[0]), True)
     
     #Check the amount of stored guilds, and remove if too many
     query = "SELECT name FROM guilds \
