@@ -758,9 +758,20 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            if len(characters) > 0:
-                ret_cmd = await bot.loop.run_in_executor(None,
-                    go.print_character_stats, characters, allycode, False)
+            list_options = []
+            list_characters = []
+            for item in characters:
+                if item[0] == "-":
+                    list_options.append(item)
+                else:
+                    list_characters.append(item)
+            
+            if len(list_characters) > 0:
+                if len(list_options) <= 1:
+                    ret_cmd = await bot.loop.run_in_executor(None,
+                        go.print_character_stats, characters, allycode, False)
+                else:
+                    ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
                 ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
                 
@@ -796,11 +807,22 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            if len(characters) > 0:
-                ret_cmd = await bot.loop.run_in_executor(None,
-                    go.print_character_stats, characters, allycode, True)
+            list_options = []
+            list_characters = []
+            for item in characters:
+                if item[0] == "-":
+                    list_options.append(item)
+                else:
+                    list_characters.append(item)
+            
+            if len(list_characters) > 0:
+                if len(list_options) <= 1:
+                    ret_cmd = await bot.loop.run_in_executor(None,
+                        go.print_character_stats, characters, allycode, True)
+                else:
+                    ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
-                ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
+                ret_cmd = 'ERR: merci de préciser perso'
                 
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)

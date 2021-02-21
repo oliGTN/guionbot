@@ -539,6 +539,9 @@ BEGIN
 	DELETE FROM roster_skills WHERE roster_id IN (
 		SELECT roster.id FROM roster
 		WHERE roster.player_id = p_player_id);
+	DELETE FROM roster_stats WHERE roster_id IN (
+		SELECT roster.id FROM roster
+		WHERE roster.player_id = p_player_id);
 
 	iterator:
 	LOOP
@@ -947,14 +950,14 @@ CREATE TABLE `gp_history` (
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1040 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1078 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_subteams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `team_id` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=309 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_team_progress` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -963,7 +966,7 @@ CREATE TABLE `guild_team_progress` (
   `rarity_gear_zeta` varchar(255) DEFAULT NULL,
   `progress` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=255 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB DEFAULT CHARSET=latin1
 CREATE TABLE `guild_team_roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `subteam_id` varchar(255) DEFAULT NULL,
@@ -978,20 +981,20 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1502 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=234 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_team_roster_zetas` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=474 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=161 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_teams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) DEFAULT NULL,
   `lastUpdated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=251 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=latin1
 CREATE TABLE `guilds` (
   `name` varchar(255) NOT NULL DEFAULT 'noname',
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1004,7 +1007,7 @@ CREATE TABLE `mod_stats` (
   `unitStat` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=47126587 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=48054087 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1014,7 +1017,7 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11061362 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=11251846 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -1044,13 +1047,13 @@ CREATE TABLE `roster` (
   `rarity` int(11) DEFAULT NULL,
   `relic_currentTier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=80320 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=80330 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4606145 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=4689737 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_skills` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1058,7 +1061,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1792731 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1985271 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1066,7 +1069,7 @@ CREATE TABLE `roster_stats` (
   `unscaledDecimalValue` bigint(20) DEFAULT NULL,
   `type` varchar(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=164972 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1640179 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_tier_id` int(11) DEFAULT NULL,
