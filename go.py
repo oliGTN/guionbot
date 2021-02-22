@@ -160,13 +160,13 @@ def load_guild(txt_allyCode, load_players):
         else:
             print ('ERR: client.get_data(\'guild\', '+txt_allyCode+
                     ') has returned an empty list')
-            return 'ERR: canot fetch guild fo allyCode '+txt_allyCode
+            return 'ERR: canot fetch guild fo allyCode '+txt_allyCode, None
 
     else:
         print ('ERR: client.get_data(\'guild\', '+
                 txt_allyCode+') has not returned a list')
         print (client_data)
-        return 'ERR: canot fetch guild fo allyCode '+txt_allyCode
+        return 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
 
 
     if load_players:
@@ -197,7 +197,7 @@ def load_guild(txt_allyCode, load_players):
             else:
                 sys.stdout.write(player['name']+" OK\n")
     
-    return "OK"
+    return "OK", ret_guild
 
 def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                               score_amber, txt_mode, player_name):
@@ -490,7 +490,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             
     else:
         #Get data for the guild and associated players
-        ret = load_guild(txt_allyCode, True)
+        ret, guild = load_guild(txt_allyCode, True)
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
 
@@ -904,7 +904,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         #Compute stats at guild level, only one character
         
         #Get data for the guild and associated players
-        ret = load_guild(txt_allyCode, True)
+        ret, guild = load_guild(txt_allyCode, True)
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
         
@@ -1083,34 +1083,44 @@ def get_gp_graph(guild_stats, inactive_duration):
 def get_guild_gp(guild):
 	guild_stats={}
 	for player in guild['roster']:
-		guild_stats[player['name']]=[player['gpChar'], player['gpShip'],
-                                    (time.time() - player['dict_player']['lastActivity']/1000)/3600]
+		guild_stats[player['name']]=[player['gpChar'], player['gpShip'], 0]
 	return guild_stats
 
-def get_gp_distribution(txt_allyCode, inactive_duration):
+def get_gp_distribution(txt_allyCode, inactive_duration, fast_chart):
     ret_get_gp_distribution = ''
     
     #Load or update data for the guild
-    # Need to load players also to get their lastActivity
-    ret = load_guild(txt_allyCode, True)
-    if ret != 'OK':
-        return "ERR: cannot get guild data from SWGOH.HELP API"
-        
-    query = "SELECT guildName, allyCode, char_gp, ship_gp, \
-            timestampdiff(HOUR, lastActivity, CURRENT_TIMESTAMP) \
-            FROM players \
-            WHERE guildName = (SELECT guildName FROM players WHERE allyCode = "+txt_allyCode+")"
-    guild_db_data = connect_mysql.get_table(query)
-    #guild_stats=get_guild_gp(guild)
-    guild_name = guild_db_data[0][0]
-    guild_stats = {}
-    for line in guild_db_data:
-        guild_stats[line[1]] = [line[2], line[3], line[4]]
+    if (fast_chart):
+        #use only the guild data from the API
+        ret, guild = load_guild(txt_allyCode, False)
+        if ret != 'OK':
+            return "ERR: cannot get guild data from SWGOH.HELP API"
+
+        guild_stats=get_guild_gp(guild)
+        guild_name = guild["name"]
+
+        ret_get_gp_distribution = "==GP stats "+guild_name+ "==\n"
+    else:
+        # Need to load players also to get their lastActivity
+        ret, guild = load_guild(txt_allyCode, True)
+        if ret != 'OK':
+            return "ERR: cannot get guild data from SWGOH.HELP API"
+            
+        query = "SELECT guildName, allyCode, char_gp, ship_gp, \
+                timestampdiff(HOUR, lastActivity, CURRENT_TIMESTAMP) \
+                FROM players \
+                WHERE guildName = (SELECT guildName FROM players WHERE allyCode = "+txt_allyCode+")"
+        guild_db_data = connect_mysql.get_table(query)
+        guild_name = guild_db_data[0][0]
+        guild_stats = {}
+        for line in guild_db_data:
+            guild_stats[line[1]] = [line[2], line[3], line[4]]
+
+        ret_get_gp_distribution = '==GP stats '+guild_name+ \
+                                '== (. = inactif depuis '+ \
+                                str(inactive_duration)+' heures)\n'
 
     #compute ASCII graphs
-    ret_get_gp_distribution = '==GP stats '+guild_name+ \
-                            '== (. = inactif depuis '+ \
-                            str(inactive_duration)+' heures)\n'
     ret_get_gp_distribution += get_gp_graph(guild_stats, inactive_duration)
     
     return ret_get_gp_distribution

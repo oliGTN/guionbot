@@ -832,8 +832,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
+            # First call to display the chart quickly, without the inactive players
             ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_gp_distribution, allycode, 36)
+                go.get_gp_distribution, allycode, 36, True)
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)
@@ -842,6 +843,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 for txt in goutils.split_txt(ret_cmd, 1000):
                     await ctx.send("```"+txt+"```")
 
+                # Second call to load all players
+                ret_cmd = await bot.loop.run_in_executor(None,
+                    go.get_gp_distribution, allycode, 36, False)
+                
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
