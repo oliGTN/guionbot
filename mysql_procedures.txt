@@ -3,12 +3,15 @@ BEGIN
 	# From players to roster
 	SELECT * FROM roster WHERE player_id NOT IN (SELECT id FROM players);
 	DELETE FROM roster WHERE player_id NOT IN (SELECT id FROM players);
+    OPTIMIZE TABLE roster;
 
 	# From roster to mods then mod_stats
 	SELECT * FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	SELECT * FROM mod_stats WHERE mod_id NOT IN (SELECT id FROM mods);
 	DELETE FROM mod_stats WHERE mod_id NOT IN (SELECT id FROM mods);
+    OPTIMIZE TABLE mods;
+    OPTIMIZE TABLE mod_stats;
 
 	# From roster to roster_eqpt, roster_skills, roster_stats
 	SELECT * FROM roster_eqpt WHERE roster_id NOT IN (SELECT id FROM roster);
@@ -17,18 +20,17 @@ BEGIN
 	DELETE FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
 	SELECT * FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
-
-	# From equipment to eqpt_stats and eqpt_missionList
-	SELECT * FROM eqpt_stats WHERE equipment_id NOT IN (SELECT id FROM equipment);
-	DELETE FROM eqpt_stats WHERE equipment_id NOT IN (SELECT id FROM equipment);
-	SELECT * FROM eqpt_missionList WHERE equipment_id NOT IN (SELECT id FROM equipment);
-	DELETE FROM eqpt_missionList WHERE equipment_id NOT IN (SELECT id FROM equipment);
+    OPTIMIZE TABLE roster_eqpt;
+    OPTIMIZE TABLE roster_skills;
+    OPTIMIZE TABLE roster_stats;
 
 	# From units to unit_tiers then unit_stats
 	SELECT * FROM unit_tiers WHERE unit_id NOT IN (SELECT id FROM units);
 	DELETE FROM unit_tiers WHERE unit_id NOT IN (SELECT id FROM units);
 	SELECT * FROM unit_stats WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
 	DELETE FROM unit_stats WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
+    OPTIMIZE TABLE unit_tiers;
+    OPTIMIZE TABLE unit_stats;
 
 END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_db_size`()
@@ -950,7 +952,7 @@ CREATE TABLE `gp_history` (
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1078 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1190 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_subteams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `team_id` int(11) DEFAULT NULL,
@@ -1007,7 +1009,7 @@ CREATE TABLE `mod_stats` (
   `unitStat` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=48054087 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=50219763 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1017,7 +1019,7 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11251846 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=11697757 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -1034,7 +1036,7 @@ CREATE TABLE `players` (
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `md5` varchar(32) CHARACTER SET latin1 DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=388 DEFAULT CHARSET=utf8
+) ENGINE=InnoDB AUTO_INCREMENT=487 DEFAULT CHARSET=utf8
 CREATE TABLE `roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player_id` int(11) DEFAULT NULL,
@@ -1047,13 +1049,13 @@ CREATE TABLE `roster` (
   `rarity` int(11) DEFAULT NULL,
   `relic_currentTier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=80330 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=102076 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4689737 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=4889510 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_skills` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1061,7 +1063,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1985271 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=2434705 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1069,7 +1071,7 @@ CREATE TABLE `roster_stats` (
   `unscaledDecimalValue` bigint(20) DEFAULT NULL,
   `type` varchar(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1640179 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=5073651 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_tier_id` int(11) DEFAULT NULL,
