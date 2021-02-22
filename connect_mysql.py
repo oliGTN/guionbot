@@ -322,8 +322,11 @@ def update_guild(dict_guild):
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
-        cursor.execute("REPLACE INTO guilds(name) VALUES('"+dict_guild["name"]+"')")
-        players_in_db = get_column("SELECT allyCode FROM players WHERE guildName = '"+dict_guild["name"]+"'")
+        # Manage guild names with a ' in it
+        guild_name = dict_guild["name"].replace("'", "''")
+        
+        cursor.execute("REPLACE INTO guilds(name) VALUES('"+guild_name+"')")
+        players_in_db = get_column("SELECT allyCode FROM players WHERE guildName = '"+guild_name+"'")
         players_in_api = [x["allyCode"] for x in dict_guild["roster"]]
         
         for player_api in dict_guild["roster"]:
@@ -331,7 +334,7 @@ def update_guild(dict_guild):
                 cursor.execute("INSERT INTO players (allyCode,name,guildName,lastUpdated) \
                                 VALUES ("+str(player_api["allyCode"])+",'" + \
                                 player_api["name"]+"','"+ \
-                                dict_guild["name"]+"',CURRENT_TIMESTAMP-INTERVAL 12 HOUR)")
+                                guild_name+"',CURRENT_TIMESTAMP-INTERVAL 12 HOUR)")
                                                 
         for allyCode_db in players_in_db:
             if not allyCode_db in players_in_api:
