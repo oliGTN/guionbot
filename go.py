@@ -94,10 +94,13 @@ def stats_cache():
 
 
 def load_player(txt_allyCode, force_update):
+    # The query tests if the update is less than 60 minutes for all players
+    # Assumption: when the command is player-related, updating one is costless
     query_result = connect_mysql.get_line("SELECT \
-                        (timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)<=60), \
+                        (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60), \
                         name \
                         FROM players WHERE allyCode = '"+txt_allyCode+"'")
+    print(query_result)
     if len(query_result)>0:
         recent_player = query_result[0]
         player_name = query_result[1]
@@ -171,9 +174,13 @@ def load_guild(txt_allyCode, load_players):
 
     if load_players:
         #Get players and update status from DB
+        # The query tests if the update is less than 60 minutes for players in master guild
+        # For other players, check if less than 12 hours
         recent_players = connect_mysql.get_table( "\
             SELECT \
-            (timestampdiff(MINUTE, lastUpdated, CURRENT_TIMESTAMP)<=60), \
+            CASE WHEN guildName = (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
+            THEN (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) \
+            ELSE (timestampdiff(HOUR, players.lastUpdated, CURRENT_TIMESTAMP)<=12) END, \
             allyCode \
             FROM players \
             WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode = '"+txt_allyCode+"')")
