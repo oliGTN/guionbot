@@ -299,7 +299,7 @@ def get_table(query):
         cursor = mysql_db.cursor()
         #print("DBG: cursor="+str(cursor))
 
-        print("DBG: get_table execute "+query)
+        # print("DBG: get_table execute "+query)
         results = cursor.execute(query, multi=True)
         for cur in results:
             # rows.append('cursor: '+ str(cur))
