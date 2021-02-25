@@ -156,50 +156,176 @@ async def get_eb_allocation(tbs_round):
     eb_phases = []
     eb_missions_full = []
     eb_missions_tmp = []
+    
+    eb_sort_character=False
+    eb_sort_territory = False
+    eb_sort_player = False
+    
+    tbs_name = tbs_round[0:3]
+    
+    allocation_without_overview = False
     async for message in bt_channel.history(limit=500):
         if str(message.author) == os.environ['EB_PROFILE']:
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
 
-            if message.content.startswith('```prolog'):
-                nom_territoire = re.search('```prolog\n(.*?) \((.*?)\)',
-                                            message.content).group(1)
-                #eb_missions_tmp.append(position_territoire)
-                if nom_territoire in dict_BT_missions[tbs_round[0:3]]:
-                    nom_position_territoire = dict_BT_missions[
-                                            tbs_round[0:3]][nom_territoire]
-                    #Check if this mission/territory has been allocated in previous message
-                    existing_platoons = [i for i in dict_platoons_allocation.keys()
-                                    if i.startswith(nom_position_territoire)]
-                    if len(existing_platoons) == 0:                    
-                        for embed in message.embeds:
-                            dict_embed = embed.to_dict()
-                            if 'fields' in dict_embed:
-                                #print(dict_embed)
-                                #on garde le nom de la BT mais on met X comme numéro de phase
-                                #le numéro de phase sera affecté plus tard
-                                platoon_name = (nom_position_territoire
-                                    + '-' + re.search('\*\*(.*?)\*\*',
-                                        dict_embed['description']).group(1)[-1])
-                                for dict_perso in dict_embed['fields']:
-                                    for perso in dict_perso['value'].split('\n'):
-                                        char_name = perso[1:-1]
-                                        if char_name != 'Filled in another phase':
-                                            if char_name[0:4]=='*` *':
-                                                char_name=char_name[4:]
-                                            if not platoon_name in dict_platoons_allocation:
-                                                dict_platoons_allocation[
-                                                    platoon_name] = {}
-                                            if not char_name in dict_platoons_allocation[
-                                                    platoon_name]:
-                                                dict_platoons_allocation[platoon_name][
-                                                    char_name] = []
-                                            dict_platoons_allocation[platoon_name][
-                                                char_name].append(dict_perso['name'])
-                else:
-                    print('Mission \"'+nom_territoire+'\" inconnue')
+            # when the message has reactions, detect the sorting rule of the EB messages
+            if len(message.reactions)>0:
+                eb_sort_character=True
+                eb_sort_territory = True
+                eb_sort_player = True
+                for reaction in message.reactions:
+                    if reaction.emoji == "\N{WORLD MAP}":
+                        eb_sort_territory = False
+                    elif reaction.emoji == "\N{BUSTS IN SILHOUETTE}":
+                        eb_sort_character = False
+                    elif reaction.emoji == "\N{MOBILE PHONE}":
+                        eb_sort_player = False
+                
+                if allocation_without_overview:
+                    print("ERR: some platoons have been defined but no Overview detected!")
 
+            if eb_sort_territory and message.content.startswith('```prolog'):
+                #EB message by territory
+                  
+                for embed in message.embeds:
+                    dict_embed = embed.to_dict()
+                    if 'fields' in dict_embed:
+                        #print(dict_embed)
+                        #on garde le nom de la BT mais on met X comme numéro de phase
+                        #le numéro de phase sera affecté plus tard
+                        ret_re = re.search('\*\*(.*)\*\* - (.*)',dict_embed['description'])
+                        territory_position = ret_re.group(2)
+                        platoon_position = ret_re.group(1)[-1]
+                        platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
+                        for dict_player in dict_embed['fields']:
+                            player_name = dict_player['name']
+                            for character in dict_player['value'].split('\n'):
+                                char_name = character[1:-1]
+                                if char_name != 'Filled in another phase':
+                                    if char_name[0:4]=='*` *':
+                                        char_name=char_name[4:]
+                                    if not platoon_name in dict_platoons_allocation:
+                                        dict_platoons_allocation[
+                                            platoon_name] = {}
+                                    if not char_name in dict_platoons_allocation[
+                                            platoon_name]:
+                                        dict_platoons_allocation[platoon_name][
+                                            char_name] = []
+                                    dict_platoons_allocation[platoon_name][
+                                        char_name].append(player_name)
+                    
+                allocation_without_overview = True
+    
+            elif eb_sort_character and message.content.startswith('Common units:'):
+                #EB message by unit
+                for embed in message.embeds:
+                    dict_embed = embed.to_dict()
+                    if 'fields' in dict_embed:
+                        # print(dict_embed)
+                        #on garde le nom de la BT mais on met X comme numéro de phase
+                        #le numéro de phase sera affecté plus tard
+
+                        for dict_char in dict_embed['fields']:
+                            char_name = re.search(':.*: (.*)', dict_char['name']).group(1)
+
+                            for line in dict_char['value'].split('\n'):
+                                if line.startswith("**"):
+                                    ret_re = re.search('\*\*(.*) - P(.)\*\*', line)
+                                    territory_position = ret_re.group(1)
+                                    platoon_position = ret_re.group(2)
+                                    platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
+                                else:
+                                    if ":crown: `[G" in line:
+                                        player_name = re.search("(.*) :crown: `\[G.*", line).group(1)
+                                    elif ":cop: `[G" in line:
+                                        player_name = re.search("(.*) :cop: `\[G.*", line).group(1)
+                                    else:
+                                        player_name = re.search("(.*) `\[G.*", line).group(1)
+                                    
+                                    if player_name != 'Filled in another phase':
+                                        if player_name[0:4]=='*` *':
+                                            player_name=player_name[4:]
+                                        if not platoon_name in dict_platoons_allocation:
+                                            dict_platoons_allocation[platoon_name] = {}
+                                        if not char_name in dict_platoons_allocation[
+                                                platoon_name]:
+                                            dict_platoons_allocation[platoon_name][
+                                                char_name] = []
+                                        dict_platoons_allocation[platoon_name][
+                                            char_name].append(player_name)
+
+                allocation_without_overview = True            
+            elif eb_sort_player and "<@" in message.content and \
+                not (message.content.startswith(":information_source:")):
+
+                #EB message by player
+                for embed in message.embeds:
+                    dict_embed = embed.to_dict()
+                    if 'fields' in dict_embed:
+                        #print(dict_embed)
+                        #on garde le nom de la BT mais on met X comme numéro de phase
+                        #le numéro de phase sera affecté plus tard
+                        player_name = re.search('\*\*(.*)\*\*',
+                                dict_embed['description']).group(1)
+
+                        for dict_platoon in dict_embed['fields']:
+                            platoon_name = tbs_name + "X-" + re.search('(.*) - .*',
+                                dict_platoon['name']).group(1) + "-" + dict_platoon['name'][-1]
+                                
+                            for character in dict_platoon['value'].split('\n'):
+                                char_name = character[1:-1]
+                                if char_name != 'Filled in another phase':
+                                    if char_name[0:4]=='*` *':
+                                        char_name=char_name[4:]
+                                    if not platoon_name in dict_platoons_allocation:
+                                        dict_platoons_allocation[
+                                            platoon_name] = {}
+                                    if not char_name in dict_platoons_allocation[
+                                            platoon_name]:
+                                        dict_platoons_allocation[platoon_name][
+                                            char_name] = []
+                                    dict_platoons_allocation[platoon_name][
+                                        char_name].append(player_name)
+
+                allocation_without_overview = True
+
+            elif message.content.startswith(":information_source: **Overview**"):
+                #Overview of the EB posts. Gives the territory names
+                for line in message.content.split("\n"):
+                    if line.startswith(":"):
+                        ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
+                        if ret_re != None:
+                            territory_name = ret_re.group(1)
+                            territory_position = ret_re.group(2) #top, bottom, mid
+                            
+                            if territory_name in dict_BT_missions[tbs_name]:
+                                territory_name_position = dict_BT_missions[
+                                                        tbs_name][territory_name]
+                            
+                                #Check if this mission/territory has been allocated in previous message
+                                existing_platoons = [i for i in dict_platoons_allocation.keys()
+                                                if i.startswith(territory_name_position)]
+                                                
+                                if len(existing_platoons) == 0:                    
+                                    # with the right name for the territory, modify dictionary
+                                    keys_to_rename=[]                         
+                                    for platoon_name in dict_platoons_allocation:
+                                        if platoon_name.startswith(tbs_name + "X-"+territory_position):
+                                            keys_to_rename.append(platoon_name)
+                                    for key in keys_to_rename:
+                                        new_key = territory_name_position+key[-2:]
+                                        dict_platoons_allocation[new_key] = \
+                                                dict_platoons_allocation[key]
+                                        del dict_platoons_allocation[key]
+                                        
+                            else:
+                                print('Mission \"'+territory_name+'\" inconnue')
+
+
+                allocation_without_overview = False
+                
     return dict_platoons_allocation
 
 
@@ -560,6 +686,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             phase_names_already_displayed = []
             list_txt = []  #[[joueur, peloton, txt], ...]
             list_err = []
+            print(dict_platoons_done["GDS1-top-5"])
+            print(dict_platoons_allocation["GDS1-top-5"])
             for platoon_name in dict_platoons_done:
                 phase_name = platoon_name[0:3]
                 if not phase_name in phase_names_already_displayed:

@@ -373,19 +373,19 @@ class GenericTBSParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if self.state_parser==0:
             if tag=='h2':
-                print('DBG: h2')
+                #print('DBG: h2')
                 self.state_parser=1
 
         if self.state_parser==2:
             if tag=='div':
-                print('DBG: div - '+str(attrs))
+                #print('DBG: div - '+str(attrs))
                 for name, value in attrs:
                     if name=='class' and value=='card card-table':
                         self.state_parser=3
 
         if self.state_parser==3:
             if tag=='a':
-                print('DBG: a - '+str(attrs))
+                #print('DBG: a - '+str(attrs))
                 for name, value in attrs:
                     if name=='href':
                         #print(value.split('/'))
@@ -487,7 +487,6 @@ def parse_warstats_page():
         
     generic_parser = GenericTBSParser()
     generic_parser.feed(str(page.read()))
-    print(generic_parser)
     warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
             
     try:
@@ -506,6 +505,8 @@ def parse_warstats_page():
             platoon_parser.feed(str(page.read()))
             complete_dict_platoons.update(platoon_parser.get_dict_platoons())
             complete_dict_player_allocations.update(platoon_parser.get_dict_player_allocations())
+            #print("DBG - complete_dict_platoons: "+str(complete_dict_platoons))
+            #print("DBG - complete_dict_player_allocations: "+str(complete_dict_player_allocations))
         except urllib.error.HTTPError as e:
             print('WAR: page introuvable '+warstats_platoon_url+'/'+str(phase))
     
