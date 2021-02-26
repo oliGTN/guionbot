@@ -219,13 +219,13 @@ async def get_eb_allocation(tbs_round):
                 allocation_without_overview = True
     
             elif eb_sort_character and message.content.startswith('Common units:'):
-                #EB message by unit
+                #EB message by unit / Common units
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
                     if 'fields' in dict_embed:
                         # print(dict_embed)
-                        #on garde le nom de la BT mais on met X comme numéro de phase
-                        #le numéro de phase sera affecté plus tard
+                        # on garde le nom de la BT mais on met X comme numéro de phase
+                        # le numéro de phase sera affecté plus tard
 
                         for dict_char in dict_embed['fields']:
                             char_name = re.search(':.*: (.*)', dict_char['name']).group(1)
@@ -237,18 +237,52 @@ async def get_eb_allocation(tbs_round):
                                     platoon_position = ret_re.group(2)
                                     platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
                                 else:
-                                    if ":crown: `[G" in line:
-                                        player_name = re.search("(.*) :crown: `\[G.*", line).group(1)
-                                    elif ":cop: `[G" in line:
-                                        player_name = re.search("(.*) :cop: `\[G.*", line).group(1)
-                                    else:
-                                        player_name = re.search("(.*) `\[G.*", line).group(1)
+                                    ret_re = re.search("(`\*` )?(.*) (:crown:|:cop:|) `\[G",
+                                                        line)
+                                    player_name = ret_re.group(2)
                                     
                                     if player_name != 'Filled in another phase':
                                         if player_name[0:4]=='*` *':
                                             player_name=player_name[4:]
                                         if not platoon_name in dict_platoons_allocation:
                                             dict_platoons_allocation[platoon_name] = {}
+                                        if not char_name in dict_platoons_allocation[
+                                                platoon_name]:
+                                            dict_platoons_allocation[platoon_name][
+                                                char_name] = []
+                                        dict_platoons_allocation[platoon_name][
+                                            char_name].append(player_name)
+
+                allocation_without_overview = True 
+                
+            elif eb_sort_character and message.content.startswith('Rare Units:'):
+                #EB message by unit / Rare unis
+                for embed in message.embeds:
+                    dict_embed = embed.to_dict()
+                    if 'fields' in dict_embed:
+                        # print(dict_embed)
+                        # on garde le nom de la BT mais on met X comme numéro de phase
+                        # le numéro de phase sera affecté plus tard
+                        char_name = dict_embed['author']['name']
+                        
+                        for dict_platoon in dict_embed['fields']:
+                            ret_re = re.search('(.*) - .*', dict_platoon['name'])
+                            if ret_re != None:
+                                territory_position = ret_re.group(1)
+                                platoon_name = tbs_name + "X-" + territory_position + \
+                                                "-" + dict_platoon['name'][-1]
+                                    
+                                for line in dict_platoon['value'].split('\n'):
+                                    ret_re = re.search(":.*: (`\*` )?(.*) (:crown:|:cop:|) `\[G",
+                                                    line)
+                                    player_name = ret_re.group(2)
+                                        
+                                    if char_name != 'Filled in another phase':
+                                        if char_name[0:4]=='*` *':
+                                            char_name=char_name[4:]
+                                        if not platoon_name in dict_platoons_allocation:
+                                            dict_platoons_allocation[
+                                                platoon_name] = {}
                                         if not char_name in dict_platoons_allocation[
                                                 platoon_name]:
                                             dict_platoons_allocation[platoon_name][
@@ -293,6 +327,7 @@ async def get_eb_allocation(tbs_round):
 
             elif message.content.startswith(":information_source: **Overview**"):
                 #Overview of the EB posts. Gives the territory names
+                # this name helps allocatting the phase
                 for line in message.content.split("\n"):
                     if line.startswith(":"):
                         ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
@@ -325,6 +360,7 @@ async def get_eb_allocation(tbs_round):
 
 
                 allocation_without_overview = False
+
                 
     return dict_platoons_allocation
 
