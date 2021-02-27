@@ -192,10 +192,11 @@ async def get_eb_allocation(tbs_round):
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
                     if 'fields' in dict_embed:
-                        #print(dict_embed)
+                        # print(dict_embed)
                         #on garde le nom de la BT mais on met X comme numéro de phase
                         #le numéro de phase sera affecté plus tard
-                        ret_re = re.search('\*\*(.*)\*\* - (.*)',dict_embed['description'])
+                        ret_re = re.search(':.*: \*\*(.*)\*\* - (.*)',
+                                            dict_embed['description'])
                         territory_position = ret_re.group(2)
                         platoon_position = ret_re.group(1)[-1]
                         platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
@@ -231,19 +232,18 @@ async def get_eb_allocation(tbs_round):
                             char_name = re.search(':.*: (.*)', dict_char['name']).group(1)
 
                             for line in dict_char['value'].split('\n'):
+                                # print("DBG - line: |"+line+"|")
                                 if line.startswith("**"):
-                                    ret_re = re.search('\*\*(.*) - P(.)\*\*', line)
+                                    ret_re = re.search('\*\*(.*) - [PS](.)\*\*', line)
                                     territory_position = ret_re.group(1)
                                     platoon_position = ret_re.group(2)
                                     platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
                                 else:
-                                    ret_re = re.search("(`\*` )?(.*) (:crown:|:cop:|) `\[G",
+                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
                                                         line)
-                                    player_name = ret_re.group(2)
+                                    player_name = ret_re.group(3)
                                     
                                     if player_name != 'Filled in another phase':
-                                        if player_name[0:4]=='*` *':
-                                            player_name=player_name[4:]
                                         if not platoon_name in dict_platoons_allocation:
                                             dict_platoons_allocation[platoon_name] = {}
                                         if not char_name in dict_platoons_allocation[
@@ -273,9 +273,9 @@ async def get_eb_allocation(tbs_round):
                                                 "-" + dict_platoon['name'][-1]
                                     
                                 for line in dict_platoon['value'].split('\n'):
-                                    ret_re = re.search(":.*: (`\*` )?(.*) (:crown:|:cop:|) `\[G",
+                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
                                                     line)
-                                    player_name = ret_re.group(2)
+                                    player_name = ret_re.group(3)
                                         
                                     if char_name != 'Filled in another phase':
                                         if char_name[0:4]=='*` *':
@@ -722,8 +722,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             phase_names_already_displayed = []
             list_txt = []  #[[joueur, peloton, txt], ...]
             list_err = []
-            print(dict_platoons_done["GDS1-top-5"])
-            print(dict_platoons_allocation["GDS1-top-5"])
+            # print(dict_platoons_done["GDS1-top-5"])
+            # print(dict_platoons_allocation["GDS1-top-5"])
             for platoon_name in dict_platoons_done:
                 phase_name = platoon_name[0:3]
                 if not phase_name in phase_names_already_displayed:
