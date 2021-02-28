@@ -157,7 +157,7 @@ def create_dict_teams(player_data, player_zeta_data):
     #print(dict_players)
     return dict_players
     
-def create_dict_stats(db_stat_data):
+def create_dict_stats(db_stat_data, db_stat_data_mods):
     dict_players={}
 
     cur_name = ''
@@ -182,6 +182,7 @@ def create_dict_stats(db_stat_data):
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {}}
+                
             cur_defId = line_defId
             
         line_unitStatId = line[7]
@@ -189,7 +190,49 @@ def create_dict_stats(db_stat_data):
 
         dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
             int(line_unscaledDecimalValue)
-                                      
+    
+    cur_name = ''
+    for line in db_stat_data_mods:
+        line_name = line[0]
+        if cur_name != line_name:
+            cur_defId = ''
+            cur_name = line_name
+        
+        line_defId = line[1]
+        if cur_defId != line_defId:
+            cur_mod_id = -1
+            dict_players[line_name][line_defId]["mods"]=[]
+            cur_defId = line_defId
+            
+        line_mod_id = line[2]
+        if cur_mod_id != line_mod_id:
+            line_pips = line[3]
+            line_set = line[4]
+            line_level = line[5]
+            dict_players[line_name][line_defId]["mods"].append(
+                {"pips": line_pips,
+                "set": line_set,
+                "level": line_level,
+                "primaryStat": {},
+                "secondaryStat": []
+                })
+                
+            cur_mod_id = line_mod_id
+            
+        line_isPrimary = line[6]
+        line_unitStat = line[7]
+        line_value = line[8]
+        if line_isPrimary:
+            dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["unitStat"] = line_unitStat
+            dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["value"] = line_value
+        else:
+            dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+                {"unitStat": line_unitStat,
+                "value": line_value})
+
+        dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
+            int(line_unscaledDecimalValue)
+    
     return dict_players
     
 def get_zeta_from_shorts(character_id, zeta_shorts):
