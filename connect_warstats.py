@@ -229,7 +229,7 @@ class TBSPhaseParser(HTMLParser):
         if self.state_parser==0:
             if tag=='div':
                 for name, value in attrs:
-                    if name=='class' and value=='phases':
+                    if name=='class' and value.startswith('phases'):
                         self.state_parser=2
                 
         if self.state_parser==2:
