@@ -769,7 +769,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_characters) > 0:
                 if len(list_options) <= 1:
                     ret_cmd = await bot.loop.run_in_executor(None,
-                        go.print_character_stats, characters, allycode, False)
+                        go.print_character_stats, list(characters), allycode, False)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
@@ -818,7 +818,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_characters) > 0:
                 if len(list_options) <= 1:
                     ret_cmd = await bot.loop.run_in_executor(None,
-                        go.print_character_stats, characters, allycode, True)
+                        go.print_character_stats, list(characters), allycode, True)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
