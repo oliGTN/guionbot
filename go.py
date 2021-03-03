@@ -208,7 +208,7 @@ def load_guild(txt_allyCode, load_players):
     return "OK", ret_guild
 
 def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
-                              score_amber, txt_mode, player_name):
+                              score_amber, gv_mode, txt_mode, player_name):
     #score_type :
     #   1 : from 0 to 100% counting rarity/gear+relic/zetas... and 0 for each character below minimum
     #   2 : Same as #1, but still counting scores below minimum
@@ -319,33 +319,55 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
 
                 player_gp = dict_player[character_id]['gp']
 
-                #Display
-                tab_progress_player[i_subobj][i_character -
-                                             1][1] = str(player_rarity)
-                if player_gear < 13:
-                    tab_progress_player[i_subobj][
-                        i_character - 1][1] += '.' + "{:02d}".format(player_gear)
-                else:
-                    tab_progress_player[i_subobj][
-                        i_character - 1][1] += '.R' + str(player_relic)
-                tab_progress_player[i_subobj][
-                    i_character - 1][1] += '.' + str(player_nb_zetas)
 
+                #Progress
                 if score_type == 1:
-                    tab_progress_player[i_subobj][
-                        i_character - 1][0] = progress / progress_100
-                    tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
+                    character_progress = progress / progress_100
                 elif score_type == 2:
-                    tab_progress_player[i_subobj][
-                        i_character - 1][0] = progress / progress_100
-                    tab_progress_player[i_subobj][i_character - 1][2] = False
+                    character_progress = progress / progress_100
                 else:  #score_type==3)
-                    tab_progress_player[i_subobj][i_character - 1][0] = int(
-                        player_gp * player_speed / req_speed)
-                    tab_progress_player[i_subobj][
-                        i_character -
-                        1][1] += '.' + "{:03d}".format(player_speed)
-                    tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
+                    character_progress = int(player_gp * player_speed / req_speed)
+
+                #Display
+                character_display = str(player_rarity)
+                if player_gear < 13:
+                    character_display += '.' + "{:02d}".format(player_gear)                        
+                else:
+                    character_display += '.R' + str(player_relic)
+                character_display += '.' + str(player_nb_zetas)
+                if score_type == 3:
+                    character_display += '.' + "{:03d}".format(player_speed)
+                        
+                if gv_mode:
+                    if player_rarity < req_rarity_reco:
+                        character_display += "\N{UP-POINTING RED TRIANGLE} "+\
+                                            character_id + \
+                                            " est seulement " + \
+                                            str(player_rarity) + "/" +\
+                                            str(req_rarity_reco) +\
+                                            "\N{WHITE MEDIUM STAR}"
+                    elif player_gear < req_gear_reco:
+                        character_display += "\N{CONFUSED FACE} "+\
+                                            character_id + \
+                                            " est seulement G" + \
+                                            str(player_gear) + "/" +\
+                                            str(req_gear_reco)
+                    elif player_relic < req_relic_reco:
+                        character_display += "\N{WHITE RIGHT POINTING BACKHAND INDEX} "+\
+                                            character_id + \
+                                            " est seulement relic " + \
+                                            str(player_relic) + "/" +\
+                                            str(req_relic_reco)
+                    else:
+                        character_display += "\N{WHITE HEAVY CHECK MARK} "+\
+                                            character_id + \
+                                            " est OK"
+                    character_progress_100 = int(character_progress*100)
+                    character_display += " - " + str(character_progress_100) +"%\n"
+
+                tab_progress_player[i_subobj][i_character - 1][0] = character_progress
+                tab_progress_player[i_subobj][i_character - 1][1] = character_display
+                tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
                 # print(tab_progress_player[i_subobj][i_character - 1])
 
             else:
@@ -480,12 +502,13 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
     return entete
 
 def get_team_progress(list_team_names, txt_allyCode, compute_guild,
-                        score_type, score_green, score_amber, txt_mode):
+                        score_type, score_green, score_amber, gv_mode, txt_mode):
                         
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
     liste_team_gt, dict_team_gt = load_config_teams()
+    dict_units = load_config_units()
     
     if not compute_guild:
         #only one player, potentially several teams
@@ -504,6 +527,22 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
 
     if 'all' in list_team_names:
         list_team_names = liste_team_gt
+    elif gv_mode:
+        #Need to transform the name of the team into a character
+        list_character_ids=[]
+        for character_alias in list_team_names:
+            #Get full character name
+            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+            if len(closest_names)<1:
+                ret_print_character_stats += \
+                    'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+            else:
+                [character_name, character_id]=dict_units[closest_names[0]]
+                list_character_ids.append(character_id)
+        list_team_names = [x+"-GV" for x in list_character_ids]
+
+
+
         
     #Get player data
     print("Get player data from DB...")
@@ -531,6 +570,10 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         for team_name in list_team_names:
             query += "guild_teams.name = '"+team_name+"' OR "
         query = query[:-3] + ")\n"
+    elif gv_mode == False:
+        query += "AND NOT guild_teams.name LIKE '%-GV'\n"
+    else:
+        query += "AND guild_teams.name LIKE '%-GV'\n"
        
     query += "GROUP BY players.name, guild_teams.name, guild_team_roster.unit_id, \
             rarity, gear, relic_currentTier, gp \
@@ -563,6 +606,10 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         for team_name in list_team_names:
             query += "guild_teams.name = '"+team_name+"' OR "
         query = query[:-3] + ")\n"
+    elif gv_mode == False:
+        query += "AND NOT guild_teams.name LIKE '%-GV'\n"
+    else:
+        query += "AND guild_teams.name LIKE '%-GV'\n"
        
     query += "ORDER BY allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
     
@@ -581,18 +628,28 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     # Compute teams for this player
     for team_name in list_team_names:
         if not team_name in dict_team_gt:
-            ret_get_team_progress[team_name] = 'ERREUR: team ' + \
-                    team_name + ' inconnue. Liste=' + str(liste_team_gt)
+            if gv_mode:
+                filtered_list_teams = [x[:-3] for x in 
+                                    filter(lambda f:f[-3:]=="-GV", liste_team_gt)]
+                ret_get_team_progress[team_name] = \
+                        'ERREUR: Guide de Voyage inconnu pour ' + \
+                        team_name + '. Liste=' + str(filtered_list_teams)
+            else:
+                filtered_list_teams = [x for x in 
+                                    filter(lambda f:f[-3:]!="-GV", liste_team_gt)]
+                ret_get_team_progress[team_name] = 'ERREUR: team ' + \
+                        team_name + ' inconnue. Liste=' + str(filtered_list_teams)
         else:
             ret_team = ''
             objectifs = dict_team_gt[team_name]
             #print(objectifs)
 
-            if len(list_team_names) == 1 and len(dict_teams.keys()):
-                ret_team += get_team_entete(team_name, objectifs, \
-                                            score_type, txt_mode)
-            else:
-                ret_team += 'Team ' + team_name + '\n'
+            if not gv_mode:
+                if len(list_team_names) == 1 and len(dict_teams.keys()):
+                    ret_team += get_team_entete(team_name, objectifs, \
+                                                score_type, txt_mode)
+                else:
+                    ret_team += 'Team ' + team_name + '\n'
 
             tab_lines = []
             count_green = 0
@@ -606,7 +663,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                 #resultats par joueur
                 score, line, nogo = get_team_line_from_player(
                     dict_player, objectifs, score_type, score_green, score_amber,
-                    txt_mode, player_name)
+                    gv_mode, txt_mode, player_name)
                 tab_lines.append([score, line, nogo])
                 if score >= score_green and not nogo:
                     count_green += 1
