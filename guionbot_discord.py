@@ -826,9 +826,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             ret_cmd = await bot.loop.run_in_executor(None,
                 go.get_team_progress, teams, allycode, True, 1, 100, 80, False)
             for team in ret_cmd:
-                txt_team = ret_cmd[team][0]
-                for txt in goutils.split_txt(txt_team, 1000):
-                    await ctx.send(txt)
+                ret_team = ret_cmd[team]
+                if type(ret_team) == str:
+                    print(ret_team)
+                else:
+                    txt_team = ret_team[0]
+                    for txt in goutils.split_txt(txt_team, 1000):
+                        await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
@@ -859,9 +863,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             ret_cmd = await bot.loop.run_in_executor(None,
                 go.get_team_progress, teams, allycode, False, 1, 100, 80, False)
             for team in ret_cmd:
-                txt_team = ret_cmd[team][0]
-                for txt in goutils.split_txt(txt_team, 1000):
-                    await ctx.send(txt)
+                ret_team = ret_cmd[team]
+                if type(ret_team) == str:
+                    print(ret_team)
+                else:
+                    txt_team = ret_team[0]
+                    for txt in goutils.split_txt(txt_team, 1000):
+                        await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
