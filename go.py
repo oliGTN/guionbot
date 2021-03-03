@@ -240,12 +240,13 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         for character_id in dict_char_subobj:
             progress = 0
             progress_100 = 0
+            
+            character_obj = dict_char_subobj[character_id]
+            i_character = character_obj[0]
             if character_id in dict_player:
                 # print('DBG: '+character_id+' trouvé')
 
                 character_nogo = False
-                character_obj = dict_char_subobj[character_id]
-                i_character = character_obj[0]
                 #print(character_roster)
 
                 #Etoiles
@@ -363,7 +364,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                                             character_id + \
                                             " est OK"
                     character_progress_100 = int(character_progress*100)
-                    character_display += " - " + str(character_progress_100) +"%\n"
+                    character_display += " - " + str(character_progress_100) +"%"
 
                 tab_progress_player[i_subobj][i_character - 1][0] = character_progress
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
@@ -373,14 +374,20 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
             else:
                 # character not found in player's roster
                 # print('DBG: '+character_subobj[0]+' pas trouvé dans '+str(dict_player['roster'].keys()))
-                dict_player[character_id] = {"rarity": 0,
-                                            "gear": 0,
-                                            "rarity": 0,
-                                            "gear": 0,
-                                            "relic_currentTier": 0,
-                                            "gp": 0,
-                                            "speed": 0,
-                                            "zetas": {}}
+                # dict_player[character_id] = {"rarity": 0,
+                                            # "gear": 0,
+                                            # "rarity": 0,
+                                            # "gear": 0,
+                                            # "relic_currentTier": 0,
+                                            # "gp": 0,
+                                            # "speed": 0,
+                                            # "zetas": {}}
+                                            
+                if gv_mode:
+                    character_display = "\N{CROSS MARK} "+\
+                                        character_id + \
+                                        " n'est pas débloqué - 0%"
+                tab_progress_player[i_subobj][i_character - 1][1] += character_display
 
     #calcul du score global
     score = 0
@@ -390,18 +397,19 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         nb_sub_obj = len(objectifs[i_subobj][2])
         for i_character in range(0, nb_sub_obj):
             tab_progress_sub_obj = tab_progress_player[i_subobj][i_character]
-            #print('DBG: '+str(tab_progress_sub_obj))
-            #line+=goutils.pad_txt(str(int(tab_progress_sub_obj[0]*100))+'%', 8)
-            if not tab_progress_sub_obj[2]:
-                if txt_mode:
-                    line += tab_progress_sub_obj[1] + '|'
+            if not gv_mode:
+                if not tab_progress_sub_obj[2]:
+                    if txt_mode:
+                        line += tab_progress_sub_obj[1] + '|'
+                    else:
+                        line += '**' + goutils.pad_txt2(tab_progress_sub_obj[1]) + '**|'
                 else:
-                    line += '**' + goutils.pad_txt2(tab_progress_sub_obj[1]) + '**|'
+                    if txt_mode:
+                        line += tab_progress_sub_obj[1] + '|'
+                    else:
+                        line += goutils.pad_txt2(tab_progress_sub_obj[1]) + '|'
             else:
-                if txt_mode:
-                    line += tab_progress_sub_obj[1] + '|'
-                else:
-                    line += goutils.pad_txt2(tab_progress_sub_obj[1]) + '|'
+                line += tab_progress_sub_obj[1] + "\n"
 
         min_perso = objectifs[i_subobj][1]
         # print('DBG: '+str(tab_progress_player[i_subobj]))
@@ -409,6 +417,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         #Extraction des scores pour les persos non-exclus
         tab_score_player_values = [(lambda f: (f[0] * (not f[2])))(x)
                                    for x in tab_progress_player[i_subobj]]
+
         score += sum(sorted(tab_score_player_values)[-min_perso:])
         score100 += min_perso
         # print('DBG: score='+str(score)+' score100='+str(score100))
@@ -437,7 +446,10 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
             line += '\N{CROSS MARK}'
 
     # Display the IG name only, as @mentions only pollute discord
-    line += '|' + player_name + '\n'
+    if not gv_mode:
+        line += '|' + player_name + '\n'
+    else:
+        line += "% au global"
 
     return score, line, score_nogo
 
