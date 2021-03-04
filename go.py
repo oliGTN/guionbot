@@ -432,7 +432,8 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         score = score / score100 * 100
 
     #affichage du score
-    line += str(int(score))
+    if not gv_mode:
+        line += str(int(score))
 
     # affichage de la couleur
     if not txt_mode:
@@ -448,8 +449,6 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
     # Display the IG name only, as @mentions only pollute discord
     if not gv_mode:
         line += '|' + player_name + '\n'
-    else:
-        line += "% au global"
 
     return score, line, score_nogo
 
@@ -537,9 +536,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
 
-    if 'all' in list_team_names:
-        list_team_names = liste_team_gt
-    elif gv_mode:
+    if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
         list_character_ids=[]
         for character_alias in list_team_names:
@@ -553,9 +550,6 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                 list_character_ids.append(character_id)
         list_team_names = [x+"-GV" for x in list_character_ids]
 
-
-
-        
     #Get player data
     print("Get player data from DB...")
     query = "SELECT players.name, \
@@ -591,7 +585,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             rarity, gear, relic_currentTier, gp \
             ORDER BY players.name, guild_teams.name"
     
-    #print(query)
+    # print(query)
     player_data = connect_mysql.get_table(query)
     #print(player_data)
     
@@ -638,21 +632,26 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     
     
     # Compute teams for this player
+    if gv_mode:
+        filtered_liste_team_gt = [x for x in 
+                                filter(lambda f:f[-3:]=="-GV", liste_team_gt)]
+    else:
+        filtered_liste_team_gt = [x for x in 
+                                filter(lambda f:f[-3:]!="-GV", liste_team_gt)]
+    if 'all' in list_team_names:
+        list_team_names = filtered_liste_team_gt
+    
     for team_name in list_team_names:
-        if not team_name in dict_team_gt:
+        if not (team_name in dict_team_gt) and not ('all' in list_team_names):
             if gv_mode:
-                filtered_list_teams = [x[:-3] for x in 
-                                    filter(lambda f:f[-3:]=="-GV", liste_team_gt)]
                 ret_get_team_progress[team_name] = \
                         'ERREUR: Guide de Voyage inconnu pour ' + \
-                        team_name + '. Liste=' + str(filtered_list_teams)
+                        team_name + '. Liste=' + str(filtered_liste_team_gt)
             else:
-                filtered_list_teams = [x for x in 
-                                    filter(lambda f:f[-3:]!="-GV", liste_team_gt)]
                 ret_get_team_progress[team_name] = 'ERREUR: team ' + \
-                        team_name + ' inconnue. Liste=' + str(filtered_list_teams)
+                        team_name + ' inconnue. Liste=' + str(filtered_liste_team_gt)
         else:
-            ret_team = ''
+            ret_team = []
             objectifs = dict_team_gt[team_name]
             #print(objectifs)
 
@@ -685,13 +684,48 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             #Tri des nogo=False en premier, puis score décroissant
             for score, txt, nogo in sorted(tab_lines,
                                            key=lambda x: (x[2], -x[0])):
-                ret_team += txt
+                ret_team.append([txt, score])
 
             ret_get_team_progress[team_name] = ret_team, count_green, count_amber
 
     return ret_get_team_progress
 
-
+def print_team_progress(list_team_names, txt_allyCode, compute_guild,
+                        score_type, score_green, score_amber, gv_mode, txt_mode):
+    ret_print_team_progress = ""
+    
+    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode,
+                            compute_guild, score_type, score_green, score_amber,
+                            gv_mode, txt_mode)
+    
+    if len(ret_get_team_progress) == 1:
+        #one team only, one player
+        team = list(ret_get_team_progress.keys())[0]
+        ret_team = ret_get_team_progress[team]
+        if type(ret_team) == str:
+            ret_print_team_progress += ret_team
+        else:
+            for ret_player in ret_team[0]:
+                player_txt = ret_player[0]
+                player_score = ret_player[1]
+                ret_print_team_progress += "Progrès pour "+team+"\n"
+                ret_print_team_progress += player_txt + "> Global: "+\
+                                            str(int(player_score))+"%"
+    else:
+        for team in ret_get_team_progress:
+            ret_team = ret_get_team_progress[team]
+            if type(ret_team) == str:
+                ret_print_team_progress += ret_team
+            else:
+                for ret_player in ret_team[0]:
+                    player_txt = ret_player[0]
+                    player_score = ret_player[1]
+                    ret_print_team_progress += team + ": " + \
+                                            str(int(player_score)) + "%\n"
+                                            
+    return ret_print_team_progress
+                        
+                        
 def assign_gt(allyCode, txt_mode):
     ret_assign_gt = ''
 
