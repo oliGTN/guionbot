@@ -261,6 +261,38 @@
             ""
         ]
     },
+    "ARMORER": {
+        "B": [
+            "Frappe temp\u00e9r\u00e9e",
+            false,
+            "basicskill_ARMORER"
+        ],
+        "L": [
+            "Notre survie est notre force",
+            false,
+            "leaderskill_ARMORER"
+        ],
+        "S1": [
+            "Digne du blason",
+            true,
+            "specialskill_ARMORER01"
+        ],
+        "S2": [
+            "Telle est la Voie",
+            false,
+            "specialskill_ARMORER02"
+        ],
+        "U1": [
+            "Chasseur et proie",
+            false,
+            "uniqueskill_ARMORER01"
+        ],
+        "U2": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
     "ASAJVENTRESS": {
         "B": [
             "Frappe cruelle",
@@ -1595,6 +1627,28 @@
             "Rempiler",
             true,
             "uniqueskill_DAKA01"
+        ]
+    },
+    "DARKTROOPER": {
+        "B": [
+            "Frappe pneumatique",
+            false,
+            "basicskill_DARKTROOPER"
+        ],
+        "S1": [
+            "Bombardement des renforts",
+            true,
+            "specialskill_DARKTROOPER01"
+        ],
+        "S2": [
+            "Parfaits soldats",
+            false,
+            "specialskill_DARKTROOPER02"
+        ],
+        "U1": [
+            "Escouade de dark troopers",
+            false,
+            "uniqueskill_DARKTROOPER01"
         ]
     },
     "DARTHMALAK": {
@@ -4992,6 +5046,38 @@
             "uniqueskill_RANGETROOPER01"
         ]
     },
+    "RAZORCREST": {
+        "B": [
+            "Les plus recherch\u00e9s",
+            false,
+            "basicskill_RAZORCREST"
+        ],
+        "S1": [
+            "Rafale de d\u00e9crochage",
+            false,
+            "specialskill_RAZORCREST01"
+        ],
+        "U1": [
+            "Pilote tenace",
+            false,
+            "uniqueskill_RAZORCREST01"
+        ],
+        "U2": [
+            "Transport de confiance",
+            false,
+            "uniqueskill_RAZORCREST02"
+        ],
+        "U3": [
+            "Transpondeur pr\u00e9-Empire",
+            false,
+            "hardwareskill_RAZORCREST"
+        ],
+        "U4": [
+            "Placeholder",
+            false,
+            ""
+        ]
+    },
     "RESISTANCEPILOT": {
         "B": [
             "Tir \u00e0 la hanche",
@@ -5691,6 +5777,97 @@
         ]
     },
     "THEMANDALORIAN": {
+        "B": [
+            "Tir vif",
+            false,
+            "basicskill_THEMANDALORIAN"
+        ],
+        "L": [
+            "Acquisitions",
+            true,
+            "leaderskill_THEMANDALORIAN"
+        ],
+        "S1": [
+            "Transpercer",
+            false,
+            "specialskill_THEMANDALORIAN01"
+        ],
+        "U1": [
+            "Chasseur de primes disciplin\u00e9",
+            true,
+            "uniqueskill_THEMANDALORIAN01"
+        ],
+        "U2": [
+            "Prime du Mandalorien",
+            false,
+            "contractskill_THEMANDALORIAN"
+        ]
+    },
+    "THEMANDALORIANBESKARARMOR": {
+        "B": [
+            "Frappe habile",
+            false,
+            "basicskill_THEMANDALORIANBESKARARMOR"
+        ],
+        "L": [
+            "Tactiques chevronn\u00e9es",
+            true,
+            "leaderskill_THEMANDALORIANBESKARARMOR"
+        ],
+        "S1": [
+            "D\u00e9ploiement disciplin\u00e9",
+            false,
+            "specialskill_THEMANDALORIANBESKARARMOR01"
+        ],
+        "S2": [
+            "Merveille de la Force",
+            false,
+            "specialskill_THEMANDALORIANBESKARARMOR02"
+        ],
+        "S3": [
+            "\u00c9limination rapide",
+            false,
+            ""
+        ],
+        "U1": [
+            "Intuition protectrice",
+            true,
+            "uniqueskill_THEMANDALORIANBESKARARMOR01"
+        ]
+    },
+    "THEMANDALORIANBESKARARMOR_JOURNEY_EVENT_TIER4": {
+        "B": [
+            "Frappe habile",
+            false,
+            "basicskill_THEMANDALORIANBESKARARMOR_JOURNEY_EVENT"
+        ],
+        "L": [
+            "Tactiques chevronn\u00e9es",
+            true,
+            "leaderskill_THEMANDALORIANBESKARARMOR"
+        ],
+        "S1": [
+            "D\u00e9ploiement disciplin\u00e9",
+            false,
+            "specialskill_THEMANDALORIANBESKARARMOR01"
+        ],
+        "S2": [
+            "Merveille de la Force",
+            false,
+            ""
+        ],
+        "S3": [
+            "\u00c9limination rapide",
+            false,
+            ""
+        ],
+        "U1": [
+            "Intuition protectrice",
+            true,
+            "uniqueskill_THEMANDALORIANBESKARARMOR01"
+        ]
+    },
+    "THEMANDALORIAN_MUDDY": {
         "B": [
             "Tir vif",
             false,
