@@ -824,11 +824,15 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_team_progress, teams, allycode, True, 1, 100, 80, False)
+                go.get_team_progress, teams, allycode, True, 1, 100, 80, False, False)
             for team in ret_cmd:
-                txt_team = ret_cmd[team][0]
-                for txt in goutils.split_txt(txt_team, 1000):
-                    await ctx.send(txt)
+                ret_team = ret_cmd[team]
+                if type(ret_team) == str:
+                    await ctx.send(ret_team)
+                else:
+                    for txt_team in ret_team[0]:
+                        for txt in goutils.split_txt(txt_team[0], 1000):
+                            await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
@@ -851,17 +855,79 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await ctx.message.add_reaction(emoji_thumb)
 
         allycode = manage_me(ctx, allycode)
-
         if allycode[0:3] == 'ERR':
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_team_progress, teams, allycode, False, 1, 100, 80, False)
+                go.get_team_progress, teams, allycode, False, 1, 100, 80, False, False)
             for team in ret_cmd:
-                txt_team = ret_cmd[team][0]
-                for txt in goutils.split_txt(txt_team, 1000):
-                    await ctx.send(txt)
+                ret_team = ret_cmd[team]
+                if type(ret_team) == str:
+                    await ctx.send(ret_team)
+                else:
+                    for txt_team in ret_team[0]:
+                        for txt in goutils.split_txt(txt_team[0], 1000):
+                            await ctx.send(txt)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: gvj
+    # Parameters: code allié (string), une liste de persos séparées par des espaces ou "all"
+    # Purpose: Progrès dans le guide de voyage pour un perso
+    # Display: Une ligne par requis du guide de voyage
+    #          un score global à la fin
+    ##############################################################
+    @commands.command(name='gvj',
+                 brief="Donne le progrès dans le guide de voyage pour une perso chez un joueur",
+                 help="Donne le progrès dans le guide de voyage pour une perso chez un un joueur\n\n"\
+                      "Exemple: go.gvj 192126111 all\n"\
+                      "Exemple: go.gvj me SEE\n"\
+                      "Exemple: go.gvj me thrawn JKL")
+    async def gvj(self, ctx, allycode, *teams):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allycode = manage_me(ctx, allycode)
+
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allycode)
+            for txt in goutils.split_txt(ret_cmd, 1000):
+                await ctx.send("`"+txt+"`")
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: gvg
+    # Parameters: code allié (string),
+    #               une liste de persos séparées par des espaces ou "all"
+    # Purpose: Progrès dans le guide de voyage pour un perso
+    # Display: Une ligne par perso - joueur, avec son score
+    ##############################################################
+    @commands.command(name='gvg',
+                 brief="Donne le progrès dans le guide de voyage pour une perso dans la guilde",
+                 help="Donne le progrès dans le guide de voyage pour une perso dans la guilde\n\n"\
+                      "Exemple: go.gvg 192126111 all\n"\
+                      "Exemple: go.gvg me SEE\n"\
+                      "Exemple: go.gvg me thrawn JKL\n"\
+                      "La commande n'affiche que les 40 premiers.")
+    async def gvg(self, ctx, allycode, *teams):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allycode = manage_me(ctx, allycode)
+
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allycode)
+            for txt in goutils.split_txt(ret_cmd, 1000):
+                await ctx.send("`"+txt+"`")
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
