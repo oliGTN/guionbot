@@ -13,6 +13,7 @@ import connect_mysql
 import connect_crinolo
 import goutils
 FORCE_CUT_PATTERN = "SPLIT_HERE"
+MAX_GVG_LINES = 40
 
 #login password sur https://api.swgoh.help/profile
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
@@ -387,7 +388,7 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
                     character_display = "\N{CROSS MARK} "+\
                                         character_id + \
                                         " n'est pas débloqué - 0%"
-                tab_progress_player[i_subobj][i_character - 1][1] += character_display
+                    tab_progress_player[i_subobj][i_character - 1][1] += character_display
 
     #calcul du score global
     score = 0
@@ -508,7 +509,7 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
             else:
                 entete += goutils.pad_txt2(nom_sub_obj) + '|'
 
-    entete += 'GLOB|Joueur\n'
+    entete += 'GLOB|Joueur'
 
     return entete
 
@@ -657,10 +658,11 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
 
             if not gv_mode:
                 if len(list_team_names) == 1 and len(dict_teams.keys()):
-                    ret_team += get_team_entete(team_name, objectifs, \
+                    entete = get_team_entete(team_name, objectifs, \
                                                 score_type, txt_mode)
                 else:
-                    ret_team += 'Team ' + team_name + '\n'
+                    entete = 'Team ' + team_name
+                ret_team.append([entete, 999999, ''])
 
             tab_lines = []
             count_green = 0
@@ -675,57 +677,111 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                 score, line, nogo = get_team_line_from_player(
                     dict_player, objectifs, score_type, score_green, score_amber,
                     gv_mode, txt_mode, player_name)
-                tab_lines.append([score, line, nogo])
+                tab_lines.append([score, line, nogo, player_name])
                 if score >= score_green and not nogo:
                     count_green += 1
                 if score >= score_amber and not nogo:
                     count_amber += 1
 
             #Tri des nogo=False en premier, puis score décroissant
-            for score, txt, nogo in sorted(tab_lines,
+            for score, txt, nogo, name in sorted(tab_lines,
                                            key=lambda x: (x[2], -x[0])):
-                ret_team.append([txt, score])
+                ret_team.append([txt, score, name])
 
             ret_get_team_progress[team_name] = ret_team, count_green, count_amber
 
     return ret_get_team_progress
 
-def print_team_progress(list_team_names, txt_allyCode, compute_guild,
-                        score_type, score_green, score_amber, gv_mode, txt_mode):
-    ret_print_team_progress = ""
+def print_gvj(list_team_names, txt_allyCode):
+    ret_print_gvj = ""
     
     ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode,
-                            compute_guild, score_type, score_green, score_amber,
-                            gv_mode, txt_mode)
+                            False, 1, 100, 80, True, True)
     
+    list_lines = []
     if len(ret_get_team_progress) == 1:
         #one team only, one player
         team = list(ret_get_team_progress.keys())[0]
         ret_team = ret_get_team_progress[team]
         if type(ret_team) == str:
-            ret_print_team_progress += ret_team
+            ret_print_gvj += ret_team
         else:
             for ret_player in ret_team[0]:
                 player_txt = ret_player[0]
                 player_score = ret_player[1]
-                ret_print_team_progress += "Progrès pour "+team+"\n"
-                ret_print_team_progress += player_txt + "> Global: "+\
+                player_name = ret_player[2]
+                ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+team[:-3]+"\n"
+                ret_print_gvj += player_txt + "> Global: "+\
                                             str(int(player_score))+"%"
     else:
+        player_name = ''
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
             if type(ret_team) == str:
-                ret_print_team_progress += ret_team
+                ret_print_gvj += ret_team
             else:
                 for ret_player in ret_team[0]:
                     player_txt = ret_player[0]
                     player_score = ret_player[1]
-                    ret_print_team_progress += team + ": " + \
-                                            str(int(player_score)) + "%\n"
+                    player_name = ret_player[2]
+                    new_line = team[:-3] + " - "+ player_name + ": " + \
+                                    str(int(player_score)) + "%\n"
+                    list_lines.append([player_score, new_line])
                                             
-    return ret_print_team_progress
+        list_lines = sorted(list_lines, key=lambda x: -x[0])
+        if player_name != '':
+            ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+"\n"
+        for line in list_lines:
+            score = line[0]
+            txt = line[1]
+            if score == 100:
+                ret_print_gvj += "\N{WHITE HEAVY CHECK MARK}"
+            elif score > 95:
+                ret_print_gvj += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+            elif score > 80:
+                ret_print_gvj += "\N{CONFUSED FACE}"
+            else:
+                ret_print_gvj += "\N{UP-POINTING RED TRIANGLE}"
+            ret_print_gvj += txt
+
+    return ret_print_gvj
                         
-                        
+def print_gvg(list_team_names, txt_allyCode):
+    ret_print_gvg = ""
+    
+    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode,
+                            True, 1, 100, 80, True, True)
+    
+    list_lines = []
+    for team in ret_get_team_progress:
+        ret_team = ret_get_team_progress[team]
+        if type(ret_team) == str:
+            ret_print_gvg += ret_team + "\n"
+        else:
+            for ret_player in ret_team[0]:
+                player_txt = ret_player[0]
+                player_score = ret_player[1]
+                player_name = ret_player[2]
+                if player_score < 100:
+                    new_line = team[:-3] + " - "+ player_name + ": " + \
+                                    str(int(player_score)) + "%\n"
+                    list_lines.append([player_score, new_line])
+                    
+    list_lines = sorted(list_lines, key=lambda x: -x[0])
+    ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
+    for line in list_lines[:MAX_GVG_LINES]:
+        score = line[0]
+        txt = line[1]
+        if score > 95:
+            ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+        elif score > 80:
+            ret_print_gvg += "\N{CONFUSED FACE}"
+        else:
+            ret_print_gvg += "\N{UP-POINTING RED TRIANGLE}"
+        ret_print_gvg += txt
+        
+    return ret_print_gvg
+                       
 def assign_gt(allyCode, txt_mode):
     ret_assign_gt = ''
 
