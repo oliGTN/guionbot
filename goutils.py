@@ -94,7 +94,7 @@ def split_txt(txt, max_size):
 
     return ret_split_txt
    
-def create_dict_teams(player_data, player_zeta_data):
+def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
     dict_players={}
 
     cur_playername = ''
@@ -153,8 +153,16 @@ def create_dict_teams(player_data, player_zeta_data):
                 [line_defId]["zetas"][line_zeta]=line_level
 
             cur_zeta = line_zeta
-            
-    #print(dict_players)
+
+    cur_playername = ''
+    for line in gv_characters_unlocked:
+        line_playername = line[0]
+        line_defId = line[1]
+        line_teamname = line_defId + "-GV"
+        if not line_teamname in dict_players[line_playername]:
+            dict_players[line_playername][line_teamname] = {}
+        dict_players[line_playername][line_teamname][line_defId]={}
+
     return dict_players
     
 def create_dict_stats(db_stat_data, db_stat_data_mods):
