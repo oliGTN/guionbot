@@ -208,7 +208,7 @@ def load_guild(txt_allyCode, load_players):
     
     return "OK", ret_guild
 
-def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
+def get_team_line_from_player(team_name, dict_player, objectifs, score_type, score_green,
                               score_amber, gv_mode, txt_mode, player_name):
     #score_type :
     #   1 : from 0 to 100% counting rarity/gear+relic/zetas... and 0 for each character below minimum
@@ -431,6 +431,13 @@ def get_team_line_from_player(dict_player, objectifs, score_type, score_green,
         score = score / score100 * 100
     elif score_type == 2:
         score = score / score100 * 100
+        
+    if gv_mode:
+        # in gv_mode, we check if the target character is unlocked
+        # if YES, then the score is 100
+        target_character = team_name[:-3]
+        if target_character in dict_player:
+            score = 100
 
     #affichage du score
     if not gv_mode:
@@ -590,43 +597,66 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     player_data = connect_mysql.get_table(query)
     #print(player_data)
     
-    print("Get zeta data from DB...")
-    query = "SELECT players.name, \
-            guild_teams.name, \
-            guild_team_roster.unit_id, \
-            guild_team_roster_zetas.name as zeta, \
-            roster_skills.level \
-            FROM players \
-            JOIN guild_teams \
-            JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
-            JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id \
-            JOIN guild_team_roster_zetas ON guild_team_roster_zetas.roster_id = guild_team_roster.id \
-            JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.player_id = players.id \
-            JOIN roster_skills ON roster_skills.roster_id = roster.id AND roster_skills.name = guild_team_roster_zetas.name \n"
-    if not compute_guild:
-        query += "WHERE allyCode = '"+txt_allyCode+"'\n"
-    else:
-        query += "WHERE players.guildName = \
-                (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
-    if not 'all' in list_team_names:
-        query += "AND("
-        for team_name in list_team_names:
-            query += "guild_teams.name = '"+team_name+"' OR "
-        query = query[:-3] + ")\n"
-    elif gv_mode == False:
-        query += "AND NOT guild_teams.name LIKE '%-GV'\n"
-    else:
-        query += "AND guild_teams.name LIKE '%-GV'\n"
-       
-    query += "ORDER BY allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
+    if not gv_mode:
+        # Need the zetas to compute the progress of a regular team
+        print("Get zeta data from DB...")
+        query = "SELECT players.name, \
+                guild_teams.name, \
+                guild_team_roster.unit_id, \
+                guild_team_roster_zetas.name as zeta, \
+                roster_skills.level \
+                FROM players \
+                JOIN guild_teams \
+                JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
+                JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id \
+                JOIN guild_team_roster_zetas ON guild_team_roster_zetas.roster_id = guild_team_roster.id \
+                JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.player_id = players.id \
+                JOIN roster_skills ON roster_skills.roster_id = roster.id AND roster_skills.name = guild_team_roster_zetas.name \n"
+        if not compute_guild:
+            query += "WHERE allyCode = '"+txt_allyCode+"'\n"
+        else:
+            query += "WHERE players.guildName = \
+                    (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
+        if not 'all' in list_team_names:
+            query += "AND("
+            for team_name in list_team_names:
+                query += "guild_teams.name = '"+team_name+"' OR "
+            query = query[:-3] + ")\n"
+        elif gv_mode == False:
+            query += "AND NOT guild_teams.name LIKE '%-GV'\n"
+        else:
+            query += "AND guild_teams.name LIKE '%-GV'\n"
+           
+        query += "ORDER BY allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
+        
+        #print(query)
+        player_zeta_data = connect_mysql.get_table(query)
+        #print(player_zeta_data)
+        
+        gv_characters_unlocked = []
     
-    #print(query)
-    player_zeta_data = connect_mysql.get_table(query)
-    #print(player_zeta_data)
+    else:
+        #In gv_mode, there is no requirement for zetas
+        player_zeta_data = []
+        
+        #There is a need to check if the target character is locked or unlocked
+        print("Get GV characters data from DB...")
+        query = "SELECT players.name, defId \
+                FROM roster \
+                JOIN players ON players.id = roster.player_id \n"
+        if not compute_guild:
+            query += "WHERE allyCode = '"+txt_allyCode+"'\n"
+        else:
+            query += "WHERE players.guildName = \
+                    (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
+        query += "AND defId IN (SELECT SUBSTRING_INDEX(name, '-GV', 1) FROM guild_teams WHERE name LIKE '%-GV')"
+        
+        #print(query)
+        gv_characters_unlocked = connect_mysql.get_table(query)        
         
     if len(player_data) > 0:
         print("Recreate dict_teams...")
-        dict_teams = goutils.create_dict_teams(player_data, player_zeta_data)
+        dict_teams = goutils.create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked)
         print("-> OK")
     else:
         print("no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names)+"...")
@@ -674,10 +704,11 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                     dict_player = {}
                     
                 #resultats par joueur
-                score, line, nogo = get_team_line_from_player(
+                score, line, nogo = get_team_line_from_player(team_name,
                     dict_player, objectifs, score_type, score_green, score_amber,
                     gv_mode, txt_mode, player_name)
                 tab_lines.append([score, line, nogo, player_name])
+
                 if score >= score_green and not nogo:
                     count_green += 1
                 if score >= score_amber and not nogo:
