@@ -91,6 +91,8 @@ def load_config_teams():
                     [character_name, character_id]=dict_units[closest_names[0]]
 
                     dict_teams[team][index_categorie][1] = dict_perso['Min Catégorie']
+                    if character_id in dict_teams[team][index_categorie][2]:
+                        print("WAR: twice the same character in that team: "+ character_id)
                     dict_teams[team][index_categorie][2][character_id]=[index_perso,
                                                                         dict_perso['* min'],
                                                                         dict_perso['G min'],
@@ -102,7 +104,7 @@ def load_config_teams():
     
     #Update DB
     connect_mysql.update_guild_teams(dict_teams)
-    
+
     #print('DBG: dict_teams='+str(dict_teams))
     return liste_teams, dict_teams
 
