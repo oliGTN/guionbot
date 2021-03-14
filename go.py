@@ -208,7 +208,7 @@ def load_guild(txt_allyCode, load_players):
     
     return "OK", ret_guild
 
-def get_team_line_from_player(team_name, dict_player, objectifs, score_type, score_green,
+def get_team_line_from_player(team_name, dict_player, dict_team, score_type, score_green,
                               score_amber, gv_mode, txt_mode, player_name):
     #score_type :
     #   1 : from 0 to 100% counting rarity/gear+relic/zetas... and 0 for each character below minimum
@@ -218,6 +218,7 @@ def get_team_line_from_player(team_name, dict_player, objectifs, score_type, sco
 
     line = ''
     # print('DBG: get_team_line_from_player '+dict_player['name'])
+    objectifs = dict_team["categories"]
     nb_subobjs = len(objectifs)
     
     #INIT tableau des resultats
@@ -432,12 +433,15 @@ def get_team_line_from_player(team_name, dict_player, objectifs, score_type, sco
     elif score_type == 2:
         score = score / score100 * 100
         
+    unlocked = False
     if gv_mode:
         # in gv_mode, we check if the target character is unlocked
-        # if YES, then the score is 100
+        # with the target max rarity
         target_character = team_name[:-3]
+        target_rarity = dict_team["rarity"]
         if target_character in dict_player:
-            score = 100
+            if dict_player[target_character]["rarity"] == target_rarity:
+                unlocked = True
 
     #affichage du score
     if not gv_mode:
@@ -458,7 +462,7 @@ def get_team_line_from_player(team_name, dict_player, objectifs, score_type, sco
     if not gv_mode:
         line += '|' + player_name + '\n'
 
-    return score, line, score_nogo
+    return score, unlocked, line, score_nogo
 
 
 def get_team_entete(team_name, objectifs, score_type, txt_mode):
@@ -641,7 +645,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         
         #There is a need to check if the target character is locked or unlocked
         print("Get GV characters data from DB...")
-        query = "SELECT players.name, defId \
+        query = "SELECT players.name, defId, rarity \
                 FROM roster \
                 JOIN players ON players.id = roster.player_id \n"
         if not compute_guild:
@@ -683,7 +687,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                         team_name + ' inconnue. Liste=' + str(filtered_liste_team_gt)
         else:
             ret_team = []
-            objectifs = dict_team_gt[team_name]
+            objectifs = dict_team_gt[team_name]["categories"]
             #print(objectifs)
 
             if not gv_mode:
@@ -704,10 +708,10 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                     dict_player = {}
                     
                 #resultats par joueur
-                score, line, nogo = get_team_line_from_player(team_name,
-                    dict_player, objectifs, score_type, score_green, score_amber,
-                    gv_mode, txt_mode, player_name)
-                tab_lines.append([score, line, nogo, player_name])
+                score, unlocked, line, nogo = get_team_line_from_player(team_name,
+                    dict_player, dict_team_gt[team_name], score_type, score_green,
+                    score_amber, gv_mode, txt_mode, player_name)
+                tab_lines.append([score, unlocked, line, nogo, player_name])
 
                 if score >= score_green and not nogo:
                     count_green += 1
@@ -715,9 +719,9 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                     count_amber += 1
 
             #Tri des nogo=False en premier, puis score décroissant
-            for score, txt, nogo, name in sorted(tab_lines,
+            for score, unlocked, txt, nogo, name in sorted(tab_lines,
                                            key=lambda x: (x[2], -x[0])):
-                ret_team.append([txt, score, name])
+                ret_team.append([txt, score, name, unlocked])
 
             ret_get_team_progress[team_name] = ret_team, count_green, count_amber
 
@@ -744,6 +748,7 @@ def print_gvj(list_team_names, txt_allyCode):
                 ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+team[:-3]+"\n"
                 ret_print_gvj += player_txt + "> Global: "+\
                                             str(int(player_score))+"%"
+
     else:
         player_name = ''
         for team in ret_get_team_progress:
@@ -755,9 +760,10 @@ def print_gvj(list_team_names, txt_allyCode):
                     player_txt = ret_player[0]
                     player_score = ret_player[1]
                     player_name = ret_player[2]
+                    player_unlocked = ret_player[3]
                     new_line = team[:-3] + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
-                    list_lines.append([player_score, new_line])
+                    list_lines.append([player_score, new_line, player_unlocked])
                                             
         list_lines = sorted(list_lines, key=lambda x: -x[0])
         if player_name != '':
@@ -765,7 +771,8 @@ def print_gvj(list_team_names, txt_allyCode):
         for line in list_lines:
             score = line[0]
             txt = line[1]
-            if score == 100:
+            unlocked = line[2]
+            if unlocked:
                 ret_print_gvj += "\N{WHITE HEAVY CHECK MARK}"
             elif score > 95:
                 ret_print_gvj += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
@@ -793,16 +800,19 @@ def print_gvg(list_team_names, txt_allyCode):
                 player_txt = ret_player[0]
                 player_score = ret_player[1]
                 player_name = ret_player[2]
-                if player_score < 100:
+                player_unlocked = ret_player[3]
+                if not player_unlocked:
                     new_line = team[:-3] + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
-                    list_lines.append([player_score, new_line])
+                    list_lines.append([player_score, new_line, player_unlocked])
                     
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
+    ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
     for line in list_lines[:MAX_GVG_LINES]:
         score = line[0]
         txt = line[1]
+        unlocked : line[2]
         if score > 95:
             ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
         elif score > 80:
