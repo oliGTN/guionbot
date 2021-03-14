@@ -40,13 +40,13 @@ def get_gapi_client():
 # Parameters: none
 # Purpose: lit l'onglet "teams" du fichier Sheets
 # Output: liste_teams (liste des noms d'équipe)
-#         dict_teams {key=team_name,
-#                     value=[[catégorie, nombre nécessaire,
-#                               {key=nom,
-#                                value=[id, étoiles min, gear min, étoiles reco,
-#                                       gear reco, liste zeta, vitesse, nom court]
-#                                }
-#                             ], ...]
+#         dict_teams {team_name: {
+#                           rarity: rarity for a GV character
+#                           categories:[[catégorie, nombre nécessaire,
+#                               {char_alias: [id, étoiles min, gear min, étoiles reco,
+#                                       gear reco, liste zeta, vitesse]
+#                               }
+#                           ], ...]
 #                      }
 ##############################################################
 def load_config_teams():
@@ -59,9 +59,7 @@ def load_config_teams():
     dict_units = load_config_units()
 
     #Get latest definition of teams
-    dict_teams={} # {team_name: [[catégorie, nombre nécessaire,
-                  #               {character_id: [index, étoiles min, gear min, étoiles reco, gear reco,
-                  #                               [liste zeta], vitesse, nom court]}]]}
+    dict_teams={}
 
     liste_dict_feuille=feuille.get_all_records()
     #print(liste_dict_feuille)
@@ -74,11 +72,13 @@ def load_config_teams():
         liste_categories=sorted(set(complete_liste_categories), key=lambda x: complete_liste_categories.index(x))
         
         #print('liste_categories='+str(liste_categories))
-        dict_teams[team]=[[] for i in range(len(liste_categories))]
+        dict_teams[team]={"rarity":liste_dict_team[0]["GV*"],
+                          "categories":[[] for i in range(len(liste_categories))]
+                          }
         index_categorie=-1
         for categorie in liste_categories:
             index_categorie+=1
-            dict_teams[team][index_categorie]=[categorie, 0, {}]
+            dict_teams[team]["categories"][index_categorie]=[categorie, 0, {}]
             liste_dict_categorie=list(filter(lambda x : x['Catégorie'] == categorie, liste_dict_team))
             index_perso=0
             for dict_perso in liste_dict_categorie:
@@ -90,10 +90,10 @@ def load_config_teams():
                 else:
                     [character_name, character_id]=dict_units[closest_names[0]]
 
-                    dict_teams[team][index_categorie][1] = dict_perso['Min Catégorie']
-                    if character_id in dict_teams[team][index_categorie][2]:
+                    dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
+                    if character_id in dict_teams[team]["categories"][index_categorie][2]:
                         print("WAR: twice the same character in that team: "+ character_id)
-                    dict_teams[team][index_categorie][2][character_id]=[index_perso,
+                    dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
                                                                         dict_perso['* min'],
                                                                         dict_perso['G min'],
                                                                         dict_perso['* reco'],
