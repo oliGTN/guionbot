@@ -158,10 +158,12 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
     for line in gv_characters_unlocked:
         line_playername = line[0]
         line_defId = line[1]
+        line_rarity = line[2]
         line_teamname = line_defId + "-GV"
         if not line_teamname in dict_players[line_playername]:
             dict_players[line_playername][line_teamname] = {}
-        dict_players[line_playername][line_teamname][line_defId]={}
+        dict_players[line_playername][line_teamname][line_defId]={ \
+                                                "rarity": line_rarity}
 
     return dict_players
     
