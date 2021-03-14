@@ -72,7 +72,7 @@ def update_guild_teams(dict_team):
         # "JKR/Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important;1|GENERALKENOBI...\DR/Requis..."
         
         for team_name in dict_team:
-            team = dict_team[team_name]
+            team = dict_team[team_name]["categories"]
             
             subteams_txt = ""
             # Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important...
