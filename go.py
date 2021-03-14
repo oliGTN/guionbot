@@ -440,7 +440,7 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
         target_character = team_name[:-3]
         target_rarity = dict_team["rarity"]
         if target_character in dict_player:
-            if dict_player[target_character]["rarity"] == target_rarity:
+            if dict_player[target_character]["rarity"] >= target_rarity:
                 unlocked = True
 
     #affichage du score
