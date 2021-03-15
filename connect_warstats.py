@@ -165,6 +165,23 @@ dict_platoon_names['GDS4']['A']='top'
 dict_platoon_names['GDS4']['B']='mid'
 dict_platoon_names['GDS4']['C']='bottom'
 
+dict_platoon_names['GLS1']={}
+dict_platoon_names['GLS1']['A']='top'
+dict_platoon_names['GLS1']['B']='mid'
+dict_platoon_names['GLS1']['C']='bottom'
+dict_platoon_names['GLS2']={}
+dict_platoon_names['GLS2']['A']='top'
+dict_platoon_names['GLS2']['B']='mid'
+dict_platoon_names['GLS2']['C']='bottom'
+dict_platoon_names['GLS3']={}
+dict_platoon_names['GLS3']['A']='top'
+dict_platoon_names['GLS3']['B']='mid'
+dict_platoon_names['GLS3']['C']='bottom'
+dict_platoon_names['GLS4']={}
+dict_platoon_names['GLS4']['A']='top'
+dict_platoon_names['GLS4']['B']='mid'
+dict_platoon_names['GLS4']['C']='bottom'
+
 dict_platoon_names['HLS1']={}
 dict_platoon_names['HLS1']['A']='top'
 dict_platoon_names['HLS2']={}
