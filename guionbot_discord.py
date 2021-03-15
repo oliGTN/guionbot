@@ -294,9 +294,11 @@ async def get_eb_allocation(tbs_round):
             elif eb_sort_player and "<@" in message.content and \
                 not (message.content.startswith(":information_source:")):
 
+                # print("DBG - message.content:"+str(message.content))
                 #EB message by player
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
+                    # print("DBG - dict_embed:"+str(dict_embed))
                     if 'fields' in dict_embed:
                         #print(dict_embed)
                         #on garde le nom de la BT mais on met X comme numéro de phase
@@ -305,6 +307,7 @@ async def get_eb_allocation(tbs_round):
                                 dict_embed['description']).group(1)
 
                         for dict_platoon in dict_embed['fields']:
+                            # print("DBG - dict_platoon['name']:"+str(dict_platoon['name']))
                             platoon_name = tbs_name + "X-" + re.search('(.*) - .*',
                                 dict_platoon['name']).group(1) + "-" + dict_platoon['name'][-1]
                                 
@@ -358,8 +361,11 @@ async def get_eb_allocation(tbs_round):
                             else:
                                 print('Mission \"'+territory_name+'\" inconnue')
 
-
+                #Also reset parsing status as it is the top (so the end) of the allocation
                 allocation_without_overview = False
+                eb_sort_character=False
+                eb_sort_territory = False
+                eb_sort_player = False
 
                 
     return dict_platoons_allocation
