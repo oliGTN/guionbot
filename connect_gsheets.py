@@ -8,11 +8,15 @@ import json
 import requests
 import difflib
 import connect_mysql
+import datetime
+from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
 client=None
+
+guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
 
 ##############################################################
 # Function: get_gapi_client
@@ -145,28 +149,6 @@ def load_config_players():
     return dict_players_by_IG, dict_players_by_ID
 
 ##############################################################
-# Function: load_config_bt
-# Parameters: none
-# Purpose: lit l'onglet "BT" du fichier Sheets
-# Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
-##############################################################
-def load_config_bt():
-    global client    
-    get_gapi_client()
-    file = client.open("GuiOnBot config")
-    feuille=file.worksheet("BT")
-
-    liste_dict_feuille=feuille.get_all_records()
-    liste_teams = []
-    for ligne in liste_dict_feuille:
-        for key in ligne.keys():
-            if key=='Besoin guilde':
-                liste_teams.append(ligne[key])
-            else:
-                continue
-    return liste_teams
-
-##############################################################
 # Function: load_config_gt
 # Parameters: none
 # Purpose: lit l'onglet "GT" du fichier Sheets
@@ -293,7 +275,6 @@ def update_online_dates(dict_lastseen):
         online_dates=feuille.col_values(col_date)
 
         #Looping through lines, through the ID column
-        online_dates=feuille.col_values(col_date)
         l = 1
         for str_id in ids:
             if l > 1:
@@ -341,6 +322,108 @@ def update_online_dates(dict_lastseen):
     else:
         print('At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
 
-#MAIN (DEBUG, à commenter avant mise en service)
-
+def get_tb_triggers(territory_scores):
+    global client    
+    get_gapi_client()
     
+    try:
+        file = client.open("GuiOnBot config")
+        feuille=file.worksheet("BT")
+    except:
+        print("Unexpected error: "+str(sys.exc_info()[0]))
+        return
+        
+    #parsing title row
+    col_territory=0
+    col_gp=0
+    col_id=0
+    col_date=0
+    territory_column_title='Territoire alerte'
+    gp_alert_column_title='PG alerte'
+    discord_id_column_title='Discord ID alerte'
+    date_column_title='Date alerte'
+
+    list_tb_triggers=[]
+    
+    c = 1
+    first_row=feuille.row_values(1)
+    for value in first_row:
+        if value==territory_column_title:
+            col_territory=c
+        elif value==gp_alert_column_title:
+            col_gp=c
+        elif value==discord_id_column_title:
+            col_id=c
+        elif value==date_column_title:
+            col_date=c
+        c+=1
+
+    if (col_date > 0) and (col_territory > 0) \
+        and (col_gp > 0) and (col_id > 0):
+        
+        territories=feuille.col_values(col_territory)
+        gp_alerts=feuille.col_values(col_gp)
+        discord_ids=feuille.col_values(col_id)
+        alert_dates=feuille.col_values(col_date)
+
+        #Looping through lines, through the ID column
+        l = 1
+        for territory in territories:
+            if l > 1:
+                print("DBG - territory: "+str(territory))
+                if territory=='':
+                    #no territory definition, ignore
+                    pass
+                else:
+                    if territory in territory_scores:
+                        cur_score = territory_scores[territory]
+
+                        if l <= len(gp_alerts):
+                            gp_alert = gp_alerts[l-1]
+                            if gp_alert:
+                                gp_alert=int(gp_alert)
+                            else:
+                                gp_alert = -1
+                        else:
+                            gp_alert = -1
+
+                        if l <= len(alert_dates):
+                            cur_date = alert_dates[l-1]
+                        else:
+                            cur_date = ''
+                            
+                        print("DBG - cur_score: "+str(cur_score))
+                        print("DBG - gp_alert: "+str(gp_alert))
+                        print("DBG - cur_date: "+str(cur_date))
+                        if cur_date == '' and cur_score >= gp_alert and gp_alert!=-1:
+                            discord_id = discord_ids[l-1]
+                            message = "BT: "+territory+" a atteint "+str(cur_score)+"/"+str(gp_alert)
+                            print("DBG - message: "+str(message))
+                            list_tb_triggers.append([discord_id, message])
+                            
+                            last_date_value=datetime.datetime.now(guild_timezone).strftime("%Y-%m-%d %H:%M:%S")
+                            if l > len(alert_dates):
+                                alert_dates.append([last_date_value])
+                            else:
+                                alert_dates[l-1] = [last_date_value]
+                        else:
+                            #no alert to be sent, just keep the date if already there
+                            if l > len(alert_dates):
+                                alert_dates.append([''])
+                            else:
+                                alert_dates[l-1] = [alert_dates[l-1]]
+            else:
+                # Title line. Need to keep it, changing the format to a list
+                alert_dates[l-1]=[alert_dates[l-1]]
+            l+=1
+        
+        column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
+        range_name=column_letter+'1:'+column_letter+str(l-1)
+        feuille.update(range_name, alert_dates, value_input_option='USER_ENTERED')
+    else:
+        print('At least one column among "'+territory_column_title+'", "' +\
+                gp_alert_column_title+'", "' +\
+                discord_id_column_title+'" and "' +\
+                date_column_title+'" is not found >> BT alerts not sent')
+                
+    return list_tb_triggers

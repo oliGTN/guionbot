@@ -8,9 +8,10 @@ import difflib
 import math
 from functools import reduce
 from math import ceil
-from connect_gsheets import load_config_bt, load_config_teams, load_config_players, load_config_gt, load_config_counter, load_config_units
+import connect_gsheets
 import connect_mysql
 import connect_crinolo
+import connect_warstats
 import goutils
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
@@ -530,8 +531,8 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
-    liste_team_gt, dict_team_gt = load_config_teams()
-    dict_units = load_config_units()
+    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams()
+    dict_units = connect_gsheets.load_config_units()
     
     if not compute_guild:
         #only one player, potentially several teams
@@ -826,9 +827,9 @@ def print_gvg(list_team_names, txt_allyCode):
 def assign_gt(allyCode, txt_mode):
     ret_assign_gt = ''
 
-    dict_players = load_config_players()[0]
+    dict_players = connect_gsheets.load_config_players()[0]
 
-    liste_territoires = load_config_gt()
+    liste_territoires = connect_gsheets.load_config_gt()
         # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
     liste_team_names = []
     for territoire in liste_territoires:
@@ -906,7 +907,7 @@ def guild_counter_score(txt_allyCode):
 {FORCE_CUT_PATTERN}
 """
 
-    list_counter_teams = load_config_counter()
+    list_counter_teams = connect_gsheets.load_config_counter()
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
     dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True,
@@ -916,7 +917,7 @@ def guild_counter_score(txt_allyCode):
     # dict_needed_teams[k][0]=[]
     # print(list_counter_teams)
 
-    gt_teams = load_config_gt()
+    gt_teams = connect_gsheets.load_config_gt()
     gt_teams = [(name[0], name[1]) for name in
                 [teams for territory in gt_teams for teams in territory[1]]]
 
@@ -1021,7 +1022,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
     ret_print_character_stats = ''
 
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = load_config_units()
+    dict_units = connect_gsheets.load_config_units()
 
     list_stats_for_display=[[5, "Vit", False, 'v'],
                             [6, "DegPhy", False, 'd'],
@@ -1468,7 +1469,7 @@ def get_farm_cost_from_alias(txt_allyCode, character_alias, target_stats):
     #target_stats=[rarity, gear, relic]
     
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = load_config_units()
+    dict_units = connect_gsheets.load_config_units()
 
     #Get full character name
     closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
@@ -1490,7 +1491,7 @@ def get_farm_cost_from_alias(txt_allyCode, character_alias, target_stats):
 
 def player_journey_progress(txt_allyCode, character_alias):
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = load_config_units()
+    dict_units = connect_gsheets.load_config_units()
 
     #Get full character name
     closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
@@ -1592,3 +1593,9 @@ def player_journey_progress(txt_allyCode, character_alias):
         total_progress+=progress
 
     return [total_progress/total_progress_100, '', dict_player['name'], character_name, list_progress]
+
+def get_tb_alerts():
+    territory_scores = connect_warstats.parse_warstats_tb_scores()
+    tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores)
+    
+    return tb_trigger_messages

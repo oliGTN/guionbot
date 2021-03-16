@@ -165,6 +165,23 @@ dict_platoon_names['GDS4']['A']='top'
 dict_platoon_names['GDS4']['B']='mid'
 dict_platoon_names['GDS4']['C']='bottom'
 
+dict_platoon_names['GLS1']={}
+dict_platoon_names['GLS1']['A']='top'
+dict_platoon_names['GLS1']['B']='mid'
+dict_platoon_names['GLS1']['C']='bottom'
+dict_platoon_names['GLS2']={}
+dict_platoon_names['GLS2']['A']='top'
+dict_platoon_names['GLS2']['B']='mid'
+dict_platoon_names['GLS2']['C']='bottom'
+dict_platoon_names['GLS3']={}
+dict_platoon_names['GLS3']['A']='top'
+dict_platoon_names['GLS3']['B']='mid'
+dict_platoon_names['GLS3']['C']='bottom'
+dict_platoon_names['GLS4']={}
+dict_platoon_names['GLS4']['A']='top'
+dict_platoon_names['GLS4']['B']='mid'
+dict_platoon_names['GLS4']['C']='bottom'
+
 dict_platoon_names['HLS1']={}
 dict_platoon_names['HLS1']['A']='top'
 dict_platoon_names['HLS2']={}
@@ -364,6 +381,7 @@ class GenericTBSParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.warstats_battle_id=''
+        self.warstats_battle_in_progress=''
         self.state_parser=0
         #0: en recherche de h2
         #1: en recherche de data=Territory Battles
@@ -384,7 +402,12 @@ class GenericTBSParser(HTMLParser):
                         self.state_parser=3
 
         if self.state_parser==3:
-            if tag=='a':
+            if tag=="i":
+                #print('DBG: i - '+str(attrs))
+                for name, value in attrs:
+                    if name=='title' and value=='In progress':
+                        self.warstats_battle_in_progress=True
+            elif tag=='a':
                 #print('DBG: a - '+str(attrs))
                 for name, value in attrs:
                     if name=='href':
@@ -400,21 +423,40 @@ class GenericTBSParser(HTMLParser):
                 self.state_parser=0
                 
     def get_battle_id(self):
-        return self.warstats_battle_id
-        
+        if self.warstats_battle_in_progress:
+            return self.warstats_battle_id
+        else:
+            return None
+                
 class TBSResumeParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.list_data=[]
         self.list_open_territories=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
+        self.territory_scores=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
         self.active_round=0
+        self.detected_phase=''
         
-        self.state_parser=0
+        self.state_parser=-4
+        #-4: en recherche de h2
+        #-3: en recharche de data="Territory Battle"
+        #-2: en recherche de small
+        #-1: en recherche de data
         #0: en recherche de div id="resume"
         #1: en recherche de div class="valign-wrapper
         #2; en recherche de data
+        #3: en recherche de div class="score-text"
+        #4; en recherche de data
 
     def handle_starttag(self, tag, attrs):
+        if self.state_parser==-4:
+            if tag=='h2':
+                self.state_parser=-3
+                        
+        if self.state_parser==-2:
+            if tag=='small':
+                self.state_parser=-1
+                        
         if self.state_parser==0:
             if tag=='div':
                 for name, value in attrs:
@@ -427,6 +469,12 @@ class TBSResumeParser(HTMLParser):
                     if name=='class' and value=='valign-wrapper full-line':
                         self.list_data=[]
                         self.state_parser=2
+                        
+        elif self.state_parser==3:
+            if tag=='div':
+                for name, value in attrs:
+                    if name=='class' and value=='score-text':
+                        self.state_parser=4
 
     def handle_endtag(self, tag):
         if self.state_parser==2:
@@ -442,18 +490,65 @@ class TBSResumeParser(HTMLParser):
                     self.list_open_territories[1]=territory_phase
                 else: #South
                     self.list_open_territories[2]=territory_phase
-                self.state_parser=1
+                self.state_parser=3
                         
     def handle_data(self, data):
+        if self.state_parser==-3:
+            #print(data)
+            if data == 'Territory Battle ':
+                self.state_parser=-2
+            else:
+                self.state_parser=-4
+                
+        if self.state_parser==-1:
+            #print(data)
+            if data == 'Geonosian - Dark side':
+                self.detected_phase='GDS'
+            elif data == 'Geonosian - Light side':
+                self.detected_phase='GLS'
+            elif data == 'Hoth - Dark side':
+                self.detected_phase='HDS'
+            elif data == 'Hoth - Light side':
+                self.detected_phase='HLS'
+            else:
+                print('ERR: BT inconnue: '+data)
+            
+            self.state_parser=0
+                
         if self.state_parser==2:
             if data[0]!='\\':
                 self.list_data.append(data.strip())
+        elif self.state_parser==4:
+            number = int(data.replace('/', '').replace(',', '').strip("\\n\\t "))
+            if self.list_data[0]=='North':
+                self.territory_scores[0]=number
+            elif self.list_data[0]=='Middle':
+                self.territory_scores[1]=number
+            else: #South
+                self.territory_scores[2]=number
+            self.state_parser=1
                 
     def set_active_round(self, active_round):
         self.active_round=active_round
 
     def get_open_territories(self):
         return self.list_open_territories
+
+    def get_territory_scores(self):
+        dict_territory_scores = {}
+        if self.list_open_territories[0] > 0:
+            top_name = self.detected_phase+"-P"+str(self.list_open_territories[0])+"-top"
+            dict_territory_scores[top_name] = self.territory_scores[0]
+        if self.list_open_territories[1] > 0:
+            top_name = self.detected_phase+"-P"+str(self.list_open_territories[1])+"-mid"
+            dict_territory_scores[top_name] = self.territory_scores[1]
+        if self.list_open_territories[2] > 0:
+            top_name = self.detected_phase+"-P"+str(self.list_open_territories[2])+"-bot"
+            dict_territory_scores[top_name] = self.territory_scores[2]
+        return dict_territory_scores
+
+    def get_battle_name(self):
+        return self.detected_phase
 
 
 ###############################################################
@@ -478,7 +573,6 @@ def fresh_urlopen(url):
     return urllib.request.urlopen(req)
 
 def parse_warstats_page():
-
     try:
         page = fresh_urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
@@ -487,8 +581,14 @@ def parse_warstats_page():
         
     generic_parser = GenericTBSParser()
     generic_parser.feed(str(page.read()))
+    
+    if generic_parser.get_battle_id() == None:
+        print('ERR: no TB in progress')
+        return '', None, None, None
+    else:
+        print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
+        
     warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
-            
     try:
         page = fresh_urlopen(warstats_platoon_url)
     except urllib.error.HTTPError as e:
@@ -515,9 +615,34 @@ def parse_warstats_page():
     resume_parser = TBSResumeParser()
     resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
     resume_parser.feed(str(page.read()))
-    #print(resume_parser.get_open_territories())
     
-    return platoon_parser.get_active_round(), complete_dict_platoons, complete_dict_player_allocations, resume_parser.get_open_territories()
+    return platoon_parser.get_active_round(), complete_dict_platoons, \
+        complete_dict_player_allocations, resume_parser.get_open_territories()
+
+def parse_warstats_tb_scores():
+    try:
+        page = fresh_urlopen(warstats_tbs_url)
+    except urllib.error.HTTPError as e:
+        print('ERR: while opening '+warstats_tbs_url)
+        return []
+        
+    generic_parser = GenericTBSParser()
+    generic_parser.feed(str(page.read()))
+    
+    if generic_parser.get_battle_id() == None:
+        print('ERR: no TB in progress')
+        return []
+    else:
+        print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
+    
+    warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()
+    page = fresh_urlopen(warstats_resume_url)
+    resume_parser = TBSResumeParser()
+    # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
+    resume_parser.feed(str(page.read()))
+    
+    print("TB name = "+resume_parser.get_battle_name())
+    return resume_parser.get_territory_scores()
 
 #MAIN
 #parse_warstats_page()
