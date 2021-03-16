@@ -131,6 +131,17 @@ async def bot_loop_60():
                             list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
             update_online_dates(dict_lastseen)
+            
+            #CHECK ALERTS FOR BT
+            list_tb_alerts = go.get_tb_alerts()
+            for tb_alert in list_tb_alerts:
+                userid = tb_alert[0]
+                message = tb_alert[1]
+                
+                member = bot.get_user(int(userid))
+                channel = await member.create_dm()
+                await channel.send(message)
+            
         except Exception as e:
             print("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
             print(e)
