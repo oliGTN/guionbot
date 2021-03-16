@@ -500,7 +500,17 @@ class TBSResumeParser(HTMLParser):
         return self.list_open_territories
 
     def get_territory_scores(self):
-        return self.territory_scores
+        dict_territory_scores = {}
+        if self.list_open_territories[0] > 0:
+            top_name = "P"+str(self.list_open_territories[0])+"-top"
+            dict_territory_scores[top_name] = self.territory_scores[0]
+        if self.list_open_territories[1] > 0:
+            top_name = "P"+str(self.list_open_territories[1])+"-mid"
+            dict_territory_scores[top_name] = self.territory_scores[1]
+        if self.list_open_territories[2] > 0:
+            top_name = "P"+str(self.list_open_territories[2])+"-bot"
+            dict_territory_scores[top_name] = self.territory_scores[2]
+        return dict_territory_scores
 
 
 ###############################################################
