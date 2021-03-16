@@ -149,28 +149,6 @@ def load_config_players():
     return dict_players_by_IG, dict_players_by_ID
 
 ##############################################################
-# Function: load_config_bt
-# Parameters: none
-# Purpose: lit l'onglet "BT" du fichier Sheets
-# Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
-##############################################################
-def load_config_bt():
-    global client    
-    get_gapi_client()
-    file = client.open("GuiOnBot config")
-    feuille=file.worksheet("BT")
-
-    liste_dict_feuille=feuille.get_all_records()
-    liste_teams = []
-    for ligne in liste_dict_feuille:
-        for key in ligne.keys():
-            if key=='Besoin guilde':
-                liste_teams.append(ligne[key])
-            else:
-                continue
-    return liste_teams
-
-##############################################################
 # Function: load_config_gt
 # Parameters: none
 # Purpose: lit l'onglet "GT" du fichier Sheets
