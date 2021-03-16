@@ -370,7 +370,7 @@ def get_tb_triggers(territory_scores):
         l = 1
         for territory in territories:
             if l > 1:
-                print("DBG - territory: "+str(territory))
+                # print("DBG - territory: "+str(territory))
                 if territory=='':
                     #no territory definition, ignore
                     pass
@@ -392,13 +392,13 @@ def get_tb_triggers(territory_scores):
                         else:
                             cur_date = ''
                             
-                        print("DBG - cur_score: "+str(cur_score))
-                        print("DBG - gp_alert: "+str(gp_alert))
-                        print("DBG - cur_date: "+str(cur_date))
+                        # print("DBG - cur_score: "+str(cur_score))
+                        # print("DBG - gp_alert: "+str(gp_alert))
+                        # print("DBG - cur_date: "+str(cur_date))
                         if cur_date == '' and cur_score >= gp_alert and gp_alert!=-1:
                             discord_id = discord_ids[l-1]
                             message = "BT: "+territory+" a atteint "+str(cur_score)+"/"+str(gp_alert)
-                            print("DBG - message: "+str(message))
+                            # print("DBG - message: "+str(message))
                             list_tb_triggers.append([discord_id, message])
                             
                             last_date_value=datetime.datetime.now(guild_timezone).strftime("%Y-%m-%d %H:%M:%S")
