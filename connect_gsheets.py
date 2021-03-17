@@ -371,15 +371,12 @@ def get_tb_triggers(territory_scores):
         for territory in territories:
             if l > 1:
                 # print("DBG - territory: "+str(territory))
-                if territory=='':
-                    #no territory definition, ignore
-                    pass
-                else:
+                if territory!='':
                     if territory in territory_scores:
                         cur_score = territory_scores[territory]
 
                         if l <= len(gp_alerts):
-                            gp_alert = gp_alerts[l-1]
+                            gp_alert = gp_alerts[l-1].replace('\u202f', '')
                             if gp_alert:
                                 gp_alert=int(gp_alert)
                             else:
@@ -394,7 +391,7 @@ def get_tb_triggers(territory_scores):
                             
                         # print("DBG - cur_score: "+str(cur_score))
                         # print("DBG - gp_alert: "+str(gp_alert))
-                        # print("DBG - cur_date: "+str(cur_date))
+                        print("DBG - cur_date: "+str(cur_date))
                         if cur_date == '' and cur_score >= gp_alert and gp_alert!=-1:
                             discord_id = discord_ids[l-1]
                             message = "BT: "+territory+" a atteint "+str(cur_score)+"/"+str(gp_alert)
@@ -411,7 +408,16 @@ def get_tb_triggers(territory_scores):
                             if l > len(alert_dates):
                                 alert_dates.append([''])
                             else:
+                                print("---")
+                                print(alert_dates[l-1])
                                 alert_dates[l-1] = [alert_dates[l-1]]
+                                print(alert_dates[l-1])
+                    else:
+                        # Title line. Need to keep it, changing the format to a list
+                        alert_dates[l-1]=[alert_dates[l-1]]
+                else:
+                    # Title line. Need to keep it, changing the format to a list
+                    alert_dates[l-1]=[alert_dates[l-1]]
             else:
                 # Title line. Need to keep it, changing the format to a list
                 alert_dates[l-1]=[alert_dates[l-1]]
@@ -419,6 +425,7 @@ def get_tb_triggers(territory_scores):
         
         column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
         range_name=column_letter+'1:'+column_letter+str(l-1)
+        print(alert_dates)
         feuille.update(range_name, alert_dates, value_input_option='USER_ENTERED')
     else:
         print('At least one column among "'+territory_column_title+'", "' +\
