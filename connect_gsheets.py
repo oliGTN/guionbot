@@ -425,7 +425,6 @@ def get_tb_triggers(territory_scores):
         
         column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
         range_name=column_letter+'1:'+column_letter+str(l-1)
-        print(alert_dates)
         feuille.update(range_name, alert_dates, value_input_option='USER_ENTERED')
     else:
         print('At least one column among "'+territory_column_title+'", "' +\
