@@ -322,7 +322,7 @@ def update_online_dates(dict_lastseen):
     else:
         print('At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
 
-def get_tb_triggers(territory_scores):
+def get_tb_triggers(territory_scores, return_active_triggers):
     global client    
     get_gapi_client()
     
@@ -344,6 +344,7 @@ def get_tb_triggers(territory_scores):
     date_column_title='Date alerte'
 
     list_tb_triggers=[]
+    list_active_tb_triggers=[]
     
     c = 1
     first_row=feuille.row_values(1)
@@ -413,7 +414,12 @@ def get_tb_triggers(territory_scores):
                         #no alert to be sent, just keep the date if already there
                         if l > len(alert_dates):
                             alert_dates.append([''])
+                            discord_id = discord_ids[l-1]
+                            list_active_tb_triggers.append([discord_id, territory])
                         else:
+                            if alert_dates[l-1] == '':
+                                discord_id = discord_ids[l-1]
+                                list_active_tb_triggers.append([discord_id, territory])
                             alert_dates[l-1] = [alert_dates[l-1]]
                 else:
                     #no alert to be sent, just keep the date if already there
@@ -435,4 +441,7 @@ def get_tb_triggers(territory_scores):
                 discord_id_column_title+'" and "' +\
                 date_column_title+'" is not found >> BT alerts not sent')
                 
-    return list_tb_triggers
+    if return_active_triggers:
+        return list_active_tb_triggers
+    else:
+        return list_tb_triggers
