@@ -391,7 +391,7 @@ def get_tb_triggers(territory_scores):
                             
                         # print("DBG - cur_score: "+str(cur_score))
                         # print("DBG - gp_alert: "+str(gp_alert))
-                        print("DBG - cur_date: "+str(cur_date))
+                        # print("DBG - cur_date: "+str(cur_date))
                         if cur_date == '' and cur_score >= gp_alert and gp_alert!=-1:
                             discord_id = discord_ids[l-1]
                             message = "BT: "+territory+" a atteint "+str(cur_score)+"/"+str(gp_alert)
@@ -408,16 +408,19 @@ def get_tb_triggers(territory_scores):
                             if l > len(alert_dates):
                                 alert_dates.append([''])
                             else:
-                                print("---")
-                                print(alert_dates[l-1])
                                 alert_dates[l-1] = [alert_dates[l-1]]
-                                print(alert_dates[l-1])
                     else:
-                        # Title line. Need to keep it, changing the format to a list
-                        alert_dates[l-1]=[alert_dates[l-1]]
+                        #no alert to be sent, just keep the date if already there
+                        if l > len(alert_dates):
+                            alert_dates.append([''])
+                        else:
+                            alert_dates[l-1] = [alert_dates[l-1]]
                 else:
-                    # Title line. Need to keep it, changing the format to a list
-                    alert_dates[l-1]=[alert_dates[l-1]]
+                    #no alert to be sent, just keep the date if already there
+                    if l > len(alert_dates):
+                        alert_dates.append([''])
+                    else:
+                        alert_dates[l-1] = [alert_dates[l-1]]
             else:
                 # Title line. Need to keep it, changing the format to a list
                 alert_dates[l-1]=[alert_dates[l-1]]
