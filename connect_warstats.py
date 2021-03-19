@@ -624,14 +624,14 @@ def parse_warstats_tb_scores():
         page = fresh_urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
         print('ERR: while opening '+warstats_tbs_url)
-        return []
+        return {}
         
     generic_parser = GenericTBSParser()
     generic_parser.feed(str(page.read()))
     
     if generic_parser.get_battle_id() == None:
         print('ERR: no TB in progress')
-        return []
+        return {}
     else:
         print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
     
