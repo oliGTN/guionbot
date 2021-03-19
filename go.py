@@ -1595,7 +1595,12 @@ def player_journey_progress(txt_allyCode, character_alias):
     return [total_progress/total_progress_100, '', dict_player['name'], character_name, list_progress]
 
 def get_tb_alerts():
-    territory_scores = connect_warstats.parse_warstats_tb_scores()
-    tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores)
+    tb_trigger_messages=[]
+
+    tb_active_triggers = connect_gsheets.get_tb_triggers({}, True)
+    if len(tb_active_triggers) > 0:
+        territory_scores = connect_warstats.parse_warstats_tb_scores()
+        if len(territory_scores) > 0:
+            tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores, False)
     
     return tb_trigger_messages
