@@ -179,14 +179,15 @@ def load_guild(txt_allyCode, load_players):
         #Get players and update status from DB
         # The query tests if the update is less than 60 minutes for players in master guild
         # For other players, check if less than 12 hours
-        recent_players = connect_mysql.get_table( "\
+        query = "\
             SELECT \
             CASE WHEN guildName = (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
             THEN (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) \
             ELSE (timestampdiff(HOUR, players.lastUpdated, CURRENT_TIMESTAMP)<=12) END AS recent, \
             allyCode \
             FROM players \
-            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode = '"+txt_allyCode+"')")
+            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode = '"+txt_allyCode+"')"
+        recent_players = connect_mysql.get_table(query)
         dict_recent_players={}
         for line in recent_players:
             dict_recent_players[line[1]]=line[0]
@@ -1396,7 +1397,7 @@ def get_gp_graph(guild_stats, inactive_duration):
 	ret_print_gp_graph=''
 	dict_gp_clusters={} #key=gp group, value=[nb active, nb inactive]
 	for player in guild_stats:
-		#print(guild_stats[player])
+		# print(guild_stats[player])
 		gp=guild_stats[player][0]+guild_stats[player][1]
 		gp_key=int(gp/500000)/2
 		if gp_key in dict_gp_clusters:
