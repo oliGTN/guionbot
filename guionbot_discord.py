@@ -840,16 +840,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_team_progress, teams, allycode, True, 1, 100, 80, False, False)
-            for team in ret_cmd:
-                ret_team = ret_cmd[team]
-                if type(ret_team) == str:
-                    await ctx.send(ret_team)
-                else:
-                    for txt_team in ret_team[0]:
-                        for txt in goutils.split_txt(txt_team[0], 1000):
-                            await ctx.send(txt)
+            ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
+                                                    teams, allycode, True)
+            for txt in goutils.split_txt(ret_cmd, 1000):
+                await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
@@ -876,16 +870,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_team_progress, teams, allycode, False, 1, 100, 80, False, False)
-            for team in ret_cmd:
-                ret_team = ret_cmd[team]
-                if type(ret_team) == str:
-                    await ctx.send(ret_team)
-                else:
-                    for txt_team in ret_team[0]:
-                        for txt in goutils.split_txt(txt_team[0], 1000):
-                            await ctx.send(txt)
+            ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
+                                                    teams, allycode, False)
+            for txt in goutils.split_txt(ret_cmd, 1000):
+                await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)

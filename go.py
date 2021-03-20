@@ -485,20 +485,39 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
                 if objectifs[i_level][2][perso][0] == i_sub_obj + 1:
                     perso_rarity_min = objectifs[i_level][2][perso][1]
                     perso_gear_min = objectifs[i_level][2][perso][2]
+                    perso_relic_min=0
+                    if perso_gear_min == '':
+                        perso_gear_min = 1
+                    elif type(perso_gear_min) == str:
+                        perso_relic_min=int(perso_gear_min[-1])
+                        perso_gear_min=13
+                    perso_min_display = str(perso_rarity_min)
+                    if perso_relic_min == 0:
+                        perso_min_display += '.' + "{:02d}".format(perso_gear_min)                        
+                    else:
+                        perso_min_display += '.R' + str(perso_relic_min)
+
                     perso_rarity_reco = objectifs[i_level][2][perso][3]
-                    perso_gear_reco = objectifs[i_level][2][perso][4]
+                    perso_gear_reco = objectifs[i_level][2][perso][4]                    
+                    perso_relic_reco=0
+                    if perso_gear_reco == '':
+                        perso_gear_reco = 1
+                    elif type(perso_gear_reco) == str:
+                        perso_relic_reco=int(perso_gear_reco[-1])
+                        perso_gear_reco=13
+                    perso_reco_display = str(perso_rarity_reco)
+                    if perso_relic_reco == 0:
+                        perso_reco_display += '.' + "{:02d}".format(perso_gear_reco)                        
+                    else:
+                        perso_reco_display += '.R' + str(perso_relic_reco)
 
                     #Zetas
                     req_zetas = objectifs[i_level][2][perso][5].split(',')
                     req_zeta_names = [x[1] for x in goutils.get_zeta_from_shorts(perso, req_zetas)]
                     
-                    entete += '**' + objectifs[i_level][0][0] + str(
-                        i_sub_obj + 1) + '**: ' + perso + ' (' + str(
-                            perso_rarity_min) + 'G' + str(
-                                perso_gear_min) + ' à ' + str(
-                                    perso_rarity_reco) + 'G' + str(
-                                        perso_gear_reco) + ', zetas=' + str(
-                                            req_zeta_names) + ')\n'
+                    entete += '**' + objectifs[i_level][0][0] + str(i_sub_obj + 1) + \
+                            '**: ' + perso + ' (' + perso_min_display + ' à ' + \
+                            perso_reco_display + ', zetas=' + str(req_zeta_names) + ')\n'
 
     #ligne d'entete
     entete += '\n'
@@ -521,7 +540,7 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
             else:
                 entete += goutils.pad_txt2(nom_sub_obj) + '|'
 
-    entete += 'GLOB|Joueur'
+    entete += 'GLOB|Joueur\n'
 
     return entete
 
@@ -696,8 +715,8 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                     entete = get_team_entete(team_name, objectifs, \
                                                 score_type, txt_mode)
                 else:
-                    entete = 'Team ' + team_name
-                ret_team.append([entete, 999999, ''])
+                    entete = "Team " + team_name + "\n"
+                ret_team.append([entete, 999999, '', True])
 
             tab_lines = []
             count_green = 0
@@ -721,12 +740,29 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
 
             #Tri des nogo=False en premier, puis score décroissant
             for score, unlocked, txt, nogo, name in sorted(tab_lines,
-                                           key=lambda x: (x[2], -x[0])):
+                                           key=lambda x: (x[3], -x[0])):
                 ret_team.append([txt, score, name, unlocked])
 
             ret_get_team_progress[team_name] = ret_team, count_green, count_amber
 
     return ret_get_team_progress
+
+def print_vtx(list_team_names, txt_allyCode, compute_guild):
+    ret_print_vtx = ""
+
+    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
+                            compute_guild, 1, 100, 80, False, False)
+    for team in ret_get_team_progress:
+        ret_team = ret_get_team_progress[team]
+        if type(ret_team) == str:
+            ret_print_vtx += ret_team + "\n"
+        else:
+            for team_line in ret_team[0]:
+                ret_print_vtx += team_line[0]
+    
+        ret_print_vtx += "\n"
+                
+    return ret_print_vtx
 
 def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
