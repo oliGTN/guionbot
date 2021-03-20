@@ -331,10 +331,12 @@ def update_guild(dict_guild):
         
         for player_api in dict_guild["roster"]:
             if not player_api["allyCode"] in players_in_db:
+                # insert empty player to allow the update process
+                # force lastUpdated to 24h in the past
                 cursor.execute("INSERT INTO players (allyCode,name,guildName,lastUpdated) \
                                 VALUES ("+str(player_api["allyCode"])+",'" + \
                                 player_api["name"]+"','"+ \
-                                guild_name+"',CURRENT_TIMESTAMP-INTERVAL 12 HOUR)")
+                                guild_name+"',CURRENT_TIMESTAMP-INTERVAL 24 HOUR)")
                                                 
         for allyCode_db in players_in_db:
             if not allyCode_db in players_in_api:
