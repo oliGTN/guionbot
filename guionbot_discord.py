@@ -25,6 +25,7 @@ intents.presences = True
 bot = commands.Bot(command_prefix='go.', intents=intents)
 guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
 bot_uptime=datetime.datetime.now(guild_timezone)
+MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters 
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -517,7 +518,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         output = stream.read()
         print('CMD: ' + arg)
         print(output)
-        for txt in goutils.split_txt(output, 1000):
+        for txt in goutils.split_txt(output, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
         await ctx.message.add_reaction(emoji_check)
         
@@ -573,7 +574,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         for row in output:
             output_txt+=str(row)+'\n'
         print(output_txt)
-        for txt in goutils.split_txt(output_txt, 1000):
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
         
         await ctx.message.add_reaction(emoji_check)
@@ -648,7 +649,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 go.get_team_progress, teams, allycode, True, 3, 100000, 80000, False)
             for team in ret_cmd:
                 txt_team = ret_cmd[team][0]
-                for txt in goutils.split_txt(txt_team, 1000):
+                for txt in goutils.split_txt(txt_team, MAX_MSG_SIZE):
                     await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
@@ -680,7 +681,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_error)
             else:
                 #texte classique
-                for txt in goutils.split_txt(ret_cmd, 1000):
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
 
                 #Icône de confirmation de fin de commande dans le message d'origine
@@ -804,7 +805,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             else:
                 full_txt += 'Aucune erreur de peloton\n'
 
-            for txt in goutils.split_txt(full_txt, 1000):
+            for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
 
             await ctx.message.add_reaction(emoji_check)
@@ -842,7 +843,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
                                                     teams, allycode, True)
-            for txt in goutils.split_txt(ret_cmd, 1000):
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
@@ -872,7 +873,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
                                                     teams, allycode, False)
-            for txt in goutils.split_txt(ret_cmd, 1000):
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
@@ -901,7 +902,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allycode)
-            for txt in goutils.split_txt(ret_cmd, 1000):
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send("`"+txt+"`")
 
             #Icône de confirmation de fin de commande dans le message d'origine
@@ -931,7 +932,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allycode)
-            for txt in goutils.split_txt(ret_cmd, 1000):
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send("`"+txt+"`")
 
             #Icône de confirmation de fin de commande dans le message d'origine
@@ -965,7 +966,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
             else:
                 #texte classique
-                for txt in goutils.split_txt(ret_cmd, 1000):
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
 
                 #Icône de confirmation de fin de commande dans le message d'origine
@@ -1015,7 +1016,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
             else:
                 #texte classique
-                for txt in goutils.split_txt(ret_cmd, 1000):
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("```"+txt+"```")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
@@ -1064,7 +1065,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
             else:
                 #texte classique
-                for txt in goutils.split_txt(ret_cmd, 1000):
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("```"+txt+"```")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
@@ -1097,12 +1098,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
             else:
                 #texte classique
-                for txt in goutils.split_txt(ret_cmd, 1000):
-                    await ctx.send("```"+txt+"```")
+                list_msg = []
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    msg = await ctx.send("```"+txt+"```")
+                    list_msg.append(msg)
 
                 # Second call to load all players
                 ret_cmd = await bot.loop.run_in_executor(None,
                     go.get_gp_distribution, allycode, 36, False)
+                i_msg = 0
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    msg = list_msg[i_msg]
+                    await msg.edit(content = "```"+txt+"```")
+                    i_msg += 1
                 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
