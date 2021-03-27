@@ -576,8 +576,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             #Get full character name
             closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
             if len(closest_names)<1:
-                ret_print_character_stats += \
-                    'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+                return 'INFO: aucun personnage trouvé pour '+character_alias
             else:
                 [character_name, character_id]=dict_units[closest_names[0]]
                 list_character_ids.append(character_id)
@@ -1129,12 +1128,23 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         
         #Manage request for all characters
         if 'all' in characters:
-            print("Get player_data from DB...")
+            print("Get player char data from DB...")
+            query ="SELECT players.name, defId, units.nameKey, \
+                    roster.combatType, rarity, gear, relic_currentTier \
+                    FROM roster \
+                    JOIN players ON players.id = roster.player_id \
+                    JOIN units ON units.unit_id = roster.defId \
+                    WHERE players.allyCode = '"+txt_allyCode+"' \
+                    AND roster.combatType=1 AND roster.level >= 50 \
+                    ORDER BY players.name, units.nameKey"
+            db_stat_data_char = connect_mysql.get_table(query)
+            
+            print("Get player stats data from DB...")
             query ="SELECT players.name, defId, units.nameKey, \
                     roster.combatType, rarity, gear, relic_currentTier, \
                     ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                     FROM roster \
-                    LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
+                    JOIN roster_stats ON roster_stats.roster_id = roster.id \
                     JOIN players ON players.id = roster.player_id \
                     JOIN units ON units.unit_id = roster.defId \
                     WHERE players.allyCode = '"+txt_allyCode+"' \
@@ -1171,6 +1181,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                         dict_virtual_characters[character_id][3] = character_name
                         del dict_virtual_characters[character_alias]
 
+            db_stat_data_char = []
             print("Get player_data from DB...")
             query ="SELECT players.name, defId, units.nameKey, \
                     roster.combatType, rarity, gear, relic_currentTier, \
@@ -1239,6 +1250,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         else:
             [character_name, character_id]=dict_units[closest_names[0]]
                     
+        db_stat_data_char = []
         print("Get guild_data from DB...")
         query ="SELECT players.name, defId, units.nameKey, \
                 roster.combatType, rarity, gear, relic_currentTier, \
@@ -1267,7 +1279,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
     # Generate dict with statistics
-    dict_stats = goutils.create_dict_stats(db_stat_data, db_stat_data_mods)
+    dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods)
 
     #Manage virtual characters
     #This works only with command SPJ, so only one player_name
