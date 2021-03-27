@@ -149,6 +149,7 @@ def load_player(txt_allyCode, force_update):
 def load_guild(txt_allyCode, load_players):
     
     #rechargement systématique des infos de guilde (liste des membres)
+    print(txt_allyCode)
     sys.stdout.write('>Requesting guild data for allyCode ' + txt_allyCode +
                      '...\n')
     client_data = client.get_data('guild', txt_allyCode)
@@ -947,7 +948,7 @@ def guild_counter_score(txt_allyCode):
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
     dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True,
-                                            1, 100, 80, True)
+                                            1, 100, 80, False, True)
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]
