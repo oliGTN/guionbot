@@ -167,14 +167,42 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
 
     return dict_players
     
-def create_dict_stats(db_stat_data, db_stat_data_mods):
+def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
     dict_players={}
+
+    #db_stat_data_char is only used when db_stat_data does not
+    # contain all characters (due to not using LEFT JOIN, case of 'all')
+    cur_name = ''
+    for line in db_stat_data_char:
+        line_name = line[0]
+        if cur_name != line_name:
+            dict_players[line_name]={}
+            cur_defId = ''
+            cur_name = line_name
+        
+        line_defId = line[1]
+        if cur_defId != line_defId:
+            line_nameKey = line[2]
+            line_combatType = line[3]
+            line_rarity = line[4]
+            line_gear = line[5]
+            line_relic_currentTier = line[6]
+            dict_players[line_name][line_defId]={ \
+                    "nameKey": line_nameKey,
+                    "combatType": line_combatType,
+                    "rarity": line_rarity,
+                    "gear": line_gear,
+                    "relic": {"currentTier": line_relic_currentTier},
+                    "stats": {}}
+                
+            cur_defId = line_defId            
 
     cur_name = ''
     for line in db_stat_data:
         line_name = line[0]
         if cur_name != line_name:
-            dict_players[line_name]={}
+            if not line_name in dict_players:
+                dict_players[line_name]={}
             cur_defId = ''
             cur_name = line_name
         
