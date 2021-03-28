@@ -149,7 +149,6 @@ def load_player(txt_allyCode, force_update):
 def load_guild(txt_allyCode, load_players):
     
     #rechargement systématique des infos de guilde (liste des membres)
-    print(txt_allyCode)
     sys.stdout.write('>Requesting guild data for allyCode ' + txt_allyCode +
                      '...\n')
     client_data = client.get_data('guild', txt_allyCode)
