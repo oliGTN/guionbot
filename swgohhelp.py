@@ -30,7 +30,7 @@ class SWGOHhelp():
 
         
     def get_token(self):
-        if time.time() >= self.token_expires:
+        if (time.time() >= self.token_expires) or (not 'Authorization' in self.token):
             sign_url = self.urlBase+self.signin
             payload = self.user
             head = {"Content-type": "application/x-www-form-urlencoded",
@@ -49,22 +49,26 @@ class SWGOHhelp():
 
     def get_data(self, data_type, spec):
         token = self.get_token()
-        head = {'Method': 'POST','Content-Type': 'application/json','Authorization': token['Authorization']}
-        if data_type == 'data':
-            payload = {'collection': str(spec), 'language': 'FRE_FR'}
+        # print("DBG - token: "+str(token))
+        if 'Authorization' in self.token:
+            head = {'Method': 'POST','Content-Type': 'application/json','Authorization': token['Authorization']}
+            if data_type == 'data':
+                payload = {'collection': str(spec), 'language': 'FRE_FR'}
+            else:
+                payload = {'allycode': spec, 'language': 'FRE_FR'}
+            data_url = self.urlBase+self.data_type[data_type]
+            try:
+                r = requests.request('POST',data_url, headers=head, data = dumps(payload))
+                if r.status_code != 200:
+                    error = 'Cannot fetch data - error code'
+                    data = {"status_code" : r.status_code,
+                             "message": error}
+                data = loads(r.content.decode('utf-8'))
+            except:
+                data = {"message": 'Cannot fetch data'}
+            return data
         else:
-            payload = {'allycode': spec, 'language': 'FRE_FR'}
-        data_url = self.urlBase+self.data_type[data_type]
-        try:
-            r = requests.request('POST',data_url, headers=head, data = dumps(payload))
-            if r.status_code != 200:
-                error = 'Cannot fetch data - error code'
-                data = {"status_code" : r.status_code,
-                         "message": error}
-            data = loads(r.content.decode('utf-8'))
-        except:
-            data = {"message": 'Cannot fetch data'}
-        return data
+            return {"message": 'no token from https://api.swgoh.help/'}
 
 class settings():
     def __init__(self, _username, _password, _client_id, _client_secret):
