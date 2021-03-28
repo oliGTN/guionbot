@@ -443,11 +443,15 @@ class TBSResumeParser(HTMLParser):
         #-2: en recherche de small
         #-1: en recherche de data
         #0: en recherche de div id="resume"
-        #1: en recherche de div class="valign-wrapper
+        #1: en recherche de div class="valign-wrapper full-line"
         #2; en recherche de data
         #3: en recherche de div class="score-text"
         #4; en recherche de data
 
+        self.state_parser2=0
+        #0: en recherche de i class="far fa-dot-circle red-text text-small"
+        #1: en recherche de a href
+        
     def handle_starttag(self, tag, attrs):
         if self.state_parser==-4:
             if tag=='h2':
@@ -476,6 +480,20 @@ class TBSResumeParser(HTMLParser):
                     if name=='class' and value=='score-text':
                         self.state_parser=4
 
+        #PARSER 2 pour la phase active
+        if self.state_parser2==0:
+            if tag=='i':
+                for name, value in attrs:
+                    if name=='class' and value=='far fa-dot-circle red-text text-small':
+                        self.state_parser2=1
+        if self.state_parser2==1:
+            if tag=='a':
+                for name, value in attrs:
+                    if name=='href':
+                        self.active_round=int(value[-1])
+                        self.state_parser2=0
+                        # print("DBG self.active_round: "+str(self.active_round))
+
     def handle_endtag(self, tag):
         if self.state_parser==2:
             if tag=='div':
@@ -483,7 +501,7 @@ class TBSResumeParser(HTMLParser):
                     territory_phase=self.active_round
                 else:
                     territory_phase=int(self.list_data[1][-1])
-                    
+
                 if self.list_data[0]=='North':
                     self.list_open_territories[0]=territory_phase
                 elif self.list_data[0]=='Middle':
@@ -536,6 +554,8 @@ class TBSResumeParser(HTMLParser):
 
     def get_territory_scores(self):
         dict_territory_scores = {}
+
+        # print("DBG - self.list_open_territories: "+str(self.list_open_territories))
         if self.list_open_territories[0] > 0:
             top_name = self.detected_phase+"-P"+str(self.list_open_territories[0])+"-top"
             dict_territory_scores[top_name] = self.territory_scores[0]
@@ -545,6 +565,7 @@ class TBSResumeParser(HTMLParser):
         if self.list_open_territories[2] > 0:
             top_name = self.detected_phase+"-P"+str(self.list_open_territories[2])+"-bot"
             dict_territory_scores[top_name] = self.territory_scores[2]
+            
         return dict_territory_scores
 
     def get_battle_name(self):
