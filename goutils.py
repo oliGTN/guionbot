@@ -74,9 +74,8 @@ FORCE_CUT_PATTERN = "SPLIT_HERE"
 
 def split_txt(txt, max_size):
     ret_split_txt = []
-    remaining_txt = txt
     while (len(txt) > max_size) or (FORCE_CUT_PATTERN in txt):
-        force_split = txt.rfind(FORCE_CUT_PATTERN, 0, max_size)
+        force_split = txt.find(FORCE_CUT_PATTERN, 0, max_size)
         if force_split != -1:
             ret_split_txt.append(txt[:force_split])
             txt = txt[force_split + len(FORCE_CUT_PATTERN):]
