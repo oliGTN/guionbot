@@ -342,6 +342,7 @@ def get_tb_triggers(territory_scores, return_active_triggers):
     gp_alert_column_title='PG alerte'
     discord_id_column_title='Discord ID alerte'
     date_column_title='Date alerte'
+    date_column_comment='Commentaire'
 
     list_tb_triggers=[]
     list_active_tb_triggers=[]
@@ -357,15 +358,18 @@ def get_tb_triggers(territory_scores, return_active_triggers):
             col_id=c
         elif value==date_column_title:
             col_date=c
+        elif value==date_column_comment:
+            col_cmt=c
         c+=1
 
     if (col_date > 0) and (col_territory > 0) \
-        and (col_gp > 0) and (col_id > 0):
+        and (col_gp > 0) and (col_id > 0) and (col_cmt > 0):
         
         territories=feuille.col_values(col_territory)
         gp_alerts=feuille.col_values(col_gp)
         discord_ids=feuille.col_values(col_id)
         alert_dates=feuille.col_values(col_date)
+        alert_comments=feuille.col_values(col_cmt)
 
         #Looping through lines, through the ID column
         l = 1
@@ -390,12 +394,18 @@ def get_tb_triggers(territory_scores, return_active_triggers):
                         else:
                             cur_date = ''
                             
+                        if l <= len(alert_comments):
+                            cur_cmt = alert_comments[l-1]
+                        else:
+                            cur_cmt = ''
+                            
                         # print("DBG - cur_score: "+str(cur_score))
                         # print("DBG - gp_alert: "+str(gp_alert))
                         # print("DBG - cur_date: "+str(cur_date))
                         if cur_date == '' and cur_score >= gp_alert and gp_alert!=-1:
                             discord_id = discord_ids[l-1]
-                            message = "BT: "+territory+" a atteint "+str(cur_score)+"/"+str(gp_alert)
+                            message = "BT: "+territory+" a atteint "+cur_cmt \
+                                    + " (" + str(cur_score)+"/"+str(gp_alert) + ")"
                             # print("DBG - message: "+str(message))
                             list_tb_triggers.append([discord_id, message])
                             
@@ -439,7 +449,8 @@ def get_tb_triggers(territory_scores, return_active_triggers):
         print('At least one column among "'+territory_column_title+'", "' +\
                 gp_alert_column_title+'", "' +\
                 discord_id_column_title+'" and "' +\
-                date_column_title+'" is not found >> BT alerts not sent')
+                date_column_title+'" and "' +\
+                date_column_comment+'" is not found >> BT alerts not sent')
                 
     if return_active_triggers:
         return list_active_tb_triggers
