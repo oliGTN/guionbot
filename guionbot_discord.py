@@ -25,7 +25,9 @@ intents.presences = True
 bot = commands.Bot(command_prefix='go.', intents=intents)
 guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
 bot_uptime=datetime.datetime.now(guild_timezone)
-MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters 
+MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
+WARSTATS_REFRESH_SECS = 15*60
+WARSTATS_REFRESH_TIME = 2*60
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -109,6 +111,8 @@ dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (id
 # Output: none
 ##############################################################
 async def bot_loop_60():
+    next_warstats_read = time.time()
+
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
@@ -134,14 +138,18 @@ async def bot_loop_60():
             update_online_dates(dict_lastseen)
             
             #CHECK ALERTS FOR BT
-            list_tb_alerts = go.get_tb_alerts()
-            for tb_alert in list_tb_alerts:
-                userid = tb_alert[0]
-                message = tb_alert[1]
-                
-                member = bot.get_user(int(userid))
-                channel = await member.create_dm()
-                await channel.send(message)
+            if time.time() >= next_warstats_read:
+                list_tb_alerts, last_track_secs = go.get_tb_alerts()
+                for tb_alert in list_tb_alerts:
+                    userid = tb_alert[0]
+                    message = tb_alert[1]
+                    
+                    member = bot.get_user(int(userid))
+                    channel = await member.create_dm()
+                    await channel.send(message)
+                time_to_wait = WARSTATS_REFRESH_SECS - last_track_secs + WARSTATS_REFRESH_TIME
+                next_warstats_read = int(time.time()) + time_to_wait
+            print("INFO next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
             print("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
