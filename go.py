@@ -1645,11 +1645,12 @@ def player_journey_progress(txt_allyCode, character_alias):
 
 def get_tb_alerts():
     tb_trigger_messages=[]
+    last_track_secs = 0
 
     tb_active_triggers = connect_gsheets.get_tb_triggers({}, True)
     if len(tb_active_triggers) > 0:
-        territory_scores = connect_warstats.parse_warstats_tb_scores()
+        territory_scores, last_track_secs = connect_warstats.parse_warstats_tb_scores()
         if len(territory_scores) > 0:
             tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores, False)
     
-    return tb_trigger_messages
+    return tb_trigger_messages, last_track_secs
