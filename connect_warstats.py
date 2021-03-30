@@ -1,6 +1,7 @@
 import urllib.request
 import string
 import random
+import re
 from html.parser import HTMLParser
 
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/4090'
@@ -436,6 +437,7 @@ class TBSResumeParser(HTMLParser):
         self.territory_scores=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
         self.active_round=0
         self.detected_phase=''
+        self.seconds_since_last_track = 0
         
         self.state_parser=-4
         #-4: en recherche de h2
@@ -451,6 +453,11 @@ class TBSResumeParser(HTMLParser):
         self.state_parser2=0
         #0: en recherche de i class="far fa-dot-circle red-text text-small"
         #1: en recherche de a href
+        
+        self.state_parser3=0
+        #0: en recherche de <span id="track-timer"
+        #1: en recherche de script
+        #2: en recherche de data
         
     def handle_starttag(self, tag, attrs):
         if self.state_parser==-4:
@@ -486,6 +493,7 @@ class TBSResumeParser(HTMLParser):
                 for name, value in attrs:
                     if name=='class' and value=='far fa-dot-circle red-text text-small':
                         self.state_parser2=1
+
         if self.state_parser2==1:
             if tag=='a':
                 for name, value in attrs:
@@ -494,6 +502,17 @@ class TBSResumeParser(HTMLParser):
                         self.state_parser2=0
                         # print("DBG self.active_round: "+str(self.active_round))
 
+        #PARSER 3 pour le timer du tracker
+        if self.state_parser3==0:
+            if tag=='span':
+                for name, value in attrs:
+                    if name=='id' and value=='track-timer':
+                        self.state_parser3=1
+                        
+        if self.state_parser3==1:
+            if tag=='script':
+                self.state_parser3=2
+                        
     def handle_endtag(self, tag):
         if self.state_parser==2:
             if tag=='div':
@@ -545,6 +564,12 @@ class TBSResumeParser(HTMLParser):
             else: #South
                 self.territory_scores[2]=number
             self.state_parser=1
+
+        if self.state_parser3==2:
+            ret_re = re.search('\\{seconds: (.*?)\\}', data)
+            timer_seconds_txt = ret_re.group(1)
+            self.seconds_since_last_track = int(timer_seconds_txt)
+            self.state_parser3=0
                 
     def set_active_round(self, active_round):
         self.active_round=active_round
@@ -570,6 +595,9 @@ class TBSResumeParser(HTMLParser):
 
     def get_battle_name(self):
         return self.detected_phase
+
+    def get_last_track(self):
+        return self.seconds_since_last_track
 
 
 ###############################################################
@@ -645,14 +673,14 @@ def parse_warstats_tb_scores():
         page = fresh_urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
         print('ERR: while opening '+warstats_tbs_url)
-        return {}
+        return {}, 0
         
     generic_parser = GenericTBSParser()
     generic_parser.feed(str(page.read()))
     
     if generic_parser.get_battle_id() == None:
         print('ERR: no TB in progress')
-        return {}
+        return {}, 0
     else:
         print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
     
@@ -663,7 +691,7 @@ def parse_warstats_tb_scores():
     resume_parser.feed(str(page.read()))
     
     print("TB name = "+resume_parser.get_battle_name())
-    return resume_parser.get_territory_scores()
+    return resume_parser.get_territory_scores(), resume_parser.get_last_track()
 
 #MAIN
 #parse_warstats_page()
