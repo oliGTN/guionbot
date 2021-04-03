@@ -326,7 +326,7 @@ def update_guild(dict_guild):
         guild_name = dict_guild["name"].replace("'", "''")
         
         cursor.execute("REPLACE INTO guilds(name) VALUES('"+guild_name+"')")
-        players_in_db = get_column("SELECT allyCode FROM players WHERE guildName = '"+guild_name+"'")
+        players_in_db = get_column("SELECT allyCode FROM players")
         players_in_api = [x["allyCode"] for x in dict_guild["roster"]]
         
         for player_api in dict_guild["roster"]:
@@ -537,15 +537,17 @@ def update_player(dict_player):
                             p_poUTCOffsetMinutes,
                             roster_definition_txt)
         # print("CALL update_player"+str(query_parameters))
-        cursor.callproc('update_player', query_parameters)
-          
+        ret = cursor.callproc('update_player', query_parameters)
         mysql_db.commit()
     except Error as error:
         print(error)
+        return -1
         
     finally:
         cursor.close()
         # db.close()
+    
+    return 0
 
 def update_unit(dict_unit):
     try:
