@@ -79,7 +79,7 @@ def refresh_cache():
     keep_max_noguild_players = int(os.environ['KEEP_MAX_NOGUILD_PLAYERS'])
     if len(list_noguild_allyCodes) > keep_max_noguild_players:
         for allyCode in list_noguild_allyCodes[:keep_max_noguild_players]:
-            print("INFO: delete player "+allyCode+" from DB")
+            print("INFO: delete player "+str(allyCode)+" from DB")
             connect_mysql.simple_callproc("remove_player", [allyCode])
 
 def stats_cache():
@@ -126,9 +126,14 @@ def load_player(txt_allyCode, force_update):
                 sys.stdout.flush()
                 
                 # update DB
-                connect_mysql.update_player(ret_player)
-                sys.stdout.write('.\n')
-                sys.stdout.flush()
+                ret = connect_mysql.update_player(ret_player)
+                if ret == 0:
+                    sys.stdout.write('.\n')
+                    sys.stdout.flush()
+                else:
+                    print('ERR: update_player '+txt_allyCode+' returned an error')
+                    return 'ERR: update_player '+txt_allyCode+' returned an error'
+                
                 
             else:
                 print ('ERR: client.get_data(\'player\', '+txt_allyCode+
