@@ -28,6 +28,7 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 WARSTATS_REFRESH_SECS = 15*60
 WARSTATS_REFRESH_TIME = 2*60
+alert_sent_to_admin = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -154,6 +155,7 @@ async def bot_loop_60():
         except Exception as e:
             print("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
             print(e)
+            seng_alert_to_admmins("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
         
         t_end = time.time()
         loop_duration = 60 * int(os.environ['REFRESH_RATE_BOT_MINUTES'])
@@ -161,6 +163,22 @@ async def bot_loop_60():
         
         # Wait X seconds before next loop
         await asyncio.sleep(waiting_time)
+
+##############################################################
+# Function: seng_alert_to_admmins
+# Parameters: message (string), message to be sent
+# Purpose: send a message to bot admins. Only once, then the admin has to
+#          stop/start the bot for a new message to be allowed
+# Output: None
+##############################################################
+async def seng_alert_to_admmins(message):
+    if not alert_sent_to_admin:
+        list_ids = os.environ['GO_ADMIN_IDS'].split(' ')
+        for userid in list_ids:
+            member = bot.get_user(int(userid))
+            channel = await member.create_dm()
+            await channel.send(message)
+    alert_sent_to_admin = True
 
 ##############################################################
 # Function: get_eb_allocation
