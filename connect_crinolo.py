@@ -20,8 +20,10 @@ def add_stats(dict_player):
         print(r)
         return dict_player
     
+    dict_player_with_stats = json.loads(r.content.decode('utf-8'))[0]
+    
     # Re-put the buggy characters before going to update player
     for character in list_buggy_characters:
-        dict_player['roster'].append(character)
-        
-    return json.loads(r.content.decode('utf-8'))[0]
+        dict_player_with_stats['roster'].append(character)
+    
+    return dict_player_with_stats
