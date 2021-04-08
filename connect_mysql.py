@@ -486,16 +486,17 @@ def update_player(dict_player):
             stat_definition_txt="" #separator |
             stat_count = 0
             for stat_type in ["base", "gear", "mods", "crew"]:
-                if stat_type in character["stats"]:
-                    stat_list = character["stats"][stat_type]
-                    for stat_id in stat_list:
-                        stat_value = stat_list[stat_id]
+                if "stats" in character:
+                    if stat_type in character["stats"]:
+                        stat_list = character["stats"][stat_type]
+                        for stat_id in stat_list:
+                            stat_value = stat_list[stat_id]
 
-                        if stat_value != 0:
-                            stat_definition_txt+=str(stat_id)+","+ \
-                                                str(stat_value)+","+ \
-                                                stat_type+"|"
-                            stat_count+=1
+                            if stat_value != 0:
+                                stat_definition_txt+=str(stat_id)+","+ \
+                                                    str(stat_value)+","+ \
+                                                    stat_type+"|"
+                                stat_count+=1
                     
             # remove last "|"
             if stat_count>0:
