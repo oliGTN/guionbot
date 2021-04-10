@@ -215,29 +215,34 @@ def load_config_units():
     feuille=file.worksheet("units")
 
     liste_dict_feuille=feuille.get_all_records()
-    dict_units={}
+    dict_units={} #key=alias, value=[nameKey, id]
     
     for ligne in liste_dict_feuille:
         full_name=ligne['Character/Ship']
         id=ligne['ID']
         if full_name.lower() in dict_units:
-            if full_name != dict_units[full_name.lower()]:
+            if dict_units[full_name.lower()][0] != full_name:
                 print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
         else:
             dict_units[full_name.lower()]=[full_name, id]
 
-        if id.lower() in dict_units:
-            if full_name != dict_units[id.lower()]:
-                print('ERR: double définition de '+id.lower()+': '+full_name+' et '+dict_units[id.lower()][0])
-        else:
-            dict_units[id.lower()]=[full_name, id]
+        # Char ID cannot be used as alias because of Rey
+        # "rey" is the nameKey of GLREY, and "REY" is the ID of scavenger rey
+        # if id.lower() in dict_units:
+            # if dict_units[id.lower()][0] != full_name:
+                # print('ERR: double définition de '+id.lower()+': '+full_name+' et '+dict_units[id.lower()][0])
+        # else:
+            # dict_units[id.lower()]=[full_name, id]
             
         if ligne['Aliases'] != '':
             for alias in ligne['Aliases'].split(','):
                 alias = alias.strip().lower()
                 if alias in dict_units:
-                    if dict_units[alias] != full_name:
-                        print('ERR: double définition de '+alias+': '+dict_units[alias]+' et '+full_name)
+                    if dict_units[alias][0] != full_name:
+                        print(alias)
+                        print(dict_units[alias])
+                        print(full_name)
+                        print('ERR: double définition de '+alias+': '+dict_units[alias][0]+' et '+full_name)
                 else:
                     dict_units[alias]=[full_name, id]
                 
