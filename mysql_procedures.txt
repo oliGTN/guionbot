@@ -52,6 +52,46 @@ BEGIN
         GROUP BY players.id
 	) AS T;
 END
+CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_player_cristals`()
+BEGIN
+	select name,date,
+	gp_history.arena_char_rank,
+	@char_cristals := case
+		when gp_history.arena_char_rank = 1 then 500
+		when gp_history.arena_char_rank = 2 then 450
+		when gp_history.arena_char_rank = 3 then 400
+		when gp_history.arena_char_rank = 4 then 350
+		when gp_history.arena_char_rank = 5 then 300
+		when gp_history.arena_char_rank <=10 then 250
+		when gp_history.arena_char_rank <=20 then 200
+		when gp_history.arena_char_rank <=50 then 150
+		when gp_history.arena_char_rank <=100 then 100
+		when gp_history.arena_char_rank <=200 then 75
+		when gp_history.arena_char_rank <=500 then 60
+		when gp_history.arena_char_rank <=1000 then 50
+		when gp_history.arena_char_rank <=2500 then 40
+		when gp_history.arena_char_rank <=5000 then 35
+		when gp_history.arena_char_rank <=10000 then 25
+		ELSE 15
+	end as char_cristals,
+	gp_history.arena_ship_rank,
+	@ship_cristals := case
+		when gp_history.arena_ship_rank = 1 then 400
+		when gp_history.arena_ship_rank = 2 then 375
+		when gp_history.arena_ship_rank = 3 then 350
+		when gp_history.arena_ship_rank = 4 then 325
+		when gp_history.arena_ship_rank = 5 then 300
+		when gp_history.arena_ship_rank <=10 then 200
+		when gp_history.arena_ship_rank <=20 then 100
+		when gp_history.arena_ship_rank <=50 then 50
+		ELSE 0
+	end as ship_cristals,
+	@char_cristals+@ship_cristals as total
+	from gp_history
+	join players on players.id = gp_history.player_id
+    WHERE guildName = 'Kangoo Legends'
+	order by name, date ASC;
+END
 CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_unit_stat`(
 	IN p_allyCode INT,
     IN p_stat_name VARCHAR(255),
@@ -595,12 +635,13 @@ BEGIN
 		SET @p_nameKey = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',6),',',-1);
 		SET @p_rarity = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',7),',',-1);
 		SET @p_relic_currentTier = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',8),',',-1);
-		SET @p_equipped1 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',9),',',-1);
-		SET @p_equipped2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',10),',',-1);
-		SET @p_equipped3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',11),',',-1);
-		SET @p_equipped4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',12),',',-1);
-		SET @p_equipped5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',13),',',-1);
-		SET @p_equipped6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',14),',',-1);
+		SET @p_zeta_count = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',9),',',-1);
+		SET @p_equipped1 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',10),',',-1);
+		SET @p_equipped2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',11),',',-1);
+		SET @p_equipped3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',12),',',-1);
+		SET @p_equipped4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',13),',',-1);
+		SET @p_equipped5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',14),',',-1);
+		SET @p_equipped6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',15),',',-1);
         
 		SET @mod_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',2),'/',-1);
 		SET @capa_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',3),'/',-1);
@@ -616,6 +657,7 @@ BEGIN
 			@p_nameKey,
 			@p_rarity,
 			@p_relic_currentTier,
+			@p_zeta_count,
 			@p_equipped1,
 			@p_equipped2,
 			@p_equipped3,
@@ -643,6 +685,7 @@ CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_element`(
     IN p_nameKey VARCHAR(255),
     IN p_rarity INT,
     IN p_relic_currentTier INT,
+    IN p_zeta_count INT,
     IN p_equipped1 VARCHAR(255),
     IN p_equipped2 VARCHAR(255),
     IN p_equipped3 VARCHAR(255),
@@ -671,7 +714,8 @@ BEGIN
         level = p_level,
         nameKey = p_nameKey,
         rarity = p_rarity,
-        relic_currentTier = p_relic_currentTier
+        relic_currentTier = p_relic_currentTier,
+        zeta_count = p_zeta_count
         WHERE player_id = p_player_id AND defId = p_defId;
 
 	SET @roster_id = (SELECT id FROM roster WHERE player_id = p_player_id AND defId = p_defId);
@@ -975,7 +1019,7 @@ CREATE TABLE `gp_history` (
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3334 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=3533 DEFAULT CHARSET=latin1
 CREATE TABLE `guild_subteams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `team_id` int(11) DEFAULT NULL,
@@ -1023,7 +1067,7 @@ CREATE TABLE `mod_stats` (
   `unitStat` tinyint(4) DEFAULT NULL,
   `value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=94874823 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=100176648 DEFAULT CHARSET=latin1
 CREATE TABLE `mods` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1033,7 +1077,7 @@ CREATE TABLE `mods` (
   `slot` int(11) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20836721 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=21920248 DEFAULT CHARSET=latin1
 CREATE TABLE `players` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `allyCode` int(11) DEFAULT NULL,
@@ -1050,26 +1094,27 @@ CREATE TABLE `players` (
   `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `md5` varchar(32) CHARACTER SET latin1 DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1128 DEFAULT CHARSET=utf8
+) ENGINE=InnoDB AUTO_INCREMENT=1228 DEFAULT CHARSET=utf8
 CREATE TABLE `roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `player_id` int(11) DEFAULT NULL,
-  `combatType` int(11) DEFAULT NULL,
+  `combatType` tinyint(4) DEFAULT NULL,
   `defId` varchar(255) DEFAULT NULL,
-  `gear` int(11) DEFAULT NULL,
+  `gear` tinyint(4) DEFAULT NULL,
   `gp` int(11) DEFAULT NULL,
-  `level` int(11) DEFAULT NULL,
+  `level` tinyint(4) DEFAULT NULL,
   `nameKey` varchar(255) DEFAULT NULL,
-  `rarity` int(11) DEFAULT NULL,
-  `relic_currentTier` int(11) DEFAULT NULL,
+  `rarity` tinyint(4) DEFAULT NULL,
+  `relic_currentTier` tinyint(4) DEFAULT NULL,
+  `zeta_count` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=186539 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=197287 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_eqpt` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
   `equipment_id` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8975663 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=9463027 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_skills` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1077,7 +1122,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11709612 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=12802012 DEFAULT CHARSET=latin1
 CREATE TABLE `roster_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `roster_id` int(11) DEFAULT NULL,
@@ -1085,7 +1130,7 @@ CREATE TABLE `roster_stats` (
   `unscaledDecimalValue` bigint(20) DEFAULT NULL,
   `type` varchar(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=75862433 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=83891824 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_stats` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_tier_id` int(11) DEFAULT NULL,
@@ -1095,7 +1140,7 @@ CREATE TABLE `unit_stats` (
   `unitStatId` int(11) DEFAULT NULL,
   `unscaledDecimalValue` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=98119 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=98309 DEFAULT CHARSET=latin1
 CREATE TABLE `unit_tiers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `unit_id` int(11) DEFAULT NULL,
@@ -1107,7 +1152,7 @@ CREATE TABLE `unit_tiers` (
   `equipmentSet6` varchar(255) DEFAULT NULL,
   `tier` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8406 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=8420 DEFAULT CHARSET=latin1
 CREATE TABLE `units` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `baseId` varchar(255) DEFAULT NULL,
@@ -1117,4 +1162,4 @@ CREATE TABLE `units` (
   `unit_id` varchar(255) DEFAULT NULL,
   `nameKey` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1318 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=1319 DEFAULT CHARSET=latin1
