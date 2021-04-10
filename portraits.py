@@ -18,7 +18,7 @@ def get_image_from_id(character_id):
 def get_image_from_character(character_id, force_alignment, rarity, level, gear, relic, zetas):
     portrait_image = Image.new('RGB', (168, 168), (0,0,0))
     portrait_draw = ImageDraw.Draw(portrait_image)
-    font = ImageFont.truetype("arial.ttf", 24)
+    font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
     
     character_image = get_image_from_id(character_id)
     character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'mask-circle-128.png')
