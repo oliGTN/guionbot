@@ -173,6 +173,7 @@ async def bot_loop_60():
 # Output: None
 ##############################################################
 async def send_alert_to_admins(message):
+    global alert_sent_to_admin
     if not alert_sent_to_admin:
         list_ids = os.environ['GO_ADMIN_IDS'].split(' ')
         for userid in list_ids:
