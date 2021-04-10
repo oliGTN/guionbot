@@ -13,6 +13,7 @@ import connect_mysql
 import connect_crinolo
 import connect_warstats
 import goutils
+import portraits
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
 
@@ -1519,135 +1520,6 @@ def get_gp_distribution(txt_allyCode, inactive_duration, fast_chart):
     
     return ret_get_gp_distribution
 
-def get_farm_cost_from_alias(txt_allyCode, character_alias, target_stats):
-    #target_stats=[rarity, gear, relic]
-    
-    #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units()
-
-    #Get full character name
-    closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-    if len(closest_names)<1:
-        return [-1, 'ERREUR: aucun personnage trouvé pour '+character_alias]
-    else:
-        [character_name, character_id]=dict_units[closest_names[0]]
-
-    #Get data for this player
-    if txt_allyCode == '0':
-        dict_player = {'roster' : {}}
-    else:
-        dict_player = load_player(txt_allyCode, False)
-        if isinstance(dict_player, str):
-            #error wile loading guild data
-            return [-1, 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode]
-        
-    return get_farm_cost_from_id(dict_player, character_id, target_stats)
-
-def player_journey_progress(txt_allyCode, character_alias):
-    #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units()
-
-    #Get full character name
-    closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-    if len(closest_names)<1:
-        return [-1, 'ERR: aucun personnage trouvé pour '+character_alias, '', '', []]
-    else:
-        [character_name, character_id]=dict_units[closest_names[0]]
-
-    if character_id in journey_guide:
-        objectifs=journey_guide[character_id]
-    else:
-        return [-1, 'ERR: guide de voyage inconnu pour '+character_id+'\n'+
-                    'Valeurs autorisées : '+str(journey_guide.keys()), '', '', []]
-
-    dict_player = load_player(txt_allyCode, False)
-    if isinstance(dict_player, str):
-        #error wile loading guild data
-        return [-1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, '', '', []]
-        
-    tab_progress_player={}
-    for sub_obj in objectifs:
-        if sub_obj == 'initial shards':
-            continue
-        
-        tab_progress_player[sub_obj]=[]
-        
-        for character_subobj in objectifs[sub_obj][1]:
-            progress=0
-            progress_100=0
-            
-            if character_subobj[0] in dict_player['roster']:
-                # print('DBG: '+character_subobj[0]+' trouvé')
-                character_roster = dict_player['roster'][character_subobj[0]]
-            else:
-                # character not found in player's roster
-                # print('DBG: '+character_subobj[0]+' pas trouvé dans '+str(dict_player['roster'].keys()))
-                character_roster = {'defId': character_subobj[0],
-                                    'rarity': 0,
-                                    'gear': 0,
-                                    'relic': {'currentTier': 1},
-                                    'skills': [],
-                                    'gp': 0,
-                                    'mods': []}
-                
-            if character_subobj[1] != -1:
-                progress_100=progress_100+1
-                progress=progress+min(1, character_roster['rarity']/character_subobj[1])
-            if character_subobj[2] != -1:
-                progress_100=progress_100+1
-                progress=progress+min(1, character_roster['gear']/character_subobj[2])
-            if character_subobj[3] != -1:
-                progress_100=progress_100+1
-                if character_roster['relic']['currentTier'] > 1:
-                    progress=progress+min(1, (character_roster['relic']['currentTier']-2)/character_subobj[3])
-            if character_subobj[4] != -1:
-                for skill in character_roster['skills']:
-                    progress_100=progress_100+1
-                    if skill['tier'] == skill['tiers']:
-                        progress=progress+1
-                    else:
-                        progress=progress+min(1, skill['tier']/character_subobj[4])
-            if character_subobj[5] != -1:
-                progress_100=progress_100+1
-                progress=progress+min(1, character_roster['gp']/character_subobj[5])
-            if character_subobj[6] != -1:
-                for mod in character_roster['mods']:
-                    progress_100=progress_100+1
-                    progress=progress+min(1, mod['pips']/character_subobj[6])
-            tab_progress_player[sub_obj].append(progress/progress_100)
-            # print('DBG: '+character_roster['defId']+':'+str(progress/progress_100))
-            # print('DBG: '+character_roster['defId']+':'+str(tab_progress_player))
-
-    # Then compute the progress for each character who has its own journey guide
-    # eg: JKLS progress for journey guide of JMLS
-    # TO-DO
-
-    list_progress = []
-    total_progress = 0
-    total_progress_100 = 0
-    for sub_obj in objectifs:
-        if sub_obj == 'initial shards':
-            continue
-
-        tab_progress_sub_obj=tab_progress_player[sub_obj]
-        # print('DBG: '+str(tab_progress_sub_obj))
-        min_nb_sub_obj=objectifs[sub_obj][0]
-        cur_nb_sub_obj=len(tab_progress_player[sub_obj])
-        # print('DBG: '+str(min_nb_sub_obj)+':'+str(cur_nb_sub_obj))
-        if cur_nb_sub_obj < min_nb_sub_obj:
-            tab_progress_sub_obj = tab_progress_sub_obj + [0]*(min_nb_sub_obj - cur_nb_sub_obj)
-        else:
-            tab_progress_sub_obj = sorted(tab_progress_sub_obj, reverse=True)[0:min_nb_sub_obj]
-        # print('DBG: '+str(tab_progress_sub_obj))
-        progress=sum(tab_progress_sub_obj)
-
-        list_progress.append([sub_obj, progress/min_nb_sub_obj, min_nb_sub_obj])
-        
-        total_progress_100+=min_nb_sub_obj
-        total_progress+=progress
-
-    return [total_progress/total_progress_100, '', dict_player['name'], character_name, list_progress]
-
 def get_tb_alerts():
     tb_trigger_messages=[]
     last_track_secs = 0
@@ -1659,3 +1531,52 @@ def get_tb_alerts():
             tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores, False)
     
     return tb_trigger_messages, last_track_secs
+    
+def get_character_image(characters, txt_allyCode):
+    #Recuperation des dernieres donnees sur gdrive
+    dict_units = connect_gsheets.load_config_units()
+    
+    dict_virtual_characters={} #{key=alias or ID, value=[rarity, gear, relic, nameKey]}
+    
+    #Get data for this player
+    ret = load_player(txt_allyCode, False)
+    if ret != 'OK':
+        #error wile loading guild data
+        return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
+    
+    #specific list of characters for one player
+    list_character_ids=[]
+    for character_alias in characters:
+        #Get full character name
+        closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+        if len(closest_names)<1:
+            ret_print_character_stats += \
+                'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+        else:
+            [character_name, character_id]=dict_units[closest_names[0]]
+            list_character_ids.append(character_id)
+            
+            if (character_alias in dict_virtual_characters) and \
+                character_alias != character_id:
+                #replace the alias key by the ID key in the dictionary
+                dict_virtual_characters[character_id] = \
+                    dict_virtual_characters[character_alias]
+                dict_virtual_characters[character_id][3] = character_name
+                del dict_virtual_characters[character_alias]
+
+    db_stat_data_char = []
+    print("Get player_data from DB...")
+    query ="SELECT defId, rarity, roster.level, gear, \
+            relic_currentTier, forceAlignment, zeta_count, units.combatType \
+            FROM roster \
+            JOIN players ON players.id = roster.player_id \
+            JOIN units ON units.unit_id = roster.defId \
+            WHERE players.allyCode = '"+txt_allyCode+"' \
+            AND ("
+    for character_id in list_character_ids:
+        query += "defId = '"+character_id+"' OR "
+    query = query[:-3] + ")"
+
+    db_data = connect_mysql.get_table(query)
+    
+    return portraits.get_image_from_team(list_character_ids, db_data)
