@@ -11,12 +11,13 @@ from pytz import timezone
 import difflib
 import re
 from discord.ext import commands
-from discord import Activity, ActivityType, Intents
+from discord import Activity, ActivityType, Intents, File
 import go
 import goutils
 from connect_gsheets import load_config_players, update_online_dates
 from connect_warstats import parse_warstats_page
 import connect_mysql
+from io import BytesIO
 
 TOKEN = os.environ['DISCORD_BOT_TOKEN']
 intents = Intents.default()
@@ -1141,6 +1142,39 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
+    ##############################################################
+    # Command: ppj
+    # Parameters: code allié (string) ou "me" / nom approximatif des perso
+    # Purpose: afficher une image des portraits choisis
+    # Display: l'image produite
+    ##############################################################
+    @commands.command(name='ppj',
+                 brief="Portraits de Perso d'un Joueur",
+                 help="Exemple: go.ppj 123456789 JKR\n"\
+                      "Exemple: go.ppj me -v \"Dark Maul\" Bastila\n")
+    async def ppj(self, ctx, allycode, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allycode = manage_me(ctx, allycode)
+
+        if allycode[0:3] == 'ERR':
+            await ctx.send(allycode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            if len(characters) > 0:
+                image = await bot.loop.run_in_executor(None,
+                    go.get_character_image, list(characters), allycode)
+            else:
+                ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
+                
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(file=File(fp=image_binary, filename='image.png'))
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+                
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
