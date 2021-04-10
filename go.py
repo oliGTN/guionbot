@@ -13,6 +13,7 @@ import connect_mysql
 import connect_crinolo
 import connect_warstats
 import goutils
+import portraits
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
 
@@ -1530,3 +1531,52 @@ def get_tb_alerts():
             tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores, False)
     
     return tb_trigger_messages, last_track_secs
+    
+def get_character_image(characters, txt_allyCode):
+    #Recuperation des dernieres donnees sur gdrive
+    dict_units = connect_gsheets.load_config_units()
+    
+    dict_virtual_characters={} #{key=alias or ID, value=[rarity, gear, relic, nameKey]}
+    
+    #Get data for this player
+    ret = load_player(txt_allyCode, False)
+    if ret != 'OK':
+        #error wile loading guild data
+        return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
+    
+    #specific list of characters for one player
+    list_character_ids=[]
+    for character_alias in characters:
+        #Get full character name
+        closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+        if len(closest_names)<1:
+            ret_print_character_stats += \
+                'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+        else:
+            [character_name, character_id]=dict_units[closest_names[0]]
+            list_character_ids.append(character_id)
+            
+            if (character_alias in dict_virtual_characters) and \
+                character_alias != character_id:
+                #replace the alias key by the ID key in the dictionary
+                dict_virtual_characters[character_id] = \
+                    dict_virtual_characters[character_alias]
+                dict_virtual_characters[character_id][3] = character_name
+                del dict_virtual_characters[character_alias]
+
+    db_stat_data_char = []
+    print("Get player_data from DB...")
+    query ="SELECT defId, rarity, roster.level, gear, \
+            relic_currentTier, forceAlignment, zeta_count, units.combatType \
+            FROM roster \
+            JOIN players ON players.id = roster.player_id \
+            JOIN units ON units.unit_id = roster.defId \
+            WHERE players.allyCode = '"+txt_allyCode+"' \
+            AND ("
+    for character_id in list_character_ids:
+        query += "defId = '"+character_id+"' OR "
+    query = query[:-3] + ")"
+
+    db_data = connect_mysql.get_table(query)
+    
+    return portraits.get_image_from_team(list_character_ids, db_data)
