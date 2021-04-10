@@ -461,6 +461,7 @@ def update_player(dict_player):
             capa_definition_txt="" #separator |
             # name,level,isZeta (name = B, L, Un, Sn, GL | isZeta = 0 or 1)
             capa_count = 0
+            c_zeta_count = 0
             for capa in character['skills']:
                 capa_name = capa['id']
                 capa_level = capa['tier']
@@ -472,6 +473,9 @@ def update_player(dict_player):
                     
                 if capa_name == 'uniqueskill_GALACTICLEGEND01':
                     capa_shortname = 'GL'
+                    
+                if capa_isZeta == 1 and capa_level == 8:
+                    c_zeta_count += 1
         
                 capa_definition_txt+=capa_shortname+","+ \
                                     str(capa_level)+","+ \
@@ -511,6 +515,7 @@ def update_player(dict_player):
                                    c_nameKey+","+ \
                                    str(c_rarity)+","+ \
                                    str(c_relic_currentTier)+","+ \
+                                   str(c_zeta_count)+","+ \
                                    str(c_equipped[0])+","+ \
                                    str(c_equipped[1])+","+ \
                                    str(c_equipped[2])+","+ \
