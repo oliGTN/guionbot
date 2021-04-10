@@ -225,6 +225,12 @@ def load_config_units():
                 print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
         else:
             dict_units[full_name.lower()]=[full_name, id]
+
+        if id.lower() in dict_units:
+            if full_name != dict_units[id.lower()]:
+                print('ERR: double définition de '+id.lower()+': '+full_name+' et '+dict_units[id.lower()][0])
+        else:
+            dict_units[id.lower()]=[full_name, id]
             
         if ligne['Aliases'] != '':
             for alias in ligne['Aliases'].split(','):
