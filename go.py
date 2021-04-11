@@ -573,7 +573,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #Get data for the guild and associated players
         ret, guild = load_guild(txt_allyCode, True)
         if ret != 'OK':
-            return "ERR: cannot get guild data from SWGOH.HELP API"
+            print("WAR: cannot get guild data from SWGOH.HELP API. Using previous data.")
 
     if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
