@@ -60,14 +60,16 @@ class SWGOHhelp():
             try:
                 r = requests.request('POST',data_url, headers=head, data = dumps(payload))
                 if r.status_code != 200:
-                    error = 'Cannot fetch data - error code'
                     data = {"status_code" : r.status_code,
-                             "message": error}
-                data = loads(r.content.decode('utf-8'))
+                             "message": r.content.decode('utf-8')}
+                    print("headers: "+str(r.headers))
+                else:
+                    data = loads(r.content.decode('utf-8'))
             except:
                 data = {"message": 'Cannot fetch data'}
             return data
         else:
+            print("token: "+str(token))
             return {"message": 'no token from https://api.swgoh.help/'}
 
 class settings():
