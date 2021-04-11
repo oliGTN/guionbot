@@ -325,7 +325,9 @@ def update_guild(dict_guild):
         # Manage guild names with a ' in it
         guild_name = dict_guild["name"].replace("'", "''")
         
-        cursor.execute("REPLACE INTO guilds(name) VALUES('"+guild_name+"')")
+        query = "REPLACE INTO guilds(name) VALUES('"+guild_name+"')"
+        print(query)
+        cursor.execute(query)
         players_in_db = get_column("SELECT allyCode FROM players")
         players_in_api = [x["allyCode"] for x in dict_guild["roster"]]
         
@@ -333,10 +335,13 @@ def update_guild(dict_guild):
             if not player_api["allyCode"] in players_in_db:
                 # insert empty player to allow the update process
                 # force lastUpdated to 24h in the past
-                cursor.execute("INSERT INTO players (allyCode,name,guildName,lastUpdated) \
-                                VALUES ("+str(player_api["allyCode"])+",'" + \
-                                player_api["name"]+"','"+ \
-                                guild_name+"',CURRENT_TIMESTAMP-INTERVAL 24 HOUR)")
+                player_name = player_api["name"].replace("'", "''")
+                query = "INSERT INTO players (allyCode,name,guildName,lastUpdated) \
+                        VALUES ("+str(player_api["allyCode"])+",'" + \
+                        player_name+"','"+ \
+                        guild_name+"',CURRENT_TIMESTAMP-INTERVAL 24 HOUR)"
+                # print(query)
+                cursor.execute(query)
                                                 
         for allyCode_db in players_in_db:
             if not allyCode_db in players_in_api:
