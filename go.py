@@ -1542,7 +1542,7 @@ def get_character_image(characters, txt_allyCode):
     ret = load_player(txt_allyCode, False)
     if ret != 'OK':
         #error wile loading guild data
-        return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
+        print('WAR: joueur non trouvé pour code allié ' + txt_allyCode)
     
     #specific list of characters for one player
     list_character_ids=[]
