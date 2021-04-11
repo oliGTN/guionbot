@@ -929,12 +929,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allycode)
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                await ctx.send("`"+txt+"`")
+            if len(teams) == 0:
+                teams = ["all"]
+                
+            else:
+                ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allycode)
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: gvg
@@ -959,6 +963,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
+            if len(teams) == 0:
+                teams = ["all"]
+
             ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allycode)
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send("`"+txt+"`")
