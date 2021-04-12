@@ -1550,8 +1550,7 @@ def get_character_image(characters, txt_allyCode):
         #Get full character name
         closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
         if len(closest_names)<1:
-            ret_print_character_stats += \
-                'INFO: aucun personnage trouvé pour '+character_alias+'\n'
+            print('INFO: aucun personnage trouvé pour '+character_alias)
         else:
             [character_name, character_id]=dict_units[closest_names[0]]
             list_character_ids.append(character_id)
