@@ -21,6 +21,10 @@ MAX_GVG_LINES = 40
 creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
 client = SWGOHhelp(creds)
 
+##################################
+# Function: refresh_cache
+# return: error code
+##################################
 def refresh_cache():
     #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
     #Need to keep KEEPDIR to prevent removal of the directory by GIT
@@ -55,11 +59,11 @@ def refresh_cache():
 
     #Refresh players from master guild
     for allyCode in list_master_allyCodes[:nb_refresh_master_players]:
-        load_player(str(allyCode), True)
+        e, t = load_player(str(allyCode), True)
         
     #Refresh one player from non-master guild
     if len(list_nonmaster_allyCodes) >0:
-        load_player(str(list_nonmaster_allyCodes[0]), True)
+        e, t = load_player(str(list_nonmaster_allyCodes[0]), True)
     
     #Check the amount of stored guilds, and remove if too many
     query = "SELECT name FROM guilds \
@@ -82,21 +86,13 @@ def refresh_cache():
         for allyCode in list_noguild_allyCodes[:keep_max_noguild_players]:
             print("INFO: delete player "+str(allyCode)+" from DB")
             connect_mysql.simple_callproc("remove_player", [allyCode])
+            
+    return 0
 
-def stats_cache():
-    sum_size = 0
-    nb_files = 0
-    for filename in os.listdir('CACHE'):
-        #print(filename)
-        if filename != 'KEEPDIR':
-            file_path = 'CACHE' + os.path.sep + filename
-            file_stats = os.stat(file_path)
-            nb_files += 1
-            sum_size += file_stats.st_size
-    return 'Total CACHE: ' + str(nb_files) + ' files, ' + str(
-        int(sum_size / 1024 / 1024 * 10) / 10) + ' MB'
-
-
+##################################
+# Function: refresh_cache
+# return: erro_code, err_text
+##################################
 def load_player(txt_allyCode, force_update):
     # The query tests if the update is less than 60 minutes for all players
     # Assumption: when the command is player-related, updating one is costless
@@ -133,24 +129,24 @@ def load_player(txt_allyCode, force_update):
                     sys.stdout.flush()
                 else:
                     print('ERR: update_player '+txt_allyCode+' returned an error')
-                    return 'ERR: update_player '+txt_allyCode+' returned an error'
+                    return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
                 
                 
             else:
                 print ('ERR: client.get_data(\'player\', '+txt_allyCode+
                         ') has returned an empty list')
-                return 'ERR: allyCode '+txt_allyCode+' not found'
+                return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
         else:
             print ('ERR: client.get_data(\'player\', '+
                     txt_allyCode+') has not returned a list')
             print (player_data)
-            return 'ERR: allyCode '+txt_allyCode+' not found'
+            return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
         sys.stdout.write(player_name + ' OK\n')
     
-    return 'OK'
+    return 0, ''
 
 def load_guild(txt_allyCode, load_players):
     
@@ -208,9 +204,9 @@ def load_guild(txt_allyCode, load_players):
             sys.stdout.write(str(i_player) + ': ')
             
             if not player['allyCode'] in dict_recent_players.keys():
-                load_player(str(player['allyCode']), False)
+                e, t = load_player(str(player['allyCode']), False)
             elif not dict_recent_players[player['allyCode']]:
-                load_player(str(player['allyCode']), False)
+                e, t = load_player(str(player['allyCode']), False)
             else:
                 sys.stdout.write(player['name']+" OK\n")
     
@@ -564,8 +560,8 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #only one player, potentially several teams
         
         #Load or update data for the player
-        ret = load_player(txt_allyCode, False)
-        if ret != 'OK':
+        e, t = load_player(txt_allyCode, False)
+        if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvée pour code allié ' + txt_allyCode
             
@@ -1127,8 +1123,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                 return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
-        ret = load_player(txt_allyCode, False)
-        if ret != 'OK':
+        e, t = load_player(txt_allyCode, False)
+        if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
         
@@ -1532,17 +1528,25 @@ def get_tb_alerts():
     
     return tb_trigger_messages, last_track_secs
     
+#################################
+# Function: get_character_image
+# return: err_code, err_txt, image
+#################################
 def get_character_image(characters, txt_allyCode):
+    err_code = 0
+    err_txt = ''
+
     #Recuperation des dernieres donnees sur gdrive
     dict_units = connect_gsheets.load_config_units()
     
     dict_virtual_characters={} #{key=alias or ID, value=[rarity, gear, relic, nameKey]}
     
     #Get data for this player
-    ret = load_player(txt_allyCode, False)
-    if ret != 'OK':
+    e, t = load_player(txt_allyCode, False)
+    if e != 0:
         #error wile loading guild data
         print('WAR: joueur non trouvé pour code allié ' + txt_allyCode)
+        err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
     
     #specific list of characters for one player
     list_character_ids=[]
@@ -1550,7 +1554,8 @@ def get_character_image(characters, txt_allyCode):
         #Get full character name
         closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
         if len(closest_names)<1:
-            print('INFO: aucun personnage trouvé pour '+character_alias)
+            print('WAR: aucun personnage trouvé pour '+character_alias)
+            err_txt += 'WAR: aucun personnage trouvé pour '+character_alias+'\n'
         else:
             [character_name, character_id]=dict_units[closest_names[0]]
             list_character_ids.append(character_id)
@@ -1578,4 +1583,6 @@ def get_character_image(characters, txt_allyCode):
 
     db_data = connect_mysql.get_table(query)
     
-    return portraits.get_image_from_team(list_character_ids, db_data)
+    image = portraits.get_image_from_team(list_character_ids, db_data)
+    
+    return err_code, err_txt, image
