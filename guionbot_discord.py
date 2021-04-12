@@ -98,6 +98,8 @@ dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
 
 dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
+BOT_LOOP60_ERR = "Unexpected error in bot_loop_60: "
+
 ##############################################################
 #                                                            #
 #                  FONCTIONS                                 #
@@ -154,9 +156,9 @@ async def bot_loop_60():
             print("INFO next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
-            print("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
+            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
             print(e)
-            await send_alert_to_admins("Unexpected error in bot_loop_60: "+str(sys.exc_info()[0]))
+            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
         
         t_end = time.time()
         loop_duration = 60 * int(os.environ['REFRESH_RATE_BOT_MINUTES'])
@@ -500,6 +502,25 @@ async def on_ready():
     go.load_guild(os.environ['MASTER_GUILD_ALLYCODE'], False)
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
     print(f'\n{bot.user.name} has connected to Discord!')
+
+##############################################################
+# Event: on_reaction_add
+# Parameters: reaction (object containing different other ones)
+#             user (user taging with the emoji)
+# Purpose: se lance quand une réaction est ajoutée à un message
+# Output: none
+##############################################################
+@bot.event
+async def on_reaction_add(reaction, user):
+    message = reaction.message
+    author = message.author
+    
+    # Manage the thumb up to boot60 error message, to reset the alert
+    if message.content.startswith(BOT_LOOP60_ERR) \
+        and message.emoji == '\N{THUMBS UP SIGN}' \
+        and message.author == bot.user:
+        alert_sent_to_admin = False
+        message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
 
 ##############################################################
@@ -1170,18 +1191,22 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
-                image = await bot.loop.run_in_executor(None,
+                e, ret_cmd, image = await bot.loop.run_in_executor(None,
                     go.get_character_image, list(characters), allycode)
+                    
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = ret_cmd,
+                                   file=File(fp=image_binary, filename='image.png'))
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+
             else:
                 ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
-                
-            with BytesIO() as image_binary:
-                image.save(image_binary, 'PNG')
-                image_binary.seek(0)
-                await ctx.send(file=File(fp=image_binary, filename='image.png'))
-
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)                
                 
 ##############################################################
 # MAIN EXECUTION
