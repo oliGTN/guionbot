@@ -3,7 +3,7 @@
 ## Install
 
 ```sh
-pip3 install -r requiremens.txt
+pip3 install -r requirements.txt
 ```
 
 ## Usage
