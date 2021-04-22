@@ -517,7 +517,7 @@ async def on_reaction_add(reaction, user):
     
     # Manage the thumb up to boot60 error message, to reset the alert
     if message.content.startswith(BOT_LOOP60_ERR) \
-        and message.emoji == '\N{THUMBS UP SIGN}' \
+        and reaction.emoji == '\N{THUMBS UP SIGN}' \
         and message.author == bot.user:
         alert_sent_to_admin = False
         message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
