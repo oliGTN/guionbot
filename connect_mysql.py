@@ -22,17 +22,12 @@ def db_connect():
         # Recover DB information from URL
         urllib.parse.uses_netloc.append('mysql')
         try:
-            if 'MYSQL_DATABASE_URL' in config:
-                url = urllib.parse.urlparse(config.MYSQL_DATABASE_URL)
-                # 'NAME': url.path[1:],
-                # 'USER': url.username,
-                # 'PASSWORD': url.password,
-                # 'HOST': url.hostname,
-                # 'PORT': url.port,
-                    
-            else:
-                print('ERR: configuration variable "MYSQL_DATABASE_URL" not set')
-                return
+            url = urllib.parse.urlparse(config.MYSQL_DATABASE_URL)
+            # 'NAME': url.path[1:],
+            # 'USER': url.username,
+            # 'PASSWORD': url.password,
+            # 'HOST': url.hostname,
+            # 'PORT': url.port,
         except Exception:
             print('Unexpected error in connect:', sys.exc_info())
             return
