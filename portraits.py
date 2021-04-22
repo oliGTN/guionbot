@@ -23,18 +23,18 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
     font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
     
     character_image = get_image_from_id(character_id)
-    character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'mask-circle-128.png')
+    character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
     portrait_image.paste(character_image, (20, 20), character_mask_image)
     
     if force_alignment != 0:
         if combatType == 1:
             # GEAR
             if gear < 13:
-                gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'g'+str(gear)+'-frame.png')
+                gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g'+str(gear)+'-frame.png')
                 gear_frame_img = gear_frame_img.resize((126,126))
                 portrait_image.paste(gear_frame_img, (21, 21), gear_frame_img)
             else:
-                gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'g13-frame-atlas.png')
+                gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g13-frame-atlas.png')
                 if force_alignment == 2:
                     gear_frame_img = gear_frame_img.crop((0, 0, 120, 112))
                 else:
@@ -44,7 +44,7 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
                 
             # RELIC
             if relic>0:
-                relic_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'relic-badge-atlas.png')
+                relic_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'relic-badge-atlas.png')
                 if force_alignment == 2:
                     relic_frame_img = relic_frame_img.crop((0, 0, 54, 54))
                 else:
@@ -54,8 +54,8 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
                 portrait_draw.text((128,110), str(relic), (255, 255, 255), font=font)
         
         # RARITY
-        active_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'star.png')
-        inactive_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'star-inactive.png')
+        active_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star.png')
+        inactive_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star-inactive.png')
         for cur_rarity in [1, 2, 3, 4, 5, 6, 7]:
             angle_deg = 90+4*20 - 20*cur_rarity
             pos_x = int(84 + 75*math.cos(angle_deg * math.pi / 180))-11
@@ -67,7 +67,7 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
             portrait_image.paste(star_image, (pos_x, pos_y), star_image)
         
         # LEVEL
-        level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'level-badge.png')
+        level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
         level_frame_img = level_frame_img.resize((40,40))
         portrait_image.paste(level_frame_img, (64, 120), level_frame_img)
         portrait_draw.text((86-8*len(str(level)),125), str(level), (255, 255, 255), font=font)
@@ -75,7 +75,7 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
         if combatType == 1:
             # ZETAS
             if zetas>0:
-                zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
+                zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
                 zeta_frame_img = zeta_frame_img.resize((60,60))
                 portrait_image.paste(zeta_frame_img, (5, 95), zeta_frame_img)
                 portrait_draw.text((29,110), str(zetas), (255, 255, 255), font=font)
