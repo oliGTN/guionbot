@@ -1,4 +1,5 @@
 import os
+import config
 import sys
 import urllib.parse
 import mysql.connector
@@ -21,8 +22,8 @@ def db_connect():
         # Recover DB information from URL
         urllib.parse.uses_netloc.append('mysql')
         try:
-            if 'MYSQL_DATABASE_URL' in os.environ:
-                url = urllib.parse.urlparse(os.environ['MYSQL_DATABASE_URL'])
+            if 'MYSQL_DATABASE_URL' in config:
+                url = urllib.parse.urlparse(config.MYSQL_DATABASE_URL)
                 # 'NAME': url.path[1:],
                 # 'USER': url.username,
                 # 'PASSWORD': url.password,
@@ -30,7 +31,7 @@ def db_connect():
                 # 'PORT': url.port,
                     
             else:
-                print('ERR: environment variable "MYSQL_DATABASE_URL" not set')
+                print('ERR: configuration variable "MYSQL_DATABASE_URL" not set')
                 return
         except Exception:
             print('Unexpected error in connect:', sys.exc_info())

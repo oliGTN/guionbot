@@ -3,6 +3,7 @@
 
 import gspread
 import os
+import config
 import sys
 import json
 import requests
@@ -16,7 +17,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 # ou plusieurs fois le même (gain de temps)
 client=None
 
-guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
+guild_timezone=timezone(config.GUILD_TIMEZONE)
 
 ##############################################################
 # Function: get_gapi_client
@@ -32,12 +33,12 @@ def get_gapi_client():
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
         try:
-            creds_envVar = os.environ['GAPI_CREDS']
+            creds_envVar = config.GAPI_CREDS
             creds_json = json.loads(creds_envVar)
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
             client = gspread.authorize(creds)
         except KeyError as e:
-            print('ERR: variable d\'environment GAPI_CREDS non définie')
+            print('ERR: variable de configuration GAPI_CREDS non définie')
 
 ##############################################################
 # Function: load_config_teams
