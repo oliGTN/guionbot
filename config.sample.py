@@ -2,7 +2,8 @@
 
 # ======== COMON VARIABLES ===========
 # These Google API credentials come from https://console.developers.google.com/
-GAPI_CREDS=""
+# Just think to repace all \ by \\
+GAPI_CREDS=''
 
 # https://api.swgoh.help/profile
 SWGOHAPI_LOGIN=""
