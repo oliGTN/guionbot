@@ -166,7 +166,7 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
 
     return dict_players
     
-def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
+def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList):
     dict_players={}
 
     #db_stat_data_char is only used when db_stat_data does not
@@ -181,11 +181,14 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
         
         line_defId = line[1]
         if cur_defId != line_defId:
-            line_nameKey = line[2]
-            line_combatType = line[3]
-            line_rarity = line[4]
-            line_gear = line[5]
-            line_relic_currentTier = line[6]
+            if cur_defId in dict_unitsList:
+                line_nameKey = dict_unitsList[line_defId]['nameKey']
+            else:
+                line_nameKey = line_defId
+            line_combatType = line[2]
+            line_rarity = line[3]
+            line_gear = line[4]
+            line_relic_currentTier = line[5]
             dict_players[line_name][line_defId]={ \
                     "nameKey": line_nameKey,
                     "combatType": line_combatType,
@@ -207,11 +210,14 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
         
         line_defId = line[1]
         if cur_defId != line_defId:
-            line_nameKey = line[2]
-            line_combatType = line[3]
-            line_rarity = line[4]
-            line_gear = line[5]
-            line_relic_currentTier = line[6]
+            if cur_defId in dict_unitsList:
+                line_nameKey = dict_unitsList[line_defId]['nameKey']
+            else:
+                line_nameKey = line_defId
+            line_combatType = line[2]
+            line_rarity = line[3]
+            line_gear = line[4]
+            line_relic_currentTier = line[5]
             dict_players[line_name][line_defId]={ \
                     "nameKey": line_nameKey,
                     "combatType": line_combatType,
@@ -222,8 +228,8 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
                 
             cur_defId = line_defId
             
-        line_unitStatId = line[7]
-        line_unscaledDecimalValue = line[8]
+        line_unitStatId = line[6]
+        line_unscaledDecimalValue = line[7]
 
         dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
             int(line_unscaledDecimalValue)
