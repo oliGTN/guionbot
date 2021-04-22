@@ -161,15 +161,16 @@ def load_config_gt():
     feuille=file.worksheet("GT")
 
     liste_dict_feuille=feuille.get_all_records()
-    liste_priorites=set([(lambda x:x['Priorité'])(x) for x in liste_dict_feuille])
+    liste_priorites=set([(lambda x:0 if x['Priorité']=='' else x['Priorité'])(x) for x in liste_dict_feuille])
 
     liste_territoires=[['', []] for x in range(0,max(liste_priorites))] # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
     
     for ligne in liste_dict_feuille:
         #print(ligne)
         priorite=ligne['Priorité']
-        liste_territoires[priorite-1][0]=ligne['Territoire']
-        liste_territoires[priorite-1][1].append([ligne['Team'], ligne['Nombre'], ligne['Score mini']])
+        if priorite != '':
+            liste_territoires[priorite-1][0]=ligne['Territoire']
+            liste_territoires[priorite-1][1].append([ligne['Team'], ligne['Nombre'], ligne['Score mini']])
 
     return liste_territoires
     
