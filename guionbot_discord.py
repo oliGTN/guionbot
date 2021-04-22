@@ -3,6 +3,7 @@
 # CERTIFICATE_VERIFY_FAILED --> https://github.com/Rapptz/discord.py/issues/4159
 
 import os
+import config
 import sys
 import asyncio
 import time
@@ -19,12 +20,12 @@ from connect_warstats import parse_warstats_page
 import connect_mysql
 from io import BytesIO
 
-TOKEN = os.environ['DISCORD_BOT_TOKEN']
+TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
 intents.members = True
 intents.presences = True
 bot = commands.Bot(command_prefix='go.', intents=intents)
-guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
+guild_timezone=timezone(config.GUILD_TIMEZONE)
 bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 WARSTATS_REFRESH_SECS = 15*60
@@ -128,7 +129,7 @@ async def bot_loop_60():
             for guild in bot.guilds:
                 list_members=[]
                 for role in guild.roles:
-                    if role.name==os.environ['DISCORD_MEMBER_ROLE']:
+                    if role.name==config.DISCORD_MEMBER_ROLE:
                         for member in role.members:
                             if not member.id in dict_lastseen:
                                 dict_lastseen[member.id]= [member.display_name, None]
@@ -161,7 +162,7 @@ async def bot_loop_60():
             await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
         
         t_end = time.time()
-        loop_duration = 60 * int(os.environ['REFRESH_RATE_BOT_MINUTES'])
+        loop_duration = 60 * int(config.REFRESH_RATE_BOT_MINUTES)
         waiting_time = max(0, loop_duration - (t_end - t_start))
         
         # Wait X seconds before next loop
@@ -177,7 +178,7 @@ async def bot_loop_60():
 async def send_alert_to_admins(message):
     global alert_sent_to_admin
     if not alert_sent_to_admin:
-        list_ids = os.environ['GO_ADMIN_IDS'].split(' ')
+        list_ids = config.GO_ADMIN_IDS.split(' ')
         for userid in list_ids:
             member = bot.get_user(int(userid))
             channel = await member.create_dm()
@@ -193,7 +194,7 @@ async def send_alert_to_admins(message):
 ##############################################################
 async def get_eb_allocation(tbs_round):
     # Lecture des affectation ECHOBOT
-    bt_channel = bot.get_channel(int(os.environ['EB_CHANNEL']))
+    bt_channel = bot.get_channel(int(config.EB_CHANNEL))
     dict_platoons_allocation = {}  #key=platton_name, value={key=perso, value=[player...]}
     eb_phases = []
     eb_missions_full = []
@@ -207,7 +208,7 @@ async def get_eb_allocation(tbs_round):
     
     allocation_without_overview = False
     async for message in bt_channel.history(limit=500):
-        if str(message.author) == os.environ['EB_PROFILE']:
+        if str(message.author) == config.EB_PROFILE:
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
@@ -499,7 +500,7 @@ def manage_me(ctx, allycode_txt):
 ##############################################################
 @bot.event
 async def on_ready():
-    go.load_guild(os.environ['MASTER_GUILD_ALLYCODE'], False)
+    go.load_guild(config.MASTER_GUILD_ALLYCODE, False)
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
     print(f'\n{bot.user.name} has connected to Discord!')
 
@@ -545,7 +546,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Output: True/False
     ##############################################################
     async def is_owner(ctx):
-        return str(ctx.author.id) in os.environ['GO_ADMIN_IDS'].split(' ')
+        return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
 
     ##############################################################
     # Command: cmd

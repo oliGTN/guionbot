@@ -4,6 +4,7 @@ from swgohhelp import SWGOHhelp, settings
 import sys
 import time
 import os
+import config
 import difflib
 import math
 from functools import reduce
@@ -18,7 +19,7 @@ FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
 
 #login password sur https://api.swgoh.help/profile
-creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
+creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
 client = SWGOHhelp(creds)
 
 ##################################
@@ -34,7 +35,7 @@ def refresh_cache():
     query = "SELECT allyCode FROM players WHERE guildName = ( \
                 SELECT guildName \
                 FROM players \
-                WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+" \
+                WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+" \
             ) \
             ORDER BY lastUpdated ASC"
     list_master_allyCodes = connect_mysql.get_column(query)
@@ -43,14 +44,14 @@ def refresh_cache():
     query = "SELECT allyCode from players WHERE guildName != ( \
                 SELECT guildName \
                 FROM players \
-                WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+" \
+                WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+" \
             ) \
             ORDER BY lastUpdated ASC"
     list_nonmaster_allyCodes = connect_mysql.get_column(query)
 
     #Compute the amount of players to be refreshed based on global refresh rate
-    refresh_rate_bot_minutes = int(os.environ['REFRESH_RATE_BOT_MINUTES'])
-    refresh_rate_player_minutes = int(os.environ['REFRESH_RATE_PLAYER_MINUTES'])
+    refresh_rate_bot_minutes = int(config.REFRESH_RATE_BOT_MINUTES)
+    refresh_rate_player_minutes = int(config.REFRESH_RATE_PLAYER_MINUTES)
     nb_refresh_master_players = ceil(
         len(list_master_allyCodes) / refresh_rate_player_minutes * refresh_rate_bot_minutes)
     nb_refresh_nonmaster_players = 1
@@ -67,10 +68,10 @@ def refresh_cache():
     
     #Check the amount of stored guilds, and remove if too many
     query = "SELECT name FROM guilds \
-            WHERE name != (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
+            WHERE name != (SELECT guildName FROM players WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+") \
             ORDER BY lastUpdated"
     list_nonmaster_guilds = connect_mysql.get_column(query)
-    keep_max_non_master_guilds = int(os.environ['KEEP_MAX_NONMASTER_GUILDS'])
+    keep_max_non_master_guilds = int(config.KEEP_MAX_NONMASTER_GUILDS)
     if len(list_nonmaster_guilds) > keep_max_non_master_guilds:
         for guildname in list_nonmaster_guilds[:keep_max_non_master_guilds]:
             print("INFO: delete guild "+guildname+" from DB")
@@ -81,7 +82,7 @@ def refresh_cache():
             WHERE guildName = '' \
             ORDER BY lastUpdated DESC"
     list_noguild_allyCodes = connect_mysql.get_column(query)
-    keep_max_noguild_players = int(os.environ['KEEP_MAX_NOGUILD_PLAYERS'])
+    keep_max_noguild_players = int(config.KEEP_MAX_NOGUILD_PLAYERS)
     if len(list_noguild_allyCodes) > keep_max_noguild_players:
         for allyCode in list_noguild_allyCodes[:keep_max_noguild_players]:
             print("INFO: delete player "+str(allyCode)+" from DB")
@@ -183,7 +184,7 @@ def load_guild(txt_allyCode, load_players):
         # For other players, check if less than 12 hours
         query = "\
             SELECT \
-            CASE WHEN guildName = (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
+            CASE WHEN guildName = (SELECT guildName FROM players WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+") \
             THEN (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) \
             ELSE (timestampdiff(HOUR, players.lastUpdated, CURRENT_TIMESTAMP)<=12) END AS recent, \
             allyCode \
