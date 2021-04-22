@@ -858,35 +858,3 @@ def update_gameData(dict_gameData):
         # cursor.execute(query)
     # except Error as error:
         # print(error)
-
-def export_procedures_and_tables():
-    try:
-        mysql_db = db_connect()
-        cursor = mysql_db.cursor()
-        
-        #procedures
-        cursor.execute("SHOW PROCEDURE STATUS")
-        results = cursor.fetchall()
-        for r in results:
-            proc_name = r[1]
-            cursor.execute("SHOW CREATE PROCEDURE "+proc_name)
-            for line in cursor.fetchall():
-                print (line[2])
-        
-        #tables
-        cursor.execute("SHOW TABLES")
-        results = cursor.fetchall()
-        for r in results:
-            table_name = r[0]
-            cursor.execute("SHOW CREATE TABLE "+table_name)
-            for line in cursor.fetchall():
-                print (line[1])
-                
-    except Error as error:
-        print(error)
-        
-    finally:
-        cursor.close()
-        # db.close()
-
-    
