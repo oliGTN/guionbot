@@ -1,46 +1,348 @@
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `clean_lost_links`()
+-- MySQL dump 10.18  Distrib 10.3.27-MariaDB, for debian-linux-gnueabihf (armv8l)
+--
+-- Host: localhost    Database: guionbotdb
+-- ------------------------------------------------------
+-- Server version	10.3.27-MariaDB-0+deb10u1
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `debug`
+--
+
+DROP TABLE IF EXISTS `debug`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `debug` (
+  `txt` mediumtext DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `gp_history`
+--
+
+DROP TABLE IF EXISTS `gp_history`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `gp_history` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `player_id` int(11) DEFAULT NULL,
+  `char_gp` int(11) DEFAULT NULL,
+  `ship_gp` int(11) DEFAULT NULL,
+  `arena_char_rank` int(11) DEFAULT NULL,
+  `arena_ship_rank` int(11) DEFAULT NULL,
+  `date` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3636 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `guild_subteams`
+--
+
+DROP TABLE IF EXISTS `guild_subteams`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `guild_subteams` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `team_id` int(11) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `minimum` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=250 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `guild_team_roster`
+--
+
+DROP TABLE IF EXISTS `guild_team_roster`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `guild_team_roster` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `subteam_id` varchar(255) DEFAULT NULL,
+  `unit_id` varchar(255) DEFAULT NULL,
+  `rarity_min` int(11) DEFAULT NULL,
+  `gear_min` varchar(10) DEFAULT NULL,
+  `rarity_reco` int(11) DEFAULT NULL,
+  `gear_reco` varchar(10) DEFAULT NULL,
+  `speed` int(11) DEFAULT NULL,
+  `capaLevel` int(11) DEFAULT NULL,
+  `modLevel` int(11) DEFAULT NULL,
+  `pg_min` int(11) DEFAULT NULL,
+  `zetaList` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1236 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `guild_team_roster_zetas`
+--
+
+DROP TABLE IF EXISTS `guild_team_roster_zetas`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `guild_team_roster_zetas` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roster_id` int(11) DEFAULT NULL,
+  `name` varchar(2) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=328 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `guild_teams`
+--
+
+DROP TABLE IF EXISTS `guild_teams`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `guild_teams` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
+  `md5` varchar(32) DEFAULT 'zz',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=120 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `guilds`
+--
+
+DROP TABLE IF EXISTS `guilds`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `guilds` (
+  `name` varchar(255) NOT NULL DEFAULT 'noname',
+  `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `mod_stats`
+--
+
+DROP TABLE IF EXISTS `mod_stats`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `mod_stats` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `mod_id` int(11) DEFAULT NULL,
+  `isPrimary` tinyint(4) DEFAULT NULL,
+  `unitStat` tinyint(4) DEFAULT NULL,
+  `value` float DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=101520770 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `mods`
+--
+
+DROP TABLE IF EXISTS `mods`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `mods` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roster_id` int(11) DEFAULT NULL,
+  `level` int(11) DEFAULT NULL,
+  `pips` int(11) DEFAULT NULL,
+  `mod_set` int(11) DEFAULT NULL,
+  `slot` int(11) DEFAULT NULL,
+  `tier` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=22196520 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `players`
+--
+
+DROP TABLE IF EXISTS `players`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `players` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `allyCode` int(11) DEFAULT NULL,
+  `guildName` varchar(255) DEFAULT NULL,
+  `player_id` varchar(30) CHARACTER SET latin1 DEFAULT NULL,
+  `lastActivity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `level` int(11) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `arena_char_rank` int(11) DEFAULT NULL,
+  `arena_ship_rank` int(11) DEFAULT NULL,
+  `char_gp` int(11) DEFAULT NULL,
+  `ship_gp` int(11) DEFAULT NULL,
+  `poUTCOffsetMinutes` int(11) DEFAULT NULL,
+  `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
+  `md5` varchar(32) CHARACTER SET latin1 DEFAULT 'zz',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1328 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `roster`
+--
+
+DROP TABLE IF EXISTS `roster`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `roster` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `player_id` int(11) DEFAULT NULL,
+  `defId` varchar(255) DEFAULT NULL,
+  `combatType` tinyint(4) DEFAULT NULL,
+  `forceAlignment` tinyint(4) DEFAULT NULL,
+  `gear` tinyint(4) DEFAULT NULL,
+  `gp` int(11) DEFAULT NULL,
+  `level` tinyint(4) DEFAULT NULL,
+  `nameKey` varchar(255) DEFAULT NULL,
+  `rarity` tinyint(4) DEFAULT NULL,
+  `relic_currentTier` tinyint(4) DEFAULT NULL,
+  `zeta_count` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=220729 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `roster_eqpt`
+--
+
+DROP TABLE IF EXISTS `roster_eqpt`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `roster_eqpt` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roster_id` int(11) DEFAULT NULL,
+  `equipment_id` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9576522 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `roster_skills`
+--
+
+DROP TABLE IF EXISTS `roster_skills`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `roster_skills` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roster_id` int(11) DEFAULT NULL,
+  `name` varchar(45) DEFAULT NULL,
+  `level` int(11) DEFAULT NULL,
+  `isZeta` tinyint(4) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=13081545 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `roster_stats`
+--
+
+DROP TABLE IF EXISTS `roster_stats`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `roster_stats` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `roster_id` int(11) DEFAULT NULL,
+  `unitStatId` tinyint(4) DEFAULT NULL,
+  `unscaledDecimalValue` bigint(20) DEFAULT NULL,
+  `type` varchar(4) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=85954996 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping routines for database 'guionbotdb'
+--
+/*!50003 DROP PROCEDURE IF EXISTS `clean_lost_links` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `clean_lost_links`()
 BEGIN
-	# From players to roster
+        
 	SELECT * FROM roster WHERE player_id NOT IN (SELECT id FROM players);
 	DELETE FROM roster WHERE player_id NOT IN (SELECT id FROM players);
-    OPTIMIZE TABLE roster;
+	OPTIMIZE TABLE roster;
 
-	# From roster to mods then mod_stats
 	SELECT * FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	SELECT * FROM mod_stats WHERE mod_id NOT IN (SELECT id FROM mods);
 	DELETE FROM mod_stats WHERE mod_id NOT IN (SELECT id FROM mods);
-    OPTIMIZE TABLE mods;
-    OPTIMIZE TABLE mod_stats;
+	OPTIMIZE TABLE mods;
+	OPTIMIZE TABLE mod_stats;
 
-	# From roster to roster_eqpt, roster_skills, roster_stats
+        
 	SELECT * FROM roster_eqpt WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM roster_eqpt WHERE roster_id NOT IN (SELECT id FROM roster);
 	SELECT * FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
 	SELECT * FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
-    OPTIMIZE TABLE roster_eqpt;
-    OPTIMIZE TABLE roster_skills;
-    OPTIMIZE TABLE roster_stats;
+	OPTIMIZE TABLE roster_eqpt;
+	OPTIMIZE TABLE roster_skills;
+	OPTIMIZE TABLE roster_stats;
 
-	# From units to unit_tiers then unit_stats
-	SELECT * FROM unit_tiers WHERE unit_id NOT IN (SELECT id FROM units);
-	DELETE FROM unit_tiers WHERE unit_id NOT IN (SELECT id FROM units);
-	SELECT * FROM unit_stats WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
-	DELETE FROM unit_stats WHERE unit_tier_id NOT IN (SELECT id FROM unit_tiers);
-    OPTIMIZE TABLE unit_tiers;
-    OPTIMIZE TABLE unit_stats;
-
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_db_size`()
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_db_size` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_db_size`()
 BEGIN
-	SELECT table_schema AS "Database", 
-	ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS "Size (MB)" 
-	FROM information_schema.TABLES 
-	GROUP BY table_schema;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_guild_gp`(
+SELECT table_schema AS "Database", 
+ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS "Size (MB)" 
+FROM information_schema.TABLES 
+GROUP BY table_schema;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_guild_gp` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_guild_gp`(
 	IN delta_days INT)
 BEGIN
 	SELECT SUM(char_gp)+SUM(ship_gp) AS total_gp, SUM(char_gp) AS char_gp, SUM(ship_gp) AS ship_gp FROM (
@@ -51,8 +353,23 @@ BEGIN
         WHERE TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) >= delta_days*24*3600 AND TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) <= (delta_days+2)*24*3600
         GROUP BY players.id
 	) AS T;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_player_cristals`()
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_player_cristals` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_player_cristals`()
 BEGIN
 	select name,date,
 	gp_history.arena_char_rank,
@@ -82,7 +399,7 @@ BEGIN
 		when gp_history.arena_ship_rank = 4 then 325
 		when gp_history.arena_ship_rank = 5 then 300
 		when gp_history.arena_ship_rank <=10 then 200
-		when gp_history.arena_ship_rank <=20 then 100
+	when gp_history.arena_ship_rank <=20 then 100
 		when gp_history.arena_ship_rank <=50 then 50
 		ELSE 0
 	end as ship_cristals,
@@ -91,8 +408,23 @@ BEGIN
 	join players on players.id = gp_history.player_id
     WHERE guildName = 'Kangoo Legends'
 	order by name, date ASC;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_unit_stat`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_unit_stat` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_unit_stat`(
 	IN p_allyCode INT,
     IN p_stat_name VARCHAR(255),
     IN p_sort_by_stat BOOL
@@ -154,7 +486,7 @@ BEGIN
 	base_statValue, eqpt_statValue, mod_statValue, mod_count, lvl15_count,
     CASE WHEN @p_mod_set = 0 THEN
 		base_statValue/10000 +IFNULL(eqpt_statValue, 0)/10000+IFNULL(mod_statValue, 0)
-	ELSE # @p_mod_set != 0
+	ELSE 
 		CASE WHEN @p_mod_count_min = 4 THEN
 			CASE WHEN IFNULL(mod_count, 0) < 4 THEN
 				base_statValue/10000 +IFNULL(eqpt_statValue, 0)/10000+IFNULL(mod_statValue, 0)
@@ -179,15 +511,45 @@ BEGIN
 		CASE WHEN p_sort_by_stat THEN stat_value END DESC,
 		CASE WHEN NOT p_sort_by_stat THEN units.nameKey END ASC;
 
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `get_unknown_units`()
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_unknown_units` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_unknown_units`()
 BEGIN
 	SELECT defId
 	FROM (SELECT DISTINCT(defId) AS defId FROM roster) T
 	LEFT JOIN units ON units.baseId = T.defId
 	WHERE ISNULL(nameKey);
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `remove_guild`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `remove_guild` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `remove_guild`(
 	IN p_guildName VARCHAR(255) CHARSET utf8
 )
 BEGIN
@@ -196,25 +558,55 @@ BEGIN
     DELETE FROM players WHERE guildName = p_guildName;
     
     CALL clean_lost_links();
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `remove_player`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `remove_player` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `remove_player`(
 	IN p_allyCode INT
 )
 BEGIN
     DELETE FROM players WHERE allyCode = p_allyCode;
     
     CALL clean_lost_links();
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_guild_subteams`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_guild_subteams` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_subteams`(
     IN p_team_id INT,
     IN subteams_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_guild_subteams');
-	#INSERT INTO debug(txt) VALUES(CONCAT('team_id=', p_team_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('subteams_txt=', subteams_txt));
+	
+	
+	
 
-	# DELETE subteams and associated roster before creating it again
+	
     DELETE FROM guild_team_roster_zetas WHERE roster_id IN (
 		SELECT guild_team_roster.id FROM guild_team_roster
         JOIN guild_subteams ON guild_subteams.id = guild_team_roster.subteam_id
@@ -227,22 +619,22 @@ BEGIN
 
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(subteams_txt)) = 0 OR subteams_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_subteam = SUBSTRING_INDEX(subteams_txt,'/',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_guild_subteams @next_subteam=', @next_subteam));
+		
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_subteam_len = CHAR_LENGTH(@next_subteam);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @subteam_name = SUBSTRING_INDEX(@next_subteam,';',1);
 		SET @subteam_minimum = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_subteam,'|',1),';',-1);
         
@@ -250,7 +642,7 @@ BEGIN
 		SET @pos_toons_txt = CHAR_LENGTH(@before_toons_txt);
 		SET @toons_txt = INSERT(@next_subteam,1,@pos_toons_txt + 1,'');
 
-        -- insert the extracted value into the target table
+        
 		INSERT INTO guild_subteams(team_id) VALUES(p_team_id);
         SET @subteam_id = LAST_INSERT_ID();
         UPDATE guild_subteams SET
@@ -260,40 +652,55 @@ BEGIN
 
 		CALL update_guild_subteam_toons(@subteam_id, @toons_txt);
             
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET subteams_txt = INSERT(subteams_txt,1,@next_subteam_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_guild_subteam_toons`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_guild_subteam_toons` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_subteam_toons`(
     IN p_subteam_id INT,
     IN toons_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_guild_subteam_toons');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_subteam_id=', p_subteam_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('toons_txt=', toons_txt));
+	
+	
+	
 
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(toons_txt)) = 0 OR toons_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_toon = SUBSTRING_INDEX(toons_txt,'|',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_subteam_toons @next_toon=', @next_toon));
+		
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_toon_len = CHAR_LENGTH(@next_toon);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @toon_id = SUBSTRING_INDEX(@next_toon,';',1);
 		SET @toon_rarity_min = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',2),';',-1);
 		SET @toon_gear_min = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',3),';',-1);
@@ -305,7 +712,7 @@ BEGIN
 		SET @toon_pg_min = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',9),';',-1);
 		SET @toon_zetas = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_toon,';',10),';',-1);
         
-        -- insert the extracted value into the target table
+        
 		INSERT INTO guild_team_roster(subteam_id) VALUES(p_subteam_id);
         SET @roster_id = LAST_INSERT_ID();
         UPDATE guild_team_roster SET
@@ -323,47 +730,62 @@ BEGIN
 
 		CALL update_guild_team_zetas(@roster_id, @toon_zetas);
         
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET toons_txt = INSERT(toons_txt,1,@next_toon_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_guild_teams`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_guild_teams` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_teams`(
     IN guild_teams_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_guild_teams');
-	#INSERT INTO debug(txt) VALUES(CONCAT('guild_teams_txt=', guild_teams_txt));
+	
+	
 
 	SELECT CURRENT_TIMESTAMP INTO @currentUpdateTS;
     
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(guild_teams_txt)) = 0 OR guild_teams_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_team = SUBSTRING_INDEX(guild_teams_txt,'\\',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_guild_teams @next_team=', @next_team));
+		
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_team_len = CHAR_LENGTH(@next_team);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @team_name = SUBSTRING_INDEX(@next_team,'/',1);
         
 		SET @before_subteams_txt = SUBSTRING_INDEX(@next_team,'/',1);
 		SET @pos_subteams_txt = CHAR_LENGTH(@before_subteams_txt);
 		SET @subteams_txt = INSERT(@next_team,1,@pos_subteams_txt + 1,'');
 
-        -- insert the extracted value into the target table
+        
 		IF NOT EXISTS (SELECT * FROM guild_teams WHERE guild_teams.name = @team_name) THEN
 			INSERT INTO guild_teams(name) VALUES(@team_name);
 		END IF;
@@ -382,87 +804,117 @@ BEGIN
 			WHERE guild_teams.id = @team_id;
 		END IF;
             
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET guild_teams_txt = INSERT(guild_teams_txt,1,@next_team_len + 1,'');
 	END LOOP;
     
-    # DELETE teams that were not part of the input list
+    
     DELETE FROM guild_teams WHERE lastUpdated < @currentUpdateTS;
     
-    # Then clean lost links
+    
 	DELETE FROM guild_subteams WHERE team_id NOT IN (SELECT id FROM guild_teams);
 	DELETE FROM guild_team_roster WHERE subteam_id NOT IN (SELECT id FROM guild_subteams);
 	DELETE FROM guild_team_roster_zetas WHERE roster_id NOT IN (SELECT id FROM guild_team_roster);
 
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_guild_team_zetas`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_guild_team_zetas` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_team_zetas`(
     IN p_roster_id INT,
     IN zetas_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_guild_team_zetas');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('zetas_txt=', zetas_txt));
+	
+	
+	
 
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(zetas_txt)) = 0 OR zetas_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_zeta = SUBSTRING_INDEX(zetas_txt,',',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_subteam_toons @next_zeta=', @next_zeta));
+		
         
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_zeta_len = CHAR_LENGTH(@next_zeta);
         
-        -- insert the extracted value into the target table
+        
 		INSERT INTO guild_team_roster_zetas(roster_id, name) VALUES(p_roster_id, @next_zeta);
         
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET zetas_txt = INSERT(zetas_txt,1,@next_zeta_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_mods`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_mods` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_mods`(
 	IN p_roster_id INT,
     IN mod_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_mods');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('mod_definition_txt=', mod_definition_txt));
+	
+	
+	
 
-	#DELETE FROM mod_stats WHERE mod_id IN(SELECT id FROM mods WHERE roster_id = p_roster_id);
-	#DELETE FROM mods WHERE roster_id = p_roster_id;
+	
+	
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(mod_definition_txt)) = 0 OR mod_definition_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_mod = SUBSTRING_INDEX(mod_definition_txt,'|',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_mods @next_mod=', @next_mod));
+		
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_mod_len = CHAR_LENGTH(@next_mod);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @mod_level = SUBSTRING_INDEX(@next_mod,',',1);
 		SET @mod_pips = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',2),',',-1);
 		SET @mod_primaryStat_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',3),',',-1);
@@ -479,7 +931,7 @@ BEGIN
 		SET @mod_slot = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',14),',',-1);
 		SET @mod_tier = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',15),',',-1);
 
-		-- insert the extracted value into the target table
+		
 		INSERT INTO mods (roster_id) VALUES (p_roster_id);
         SET @mod_id = LAST_INSERT_ID();
 		UPDATE mods SET
@@ -490,7 +942,7 @@ BEGIN
             tier = @mod_tier
             WHERE id = @mod_id;
             
-		# Refresh equipment list
+		
 		IF NOT (@mod_primaryStat_unitStat = 0) THEN
 			INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,TRUE,@mod_primaryStat_unitStat,@mod_primaryStat_value);
 		END IF;
@@ -507,14 +959,29 @@ BEGIN
 			INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,FALSE,@mod_secondaryStat4_unitStat,@mod_secondaryStat4_value);
 		END IF;
             
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET mod_definition_txt = INSERT(mod_definition_txt,1,@next_mod_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_player`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_player` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_player`(
 	IN p_allyCode INT,
     IN p_guildName VARCHAR(255) CHARSET utf8,
     IN p_player_id VARCHAR(30),
@@ -534,10 +1001,10 @@ BEGIN
 	SET character_set_client=utf8;
 	SET character_set_connection=utf8;
     
-	#INSERT INTO debug(txt) VALUES('START update_player');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_allyCode=', p_allyCode));
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_name=', p_name));
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_level=', p_level));
+	
+	
+	
+	
 
 	IF NOT EXISTS (SELECT * FROM players WHERE allyCode = p_allyCode) THEN
 		INSERT INTO players(allyCode) VALUES(p_allyCode);
@@ -559,38 +1026,48 @@ BEGIN
 	
 	SET @player_md5 = (SELECT md5 FROM players WHERE players.allyCode = p_allyCode);
 	SET @new_md5 = MD5(roster_definition_txt);
-	#INSERT INTO debug(txt) VALUES(CONCAT('@player_md5=', @player_md5));
-	#INSERT INTO debug(txt) VALUES(CONCAT('@new_md5=', @new_md5));
+	
+	
 	IF NOT @player_md5 = @new_md5 THEN
 		CALL update_roster(@p_player_id, roster_definition_txt);
 
 		UPDATE players SET
 			md5 = MD5(roster_definition_txt)
 		WHERE players.id = @p_player_id;
-	#ELSE INSERT INTO debug(txt) VALUES('Identical MD5 > no change');
+	
 	END IF;
 	
-	# update the gp_history table
+	
     IF p_guildName = 'Kangoo Legends' THEN
 		SET @delta_TS_last_history = (SELECT TIMESTAMPDIFF(SECOND,MAX(date),CURRENT_TIMESTAMP) FROM gp_history WHERE player_id = @p_player_id);
 		IF (ISNULL(@delta_TS_last_history) OR (@delta_TS_last_history > 24*3600)) THEN
-			# the history is saved every 24h only
+			
 			INSERT INTO gp_history(player_id, char_gp, ship_gp, arena_char_rank, arena_ship_rank)
 				VALUES(@p_player_id, p_char_gp, p_ship_gp, p_arena_char_rank, p_arena_ship_rank);
-		#ELSE INSERT INTO debug(txt) VALUES(CONCAT('@delta_TS_last_history=', @delta_TS_last_history));
+		
 		END IF;
 	END IF;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_roster` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster`(
 	IN p_player_id INT,
     IN roster_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_roster');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_player_id=', p_player_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('roster_definition_txt=', roster_definition_txt));
-
-	# Clean mods and equipment and skills as they will be created again
 	DELETE FROM mod_stats WHERE mod_id IN (
 		SELECT mods.id FROM mods
 		JOIN roster ON roster.id = mods.roster_id
@@ -610,38 +1087,32 @@ BEGIN
 
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(roster_definition_txt)) = 0 OR roster_definition_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
 		SET @next_roster = SUBSTRING_INDEX(roster_definition_txt,'\\',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_roster @next_roster=', @next_roster));
-
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
 		SET @next_roster_len = CHAR_LENGTH(@next_roster);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
 		SET @base_definition_txt = SUBSTRING_INDEX(@next_roster,'/',1);
 		SET @p_combatType = SUBSTRING_INDEX(@base_definition_txt,',',1);
 		SET @p_defId = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',2),',',-1);
-		SET @p_gear = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',3),',',-1);
-		SET @p_gp = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',4),',',-1);
-		SET @p_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',5),',',-1);
-		SET @p_nameKey = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',6),',',-1);
-		SET @p_rarity = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',7),',',-1);
-		SET @p_relic_currentTier = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',8),',',-1);
-		SET @p_zeta_count = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',9),',',-1);
-		SET @p_equipped1 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',10),',',-1);
-		SET @p_equipped2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',11),',',-1);
-		SET @p_equipped3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',12),',',-1);
-		SET @p_equipped4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',13),',',-1);
-		SET @p_equipped5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',14),',',-1);
-		SET @p_equipped6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',15),',',-1);
+		SET @p_forceAlignment = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',3),',',-1);
+		SET @p_gear = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',4),',',-1);
+		SET @p_gp = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',5),',',-1);
+		SET @p_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',6),',',-1);
+		SET @p_nameKey = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',7),',',-1);
+		SET @p_rarity = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',8),',',-1);
+		SET @p_relic_currentTier = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',9),',',-1);
+		SET @p_zeta_count = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',10),',',-1);
+		SET @p_equipped1 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',11),',',-1);
+		SET @p_equipped2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',12),',',-1);
+		SET @p_equipped3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',13),',',-1);
+		SET @p_equipped4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',14),',',-1);
+		SET @p_equipped5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',15),',',-1);
+		SET @p_equipped6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',16),',',-1);
         
 		SET @mod_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',2),'/',-1);
 		SET @capa_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',3),'/',-1);
@@ -651,6 +1122,7 @@ BEGIN
 			p_player_id,
 			@p_combatType,
 			@p_defId,
+			@p_forceAlignment,
 			@p_gear,
 			@p_gp,
 			@p_level,
@@ -667,18 +1139,30 @@ BEGIN
 			@mod_definition_txt,
 			@capa_definition_txt,
 			@stat_definition_txt);
-            
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+
 		SET roster_definition_txt = INSERT(roster_definition_txt,1,@next_roster_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_element`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_roster_element` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_element`(
 	IN p_player_id INT,
 	IN p_combatType INT,
     IN p_defId VARCHAR(255),
+	IN p_forceAlignment INT,
     IN p_gear INT,
     IN p_gp INT,
     IN p_level INT,
@@ -697,18 +1181,13 @@ CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_element`(
     IN stat_definition_txt MEDIUMTEXT
     )
 BEGIN
-    #INSERT INTO debug(txt) VALUES('START update_roster_element');
-    #INSERT INTO debug(txt) VALUES(CONCAT('p_player_id=', p_player_id));
-    #INSERT INTO debug(txt) VALUES(CONCAT('p_defId=', p_defId));
-    #INSERT INTO debug(txt) VALUES(CONCAT('mod_definition_txt=', mod_definition_txt));
-    #INSERT INTO debug(txt) VALUES(CONCAT('capa_definition_txt=', capa_definition_txt));
-    #INSERT INTO debug(txt) VALUES(CONCAT('stat_definition_txt=', stat_definition_txt));
-
+    
 	IF NOT EXISTS (SELECT * FROM roster WHERE player_id = p_player_id AND defId = p_defId) THEN
 		INSERT INTO roster(player_id,defId) VALUES(p_player_id,p_defId);
     END IF;
     UPDATE roster SET
 		combatType = p_combatType,
+        forceAlignment = p_forceAlignment,
         gear = p_gear,
         gp = p_gp,
         level = p_level,
@@ -723,8 +1202,6 @@ BEGIN
     CALL update_roster_skills(@roster_id, capa_definition_txt);
     CALL update_roster_stats(@roster_id, stat_definition_txt);
     
-    # Refresh equipment list
-    #DELETE FROM roster_eqpt WHERE roster_id = @roster_id;
 	IF NOT (p_equipped1 = '') THEN
 		INSERT INTO roster_eqpt(roster_id,equipment_id) VALUES(@roster_id,p_equipped1);
     END IF;
@@ -743,39 +1220,54 @@ BEGIN
 	IF NOT (p_equipped6 = '') THEN
 		INSERT INTO roster_eqpt(roster_id,equipment_id) VALUES(@roster_id,p_equipped6);
     END IF;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_skills`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_roster_skills` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_skills`(
 	IN p_roster_id INT,
     IN capa_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_roster_skills');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('capa_definition_txt=', capa_definition_txt));
+	
+	
+	
 
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(capa_definition_txt)) = 0 OR capa_definition_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_skill = SUBSTRING_INDEX(capa_definition_txt,'|',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_roster_skills @next_skill=', @next_skill));
+		
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_skill_len = CHAR_LENGTH(@next_skill);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @skill_name = SUBSTRING_INDEX(@next_skill,',',1);
 		SET @skill_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_skill,',',2),',',-1);
 		SET @skill_isZeta = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_skill,',',3),',',-1);
 
-		-- insert the extracted value into the target table
+		
 		INSERT INTO roster_skills (roster_id) VALUES (p_roster_id);
         SET @skill_id = LAST_INSERT_ID();
 		UPDATE roster_skills SET
@@ -784,45 +1276,60 @@ BEGIN
             isZeta = @skill_isZeta
             WHERE id = @skill_id;
             
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET capa_definition_txt = INSERT(capa_definition_txt,1,@next_skill_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_roster_stats`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_roster_stats` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_stats`(
 	IN p_roster_id INT,
     IN stat_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_roster_stats');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('stat_definition_txt=', stat_definition_txt));
+	
+	
+	
 
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(stat_definition_txt)) = 0 OR stat_definition_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_stat = SUBSTRING_INDEX(stat_definition_txt,'|',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_roster_skills @next_stat=', @next_stat));
+		
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_stat_len = CHAR_LENGTH(@next_stat);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @stat_unitStatId = SUBSTRING_INDEX(@next_stat,',',1);
 		SET @stat_unscaledDecimalValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',2),',',-1);
 		SET @stat_type = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',3),',',-1);
 
-		-- insert the extracted value into the target table
+		
 		INSERT INTO roster_stats (roster_id) VALUES (p_roster_id);
         SET @stat_id = LAST_INSERT_ID();
 		UPDATE roster_stats SET
@@ -831,40 +1338,55 @@ BEGIN
             type = @stat_type
             WHERE id = @stat_id;
             
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_tiers`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_tiers` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_tiers`(
 	IN p_unit_id INT,
     IN tier_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_tiers');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_unit_id=', p_unit_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('tier_definition_txt=', tier_definition_txt));
+	
+	
+	
     
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(tier_definition_txt)) = 0 OR tier_definition_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_tiers = SUBSTRING_INDEX(tier_definition_txt,'/',1);
-		#INSERT INTO debug(txt) VALUES(CONCAT('LOOP update_tiers @next_tiers=', @next_tiers));
+		
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_tiers_len = CHAR_LENGTH(@next_tiers);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @p_equipmentSet1 = SUBSTRING_INDEX(@next_tiers,',',1);
 		SET @p_equipmentSet2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',2),',',-1);
 		SET @p_equipmentSet3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',3),',',-1);
@@ -888,14 +1410,29 @@ BEGIN
 			@p_tier,
 			@stat_definition_txt);
             
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET tier_definition_txt = INSERT(tier_definition_txt,1,@next_tiers_len + 1,'');
 	END LOOP;
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_tier_element`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_tier_element` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_tier_element`(
 	IN p_unit_id INT,
 	IN p_equipmentSet1 VARCHAR(255),
 	IN p_equipmentSet2 VARCHAR(255),
@@ -907,10 +1444,10 @@ CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_tier_element`(
     IN stat_definition_txt MEDIUMTEXT
     )
 BEGIN
-    #INSERT INTO debug(txt) VALUES('START update_tier_element');
-    #INSERT INTO debug(txt) VALUES(CONCAT('p_unit_id=', p_unit_id));
-    #INSERT INTO debug(txt) VALUES(CONCAT('p_tier=', p_tier));
-    #INSERT INTO debug(txt) VALUES(CONCAT('stat_definition_txt=', stat_definition_txt));
+    
+    
+    
+    
 
 	IF NOT EXISTS (SELECT * FROM unit_tiers WHERE unit_id = p_unit_id AND tier = p_tier) THEN
 		INSERT INTO unit_tiers(unit_id,tier) VALUES(p_unit_id,p_tier);
@@ -926,8 +1463,23 @@ BEGIN
 
 	SET @unit_tier_id = (SELECT id FROM unit_tiers WHERE unit_id = p_unit_id AND tier = p_tier);
     CALL update_unit_stats(@unit_tier_id, stat_definition_txt);
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_unit`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_unit` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_unit`(
 	p_baseId VARCHAR(255),
 	p_combatType INT,
 	p_descKey TEXT,
@@ -937,8 +1489,8 @@ CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_unit`(
     tier_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_unit');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_unit_id=', p_unit_id));
+	
+	
 
 	IF NOT EXISTS (SELECT * FROM units WHERE unit_id = p_unit_id) THEN
 		INSERT INTO units(unit_id) VALUES(p_unit_id);
@@ -955,41 +1507,56 @@ BEGIN
     SET @p_current_id = (SELECT id FROM units WHERE unit_id = p_unit_id);
     CALL update_tiers(@p_current_id, tier_definition_txt);
     
-END
-CREATE DEFINER=`freedbtech_guionensai`@`%` PROCEDURE `update_unit_stats`(
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `update_unit_stats` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `update_unit_stats`(
 	IN p_unit_tier_id INT,
     IN stat_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_unit_stats');
-	#INSERT INTO debug(txt) VALUES(CONCAT('p_unit_tier_id=', p_unit_tier_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('stat_definition_txt=', stat_definition_txt));
+	
+	
+	
 
 	DELETE FROM unit_stats WHERE unit_tier_id = p_unit_tier_id;
 	iterator:
 	LOOP
-		-- exit the loop if the list seems empty or was null;
-		-- this extra caution is necessary to avoid an endless loop in the proc.
+		
+		
 		IF CHAR_LENGTH(TRIM(stat_definition_txt)) = 0 OR stat_definition_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		-- capture the next value from the list
+		
 		SET @next_stat = SUBSTRING_INDEX(stat_definition_txt,'|',1);
 
-		-- save the length of the captured value; we will need to remove this
-		-- many characters + 1 from the beginning of the string 
-		-- before the next iteration
+		
+		
+		
 		SET @next_stat_len = CHAR_LENGTH(@next_stat);
 
-		-- trim the value of leading and trailing spaces, in case of sloppy CSV strings
+		
 		SET @stat_scalar = SUBSTRING_INDEX(@next_stat,',',1);
 		SET @stat_statValueDecimal = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',2),',',-1);
 		SET @stat_uiDisplayOverrideValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',3),',',-1);
 		SET @stat_unitStatId = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',4),',',-1);
 		SET @stat_unscaledDecimalValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',5),',',-1);
 
-		-- insert the extracted value into the target table
+		
 		INSERT INTO unit_stats (unit_tier_id) VALUES (p_unit_tier_id);
         SET @stat_id = LAST_INSERT_ID();
 		UPDATE unit_stats SET
@@ -1000,166 +1567,26 @@ BEGIN
             unscaledDecimalValue = @stat_unscaledDecimalValue
             WHERE id = @stat_id;
             
-		-- rewrite the original string using the `INSERT()` string function,
-		-- args are original string, start position, how many characters to remove, 
-		-- and what to "insert" in their place (in this case, we "insert"
-		-- an empty string, which removes _nextlen + 1 characters)
+		
+		
+		
+		
 		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
 	END LOOP;
-END
-CREATE TABLE `debug` (
-  `txt` mediumtext
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-CREATE TABLE `gp_history` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `player_id` int(11) DEFAULT NULL,
-  `char_gp` int(11) DEFAULT NULL,
-  `ship_gp` int(11) DEFAULT NULL,
-  `arena_char_rank` int(11) DEFAULT NULL,
-  `arena_ship_rank` int(11) DEFAULT NULL,
-  `date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3533 DEFAULT CHARSET=latin1
-CREATE TABLE `guild_subteams` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `team_id` int(11) DEFAULT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `minimum` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=155 DEFAULT CHARSET=latin1
-CREATE TABLE `guild_team_roster` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `subteam_id` varchar(255) DEFAULT NULL,
-  `unit_id` varchar(255) DEFAULT NULL,
-  `rarity_min` int(11) DEFAULT NULL,
-  `gear_min` varchar(10) DEFAULT NULL,
-  `rarity_reco` int(11) DEFAULT NULL,
-  `gear_reco` varchar(10) DEFAULT NULL,
-  `speed` int(11) DEFAULT NULL,
-  `capaLevel` int(11) DEFAULT NULL,
-  `modLevel` int(11) DEFAULT NULL,
-  `pg_min` int(11) DEFAULT NULL,
-  `zetaList` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=748 DEFAULT CHARSET=latin1
-CREATE TABLE `guild_team_roster_zetas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `roster_id` int(11) DEFAULT NULL,
-  `name` varchar(2) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=168 DEFAULT CHARSET=latin1
-CREATE TABLE `guild_teams` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(255) DEFAULT NULL,
-  `lastUpdated` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `md5` varchar(32) DEFAULT 'zz',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=63 DEFAULT CHARSET=latin1
-CREATE TABLE `guilds` (
-  `name` varchar(255) NOT NULL DEFAULT 'noname',
-  `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
-CREATE TABLE `mod_stats` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `mod_id` int(11) DEFAULT NULL,
-  `isPrimary` tinyint(4) DEFAULT NULL,
-  `unitStat` tinyint(4) DEFAULT NULL,
-  `value` float DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=100176648 DEFAULT CHARSET=latin1
-CREATE TABLE `mods` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `roster_id` int(11) DEFAULT NULL,
-  `level` int(11) DEFAULT NULL,
-  `pips` int(11) DEFAULT NULL,
-  `mod_set` int(11) DEFAULT NULL,
-  `slot` int(11) DEFAULT NULL,
-  `tier` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=21920248 DEFAULT CHARSET=latin1
-CREATE TABLE `players` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `allyCode` int(11) DEFAULT NULL,
-  `guildName` varchar(255) DEFAULT NULL,
-  `player_id` varchar(30) CHARACTER SET latin1 DEFAULT NULL,
-  `lastActivity` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `level` int(11) DEFAULT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `arena_char_rank` int(11) DEFAULT NULL,
-  `arena_ship_rank` int(11) DEFAULT NULL,
-  `char_gp` int(11) DEFAULT NULL,
-  `ship_gp` int(11) DEFAULT NULL,
-  `poUTCOffsetMinutes` int(11) DEFAULT NULL,
-  `lastUpdated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `md5` varchar(32) CHARACTER SET latin1 DEFAULT 'zz',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1228 DEFAULT CHARSET=utf8
-CREATE TABLE `roster` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `player_id` int(11) DEFAULT NULL,
-  `combatType` tinyint(4) DEFAULT NULL,
-  `defId` varchar(255) DEFAULT NULL,
-  `gear` tinyint(4) DEFAULT NULL,
-  `gp` int(11) DEFAULT NULL,
-  `level` tinyint(4) DEFAULT NULL,
-  `nameKey` varchar(255) DEFAULT NULL,
-  `rarity` tinyint(4) DEFAULT NULL,
-  `relic_currentTier` tinyint(4) DEFAULT NULL,
-  `zeta_count` tinyint(4) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=197287 DEFAULT CHARSET=latin1
-CREATE TABLE `roster_eqpt` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `roster_id` int(11) DEFAULT NULL,
-  `equipment_id` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9463027 DEFAULT CHARSET=latin1
-CREATE TABLE `roster_skills` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `roster_id` int(11) DEFAULT NULL,
-  `name` varchar(45) DEFAULT NULL,
-  `level` int(11) DEFAULT NULL,
-  `isZeta` tinyint(4) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12802012 DEFAULT CHARSET=latin1
-CREATE TABLE `roster_stats` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `roster_id` int(11) DEFAULT NULL,
-  `unitStatId` tinyint(4) DEFAULT NULL,
-  `unscaledDecimalValue` bigint(20) DEFAULT NULL,
-  `type` varchar(4) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=83891824 DEFAULT CHARSET=latin1
-CREATE TABLE `unit_stats` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `unit_tier_id` int(11) DEFAULT NULL,
-  `scalar` int(11) DEFAULT NULL,
-  `statValueDecimal` int(11) DEFAULT NULL,
-  `uiDisplayOverrideValue` int(11) DEFAULT NULL,
-  `unitStatId` int(11) DEFAULT NULL,
-  `unscaledDecimalValue` bigint(20) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=98309 DEFAULT CHARSET=latin1
-CREATE TABLE `unit_tiers` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `unit_id` int(11) DEFAULT NULL,
-  `equipmentSet1` varchar(255) DEFAULT NULL,
-  `equipmentSet2` varchar(255) DEFAULT NULL,
-  `equipmentSet3` varchar(255) DEFAULT NULL,
-  `equipmentSet4` varchar(255) DEFAULT NULL,
-  `equipmentSet5` varchar(255) DEFAULT NULL,
-  `equipmentSet6` varchar(255) DEFAULT NULL,
-  `tier` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8420 DEFAULT CHARSET=latin1
-CREATE TABLE `units` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `baseId` varchar(255) DEFAULT NULL,
-  `combatType` int(11) DEFAULT NULL,
-  `descKey` text,
-  `forceAlignment` int(11) DEFAULT NULL,
-  `unit_id` varchar(255) DEFAULT NULL,
-  `nameKey` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1319 DEFAULT CHARSET=latin1
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2021-04-22 21:38:46
