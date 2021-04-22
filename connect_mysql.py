@@ -326,9 +326,10 @@ def update_guild(dict_guild):
         guild_name = dict_guild["name"].replace("'", "''")
         
         query = "REPLACE INTO guilds(name) VALUES('"+guild_name+"')"
-        print(query)
         cursor.execute(query)
+
         players_in_db = get_column("SELECT allyCode FROM players")
+        guild_players_in_db = get_column("SELECT allyCode FROM players WHERE guildName='"+guild_name+"'")
         players_in_api = [x["allyCode"] for x in dict_guild["roster"]]
         
         for player_api in dict_guild["roster"]:
@@ -340,12 +341,14 @@ def update_guild(dict_guild):
                         VALUES ("+str(player_api["allyCode"])+",'" + \
                         player_name+"','"+ \
                         guild_name+"',CURRENT_TIMESTAMP-INTERVAL 24 HOUR)"
-                # print(query)
+                print(query)
                 cursor.execute(query)
                                                 
-        for allyCode_db in players_in_db:
+        for allyCode_db in guild_players_in_db:
             if not allyCode_db in players_in_api:
-                cursor.execute("UPDATE players SET guildName='' WHERE allyCode="+str(player_api["allyCode"]))
+                query = "UPDATE players SET guildName='' WHERE allyCode="+str(allyCode_db)
+                print(query)
+                cursor.execute(query)
           
         mysql_db.commit()
     except Error as error:
@@ -356,7 +359,7 @@ def update_guild(dict_guild):
         # db.close()       
         
         
-def update_player(dict_player):
+def update_player(dict_player, dict_units):
     #Start by getting all stats for the player
     dict_player = connect_crinolo.add_stats(dict_player)
 
@@ -392,6 +395,7 @@ def update_player(dict_player):
         for character in dict_player['roster']:
             c_combatType = character['combatType']
             c_defId = character['defId']
+            c_forceAlignment = dict_units[c_defId]['forceAlignment']
             c_gear = character['gear']
             c_gp = character['gp']
             c_level = character['level']
@@ -514,6 +518,7 @@ def update_player(dict_player):
             ## FINALIZE DEFINITION OF CHARACTER WITH CAPAS, MODS,STATS ##
             roster_definition_txt+=str(c_combatType)+","+ \
                                    c_defId+","+ \
+                                   str(c_forceAlignment)+","+ \
                                    str(c_gear)+","+ \
                                    str(c_gp)+","+ \
                                    str(c_level)+","+ \
