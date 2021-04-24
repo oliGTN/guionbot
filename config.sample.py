@@ -18,6 +18,10 @@ MASTER_GUILD_ALLYCODE=""
 # Timezone for the guild
 GUILD_TIMEZONE=""
 
+# Guild ID in warstats (number include in the URL for your guild)
+# eg: https://goh.warstats.net/g/<guild ID>/<guild name>
+WARSTATS_GUILD_ID=""
+
 # ======== FOR DISCORD ONLY ===========
 # This token comes from https://discord.com/developers/ then settings / Bot / Token
 DISCORD_BOT_TOKEN=""

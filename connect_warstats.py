@@ -4,9 +4,10 @@ import random
 import re
 from html.parser import HTMLParser
 
-warstats_tbs_url='https://goh.warstats.net/guilds/tbs/4090'
+warstats_tbs_url='https://goh.warstats.net/guilds/tbs/'+config.WARSTATS_GUILD_ID
 warstats_platoons_baseurl='https://goh.warstats.net/platoons/view/'
 warstats_resume_baseurl='https://goh.warstats.net/territory-battles/view/'
+warstats_tws_url='https://goh.warstats.net/guilds/tbs/'+config.WARSTATS_GUILD_ID
 
 tab_dict_platoons=[] #de haut en bas
 
@@ -694,5 +695,18 @@ def parse_warstats_tb_scores():
     print("TB name = "+resume_parser.get_battle_name())
     return resume_parser.get_territory_scores(), resume_parser.get_last_track()
 
-#MAIN
-#parse_warstats_page()
+def parse_warstats_tw_teams():
+    try:
+        page = fresh_urlopen(warstats_tws_url)
+    except urllib.error.HTTPError as e:
+        print('ERR: while opening '+warstats_tbs_url)
+        return {}, 0
+        
+    generic_parser = GenericTBSParser()
+    generic_parser.feed(str(page.read()))
+    
+    if generic_parser.get_battle_id() == None:
+        print('ERR: no TB in progress')
+        return {}, 0
+    else:
+        print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
