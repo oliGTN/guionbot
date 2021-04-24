@@ -1243,7 +1243,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 # MAIN EXECUTION
 ##############################################################
 # Use command-line parameters
-if len(sys.argv) > 0:
+if len(sys.argv) > 1:
     if sys.argv[1] == "test":
         print("Launch in TEST MODE")
         bot_test_mode = True
