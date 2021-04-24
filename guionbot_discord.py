@@ -19,6 +19,7 @@ from connect_gsheets import load_config_players, update_online_dates
 from connect_warstats import parse_warstats_page
 import connect_mysql
 from io import BytesIO
+from requests import get
 
 TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
@@ -31,6 +32,7 @@ MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 WARSTATS_REFRESH_SECS = 15*60
 WARSTATS_REFRESH_TIME = 2*60
 alert_sent_to_admin = False
+bot_test_mode = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -502,7 +504,14 @@ def manage_me(ctx, allycode_txt):
 async def on_ready():
     go.load_guild(config.MASTER_GUILD_ALLYCODE, False)
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
-    print(f'\n{bot.user.name} has connected to Discord!')
+
+    #recover external IP address
+    ip = get('https://api.ipify.org').text
+    
+    msg = "\n"+bot.user.name+" has connected to Discord from ip "+ip
+    print(msg)
+    await send_alert_to_admins(msg)
+    alert_sent_to_admin = False
 
 ##############################################################
 # Event: on_reaction_add
@@ -670,7 +679,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         if ctx.author.id in dict_players.keys():
             if dict_players[ctx.author.id][1]:
                 ret_is_officer = True
-        return ret_is_officer
+
+        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+
+        return (ret_is_officer and (not bot_test_mode)) or is_owner
 
     ##############################################################
     # Command: vtg_agt
@@ -869,12 +881,24 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         self.bot = bot
 
     ##############################################################
+    # Function: command_allowed
+    # Parameters: ctx (objet Contexte)
+    # Purpose: vérifie si on est en mode test
+    #          En mode test, seuls les admins peuvent lancer des commandes
+    # Output: True/False
+    ##############################################################
+    async def command_allowed(ctx):
+        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+        return (not bot_test_mode) or is_owner
+
+    ##############################################################
     # Command: vtg
     # Parameters: code allié (string) ou "me", une liste de teams séparées par des espaces ou "all"
     # Purpose: Vérification des Teams de la Guilde avec tri par progrès
     # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
     #          ou plusieurs tableaux à la suite si plusieurs teams
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='vtg',
                       brief="Vérifie la dispo d'une team dans la guilde",
                       help="Vérifie la dispo d'une team dans la guilde\n\n"\
@@ -1195,14 +1219,20 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 e, ret_cmd, image = await bot.loop.run_in_executor(None,
                     go.get_character_image, list(characters), allycode)
                     
-                with BytesIO() as image_binary:
-                    image.save(image_binary, 'PNG')
-                    image_binary.seek(0)
-                    await ctx.send(content = ret_cmd,
+                if e == 0:
+                    with BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        await ctx.send(content = ret_cmd,
                                    file=File(fp=image_binary, filename='image.png'))
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                    #Icône de confirmation de fin de commande dans le message d'origine
+                    await ctx.message.add_reaction(emoji_check)
+
+                else:
+                    ret_cmd += 'ERR: merci de préciser un ou plusieurs persos'
+                    await ctx.send(ret_cmd)
+                    await ctx.message.add_reaction(emoji_error)
 
             else:
                 ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
@@ -1212,6 +1242,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
+# Use command-line parameters
+if len(sys.argv) > 0:
+    if sys.argv[1] == "test":
+        print("Launch in TEST MODE")
+        bot_test_mode = True
+
 #création de la tâche périodique à 60 secondes
 bot.loop.create_task(bot_loop_60())
 
