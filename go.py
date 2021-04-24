@@ -4,6 +4,7 @@ from swgohhelp import SWGOHhelp, settings
 import sys
 import time
 import os
+import config
 import difflib
 import math
 from functools import reduce
@@ -14,12 +15,15 @@ import connect_crinolo
 import connect_warstats
 import goutils
 import portraits
+import json
+
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
 
 #login password sur https://api.swgoh.help/profile
-creds = settings(os.environ['SWGOHAPI_LOGIN'], os.environ['SWGOHAPI_PASSWORD'], '123', 'abc')
+creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
 client = SWGOHhelp(creds)
+dict_unitsList = json.load(open('DATA'+os.path.sep+'unitsList_dict.json', 'r'))
 
 ##################################
 # Function: refresh_cache
@@ -34,7 +38,7 @@ def refresh_cache():
     query = "SELECT allyCode FROM players WHERE guildName = ( \
                 SELECT guildName \
                 FROM players \
-                WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+" \
+                WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+" \
             ) \
             ORDER BY lastUpdated ASC"
     list_master_allyCodes = connect_mysql.get_column(query)
@@ -43,14 +47,14 @@ def refresh_cache():
     query = "SELECT allyCode from players WHERE guildName != ( \
                 SELECT guildName \
                 FROM players \
-                WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+" \
+                WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+" \
             ) \
             ORDER BY lastUpdated ASC"
     list_nonmaster_allyCodes = connect_mysql.get_column(query)
 
     #Compute the amount of players to be refreshed based on global refresh rate
-    refresh_rate_bot_minutes = int(os.environ['REFRESH_RATE_BOT_MINUTES'])
-    refresh_rate_player_minutes = int(os.environ['REFRESH_RATE_PLAYER_MINUTES'])
+    refresh_rate_bot_minutes = int(config.REFRESH_RATE_BOT_MINUTES)
+    refresh_rate_player_minutes = int(config.REFRESH_RATE_PLAYER_MINUTES)
     nb_refresh_master_players = ceil(
         len(list_master_allyCodes) / refresh_rate_player_minutes * refresh_rate_bot_minutes)
     nb_refresh_nonmaster_players = 1
@@ -67,10 +71,10 @@ def refresh_cache():
     
     #Check the amount of stored guilds, and remove if too many
     query = "SELECT name FROM guilds \
-            WHERE name != (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
+            WHERE name != (SELECT guildName FROM players WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+") \
             ORDER BY lastUpdated"
     list_nonmaster_guilds = connect_mysql.get_column(query)
-    keep_max_non_master_guilds = int(os.environ['KEEP_MAX_NONMASTER_GUILDS'])
+    keep_max_non_master_guilds = int(config.KEEP_MAX_NONMASTER_GUILDS)
     if len(list_nonmaster_guilds) > keep_max_non_master_guilds:
         for guildname in list_nonmaster_guilds[:keep_max_non_master_guilds]:
             print("INFO: delete guild "+guildname+" from DB")
@@ -81,7 +85,7 @@ def refresh_cache():
             WHERE guildName = '' \
             ORDER BY lastUpdated DESC"
     list_noguild_allyCodes = connect_mysql.get_column(query)
-    keep_max_noguild_players = int(os.environ['KEEP_MAX_NOGUILD_PLAYERS'])
+    keep_max_noguild_players = int(config.KEEP_MAX_NOGUILD_PLAYERS)
     if len(list_noguild_allyCodes) > keep_max_noguild_players:
         for allyCode in list_noguild_allyCodes[:keep_max_noguild_players]:
             print("INFO: delete player "+str(allyCode)+" from DB")
@@ -122,8 +126,13 @@ def load_player(txt_allyCode, force_update):
                 sys.stdout.write(' ' + ret_player['name'])
                 sys.stdout.flush()
                 
+                # store json file
+                fjson = open('PLAYERS'+os.path.sep+txt_allyCode+'.json', 'w')
+                fjson.write(json.dumps(ret_player, sort_keys=True, indent=4))
+                fjson.close()
+
                 # update DB
-                ret = connect_mysql.update_player(ret_player)
+                ret = connect_mysql.update_player(ret_player, dict_unitsList)
                 if ret == 0:
                     sys.stdout.write('.\n')
                     sys.stdout.flush()
@@ -183,7 +192,7 @@ def load_guild(txt_allyCode, load_players):
         # For other players, check if less than 12 hours
         query = "\
             SELECT \
-            CASE WHEN guildName = (SELECT guildName FROM players WHERE allyCode = "+os.environ['MASTER_GUILD_ALLYCODE']+") \
+            CASE WHEN guildName = (SELECT guildName FROM players WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+") \
             THEN (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) \
             ELSE (timestampdiff(HOUR, players.lastUpdated, CURRENT_TIMESTAMP)<=12) END AS recent, \
             allyCode \
@@ -851,7 +860,7 @@ def print_gvg(list_team_names, txt_allyCode):
     for line in list_lines[:MAX_GVG_LINES]:
         score = line[0]
         txt = line[1]
-        unlocked : line[2]
+        unlocked = line[2]
         if score > 95:
             ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
         elif score > 80:
@@ -877,7 +886,7 @@ def assign_gt(allyCode, txt_mode):
     #print(liste_team_names)
 
     #Calcule des meilleurs joueurs pour chaque team
-    dict_teams = get_team_progress(liste_team_names, allyCode, True, 3, -1, -1, True)
+    dict_teams = get_team_progress(liste_team_names, allyCode, True, 3, -1, -1, True, True)
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1131,32 +1140,30 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         #Manage request for all characters
         if 'all' in characters:
             print("Get player char data from DB...")
-            query ="SELECT players.name, defId, units.nameKey, \
-                    roster.combatType, rarity, gear, relic_currentTier \
+            query ="SELECT players.name, defId, \
+                    combatType, rarity, gear, relic_currentTier \
                     FROM roster \
                     JOIN players ON players.id = roster.player_id \
-                    JOIN units ON units.unit_id = roster.defId \
                     WHERE players.allyCode = '"+txt_allyCode+"' \
                     AND roster.combatType=1 AND roster.level >= 50 \
-                    ORDER BY players.name, units.nameKey"
+                    ORDER BY players.name, defId"
             db_stat_data_char = connect_mysql.get_table(query)
             
             print("Get player stats data from DB...")
-            query ="SELECT players.name, defId, units.nameKey, \
+            query ="SELECT players.name, defId, \
                     roster.combatType, rarity, gear, relic_currentTier, \
                     ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                     FROM roster \
                     JOIN roster_stats ON roster_stats.roster_id = roster.id \
                     JOIN players ON players.id = roster.player_id \
-                    JOIN units ON units.unit_id = roster.defId \
                     WHERE players.allyCode = '"+txt_allyCode+"' \
                     AND roster.combatType=1 AND roster.level >= 50 \
                     AND ("
             for display_stat in list_stats_for_display:
                 query += "unitStatId = "+str(display_stat[0])+" OR "
             query += "isnull(unitStatId)) \
-                    GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
-                    ORDER BY players.name, units.nameKey, unitStatId"
+                    GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
+                    ORDER BY players.name, defId, unitStatId"
             
             db_stat_data = connect_mysql.get_table(query)
             db_stat_data_mods = []
@@ -1185,13 +1192,12 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
 
             db_stat_data_char = []
             print("Get player_data from DB...")
-            query ="SELECT players.name, defId, units.nameKey, \
+            query ="SELECT players.name, defId, \
                     roster.combatType, rarity, gear, relic_currentTier, \
                     ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                     FROM roster \
                     LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
                     JOIN players ON players.id = roster.player_id \
-                    JOIN units ON units.unit_id = roster.defId \
                     WHERE players.allyCode = '"+txt_allyCode+"' \
                     AND ("
             for character_id in list_character_ids:
@@ -1201,8 +1207,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             for display_stat in list_stats_for_display:
                 query += "unitStatId = "+str(display_stat[0])+" OR "
             query += "isnull(unitStatId)) \
-                    GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
-                    ORDER BY players.name, units.nameKey, unitStatId"
+                    GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
+                    ORDER BY players.name, defId, unitStatId"
 
             db_stat_data = connect_mysql.get_table(query)
             
@@ -1254,21 +1260,20 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     
         db_stat_data_char = []
         print("Get guild_data from DB...")
-        query ="SELECT players.name, defId, units.nameKey, \
+        query ="SELECT players.name, defId, \
                 roster.combatType, rarity, gear, relic_currentTier, \
                 ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                 FROM roster \
                 LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
                 JOIN players ON players.id = roster.player_id \
-                JOIN units ON units.unit_id = roster.defId \
                 WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
                 AND defId = '"+character_id+"' \
                 AND ("
         for display_stat in list_stats_for_display:
             query += "unitStatId = "+str(display_stat[0])+" OR "
         query += "isnull(unitStatId)) \
-                GROUP BY players.name, defId, units.nameKey, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
-                ORDER BY players.name, units.nameKey, unitStatId"
+                GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
+                ORDER BY players.name, defId, unitStatId"
 
         db_stat_data = connect_mysql.get_table(query)
         db_stat_data_mods = []
@@ -1281,7 +1286,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
     # Generate dict with statistics
-    dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods)
+    dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList)
 
     #Manage virtual characters
     #This works only with command SPJ, so only one player_name
@@ -1568,13 +1573,15 @@ def get_character_image(characters, txt_allyCode):
                 dict_virtual_characters[character_id][3] = character_name
                 del dict_virtual_characters[character_alias]
 
+    if len(list_character_ids) == 0:
+        return 1, err_txt, None
+
     db_stat_data_char = []
     print("Get player_data from DB...")
     query ="SELECT defId, rarity, roster.level, gear, \
-            relic_currentTier, forceAlignment, zeta_count, units.combatType \
+            relic_currentTier, forceAlignment, zeta_count, combatType \
             FROM roster \
             JOIN players ON players.id = roster.player_id \
-            JOIN units ON units.unit_id = roster.defId \
             WHERE players.allyCode = '"+txt_allyCode+"' \
             AND ("
     for character_id in list_character_ids:

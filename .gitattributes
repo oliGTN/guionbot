@@ -3,6 +3,7 @@
 # Secret scripts with environment variables
 launch_guionbot.bat filter=git-crypt diff=git-crypt
 #add here the equivalent Linux script
+guionbot.env filter=git-crypt diff=git-crypt
 
 #line to prevent encrypting the .gitattributes file itself
 .gitattributes !filter !diff

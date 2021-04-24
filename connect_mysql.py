@@ -1,4 +1,5 @@
 import os
+import config
 import sys
 import urllib.parse
 import mysql.connector
@@ -21,17 +22,12 @@ def db_connect():
         # Recover DB information from URL
         urllib.parse.uses_netloc.append('mysql')
         try:
-            if 'MYSQL_DATABASE_URL' in os.environ:
-                url = urllib.parse.urlparse(os.environ['MYSQL_DATABASE_URL'])
-                # 'NAME': url.path[1:],
-                # 'USER': url.username,
-                # 'PASSWORD': url.password,
-                # 'HOST': url.hostname,
-                # 'PORT': url.port,
-                    
-            else:
-                print('ERR: environment variable "MYSQL_DATABASE_URL" not set')
-                return
+            url = urllib.parse.urlparse(config.MYSQL_DATABASE_URL)
+            # 'NAME': url.path[1:],
+            # 'USER': url.username,
+            # 'PASSWORD': url.password,
+            # 'HOST': url.hostname,
+            # 'PORT': url.port,
         except Exception:
             print('Unexpected error in connect:', sys.exc_info())
             return
@@ -326,8 +322,8 @@ def update_guild(dict_guild):
         guild_name = dict_guild["name"].replace("'", "''")
         
         query = "REPLACE INTO guilds(name) VALUES('"+guild_name+"')"
-        print(query)
         cursor.execute(query)
+
         players_in_db = get_column("SELECT allyCode FROM players")
         guild_players_in_db = get_column("SELECT allyCode FROM players WHERE guildName='"+guild_name+"'")
         players_in_api = [x["allyCode"] for x in dict_guild["roster"]]
@@ -346,7 +342,7 @@ def update_guild(dict_guild):
                                                 
         for allyCode_db in guild_players_in_db:
             if not allyCode_db in players_in_api:
-                query = "UPDATE players SET guildName='' WHERE allyCode="+str(player_api["allyCode"])
+                query = "UPDATE players SET guildName='' WHERE allyCode="+str(allyCode_db)
                 print(query)
                 cursor.execute(query)
           
@@ -359,7 +355,7 @@ def update_guild(dict_guild):
         # db.close()       
         
         
-def update_player(dict_player):
+def update_player(dict_player, dict_units):
     #Start by getting all stats for the player
     dict_player = connect_crinolo.add_stats(dict_player)
 
@@ -395,6 +391,7 @@ def update_player(dict_player):
         for character in dict_player['roster']:
             c_combatType = character['combatType']
             c_defId = character['defId']
+            c_forceAlignment = dict_units[c_defId]['forceAlignment']
             c_gear = character['gear']
             c_gp = character['gp']
             c_level = character['level']
@@ -517,6 +514,7 @@ def update_player(dict_player):
             ## FINALIZE DEFINITION OF CHARACTER WITH CAPAS, MODS,STATS ##
             roster_definition_txt+=str(c_combatType)+","+ \
                                    c_defId+","+ \
+                                   str(c_forceAlignment)+","+ \
                                    str(c_gear)+","+ \
                                    str(c_gp)+","+ \
                                    str(c_level)+","+ \
@@ -856,35 +854,3 @@ def update_gameData(dict_gameData):
         # cursor.execute(query)
     # except Error as error:
         # print(error)
-
-def export_procedures_and_tables():
-    try:
-        mysql_db = db_connect()
-        cursor = mysql_db.cursor()
-        
-        #procedures
-        cursor.execute("SHOW PROCEDURE STATUS")
-        results = cursor.fetchall()
-        for r in results:
-            proc_name = r[1]
-            cursor.execute("SHOW CREATE PROCEDURE "+proc_name)
-            for line in cursor.fetchall():
-                print (line[2])
-        
-        #tables
-        cursor.execute("SHOW TABLES")
-        results = cursor.fetchall()
-        for r in results:
-            table_name = r[0]
-            cursor.execute("SHOW CREATE TABLE "+table_name)
-            for line in cursor.fetchall():
-                print (line[1])
-                
-    except Error as error:
-        print(error)
-        
-    finally:
-        cursor.close()
-        # db.close()
-
-    

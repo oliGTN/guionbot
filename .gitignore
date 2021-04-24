@@ -1,2 +1,6 @@
 .git-crypt/*
 guionbot-gitcrypt-key.txt
+config.py
+IMAGES/CHARACTERS/*
+DATA/*
+PLAYERS/*

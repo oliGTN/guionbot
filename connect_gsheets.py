@@ -3,6 +3,7 @@
 
 import gspread
 import os
+import config
 import sys
 import json
 import requests
@@ -16,7 +17,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 # ou plusieurs fois le même (gain de temps)
 client=None
 
-guild_timezone=timezone(os.environ['GUILD_TIMEZONE'])
+guild_timezone=timezone(config.GUILD_TIMEZONE)
 
 ##############################################################
 # Function: get_gapi_client
@@ -32,12 +33,12 @@ def get_gapi_client():
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
         try:
-            creds_envVar = os.environ['GAPI_CREDS']
+            creds_envVar = config.GAPI_CREDS
             creds_json = json.loads(creds_envVar)
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
             client = gspread.authorize(creds)
         except KeyError as e:
-            print('ERR: variable d\'environment GAPI_CREDS non définie')
+            print('ERR: variable de configuration GAPI_CREDS non définie')
 
 ##############################################################
 # Function: load_config_teams
@@ -161,15 +162,16 @@ def load_config_gt():
     feuille=file.worksheet("GT")
 
     liste_dict_feuille=feuille.get_all_records()
-    liste_priorites=set([(lambda x:x['Priorité'])(x) for x in liste_dict_feuille])
+    liste_priorites=set([(lambda x:0 if x['Priorité']=='' else x['Priorité'])(x) for x in liste_dict_feuille])
 
     liste_territoires=[['', []] for x in range(0,max(liste_priorites))] # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
     
     for ligne in liste_dict_feuille:
         #print(ligne)
         priorite=ligne['Priorité']
-        liste_territoires[priorite-1][0]=ligne['Territoire']
-        liste_territoires[priorite-1][1].append([ligne['Team'], ligne['Nombre'], ligne['Score mini']])
+        if priorite != '':
+            liste_territoires[priorite-1][0]=ligne['Territoire']
+            liste_territoires[priorite-1][1].append([ligne['Team'], ligne['Nombre'], ligne['Score mini']])
 
     return liste_territoires
     
