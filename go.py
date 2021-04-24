@@ -1573,6 +1573,9 @@ def get_character_image(characters, txt_allyCode):
                 dict_virtual_characters[character_id][3] = character_name
                 del dict_virtual_characters[character_alias]
 
+    if len(list_character_ids) == 0:
+        return 1, err_txt, None
+
     db_stat_data_char = []
     print("Get player_data from DB...")
     query ="SELECT defId, rarity, roster.level, gear, \
