@@ -210,6 +210,18 @@ dict_platoon_names['HLS6']['A']='top'
 dict_platoon_names['HLS6']['B']='mid'
 dict_platoon_names['HLS6']['C']='bottom'
 
+dict_tw_territory_names={}
+dict_tw_territory_names['Trenches']='T1'
+dict_tw_territory_names['Forward turrets']='B1'
+dict_tw_territory_names['Hangar']='T2'
+dict_tw_territory_names['Infirmary']='B2'
+dict_tw_territory_names['Airspace fortification']='F1'
+dict_tw_territory_names['Supply depot']='T3'
+dict_tw_territory_names['Ion cannon']='B3'
+dict_tw_territory_names['Main base']='F2'
+dict_tw_territory_names['Command post']='T4'
+dict_tw_territory_names['Special ops center']='B4'
+
 class TBSPhaseParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
@@ -648,22 +660,47 @@ class GenericTWSParser(HTMLParser):
                 
     def get_war_id(self):
         return self.warstats_war_id
+ 
+    def get_last_track(self):
+        return self.seconds_since_last_track
                 
 class TWSOpponentSquadParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
+        self.seconds_since_last_track = 0
+        self.territory_name = ""
         self.opp_name = ""
         self.dict_opp_teams = {}
-        self.state_parser=0
+        self.state_parser=-3
+        #-3: en recherche de <h2>
+        #-2: en recherche de <h2>
+        #-1: en recherche de data
         #0: en recherche de <div class="frame tw-logs">
         #1: en recherche de <td>
         #2: en recherche de data
         #3: en recherche de <td>
-        #4: en recherche de <div	class="char-detail..."> OU de <td>
+        #4: en recherche de <div	class="char-detail..."> OU de <td> OU de <h2>
         #5: en recherche de <td> >> goto state 1
         
+        self.state_parser2=0
+        #0: en recherche de <span id="track-timer"
+        #1: en recherche de script
+        #2: en recherche de data
+        
     def handle_starttag(self, tag, attrs):
-        if self.state_parser==0:
+        if self.state_parser==-3:
+            if tag=='h2':
+                #print(attrs)
+                #print("state_parser=-2")
+                self.state_parser=-2
+
+        elif self.state_parser==-2:
+            if tag=='h2':
+                #print(attrs)
+                #print("state_parser=-1")
+                self.state_parser=-1
+
+        elif self.state_parser==0:
             if tag=='div':
                 #print('DBG: div - '+str(attrs))
                 for name, value in attrs:
@@ -684,6 +721,11 @@ class TWSOpponentSquadParser(HTMLParser):
                 self.state_parser=4
 
         elif self.state_parser==4:
+            if tag=='h2':
+                #print(attrs)
+                #print("state_parser=-1")
+                self.state_parser=-1
+
             char_detected=False
             if tag=='div':
                 #print('DBG: div - '+str(attrs))
@@ -691,8 +733,8 @@ class TWSOpponentSquadParser(HTMLParser):
                     if name=='class' and value.startswith('char-detail'):
                         char_detected=True
                     if name=='title' and char_detected:
-                        print("char: "+value)
-                        self.dict_opp_teams[self.opp_name].append(value)
+                        #print("char: "+value)
+                        self.dict_opp_teams[self.opp_name][-1][1].append(value)
 
             elif tag=='td':
                 #print(attrs)
@@ -705,16 +747,45 @@ class TWSOpponentSquadParser(HTMLParser):
                 #print("state_parser=2")
                 self.state_parser=2
 
+        #PARSER 2 pour le timer du tracker
+        if self.state_parser2==0:
+            if tag=='span':
+                for name, value in attrs:
+                    if name=='id' and value=='track-timer':
+                        self.state_parser2=1
+                        
+        elif self.state_parser2==1:
+            if tag=='script':
+                self.state_parser2=2
+                        
     def handle_data(self, data):
-        if self.state_parser==2:
+        if self.state_parser==-1:
             data = data.strip(" ")
             if data!='':
-                print("Player: "+data)
+                #print("Territory: "+data)
+                self.territory_name = dict_tw_territory_names[data]
+                #print("state_parser=0")
+                self.state_parser=0
+
+        elif self.state_parser==2:
+            data = data.strip(" ")
+            if data!='':
+                #print("Player: "+data)
                 self.opp_name = data
-                self.dict_opp_teams[self.opp_name] = []
+                if not self.opp_name in self.dict_opp_teams:
+                    self.dict_opp_teams[self.opp_name] = []
+                self.dict_opp_teams[self.opp_name].append([self.territory_name, []])
                 #print("state_parser=3")
                 self.state_parser=3
 
+        #PARSER 2 for TIME TRACK
+        if self.state_parser2==2:
+            #print(data)
+            ret_re = re.search('{seconds: (.*?)}', data)
+            timer_seconds_txt = ret_re.group(1)
+            self.seconds_since_last_track = int(timer_seconds_txt)
+            self.state_parser2=0
+                
     def get_opp_teams(self):
         return self.dict_opp_teams
                 
