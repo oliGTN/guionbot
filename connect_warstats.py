@@ -670,7 +670,7 @@ class TWSOpponentSquadParser(HTMLParser):
         self.seconds_since_last_track = 0
         self.territory_name = ""
         self.opp_name = ""
-        self.dict_opp_teams = {}
+        self.list_opp_teams = []
         self.state_parser=-3
         #-3: en recherche de <h2>
         #-2: en recherche de <h2>
@@ -734,7 +734,7 @@ class TWSOpponentSquadParser(HTMLParser):
                         char_detected=True
                     if name=='title' and char_detected:
                         #print("char: "+value)
-                        self.dict_opp_teams[self.opp_name][-1][1].append(value)
+                        self.list_opp_teams[-1][2].append(value)
 
             elif tag=='td':
                 #print(attrs)
@@ -772,9 +772,7 @@ class TWSOpponentSquadParser(HTMLParser):
             if data!='':
                 #print("Player: "+data)
                 self.opp_name = data
-                if not self.opp_name in self.dict_opp_teams:
-                    self.dict_opp_teams[self.opp_name] = []
-                self.dict_opp_teams[self.opp_name].append([self.territory_name, []])
+                self.list_opp_teams.append([self.territory_name, self.opp_name, []])
                 #print("state_parser=3")
                 self.state_parser=3
 
@@ -787,7 +785,10 @@ class TWSOpponentSquadParser(HTMLParser):
             self.state_parser2=0
                 
     def get_opp_teams(self):
-        return self.dict_opp_teams
+        return self.list_opp_teams
+                
+    def get_last_track(self):
+        return self.seconds_since_last_track
                 
 
 ###############################################################
@@ -905,4 +906,4 @@ def parse_warstats_tw_teams():
 
     opp_squad_parser.feed(page_read)
 
-    return opp_squad_parser.get_opp_teams()
+    return opp_squad_parser.get_opp_teams(), opp_squad_parser.get_last_track()
