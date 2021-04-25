@@ -91,7 +91,7 @@ def get_image_from_team(list_character_ids, db_data):
     list_portrait_images = []
 
     for character_id in list_character_ids:
-        character_data = [line for line in db_data if line[0] == character_id]
+        character_data = [line[2:] for line in db_data if line[2] == character_id]
         if len(character_data) > 0:
             rarity = character_data[0][1]
             level = character_data[0][2]
@@ -125,4 +125,30 @@ def get_image_from_team(list_character_ids, db_data):
     
     return team_img
 
+def get_image_from_teams(list_ids_allyCode, db_data):
+    list_images = []
     
+    #get individual images by team 
+    for [ids, allyCode] in list_ids_allyCode:
+        db_data_allyCode = list(filter(lambda x:x[1]==int(allyCode), db_data))
+        image = get_image_from_team(ids, db_data_allyCode)
+        list_images.append(image)
+
+    #Create global image at the right size
+    global_image = Image.new('RGB', (1, 1), (0,0,0))
+    for img in list_images:
+        w, h = img.size
+        gw, gh = global_image.size
+        if w > gw:
+            global_image = global_image.resize((w, gh+h))
+        else:
+            global_image = global_image.resize((gw, gh+h))
+
+    #paste all images into the global one
+    cur_h = 0
+    for img in list_images:
+        w, h = img.size
+        global_image.paste(img, (0, cur_h))
+        cur_h += h
+
+    return global_image
