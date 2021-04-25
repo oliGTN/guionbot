@@ -468,14 +468,15 @@ def manage_me(ctx, allycode_txt):
     elif not allycode_txt.isnumeric():
         # Look for the name among known player names
         results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
+        #print(results)
         list_names = [x[0] for x in results[0]]
         
         closest_names=difflib.get_close_matches(allycode_txt, list_names, 1)
+        #print(closest_names)
         if len(closest_names)<1:
             ret_allycode_txt = 'ERR: '+allycode_txt+' ne fait pas partie des joueurs connus'
         else:
             print('INFO: cmd launched with name that looks like '+closest_names[0])
-            ret_allycode_txt = 'ERR: '+closest_names[0]+' ne fait pas partie des joueurs connus'
             for r in results[0]:
                 if r[0] == closest_names[0]:
                     ret_allycode_txt = str(r[1])
@@ -510,8 +511,9 @@ async def on_ready():
     
     msg = "\n"+bot.user.name+" has connected to Discord from ip "+ip
     print(msg)
-    await send_alert_to_admins(msg)
-    alert_sent_to_admin = False
+    if not bot_test_mode:
+        await send_alert_to_admins(msg)
+        alert_sent_to_admin = False
 
 ##############################################################
 # Event: on_reaction_add
@@ -1217,7 +1219,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             if len(characters) > 0:
                 e, ret_cmd, image = await bot.loop.run_in_executor(None,
-                    go.get_character_image, list(characters), allycode)
+                    go.get_character_image, [[list(characters), allycode]], False)
                     
                 if e == 0:
                     with BytesIO() as image_binary:
@@ -1239,6 +1241,70 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)                
                 
+    ##############################################################
+    # Command: pgs
+    # Parameters: code allié (string) ou "me"
+    #             liste des persos du joueur
+    #             séparateur "VS"
+    #             code allié adversaire
+    #             un perso de l'adversaire
+    # Purpose: afficher une image avec les 2 équipes et un "SUCCESS"
+    # Display: l'image produite
+    ##############################################################
+    @commands.command(name='pgs',
+                 brief="Image résumé d'un succès en Guerre de Territoire",
+                 help="Exemple: go.pgs me GAS echo cra fives rex VS MechantPaBo DR\n")
+    async def pgs(self, ctx, *options):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        # Extract command options
+        if not ("VS" in options):
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        pos_vs = options.index("VS")
+        if pos_vs < 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode_attack = options[0]
+        list_char_attack = options[1:pos_vs]
+
+        allyCode_attack = manage_me(ctx, allyCode_attack)
+        if allyCode_attack[0:3] == 'ERR':
+            await ctx.send(allyCode_attack)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        if len(options) != (pos_vs+2):
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        #only a character is given
+        character_defense = options[pos_vs+1]
+
+        # Computes image
+        e, ret_cmd, image = await bot.loop.run_in_executor(None,
+                    go.get_tw_battle_image, list_char_attack, allyCode_attack, \
+                                             character_defense)
+                    
+        if e == 0:
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(content = ret_cmd,
+                           file=File(fp=image_binary, filename='image.png'))
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+
+
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
