@@ -2,12 +2,15 @@ import urllib.request
 import string
 import random
 import re
+import config
 from html.parser import HTMLParser
 
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/'+config.WARSTATS_GUILD_ID
 warstats_platoons_baseurl='https://goh.warstats.net/platoons/view/'
 warstats_resume_baseurl='https://goh.warstats.net/territory-battles/view/'
-warstats_tws_url='https://goh.warstats.net/guilds/tbs/'+config.WARSTATS_GUILD_ID
+
+warstats_tws_url='https://goh.warstats.net/guilds/tws/'+config.WARSTATS_GUILD_ID
+warstats_opp_squad_baseurl='https://goh.warstats.net/territory-wars/squads/opponent/'
 
 tab_dict_platoons=[] #de haut en bas
 
@@ -558,7 +561,7 @@ class TBSResumeParser(HTMLParser):
             if data[0]!='\\':
                 self.list_data.append(data.strip())
         elif self.state_parser==4:
-            number = int(data.replace('/', '').replace(',', '').strip("\\n\\t "))
+            number = int(data.replace('/', '').replace(',', '').strip("\\nt "))
             if self.list_data[0]=='North':
                 self.territory_scores[0]=number
             elif self.list_data[0]=='Middle':
@@ -601,6 +604,120 @@ class TBSResumeParser(HTMLParser):
     def get_last_track(self):
         return self.seconds_since_last_track
 
+class GenericTWSParser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.warstats_war_id=''
+        self.warstats_war_in_progress=''
+        self.state_parser=0
+        #0: en recherche de h2
+        #1: en recherche de data=Territory Battles
+        #2: en recherche de div class='card card-table'
+        #3: en recherche de a href
+        
+    def handle_starttag(self, tag, attrs):
+        if self.state_parser==0:
+            if tag=='h2':
+                #print('DBG: h2')
+                self.state_parser=1
+
+        if self.state_parser==2:
+            if tag=='div':
+                #print('DBG: div - '+str(attrs))
+                for name, value in attrs:
+                    if name=='class' and value=='card card-table':
+                        self.state_parser=3
+
+        if self.state_parser==3:
+            if tag=='a':
+                #print('DBG: a - '+str(attrs))
+                for name, value in attrs:
+                    if name=='href':
+                        #print(value.split('/'))
+                        self.warstats_war_id=value.split('/')[3]
+                        self.state_parser=0
+
+    def handle_data(self, data):
+        if self.state_parser==1:
+            if data=='Territory Wars':
+                #print("state_parser=2")
+                self.state_parser=2
+            else:
+                #print("state_parser=0")
+                self.state_parser=0
+                
+    def get_war_id(self):
+        return self.warstats_war_id
+                
+class TWSOpponentSquadParser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.opp_name = ""
+        self.dict_opp_teams = {}
+        self.state_parser=0
+        #0: en recherche de <div class="frame tw-logs">
+        #1: en recherche de <td>
+        #2: en recherche de data
+        #3: en recherche de <td>
+        #4: en recherche de <div	class="char-detail..."> OU de <td>
+        #5: en recherche de <td> >> goto state 1
+        
+    def handle_starttag(self, tag, attrs):
+        if self.state_parser==0:
+            if tag=='div':
+                #print('DBG: div - '+str(attrs))
+                for name, value in attrs:
+                    if name=='class' and value=='frame tw-logs':
+                        #print("state_parser=1")
+                        self.state_parser=1
+
+        elif self.state_parser==1:
+            if tag=='td':
+                #print(attrs)
+                #print("state_parser=2")
+                self.state_parser=2
+
+        elif self.state_parser==3:
+            if tag=='td':
+                #print(attrs)
+                #print("state_parser=4")
+                self.state_parser=4
+
+        elif self.state_parser==4:
+            char_detected=False
+            if tag=='div':
+                #print('DBG: div - '+str(attrs))
+                for name, value in attrs:
+                    if name=='class' and value.startswith('char-detail'):
+                        char_detected=True
+                    if name=='title' and char_detected:
+                        print("char: "+value)
+                        self.dict_opp_teams[self.opp_name].append(value)
+
+            elif tag=='td':
+                #print(attrs)
+                #print("state_parser=1")
+                self.state_parser=5
+
+        elif self.state_parser==5:
+            if tag=='td':
+                #print(attrs)
+                #print("state_parser=2")
+                self.state_parser=2
+
+    def handle_data(self, data):
+        if self.state_parser==2:
+            data = data.strip(" ")
+            if data!='':
+                print("Player: "+data)
+                self.opp_name = data
+                self.dict_opp_teams[self.opp_name] = []
+                #print("state_parser=3")
+                self.state_parser=3
+
+    def get_opp_teams(self):
+        return self.dict_opp_teams
+                
 
 ###############################################################
 # Function: fresh_urlopen
@@ -699,14 +816,22 @@ def parse_warstats_tw_teams():
     try:
         page = fresh_urlopen(warstats_tws_url)
     except urllib.error.HTTPError as e:
-        print('ERR: while opening '+warstats_tbs_url)
+        print('ERR: while opening '+warstats_tws_url)
         return {}, 0
         
-    generic_parser = GenericTBSParser()
+    generic_parser = GenericTWSParser()
     generic_parser.feed(str(page.read()))
     
-    if generic_parser.get_battle_id() == None:
-        print('ERR: no TB in progress')
-        return {}, 0
-    else:
-        print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
+    print("INFO: latest TW is "+generic_parser.get_war_id())
+    
+    warstats_opp_squad_url=warstats_opp_squad_baseurl+generic_parser.get_war_id()
+    page = fresh_urlopen(warstats_opp_squad_url)
+    opp_squad_parser = TWSOpponentSquadParser()
+
+    page_read=str(page.read())
+    page_read=page_read.replace("\\n", "")
+    page_read=page_read.replace("\\t", " ")
+
+    opp_squad_parser.feed(page_read)
+
+    return opp_squad_parser.get_opp_teams()
