@@ -38,6 +38,15 @@ bot_test_mode = False
 emoji_thumb = '\N{THUMBS UP SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 emoji_error = '\N{CROSS MARK}'
+emoji_letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER B}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER C}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER D}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER E}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER F}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER G}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER H}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER I}']
 
 dict_BT_missions={}
 dict_BT_missions['HLS']={}
@@ -647,18 +656,15 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #          avant déploiement en service
     # Display: ça dépend
     #############################################################
-    # @commands.command(name='test', help='Réservé aux admins')
-    # @commands.check(is_owner)
-    # async def test(self, ctx, *args):
-        # cmd_with_fields = args[0]
-        # dict_players_by_IG, dict_players_by_ID = load_config_players()
-        # for player_ID in dict_players_by_ID:
-            # player_allycode=dict_players_by_ID[player_ID][0]
-            # cmd_to_be_sent = cmd_with_fields.replace("$mention", '<@'+str(player_ID)+'>')\
-                                            # .replace("$allycode", str(player_allycode))
-            # print(cmd_to_be_sent)
-            # await ctx.send(cmd_to_be_sent)
-            # time.sleep(10)
+    #@commands.command(name='test', help='Réservé aux admins')
+    #@commands.check(is_owner)
+    #async def test(self, ctx, *args):
+    #    emoji = args[0]
+    #    print(emoji)
+    #    emoji_ascii = emoji.encode('ascii', 'namereplace')
+    #    print(emoji_ascii)
+    #    msg = await ctx.send(emoji_ascii)
+    #    await msg.add_reaction(emoji_ascii)
 
 ##############################################################
 # Class: OfficerCog
@@ -1218,10 +1224,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
-                e, ret_cmd, image = await bot.loop.run_in_executor(None,
-                    go.get_character_image, [[list(characters), allycode]], False)
+                e, ret_cmd, images = await bot.loop.run_in_executor(None,
+                    go.get_character_image, [[list(characters), allycode, '']], False)
                     
                 if e == 0:
+                    image = images[0][0]
                     with BytesIO() as image_binary:
                         image.save(image_binary, 'PNG')
                         image_binary.seek(0)
@@ -1286,17 +1293,23 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         #only a character is given
         character_defense = options[pos_vs+1]
 
-        # Computes image
-        e, ret_cmd, image = await bot.loop.run_in_executor(None,
+        # Computes images
+        e, ret_cmd, images = await bot.loop.run_in_executor(None,
                     go.get_tw_battle_image, list_char_attack, allyCode_attack, \
                                              character_defense)
                     
         if e == 0:
-            with BytesIO() as image_binary:
-                image.save(image_binary, 'PNG')
-                image_binary.seek(0)
-                await ctx.send(content = ret_cmd,
+            first_image = True
+            for [image, line_count] in images:
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    new_msg = await ctx.send(content = ret_cmd,
                            file=File(fp=image_binary, filename='image.png'))
+                    for letter_idx in range(line_count-first_image):
+                        emoji_letter = emoji_letters[letter_idx]
+                        await new_msg.add_reaction(emoji_letter)
+                first_image = False
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
