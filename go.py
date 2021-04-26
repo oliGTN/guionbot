@@ -113,8 +113,7 @@ def load_player(txt_allyCode, force_update):
         recent_player = 0
 
     if not recent_player or force_update:
-        sys.stdout.write('requesting data for ' + txt_allyCode + '...')
-        sys.stdout.flush()
+        print('requesting data for ' + txt_allyCode + '...')
         player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
         if isinstance(player_data, list):
             if len(player_data) > 0:
@@ -124,8 +123,7 @@ def load_player(txt_allyCode, force_update):
                             str(len(player_data)))
                             
                 ret_player = player_data[0]
-                sys.stdout.write(' ' + ret_player['name'])
-                sys.stdout.flush()
+                print("API request OK for " + txt_allyCode + " > " + ret_player['name'])
                 
                 # store json file
                 fjson = open('PLAYERS'+os.path.sep+txt_allyCode+'.json', 'w')
@@ -135,8 +133,7 @@ def load_player(txt_allyCode, force_update):
                 # update DB
                 ret = connect_mysql.update_player(ret_player, dict_unitsList)
                 if ret == 0:
-                    sys.stdout.write('.\n')
-                    sys.stdout.flush()
+                    print("DB update OK for " + txt_allyCode)
                 else:
                     print("ERR: update_player "+txt_allyCode+" returned an error")
                     return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
@@ -154,15 +151,14 @@ def load_player(txt_allyCode, force_update):
             return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
-        sys.stdout.write(player_name + ' OK\n')
+        print(player_name + ' OK')
     
     return 0, ''
 
 def load_guild(txt_allyCode, load_players):
     
     #rechargement systématique des infos de guilde (liste des membres)
-    sys.stdout.write('>Requesting guild data for allyCode ' + txt_allyCode +
-                     '...\n')
+    print('>Requesting guild data for allyCode ' + txt_allyCode + '...')
     client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
     if isinstance(client_data, list):
         if len(client_data) > 0:
@@ -206,8 +202,7 @@ def load_guild(txt_allyCode, load_players):
                 
         #add player data
         total_players = len(ret_guild['roster'])
-        sys.stdout.write('Total players in guild: ' + 
-                            str(total_players) + '\n')
+        sys.stdout.write('Total players in guild: ' + str(total_players))
         i_player = 0
         for player in ret_guild['roster']:
             i_player = i_player + 1
@@ -1536,6 +1531,7 @@ def get_tb_alerts():
     
 #################################
 # Function: get_character_image
+# IN:list_characters_allyCode: [[[id1, id2, ...], allyCode, tw territory], ...]
 # return: err_code, err_txt, image
 #################################
 def get_character_image(list_characters_allyCode, is_ID):
@@ -1560,7 +1556,7 @@ def get_character_image(list_characters_allyCode, is_ID):
     #transform aliases into IDs
     if not is_ID:
         list_ids_allyCode = []
-        for [characters, txt_allyCode] in list_characters_allyCode:
+        for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
             #specific list of characters for one player
             list_character_ids=[]
             for character_alias in characters:
@@ -1576,7 +1572,7 @@ def get_character_image(list_characters_allyCode, is_ID):
             if len(list_character_ids) == 0:
                 err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode
             else:
-                list_ids_allyCode.append([list_character_ids, txt_allyCode])
+                list_ids_allyCode.append([list_character_ids, txt_allyCode, tw_terr])
     else:
         list_ids_allyCode = list_characters_allyCode
 
@@ -1591,7 +1587,7 @@ def get_character_image(list_characters_allyCode, is_ID):
             FROM roster \
             JOIN players ON players.id = roster.player_id \
             WHERE "
-    for [list_character_ids, txt_allyCode] in list_ids_allyCode:
+    for [list_character_ids, txt_allyCode, tw_terr] in list_ids_allyCode:
         query += "(players.allyCode = '"+txt_allyCode+"' AND ("
         for character_id in list_character_ids:
             query += "defId = '"+character_id+"' OR "
@@ -1602,13 +1598,19 @@ def get_character_image(list_characters_allyCode, is_ID):
     db_data = connect_mysql.get_table(query)
     #print(db_data)
     
-    image = portraits.get_image_from_teams(list_ids_allyCode, db_data)
+    list_images = []
+    idx = 0
+    while len(list_ids_allyCode) > idx:
+        list_ids_allyCode_5 = list_ids_allyCode[idx:idx+5]
+        image = portraits.get_image_from_teams(list_ids_allyCode_5, db_data)
+        list_images.append([image, len(list_ids_allyCode_5)])
+        idx += 5
     
-    return err_code, err_txt, image
+    return err_code, err_txt, list_images
 
 #################################
-# Function: get_tw_battle_image
-# return: err_code, err_txt, image
+# Function: get_tw_battle_images
+# return: err_code, err_txt, list of images
 #################################
 def get_tw_battle_image(list_char_attack, allyCode_attack, \
                         character_defense):
@@ -1632,8 +1634,9 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     #Get full character name for defense
     closest_names=difflib.get_close_matches(character_defense.lower(), dict_units.keys(), 3)
     if len(closest_names)<1:
-        print('WAR: aucun personnage trouvé pour '+character_defense)
-        err_txt += 'WAR: aucun personnage trouvé pour '+character_defense+'\n'
+        print('ERR: aucun personnage trouvé pour '+character_defense)
+        err_txt += 'ERR: aucun personnage trouvé pour '+character_defense+'\n'
+        return 1, err_txt, None
     else:
         [character_name, character_id]=dict_units[closest_names[0]]
         char_def_id = character_id
@@ -1662,6 +1665,9 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         #print(squad_char_ids)
 
     list_opp_squads_with_char = list(filter(lambda x:char_def_id in x[2], list_opp_squad_ids))
+    if len(list_opp_squads_with_char) == 0:
+        err_txt += 'ERR: '+character_defense+' ne fait pas partie des teams en défense\n'
+        return 1, err_txt, None
 
     # Look for the name among known player names in DB
     results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
@@ -1683,14 +1689,14 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     #print(list_opp_squads_with_char)
     list_char_allycodes = []
-    list_char_allycodes.append([list_id_attack, allyCode_attack])
+    list_char_allycodes.append([list_id_attack, allyCode_attack, ''])
     for opp_squad in list_opp_squads_with_char:
-        list_char_allycodes.append([opp_squad[2], opp_squad[1]])
+        list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
-    e, t, image = get_character_image(list_char_allycodes, True)
+    e, t, images = get_character_image(list_char_allycodes, True)
     err_txt += t
     if e != 0:
         return 1, err_txt, None
 
-    return 0, err_txt, image
+    return 0, err_txt, images
