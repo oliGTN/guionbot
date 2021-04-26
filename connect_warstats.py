@@ -738,11 +738,16 @@ class TWSOpponentSquadParser(HTMLParser):
 
             elif tag=='td':
                 #print(attrs)
-                #print("state_parser=1")
+                #print("state_parser=5")
                 self.state_parser=5
 
         elif self.state_parser==5:
-            if tag=='td':
+            if tag=='h2':
+                #print(attrs)
+                #print("state_parser=-1")
+                self.state_parser=-1
+
+            elif tag=='td':
                 #print(attrs)
                 #print("state_parser=2")
                 self.state_parser=2
@@ -764,6 +769,7 @@ class TWSOpponentSquadParser(HTMLParser):
             if data!='':
                 #print("Territory: "+data)
                 self.territory_name = dict_tw_territory_names[data]
+                #print("Territory: "+self.territory_name)
                 #print("state_parser=0")
                 self.state_parser=0
 
