@@ -182,6 +182,9 @@ async def bot_loop_60():
         waiting_time = max(0, loop_duration - (t_end - t_start))
         await asyncio.sleep(waiting_time)
 
+        #Ensure writing in logs
+        sys.stdout.flush()
+
 ##############################################################
 # Function: send_alert_to_admins
 # Parameters: message (string), message to be sent
