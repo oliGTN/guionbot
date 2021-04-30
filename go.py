@@ -123,7 +123,7 @@ def load_player(txt_allyCode, force_update):
                             str(len(player_data)))
                             
                 ret_player = player_data[0]
-                goutils.log("INFO", "load_player", "sucess retrieving "+ret_player['name']+" from SWGOH.HELP API")
+                goutils.log("INFO", "load_player", "success retrieving "+ret_player['name']+" from SWGOH.HELP API")
                 
                 # store json file
                 fjson = open('PLAYERS'+os.path.sep+txt_allyCode+'.json', 'w')
@@ -133,7 +133,7 @@ def load_player(txt_allyCode, force_update):
                 # update DB
                 ret = connect_mysql.update_player(ret_player, dict_unitsList)
                 if ret == 0:
-                    goutils.log("INFO", "load_player", "sucess updating "+ret_player['name']+" in DB")
+                    goutils.log("INFO", "load_player", "success updating "+ret_player['name']+" in DB")
                 else:
                     goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
                     return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
