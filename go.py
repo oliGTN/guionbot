@@ -1522,8 +1522,10 @@ def get_tb_alerts():
     last_track_secs = 0
 
     tb_active_triggers = connect_gsheets.get_tb_triggers({}, True)
+    #print(tb_active_triggers)
     if len(tb_active_triggers) > 0:
         territory_scores, last_track_secs = connect_warstats.parse_warstats_tb_scores()
+        #print(territory_scores)
         if len(territory_scores) > 0:
             tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores, False)
     
@@ -1545,13 +1547,29 @@ def get_character_image(list_characters_allyCode, is_ID):
     #print(list_characters_allyCode)
     list_allyCodes = list(set([x[1] for x in list_characters_allyCode]))
     #print(list_allyCodes)
-    for txt_allyCode in list_allyCodes:
-        e, t = load_player(txt_allyCode, False)
-        if e != 0:
-            #error wile loading guild data
-            print('WAR: joueur non trouvé pour code allié ' + txt_allyCode)
-            err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
-            list_allyCodes.remove(txt_allyCode)
+    
+    #get the amount of different players per guild
+    # Goal is to update by player only if alone if the guild
+    # otherwise update guild (allows longer timeout)
+    query = "SELECT allyCode, guildName, count(*) from players "
+    query+= "WHERE allyCode in "+str(tuple(list_allyCodes)) + " "
+    query+= "GROUP BY guildName"
+    print(query)
+    db_data = connect_mysql.get_table(query)
+    print(db_data)
+    for line in db_data:
+        if line[2] > 1:
+            load_guild(str(line[0]), True)
+        else:
+            load_player(str(line[0]), False)
+
+    #for txt_allyCode in list_allyCodes:
+    #    e, t = load_player(txt_allyCode, False)
+    #    if e != 0:
+    #        #error wile loading guild data
+    #        print('WAR: joueur non trouvé pour code allié ' + txt_allyCode)
+    #        err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
+    #        list_allyCodes.remove(txt_allyCode)
     
     #transform aliases into IDs
     if not is_ID:
