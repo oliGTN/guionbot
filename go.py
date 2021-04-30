@@ -58,7 +58,7 @@ def refresh_cache():
     nb_refresh_master_players = ceil(
         len(list_master_allyCodes) / refresh_rate_player_minutes * refresh_rate_bot_minutes)
     nb_refresh_nonmaster_players = 1
-    print('Refreshing ' + str(nb_refresh_master_players) + '+' +
+    goutils.log('INFO', 'refresh_cache', 'Refreshing ' + str(nb_refresh_master_players) + '+' +
         str(nb_refresh_nonmaster_players) + ' files')
 
     #Refresh players from master guild
@@ -77,7 +77,7 @@ def refresh_cache():
     keep_max_non_master_guilds = int(config.KEEP_MAX_NONMASTER_GUILDS)
     if len(list_nonmaster_guilds) > keep_max_non_master_guilds:
         for guildname in list_nonmaster_guilds[:keep_max_non_master_guilds]:
-            print("INFO: delete guild "+guildname+" from DB")
+            goutils.log("INFO", "refresh_cache", "delete guild "+guildname+" from DB")
             connect_mysql.simple_callproc("remove_guild", [guildname])
             
     #Check the amount of noguild players, and remove if too many
@@ -88,7 +88,7 @@ def refresh_cache():
     keep_max_noguild_players = int(config.KEEP_MAX_NOGUILD_PLAYERS)
     if len(list_noguild_allyCodes) > keep_max_noguild_players:
         for allyCode in list_noguild_allyCodes[:keep_max_noguild_players]:
-            print("INFO: delete player "+str(allyCode)+" from DB")
+            goutils.log("INFO", "refresh_cache", "delete player "+str(allyCode)+" from DB")
             connect_mysql.simple_callproc("remove_player", [allyCode])
             
     return 0
@@ -112,19 +112,17 @@ def load_player(txt_allyCode, force_update):
         recent_player = 0
 
     if not recent_player or force_update:
-        sys.stdout.write('requesting data for ' + txt_allyCode + '...')
-        sys.stdout.flush()
+        goutils.log("INFO", "load_player", 'requesting data for ' + txt_allyCode + '...')
         player_data = client.get_data('player', txt_allyCode)
         if isinstance(player_data, list):
             if len(player_data) > 0:
                 if len(player_data) > 1:
-                    print ('WAR: client.get_data(\'player\', '+txt_allyCode+
-                            ') has returned a list of size '+
+                   goutils.log("WAR", "load_player", "client.get_data(\'player\', "+txt_allyCode+
+                            ") has returned a list of size "+
                             str(len(player_data)))
                             
                 ret_player = player_data[0]
-                sys.stdout.write(' ' + ret_player['name'])
-                sys.stdout.flush()
+                goutils.log("INFO", "load_player", "sucess retrieving "+ret_player['name']+" from SWGOH.HELP API")
                 
                 # store json file
                 fjson = open('PLAYERS'+os.path.sep+txt_allyCode+'.json', 'w')
@@ -134,40 +132,38 @@ def load_player(txt_allyCode, force_update):
                 # update DB
                 ret = connect_mysql.update_player(ret_player, dict_unitsList)
                 if ret == 0:
-                    sys.stdout.write('.\n')
-                    sys.stdout.flush()
+                    goutils.log("INFO", "load_player", "sucess updating "+ret_player['name']+" in DB")
                 else:
-                    print('ERR: update_player '+txt_allyCode+' returned an error')
+                    goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
                     return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
                 
                 
             else:
-                print ('ERR: client.get_data(\'player\', '+txt_allyCode+
+                goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+txt_allyCode+
                         ') has returned an empty list')
                 return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
         else:
-            print ('ERR: client.get_data(\'player\', '+
+            goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+
                     txt_allyCode+') has not returned a list')
-            print (player_data)
+            goutils.log('ERR', 'load_player',player_data)
             return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
-        sys.stdout.write(player_name + ' OK\n')
+        goutils.log('INFO', 'load_player',player_name + ' OK')
     
     return 0, ''
 
 def load_guild(txt_allyCode, load_players):
     
     #rechargement systématique des infos de guilde (liste des membres)
-    sys.stdout.write('>Requesting guild data for allyCode ' + txt_allyCode +
-                     '...\n')
+    goutils.log('INFO', "load_guild", 'Requesting guild data for allyCode ' + txt_allyCode)
     client_data = client.get_data('guild', txt_allyCode)
     if isinstance(client_data, list):
         if len(client_data) > 0:
             if len(client_data) > 1:
-                print ('WAR: client.get_data(\'guild\', '+txt_allyCode+
-                        ') has returned a list of size '+
+                goutils.log('WAR', 'load_guild',"client.get_data(\'guild\', "+txt_allyCode+
+                        ") has returned a list of size "+
                         str(len(player_data)))            
                         
             ret_guild = client_data[0]
@@ -175,14 +171,14 @@ def load_guild(txt_allyCode, load_players):
             connect_mysql.update_guild(ret_guild)
 
         else:
-            print ('ERR: client.get_data(\'guild\', '+txt_allyCode+
+            goutils.log('ERR', 'load_guild', 'client.get_data(\'guild\', '+txt_allyCode+
                     ') has returned an empty list')
             return 'ERR: canot fetch guild fo allyCode '+txt_allyCode, None
 
     else:
-        print ('ERR: client.get_data(\'guild\', '+
-                txt_allyCode+') has not returned a list')
-        print (client_data)
+        goutils.log ('ERR', "load_guild", "client.get_data('guild', "+
+                txt_allyCode+") has not returned a list")
+        goutils.log ("ERR", "load_guild", client_data)
         return 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
 
 
@@ -205,19 +201,20 @@ def load_guild(txt_allyCode, load_players):
                 
         #add player data
         total_players = len(ret_guild['roster'])
-        sys.stdout.write('Total players in guild: ' + 
-                            str(total_players) + '\n')
+        goutils.log("INFO", "load_guild", 'Total players in guild: ' + 
+                            str(total_players))
         i_player = 0
         for player in ret_guild['roster']:
             i_player = i_player + 1
-            sys.stdout.write(str(i_player) + ': ')
+            goutils.log("INFO", "load_guild", "player #"+str(i_player))
             
             if not player['allyCode'] in dict_recent_players.keys():
                 e, t = load_player(str(player['allyCode']), False)
             elif not dict_recent_players[player['allyCode']]:
                 e, t = load_player(str(player['allyCode']), False)
             else:
-                sys.stdout.write(player['name']+" OK\n")
+                goutils.log("INFO", "load_guild", "player "+
+                            player['name']+" is already OK\n")
     
     return "OK", ret_guild
 
@@ -1149,7 +1146,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     ORDER BY players.name, defId"
             db_stat_data_char = connect_mysql.get_table(query)
             
-            print("Get player stats data from DB...")
+            goutils.log("INFO", "print_character_stats", "Get player stats data from DB...")
             query ="SELECT players.name, defId, \
                     roster.combatType, rarity, gear, relic_currentTier, \
                     ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
@@ -1191,7 +1188,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                         del dict_virtual_characters[character_alias]
 
             db_stat_data_char = []
-            print("Get player_data from DB...")
+            goutils.log("INFO", "print_character_stats", "Get player_data data from DB...")
             query ="SELECT players.name, defId, \
                     roster.combatType, rarity, gear, relic_currentTier, \
                     ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
@@ -1209,8 +1206,10 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             query += "isnull(unitStatId)) \
                     GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
                     ORDER BY players.name, defId, unitStatId"
+            goutils.log("DBG", "print_character_stats", query)
 
             db_stat_data = connect_mysql.get_table(query)
+            goutils.log("DBG", "print_character_stats", db_stat_data)
             
             #Get mod data for virtual characters
             if len(dict_virtual_characters) > 0:

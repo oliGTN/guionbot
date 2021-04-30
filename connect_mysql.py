@@ -551,7 +551,7 @@ def update_player(dict_player, dict_units):
                             p_ship_gp,
                             p_poUTCOffsetMinutes,
                             roster_definition_txt)
-        # print("CALL update_player"+str(query_parameters))
+        goutils.log("DBG", "update_player", "CALL update_player"+str(query_parameters))
         ret = cursor.callproc('update_player', query_parameters)
         mysql_db.commit()
     except Error as error:
