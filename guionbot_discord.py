@@ -112,6 +112,8 @@ dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (id
 
 BOT_LOOP60_ERR = "Unexpected error in bot_loop_60: "
 
+list_tw_opponent_msgIDs = []
+
 ##############################################################
 #                                                            #
 #                  FONCTIONS                                 #
@@ -535,13 +537,40 @@ async def on_ready():
 async def on_reaction_add(reaction, user):
     message = reaction.message
     author = message.author
+    emoji = reaction.emoji
+    print("message: "+str(message))
+    print("author: "+str(author))
+    print("emoji: "+str(emoji))
+    print("user: "+str(user))
     
+    #prevent reacting to bot's reactions
+    if user == bot.user:
+        return
+
     # Manage the thumb up to boot60 error message, to reset the alert
     if message.content.startswith(BOT_LOOP60_ERR) \
-        and reaction.emoji == '\N{THUMBS UP SIGN}' \
-        and message.author == bot.user:
+        and emoji == '\N{THUMBS UP SIGN}' \
+        and author == bot.user:
         alert_sent_to_admin = False
         message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+
+    #Manage reactions to PGS messages
+    for list_msg in list_tw_opponent_msgIDs:
+        if message in list_msg:
+            if emoji in emoji_letters:
+                letter_position = emoji_letters.index(emoji)
+            list_tw_opponent_msgIDs.remove(list_msg)
+            list_msg.remove(message)
+            for msg in list_msg:
+                await msg.delete()
+
+            #Display the chosen team
+            await message.edit(content="Choix de l'équipe "+chr(65+letter_position))
+
+            #Remove all previous reactions
+            for react in message.reactions:
+                async for user in react.users():
+                    await react.remove(user)
 
 
 ##############################################################
@@ -1300,6 +1329,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     
         if e == 0:
             first_image = True
+            cur_list_msgIDs = []
             for [image, line_count] in images:
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
@@ -1309,7 +1339,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     for letter_idx in range(line_count-first_image):
                         emoji_letter = emoji_letters[letter_idx]
                         await new_msg.add_reaction(emoji_letter)
+                    cur_list_msgIDs.append(new_msg)
                 first_image = False
+
+            # Add the message list to the global message list, waiting for reaction
+            list_tw_opponent_msgIDs.append(cur_list_msgIDs)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
