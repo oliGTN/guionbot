@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
 import math
+import config
+from datetime import datetime
 
 ##############################################################
 # Function: pad_txt
@@ -324,3 +326,17 @@ def get_zeta_id_from_short(character_id, zeta_short):
             zeta_id = 'GL'
     
     return zeta_id
+
+################################################
+# function: log
+################################################
+def log(level, fct, txt):
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    log_string = dt_string+":"+level+":"+fct+":"+txt
+
+    if level=='DBG':
+        if config.LOG_LEVEL=='DBG':
+            print(log_string)
+    else:
+        print(log_string)
