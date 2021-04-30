@@ -134,10 +134,17 @@ async def bot_loop_60():
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
+
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
             await bot.loop.run_in_executor(None, go.refresh_cache)
             
+        except Exception as e:
+            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            print(e)
+            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+        
+        try:
             #GET ONLINE AND MOBILE STATUS
             for guild in bot.guilds:
                 list_members=[]
@@ -155,6 +162,12 @@ async def bot_loop_60():
             
             update_online_dates(dict_lastseen)
             
+        except Exception as e:
+            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            print(e)
+            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+        
+        try:
             #CHECK ALERTS FOR BT
             if time.time() >= next_warstats_read:
                 list_tb_alerts, last_track_secs = go.get_tb_alerts()
@@ -174,11 +187,10 @@ async def bot_loop_60():
             print(e)
             await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
         
+        # Wait X seconds before next loop
         t_end = time.time()
         loop_duration = 60 * int(config.REFRESH_RATE_BOT_MINUTES)
         waiting_time = max(0, loop_duration - (t_end - t_start))
-        
-        # Wait X seconds before next loop
         await asyncio.sleep(waiting_time)
 
 ##############################################################
@@ -526,6 +538,7 @@ async def on_ready():
         await send_alert_to_admins(msg)
         alert_sent_to_admin = False
 
+
 ##############################################################
 # Event: on_reaction_add
 # Parameters: reaction (object containing different other ones)
@@ -552,7 +565,7 @@ async def on_reaction_add(reaction, user):
         and emoji == '\N{THUMBS UP SIGN}' \
         and author == bot.user:
         alert_sent_to_admin = False
-        message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+        await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     #Manage reactions to PGS messages
     for list_msg in list_tw_opponent_msgIDs:

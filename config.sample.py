@@ -22,6 +22,10 @@ GUILD_TIMEZONE=""
 # eg: https://goh.warstats.net/g/<guild ID>/<guild name>
 WARSTATS_GUILD_ID=""
 
+=======
+# DEBUG LEVEL for logs ("DBG" or empty)
+LOG_LEVEL=""
+
 # ======== FOR DISCORD ONLY ===========
 # This token comes from https://discord.com/developers/ then settings / Bot / Token
 DISCORD_BOT_TOKEN=""
