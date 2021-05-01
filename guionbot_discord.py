@@ -180,11 +180,11 @@ async def bot_loop_60():
                     await channel.send(message)
                 time_to_wait = WARSTATS_REFRESH_SECS - last_track_secs + WARSTATS_REFRESH_TIME
                 next_warstats_read = int(time.time()) + time_to_wait
-            print("INFO next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
+            goutils.log("INFO", "bot_loop_60", next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
+            goutils.log("ERR", "bot_loop_60", BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", str(e))
             await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
         
         # Wait X seconds before next loop
@@ -192,6 +192,9 @@ async def bot_loop_60():
         loop_duration = 60 * int(config.REFRESH_RATE_BOT_MINUTES)
         waiting_time = max(0, loop_duration - (t_end - t_start))
         await asyncio.sleep(waiting_time)
+
+        #ensure logs are written
+        sys.stdout.flush()
 
 ##############################################################
 # Function: send_alert_to_admins
