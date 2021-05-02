@@ -113,7 +113,13 @@ def load_player(txt_allyCode, force_update):
         recent_player = 0
 
     if not recent_player or force_update:
-        goutils.log("INFO", "load_player", 'requesting data for ' + txt_allyCode + '...')
+        json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
+        if os.path.isfile(json_file):
+            prev_dict_player = json.load(open(json_file, 'r'))
+            prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+        else:
+            prev_dict_player = None
+        goutils.log("INFO", "load_player", 'requesting API data for ' + txt_allyCode + '...')
         player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
         if isinstance(player_data, list):
             if len(player_data) > 0:
@@ -122,18 +128,22 @@ def load_player(txt_allyCode, force_update):
                             ", 'FRE_FR') has returned a list of size "+
                             str(len(player_data)))
                             
-                ret_player = player_data[0]
-                goutils.log("INFO", "load_player", "success retrieving "+ret_player['name']+" from SWGOH.HELP API")
+                dict_player = player_data[0]
+                dict_player = goutils.roster_from_list_to_dict(dict_player)
+                goutils.log("INFO", "load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
+                
+                # compute differences
+                delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
                 
                 # store json file
-                fjson = open('PLAYERS'+os.path.sep+txt_allyCode+'.json', 'w')
-                fjson.write(json.dumps(ret_player, sort_keys=True, indent=4))
-                fjson.close()
+                #fjson = open(json_file, 'w')
+                #fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
+                #fjson.close()
 
                 # update DB
-                ret = connect_mysql.update_player(ret_player, dict_unitsList)
+                ret = connect_mysql.update_player(dict_player, dict_unitsList)
                 if ret == 0:
-                    goutils.log("INFO", "load_player", "success updating "+ret_player['name']+" in DB")
+                    goutils.log("INFO", "load_player", "success updating "+dict_player['name']+" in DB")
                 else:
                     goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
                     return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
@@ -1722,3 +1732,4 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         return 1, err_txt, None
 
     return 0, err_txt, images
+
