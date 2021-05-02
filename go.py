@@ -131,9 +131,11 @@ def load_player(txt_allyCode, force_update):
                 dict_player = player_data[0]
                 dict_player = goutils.roster_from_list_to_dict(dict_player)
                 goutils.log("INFO", "load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
+                sys.stdout.flush()
                 
                 # compute differences
                 delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
+                sys.stdout.flush()
                 
                 # store json file
                 fjson = open(json_file, 'w')
@@ -147,22 +149,26 @@ def load_player(txt_allyCode, force_update):
                 else:
                     goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
                     return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
+                sys.stdout.flush()
                 
                 
             else:
                 goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+txt_allyCode+
                         ", 'FRE_FR') has returned an empty list")
+                sys.stdout.flush()
                 return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
         else:
             goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+
                     txt_allyCode+", 'FRE_FR') has not returned a list")
             goutils.log('ERR', 'load_player',player_data)
+            sys.stdout.flush()
             return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
         goutils.log('INFO', 'load_player',player_name + ' OK')
     
+    sys.stdout.flush()
     return 0, ''
 
 def load_guild(txt_allyCode, load_players):
@@ -570,7 +576,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
-    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams()
+    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(dict_unitsAlias)
     dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
     
     if not compute_guild:
