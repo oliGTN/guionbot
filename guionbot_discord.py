@@ -20,6 +20,7 @@ from connect_warstats import parse_warstats_page
 import connect_mysql
 from io import BytesIO
 from requests import get
+import traceback
 
 TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
@@ -31,7 +32,7 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 WARSTATS_REFRESH_SECS = 15*60
 WARSTATS_REFRESH_TIME = 2*60
-alert_sent_to_admin = False
+list_alerts_sent_to_admin = []
 bot_test_mode = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
@@ -110,8 +111,6 @@ dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
 
 dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
-BOT_LOOP60_ERR = "Unexpected error in bot_loop_60: "
-
 list_tw_opponent_msgIDs = []
 
 ##############################################################
@@ -140,9 +139,11 @@ async def bot_loop_60():
             await bot.loop.run_in_executor(None, go.refresh_cache)
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         try:
             #GET ONLINE AND MOBILE STATUS
@@ -163,9 +164,11 @@ async def bot_loop_60():
             update_online_dates(dict_lastseen)
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         try:
             #CHECK ALERTS FOR BT
@@ -183,9 +186,11 @@ async def bot_loop_60():
             print("INFO next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         # Wait X seconds before next loop
         t_end = time.time()
@@ -201,14 +206,14 @@ async def bot_loop_60():
 # Output: None
 ##############################################################
 async def send_alert_to_admins(message):
-    global alert_sent_to_admin
-    if not alert_sent_to_admin:
+    global list_alerts_sent_to_admin
+    if not message in list_alerts_sent_to_admin:
         list_ids = config.GO_ADMIN_IDS.split(' ')
         for userid in list_ids:
             member = bot.get_user(int(userid))
             channel = await member.create_dm()
             await channel.send(message)
-    alert_sent_to_admin = True
+        list_alerts_sent_to_admin.append(message)
 
 ##############################################################
 # Function: get_eb_allocation
@@ -536,7 +541,6 @@ async def on_ready():
     print(msg)
     if not bot_test_mode:
         await send_alert_to_admins(msg)
-        alert_sent_to_admin = False
 
 
 ##############################################################
@@ -560,11 +564,11 @@ async def on_reaction_add(reaction, user):
     if user == bot.user:
         return
 
-    # Manage the thumb up to boot60 error message, to reset the alert
-    if message.content.startswith(BOT_LOOP60_ERR) \
+    # Manage the thumb up to messages sent to admins
+    if message.content in list_alerts_sent_to_admin \
         and emoji == '\N{THUMBS UP SIGN}' \
         and author == bot.user:
-        alert_sent_to_admin = False
+        list_alerts_sent_to_admin.remove(message.content)
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     #Manage reactions to PGS messages
