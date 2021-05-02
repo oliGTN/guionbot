@@ -47,15 +47,15 @@ class SWGOHhelp():
         
         return(self.token)
 
-    def get_data(self, data_type, spec):
+    def get_data(self, data_type, spec, language):
         token = self.get_token()
         # print("DBG - token: "+str(token))
         if 'Authorization' in self.token:
             head = {'Method': 'POST','Content-Type': 'application/json','Authorization': token['Authorization']}
             if data_type == 'data':
-                payload = {'collection': str(spec), 'language': 'FRE_FR'}
+                payload = {'collection': str(spec), 'language': language}
             else:
-                payload = {'allycode': spec, 'language': 'FRE_FR'}
+                payload = {'allycode': spec, 'language': language}
             data_url = self.urlBase+self.data_type[data_type]
             try:
                 r = requests.request('POST',data_url, headers=head, data = dumps(payload))

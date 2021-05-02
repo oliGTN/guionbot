@@ -333,10 +333,82 @@ def get_zeta_id_from_short(character_id, zeta_short):
 def log(level, fct, txt):
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    log_string = dt_string+":"+level+":"+fct+":"+txt
+    log_string = dt_string+":"+level+":"+fct+":"+str(txt)
 
     if level=='DBG':
         if config.LOG_LEVEL=='DBG':
             print(log_string)
     else:
         print(log_string)
+
+################################################
+# function: delta_dict_player
+# input: 2 dict_players (from API)
+# output: differences of dict2 over dict1
+################################################
+def delta_dict_player(dict1, dict2):
+    #basic checks
+    if dict1 == None:
+        log("DBG", "delta_dict_player", "dict1 is empty, so dict2 is a full delta")
+        return dict2
+
+    if dict1['allyCode'] != dict2['allyCode']:
+        log("ERR", "delta_dict_player", "cannot compare 2 dict_players for different players")
+        return dict2
+    allyCode = dict1['allyCode']
+
+    delta_dict = {}
+    delta_dict['allyCode'] = allyCode
+    delta_dict['roster'] = {}
+
+    #compare player information
+    for info in ['guildName', 'id', 'lastActivity', 'level', 'name', 'arena', 'stats', 'poUTCOffsetMinutes']:
+        if dict2[info] != dict1[info]:
+            log("INFO", "delta_dict_player", info+" has changed for "+str(allyCode))
+            delta_dict[info] = dict2[info]
+
+    #compare roster
+    for character_id in dict2['roster']:
+        character = dict2['roster'][character_id]
+        if character_id in dict1['roster']:
+            if character != dict1['roster'][character_id]:
+                log("INFO", "delta_dict_player", "character "+character_id+" has changed for "+str(allyCode))
+                delta_dict['roster'][character_id] = character
+        else:
+            log("INFO", "delta_dict_player", "new character "+character_id+" for "+str(allyCode))
+            delta_dict['roster'][character_id] = character
+
+    return delta_dict
+
+def roster_from_list_to_dict(dict_player):
+    txt_allyCode = str(dict_player['allyCode'])
+
+    if type(dict_player['roster']) == dict:
+        log("DBG", "roster_from_list_to_dict", "no transformation needed for "+txt_allyCode)
+        return dict_player
+
+    dict_roster = {}
+    for character in dict_player['roster']:
+        dict_roster[character['defId']] = character
+
+    dict_player['roster'] = dict_roster
+    log("INFO", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
+
+    return dict_player
+
+def roster_from_dict_to_list(dict_player):
+    txt_allyCode = str(dict_player['allyCode'])
+
+    if type(dict_player['roster']) == list:
+        log("DBG", "roster_from_dict_to_list", "no transformation needed for "+txt_allyCode)
+        return dict_player
+
+    list_roster = []
+    for character_id in dict_player['roster']:
+        character = dict_player['roster'][character_id]
+        list_roster.append(character)
+
+    dict_player['roster'] = list_roster
+    log("INFO", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
+
+    return dict_player

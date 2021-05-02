@@ -210,23 +210,25 @@ def load_config_counter():
 # Purpose: lit l'onglet "units" du fichier Sheets
 # Output:  dict_units {key=alias, value=[name, id]}
 ##############################################################
-def load_config_units():
+def load_config_units(dict_unitsAlias):
     global client    
     get_gapi_client()
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("units")
 
     liste_dict_feuille=feuille.get_all_records()
-    dict_units={} #key=alias, value=[nameKey, id]
+    dict_units=dict_unitsAlias #key=alias, value=[nameKey, id]
     
     for ligne in liste_dict_feuille:
         full_name=ligne['Character/Ship']
         id=ligne['ID']
-        if full_name.lower() in dict_units:
-            if dict_units[full_name.lower()][0] != full_name:
-                print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
-        else:
-            dict_units[full_name.lower()]=[full_name, id]
+
+        #Ful lName from file is not used as alias, because it is already read from json file
+        #if full_name.lower() in dict_units:
+            #if dict_units[full_name.lower()][0] != full_name:
+                #print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
+        #else:
+            #dict_units[full_name.lower()]=[full_name, id]
 
         # Char ID cannot be used as alias because of Rey
         # "rey" is the nameKey of GLREY, and "REY" is the ID of scavenger rey

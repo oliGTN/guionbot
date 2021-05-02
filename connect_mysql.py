@@ -357,7 +357,9 @@ def update_guild(dict_guild):
         
 def update_player(dict_player, dict_units):
     #Start by getting all stats for the player
+    dict_player = goutils.roster_from_dict_to_list(dict_player)
     dict_player = connect_crinolo.add_stats(dict_player)
+    dict_player = goutils.roster_from_list_to_dict(dict_player)
 
     try:
         mysql_db = db_connect()
@@ -388,7 +390,8 @@ def update_player(dict_player, dict_units):
         # Update the roster
         roster_definition_txt="" #separator \
         # 1,MAGMATROOPER,gear,gp,level,,rarity,relicTier,eq1,eq2,eq3,eq4,eq5,eq6/<mod1>|<mod2>/capa1,lvl1|capa2,lvl2\capa3,lvl3\1,GREEFKARGA...
-        for character in dict_player['roster']:
+        for character_id in dict_player['roster']:
+            character = dict_player['roster'][character_id]
             c_combatType = character['combatType']
             c_defId = character['defId']
             if c_defId in dict_units:
@@ -411,9 +414,10 @@ def update_player(dict_player, dict_units):
                             
             ## GET DEFINITION OF MODS ##
             mod_definition_txt="" #separator |
-            # level,pips,sPrim,vPrim,sSec1,vSec1,sSec2,vSec2,sSec3,vSec3,sSec4,vSec4,set,slot,tier
+            # id,level,pips,sPrim,vPrim,sSec1,vSec1,sSec2,vSec2,sSec3,vSec3,sSec4,vSec4,set,slot,tier
             mod_count = 0
             for mod in character['mods']:
+                mod_id = mod['id']
                 mod_level = mod['level']
                 mod_pips = mod['pips']
                 mod_primaryStat_unitStat = mod['primaryStat']['unitStat']
@@ -449,7 +453,8 @@ def update_player(dict_player, dict_units):
                 mod_slot = mod['slot']
                 mod_tier = mod['tier']
         
-                mod_definition_txt+=str(mod_level)+","+ \
+                mod_definition_txt+=mod_id+","+ \
+                                    str(mod_level)+","+ \
                                     str(mod_pips)+","+ \
                                     str(mod_primaryStat_unitStat)+","+str(mod_primaryStat_value)+","+ \
                                     str(mod_secondaryStat1_unitstat)+","+str(mod_secondaryStat1_value)+","+ \

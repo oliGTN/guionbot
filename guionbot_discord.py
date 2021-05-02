@@ -20,6 +20,7 @@ from connect_warstats import parse_warstats_page
 import connect_mysql
 from io import BytesIO
 from requests import get
+import traceback
 
 TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
@@ -31,13 +32,22 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 WARSTATS_REFRESH_SECS = 15*60
 WARSTATS_REFRESH_TIME = 2*60
-alert_sent_to_admin = False
+list_alerts_sent_to_admin = []
 bot_test_mode = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 emoji_error = '\N{CROSS MARK}'
+emoji_letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER B}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER C}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER D}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER E}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER F}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER G}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER H}', \
+                 '\N{REGIONAL INDICATOR SYMBOL LETTER I}']
 
 dict_BT_missions={}
 dict_BT_missions['HLS']={}
@@ -101,7 +111,7 @@ dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
 
 dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
-BOT_LOOP60_ERR = "Unexpected error in bot_loop_60: "
+list_tw_opponent_msgIDs = []
 
 ##############################################################
 #                                                            #
@@ -129,9 +139,11 @@ async def bot_loop_60():
             await bot.loop.run_in_executor(None, go.refresh_cache)
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         try:
             #GET ONLINE AND MOBILE STATUS
@@ -152,9 +164,11 @@ async def bot_loop_60():
             update_online_dates(dict_lastseen)
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         try:
             #CHECK ALERTS FOR BT
@@ -172,9 +186,11 @@ async def bot_loop_60():
             print("INFO next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         # Wait X seconds before next loop
         t_end = time.time()
@@ -193,14 +209,14 @@ async def bot_loop_60():
 # Output: None
 ##############################################################
 async def send_alert_to_admins(message):
-    global alert_sent_to_admin
-    if not alert_sent_to_admin:
+    global list_alerts_sent_to_admin
+    if not message in list_alerts_sent_to_admin:
         list_ids = config.GO_ADMIN_IDS.split(' ')
         for userid in list_ids:
             member = bot.get_user(int(userid))
             channel = await member.create_dm()
             await channel.send(message)
-    alert_sent_to_admin = True
+        list_alerts_sent_to_admin.append(message)
 
 ##############################################################
 # Function: get_eb_allocation
@@ -483,14 +499,15 @@ def manage_me(ctx, allycode_txt):
     elif not allycode_txt.isnumeric():
         # Look for the name among known player names
         results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
+        #print(results)
         list_names = [x[0] for x in results[0]]
         
         closest_names=difflib.get_close_matches(allycode_txt, list_names, 1)
+        #print(closest_names)
         if len(closest_names)<1:
             ret_allycode_txt = 'ERR: '+allycode_txt+' ne fait pas partie des joueurs connus'
         else:
             print('INFO: cmd launched with name that looks like '+closest_names[0])
-            ret_allycode_txt = 'ERR: '+closest_names[0]+' ne fait pas partie des joueurs connus'
             for r in results[0]:
                 if r[0] == closest_names[0]:
                     ret_allycode_txt = str(r[1])
@@ -528,7 +545,6 @@ async def on_ready():
     if not bot_test_mode:
         await send_alert_to_admins(msg)
 
-    alert_sent_to_admin = False
 
 ##############################################################
 # Event: on_reaction_add
@@ -541,13 +557,40 @@ async def on_ready():
 async def on_reaction_add(reaction, user):
     message = reaction.message
     author = message.author
+    emoji = reaction.emoji
+    print("message: "+str(message))
+    print("author: "+str(author))
+    print("emoji: "+str(emoji))
+    print("user: "+str(user))
     
-    # Manage the thumb up to boot60 error message, to reset the alert
-    if message.content.startswith(BOT_LOOP60_ERR) \
-        and reaction.emoji == '\N{THUMBS UP SIGN}' \
-        and message.author == bot.user:
-        alert_sent_to_admin = False
+    #prevent reacting to bot's reactions
+    if user == bot.user:
+        return
+
+    # Manage the thumb up to messages sent to admins
+    if message.content in list_alerts_sent_to_admin \
+        and emoji == '\N{THUMBS UP SIGN}' \
+        and author == bot.user:
+        list_alerts_sent_to_admin.remove(message.content)
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+
+    #Manage reactions to PGS messages
+    for list_msg in list_tw_opponent_msgIDs:
+        if message in list_msg:
+            if emoji in emoji_letters:
+                letter_position = emoji_letters.index(emoji)
+            list_tw_opponent_msgIDs.remove(list_msg)
+            list_msg.remove(message)
+            for msg in list_msg:
+                await msg.delete()
+
+            #Display the chosen team
+            await message.edit(content="Choix de l'équipe "+chr(65+letter_position))
+
+            #Remove all previous reactions
+            for react in message.reactions:
+                async for user in react.users():
+                    await react.remove(user)
 
 
 ##############################################################
@@ -662,18 +705,15 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #          avant déploiement en service
     # Display: ça dépend
     #############################################################
-    # @commands.command(name='test', help='Réservé aux admins')
-    # @commands.check(is_owner)
-    # async def test(self, ctx, *args):
-        # cmd_with_fields = args[0]
-        # dict_players_by_IG, dict_players_by_ID = load_config_players()
-        # for player_ID in dict_players_by_ID:
-            # player_allycode=dict_players_by_ID[player_ID][0]
-            # cmd_to_be_sent = cmd_with_fields.replace("$mention", '<@'+str(player_ID)+'>')\
-                                            # .replace("$allycode", str(player_allycode))
-            # print(cmd_to_be_sent)
-            # await ctx.send(cmd_to_be_sent)
-            # time.sleep(10)
+    #@commands.command(name='test', help='Réservé aux admins')
+    #@commands.check(is_owner)
+    #async def test(self, ctx, *args):
+    #    emoji = args[0]
+    #    print(emoji)
+    #    emoji_ascii = emoji.encode('ascii', 'namereplace')
+    #    print(emoji_ascii)
+    #    msg = await ctx.send(emoji_ascii)
+    #    await msg.add_reaction(emoji_ascii)
 
 ##############################################################
 # Class: OfficerCog
@@ -1233,10 +1273,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
-                e, ret_cmd, image = await bot.loop.run_in_executor(None,
-                    go.get_character_image, list(characters), allycode)
+                e, ret_cmd, images = await bot.loop.run_in_executor(None,
+                    go.get_character_image, [[list(characters), allycode, '']], False)
                     
                 if e == 0:
+                    image = images[0][0]
                     with BytesIO() as image_binary:
                         image.save(image_binary, 'PNG')
                         image_binary.seek(0)
@@ -1256,6 +1297,81 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)                
                 
+    ##############################################################
+    # Command: pgs
+    # Parameters: code allié (string) ou "me"
+    #             liste des persos du joueur
+    #             séparateur "VS"
+    #             code allié adversaire
+    #             un perso de l'adversaire
+    # Purpose: afficher une image avec les 2 équipes et un "SUCCESS"
+    # Display: l'image produite
+    ##############################################################
+    @commands.command(name='pgs',
+                 brief="Image résumé d'un succès en Guerre de Territoire",
+                 help="Exemple: go.pgs me GAS echo cra fives rex VS MechantPaBo DR\n")
+    async def pgs(self, ctx, *options):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        # Extract command options
+        if not ("VS" in options):
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        pos_vs = options.index("VS")
+        if pos_vs < 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode_attack = options[0]
+        list_char_attack = options[1:pos_vs]
+
+        allyCode_attack = manage_me(ctx, allyCode_attack)
+        if allyCode_attack[0:3] == 'ERR':
+            await ctx.send(allyCode_attack)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        if len(options) != (pos_vs+2):
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        #only a character is given
+        character_defense = options[pos_vs+1]
+
+        # Computes images
+        e, ret_cmd, images = await bot.loop.run_in_executor(None,
+                    go.get_tw_battle_image, list_char_attack, allyCode_attack, \
+                                             character_defense)
+                    
+        if e == 0:
+            first_image = True
+            cur_list_msgIDs = []
+            for [image, line_count] in images:
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    new_msg = await ctx.send(content = ret_cmd,
+                           file=File(fp=image_binary, filename='image.png'))
+                    for letter_idx in range(line_count-first_image):
+                        emoji_letter = emoji_letters[letter_idx]
+                        await new_msg.add_reaction(emoji_letter)
+                    cur_list_msgIDs.append(new_msg)
+                first_image = False
+
+            # Add the message list to the global message list, waiting for reaction
+            list_tw_opponent_msgIDs.append(cur_list_msgIDs)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+
+
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
