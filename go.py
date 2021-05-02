@@ -136,9 +136,9 @@ def load_player(txt_allyCode, force_update):
                 delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
                 
                 # store json file
-                #fjson = open(json_file, 'w')
-                #fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
-                #fjson.close()
+                fjson = open(json_file, 'w')
+                fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
+                fjson.close()
 
                 # update DB
                 ret = connect_mysql.update_player(dict_player, dict_unitsList)
