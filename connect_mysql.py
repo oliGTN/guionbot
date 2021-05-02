@@ -414,9 +414,10 @@ def update_player(dict_player, dict_units):
                             
             ## GET DEFINITION OF MODS ##
             mod_definition_txt="" #separator |
-            # level,pips,sPrim,vPrim,sSec1,vSec1,sSec2,vSec2,sSec3,vSec3,sSec4,vSec4,set,slot,tier
+            # id,level,pips,sPrim,vPrim,sSec1,vSec1,sSec2,vSec2,sSec3,vSec3,sSec4,vSec4,set,slot,tier
             mod_count = 0
             for mod in character['mods']:
+                mod_id = mod['id']
                 mod_level = mod['level']
                 mod_pips = mod['pips']
                 mod_primaryStat_unitStat = mod['primaryStat']['unitStat']
@@ -452,7 +453,8 @@ def update_player(dict_player, dict_units):
                 mod_slot = mod['slot']
                 mod_tier = mod['tier']
         
-                mod_definition_txt+=str(mod_level)+","+ \
+                mod_definition_txt+=mod_id+","+ \
+                                    str(mod_level)+","+ \
                                     str(mod_pips)+","+ \
                                     str(mod_primaryStat_unitStat)+","+str(mod_primaryStat_value)+","+ \
                                     str(mod_secondaryStat1_unitstat)+","+str(mod_secondaryStat1_value)+","+ \
