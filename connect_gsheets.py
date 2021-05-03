@@ -42,7 +42,7 @@ def get_gapi_client():
 
 ##############################################################
 # Function: load_config_teams
-# Parameters: none
+# Parameters: dict_unitsAlias from json file
 # Purpose: lit l'onglet "teams" du fichier Sheets
 # Output: liste_teams (liste des noms d'équipe)
 #         dict_teams {team_name: {
@@ -54,14 +54,14 @@ def get_gapi_client():
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams():
+def load_config_teams(dict_unitsAlias):
     global client    
     get_gapi_client()
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("teams")
 
     #Get latest dictionary for character names
-    dict_units = load_config_units()
+    dict_units = load_config_units(dict_unitsAlias)
 
     #Get latest definition of teams
     dict_teams={}

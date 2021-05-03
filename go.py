@@ -136,11 +136,12 @@ def load_player(txt_allyCode, force_update):
                 
                 # compute differences
                 delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
+                sys.stdout.flush()
                 
                 # store json file
-                #fjson = open(json_file, 'w')
-                #fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
-                #fjson.close()
+                fjson = open(json_file, 'w')
+                fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
+                fjson.close()
 
                 # update DB
                 ret = connect_mysql.update_player(dict_player, dict_unitsList)
@@ -149,22 +150,26 @@ def load_player(txt_allyCode, force_update):
                 else:
                     goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
                     return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
+                sys.stdout.flush()
                 
                 
             else:
                 goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+txt_allyCode+
                         ", 'FRE_FR') has returned an empty list")
+                sys.stdout.flush()
                 return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
         else:
             goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+
                     txt_allyCode+", 'FRE_FR') has not returned a list")
             goutils.log('ERR', 'load_player',player_data)
+            sys.stdout.flush()
             return 1, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
         goutils.log('INFO', 'load_player',player_name + ' OK')
     
+    sys.stdout.flush()
     return 0, ''
 
 def load_guild(txt_allyCode, load_players):
@@ -572,7 +577,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
-    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams()
+    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(dict_unitsAlias)
     dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
     
     if not compute_guild:
@@ -1568,7 +1573,7 @@ def get_character_image(list_characters_allyCode, is_ID):
     # Goal is to update by player only if alone if the guild
     # otherwise update guild (allows longer timeout)
     query = "SELECT allyCode, guildName, count(*) from players "
-    query+= "WHERE allyCode in "+str(tuple(list_allyCodes)) + " "
+    query+= "WHERE allyCode in "+str(tuple(list_allyCodes)).replace(',)', ')') + " "
     query+= "GROUP BY guildName"
     print(query)
     db_data = connect_mysql.get_table(query)
