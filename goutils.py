@@ -392,7 +392,7 @@ def roster_from_list_to_dict(dict_player):
         dict_roster[character['defId']] = character
 
     dict_player['roster'] = dict_roster
-    log("INFO", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
+    log("DBG", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
 
     return dict_player
 
@@ -409,6 +409,6 @@ def roster_from_dict_to_list(dict_player):
         list_roster.append(character)
 
     dict_player['roster'] = list_roster
-    log("INFO", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
+    log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
 
     return dict_player
