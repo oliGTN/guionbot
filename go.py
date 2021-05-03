@@ -121,6 +121,7 @@ def load_player(txt_allyCode, force_update):
             prev_dict_player = None
         goutils.log("INFO", "load_player", 'requesting API data for ' + txt_allyCode + '...')
         player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
+
         if isinstance(player_data, list):
             if len(player_data) > 0:
                 if len(player_data) > 1:
@@ -131,6 +132,7 @@ def load_player(txt_allyCode, force_update):
                 dict_player = player_data[0]
                 dict_player = goutils.roster_from_list_to_dict(dict_player)
                 goutils.log("INFO", "load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
+                sys.stdout.flush()
                 
                 # compute differences
                 delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
