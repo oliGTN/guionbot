@@ -1572,7 +1572,7 @@ def get_character_image(list_characters_allyCode, is_ID):
     # Goal is to update by player only if alone if the guild
     # otherwise update guild (allows longer timeout)
     query = "SELECT allyCode, guildName, count(*) from players "
-    query+= "WHERE allyCode in "+str(tuple(list_allyCodes)) + " "
+    query+= "WHERE allyCode in "+str(tuple(list_allyCodes)).replace(',)', ')') + " "
     query+= "GROUP BY guildName"
     print(query)
     db_data = connect_mysql.get_table(query)

@@ -161,6 +161,8 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
         line_defId = line[1]
         line_rarity = line[2]
         line_teamname = line_defId + "-GV"
+        if not line_playername in dict_players:
+            dict_players[line_playername] = {}
         if not line_teamname in dict_players[line_playername]:
             dict_players[line_playername][line_teamname] = {}
         dict_players[line_playername][line_teamname][line_defId]={ \
