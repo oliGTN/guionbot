@@ -558,10 +558,10 @@ async def on_reaction_add(reaction, user):
     message = reaction.message
     author = message.author
     emoji = reaction.emoji
-    print("message: "+str(message))
-    print("author: "+str(author))
-    print("emoji: "+str(emoji))
-    print("user: "+str(user))
+    goutils.log("DBG", "on_reaction_add", "message: "+str(message))
+    goutils.log("DBG", "on_reaction_add", "author: "+str(author))
+    goutils.log("DBG", "on_reaction_add", "emoji: "+str(emoji))
+    goutils.log("DBG", "on_reaction_add", "user: "+str(user))
     
     #prevent reacting to bot's reactions
     if user == bot.user:

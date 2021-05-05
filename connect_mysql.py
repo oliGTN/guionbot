@@ -368,7 +368,6 @@ def update_player(dict_player, dict_units):
         # Update basic player information
         p_allyCode = dict_player['allyCode']
         p_guildName = dict_player['guildName']
-        p_id = dict_player['id']
 
         p_lastActivity_player = dict_player['lastActivity']
         p_lastActivity_ts = datetime.datetime.fromtimestamp(p_lastActivity_player/1000)
@@ -546,7 +545,6 @@ def update_player(dict_player, dict_units):
         # Launch the unique update with all information
         query_parameters = (p_allyCode,
                             p_guildName,
-                            p_id,
                             p_lastActivity,
                             p_level,
                             p_name,

@@ -231,7 +231,7 @@ def load_guild(txt_allyCode, load_players):
                 e, t = load_player(str(player['allyCode']), False)
             else:
                 goutils.log("INFO", "load_guild", "player "+
-                            player['name']+" is already OK\n")
+                            player['name']+" is already OK")
     
     return "OK", ret_guild
 
@@ -592,7 +592,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #Get data for the guild and associated players
         ret, guild = load_guild(txt_allyCode, True)
         if ret != 'OK':
-            print("WAR: cannot get guild data from SWGOH.HELP API. Using previous data.")
+            goutils.log("WAR", "get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
 
     if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
@@ -608,7 +608,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         list_team_names = [x+"-GV" for x in list_character_ids]
 
     #Get player data
-    print("Get player data from DB...")
+    goutils.log("INFO", "get_team_progress", "Get player data from DB...")
     query = "SELECT players.name, \
             guild_teams.name, \
             guild_team_roster.unit_id, \
@@ -621,10 +621,10 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             JOIN guild_teams \
             JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
             JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id \
-            JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.player_id = players.id \
+            JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.allyCode = players.allyCode \
             JOIN roster_stats ON roster_stats.roster_id = roster.id AND roster_stats.unitStatId = 5\n"
     if not compute_guild:
-        query += "WHERE allyCode = '"+txt_allyCode+"'\n"
+        query += "WHERE roster.allyCode = '"+txt_allyCode+"'\n"
     else:
         query += "WHERE players.guildName = \
                 (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
@@ -641,6 +641,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     query += "GROUP BY players.name, guild_teams.name, guild_team_roster.unit_id, \
             rarity, gear, relic_currentTier, gp \
             ORDER BY players.name, guild_teams.name"
+    goutils.log("DBG", "get_team_progress", query)
     
     # print(query)
     player_data = connect_mysql.get_table(query)
@@ -648,7 +649,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     
     if not gv_mode:
         # Need the zetas to compute the progress of a regular team
-        print("Get zeta data from DB...")
+        goutils.log("INFO", "get_team_progress", "Get zeta data from DB...")
         query = "SELECT players.name, \
                 guild_teams.name, \
                 guild_team_roster.unit_id, \
@@ -659,10 +660,10 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                 JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
                 JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id \
                 JOIN guild_team_roster_zetas ON guild_team_roster_zetas.roster_id = guild_team_roster.id \
-                JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.player_id = players.id \
+                JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.allyCode = players.allyCode \
                 JOIN roster_skills ON roster_skills.roster_id = roster.id AND roster_skills.name = guild_team_roster_zetas.name \n"
         if not compute_guild:
-            query += "WHERE allyCode = '"+txt_allyCode+"'\n"
+            query += "WHERE roster.allyCode = '"+txt_allyCode+"'\n"
         else:
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
@@ -676,7 +677,8 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         else:
             query += "AND guild_teams.name LIKE '%-GV'\n"
            
-        query += "ORDER BY allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
+        query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
+        go.outils("DBG", "get_team_progress", query)
         
         #print(query)
         player_zeta_data = connect_mysql.get_table(query)
@@ -689,16 +691,17 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         player_zeta_data = []
         
         #There is a need to check if the target character is locked or unlocked
-        print("Get GV characters data from DB...")
+        goutils.log("INFO", "get_team_progress", "Get GV characters data from DB...")
         query = "SELECT players.name, defId, rarity \
                 FROM roster \
-                JOIN players ON players.id = roster.player_id \n"
+                JOIN players ON players.allyCode = roster.allyCode \n"
         if not compute_guild:
-            query += "WHERE allyCode = '"+txt_allyCode+"'\n"
+            query += "WHERE roster.allyCode = '"+txt_allyCode+"'\n"
         else:
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND defId IN (SELECT SUBSTRING_INDEX(name, '-GV', 1) FROM guild_teams WHERE name LIKE '%-GV')"
+        goutils.log("DBG", "get_team_progress", query)
         
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
@@ -1157,10 +1160,11 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             query ="SELECT players.name, defId, \
                     combatType, rarity, gear, relic_currentTier \
                     FROM roster \
-                    JOIN players ON players.id = roster.player_id \
+                    JOIN players ON players.allyCode = roster.allyCode \
                     WHERE players.allyCode = '"+txt_allyCode+"' \
                     AND roster.combatType=1 AND roster.level >= 50 \
                     ORDER BY players.name, defId"
+            goutils.log("DBG", "print_character_stats", query)
             db_stat_data_char = connect_mysql.get_table(query)
             
             goutils.log("INFO", "print_character_stats", "Get player stats data from DB...")
@@ -1169,7 +1173,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                     FROM roster \
                     JOIN roster_stats ON roster_stats.roster_id = roster.id \
-                    JOIN players ON players.id = roster.player_id \
+                    JOIN players ON players.allyCode = roster.allyCode \
                     WHERE players.allyCode = '"+txt_allyCode+"' \
                     AND roster.combatType=1 AND roster.level >= 50 \
                     AND ("
@@ -1178,6 +1182,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             query += "isnull(unitStatId)) \
                     GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
                     ORDER BY players.name, defId, unitStatId"
+            goutils.log("DBG", "print_character_stats", query)
             
             db_stat_data = connect_mysql.get_table(query)
             db_stat_data_mods = []
@@ -1211,7 +1216,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                     FROM roster \
                     LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
-                    JOIN players ON players.id = roster.player_id \
+                    JOIN players ON players.allyCode = roster.allyCode \
                     WHERE players.allyCode = '"+txt_allyCode+"' \
                     AND ("
             for character_id in list_character_ids:
@@ -1235,7 +1240,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                         mods.id, pips, mod_set, mods.level, \
                         isPrimary, unitStat, value \
                         FROM roster \
-                        JOIN players ON players.id = roster.player_id \
+                        JOIN players ON players.allyCode = roster.allyCode \
                         JOIN mods ON mods.roster_id = roster.id \
                         JOIN mod_stats ON mod_stats.mod_id = mods.id \
                         WHERE players.allyCode = '"+txt_allyCode+"' \
@@ -1243,6 +1248,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                 for character_id in dict_virtual_characters.keys():
                     query += "defId = '"+character_id+"' OR "
                 query = query[:-3] + ")"
+                goutils.log("DBG", "print_character_stats", query)
 
                 db_stat_data_mods = connect_mysql.get_table(query)
             else:
@@ -1281,7 +1287,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                 ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
                 FROM roster \
                 LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
-                JOIN players ON players.id = roster.player_id \
+                JOIN players ON players.allyCode = roster.allyCode \
                 WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
                 AND defId = '"+character_id+"' \
                 AND ("
@@ -1623,7 +1629,7 @@ def get_character_image(list_characters_allyCode, is_ID):
             defId, rarity, roster.level, gear, \
             relic_currentTier, forceAlignment, zeta_count, combatType \
             FROM roster \
-            JOIN players ON players.id = roster.player_id \
+            JOIN players ON players.allyCode = roster.allyCode \
             WHERE "
     for [list_character_ids, txt_allyCode, tw_terr] in list_ids_allyCode:
         query += "(players.allyCode = '"+txt_allyCode+"' AND ("
