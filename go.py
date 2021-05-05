@@ -592,7 +592,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #Get data for the guild and associated players
         ret, guild = load_guild(txt_allyCode, True)
         if ret != 'OK':
-            go.outils("WAR", "get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
+            goutils.log("WAR", "get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
 
     if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
@@ -608,7 +608,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         list_team_names = [x+"-GV" for x in list_character_ids]
 
     #Get player data
-    go.outils("INFO", "get_team_progress", "Get player data from DB...")
+    goutils.log("INFO", "get_team_progress", "Get player data from DB...")
     query = "SELECT players.name, \
             guild_teams.name, \
             guild_team_roster.unit_id, \
@@ -649,7 +649,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     
     if not gv_mode:
         # Need the zetas to compute the progress of a regular team
-        go.outils("INFO", "get_team_progress", "Get zeta data from DB...")
+        goutils.log("INFO", "get_team_progress", "Get zeta data from DB...")
         query = "SELECT players.name, \
                 guild_teams.name, \
                 guild_team_roster.unit_id, \
@@ -691,7 +691,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         player_zeta_data = []
         
         #There is a need to check if the target character is locked or unlocked
-        go.outils("INFO", "get_team_progress", "Get GV characters data from DB...")
+        goutils.log("INFO", "get_team_progress", "Get GV characters data from DB...")
         query = "SELECT players.name, defId, rarity \
                 FROM roster \
                 JOIN players ON players.allyCode = roster.allyCode \n"
@@ -701,7 +701,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND defId IN (SELECT SUBSTRING_INDEX(name, '-GV', 1) FROM guild_teams WHERE name LIKE '%-GV')"
-        go.outils("DBG", "get_team_progress", query)
+        goutils.log("DBG", "get_team_progress", query)
         
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
@@ -1164,7 +1164,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     WHERE players.allyCode = '"+txt_allyCode+"' \
                     AND roster.combatType=1 AND roster.level >= 50 \
                     ORDER BY players.name, defId"
-            go.outils("DBG", "print_character_stats", query)
+            goutils.log("DBG", "print_character_stats", query)
             db_stat_data_char = connect_mysql.get_table(query)
             
             goutils.log("INFO", "print_character_stats", "Get player stats data from DB...")
@@ -1182,7 +1182,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             query += "isnull(unitStatId)) \
                     GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
                     ORDER BY players.name, defId, unitStatId"
-            go.outils("DBG", "print_character_stats", query)
+            goutils.log("DBG", "print_character_stats", query)
             
             db_stat_data = connect_mysql.get_table(query)
             db_stat_data_mods = []
@@ -1248,7 +1248,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                 for character_id in dict_virtual_characters.keys():
                     query += "defId = '"+character_id+"' OR "
                 query = query[:-3] + ")"
-                go.outils("DBG", "print_character_stats", query)
+                goutils.log("DBG", "print_character_stats", query)
 
                 db_stat_data_mods = connect_mysql.get_table(query)
             else:
