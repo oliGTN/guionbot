@@ -368,7 +368,6 @@ def update_player(dict_player, dict_units):
         # Update basic player information
         p_allyCode = dict_player['allyCode']
         p_guildName = dict_player['guildName']
-        p_id = dict_player['id']
 
         p_lastActivity_player = dict_player['lastActivity']
         p_lastActivity_ts = datetime.datetime.fromtimestamp(p_lastActivity_player/1000)
@@ -386,6 +385,31 @@ def update_player(dict_player, dict_units):
                 p_ship_gp = stat['value']
 
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
+
+        query = "IF NOT EXISTS (SELECT * FROM players WHERE allyCode = "+str(p_allyCode)+") THEN "\
+               +"    INSERT INTO players(allyCode) VALUES("+str(p_allyCode)+"); "\
+               +"END IF;"
+        goutils.log("DBG", "update_player", query)
+        ret = cursor.execute(query)
+        print(ret)
+
+        query = "UPDATE players SET "\
+               +"guildName = '"+p_guildName+"', "\
+               +"    lastActivity = '"+p_lastActivity+"', "\
+               +"    level = "+str(p_level)+", "\
+               +"    name = '"+str(p_name)+"', "\
+               +"    arena_char_rank = "+str(p_arena_char_rank)+", "\
+               +"    arena_ship_rank = "+str(p_arena_ship_rank)+", "\
+               +"    char_gp = "+str(p_char_gp)+", "\
+               +"    ship_gp = "+str(p_ship_gp)+", "\
+               +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
+               +"    lastUpdated = CURRENT_TIMESTAMP "\
+               +"    WHERE allyCode = "+str(p_allyCode)+"; "
+        ret = cursor.execute(query)
+        goutils.log("DBG", "update_player", query)
+        print(ret)
+
+        return
                       
         # Update the roster
         roster_definition_txt="" #separator \
