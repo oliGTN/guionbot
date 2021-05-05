@@ -37,14 +37,14 @@ DROP TABLE IF EXISTS `gp_history`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `gp_history` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `player_id` int(11) DEFAULT NULL,
+  `allyCode` int(11) DEFAULT NULL,
   `char_gp` int(11) DEFAULT NULL,
   `ship_gp` int(11) DEFAULT NULL,
   `arena_char_rank` int(11) DEFAULT NULL,
   `arena_ship_rank` int(11) DEFAULT NULL,
   `date` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4182 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=4283 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -60,7 +60,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=304 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=316 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -84,7 +84,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1481 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1525 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -99,7 +99,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=421 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=464 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -159,7 +159,7 @@ CREATE TABLE `mods` (
   `sec4_stat` tinyint(4) DEFAULT NULL,
   `sec4_value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24596842 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=25103610 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -170,10 +170,8 @@ DROP TABLE IF EXISTS `players`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `players` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `allyCode` int(11) DEFAULT NULL,
+  `allyCode` int(11) NOT NULL,
   `guildName` varchar(255) DEFAULT NULL,
-  `player_id` varchar(30) CHARACTER SET latin1 DEFAULT NULL,
   `lastActivity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `level` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
@@ -184,8 +182,8 @@ CREATE TABLE `players` (
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
   `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
   `md5` varchar(32) CHARACTER SET latin1 DEFAULT 'zz',
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1529 DEFAULT CHARSET=utf8;
+  PRIMARY KEY (`allyCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -197,7 +195,7 @@ DROP TABLE IF EXISTS `roster`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `roster` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `player_id` int(11) DEFAULT NULL,
+  `allyCode` int(11) DEFAULT NULL,
   `defId` varchar(255) DEFAULT NULL,
   `combatType` tinyint(4) DEFAULT NULL,
   `forceAlignment` tinyint(4) DEFAULT NULL,
@@ -218,7 +216,7 @@ CREATE TABLE `roster` (
   `stat5_gear` bigint(20) DEFAULT 0,
   `stat5_mods_crew` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=265871 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=304536 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -235,7 +233,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15513614 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=16020090 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -252,7 +250,7 @@ CREATE TABLE `roster_stats` (
   `unscaledDecimalValue` bigint(20) DEFAULT NULL,
   `type` varchar(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=103876344 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=107756320 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -271,21 +269,18 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `clean_lost_links`()
 BEGIN
         
-	SELECT * FROM roster WHERE player_id NOT IN (SELECT id FROM players);
-	DELETE FROM roster WHERE player_id NOT IN (SELECT id FROM players);
+	SELECT * FROM roster WHERE allyCode NOT IN (SELECT allyCode FROM players);
+	DELETE FROM roster WHERE allyCode NOT IN (SELECT allyCode FROM players);
 	OPTIMIZE TABLE roster;
 
 	SELECT * FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	OPTIMIZE TABLE mods;
 
-	SELECT * FROM roster_eqpt WHERE roster_id NOT IN (SELECT id FROM roster);
-	DELETE FROM roster_eqpt WHERE roster_id NOT IN (SELECT id FROM roster);
 	SELECT * FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
 	SELECT * FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
-	OPTIMIZE TABLE roster_eqpt;
 	OPTIMIZE TABLE roster_skills;
 	OPTIMIZE TABLE roster_stats;
 
@@ -334,7 +329,7 @@ BEGIN
 		SELECT players.name, MAX(gp_history.char_gp) AS char_gp, MAX(gp_history.ship_gp) AS ship_gp
         FROM players
         LEFT JOIN gp_history
-        ON gp_history.player_id = players.id
+        ON gp_history.allyCode = players.allyCode
         WHERE TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) >= delta_days*24*3600 AND TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) <= (delta_days+2)*24*3600
         GROUP BY players.id
 	) AS T;
@@ -390,112 +385,9 @@ BEGIN
 	end as ship_cristals,
 	@char_cristals+@ship_cristals as total
 	from gp_history
-	join players on players.id = gp_history.player_id
+	join players on players.allyCode = gp_history.allyCode
     WHERE guildName = 'Kangoo Legends'
 	order by name, date ASC;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `get_unit_stat` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_unit_stat`(
-	IN p_allyCode INT,
-    IN p_stat_name VARCHAR(255),
-    IN p_sort_by_stat BOOL
-    )
-BEGIN
-    SET @p_stat_id = 0;
-    SET @p_mod_set = 0;
-    SET @p_mod_count_min = 0;
-	SELECT stat_id, mod_set, mod_count_min
-    INTO @p_stat_id, @p_mod_set, @p_mod_count_min
-    FROM statistics WHERE name_en = p_stat_name OR name_fr = p_stat_name;
-
-	DROP VIEW IF EXISTS base_stat_view;
-	CREATE VIEW base_stat_view AS(
-	SELECT roster.id AS roster_id, roster.defId AS char_name,
-	unit_stats.unitStatId as base_statId,
-    unit_stats.statValueDecimal AS base_statValue
-	FROM roster
-	JOIN units ON units.baseId = roster.defId
-	JOIN unit_tiers ON unit_tiers.unit_id = units.id AND unit_tiers.tier = roster.gear
-	JOIN unit_stats ON unit_stats.unit_tier_id = unit_tiers.id
-	);
-
-	DROP VIEW IF EXISTS eqpt_stat_view;
-	CREATE VIEW eqpt_stat_view AS(
-	SELECT roster.id AS roster_id, roster.defId AS char_name,
-    eqpt_stats.unitStatId AS eqpt_statId,
-	sum(eqpt_stats.statValueDecimal) AS eqpt_statValue
-	FROM roster
-	JOIN roster_eqpt ON roster.id = roster_eqpt.roster_id
-	JOIN equipment ON roster_eqpt.equipment_id = equipment.equipment_id
-	JOIN eqpt_stats ON equipment.id = eqpt_stats.equipment_id
-	GROUP BY roster.id, roster.defId, eqpt_stats.unitStatId
-	);
-
-	DROP VIEW IF EXISTS mod_stat_view;
-	CREATE VIEW mod_stat_view AS(
-	SELECT roster.id AS roster_id, roster.defId AS char_name,
-	mod_stats.unitStat AS mod_statId,
-	sum(mod_stats.value) AS mod_statValue
-	FROM roster
-	JOIN mods ON roster.id = mods.roster_id
-	JOIN mod_stats ON mods.id = mod_stats.mod_id
-	GROUP BY roster.id, roster.defId, mod_stats.unitStat
-	);
-
-	DROP VIEW IF EXISTS mod_modifier_view;
-	CREATE VIEW mod_modifier_view AS(
-	SELECT roster.id AS roster_id, roster.defId AS char_name,
-	mods.mod_set,
-    count(mods.mod_set) AS mod_count,
-	sum(mods.level = 15) as lvl15_count
-	FROM roster
-	JOIN mods ON roster.id = mods.roster_id
-	GROUP BY roster.id, roster.defId, mods.mod_set
-	);
-
-	SELECT units.nameKey AS Perso,
-	base_statValue, eqpt_statValue, mod_statValue, mod_count, lvl15_count,
-    CASE WHEN @p_mod_set = 0 THEN
-		base_statValue/10000 +IFNULL(eqpt_statValue, 0)/10000+IFNULL(mod_statValue, 0)
-	ELSE 
-		CASE WHEN @p_mod_count_min = 4 THEN
-			CASE WHEN IFNULL(mod_count, 0) < 4 THEN
-				base_statValue/10000 +IFNULL(eqpt_statValue, 0)/10000+IFNULL(mod_statValue, 0)
-			ELSE
-				CASE WHEN IFNULL(lvl15_count, 0) < 4 THEN
-					FLOOR(base_statValue/10000*1.05 +IFNULL(eqpt_statValue, 0)/10000+IFNULL(mod_statValue, 0))
-				ELSE
-					FLOOR(base_statValue/10000*1.1 +IFNULL(eqpt_statValue, 0)/10000+IFNULL(mod_statValue, 0))
-				END
-			END
-		END
-	END AS stat_value
-	FROM roster
-	LEFT JOIN base_stat_view ON base_stat_view.roster_id = roster.id AND base_stat_view.base_statId = @p_stat_id
-	LEFT JOIN eqpt_stat_view ON eqpt_stat_view.roster_id = roster.id AND eqpt_stat_view.eqpt_statId = @p_stat_id
-	LEFT JOIN mod_stat_view ON mod_stat_view.roster_id = roster.id AND mod_stat_view.mod_statId = @p_stat_id
-	LEFT JOIN mod_modifier_view ON mod_modifier_view.roster_id = roster.id AND mod_modifier_view.mod_set = @p_mod_set
-    JOIN units ON units.unit_id = base_stat_view.char_name
-    JOIN players ON players.id = roster.player_id
-	WHERE players.allyCode = p_allyCode
-    ORDER BY
-		CASE WHEN p_sort_by_stat THEN stat_value END DESC,
-		CASE WHEN NOT p_sort_by_stat THEN units.nameKey END ASC;
-
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -965,7 +857,6 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_player`(
 	IN p_allyCode INT,
     IN p_guildName VARCHAR(255) CHARSET utf8,
-    IN p_player_id VARCHAR(30),
     IN p_lastActivity DATETIME,
     IN p_level int,
     IN p_name VARCHAR(255) CHARSET utf8,
@@ -984,13 +875,9 @@ BEGIN
     
 	INSERT INTO debug(txt) VALUES(CONCAT('START update_player: p_allyCode=', p_allyCode));
 
-	IF NOT EXISTS (SELECT * FROM players WHERE allyCode = p_allyCode) THEN
-		INSERT INTO players(allyCode) VALUES(p_allyCode);
-    END IF;
-	SET @p_player_id = (SELECT id FROM players WHERE allyCode = p_allyCode);
-	UPDATE players SET
+	REPLACE INTO players
+    SET allyCode = p_allyCode,
 		guildName = p_guildName,
-		player_id = p_player_id,
 		lastActivity = p_lastActivity,
 		level = p_level,
 		name = p_name,
@@ -999,25 +886,24 @@ BEGIN
 		char_gp = p_char_gp,
 		ship_gp = p_ship_gp,
 		poUTCOffsetMinutes = p_poUTCOffsetMinutes,
-		lastUpdated = CURRENT_TIMESTAMP
-		WHERE allyCode = p_allyCode;
+		lastUpdated = CURRENT_TIMESTAMP;
 	
 	SET @player_md5 = (SELECT md5 FROM players WHERE players.allyCode = p_allyCode);
 	SET @new_md5 = MD5(roster_definition_txt);
 	
 	IF NOT @player_md5 = @new_md5 THEN
-		CALL update_roster(@p_player_id, roster_definition_txt);
+		CALL update_roster(p_allyCode, roster_definition_txt);
 		UPDATE players SET
 			md5 = MD5(roster_definition_txt)
-		WHERE players.id = @p_player_id;
+		WHERE players.allyCode = p_allyCode;
 	END IF;
 	
     IF p_guildName = 'Kangoo Legends' THEN
-		SET @delta_TS_last_history = (SELECT TIMESTAMPDIFF(SECOND,MAX(date),CURRENT_TIMESTAMP) FROM gp_history WHERE player_id = @p_player_id);
+		SET @delta_TS_last_history = (SELECT TIMESTAMPDIFF(SECOND,MAX(date),CURRENT_TIMESTAMP) FROM gp_history WHERE allyCode = p_allyCode);
 		IF (ISNULL(@delta_TS_last_history) OR (@delta_TS_last_history > 24*3600)) THEN
 			
-			INSERT INTO gp_history(player_id, char_gp, ship_gp, arena_char_rank, arena_ship_rank)
-				VALUES(@p_player_id, p_char_gp, p_ship_gp, p_arena_char_rank, p_arena_ship_rank);
+			INSERT INTO gp_history(allyCode, char_gp, ship_gp, arena_char_rank, arena_ship_rank)
+				VALUES(p_allyCode, p_char_gp, p_ship_gp, p_arena_char_rank, p_arena_ship_rank);
 		END IF;
 	END IF;
 	INSERT INTO debug(txt) VALUES(CONCAT('END update_player: p_allyCode=', p_allyCode));
@@ -1038,22 +924,22 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster`(
-	IN p_player_id INT,
+	IN p_allyCode INT,
     IN roster_definition_txt MEDIUMTEXT
     )
 BEGIN
 	INSERT INTO debug(txt) VALUES('update_roster before DELETE');
 	DELETE FROM mods WHERE roster_id IN (
 		SELECT roster.id FROM roster
-		WHERE roster.player_id = p_player_id);
+		WHERE roster.allyCode = p_allyCode);
 	INSERT INTO debug(txt) VALUES('update_roster after DELETE mods');
 	DELETE FROM roster_skills WHERE roster_id IN (
 		SELECT roster.id FROM roster
-		WHERE roster.player_id = p_player_id);
+		WHERE roster.allyCode = p_allyCode);
 	INSERT INTO debug(txt) VALUES('update_roster after DELETE roster_skills');
 	DELETE FROM roster_stats WHERE roster_id IN (
 		SELECT roster.id FROM roster
-		WHERE roster.player_id = p_player_id);
+		WHERE roster.allyCode = p_allyCode);
 	INSERT INTO debug(txt) VALUES('update_roster after DELETE roster_stats');
 
 	iterator:
@@ -1088,7 +974,7 @@ BEGIN
 		SET @stat_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',4),'/',-1);
 
 		CALL update_roster_element(
-			p_player_id,
+			p_allyCode,
 			@p_combatType,
 			@p_defId,
 			@p_forceAlignment,
@@ -1128,7 +1014,7 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_element`(
-	IN p_player_id INT,
+	IN p_allyCode INT,
 	IN p_combatType INT,
     IN p_defId VARCHAR(255),
 	IN p_forceAlignment INT,
@@ -1150,10 +1036,10 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_element`(
     IN stat_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES(CONCAT('update_roster_element: p_player_id=', p_player_id, ', p_defId=', p_defId));
+	INSERT INTO debug(txt) VALUES(CONCAT('update_roster_element: p_allyCode=', p_allyCode, ', p_defId=', p_defId));
     
-	IF NOT EXISTS (SELECT * FROM roster WHERE player_id = p_player_id AND defId = p_defId) THEN
-		INSERT INTO roster(player_id,defId) VALUES(p_player_id,p_defId);
+	IF NOT EXISTS (SELECT * FROM roster WHERE allyCode = p_allyCode AND defId = p_defId) THEN
+		INSERT INTO roster(allyCode,defId) VALUES(p_allyCode,p_defId);
     END IF;
     UPDATE roster SET
 		combatType = p_combatType,
@@ -1171,9 +1057,9 @@ BEGIN
         eqpt4 = CASE WHEN p_equipped4='' THEN NULL ELSE p_equipped4 END,
         eqpt5 = CASE WHEN p_equipped5='' THEN NULL ELSE p_equipped5 END,
         eqpt6 = CASE WHEN p_equipped6='' THEN NULL ELSE p_equipped6 END
-        WHERE player_id = p_player_id AND defId = p_defId;
+        WHERE allyCode = p_allyCode AND defId = p_defId;
 
-	SET @roster_id = (SELECT id FROM roster WHERE player_id = p_player_id AND defId = p_defId);
+	SET @roster_id = (SELECT id FROM roster WHERE allyCode = p_allyCode AND defId = p_defId);
 
     CALL update_mods(@roster_id, mod_definition_txt);
     CALL update_roster_skills(@roster_id, capa_definition_txt);
@@ -1527,4 +1413,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-05-03 23:29:05
+-- Dump completed on 2021-05-05 22:18:13

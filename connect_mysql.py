@@ -570,7 +570,6 @@ def update_player(dict_player, dict_units):
         # Launch the unique update with all information
         query_parameters = (p_allyCode,
                             p_guildName,
-                            p_id,
                             p_lastActivity,
                             p_level,
                             p_name,
