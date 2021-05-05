@@ -32,31 +32,29 @@ priority_names=[]
 unitsAlias_dict = {}
 for unitsList in [unitsList_FRE_FR_obtainable, unitsList_ENG_US_obtainable]:
     for unit in unitsList:
-        #if (not ':' in unit['id']) and not "EVENT" in unit['id'] \
-        #                           and not "PVE" in unit['id'] \
-        #                           and not "DUEL" in unit['id']:
-            #manage characters with number and nickname (eg: clones)
-            names = unit['nameKey'].split('"')
-            if "" in names:
-                names.remove("")
-            for nameKey in names:
-                if nameKey in unitsAlias_dict:
-                    if unitsAlias_dict[nameKey][1] != unit['baseId']:
-                        prio_found = False
-                        for prio in priority_names:
-                            if prio in unit['baseId']:
-                                unitsAlias_dict[nameKey] = [unitsList_dict[unit['baseId']]['nameKey'], unit['baseId']]
-                                prio_found = True
-                            elif prio in unitsAlias_dict[nameKey][1]:
-                                prio_found = True
-                        if not prio_found:
-                            print('WAR: double definition of '+nameKey)
-                            print(unitsAlias_dict[nameKey][1])
-                            print(unit['baseId'])
-                    else:
-                        pass
+        names = [unit['nameKey']]
+        if '"' in unit['nameKey']:
+            names += unit['nameKey'].split('"')
+        if "" in names:
+            names.remove("")
+        for nameKey in names:
+            if nameKey in unitsAlias_dict:
+                if unitsAlias_dict[nameKey][1] != unit['baseId']:
+                    prio_found = False
+                    for prio in priority_names:
+                        if prio in unit['baseId']:
+                            unitsAlias_dict[nameKey] = [unitsList_dict[unit['baseId']]['nameKey'], unit['baseId']]
+                            prio_found = True
+                        elif prio in unitsAlias_dict[nameKey][1]:
+                            prio_found = True
+                    if not prio_found:
+                        print('WAR: double definition of '+nameKey)
+                        print(unitsAlias_dict[nameKey][1])
+                        print(unit['baseId'])
                 else:
-                    unitsAlias_dict[nameKey] = [unitsList_dict[unit['baseId']]['nameKey'], unit['baseId']]
+                    pass
+            else:
+                unitsAlias_dict[nameKey] = [unitsList_dict[unit['baseId']]['nameKey'], unit['baseId']]
 
 fnew = open('DATA'+os.path.sep+'unitsAlias_dict.json', 'w')
 fnew.write(json.dumps(unitsAlias_dict, sort_keys=True, indent=4))
