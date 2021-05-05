@@ -386,15 +386,9 @@ def update_player(dict_player, dict_units):
 
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
 
-        query = "IF NOT EXISTS (SELECT * FROM players WHERE allyCode = "+str(p_allyCode)+") THEN "\
-               +"    INSERT INTO players(allyCode) VALUES("+str(p_allyCode)+"); "\
-               +"END IF;"
-        goutils.log("DBG", "update_player", query)
-        ret = cursor.execute(query)
-        print(ret)
-
-        query = "UPDATE players SET "\
-               +"guildName = '"+p_guildName+"', "\
+        query = "REPLACE INTO players "\
+               +"SET allyCode = '"+str(p_allyCode)+"', "\
+               +"    guildName = '"+p_guildName+"', "\
                +"    lastActivity = '"+p_lastActivity+"', "\
                +"    level = "+str(p_level)+", "\
                +"    name = '"+str(p_name)+"', "\
@@ -403,14 +397,11 @@ def update_player(dict_player, dict_units):
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
-               +"    lastUpdated = CURRENT_TIMESTAMP "\
-               +"    WHERE allyCode = "+str(p_allyCode)+"; "
+               +"    lastUpdated = CURRENT_TIMESTAMP "
         ret = cursor.execute(query)
         goutils.log("DBG", "update_player", query)
         print(ret)
 
-        return
-                      
         # Update the roster
         roster_definition_txt="" #separator \
         # 1,MAGMATROOPER,gear,gp,level,,rarity,relicTier,eq1,eq2,eq3,eq4,eq5,eq6/<mod1>|<mod2>/capa1,lvl1|capa2,lvl2\capa3,lvl3\1,GREEFKARGA...
