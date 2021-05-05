@@ -222,6 +222,13 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
             line_rarity = line[3]
             line_gear = line[4]
             line_relic_currentTier = line[5]
+            line_stat1 = line[6]
+            line_stat5 = line[7]
+            line_stat6 = line[8]
+            line_stat7 = line[9]
+            line_stat17 = line[10]
+            line_stat18 = line[11]
+            line_stat28 = line[12]
             dict_players[line_name][line_defId]={ \
                     "nameKey": line_nameKey,
                     "combatType": line_combatType,
@@ -230,13 +237,16 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {}}
                 
-            cur_defId = line_defId
-            
-        line_unitStatId = line[6]
-        line_unscaledDecimalValue = line[7]
+            dict_players[line_name][line_defId]["stats"][1] = int(line_stat1)
+            dict_players[line_name][line_defId]["stats"][5] = int(line_stat5)
+            dict_players[line_name][line_defId]["stats"][6] = int(line_stat6)
+            dict_players[line_name][line_defId]["stats"][7] = int(line_stat7)
+            dict_players[line_name][line_defId]["stats"][17] = int(line_stat17)
+            dict_players[line_name][line_defId]["stats"][18] = int(line_stat18)
+            dict_players[line_name][line_defId]["stats"][28] = int(line_stat28)
 
-        dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
-            int(line_unscaledDecimalValue)
+            cur_defId = line_defId
+
     
     cur_name = ''
     for line in db_stat_data_mods:
@@ -394,7 +404,7 @@ def roster_from_list_to_dict(dict_player):
         dict_roster[character['defId']] = character
 
     dict_player['roster'] = dict_roster
-    log("INFO", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
+    log("DBG", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
 
     return dict_player
 
@@ -411,6 +421,6 @@ def roster_from_dict_to_list(dict_player):
         list_roster.append(character)
 
     dict_player['roster'] = list_roster
-    log("INFO", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
+    log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
 
     return dict_player

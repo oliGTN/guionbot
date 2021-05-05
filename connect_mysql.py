@@ -385,7 +385,23 @@ def update_player(dict_player, dict_units):
                 p_ship_gp = stat['value']
 
         p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
-                      
+
+        query = "REPLACE INTO players "\
+               +"SET allyCode = '"+str(p_allyCode)+"', "\
+               +"    guildName = '"+p_guildName+"', "\
+               +"    lastActivity = '"+p_lastActivity+"', "\
+               +"    level = "+str(p_level)+", "\
+               +"    name = '"+str(p_name)+"', "\
+               +"    arena_char_rank = "+str(p_arena_char_rank)+", "\
+               +"    arena_ship_rank = "+str(p_arena_ship_rank)+", "\
+               +"    char_gp = "+str(p_char_gp)+", "\
+               +"    ship_gp = "+str(p_ship_gp)+", "\
+               +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
+               +"    lastUpdated = CURRENT_TIMESTAMP "
+        ret = cursor.execute(query)
+        goutils.log("DBG", "update_player", query)
+        print(ret)
+
         # Update the roster
         roster_definition_txt="" #separator \
         # 1,MAGMATROOPER,gear,gp,level,,rarity,relicTier,eq1,eq2,eq3,eq4,eq5,eq6/<mod1>|<mod2>/capa1,lvl1|capa2,lvl2\capa3,lvl3\1,GREEFKARGA...

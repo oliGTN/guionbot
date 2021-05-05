@@ -159,7 +159,7 @@ CREATE TABLE `mods` (
   `sec4_stat` tinyint(4) DEFAULT NULL,
   `sec4_value` float DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=25089401 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=25103610 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -216,7 +216,7 @@ CREATE TABLE `roster` (
   `stat5_gear` bigint(20) DEFAULT 0,
   `stat5_mods_crew` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=301668 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=304536 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -233,7 +233,7 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16005892 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=16020090 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -250,7 +250,7 @@ CREATE TABLE `roster_stats` (
   `unscaledDecimalValue` bigint(20) DEFAULT NULL,
   `type` varchar(4) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=107649734 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=107756320 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1413,4 +1413,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-05-05 22:00:19
+-- Dump completed on 2021-05-05 22:18:13

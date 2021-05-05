@@ -121,6 +121,7 @@ def load_player(txt_allyCode, force_update):
             prev_dict_player = None
         goutils.log("INFO", "load_player", 'requesting API data for ' + txt_allyCode + '...')
         player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
+
         if isinstance(player_data, list):
             if len(player_data) > 0:
                 if len(player_data) > 1:
@@ -609,20 +610,19 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
 
     #Get player data
     goutils.log("INFO", "get_team_progress", "Get player data from DB...")
-    query = "SELECT players.name, \
-            guild_teams.name, \
-            guild_team_roster.unit_id, \
-            rarity, \
-            gear, \
-            relic_currentTier, \
-            gp, \
-            SUM(unscaledDecimalValue/1e8) as speed \
-            FROM players \
-            JOIN guild_teams \
-            JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
-            JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id \
-            JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.allyCode = players.allyCode \
-            JOIN roster_stats ON roster_stats.roster_id = roster.id AND roster_stats.unitStatId = 5\n"
+    query = "SELECT players.name, "\
+           +"guild_teams.name, "\
+           +"guild_team_roster.unit_id, "\
+           +"rarity, "\
+           +"gear, "\
+           +"relic_currentTier, "\
+           +"gp, "\
+           +"stat5_base+stat5_gear+stat5_mods_crew as speed "\
+           +"FROM players "\
+           +"JOIN guild_teams "\
+           +"JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id "\
+           +"JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id "\
+           +"JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.allyCode = players.allyCode "
     if not compute_guild:
         query += "WHERE roster.allyCode = '"+txt_allyCode+"'\n"
     else:
@@ -645,7 +645,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     
     # print(query)
     player_data = connect_mysql.get_table(query)
-    #print(player_data)
+    goutils.log("DBG", "get_team_progress", player_data)
     
     if not gv_mode:
         # Need the zetas to compute the progress of a regular team
@@ -678,7 +678,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             query += "AND guild_teams.name LIKE '%-GV'\n"
            
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
-        go.outils("DBG", "get_team_progress", query)
+        goutils.log("DBG", "get_team_progress", query)
         
         #print(query)
         player_zeta_data = connect_mysql.get_table(query)
@@ -1168,20 +1168,20 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             db_stat_data_char = connect_mysql.get_table(query)
             
             goutils.log("INFO", "print_character_stats", "Get player stats data from DB...")
-            query ="SELECT players.name, defId, \
-                    roster.combatType, rarity, gear, relic_currentTier, \
-                    ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
-                    FROM roster \
-                    JOIN roster_stats ON roster_stats.roster_id = roster.id \
-                    JOIN players ON players.allyCode = roster.allyCode \
-                    WHERE players.allyCode = '"+txt_allyCode+"' \
-                    AND roster.combatType=1 AND roster.level >= 50 \
-                    AND ("
-            for display_stat in list_stats_for_display:
-                query += "unitStatId = "+str(display_stat[0])+" OR "
-            query += "isnull(unitStatId)) \
-                    GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
-                    ORDER BY players.name, defId, unitStatId"
+            query = "SELECT players.name, defId, "\
+                   +"roster.combatType, rarity, gear, relic_currentTier, "\
+                   +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
+                   +"stat5_base+stat5_gear+stat5_mods_crew AS stat5, "\
+                   +"stat6_base+stat5_gear+stat6_mods_crew AS stat6, "\
+                   +"stat7_base+stat5_gear+stat7_mods_crew AS stat7, "\
+                   +"stat17_base+stat17_gear+stat17_mods_crew AS stat17, "\
+                   +"stat18_base+stat18_gear+stat18_mods_crew AS stat18, "\
+                   +"stat28_base+stat28_gear+stat28_mods_crew AS stat28 "\
+                   +"FROM roster "\
+                   +"JOIN players ON players.allyCode = roster.allyCode "\
+                   +"WHERE players.allyCode = '"+txt_allyCode+"' "\
+                   +"AND roster.combatType=1 AND roster.level >= 50 "\
+                   +"ORDER BY players.name, defId"
             goutils.log("DBG", "print_character_stats", query)
             
             db_stat_data = connect_mysql.get_table(query)
@@ -1211,23 +1211,23 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
 
             db_stat_data_char = []
             goutils.log("INFO", "print_character_stats", "Get player_data data from DB...")
-            query ="SELECT players.name, defId, \
-                    roster.combatType, rarity, gear, relic_currentTier, \
-                    ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
-                    FROM roster \
-                    LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
-                    JOIN players ON players.allyCode = roster.allyCode \
-                    WHERE players.allyCode = '"+txt_allyCode+"' \
-                    AND ("
+            query = "SELECT players.name, defId, "\
+                   +"roster.combatType, rarity, gear, relic_currentTier, "\
+                   +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
+                   +"stat5_base+stat5_gear+stat5_mods_crew AS stat5, "\
+                   +"stat6_base+stat5_gear+stat6_mods_crew AS stat6, "\
+                   +"stat7_base+stat5_gear+stat7_mods_crew AS stat7, "\
+                   +"stat17_base+stat17_gear+stat17_mods_crew AS stat17, "\
+                   +"stat18_base+stat18_gear+stat18_mods_crew AS stat18, "\
+                   +"stat28_base+stat28_gear+stat28_mods_crew AS stat28 "\
+                   +"FROM roster "\
+                   +"JOIN players ON players.allyCode = roster.allyCode "\
+                   +"WHERE players.allyCode = '"+txt_allyCode+"' "\
+                   +"AND ("
             for character_id in list_character_ids:
                 query += "defId = '"+character_id+"' OR "
-            query = query[:-3] + ") \
-                    AND ("
-            for display_stat in list_stats_for_display:
-                query += "unitStatId = "+str(display_stat[0])+" OR "
-            query += "isnull(unitStatId)) \
-                    GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
-                    ORDER BY players.name, defId, unitStatId"
+            query = query[:-3] + ") "\
+                   +"ORDER BY players.name, defId"
             goutils.log("DBG", "print_character_stats", query)
 
             db_stat_data = connect_mysql.get_table(query)
@@ -1282,20 +1282,20 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     
         db_stat_data_char = []
         print("Get guild_data from DB...")
-        query ="SELECT players.name, defId, \
-                roster.combatType, rarity, gear, relic_currentTier, \
-                ifnull(unitStatId,0), coalesce(sum(unscaledDecimalValue),0) \
-                FROM roster \
-                LEFT JOIN roster_stats ON roster_stats.roster_id = roster.id \
-                JOIN players ON players.allyCode = roster.allyCode \
-                WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') \
-                AND defId = '"+character_id+"' \
-                AND ("
-        for display_stat in list_stats_for_display:
-            query += "unitStatId = "+str(display_stat[0])+" OR "
-        query += "isnull(unitStatId)) \
-                GROUP BY players.name, defId, roster.combatType, rarity, gear, relic_currentTier, unitStatId \
-                ORDER BY players.name, defId, unitStatId"
+        query = "SELECT players.name, defId, "\
+               +"roster.combatType, rarity, gear, relic_currentTier, "\
+               +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
+               +"stat5_base+stat5_gear+stat5_mods_crew AS stat5, "\
+               +"stat6_base+stat5_gear+stat6_mods_crew AS stat6, "\
+               +"stat7_base+stat5_gear+stat7_mods_crew AS stat7, "\
+               +"stat17_base+stat17_gear+stat17_mods_crew AS stat17, "\
+               +"stat18_base+stat18_gear+stat18_mods_crew AS stat18, "\
+               +"stat28_base+stat28_gear+stat28_mods_crew AS stat28 "\
+               +"FROM roster "\
+               +"JOIN players ON players.allyCode = roster.allyCode "\
+               +"WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') "\
+               +"AND defId = '"+character_id+"' "\
+               +"ORDER BY players.name, defId"
 
         db_stat_data = connect_mysql.get_table(query)
         db_stat_data_mods = []
