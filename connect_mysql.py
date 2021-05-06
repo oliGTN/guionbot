@@ -62,7 +62,7 @@ def update_guild_teams(dict_team):
 #                      }
     try:
         mysql_db = db_connect()
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
 
         guild_teams_txt = ""
         # "JKR/Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important;1|GENERALKENOBI...\DR/Requis..."
@@ -144,7 +144,7 @@ def simple_query(query, txt_mode):
     tuples = []
     try:
         mysql_db = db_connect()
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
         
         results = cursor.execute(query, multi=True)
         for cur in results:
@@ -199,7 +199,7 @@ def simple_callproc(proc_name, args):
     tuples = []
     try:
         mysql_db = db_connect()
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
         #print("simple_callproc: "+proc_name+" "+str(args))
         ret=cursor.callproc(proc_name, args)
         #print(ret)
@@ -216,7 +216,7 @@ def get_value(query):
     tuples = []
     try:
         mysql_db = db_connect()
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
         
         results = cursor.execute(query, multi=True)
         for cur in results:
@@ -240,7 +240,7 @@ def get_column(query):
     try:
         mysql_db = db_connect()
         #print("DBG: mysql_db="+str(mysql_db))
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
         #print("DBG: cursor="+str(cursor))
         
         results = cursor.execute(query, multi=True)
@@ -264,7 +264,7 @@ def get_line(query):
     try:
         mysql_db = db_connect()
         #print("DBG: mysql_db="+str(mysql_db))
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
         #print("DBG: cursor="+str(cursor))
         
         results = cursor.execute(query, multi=True)
@@ -292,7 +292,7 @@ def get_table(query):
         mysql_db = db_connect()
         #print("DBG: get_table cursor")
         #print("DBG: mysql_db="+str(mysql_db))
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
         #print("DBG: cursor="+str(cursor))
 
         # print("DBG: get_table execute "+query)
@@ -316,7 +316,7 @@ def get_table(query):
 def update_guild(dict_guild):
     try:
         mysql_db = db_connect()
-        cursor = mysql_db.cursor()
+        cursor = mysql_db.cursor(buffered=True)
         
         # Manage guild names with a ' in it
         guild_name = dict_guild["name"].replace("'", "''")
@@ -398,9 +398,8 @@ def update_player(dict_player, dict_units):
                +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "
-        ret = cursor.execute(query)
         goutils.log("DBG", "update_player", query)
-        print(ret)
+        cursor.execute(query)
 
         # Update the roster
         roster_definition_txt="" #separator \
@@ -431,6 +430,7 @@ def update_player(dict_player, dict_units):
             mod_definition_txt="" #separator |
             # id,level,pips,sPrim,vPrim,sSec1,vSec1,sSec2,vSec2,sSec3,vSec3,sSec4,vSec4,set,slot,tier
             mod_count = 0
+            list_mod_queries = []
             for mod in character['mods']:
                 mod_id = mod['id']
                 mod_level = mod['level']
@@ -438,30 +438,30 @@ def update_player(dict_player, dict_units):
                 mod_primaryStat_unitStat = mod['primaryStat']['unitStat']
                 mod_primaryStat_value = mod['primaryStat']['value']
                 
-                mod_secondaryStat_unitstats=[]
+                mod_secondaryStat_unitStats=[]
                 mod_secondaryStat_values=[]
-                mod_secondaryStat1_unitstat=0
+                mod_secondaryStat1_unitStat=0
                 mod_secondaryStat1_value=0
-                mod_secondaryStat2_unitstat=0
+                mod_secondaryStat2_unitStat=0
                 mod_secondaryStat2_value=0
-                mod_secondaryStat3_unitstat=0
+                mod_secondaryStat3_unitStat=0
                 mod_secondaryStat3_value=0
-                mod_secondaryStat4_unitstat=0
+                mod_secondaryStat4_unitStat=0
                 mod_secondaryStat4_value=0
                 for sec_stat in mod['secondaryStat']:
-                    mod_secondaryStat_unitstats.append(sec_stat['unitStat'])
+                    mod_secondaryStat_unitStats.append(sec_stat['unitStat'])
                     mod_secondaryStat_values.append(sec_stat['value'])
-                if len(mod_secondaryStat_unitstats)>0:
-                    mod_secondaryStat1_unitstat = mod_secondaryStat_unitstats[0]
+                if len(mod_secondaryStat_unitStats)>0:
+                    mod_secondaryStat1_unitStat = mod_secondaryStat_unitStats[0]
                     mod_secondaryStat1_value = mod_secondaryStat_values[0]
-                if len(mod_secondaryStat_unitstats)>1:
-                    mod_secondaryStat2_unitstat = mod_secondaryStat_unitstats[1]
+                if len(mod_secondaryStat_unitStats)>1:
+                    mod_secondaryStat2_unitStat = mod_secondaryStat_unitStats[1]
                     mod_secondaryStat2_value = mod_secondaryStat_values[1]
-                if len(mod_secondaryStat_unitstats)>2:
-                    mod_secondaryStat3_unitstat = mod_secondaryStat_unitstats[2]
+                if len(mod_secondaryStat_unitStats)>2:
+                    mod_secondaryStat3_unitStat = mod_secondaryStat_unitStats[2]
                     mod_secondaryStat3_value = mod_secondaryStat_values[2]
-                if len(mod_secondaryStat_unitstats)>3:
-                    mod_secondaryStat4_unitstat = mod_secondaryStat_unitstats[3]
+                if len(mod_secondaryStat_unitStats)>3:
+                    mod_secondaryStat4_unitStat = mod_secondaryStat_unitStats[3]
                     mod_secondaryStat4_value = mod_secondaryStat_values[3]
                     
                 mod_set = mod['set']
@@ -472,14 +472,33 @@ def update_player(dict_player, dict_units):
                                     str(mod_level)+","+ \
                                     str(mod_pips)+","+ \
                                     str(mod_primaryStat_unitStat)+","+str(mod_primaryStat_value)+","+ \
-                                    str(mod_secondaryStat1_unitstat)+","+str(mod_secondaryStat1_value)+","+ \
-                                    str(mod_secondaryStat2_unitstat)+","+str(mod_secondaryStat2_value)+","+ \
-                                    str(mod_secondaryStat3_unitstat)+","+str(mod_secondaryStat3_value)+","+ \
-                                    str(mod_secondaryStat4_unitstat)+","+str(mod_secondaryStat4_value)+","+ \
+                                    str(mod_secondaryStat1_unitStat)+","+str(mod_secondaryStat1_value)+","+ \
+                                    str(mod_secondaryStat2_unitStat)+","+str(mod_secondaryStat2_value)+","+ \
+                                    str(mod_secondaryStat3_unitStat)+","+str(mod_secondaryStat3_value)+","+ \
+                                    str(mod_secondaryStat4_unitStat)+","+str(mod_secondaryStat4_value)+","+ \
                                     str(mod_set)+","+ \
                                     str(mod_slot)+","+ \
                                     str(mod_tier)+"|"
                 mod_count+=1
+                query = "REPLACE INTO mods "\
+                       +"SET id = '"+mod_id+"', "\
+                       +"level = "+str(mod_level)+", "\
+                       +"pips = "+str(mod_pips)+", "\
+                       +"mod_set = "+str(mod_set)+", "\
+                       +"slot = "+str(mod_slot)+", "\
+                       +"tier = "+str(mod_tier)+", "\
+                       +"prim_stat = "+str(mod_primaryStat_unitStat)+", "\
+                       +"prim_value = "+str(mod_primaryStat_value)+", "\
+                       +"sec1_stat = "+str(mod_secondaryStat1_unitStat)+", "\
+                       +"sec1_value = "+str(mod_secondaryStat2_value)+", "\
+                       +"sec2_stat = "+str(mod_secondaryStat2_unitStat)+", "\
+                       +"sec2_value = "+str(mod_secondaryStat3_value)+", "\
+                       +"sec3_stat = "+str(mod_secondaryStat3_unitStat)+", "\
+                       +"sec3_value = "+str(mod_secondaryStat3_value)+", "\
+                       +"sec4_stat = "+str(mod_secondaryStat4_unitStat)+", "\
+                       +"sec4_value = "+str(mod_secondaryStat4_value)+", "
+
+                list_mod_queries.append(query)
                 
             # remove last "|"
             if mod_count>0:
@@ -555,6 +574,75 @@ def update_player(dict_player, dict_units):
                                    capa_definition_txt+"/" + \
                                    stat_definition_txt+"\\"
 
+            #launch query to update roster element
+            query = "INSERT IGNORE INTO roster(allyCode, defId) "\
+                   +"VALUES("+str(p_allyCode)+", '"+c_defId+"')"
+            goutils.log("DBG", "update_player", query)
+            cursor.execute(query)
+
+            query = "UPDATE roster "\
+                   +"SET allyCode = "+str(p_allyCode)+", "\
+                   +"    defId = '"+c_defId+"', "\
+                   +"    combatType = "+str(c_combatType)+", "\
+                   +"    forceAlignment = "+str(c_forceAlignment)+", "\
+                   +"    gear = "+str(c_gear)+", "\
+                   +"    gp = "+str(c_gp)+", "\
+                   +"    level = "+str(c_level)+", "\
+                   +"    nameKey = '"+c_nameKey+"', "\
+                   +"    rarity = "+str(c_rarity)+", "\
+                   +"    relic_currentTier = "+str(c_relic_currentTier)+", "\
+                   +"    zeta_count = "+str(c_zeta_count)
+
+            for i_eqpt in range(6):
+                if c_equipped[i_eqpt] != '':
+                   query += ",eqpt"+str(i_eqpt+1)+" = '"+c_equipped[i_eqpt]+"'"
+
+            if "stats" in character:
+                for stat_id in ['1', '5', '6', '7', '17', '18', '28']:
+                    for stat_type in ["base", "gear", "mods", "crew"]:
+                        stat_value = 0
+                        if stat_type in character["stats"]:
+                            if stat_id in character["stats"][stat_type]:
+                                stat_value = character["stats"][stat_type][stat_id]
+                        
+                        query += ",stat"+stat_id+"_"+stat_type+" = "+str(stat_value)+" "
+
+            query +="WHERE allyCode = "+str(p_allyCode)+" "\
+                   +"AND   defId = '"+c_defId+"'"
+
+            goutils.log("DBG", "update_player", query)
+            cursor.execute(query)
+            mysql_db.commit()
+
+            #Get DB index rroster_id for next queries
+            query = "SELECT id FROM roster WHERE allyCode = "+str(p_allyCode)+" AND defId = '"+c_defId+"'"
+            goutils.log("DBG", "update_player", query)
+            roster_id = get_value(query)
+            goutils.log("DBG", "update_player", "roster_id="+str(roster_id))
+
+            #Get existing mod IDs from DB
+            query = "SELECT id FROM mods WHERE roster_id = "+str(roster_id)
+            goutils.log("DBG", "update_player", query)
+            previous_mods_ids = get_column(query)
+            print(previous_mods_ids)
+
+            #launch query to update mods
+            current_mods_ids = []
+            for query in list_mod_queries:
+                query += "roster_id = "+str(roster_id)
+                goutils.log("DBG", "update_player", query)
+                cursor.execute(query)
+                current_mod_id = query.split("'")[1]
+                current_mods_ids.append(current_mod_id)
+
+            print(current_mods_ids)
+            to_be_removed_mods_ids = tuple(set(previous_mods_ids)-set(current_mods_ids))
+            print(to_be_removed_mods_ids)
+            if len(to_be_removed_mods_ids) > 0:
+                query = "DELETE FROM mods WHERE id IN "+ str(tuple(to_be_removed_mods_ids)).replace(",)", ")")
+                goutils.log("DBG", "update_player", query)
+                cursor.execute(query)
+
         # remove last "\"
         roster_definition_txt = roster_definition_txt[:-1]
 
@@ -570,8 +658,8 @@ def update_player(dict_player, dict_units):
                             p_ship_gp,
                             p_poUTCOffsetMinutes,
                             roster_definition_txt)
-        goutils.log("DBG", "update_player", "CALL update_player"+str(query_parameters))
-        ret = cursor.callproc('update_player', query_parameters)
+        #goutils.log("DBG", "update_player", "CALL update_player"+str(query_parameters))
+        #ret = cursor.callproc('update_player', query_parameters)
         mysql_db.commit()
     except Error as error:
         print(error)
