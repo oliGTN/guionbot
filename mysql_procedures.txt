@@ -140,9 +140,8 @@ DROP TABLE IF EXISTS `mods`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mods` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` varchar(45) NOT NULL,
   `roster_id` int(11) DEFAULT NULL,
-  `game_id` varchar(45) DEFAULT NULL,
   `level` int(11) DEFAULT NULL,
   `pips` int(11) DEFAULT NULL,
   `mod_set` int(11) DEFAULT NULL,
@@ -158,8 +157,9 @@ CREATE TABLE `mods` (
   `sec3_value` float DEFAULT NULL,
   `sec4_stat` tinyint(4) DEFAULT NULL,
   `sec4_value` float DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=25103610 DEFAULT CHARSET=latin1;
+  PRIMARY KEY (`id`),
+  KEY `mod_roster_id` (`roster_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -212,11 +212,29 @@ CREATE TABLE `roster` (
   `eqpt4` varchar(45) DEFAULT NULL,
   `eqpt5` varchar(45) DEFAULT NULL,
   `eqpt6` varchar(45) DEFAULT NULL,
+  `stat1_base` bigint(20) DEFAULT 0,
+  `stat1_gear` bigint(20) DEFAULT 0,
+  `stat1_mods_crew` bigint(20) DEFAULT 0,
   `stat5_base` bigint(20) DEFAULT 0,
   `stat5_gear` bigint(20) DEFAULT 0,
   `stat5_mods_crew` bigint(20) DEFAULT 0,
+  `stat6_base` bigint(20) DEFAULT 0,
+  `stat6_gear` bigint(20) DEFAULT 0,
+  `stat6_mods_crew` bigint(20) DEFAULT 0,
+  `stat7_base` bigint(20) DEFAULT 0,
+  `stat7_gear` bigint(20) DEFAULT 0,
+  `stat7_mods_crew` bigint(20) DEFAULT 0,
+  `stat17_base` bigint(20) DEFAULT 0,
+  `stat17_gear` bigint(20) DEFAULT 0,
+  `stat17_mods_crew` bigint(20) DEFAULT 0,
+  `stat18_base` bigint(20) DEFAULT 0,
+  `stat18_gear` bigint(20) DEFAULT 0,
+  `stat18_mods_crew` bigint(20) DEFAULT 0,
+  `stat28_base` bigint(20) DEFAULT 0,
+  `stat28_gear` bigint(20) DEFAULT 0,
+  `stat28_mods_crew` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=304536 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=320684 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -232,25 +250,9 @@ CREATE TABLE `roster_skills` (
   `name` varchar(45) DEFAULT NULL,
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16020090 DEFAULT CHARSET=latin1;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `roster_stats`
---
-
-DROP TABLE IF EXISTS `roster_stats`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `roster_stats` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `roster_id` int(11) DEFAULT NULL,
-  `unitStatId` tinyint(4) DEFAULT NULL,
-  `unscaledDecimalValue` bigint(20) DEFAULT NULL,
-  `type` varchar(4) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=107756320 DEFAULT CHARSET=latin1;
+  PRIMARY KEY (`id`),
+  KEY `skills_roster_id` (`roster_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=16159060 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -768,7 +770,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `update_mods`(
     IN mod_definition_txt MEDIUMTEXT
     )
 BEGIN
-	#INSERT INTO debug(txt) VALUES('START update_mods');
+	#INSERT INTO debug(txt) VALUES(CONCAT('START update_mods p_roster_id=', p_roster_id));
 	#INSERT INTO debug(txt) VALUES(CONCAT('p_roster_id=', p_roster_id));
 	#INSERT INTO debug(txt) VALUES(CONCAT('mod_definition_txt=', mod_definition_txt));
     
@@ -800,9 +802,9 @@ BEGIN
 
 		#INSERT INTO debug(txt) VALUES(CONCAT('@mod_game_id=', @mod_game_id));
 		
-		INSERT INTO mods(game_id) VALUES(@mod_game_id);
-        SET @mod_id = LAST_INSERT_ID();
-		UPDATE mods SET
+		REPLACE INTO mods
+        SET id = @mod_game_id,
+			roster_id = p_roster_id,
 			level = @mod_level,
             pips = @mod_pips,
             mod_set = @mod_set,
@@ -817,8 +819,7 @@ BEGIN
             sec3_stat = @mod_secondaryStat3_unitStat,
             sec3_value = @mod_secondaryStat3_value,
             sec4_stat = @mod_secondaryStat4_unitStat,
-            sec4_value = @mod_secondaryStat4_value
-            WHERE id = @mod_id;
+            sec4_value = @mod_secondaryStat4_value;
             
 		#IF NOT (@mod_primaryStat_unitStat = 0) THEN
 		#	INSERT INTO mod_stats(mod_id,isPrimary,unitStat,value) VALUES(@mod_id,TRUE,@mod_primaryStat_unitStat,@mod_primaryStat_value);
@@ -937,10 +938,6 @@ BEGIN
 		SELECT roster.id FROM roster
 		WHERE roster.allyCode = p_allyCode);
 	INSERT INTO debug(txt) VALUES('update_roster after DELETE roster_skills');
-	DELETE FROM roster_stats WHERE roster_id IN (
-		SELECT roster.id FROM roster
-		WHERE roster.allyCode = p_allyCode);
-	INSERT INTO debug(txt) VALUES('update_roster after DELETE roster_stats');
 
 	iterator:
 	LOOP
@@ -1036,7 +1033,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_element`(
     IN stat_definition_txt MEDIUMTEXT
     )
 BEGIN
-	INSERT INTO debug(txt) VALUES(CONCAT('update_roster_element: p_allyCode=', p_allyCode, ', p_defId=', p_defId));
+	#INSERT INTO debug(txt) VALUES(CONCAT('update_roster_element: p_allyCode=', p_allyCode, ', p_defId=', p_defId));
     
 	IF NOT EXISTS (SELECT * FROM roster WHERE allyCode = p_allyCode AND defId = p_defId) THEN
 		INSERT INTO roster(allyCode,defId) VALUES(p_allyCode,p_defId);
@@ -1151,19 +1148,35 @@ BEGIN
 		SET @stat_unitStatId = SUBSTRING_INDEX(@next_stat,',',1);
 		SET @stat_unscaledDecimalValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',2),',',-1);
 		SET @stat_type = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',3),',',-1);
-
-		INSERT INTO roster_stats (roster_id) VALUES (p_roster_id);
-        SET @stat_id = LAST_INSERT_ID();
-		UPDATE roster_stats SET
-			unitStatId = @stat_unitStatId,
-            unscaledDecimalValue = @stat_unscaledDecimalValue,
-            type = @stat_type
-            WHERE id = @stat_id;
             
 		UPDATE roster SET
+			stat1_base = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat1_base END,
+			stat1_gear = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat1_gear END,
+			stat1_mods_crew = CASE WHEN (@stat_unitStatId=1 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat1_mods_crew END,
+            
 			stat5_base = CASE WHEN (@stat_unitStatId=5 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat5_base END,
 			stat5_gear = CASE WHEN (@stat_unitStatId=5 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat5_gear END,
-			stat5_mods_crew = CASE WHEN (@stat_unitStatId=5 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat5_mods_crew END
+			stat5_mods_crew = CASE WHEN (@stat_unitStatId=5 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat5_mods_crew END,
+            
+			stat6_base = CASE WHEN (@stat_unitStatId=6 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat6_base END,
+			stat6_gear = CASE WHEN (@stat_unitStatId=6 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat6_gear END,
+			stat6_mods_crew = CASE WHEN (@stat_unitStatId=6 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat6_mods_crew END,
+            
+			stat7_base = CASE WHEN (@stat_unitStatId=7 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat7_base END,
+			stat7_gear = CASE WHEN (@stat_unitStatId=7 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat7_gear END,
+			stat7_mods_crew = CASE WHEN (@stat_unitStatId=7 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat7_mods_crew END,
+
+			stat17_base = CASE WHEN (@stat_unitStatId=17 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat17_base END,
+			stat17_gear = CASE WHEN (@stat_unitStatId=17 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat17_gear END,
+			stat17_mods_crew = CASE WHEN (@stat_unitStatId=17 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat17_mods_crew END,
+
+			stat18_base = CASE WHEN (@stat_unitStatId=18 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat18_base END,
+			stat18_gear = CASE WHEN (@stat_unitStatId=18 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat18_gear END,
+			stat18_mods_crew = CASE WHEN (@stat_unitStatId=18 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat18_mods_crew END,
+
+			stat28_base = CASE WHEN (@stat_unitStatId=28 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat28_base END,
+			stat28_gear = CASE WHEN (@stat_unitStatId=28 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat28_gear END,
+			stat28_mods_crew = CASE WHEN (@stat_unitStatId=28 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat28_mods_crew END
 			WHERE id = p_roster_id;
             
 		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
@@ -1413,4 +1426,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-05-05 22:18:13
+-- Dump completed on 2021-05-06  1:55:30
