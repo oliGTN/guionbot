@@ -36,15 +36,14 @@ DROP TABLE IF EXISTS `gp_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `gp_history` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `date` date DEFAULT NULL,
   `allyCode` int(11) DEFAULT NULL,
   `char_gp` int(11) DEFAULT NULL,
   `ship_gp` int(11) DEFAULT NULL,
-  `arena_char_rank` int(11) DEFAULT NULL,
-  `arena_ship_rank` int(11) DEFAULT NULL,
-  `date` timestamp NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4320 DEFAULT CHARSET=latin1;
+  `arena_char_rank` int(11) DEFAULT 999999,
+  `arena_ship_rank` int(11) DEFAULT 999999,
+  UNIQUE KEY `gp_history_key` (`date`,`allyCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -249,7 +248,22 @@ CREATE TABLE `roster` (
   `stat28_mods_crew` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=365373 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=892961 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `roster_evolutions`
+--
+
+DROP TABLE IF EXISTS `roster_evolutions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `roster_evolutions` (
+  `timestamp` timestamp NULL DEFAULT current_timestamp(),
+  `allyCode` int(11) DEFAULT NULL,
+  `defId` varchar(255) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -266,8 +280,9 @@ CREATE TABLE `roster_skills` (
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16841590 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=18647838 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -286,20 +301,17 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `clean_lost_links`()
 BEGIN
         
-	SELECT * FROM roster WHERE allyCode NOT IN (SELECT allyCode FROM players);
+	#SELECT * FROM roster WHERE allyCode NOT IN (SELECT allyCode FROM players);
 	DELETE FROM roster WHERE allyCode NOT IN (SELECT allyCode FROM players);
 	OPTIMIZE TABLE roster;
 
-	SELECT * FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
+	#SELECT * FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	OPTIMIZE TABLE mods;
 
-	SELECT * FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
+	#SELECT * FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
 	DELETE FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
-	SELECT * FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
-	DELETE FROM roster_stats WHERE roster_id NOT IN (SELECT id FROM roster);
 	OPTIMIZE TABLE roster_skills;
-	OPTIMIZE TABLE roster_stats;
 
 END ;;
 DELIMITER ;
@@ -770,652 +782,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_mods` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_mods`(
-	IN p_roster_id INT,
-    IN mod_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	#INSERT INTO debug(txt) VALUES(CONCAT('START update_mods p_roster_id=', p_roster_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('mod_definition_txt=', mod_definition_txt));
-    
-	DELETE FROM mods WHERE roster_id = p_roster_id;
-        
-	iterator:
-	LOOP
-		IF CHAR_LENGTH(TRIM(mod_definition_txt)) = 0 OR mod_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		SET @next_mod = SUBSTRING_INDEX(mod_definition_txt,'|',1);
-		SET @next_mod_len = CHAR_LENGTH(@next_mod);
-
-		SET @mod_game_id = SUBSTRING_INDEX(@next_mod,',',1);
-		SET @mod_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',2),',',-1);
-		SET @mod_pips = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',3),',',-1);
-		SET @mod_primaryStat_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',4),',',-1);
-		SET @mod_primaryStat_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',5),',',-1);
-		SET @mod_secondaryStat1_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',6),',',-1);
-		SET @mod_secondaryStat1_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',7),',',-1);
-		SET @mod_secondaryStat2_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',8),',',-1);
-		SET @mod_secondaryStat2_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',9),',',-1);
-		SET @mod_secondaryStat3_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',10),',',-1);
-		SET @mod_secondaryStat3_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',11),',',-1);
-		SET @mod_secondaryStat4_unitStat = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',12),',',-1);
-		SET @mod_secondaryStat4_value = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',13),',',-1);
-		SET @mod_set = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',14),',',-1);
-		SET @mod_slot = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',15),',',-1);
-		SET @mod_tier = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_mod,',',16),',',-1);
-		
-		REPLACE INTO mods
-        SET id = @mod_game_id,
-			roster_id = p_roster_id,
-			level = @mod_level,
-            pips = @mod_pips,
-            mod_set = @mod_set,
-            slot = @mod_slot,
-            tier = @mod_tier,
-            prim_stat = @mod_primaryStat_unitStat,
-            prim_value = @mod_primaryStat_value,
-            sec1_stat = @mod_secondaryStat1_unitStat,
-            sec1_value = @mod_secondaryStat2_value,
-            sec2_stat = @mod_secondaryStat2_unitStat,
-            sec2_value = @mod_secondaryStat3_value,
-            sec3_stat = @mod_secondaryStat3_unitStat,
-            sec3_value = @mod_secondaryStat3_value,
-            sec4_stat = @mod_secondaryStat4_unitStat,
-            sec4_value = @mod_secondaryStat4_value;
-
-		SET mod_definition_txt = INSERT(mod_definition_txt,1,@next_mod_len + 1,'');
-	END LOOP;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_player` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_player`(
-	IN p_allyCode INT,
-    IN p_guildName VARCHAR(255) CHARSET utf8,
-    IN p_lastActivity DATETIME,
-    IN p_level int,
-    IN p_name VARCHAR(255) CHARSET utf8,
-    IN p_arena_char_rank INT,
-    IN p_arena_ship_rank INT,
-    IN p_char_gp INT,
-    IN p_ship_gp INT,
-    IN p_poUTCOffsetMinutes INT,
-    IN roster_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	SET CHARACTER SET utf8;
-	SET character_set_results=utf8;
-	SET character_set_client=utf8;
-	SET character_set_connection=utf8;
-    
-	INSERT INTO debug(txt) VALUES(CONCAT('START update_player: p_allyCode=', p_allyCode));
-
-	REPLACE INTO players
-    SET allyCode = p_allyCode,
-		guildName = p_guildName,
-		lastActivity = p_lastActivity,
-		level = p_level,
-		name = p_name,
-		arena_char_rank = p_arena_char_rank,
-		arena_ship_rank = p_arena_ship_rank,
-		char_gp = p_char_gp,
-		ship_gp = p_ship_gp,
-		poUTCOffsetMinutes = p_poUTCOffsetMinutes,
-		lastUpdated = CURRENT_TIMESTAMP;
-	
-	SET @player_md5 = (SELECT md5 FROM players WHERE players.allyCode = p_allyCode);
-	SET @new_md5 = MD5(roster_definition_txt);
-	
-	IF NOT @player_md5 = @new_md5 THEN
-		CALL update_roster(p_allyCode, roster_definition_txt);
-		UPDATE players SET
-			md5 = MD5(roster_definition_txt)
-		WHERE players.allyCode = p_allyCode;
-	END IF;
-	
-    IF p_guildName = 'Kangoo Legends' THEN
-		SET @delta_TS_last_history = (SELECT TIMESTAMPDIFF(SECOND,MAX(date),CURRENT_TIMESTAMP) FROM gp_history WHERE allyCode = p_allyCode);
-		IF (ISNULL(@delta_TS_last_history) OR (@delta_TS_last_history > 24*3600)) THEN
-			
-			INSERT INTO gp_history(allyCode, char_gp, ship_gp, arena_char_rank, arena_ship_rank)
-				VALUES(p_allyCode, p_char_gp, p_ship_gp, p_arena_char_rank, p_arena_ship_rank);
-		END IF;
-	END IF;
-	INSERT INTO debug(txt) VALUES(CONCAT('END update_player: p_allyCode=', p_allyCode));
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_roster` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster`(
-	IN p_allyCode INT,
-    IN roster_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	#INSERT INTO debug(txt) VALUES('update_roster before DELETE');
-	#DELETE FROM mods WHERE roster_id IN (
-	#	SELECT roster.id FROM roster
-	#	WHERE roster.allyCode = p_allyCode);
-	#DELETE FROM roster_skills WHERE roster_id IN (
-	#	SELECT roster.id FROM roster
-	#	WHERE roster.allyCode = p_allyCode);
-	#INSERT INTO debug(txt) VALUES('update_roster after DELETE roster_skills');
-
-	iterator:
-	LOOP
-		IF CHAR_LENGTH(TRIM(roster_definition_txt)) = 0 OR roster_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		SET @next_roster = SUBSTRING_INDEX(roster_definition_txt,'\\',1);
-		SET @next_roster_len = CHAR_LENGTH(@next_roster);
-
-		SET @base_definition_txt = SUBSTRING_INDEX(@next_roster,'/',1);
-		SET @p_combatType = SUBSTRING_INDEX(@base_definition_txt,',',1);
-		SET @p_defId = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',2),',',-1);
-		SET @p_forceAlignment = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',3),',',-1);
-		SET @p_gear = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',4),',',-1);
-		SET @p_gp = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',5),',',-1);
-		SET @p_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',6),',',-1);
-		SET @p_nameKey = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',7),',',-1);
-		SET @p_rarity = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',8),',',-1);
-		SET @p_relic_currentTier = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',9),',',-1);
-		SET @p_zeta_count = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',10),',',-1);
-		SET @p_equipped1 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',11),',',-1);
-		SET @p_equipped2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',12),',',-1);
-		SET @p_equipped3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',13),',',-1);
-		SET @p_equipped4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',14),',',-1);
-		SET @p_equipped5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',15),',',-1);
-		SET @p_equipped6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@base_definition_txt,',',16),',',-1);
-        
-		SET @mod_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',2),'/',-1);
-		SET @capa_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',3),'/',-1);
-		SET @stat_definition_txt = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_roster,'/',4),'/',-1);
-
-		CALL update_roster_element(
-			p_allyCode,
-			@p_combatType,
-			@p_defId,
-			@p_forceAlignment,
-			@p_gear,
-			@p_gp,
-			@p_level,
-			@p_nameKey,
-			@p_rarity,
-			@p_relic_currentTier,
-			@p_zeta_count,
-			@p_equipped1,
-			@p_equipped2,
-			@p_equipped3,
-			@p_equipped4,
-			@p_equipped5,
-			@p_equipped6,
-			@mod_definition_txt,
-			@capa_definition_txt,
-			@stat_definition_txt);
-
-		SET roster_definition_txt = INSERT(roster_definition_txt,1,@next_roster_len + 1,'');
-	END LOOP;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_roster_element` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_element`(
-	IN p_allyCode INT,
-	IN p_combatType INT,
-    IN p_defId VARCHAR(255),
-	IN p_forceAlignment INT,
-    IN p_gear INT,
-    IN p_gp INT,
-    IN p_level INT,
-    IN p_nameKey VARCHAR(255),
-    IN p_rarity INT,
-    IN p_relic_currentTier INT,
-    IN p_zeta_count INT,
-    IN p_equipped1 VARCHAR(255),
-    IN p_equipped2 VARCHAR(255),
-    IN p_equipped3 VARCHAR(255),
-    IN p_equipped4 VARCHAR(255),
-    IN p_equipped5 VARCHAR(255),
-    IN p_equipped6 VARCHAR(255),
-    IN mod_definition_txt MEDIUMTEXT,
-    IN capa_definition_txt MEDIUMTEXT,
-    IN stat_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	#INSERT INTO debug(txt) VALUES(CONCAT('update_roster_element: p_allyCode=', p_allyCode, ', p_defId=', p_defId));
-    
-    REPLACE INTO roster
-	SET	allyCode = p_allyCode,
-		defId = p_defId,
-		combatType = p_combatType,
-        forceAlignment = p_forceAlignment,
-        gear = p_gear,
-        gp = p_gp,
-        level = p_level,
-        nameKey = p_nameKey,
-        rarity = p_rarity,
-        relic_currentTier = p_relic_currentTier,
-        zeta_count = p_zeta_count,
-        eqpt1 = CASE WHEN p_equipped1='' THEN NULL ELSE p_equipped1 END,
-        eqpt2 = CASE WHEN p_equipped2='' THEN NULL ELSE p_equipped2 END,
-        eqpt3 = CASE WHEN p_equipped3='' THEN NULL ELSE p_equipped3 END,
-        eqpt4 = CASE WHEN p_equipped4='' THEN NULL ELSE p_equipped4 END,
-        eqpt5 = CASE WHEN p_equipped5='' THEN NULL ELSE p_equipped5 END,
-        eqpt6 = CASE WHEN p_equipped6='' THEN NULL ELSE p_equipped6 END;
-
-	SET @roster_id = (SELECT id FROM roster WHERE allyCode = p_allyCode AND defId = p_defId);
-
-    CALL update_mods(@roster_id, mod_definition_txt);
-    CALL update_roster_skills(@roster_id, capa_definition_txt);
-
-	IF NOT (stat_definition_txt = '') THEN
-		CALL update_roster_stats(@roster_id, stat_definition_txt);
-	END IF;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_roster_skills` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_skills`(
-	IN p_roster_id INT,
-    IN capa_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	#INSERT INTO debug(txt) VALUES(CONCAT('START update_roster_skills p_roster_id=', p_roster_id));
-	#INSERT INTO debug(txt) VALUES(CONCAT('capa_definition_txt=', capa_definition_txt));
-
-	DELETE FROM roster_skills WHERE roster_id = p_roster_id;
-	
-	iterator:
-	LOOP
-		IF CHAR_LENGTH(TRIM(capa_definition_txt)) = 0 OR capa_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		SET @next_skill = SUBSTRING_INDEX(capa_definition_txt,'|',1);
-		SET @next_skill_len = CHAR_LENGTH(@next_skill);
-
-		
-		SET @skill_name = SUBSTRING_INDEX(@next_skill,',',1);
-		SET @skill_level = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_skill,',',2),',',-1);
-		SET @skill_isZeta = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_skill,',',3),',',-1);
-
-		INSERT INTO roster_skills (roster_id) VALUES (p_roster_id);
-        SET @skill_id = LAST_INSERT_ID();
-		UPDATE roster_skills SET
-			name = @skill_name,
-            level = @skill_level,
-            isZeta = @skill_isZeta
-            WHERE id = @skill_id;
-
-		SET capa_definition_txt = INSERT(capa_definition_txt,1,@next_skill_len + 1,'');
-	END LOOP;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_roster_stats` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_roster_stats`(
-	IN p_roster_id INT,
-    IN stat_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	#DELETE FROM roster_stats WHERE roster_id = p_roster_id;
-
-	iterator:
-	LOOP
-		IF CHAR_LENGTH(TRIM(stat_definition_txt)) = 0 OR stat_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		SET @next_stat = SUBSTRING_INDEX(stat_definition_txt,'|',1);
-		SET @next_stat_len = CHAR_LENGTH(@next_stat);
-
-		SET @stat_unitStatId = SUBSTRING_INDEX(@next_stat,',',1);
-		SET @stat_unscaledDecimalValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',2),',',-1);
-		SET @stat_type = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',3),',',-1);
-            
-		UPDATE roster SET
-			stat1_base = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat1_base END,
-			stat1_gear = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat1_gear END,
-			stat1_mods = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'mods') THEN @stat_unscaledDecimalValue ELSE stat1_mods END,
-			stat1_crew = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'crew') THEN @stat_unscaledDecimalValue ELSE stat1_crew END,
-			stat1_mods_crew = CASE WHEN (@stat_unitStatId=1 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat1_mods_crew END,
-            
-			stat5_base = CASE WHEN (@stat_unitStatId=5 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat5_base END,
-			stat5_gear = CASE WHEN (@stat_unitStatId=5 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat5_gear END,
-			stat5_mods = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'mods') THEN @stat_unscaledDecimalValue ELSE stat5_mods END,
-			stat5_crew = CASE WHEN (@stat_unitStatId=1 AND @stat_type = 'crew') THEN @stat_unscaledDecimalValue ELSE stat5_crew END,
-			stat5_mods_crew = CASE WHEN (@stat_unitStatId=5 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat5_mods_crew END,
-            
-			stat6_base = CASE WHEN (@stat_unitStatId=6 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat6_base END,
-			stat6_gear = CASE WHEN (@stat_unitStatId=6 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat6_gear END,
-			stat6_mods_crew = CASE WHEN (@stat_unitStatId=6 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat6_mods_crew END,
-            
-			stat7_base = CASE WHEN (@stat_unitStatId=7 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat7_base END,
-			stat7_gear = CASE WHEN (@stat_unitStatId=7 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat7_gear END,
-			stat7_mods_crew = CASE WHEN (@stat_unitStatId=7 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat7_mods_crew END,
-
-			stat17_base = CASE WHEN (@stat_unitStatId=17 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat17_base END,
-			stat17_gear = CASE WHEN (@stat_unitStatId=17 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat17_gear END,
-			stat17_mods_crew = CASE WHEN (@stat_unitStatId=17 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat17_mods_crew END,
-
-			stat18_base = CASE WHEN (@stat_unitStatId=18 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat18_base END,
-			stat18_gear = CASE WHEN (@stat_unitStatId=18 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat18_gear END,
-			stat18_mods_crew = CASE WHEN (@stat_unitStatId=18 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat18_mods_crew END,
-
-			stat28_base = CASE WHEN (@stat_unitStatId=28 AND @stat_type = 'base') THEN @stat_unscaledDecimalValue ELSE stat28_base END,
-			stat28_gear = CASE WHEN (@stat_unitStatId=28 AND @stat_type = 'gear') THEN @stat_unscaledDecimalValue ELSE stat28_gear END,
-			stat28_mods_crew = CASE WHEN (@stat_unitStatId=28 AND (@stat_type = 'mods' OR @stat_type = 'crew')) THEN @stat_unscaledDecimalValue ELSE stat28_mods_crew END
-			WHERE id = p_roster_id;
-            
-		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
-	END LOOP;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_tiers` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_tiers`(
-	IN p_unit_id INT,
-    IN tier_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	
-	
-	
-    
-	iterator:
-	LOOP
-		
-		
-		IF CHAR_LENGTH(TRIM(tier_definition_txt)) = 0 OR tier_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		
-		SET @next_tiers = SUBSTRING_INDEX(tier_definition_txt,'/',1);
-		
-
-		
-		
-		
-		SET @next_tiers_len = CHAR_LENGTH(@next_tiers);
-
-		
-		SET @p_equipmentSet1 = SUBSTRING_INDEX(@next_tiers,',',1);
-		SET @p_equipmentSet2 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',2),',',-1);
-		SET @p_equipmentSet3 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',3),',',-1);
-		SET @p_equipmentSet4 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',4),',',-1);
-		SET @p_equipmentSet5 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',5),',',-1);
-		SET @p_equipmentSet6 = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',6),',',-1);
-		SET @p_tier = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_tiers,',',7),',',-1);
-
-		SET @before_stat_definition = SUBSTRING_INDEX(@next_tiers,',',7);
-		SET @pos_stat_definition = CHAR_LENGTH(@before_stat_definition);
-		SET @stat_definition_txt = INSERT(@next_tiers,1,@pos_stat_definition + 1,'');
-
-		CALL update_tier_element(
-			p_unit_id,
-			@p_equipmentSet1,
-			@p_equipmentSet2,
-			@p_equipmentSet3,
-			@p_equipmentSet4,
-			@p_equipmentSet5,
-			@p_equipmentSet6,
-			@p_tier,
-			@stat_definition_txt);
-            
-		
-		
-		
-		
-		SET tier_definition_txt = INSERT(tier_definition_txt,1,@next_tiers_len + 1,'');
-	END LOOP;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_tier_element` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_tier_element`(
-	IN p_unit_id INT,
-	IN p_equipmentSet1 VARCHAR(255),
-	IN p_equipmentSet2 VARCHAR(255),
-	IN p_equipmentSet3 VARCHAR(255),
-	IN p_equipmentSet4 VARCHAR(255),
-	IN p_equipmentSet5 VARCHAR(255),
-	IN p_equipmentSet6 VARCHAR(255),
-	IN p_tier INT,
-    IN stat_definition_txt MEDIUMTEXT
-    )
-BEGIN
-    
-    
-    
-    
-
-	IF NOT EXISTS (SELECT * FROM unit_tiers WHERE unit_id = p_unit_id AND tier = p_tier) THEN
-		INSERT INTO unit_tiers(unit_id,tier) VALUES(p_unit_id,p_tier);
-    END IF;
-    UPDATE unit_tiers SET
-		equipmentSet1 = p_equipmentSet1,
-		equipmentSet2 = p_equipmentSet2,
-		equipmentSet3 = p_equipmentSet3,
-		equipmentSet4 = p_equipmentSet4,
-		equipmentSet5 = p_equipmentSet5,
-		equipmentSet6 = p_equipmentSet6
-        WHERE unit_id = p_unit_id AND tier = p_tier;
-
-	SET @unit_tier_id = (SELECT id FROM unit_tiers WHERE unit_id = p_unit_id AND tier = p_tier);
-    CALL update_unit_stats(@unit_tier_id, stat_definition_txt);
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_unit` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_unit`(
-	p_baseId VARCHAR(255),
-	p_combatType INT,
-	p_descKey TEXT,
-	p_forceAlignment INT,
-	p_unit_id VARCHAR(255),
-	p_nameKey VARCHAR(255),
-    tier_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	
-	
-
-	IF NOT EXISTS (SELECT * FROM units WHERE unit_id = p_unit_id) THEN
-		INSERT INTO units(unit_id) VALUES(p_unit_id);
-    END IF;
-    UPDATE units SET
-		baseId = p_baseId,
-		combatType = p_combatType,
-		descKey = p_descKey,
-		forceAlignment = p_forceAlignment,
-		unit_id = p_unit_id,
-		nameKey = p_nameKey
-        WHERE unit_id = p_unit_id;
-	
-    SET @p_current_id = (SELECT id FROM units WHERE unit_id = p_unit_id);
-    CALL update_tiers(@p_current_id, tier_definition_txt);
-    
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `update_unit_stats` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `update_unit_stats`(
-	IN p_unit_tier_id INT,
-    IN stat_definition_txt MEDIUMTEXT
-    )
-BEGIN
-	
-	
-	
-
-	DELETE FROM unit_stats WHERE unit_tier_id = p_unit_tier_id;
-	iterator:
-	LOOP
-		
-		
-		IF CHAR_LENGTH(TRIM(stat_definition_txt)) = 0 OR stat_definition_txt IS NULL THEN
-			LEAVE iterator;
-		END IF;
-
-		
-		SET @next_stat = SUBSTRING_INDEX(stat_definition_txt,'|',1);
-
-		
-		
-		
-		SET @next_stat_len = CHAR_LENGTH(@next_stat);
-
-		
-		SET @stat_scalar = SUBSTRING_INDEX(@next_stat,',',1);
-		SET @stat_statValueDecimal = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',2),',',-1);
-		SET @stat_uiDisplayOverrideValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',3),',',-1);
-		SET @stat_unitStatId = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',4),',',-1);
-		SET @stat_unscaledDecimalValue = SUBSTRING_INDEX(SUBSTRING_INDEX(@next_stat,',',5),',',-1);
-
-		
-		INSERT INTO unit_stats (unit_tier_id) VALUES (p_unit_tier_id);
-        SET @stat_id = LAST_INSERT_ID();
-		UPDATE unit_stats SET
-			scalar = @stat_scalar,
-            statValueDecimal = @stat_statValueDecimal,
-            uiDisplayOverrideValue = @stat_uiDisplayOverrideValue,
-            unitStatId = @stat_unitStatId,
-            unscaledDecimalValue = @stat_unscaledDecimalValue
-            WHERE id = @stat_id;
-            
-		
-		
-		
-		
-		SET stat_definition_txt = INSERT(stat_definition_txt,1,@next_stat_len + 1,'');
-	END LOOP;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1426,4 +792,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-05-06 23:37:29
+-- Dump completed on 2021-05-07 22:30:04

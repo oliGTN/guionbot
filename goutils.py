@@ -2,6 +2,7 @@
 import json
 import math
 import config
+import connect_mysql
 from datetime import datetime
 
 ##############################################################
@@ -359,15 +360,17 @@ def log(level, fct, txt):
 # output: differences of dict2 over dict1
 ################################################
 def delta_dict_player(dict1, dict2):
+    allyCode = dict2['allyCode']
+
     #basic checks
     if dict1 == None:
         log("DBG", "delta_dict_player", "dict1 is empty, so dict2 is a full delta")
+        connect_mysql.insert_roster_evo(allyCode, "all", "adding full roster")
         return dict2
 
     if dict1['allyCode'] != dict2['allyCode']:
         log("ERR", "delta_dict_player", "cannot compare 2 dict_players for different players")
         return dict2
-    allyCode = dict1['allyCode']
 
     delta_dict = {}
     delta_dict['allyCode'] = allyCode
@@ -385,12 +388,45 @@ def delta_dict_player(dict1, dict2):
         if character_id in dict1['roster']:
             if character != dict1['roster'][character_id]:
                 log("INFO", "delta_dict_player", "character "+character_id+" has changed for "+str(allyCode))
+                detect_delta_roster_element(allyCode, dict1['roster'][character_id], character)
                 delta_dict['roster'][character_id] = character
         else:
             log("INFO", "delta_dict_player", "new character "+character_id+" for "+str(allyCode))
+            connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
             delta_dict['roster'][character_id] = character
 
     return delta_dict
+
+def detect_delta_roster_element(allyCode, char1, char2):
+    defId = char1['defId']
+
+    #RARITY
+    if char1['rarity'] != char2['rarity']:
+        evo_txt = "rarity changed from "\
+                  +str(char1['rarity'])+" to "+str(char2['rarity'])
+        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #LEVEL
+    if char1['level'] != char2['level']:
+        evo_txt = "level changed from "\
+                  +str(char1['level'])+" to "+str(char2['level'])
+        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #GEAR
+    if char1['gear'] != char2['gear']:
+        evo_txt = "gear changed from "\
+                  +str(char1['gear'])+" to "+str(char2['gear'])
+        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #GEAR
+    if char1['relic'] != char2['relic']:
+        evo_txt = "relic changed from "\
+                  +str(char1['relic']['currentTier']-2)+" to "+str(char2['relic']['currentTier']-2)
+        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
 def roster_from_list_to_dict(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
