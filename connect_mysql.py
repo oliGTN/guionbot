@@ -340,6 +340,7 @@ def update_guild(dict_guild):
         guild_name = dict_guild["name"].replace("'", "''")
         
         query = "REPLACE INTO guilds(name) VALUES('"+guild_name+"')"
+        goutils.log("DBG", "update_guild", query)
         cursor.execute(query)
 
         players_in_db = get_column("SELECT allyCode FROM players")
@@ -355,13 +356,13 @@ def update_guild(dict_guild):
                         VALUES ("+str(player_api["allyCode"])+",'" + \
                         player_name+"','"+ \
                         guild_name+"',CURRENT_TIMESTAMP-INTERVAL 24 HOUR)"
-                print(query)
+                goutils.log("DBG", "update_guild", query)
                 cursor.execute(query)
                                                 
         for allyCode_db in guild_players_in_db:
             if not allyCode_db in players_in_api:
                 query = "UPDATE players SET guildName='' WHERE allyCode="+str(allyCode_db)
-                print(query)
+                goutils.log("DBG", "update_guild", query)
                 cursor.execute(query)
           
         mysql_db.commit()
