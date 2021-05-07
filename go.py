@@ -144,7 +144,8 @@ def load_player(txt_allyCode, force_update):
                 fjson.close()
 
                 # update DB
-                ret = connect_mysql.update_player(dict_player, dict_unitsList)
+                #ret = connect_mysql.update_player(dict_player, dict_unitsList)
+                ret = connect_mysql.update_player(delta_dict_player, dict_unitsList)
                 if ret == 0:
                     goutils.log("INFO", "load_player", "success updating "+dict_player['name']+" in DB")
                 else:
