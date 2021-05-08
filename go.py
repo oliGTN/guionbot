@@ -3,6 +3,7 @@
 from swgohhelp import SWGOHhelp, settings
 import sys
 import time
+import datetime
 import os
 import config
 import difflib
@@ -25,6 +26,7 @@ creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
 client = SWGOHhelp(creds)
 dict_unitsList = json.load(open('DATA'+os.path.sep+'unitsList_dict.json', 'r'))
 dict_unitsAlias = json.load(open('DATA'+os.path.sep+'unitsAlias_dict.json', 'r'))
+dict_loading_guilds = {}
 
 ##################################
 # Function: refresh_cache
@@ -35,63 +37,25 @@ def refresh_cache():
     #Need to keep KEEPDIR to prevent removal of the directory by GIT
     
     # Get the allyCodes to be refreshed
-    # the query gets all allyCodes from master guild
-    query = "SELECT allyCode FROM players WHERE guildName = ( \
-                SELECT guildName \
-                FROM players \
-                WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+" \
-            ) \
-            ORDER BY lastUpdated ASC"
-    list_master_allyCodes = connect_mysql.get_column(query)
+    # the query gets one allyCode by guild in the DB
+    query = "SELECT guilds.name, MIN(allyCode) "\
+           +"FROM guilds "\
+           +"JOIN players on players.guildName = guilds.name "\
+           +"WHERE ((guilds.lastRequested > CURRENT_TIMESTAMP - INTERVAL 1 DAY) "\
+           +"   AND (guilds.lastUpdated < CURRENT_TIMESTAMP - INTERVAL 60 MINUTE)) "\
+           +"OR ((guilds.lastRequested > CURRENT_TIMESTAMP - INTERVAL 7 DAY) "\
+           +"   AND (guilds.lastUpdated < CURRENT_TIMESTAMP - INTERVAL 6 HOUR)) "\
+           +"GROUP BY guildName "\
+           +"ORDER BY guilds.lastUpdated"
+    goutils.log('DBG', 'refresh_cache', query)
+    ret_table = connect_mysql.get_table(query)
     
-    # the query gets all allyCodes from non-master guild
-    query = "SELECT allyCode from players WHERE guildName != ( \
-                SELECT guildName \
-                FROM players \
-                WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+" \
-            ) \
-            ORDER BY lastUpdated ASC"
-    list_nonmaster_allyCodes = connect_mysql.get_column(query)
-
-    #Compute the amount of players to be refreshed based on global refresh rate
-    refresh_rate_bot_minutes = int(config.REFRESH_RATE_BOT_MINUTES)
-    refresh_rate_player_minutes = int(config.REFRESH_RATE_PLAYER_MINUTES)
-    nb_refresh_master_players = ceil(
-        len(list_master_allyCodes) / refresh_rate_player_minutes * refresh_rate_bot_minutes)
-    nb_refresh_nonmaster_players = 1
-    goutils.log('INFO', 'refresh_cache', 'Refreshing ' + str(nb_refresh_master_players) + '+' +
-        str(nb_refresh_nonmaster_players) + ' files')
-
     #Refresh players from master guild
-    for allyCode in list_master_allyCodes[:nb_refresh_master_players]:
-        e, t = load_player(str(allyCode), True)
+    guild_name = ret_table[0][0]
+    guild_allyCode = ret_table[0][1]
+    goutils.log('INFO', 'refresh_cache', "refresh guild "+guild_name)
+    e, t = load_guild(str(guild_allyCode), True, False)
         
-    #Refresh one player from non-master guild
-    if len(list_nonmaster_allyCodes) >0:
-        e, t = load_player(str(list_nonmaster_allyCodes[0]), True)
-    
-    #Check the amount of stored guilds, and remove if too many
-    query = "SELECT name FROM guilds \
-            WHERE name != (SELECT guildName FROM players WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+") \
-            ORDER BY lastUpdated"
-    list_nonmaster_guilds = connect_mysql.get_column(query)
-    keep_max_non_master_guilds = int(config.KEEP_MAX_NONMASTER_GUILDS)
-    if len(list_nonmaster_guilds) > keep_max_non_master_guilds:
-        for guildname in list_nonmaster_guilds[:keep_max_non_master_guilds]:
-            goutils.log("INFO", "refresh_cache", "delete guild "+guildname+" from DB")
-            connect_mysql.simple_callproc("remove_guild", [guildname])
-            
-    #Check the amount of noguild players, and remove if too many
-    query = "SELECT allyCode FROM players \
-            WHERE guildName = '' \
-            ORDER BY lastUpdated DESC"
-    list_noguild_allyCodes = connect_mysql.get_column(query)
-    keep_max_noguild_players = int(config.KEEP_MAX_NOGUILD_PLAYERS)
-    if len(list_noguild_allyCodes) > keep_max_noguild_players:
-        for allyCode in list_noguild_allyCodes[:keep_max_noguild_players]:
-            goutils.log("INFO", "refresh_cache", "delete player "+str(allyCode)+" from DB")
-            connect_mysql.simple_callproc("remove_player", [allyCode])
-            
     return 0
 
 ##################################
@@ -106,7 +70,7 @@ def load_player(txt_allyCode, force_update):
                         name \
                         FROM players WHERE allyCode = '"+txt_allyCode+"'")
 
-    if len(query_result)>0:
+    if query_result != None:
         recent_player = query_result[0]
         player_name = query_result[1]
     else:
@@ -173,9 +137,8 @@ def load_player(txt_allyCode, force_update):
     sys.stdout.flush()
     return 0, ''
 
-def load_guild(txt_allyCode, load_players):
-    
-    #rechargement systématique des infos de guilde (liste des membres)
+def load_guild(txt_allyCode, load_players, cmd_request):
+    #Get APIt data for the guild
     goutils.log('INFO', "load_guild", 'Requesting guild data for allyCode ' + txt_allyCode)
     client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
     if isinstance(client_data, list):
@@ -184,58 +147,107 @@ def load_guild(txt_allyCode, load_players):
                 goutils.log('WAR', 'load_guild',"client.get_data(\'guild\', "+txt_allyCode+
                         ", 'FRE_FR') has returned a list of size "+
                         str(len(player_data)))            
-                        
-            ret_guild = client_data[0]
-            list_allyCodes = [x["allyCode"] for x in ret_guild["roster"]]
-            connect_mysql.update_guild(ret_guild)
-
+                            
+            dict_guild = client_data[0]
+            guildName = dict_guild['name']
+            total_players = len(dict_guild['roster'])
+            allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
+            goutils.log("INFO", "load_guild", "success retrieving "+guildName+" ("\
+                        +str(total_players)+" players) from SWGOH.HELP API")
         else:
-            goutils.log('ERR', 'load_guild', "client.get_data('guild', "+txt_allyCode+
-                    "', 'FRE_FR') has returned an empty list")
-            return 'ERR: canot fetch guild fo allyCode '+txt_allyCode, None
-
+            goutils.log("ERR", "load_guild", "client.get_data('guild', "+txt_allyCode+
+                    ", 'FRE_FR') has returned an empty list")
+            return 'ERR: cannot fetch guild fo allyCode '+txt_allyCode, None
     else:
         goutils.log ('ERR', "load_guild", "client.get_data('guild', "+
                 txt_allyCode+", 'FRE_FR') has not returned a list")
         goutils.log ("ERR", "load_guild", client_data)
         return 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
 
+    #Get guild data from DB
+    query = "SELECT lastUpdated FROM guilds "\
+           +"WHERE name = '"+guildName.replace("'", "''")+"'"
+    goutils.log('DBG', 'load_guild', query)
+    lastUpdated = connect_mysql.get_value(query)
 
-    if load_players:
-        #Get players and update status from DB
-        # The query tests if the update is less than 60 minutes for players in master guild
-        # For other players, check if less than 12 hours
-        query = "\
-            SELECT \
-            CASE WHEN guildName = (SELECT guildName FROM players WHERE allyCode = "+config.MASTER_GUILD_ALLYCODE+") \
-            THEN (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) \
-            ELSE (timestampdiff(HOUR, players.lastUpdated, CURRENT_TIMESTAMP)<=12) END AS recent, \
-            allyCode \
-            FROM players \
-            WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode = '"+txt_allyCode+"')"
-        recent_players = connect_mysql.get_table(query)
-        dict_recent_players={}
-        for line in recent_players:
-            dict_recent_players[line[1]]=line[0]
-                
-        #add player data
-        total_players = len(ret_guild['roster'])
-        goutils.log("INFO", "load_guild", 'Total players in guild: ' + 
-                            str(total_players))
-        i_player = 0
-        for player in ret_guild['roster']:
-            i_player = i_player + 1
-            goutils.log("INFO", "load_guild", "player #"+str(i_player))
-            
-            if not player['allyCode'] in dict_recent_players.keys():
-                e, t = load_player(str(player['allyCode']), False)
-            elif not dict_recent_players[player['allyCode']]:
-                e, t = load_player(str(player['allyCode']), False)
+    query = "SELECT allyCode FROM players "\
+           +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
+    goutils.log('DBG', 'load_guild', query)
+    allyCodes_in_DB = connect_mysql.get_column(query)
+
+    allyCodes_to_add = []
+    for ac in allyCodes_in_API:
+        if not ac in allyCodes_in_DB:
+            allyCodes_to_add.append(ac)
+
+    allyCodes_to_remove = []
+    for ac in allyCodes_in_DB:
+        if not ac in allyCodes_in_API:
+            allyCodes_to_remove.append(ac)
+
+    print(lastUpdated)
+    print(lastUpdated.strftime('%Y-%m-%d %H:%M:%S'))
+    print(datetime.datetime.now())
+    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    print((datetime.datetime.now() - lastUpdated).seconds)
+    print(allyCodes_to_add)
+    delta_lastUpdated = datetime.datetime.now() - lastUpdated
+    if lastUpdated == None or (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600 or len(allyCodes_to_add) > 0:
+        #The guild is not defined yet, add it
+        if load_players:
+            if guildName in dict_loading_guilds:
+                #The guild is already being loaded
+                goutils.log('INFO', "load_guild", "Guild "+guildName+" already loading ("\
+                            + str(dict_loading_guilds[guildName][1]) + "/"\
+                            + str(dict_loading_guilds[guildName][0]) + "), waiting...")
+                while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
+                    goutils.log('DBG', "load_guild", "Guild "+guildName+" loading ("\
+                            + str(dict_loading_guilds[guildName][1]) + "/"\
+                            + str(dict_loading_guilds[guildName][0]) + "), waiting 30 seconds...")
+                    time.sleep(30)
             else:
-                goutils.log("INFO", "load_guild", "player "+
-                            player['name']+" is already OK")
-    
-    return "OK", ret_guild
+                #First request to load this guild
+                dict_loading_guilds[guildName] = [total_players, 0]
+
+                #Ensure only one guild loading at a time
+                while len(dict_loading_guilds) > 1:
+                    other_loading_guilds = list(dict_loading_guilds.keys())
+                    other_loading_guilds.remove(guildName)
+                    goutils.log('DBG', "load_guild", "Guild "+guildName+" loading "\
+                                +"will start after loading of "+str(other_loading_guilds))
+                    time.sleep(30)
+
+                #Create guild in DB only if the players are loaded
+                query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
+                goutils.log('DBG', 'load_guild', query)
+                connect_mysql.simple_execute(query)
+
+                query = "UPDATE guilds "\
+                       +"SET lastUpdated = CURRENT_TIMESTAMP "
+                if cmd_request:
+                    query +=", lastRequested = CURRENT_TIMESTAMP "
+                query +="WHERE name = '"+guildName.replace("'", "''") + "'"
+                goutils.log('DBG', 'load_guild', query)
+                connect_mysql.simple_execute(query)
+
+                #add player data
+                i_player = 0
+                for player in dict_guild['roster']:
+                    i_player += 1
+                    goutils.log("INFO", "load_guild", "player #"+str(i_player))
+                    
+                    e, t = load_player(str(player['allyCode']), False)
+                    dict_loading_guilds[guildName][1] = i_player
+
+    #Erae guildName for alyCodes not detected from API
+    if len(allyCodes_to_remove) > 0:
+        query = "UPDATE players "\
+               +"SET guildName = '' "\
+               +"WHERE allyCode IN "+str(tuple(allyCodes_to_remove)).replace(",)", ")")
+        goutils.log('DBG', 'load_guild', query)
+        connect_mysql.simple_execute(query)
+
+    return "OK", dict_guild
 
 def get_team_line_from_player(team_name, dict_player, dict_team, score_type, score_green,
                               score_amber, gv_mode, txt_mode, player_name):
@@ -592,7 +604,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             
     else:
         #Get data for the guild and associated players
-        ret, guild = load_guild(txt_allyCode, True)
+        ret, guild = load_guild(txt_allyCode, True, True)
         if ret != 'OK':
             goutils.log("WAR", "get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
 
@@ -1268,7 +1280,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         #Compute stats at guild level, only one character
         
         #Get data for the guild and associated players
-        ret, guild = load_guild(txt_allyCode, True)
+        ret, guild = load_guild(txt_allyCode, True, True)
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
         
@@ -1511,7 +1523,7 @@ def get_gp_distribution(txt_allyCode, inactive_duration, fast_chart):
     #Load or update data for the guild
     if (fast_chart):
         #use only the guild data from the API
-        ret, guild = load_guild(txt_allyCode, False)
+        ret, guild = load_guild(txt_allyCode, False, True)
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
 
@@ -1521,7 +1533,7 @@ def get_gp_distribution(txt_allyCode, inactive_duration, fast_chart):
         ret_get_gp_distribution = "==GP stats "+guild_name+ "==\n"
     else:
         # Need to load players also to get their lastActivity
-        ret, guild = load_guild(txt_allyCode, True)
+        ret, guild = load_guild(txt_allyCode, True, True)
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
             
@@ -1586,7 +1598,7 @@ def get_character_image(list_characters_allyCode, is_ID):
     print(db_data)
     for line in db_data:
         if line[2] > 1:
-            load_guild(str(line[0]), True)
+            load_guild(str(line[0]), True, True)
         else:
             load_player(str(line[0]), False)
 

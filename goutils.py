@@ -294,7 +294,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
     return dict_players
     
 def get_zeta_from_shorts(character_id, zeta_shorts):
-    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+    dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
     
     req_zeta_ids = []
     for zeta in zeta_shorts:
@@ -310,7 +310,7 @@ def get_zeta_from_shorts(character_id, zeta_shorts):
     return req_zeta_ids
 
 def get_zeta_id_from_short(character_id, zeta_short):
-    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+    dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
 
     zeta_standard = zeta_short.upper().replace(' ', '')
     if zeta_standard == '':

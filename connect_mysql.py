@@ -194,6 +194,20 @@ def simple_query(query, txt_mode):
         return tuples
         
         
+def simple_execute(query):
+    try:
+        mysql_db = db_connect()
+        cursor = mysql_db.cursor(buffered=True)
+        #print("simple_callproc: "+proc_name+" "+str(args))
+        ret=cursor.execute(query)
+        
+        mysql_db.commit()
+    except Error as error:
+        goutils.log("ERR", "simple_execute", error)
+        
+    finally:
+        cursor.close()
+
 def simple_callproc(proc_name, args):
     rows = []
     tuples = []
@@ -210,7 +224,6 @@ def simple_callproc(proc_name, args):
         
     finally:
         cursor.close()
-        # db.close()
 
 def get_value(query):
     tuples = []
@@ -282,7 +295,7 @@ def get_line(query):
         cursor.close()
     
     if len(tuples[0]) == 0:
-        return []
+        return None
     else:
         return tuples[0][0]
     
@@ -332,49 +345,6 @@ def insert_roster_evo(allyCode, defId, evo_txt):
     finally:
         cursor.close()
     
-def update_guild(dict_guild):
-    try:
-        mysql_db = db_connect()
-        cursor = mysql_db.cursor(buffered=True)
-        
-        # Manage guild names with a ' in it
-        guild_name = dict_guild["name"].replace("'", "''")
-        
-        query = "REPLACE INTO guilds(name) VALUES('"+guild_name+"')"
-        goutils.log("DBG", "update_guild", query)
-        cursor.execute(query)
-
-        players_in_db = get_column("SELECT allyCode FROM players")
-        guild_players_in_db = get_column("SELECT allyCode FROM players WHERE guildName='"+guild_name+"'")
-        players_in_api = [x["allyCode"] for x in dict_guild["roster"]]
-        
-        for player_api in dict_guild["roster"]:
-            if not player_api["allyCode"] in players_in_db:
-                # insert empty player to allow the update process
-                # force lastUpdated to 24h in the past
-                player_name = player_api["name"].replace("'", "''")
-                query = "INSERT INTO players (allyCode,name,guildName,lastUpdated) \
-                        VALUES ("+str(player_api["allyCode"])+",'" + \
-                        player_name+"','"+ \
-                        guild_name+"',CURRENT_TIMESTAMP-INTERVAL 24 HOUR)"
-                goutils.log("DBG", "update_guild", query)
-                cursor.execute(query)
-                                                
-        for allyCode_db in guild_players_in_db:
-            if not allyCode_db in players_in_api:
-                query = "UPDATE players SET guildName='' WHERE allyCode="+str(allyCode_db)
-                goutils.log("DBG", "update_guild", query)
-                cursor.execute(query)
-          
-        mysql_db.commit()
-    except Error as error:
-        print(error)
-        
-    finally:
-        cursor.close()
-        # db.close()       
-        
-        
 def update_player(dict_player, dict_units):
     #Start by getting all stats for the player
     dict_player = goutils.roster_from_dict_to_list(dict_player)
@@ -412,10 +382,10 @@ def update_player(dict_player, dict_units):
         cursor.execute(query)
 
         query = "UPDATE players "\
-               +"SET guildName = '"+p_guildName+"', "\
+               +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
                +"    lastActivity = '"+p_lastActivity+"', "\
                +"    level = "+str(p_level)+", "\
-               +"    name = '"+str(p_name)+"', "\
+               +"    name = '"+str(p_name).replace("'", "''")+"', "\
                +"    arena_char_rank = "+str(p_arena_char_rank)+", "\
                +"    arena_ship_rank = "+str(p_arena_ship_rank)+", "\
                +"    char_gp = "+str(p_char_gp)+", "\
@@ -618,7 +588,7 @@ def update_player(dict_player, dict_units):
         cursor.execute(query)
 
         query = "UPDATE gp_history "\
-               +"SET guildName = '"+p_guildName+"', "\
+               +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
                +"    arena_char_rank = LEAST("+str(p_arena_char_rank)+", arena_char_rank), "\
                +"    arena_ship_rank = LEAST("+str(p_arena_ship_rank)+", arena_ship_rank), "\
                +"    char_gp = "+str(p_char_gp)+", "\
