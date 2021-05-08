@@ -231,9 +231,10 @@ def get_value(query):
     finally:
         cursor.close()
     
-    # print(query)
-    # print(tuples)
-    return tuples[0][0][0]
+    if len(tuples[0]) > 0:
+        return tuples[0][0][0]
+    else:
+        return None
         
 def get_column(query):
     tuples = []
