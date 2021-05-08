@@ -185,12 +185,6 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         if not ac in allyCodes_in_API:
             allyCodes_to_remove.append(ac)
 
-    print(lastUpdated)
-    print(lastUpdated.strftime('%Y-%m-%d %H:%M:%S'))
-    print(datetime.datetime.now())
-    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    print((datetime.datetime.now() - lastUpdated).seconds)
-    print(allyCodes_to_add)
     delta_lastUpdated = datetime.datetime.now() - lastUpdated
     if lastUpdated == None or (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600 or len(allyCodes_to_add) > 0:
         #The guild is not defined yet, add it
