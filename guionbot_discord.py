@@ -534,7 +534,6 @@ def manage_me(ctx, allycode_txt):
 ##############################################################
 @bot.event
 async def on_ready():
-    go.load_guild(config.MASTER_GUILD_ALLYCODE, False)
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
 
     #recover external IP address
