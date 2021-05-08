@@ -617,7 +617,8 @@ def update_player(dict_player, dict_units):
         cursor.execute(query)
 
         query = "UPDATE gp_history "\
-               +"SET arena_char_rank = LEAST("+str(p_arena_char_rank)+", arena_char_rank), "\
+               +"SET guildName = '"+p_guildName+"', "\
+               +"    arena_char_rank = LEAST("+str(p_arena_char_rank)+", arena_char_rank), "\
                +"    arena_ship_rank = LEAST("+str(p_arena_ship_rank)+", arena_ship_rank), "\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+" "\
