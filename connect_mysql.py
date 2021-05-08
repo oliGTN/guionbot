@@ -325,7 +325,10 @@ def get_table(query):
         cursor.close()
 
     #print("DBG: get_table return")
-    return tuples[0]
+    if len(tuples[0]) == 0:
+        return None
+    else:
+        return tuples[0]
 
 def insert_roster_evo(allyCode, defId, evo_txt):
     try:

@@ -50,11 +50,13 @@ def refresh_cache():
     goutils.log('DBG', 'refresh_cache', query)
     ret_table = connect_mysql.get_table(query)
     
-    #Refresh players from master guild
-    guild_name = ret_table[0][0]
-    guild_allyCode = ret_table[0][1]
-    goutils.log('INFO', 'refresh_cache', "refresh guild "+guild_name)
-    e, t = load_guild(str(guild_allyCode), True, False)
+    if ret_table != None:
+        print(ret_table)
+        #Refresh players from master guild
+        guild_name = ret_table[0][0]
+        guild_allyCode = ret_table[0][1]
+        goutils.log('INFO', 'refresh_cache', "refresh guild "+guild_name)
+        e, t = load_guild(str(guild_allyCode), True, False)
         
     return 0
 
