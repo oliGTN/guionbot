@@ -183,7 +183,7 @@ async def bot_loop_60():
                     await channel.send(message)
                 time_to_wait = WARSTATS_REFRESH_SECS - last_track_secs + WARSTATS_REFRESH_TIME
                 next_warstats_read = int(time.time()) + time_to_wait
-            print("INFO next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
+            goutils.log("INFO", "bot_loop_60", "next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
             goutils.log("ERR", "bot_loop_60", str(sys.exc_info()[0]))
