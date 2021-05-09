@@ -675,11 +675,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         for row in output_size:
             output_txt+=str(row)+'\n'
 
-        output_players = connect_mysql.simple_query("SELECT guildName AS Guilde, \
-                                                    count(*) as Joueurs \
-                                                    lastUpdated as MàJ \
-                                                    FROM players \
-                                                    GROUP BY guildName", True)
+        output_players = connect_mysql.simple_query("SELECT guilds.name AS Guilde, \
+                                                    count(*) as Joueurs, \
+                                                    guilds.lastUpdated as MàJ \
+                                                    FROM guilds \
+                                                    JOIN players ON players.guildName = guilds.name \
+                                                    GROUP BY guilds.name", True)
         output_txt += "\n"
         for row in output_players:
             output_txt+=str(row)+'\n'
