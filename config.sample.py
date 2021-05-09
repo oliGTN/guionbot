@@ -39,9 +39,3 @@ GO_ADMIN_IDS=""
 
 # Category name to get members and check discord online status
 DISCORD_MEMBER_ROLE=""
-
-# variables to control the refresh rate of players
-REFRESH_RATE_BOT_MINUTES=""
-REFRESH_RATE_PLAYER_MINUTES=""
-KEEP_MAX_NONMASTER_GUILDS=""
-KEEP_MAX_NOGUILD_PLAYERS=""
