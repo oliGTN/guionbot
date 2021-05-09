@@ -51,7 +51,6 @@ def refresh_cache():
     ret_table = connect_mysql.get_table(query)
     
     if ret_table != None:
-        print(ret_table)
         #Refresh players from master guild
         guild_name = ret_table[0][0]
         guild_allyCode = ret_table[0][1]
@@ -187,20 +186,19 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         if not ac in allyCodes_in_API:
             allyCodes_to_remove.append(ac)
 
-    delta_lastUpdated = datetime.datetime.now() - lastUpdated
-    if lastUpdated == None or (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600 or len(allyCodes_to_add) > 0:
-        #The guild is not defined yet, add it
-        if load_players:
+    if load_players:
+        if lastUpdated != None:
+            delta_lastUpdated = datetime.datetime.now() - lastUpdated
+        if lastUpdated == None or (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600 or len(allyCodes_to_add) > 0:
+            #The guild is not defined yet, add it
             if guildName in dict_loading_guilds:
                 #The guild is already being loaded
-                goutils.log('INFO', "load_guild", "Guild "+guildName+" already loading ("\
-                            + str(dict_loading_guilds[guildName][1]) + "/"\
-                            + str(dict_loading_guilds[guildName][0]) + "), waiting...")
                 while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
-                    goutils.log('DBG', "load_guild", "Guild "+guildName+" loading ("\
+                    goutils.log('INFO', "load_guild", "Guild "+guildName+" loading ("\
                             + str(dict_loading_guilds[guildName][1]) + "/"\
                             + str(dict_loading_guilds[guildName][0]) + "), waiting 30 seconds...")
                     time.sleep(30)
+                    sys.stdout.flush()
             else:
                 #First request to load this guild
                 dict_loading_guilds[guildName] = [total_players, 0]
@@ -209,9 +207,10 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 while len(dict_loading_guilds) > 1:
                     other_loading_guilds = list(dict_loading_guilds.keys())
                     other_loading_guilds.remove(guildName)
-                    goutils.log('DBG', "load_guild", "Guild "+guildName+" loading "\
+                    goutils.log('INFO', "load_guild", "Guild "+guildName+" loading "\
                                 +"will start after loading of "+str(other_loading_guilds))
                     time.sleep(30)
+                    sys.stdout.flush()
 
                 #Create guild in DB only if the players are loaded
                 query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
@@ -234,6 +233,10 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     
                     e, t = load_player(str(player['allyCode']), False)
                     dict_loading_guilds[guildName][1] = i_player
+
+                del dict_loading_guild[guildName]
+        else:
+            goutils.log('INFO', "load_guild", "Guild "+guildName+" already up-to-date")
 
     #Erae guildName for alyCodes not detected from API
     if len(allyCodes_to_remove) > 0:
@@ -715,11 +718,15 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
         
-    if len(player_data) > 0:
+    if player_data != None:
         print("Recreate dict_teams...")
         dict_teams = goutils.create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked)
         print("-> OK")
     else:
+        query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
+        goutils.log("DBG", "get_team_progress", query)
+        player_name = connect_mysql.get_value(query)
+        dict_teams = {player_name: {}}
         print("no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names)+"...")
     
     
@@ -748,7 +755,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             #print(objectifs)
 
             if not gv_mode:
-                if len(list_team_names) == 1 and len(dict_teams.keys()):
+                if len(list_team_names) == 1 and len(dict_teams.keys()) == 1:
                     entete = get_team_entete(team_name, objectifs, \
                                                 score_type, txt_mode)
                 else:
