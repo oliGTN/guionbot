@@ -415,17 +415,18 @@ def detect_delta_roster_element(allyCode, char1, char2):
         log("INFO", "delta_roster_element", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
-    #GEAR
-    if char1['gear'] != char2['gear']:
-        evo_txt = "gear changed from "\
-                  +str(char1['gear'])+" to "+str(char2['gear'])
-        log("INFO", "delta_roster_element", defId+": "+evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+    #GEAR / RELIC
+    if char1['gear'] < 13:
+        gear1 = "G"+str(char1['gear'])
+    else:
+        gear1 = "R"+str(char1['relic']['currentTier']-2)
+    if char2['gear'] < 13:
+        gear2 = "G"+str(char2['gear'])
+    else:
+        gear2 = "R"+str(char2['relic']['currentTier']-2)
 
-    #GEAR
-    if char1['relic'] != char2['relic']:
-        evo_txt = "relic changed from "\
-                  +str(char1['relic']['currentTier']-2)+" to "+str(char2['relic']['currentTier']-2)
+    if gear1 != gear2:
+        evo_txt = "gear changed from "+gear1+" to "+gear2
         log("INFO", "delta_roster_element", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 

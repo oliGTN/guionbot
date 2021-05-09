@@ -26,7 +26,10 @@ def add_stats(dict_player):
         goutils.log('ERR', "add_stats", "Cannot connect to crinolo API")
         goutils.log('ERR', "add_stats", "status_code: " +str(r.status_code))
         goutils.log('ERR', "add_stats", "content: " + r.content.decode('utf-8').replace('\n', ' '))
-        goutils.log('DBG', "add_stats", "headers: " + str(r.headers))
+        goutils.log('ERR', "add_stats", "headers: " + str(r.headers))
+        for char in dict_player['roster']:
+            goutils.log('ERR', "add_stats", "dict_player roster contains "+char['defId'])
+
         return dict_player
     
     dict_player_with_stats = json.loads(r.content.decode('utf-8'))[0]

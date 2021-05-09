@@ -257,7 +257,8 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 connect_mysql.simple_execute(query)
 
         else:
-            goutils.log('INFO', "load_guild", "Guild "+guildName+" last update is "+lastUpdated)
+            lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
+            goutils.log('INFO', "load_guild", "Guild "+guildName+" last update is "+lastUpdated_txt)
 
     #Update dates in DB
     if cmd_request:
@@ -721,9 +722,9 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
         goutils.log("DBG", "get_team_progress", query)
         
-        #print(query)
         player_zeta_data = connect_mysql.get_table(query)
-        #print(player_zeta_data)
+        if player_zeta_data == None:
+            player_zeta_data = []
         
         gv_characters_unlocked = []
     
