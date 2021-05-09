@@ -238,14 +238,6 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 goutils.log('DBG', 'load_guild', query)
                 connect_mysql.simple_execute(query)
 
-                query = "UPDATE guilds "\
-                       +"SET lastUpdated = CURRENT_TIMESTAMP "
-                if cmd_request:
-                    query +=", lastRequested = CURRENT_TIMESTAMP "
-                query +="WHERE name = '"+guildName.replace("'", "''") + "'"
-                goutils.log('DBG', 'load_guild', query)
-                connect_mysql.simple_execute(query)
-
                 #add player data
                 i_player = 0
                 for allyCode in list_allyCodes_to_update:
@@ -256,8 +248,24 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
                 parallel_work.set_guild_loading_status(guildName, None)
+
+                #Update dates in DB
+                query = "UPDATE guilds "\
+                       +"SET lastUpdated = CURRENT_TIMESTAMP "\
+                       +"WHERE name = '"+guildName.replace("'", "''") + "'"
+                goutils.log('DBG', 'load_guild', query)
+                connect_mysql.simple_execute(query)
+
         else:
             goutils.log('INFO', "load_guild", "Guild "+guildName+" last update is "+lastUpdated)
+
+    #Update dates in DB
+    if cmd_request:
+        query = "UPDATE guilds "\
+               +"SET lastRequested = CURRENT_TIMESTAMP "\
+               +"WHERE name = '"+guildName.replace("'", "''") + "'"
+        goutils.log('DBG', 'load_guild', query)
+        connect_mysql.simple_execute(query)
 
     #Erae guildName for alyCodes not detected from API
     if len(allyCodes_to_remove) > 0:

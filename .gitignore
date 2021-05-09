@@ -4,3 +4,5 @@ config.py
 IMAGES/CHARACTERS/*
 DATA/*
 PLAYERS/*
+CACHE/*
+__pycache__/*
