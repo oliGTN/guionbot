@@ -389,8 +389,8 @@ def update_player(dict_player, dict_units):
                +"    lastActivity = '"+p_lastActivity+"', "\
                +"    level = "+str(p_level)+", "\
                +"    name = '"+str(p_name).replace("'", "''")+"', "\
-               +"    arena_char_rank = "+str(p_arena_char_rank)+", "\
-               +"    arena_ship_rank = "+str(p_arena_ship_rank)+", "\
+               +"    arena_char_rank = "+("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))+", "\
+               +"    arena_ship_rank = "+("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))+", "\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
@@ -592,8 +592,8 @@ def update_player(dict_player, dict_units):
 
         query = "UPDATE gp_history "\
                +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
-               +"    arena_char_rank = LEAST("+str(p_arena_char_rank)+", arena_char_rank), "\
-               +"    arena_ship_rank = LEAST("+str(p_arena_ship_rank)+", arena_ship_rank), "\
+               +"    arena_char_rank = LEAST("+("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))+", arena_char_rank), "\
+               +"    arena_ship_rank = LEAST("+("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))+", arena_ship_rank), "\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+" "\
                +"WHERE date = CURDATE() "\
