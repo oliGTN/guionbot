@@ -10,13 +10,15 @@ import difflib
 import math
 from functools import reduce
 from math import ceil
+import json
+
 import connect_gsheets
 import connect_mysql
 import connect_crinolo
 import connect_warstats
 import goutils
 import portraits
-import json
+import parallel_work
 
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
@@ -26,7 +28,9 @@ creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
 client = SWGOHhelp(creds)
 dict_unitsList = json.load(open('DATA'+os.path.sep+'unitsList_dict.json', 'r'))
 dict_unitsAlias = json.load(open('DATA'+os.path.sep+'unitsAlias_dict.json', 'r'))
-dict_loading_guilds = {}
+
+#Clean temp files
+parallel_work.clean_cache()
 
 ##################################
 # Function: refresh_cache
@@ -170,6 +174,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
            +"WHERE name = '"+guildName.replace("'", "''")+"'"
     goutils.log('DBG', 'load_guild', query)
     lastUpdated = connect_mysql.get_value(query)
+    is_new_guild = (lastUpdated == None)
 
     query = "SELECT allyCode FROM players "\
            +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
@@ -189,27 +194,43 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     if load_players:
         if lastUpdated != None:
             delta_lastUpdated = datetime.datetime.now() - lastUpdated
-        if lastUpdated == None or (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600 or len(allyCodes_to_add) > 0:
+
+        need_to_add_players = (len(allyCodes_to_add) > 0)
+        need_refresh_due_to_time = (not cmd_request) and (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
+
+        if is_new_guild or need_refresh_due_to_time or need_to_add_players:
             #The guild is not defined yet, add it
-            if guildName in dict_loading_guilds:
+            guild_loading_status = parallel_work.get_guild_loading_status(guildName)
+
+            if is_new_guild or need_refresh_due_to_time:
+                #add all players
+                list_allyCodes_to_update = [x['allyCode'] for x in dict_guild['roster']]
+            else:
+                #only some players to be added
+                list_allyCodes_to_update = allyCodes_to_add
+                total_players = len(list_allyCodes_to_update)
+
+            if guild_loading_status != None:
                 #The guild is already being loaded
-                while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
-                    goutils.log('INFO', "load_guild", "Guild "+guildName+" loading ("\
-                            + str(dict_loading_guilds[guildName][1]) + "/"\
-                            + str(dict_loading_guilds[guildName][0]) + "), waiting 30 seconds...")
+                #while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
+                while guild_loading_status != None:
+                    goutils.log('INFO', "load_guild", "Guild "+guildName+" already loading ("\
+                            + guild_loading_status + "), waiting 30 seconds...")
                     time.sleep(30)
+                    guild_loading_status = parallel_work.get_guild_loading_status(guildName)
                     sys.stdout.flush()
             else:
                 #First request to load this guild
-                dict_loading_guilds[guildName] = [total_players, 0]
+                parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
 
                 #Ensure only one guild loading at a time
-                while len(dict_loading_guilds) > 1:
-                    other_loading_guilds = list(dict_loading_guilds.keys())
-                    other_loading_guilds.remove(guildName)
+                #while len(dict_loading_guilds) > 1:
+                list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
+                while len(list_other_guilds_loading_status) > 0:
                     goutils.log('INFO', "load_guild", "Guild "+guildName+" loading "\
-                                +"will start after loading of "+str(other_loading_guilds))
+                                +"will start after loading of "+str(list_other_guilds_loading_status))
                     time.sleep(30)
+                    list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
                     sys.stdout.flush()
 
                 #Create guild in DB only if the players are loaded
@@ -227,16 +248,16 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
                 #add player data
                 i_player = 0
-                for player in dict_guild['roster']:
+                for allyCode in list_allyCodes_to_update:
                     i_player += 1
                     goutils.log("INFO", "load_guild", "player #"+str(i_player))
                     
-                    e, t = load_player(str(player['allyCode']), False)
-                    dict_loading_guilds[guildName][1] = i_player
+                    e, t = load_player(str(allyCode), False)
+                    parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
-                del dict_loading_guild[guildName]
+                parallel_work.set_guild_loading_status(guildName, None)
         else:
-            goutils.log('INFO', "load_guild", "Guild "+guildName+" already up-to-date")
+            goutils.log('INFO', "load_guild", "Guild "+guildName+" last update is "+lastUpdated)
 
     #Erae guildName for alyCodes not detected from API
     if len(allyCodes_to_remove) > 0:
@@ -1297,7 +1318,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             [character_name, character_id]=dict_units[closest_names[0]]
                     
         db_stat_data_char = []
-        print("Get guild_data from DB...")
+        goutils.log("INFO", "print_character_stats", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
                +"roster.combatType, rarity, gear, relic_currentTier, "\
                +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
@@ -1596,9 +1617,10 @@ def get_character_image(list_characters_allyCode, is_ID):
     query = "SELECT allyCode, guildName, count(*) from players "
     query+= "WHERE allyCode in "+str(tuple(list_allyCodes)).replace(',)', ')') + " "
     query+= "GROUP BY guildName"
-    print(query)
+    goutils.log("DBG", "get_character_image", query)
     db_data = connect_mysql.get_table(query)
-    print(db_data)
+    goutils.log("DBG", "get_character_image", db_data)
+
     for line in db_data:
         if line[2] > 1:
             load_guild(str(line[0]), True, True)
@@ -1623,7 +1645,7 @@ def get_character_image(list_characters_allyCode, is_ID):
                 #Get full character name
                 closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
                 if len(closest_names)<1:
-                    print('WAR: aucun personnage trouvé pour '+character_alias)
+                    goutils.log("WAR", "get_character_image", "aucun personnage trouvé pour "+character_alias)
                     err_txt += 'WAR: aucun personnage trouvé pour '+character_alias+'\n'
                 else:
                     [character_name, character_id]=dict_units[closest_names[0]]
@@ -1640,7 +1662,7 @@ def get_character_image(list_characters_allyCode, is_ID):
         return 1, err_txt, None
 
     db_stat_data_char = []
-    print("Get player_data from DB...")
+    goutils.log("INFO", "get_character_image", "Get player_data from DB...")
     query ="SELECT players.name, players.allyCode, \
             defId, rarity, roster.level, gear, \
             relic_currentTier, forceAlignment, zeta_count, combatType \
@@ -1654,9 +1676,9 @@ def get_character_image(list_characters_allyCode, is_ID):
         query = query[:-3] + ")) OR "
     query = query[:-3]
 
-    #print(query)
+    goutils.log("DBG", "get_character_image", query)
     db_data = connect_mysql.get_table(query)
-    #print(db_data)
+    goutils.log("DBG", "get_character_image", db_data)
     
     list_images = []
     idx = 0
