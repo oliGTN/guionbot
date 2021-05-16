@@ -151,9 +151,19 @@ def load_player(txt_allyCode, force_update):
     return 0, ''
 
 def load_guild(txt_allyCode, load_players, cmd_request):
-    #Get APIt data for the guild
+    #Get API data for the guild
     goutils.log('INFO', "load_guild", 'Requesting guild data for allyCode ' + txt_allyCode)
-    client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
+    json_file = "GUILDS"+os.path.sep+"G"+txt_allyCode+".json"
+    if client != None:
+        client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
+    else:
+        goutils.log("WAR", "load_guild", 'Cannot connect to API. Using cache data from json')
+        if os.path.isfile(json_file):
+            prev_dict_guild = json.load(open(json_file, 'r'))
+            client_data = [prev_dict_guild]
+        else:
+            client_data = None
+
     if isinstance(client_data, list):
         if len(client_data) > 0:
             if len(client_data) > 1:
@@ -167,6 +177,11 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
             goutils.log("INFO", "load_guild", "success retrieving "+guildName+" ("\
                         +str(total_players)+" players) from SWGOH.HELP API")
+                        
+            # store json file
+            fjson = open(json_file, 'w')
+            fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
+            fjson.close()
         else:
             goutils.log("ERR", "load_guild", "client.get_data('guild', "+txt_allyCode+
                     ", 'FRE_FR') has returned an empty list")
@@ -276,7 +291,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         goutils.log('DBG', 'load_guild', query)
         connect_mysql.simple_execute(query)
 
-    #Erae guildName for alyCodes not detected from API
+    #Erase guildName for alyCodes not detected from API
     if len(allyCodes_to_remove) > 0:
         query = "UPDATE players "\
                +"SET guildName = '' "\
