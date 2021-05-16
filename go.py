@@ -1284,11 +1284,14 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                 print("Get player mod data from DB...")
                 query ="SELECT players.name, defId,  \
                         mods.id, pips, mod_set, mods.level, \
-                        isPrimary, unitStat, value \
+                        prim_stat, prim_value, \
+                        sec1_stat, sec1_value, \
+                        sec2_stat, sec2_value, \
+                        sec3_stat, sec3_value, \
+                        sec4_stat, sec4_value \
                         FROM roster \
                         JOIN players ON players.allyCode = roster.allyCode \
                         JOIN mods ON mods.roster_id = roster.id \
-                        JOIN mod_stats ON mod_stats.mod_id = mods.id \
                         WHERE players.allyCode = '"+txt_allyCode+"' \
                         AND ("
                 for character_id in dict_virtual_characters.keys():
@@ -1359,16 +1362,22 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
     #Manage virtual characters
     #This works only with command SPJ, so only one player_name
     if len(dict_virtual_characters)>0 and not ('all' in characters):
-        dict_for_crinolo = {"nameKey": player_name, "roster":[]}
+        #eras previous atsts
+        dict_for_crinolo = {"nameKey": player_name, "allyCode": int(txt_allyCode),
+                            "roster":[]}
 
         for character_id in dict_virtual_characters:
             roster_element = {}
-            if player_name in dict_stats:
-                if character_id in dict_stats[player_name]:
-                    #character is unlocked, let's get the mods
-                    roster_element = dict_stats[player_name][character_id]
+            if character_id in dict_stats[player_name]:
+                #character is unlocked, let's get the mods
+                roster_element = dict_stats[player_name][character_id]
                 
             roster_element["defId"] = character_id
+            if character_id in dict_unitsList:
+                roster_element["combatType"] = dict_unitsList[character_id]["combatType"]
+            else:
+                goutils.log("WAR", "print_character_stats", "unknown unit: "+character_id)
+
             roster_element["nameKey"] = dict_virtual_characters[character_id][3]
             roster_element["level"] = 85
             roster_element["equipped"] = []
@@ -1381,10 +1390,11 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     "currentTier": dict_virtual_characters[character_id][2]+2}
                     
             dict_for_crinolo["roster"].append(roster_element)
-            
+        
         dict_from_crinolo = connect_crinolo.add_stats(dict_for_crinolo)
         
         for roster_element in dict_from_crinolo["roster"]:
+            print (roster_element)
             base_stats = roster_element["stats"]["base"]
             if "mods" in roster_element["stats"]:
                 mods_stats = roster_element["stats"]["mods"]
