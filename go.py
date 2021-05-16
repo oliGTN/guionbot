@@ -1150,44 +1150,45 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         
         #parse the list to detect virtual characters "name:rarity:R4" or "name:rarity:G11"
         for character in characters:
-            tab_virtual_character = character.split(':')
-            if len(tab_virtual_character) == 3:
-                char_alias = tab_virtual_character[0]
-                if char_alias == "all":
-                    return "ERR: impossible de demander un niveau spécifique pour all"
-                
-                if not tab_virtual_character[1] in "1234567":
-                    return "ERR: la syntaxe "+character+" est incorrecte pour les étoiles"
-                char_rarity = int(tab_virtual_character[1])
-                
-                if tab_virtual_character[2][0] in "gG":
-                    if tab_virtual_character[2][1:].isnumeric():
-                        char_gear = int(tab_virtual_character[2][1:])
-                        if (char_gear<1) or (char_gear>13):
+            if not character.startswith("tag:"):
+                tab_virtual_character = character.split(':')
+                if len(tab_virtual_character) == 3:
+                    char_alias = tab_virtual_character[0]
+                    if char_alias == "all":
+                        return "ERR: impossible de demander un niveau spécifique pour all"
+                    
+                    if not tab_virtual_character[1] in "1234567":
+                        return "ERR: la syntaxe "+character+" est incorrecte pour les étoiles"
+                    char_rarity = int(tab_virtual_character[1])
+                    
+                    if tab_virtual_character[2][0] in "gG":
+                        if tab_virtual_character[2][1:].isnumeric():
+                            char_gear = int(tab_virtual_character[2][1:])
+                            if (char_gear<1) or (char_gear>13):
+                                return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
+                            dict_virtual_characters[char_alias] = [char_rarity, char_gear, 0, '']
+                        else:
                             return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
-                        dict_virtual_characters[char_alias] = [char_rarity, char_gear, 0, '']
+                    elif tab_virtual_character[2][0] in "rR":
+                        if tab_virtual_character[2][1:].isnumeric():
+                            char_relic = int(tab_virtual_character[2][1:])
+                            if (char_relic<0) or (char_relic>8):
+                                return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
+                            dict_virtual_characters[char_alias] = [char_rarity, 13, char_relic, '']
+                        else:
+                            return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
                     else:
                         return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
-                elif tab_virtual_character[2][0] in "rR":
-                    if tab_virtual_character[2][1:].isnumeric():
-                        char_relic = int(tab_virtual_character[2][1:])
-                        if (char_relic<0) or (char_relic>8):
-                            return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
-                        dict_virtual_characters[char_alias] = [char_rarity, 13, char_relic, '']
-                    else:
-                        return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
-                else:
-                    return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
+                        
+                    #now that the virtual character is stored in the dictionary,
+                    # let the alias only in the list of characters
+                    characters = [char_alias if x == character else x for x in characters]
                     
-                #now that the virtual character is stored in the dictionary,
-                # let the alias only in the list of characters
-                characters = [char_alias if x == character else x for x in characters]
-                
-            elif len(tab_virtual_character) == 1:
-                #regular character, not virtual
-                pass
-            else:
-                return "ERR: la syntaxe "+character+" est incorrecte"
+                elif len(tab_virtual_character) == 1:
+                    #regular character, not virtual
+                    pass
+                else:
+                    return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
         e, t = load_player(txt_allyCode, False)
@@ -1231,7 +1232,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             
         else:
             #specific list of characters for one player
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_team_names, dict_unitsAlias, dict_tagAlias)
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters, dict_unitsAlias, dict_tagAlias)
             if txt != '':
                 return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
                     
