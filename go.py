@@ -85,13 +85,14 @@ def load_player(txt_allyCode, force_update):
     else:
         recent_player = 0
 
+    json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
+    if os.path.isfile(json_file):
+        prev_dict_player = json.load(open(json_file, 'r'))
+        prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+    else:
+        prev_dict_player = None
+
     if not recent_player or force_update:
-        json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
-        if os.path.isfile(json_file):
-            prev_dict_player = json.load(open(json_file, 'r'))
-            prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
-        else:
-            prev_dict_player = None
         goutils.log("INFO", "load_player", 'requesting API data for ' + txt_allyCode + '...')
         if client != None:
             player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
@@ -107,7 +108,13 @@ def load_player(txt_allyCode, force_update):
                             str(len(player_data)))
                             
                 dict_player = player_data[0]
+
+                #Add statistics
+                dict_player = connect_crinolo.add_stats(dict_player)
+
+                #Transform the roster into dictionary with key = defId
                 dict_player = goutils.roster_from_list_to_dict(dict_player)
+
                 goutils.log("INFO", "load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
                 sys.stdout.flush()
                 
@@ -127,7 +134,7 @@ def load_player(txt_allyCode, force_update):
                     goutils.log("INFO", "load_player", "success updating "+dict_player['name']+" in DB")
                 else:
                     goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
-                    return 1, 'ERR: update_player '+txt_allyCode+' returned an error'
+                    return 1, None, 'ERR: update_player '+txt_allyCode+' returned an error'
                 sys.stdout.flush()
                 
                 
@@ -135,20 +142,21 @@ def load_player(txt_allyCode, force_update):
                 goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+txt_allyCode+
                         ", 'FRE_FR') has returned an empty list")
                 sys.stdout.flush()
-                return 1, 'ERR: allyCode '+txt_allyCode+' not found'
+                return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
 
         else:
             goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+
                     txt_allyCode+", 'FRE_FR') has not returned a list")
             goutils.log('ERR', 'load_player',player_data)
             sys.stdout.flush()
-            return 1, 'ERR: allyCode '+txt_allyCode+' not found'
+            return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
         goutils.log('INFO', 'load_player',player_name + ' OK')
+        dict_player = prev_dict_player
     
     sys.stdout.flush()
-    return 0, ''
+    return 0, dict_player, ''
 
 def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
@@ -267,7 +275,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     i_player += 1
                     goutils.log("INFO", "load_guild", "player #"+str(i_player))
                     
-                    e, t = load_player(str(allyCode), False)
+                    e, d, t = load_player(str(allyCode), False)
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
                 parallel_work.set_guild_loading_status(guildName, None)
@@ -628,7 +636,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #only one player, potentially several teams
         
         #Load or update data for the player
-        e, t = load_player(txt_allyCode, False)
+        e, d, t = load_player(txt_allyCode, False)
         if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvée pour code allié ' + txt_allyCode
@@ -1191,14 +1199,14 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
-        e, t = load_player(txt_allyCode, False)
+        e, dict_player, t = load_player(txt_allyCode, False)
         if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
         
         #Manage request for all characters
         if 'all' in characters:
-            print("Get player char data from DB...")
+            goutils.log("INFO", "print_character_stats", "Get player char data from DB...")
             query ="SELECT players.name, defId, \
                     combatType, rarity, gear, relic_currentTier \
                     FROM roster \
@@ -1235,9 +1243,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters, dict_unitsAlias, dict_tagAlias)
             if txt != '':
                 return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
-                    
             for character_alias in dict_id_name:
-                character_id = dict_id_name[character_alias][0]
+                [character_id, character_name] = dict_id_name[character_alias][0]
                 if (character_alias in dict_virtual_characters) and \
                     character_alias != character_id:
                     #replace the alias key by the ID key in the dictionary
@@ -1272,7 +1279,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             
             #Get mod data for virtual characters
             if len(dict_virtual_characters) > 0:
-                print("Get player mod data from DB...")
+                goutils.log("INFO", "print_character_stats", "Get player mod data from DB...")
                 query ="SELECT players.name, defId,  \
                         mods.id, pips, mod_set, mods.level, \
                         prim_stat, prim_value, \
@@ -1383,7 +1390,6 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         dict_from_crinolo = connect_crinolo.add_stats(dict_for_crinolo)
         
         for roster_element in dict_from_crinolo["roster"]:
-            print (roster_element)
             base_stats = roster_element["stats"]["base"]
             if "mods" in roster_element["stats"]:
                 mods_stats = roster_element["stats"]["mods"]
