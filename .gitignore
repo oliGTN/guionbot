@@ -4,5 +4,6 @@ config.py
 IMAGES/CHARACTERS/*
 DATA/*
 PLAYERS/*
+GUILDS/*
 CACHE/*
 __pycache__/*

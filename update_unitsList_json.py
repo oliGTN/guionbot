@@ -3,7 +3,7 @@ import json
 import os
 
 #####################################
-# This script adapts the offcial file from SWGOH.HELP API
+# This script adapts the official file from SWGOH.HELP API
 # It transfoms the initial list into a dictionary, with the unit_id as key
 #####################################
 unitsList = json.load(open('DATA'+os.path.sep+'unitsList.json', 'r'))
@@ -58,4 +58,44 @@ for unitsList in [unitsList_FRE_FR_obtainable, unitsList_ENG_US_obtainable]:
 
 fnew = open('DATA'+os.path.sep+'unitsAlias_dict.json', 'w')
 fnew.write(json.dumps(unitsAlias_dict, sort_keys=True, indent=4))
+fnew.close()
+
+############################################
+# It also creates a dictionary of tags (Empire, Jedi...)
+############################################
+categoryList_FRE_FR = json.load(open('DATA'+os.path.sep+'categoryList.json', 'r'))
+categoryList_ENG_US = json.load(open('DATA'+os.path.sep+'categoryList_ENG_US.json', 'r'))
+
+dict_tags_by_id = {}
+for x in categoryList_FRE_FR:
+    tag_id = x["id"]
+    tag_name = x["descKey"]
+    if not tag_id.startswith("selftag_") and not tag_name == "Placeholder":
+        dict_tags_by_id[tag_id] = [tag_name]
+    
+for x in categoryList_ENG_US:
+    tag_id = x["id"]
+    tag_name = x["descKey"]
+    if not tag_id.startswith("selftag_") and not tag_name == "Placeholder":
+        if tag_id in dict_tags_by_id:
+            if not tag_name in dict_tags_by_id[tag_id]:
+                dict_tags_by_id[tag_id].append(tag_name)
+        else:
+            dict_tags_by_id[tag_id] = [tag_name]
+                
+dict_categories_by_name = {}
+for x in unitsList_FRE_FR_obtainable:
+    if x["combatType"] == 1:
+        for tag in x["categoryIdList"]:
+            if tag in dict_tags_by_id:
+                for tag_name in dict_tags_by_id[tag]:
+                    id_name = [x["baseId"], x["nameKey"]]
+                    if tag_name in dict_categories_by_name:
+                        if not id_name in dict_categories_by_name[tag_name]:
+                            dict_categories_by_name[tag_name].append(id_name)
+                    else:
+                        dict_categories_by_name[tag_name] = [id_name]
+
+fnew = open('DATA'+os.path.sep+'tagAlias_dict.json', 'w')
+fnew.write(json.dumps(dict_categories_by_name, sort_keys=True, indent=4))
 fnew.close()

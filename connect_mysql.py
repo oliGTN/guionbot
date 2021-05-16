@@ -52,14 +52,18 @@ def db_connect():
     return mysql_db
         
 def update_guild_teams(dict_team):
-#         dict_teams {key=team_name,
-#                     value=[[catégorie, nombre nécessaire,
-#                               {key=nom,
-#                                value=[id, étoiles min, gear min, étoiles reco,
-#                                       gear reco, liste zeta, vitesse, nom court]
-#                                }
-#                             ], ...]
-#                      }
+#         dict_team {
+#             team_name:{
+#                 "rarity": unlocking rarity of GV character
+#                 "categories": [
+#                     [catégorie, nombre nécessaire, {
+#                         nom:[id, étoiles min, gear min, étoiles reco,
+#                              gear reco, liste zeta, vitesse, nom court]
+#                         }
+#                     ], ...
+#                 ]
+#             }
+#         }
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
