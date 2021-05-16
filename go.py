@@ -1300,7 +1300,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         
         ret_print_character_stats += "Statistiques pour "+player_name+'\n'
 
-    elif len(characters) == 1 and characters[0] != "all":
+    elif len(characters) == 1 and characters[0] != "all" and not characters[0].startswith("tag:"):
         #Compute stats at guild level, only one character
         
         #Get data for the guild and associated players
@@ -1601,13 +1601,9 @@ def get_character_image(list_characters_allyCode, is_ID):
     err_code = 0
     err_txt = ''
 
-    #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
-    
     #Get data for all players
     #print(list_characters_allyCode)
     list_allyCodes = list(set([x[1] for x in list_characters_allyCode]))
-    #print(list_allyCodes)
     
     #get the amount of different players per guild
     # Goal is to update by player only if alone if the guild
@@ -1638,7 +1634,7 @@ def get_character_image(list_characters_allyCode, is_ID):
         list_ids_allyCode = []
         for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
             #specific list of characters for one player
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters, dict_unitsAlias, dict_tagAlias)
             if txt != '':
                 err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
                 
@@ -1699,24 +1695,28 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
     #Get full character name for defense
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(character_defense.lower(), dict_unitsAlias, dict_tagAlias)
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_defense], dict_unitsAlias, dict_tagAlias)
     if txt != '':
         err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
     char_def_id = list_character_ids[0]
 
     #Get full character names for defense squads
     list_opp_squad_ids = []
+
     list_opponent_squads, time_track = connect_warstats.parse_warstats_tw_teams()
-    #print(list_opponent_squads)
+    list_opponent_char_alias = list(set([j for i in [x[2] for x in list_opponent_squads] for j in i]))
+    list_opponent_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_opponent_char_alias, dict_unitsAlias, dict_tagAlias)
+    if txt != '':
+        err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
+
     for opp_squad in list_opponent_squads:
         territory = opp_squad[0]
         player_name = opp_squad[1]
-        squad_char_names = opp_squad[2]
         squad_char_ids = []
-
-        squad_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(squad_char_names, dict_unitsAlias, dict_tagAlias)
-        if txt != '':
-            err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
+        squad_char_alias = opp_squad[2]
+        for char_alias in squad_char_alias:
+            char_id = dict_id_name[char_alias]
+            squad_char_ids.append(char_id)
 
         list_opp_squad_ids.append([territory, player_name, squad_char_ids])
 
