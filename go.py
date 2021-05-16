@@ -24,10 +24,14 @@ FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
 
 #login password sur https://api.swgoh.help/profile
-creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
-client = SWGOHhelp(creds)
+if config.SWGOHAPI_LOGIN != "":
+    creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
+    client = SWGOHhelp(creds)
+else:
+    client = None
 dict_unitsList = json.load(open('DATA'+os.path.sep+'unitsList_dict.json', 'r'))
 dict_unitsAlias = json.load(open('DATA'+os.path.sep+'unitsAlias_dict.json', 'r'))
+dict_tagAlias = json.load(open('DATA'+os.path.sep+'tagAlias_dict.json', 'r'))
 
 #Clean temp files
 parallel_work.clean_cache()
@@ -89,7 +93,11 @@ def load_player(txt_allyCode, force_update):
         else:
             prev_dict_player = None
         goutils.log("INFO", "load_player", 'requesting API data for ' + txt_allyCode + '...')
-        player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
+        if client != None:
+            player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
+        else:
+            goutils.log("WAR", "load_player", 'Cannot connect to API. Using cache data from json')
+            player_data = [prev_dict_player]
 
         if isinstance(player_data, list):
             if len(player_data) > 0:
@@ -287,7 +295,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
     #   * : Affichage d'une icône verte (100%), orange (>=80%) ou rouge
 
     line = ''
-    # print('DBG: get_team_line_from_player '+dict_player['name'])
     objectifs = dict_team["categories"]
     nb_subobjs = len(objectifs)
     
@@ -304,7 +311,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
         else:  #score_type==3
             tab_progress_player[i_subobj] = [[0, '.         ', True]
                                             for i in range(nb_chars)]
-
     # Loop on categories within the goals
     for i_subobj in range(0, nb_subobjs):
         dict_char_subobj = objectifs[i_subobj][2]
@@ -316,10 +322,8 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
             character_obj = dict_char_subobj[character_id]
             i_character = character_obj[0]
             if character_id in dict_player:
-                # print('DBG: '+character_id+' trouvé')
-
                 character_nogo = False
-                #print(character_roster)
+                character_name = character_obj[7]
 
                 #Etoiles
                 req_rarity_min = character_obj[1]
@@ -329,7 +333,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 progress = progress + min(1, player_rarity / req_rarity_reco)
                 if player_rarity < req_rarity_min:
                     character_nogo = True
-                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
                 
                 #Gear
                 req_gear_min = character_obj[2]
@@ -377,7 +380,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                             progress += 1
                 if player_nb_zetas < len(req_zeta_ids):
                     character_nogo = True
-                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 #Vitesse (optionnel)
                 req_speed = character_obj[6]
@@ -388,10 +390,8 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                     progress = progress + min(1, player_speed / req_speed)
                 else:
                     req_speed = player_speed
-                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 player_gp = dict_player[character_id]['gp']
-
 
                 #Progress
                 if score_type == 1:
@@ -414,26 +414,26 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 if gv_mode:
                     if player_rarity < req_rarity_reco:
                         character_display += "\N{UP-POINTING RED TRIANGLE} "+\
-                                            character_id + \
+                                            character_name + \
                                             " est seulement " + \
                                             str(player_rarity) + "/" +\
                                             str(req_rarity_reco) +\
                                             "\N{WHITE MEDIUM STAR}"
                     elif player_gear < req_gear_reco:
                         character_display += "\N{CONFUSED FACE} "+\
-                                            character_id + \
+                                            character_name + \
                                             " est seulement G" + \
                                             str(player_gear) + "/" +\
                                             str(req_gear_reco)
                     elif player_relic < req_relic_reco:
                         character_display += "\N{WHITE RIGHT POINTING BACKHAND INDEX} "+\
-                                            character_id + \
+                                            character_name + \
                                             " est seulement relic " + \
                                             str(player_relic) + "/" +\
                                             str(req_relic_reco)
                     else:
                         character_display += "\N{WHITE HEAVY CHECK MARK} "+\
-                                            character_id + \
+                                            character_name + \
                                             " est OK"
                     character_progress_100 = int(character_progress*100)
                     character_display += " - " + str(character_progress_100) +"%"
@@ -441,26 +441,16 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 tab_progress_player[i_subobj][i_character - 1][0] = character_progress
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
-                # print(tab_progress_player[i_subobj][i_character - 1])
+
+                goutils.log("DBG", "get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
 
             else:
-                # character not found in player's roster
-                # print('DBG: '+character_subobj[0]+' pas trouvé dans '+str(dict_player['roster'].keys()))
-                # dict_player[character_id] = {"rarity": 0,
-                                            # "gear": 0,
-                                            # "rarity": 0,
-                                            # "gear": 0,
-                                            # "relic_currentTier": 0,
-                                            # "gp": 0,
-                                            # "speed": 0,
-                                            # "zetas": {}}
-                                            
                 if gv_mode:
                     character_display = "\N{CROSS MARK} "+\
-                                        character_id + \
+                                        character_name + \
                                         " n'est pas débloqué - 0%"
                     tab_progress_player[i_subobj][i_character - 1][1] += character_display
-
+    
     #calcul du score global
     score = 0
     score100 = 0
@@ -484,7 +474,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 line += tab_progress_sub_obj[1] + "\n"
 
         min_perso = objectifs[i_subobj][1]
-        # print('DBG: '+str(tab_progress_player[i_subobj]))
 
         #Extraction des scores pour les persos non-exclus
         tab_score_player_values = [(lambda f: (f[0] * (not f[2])))(x)
@@ -492,7 +481,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
 
         score += sum(sorted(tab_score_player_values)[-min_perso:])
         score100 += min_perso
-        # print('DBG: score='+str(score)+' score100='+str(score100))
         
         if 0.0 in sorted(tab_score_player_values)[-min_perso:]:
             score_nogo = True
@@ -618,9 +606,8 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                         
     ret_get_team_progress = {}
 
-    #Recuperation des dernieres donnees sur gdrive
-    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(dict_unitsAlias)
-    dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
+    #Recuperation des dernieres donnees sur gdrive+
+    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(dict_unitsAlias, dict_tagAlias)
     
     if not compute_guild:
         #only one player, potentially several teams
@@ -639,15 +626,9 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
 
     if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
-        list_character_ids=[]
-        for character_alias in list_team_names:
-            #Get full character name
-            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-            if len(closest_names)<1:
-                return 'INFO: aucun personnage trouvé pour '+character_alias
-            else:
-                [character_name, character_id]=dict_units[closest_names[0]]
-                list_character_ids.append(character_id)
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_team_names, dict_unitsAlias, dict_tagAlias)
+        if txt != "":
+            return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
         list_team_names = [x+"-GV" for x in list_character_ids]
 
     #Get player data
@@ -749,16 +730,15 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         gv_characters_unlocked = connect_mysql.get_table(query)        
         
     if player_data != None:
-        print("Recreate dict_teams...")
+        goutils.log("INFO", "get_team_progress", "Recreate dict_teams...")
         dict_teams = goutils.create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked)
-        print("-> OK")
+        goutils.log("INFO", "get_team_progress", "Recreation of dict_teams is OK")
     else:
         query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
         goutils.log("DBG", "get_team_progress", query)
         player_name = connect_mysql.get_value(query)
         dict_teams = {player_name: {}}
-        print("no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names)+"...")
-    
+        goutils.log("WAR", "get_team_progress", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
     
     # Compute teams for this player
     if gv_mode:
@@ -800,7 +780,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                     dict_player = dict_teams[player_name][team_name]
                 else:
                     dict_player = {}
-                    
+
                 #resultats par joueur
                 score, unlocked, line, nogo = get_team_line_from_player(team_name,
                     dict_player, dict_team_gt[team_name], score_type, score_green,
@@ -1236,24 +1216,19 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             
         else:
             #specific list of characters for one player
-            list_character_ids=[]
-            for character_alias in characters:
-                #Get full character name
-                closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-                if len(closest_names)<1:
-                    ret_print_character_stats += \
-                        'INFO: aucun personnage trouvé pour '+character_alias+'\n'
-                else:
-                    [character_name, character_id]=dict_units[closest_names[0]]
-                    list_character_ids.append(character_id)
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_team_names, dict_unitsAlias, dict_tagAlias)
+            if txt != '':
+                return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
                     
-                    if (character_alias in dict_virtual_characters) and \
-                        character_alias != character_id:
-                        #replace the alias key by the ID key in the dictionary
-                        dict_virtual_characters[character_id] = \
-                            dict_virtual_characters[character_alias]
-                        dict_virtual_characters[character_id][3] = character_name
-                        del dict_virtual_characters[character_alias]
+            for character_alias in dict_id_name:
+                character_id = dict_id_name[character_alias][0]
+                if (character_alias in dict_virtual_characters) and \
+                    character_alias != character_id:
+                    #replace the alias key by the ID key in the dictionary
+                    dict_virtual_characters[character_id] = \
+                        dict_virtual_characters[character_alias]
+                    dict_virtual_characters[character_id][3] = character_name
+                    del dict_virtual_characters[character_alias]
 
             db_stat_data_char = []
             goutils.log("INFO", "print_character_stats", "Get player_data data from DB...")
@@ -1319,13 +1294,11 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         
         #Get character_id
         character_alias = characters[0]
-        closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-        if len(closest_names)<1:
-            ret_print_character_stats += \
-                'INFO: aucun personnage trouvé pour '+character_alias+'\n'
-        else:
-            [character_name, character_id]=dict_units[closest_names[0]]
-                    
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
+        if txt != '':
+            return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+            
+        character_id = list_character_ids[0]
         db_stat_data_char = []
         goutils.log("INFO", "print_character_stats", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
@@ -1649,17 +1622,10 @@ def get_character_image(list_characters_allyCode, is_ID):
         list_ids_allyCode = []
         for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
             #specific list of characters for one player
-            list_character_ids=[]
-            for character_alias in characters:
-                #Get full character name
-                closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-                if len(closest_names)<1:
-                    goutils.log("WAR", "get_character_image", "aucun personnage trouvé pour "+character_alias)
-                    err_txt += 'WAR: aucun personnage trouvé pour '+character_alias+'\n'
-                else:
-                    [character_name, character_id]=dict_units[closest_names[0]]
-                    list_character_ids.append(character_id)
-    
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
+            if txt != '':
+                err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
+                
             if len(list_character_ids) == 0:
                 err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode
             else:
@@ -1712,25 +1678,15 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
     
     #Get full character names for attack
-    list_id_attack = []
-    for character_alias in list_char_attack:
-        closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-        if len(closest_names)<1:
-            print('WAR: aucun personnage trouvé pour '+character_alias)
-            err_txt += 'WAR: aucun personnage trouvé pour '+character_alias+'\n'
-        else:
-            [character_name, character_id]=dict_units[closest_names[0]]
-            list_id_attack.append(character_id)
+    list_id_attack, dict_id_name, txt = goutils.get_characters_from_alias(list_char_attack, dict_unitsAlias, dict_tagAlias)
+    if txt != '':
+        err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
     #Get full character name for defense
-    closest_names=difflib.get_close_matches(character_defense.lower(), dict_units.keys(), 3)
-    if len(closest_names)<1:
-        print('ERR: aucun personnage trouvé pour '+character_defense)
-        err_txt += 'ERR: aucun personnage trouvé pour '+character_defense+'\n'
-        return 1, err_txt, None
-    else:
-        [character_name, character_id]=dict_units[closest_names[0]]
-        char_def_id = character_id
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(character_defense.lower(), dict_unitsAlias, dict_tagAlias)
+    if txt != '':
+        err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
+    char_def_id = list_character_ids[0]
 
     #Get full character names for defense squads
     list_opp_squad_ids = []
@@ -1742,18 +1698,11 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         squad_char_names = opp_squad[2]
         squad_char_ids = []
 
-        for character_alias in squad_char_names:
-            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-            if len(closest_names)<1:
-                print('WAR: aucun personnage trouvé pour '+character_alias)
-                err_txt += 'WAR: aucun personnage trouvé pour '+character_alias+'\n'
-            else:
-                [character_name, character_id]=dict_units[closest_names[0]]
-                squad_char_ids.append(character_id)
+        squad_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(squad_char_names, dict_unitsAlias, dict_tagAlias)
+        if txt != '':
+            err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
         list_opp_squad_ids.append([territory, player_name, squad_char_ids])
-        #print(squad_char_names)
-        #print(squad_char_ids)
 
     list_opp_squads_with_char = list(filter(lambda x:char_def_id in x[2], list_opp_squad_ids))
     if len(list_opp_squads_with_char) == 0:
