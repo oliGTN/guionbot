@@ -2,9 +2,13 @@
 import os
 import json
 import math
+import difflib
+from datetime import datetime
+
 import config
 import connect_mysql
-from datetime import datetime
+import connect_gsheets
+
 
 ##############################################################
 # Function: pad_txt
@@ -167,10 +171,51 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
             dict_players[line_playername] = {}
         if not line_teamname in dict_players[line_playername]:
             dict_players[line_playername][line_teamname] = {}
-        dict_players[line_playername][line_teamname][line_defId]={ \
+        if not line_defId in dict_players[line_playername][line_teamname]:
+            dict_players[line_playername][line_teamname][line_defId]={ \
                                                 "rarity": line_rarity}
 
     return dict_players
+    
+def create_guild_teams(db_data):
+    dict_teams={}
+
+    cur_teamname = ''
+    for line in db_data:
+        line_teamname = line[0]
+        if cur_teamname != line_teamname:
+            dict_teams[line_teamname]={"rarity":7, "categories":[]}
+            cur_subteamname = ''
+            cur_teamname = line_teamname
+        
+        line_subteamname = line[1]
+        if cur_subteamname != line_subteamname:
+            line_subteam_min = line[2]
+            dict_teams[line_teamname]["categories"].append([line_subteamname, line_subteam_min, {}])
+            cur_unit_id = ''
+            cur_subteamname = line_subteamname
+        
+        line_unit_id = line[4]
+        if cur_unit_id != line_unit_id:
+            line_id = line[3]
+            line_rarity_min = line[5]
+            line_gear_min = line[6]
+            line_rarity_reco = line[7]
+            line_gear_reco = line[8]
+            line_speed = line[9]
+            line_zetaList = line[10]
+            dict_teams[line_teamname]["categories"][-1][2][line_unit_id]=[ 
+                    line_id,
+                    line_rarity_min, line_gear_min,
+                    line_rarity_reco, line_gear_reco,
+                    line_zetaList,
+                    line_speed,
+                    ""]
+                    
+            cur_unit_id = line_unit_id
+
+    liste_teams = list(dict_teams.keys())
+    return liste_teams, dict_teams
     
 def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList):
     dict_players={}
@@ -472,3 +517,36 @@ def roster_from_dict_to_list(dict_player):
     log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
 
     return dict_player
+
+def get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias):
+    #Recuperation des dernieres donnees sur gdrive
+    dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
+
+    txt_not_found_characters = ''
+    dict_id_name = {}
+    list_ids = []
+    for character_alias in list_alias:
+        if character_alias.startswith("tag:"):
+            #Alias of a tag / faction
+            tag_alias = character_alias[4:]
+            closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
+            if len(closest_names)<1:
+                log('WAR', "get_characters_from_alias", "No tag found for "+tag_alias)
+                txt_not_found_characters += character_alias + ' '
+            else:
+                dict_id_name[character_alias] = []
+                for [character_id, character_name] in dict_tagAlias[closest_names[0]]:
+                    list_ids.append(character_id)
+                    dict_id_name[character_alias].append([character_id, character_name])
+        else:
+            #Normal alias
+            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+            if len(closest_names)<1:
+                log('WAR', "get_characters_from_alias", "No character found for "+character_alias)
+                txt_not_found_characters += character_alias + ' '
+            else:
+                [character_name, character_id]=dict_units[closest_names[0]]
+                list_ids.append(character_id)
+                dict_id_name[character_alias] = [[character_id, character_name]]
+            
+    return list_ids, dict_id_name, txt_not_found_characters
