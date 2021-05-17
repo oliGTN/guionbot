@@ -247,7 +247,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {}}
+                    "stats": {'base':{}}}
                 
             cur_defId = line_defId            
 
@@ -284,15 +284,16 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {}}
-                
-            dict_players[line_name][line_defId]["stats"][1] = int(line_stat1)
-            dict_players[line_name][line_defId]["stats"][5] = int(line_stat5)
-            dict_players[line_name][line_defId]["stats"][6] = int(line_stat6)
-            dict_players[line_name][line_defId]["stats"][7] = int(line_stat7)
-            dict_players[line_name][line_defId]["stats"][17] = int(line_stat17)
-            dict_players[line_name][line_defId]["stats"][18] = int(line_stat18)
-            dict_players[line_name][line_defId]["stats"][28] = int(line_stat28)
+                    "stats": {'base':{}}}
+            #All stats are put as "base" even if actualy
+            #  they are the sum of all stats
+            dict_players[line_name][line_defId]["stats"]["base"]['1'] = int(line_stat1)
+            dict_players[line_name][line_defId]["stats"]["base"]['5'] = int(line_stat5)
+            dict_players[line_name][line_defId]["stats"]["base"]['6'] = int(line_stat6)
+            dict_players[line_name][line_defId]["stats"]["base"]['7'] = int(line_stat7)
+            dict_players[line_name][line_defId]["stats"]["base"]['17'] = int(line_stat17)
+            dict_players[line_name][line_defId]["stats"]["base"]['18'] = int(line_stat18)
+            dict_players[line_name][line_defId]["stats"]["base"]['28'] = int(line_stat28)
 
             cur_defId = line_defId
 
