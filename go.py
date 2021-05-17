@@ -1137,13 +1137,13 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
     #Recuperation des dernieres donnees sur gdrive
     dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
 
-    list_stats_for_display=[[5, "Vit", False, 'v'],
-                            [6, "DegPhy", False, 'd'],
-                            [7, "DegSpé", False, ''],
-                            [1, " Santé", False, 's'],
-                            [28, "Protec", False, ''],
-                            [17, "Pouvoir", True, 'p'],
-                            [18, "Ténacité", True, '']]
+    list_stats_for_display=[['5', "Vit", False, 'v'],
+                            ['6', "DegPhy", False, 'd'],
+                            ['7', "DegSpé", False, ''],
+                            ['1', " Santé", False, 's'],
+                            ['28', "Protec", False, ''],
+                            ['17', "Pouvoir", True, 'p'],
+                            ['18', "Ténacité", True, '']]
     
     #manage sorting options
     sort_option='name'
@@ -1151,12 +1151,12 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         sort_option = characters[0][1:]
         characters = characters[1:]
         
-    dict_virtual_characters={} #{key=alias or ID, value=[rarity, gear, relic, nameKey]}
+    dict_virtual_characters={} #{key=alias or ID, value=[gear, relic, nameKey]}
 
     if not compute_guild:
         #only one player, potentially several characters
         
-        #parse the list to detect virtual characters "name:rarity:R4" or "name:rarity:G11"
+        #parse the list to detect virtual characters "name:R4" or "name:G11"
         for character in characters:
             if not character.startswith("tag:"):
                 tab_virtual_character = character.split(':')
@@ -1168,13 +1168,13 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     if not tab_virtual_character[1] in "1234567":
                         return "ERR: la syntaxe "+character+" est incorrecte pour les étoiles"
                     char_rarity = int(tab_virtual_character[1])
-                    
+
                     if tab_virtual_character[2][0] in "gG":
                         if tab_virtual_character[2][1:].isnumeric():
                             char_gear = int(tab_virtual_character[2][1:])
                             if (char_gear<1) or (char_gear>13):
                                 return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
-                            dict_virtual_characters[char_alias] = [char_rarity, char_gear, 0, '']
+                            dict_virtual_characters[char_alias] = [char_rarity, char_gear, 0]
                         else:
                             return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
                     elif tab_virtual_character[2][0] in "rR":
@@ -1182,11 +1182,43 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                             char_relic = int(tab_virtual_character[2][1:])
                             if (char_relic<0) or (char_relic>8):
                                 return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
-                            dict_virtual_characters[char_alias] = [char_rarity, 13, char_relic, '']
+                            dict_virtual_characters[char_alias] = [char_rarity, 13, char_relic]
                         else:
                             return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
                     else:
                         return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
+                        
+                    #now that the virtual character is stored in the dictionary,
+                    # let the alias only in the list of characters
+                    characters = [char_alias if x == character else x for x in characters]
+                    
+                elif len(tab_virtual_character) == 2:
+                    char_alias = tab_virtual_character[0]
+                    if char_alias == "all":
+                        return "ERR: impossible de demander un niveau spécifique pour all"
+                    
+                    if tab_virtual_character[1][0] in "gG":
+                        if tab_virtual_character[1][1:].isnumeric():
+                            char_gear = int(tab_virtual_character[1][1:])
+                            if (char_gear<1) or (char_gear>13):
+                                return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
+                            dict_virtual_characters[char_alias] = [None, char_gear, 0]
+                        else:
+                            return "ERR: la syntaxe "+character+" est incorrecte pour le gear"
+                    elif tab_virtual_character[1][0] in "rR":
+                        if tab_virtual_character[1][1:].isnumeric():
+                            char_relic = int(tab_virtual_character[1][1:])
+                            if (char_relic<0) or (char_relic>8):
+                                return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
+                            dict_virtual_characters[char_alias] = [None, 13, char_relic]
+                        else:
+                            return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
+                    elif tab_virtual_character[1] in "1234567":
+                        char_rarity = int(tab_virtual_character[1])
+                        dict_virtual_characters[char_alias] = [char_rarity, None, None]
+
+                    else:
+                        return "ERR: la syntaxe "+character+" est incorrecte"
                         
                     #now that the virtual character is stored in the dictionary,
                     # let the alias only in the list of characters
@@ -1200,115 +1232,61 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         
         #Get data for this player
         e, dict_player, t = load_player(txt_allyCode, False)
+        player_name = dict_player["name"]
+        list_player_names = [player_name]
+
         if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
         
         #Manage request for all characters
         if 'all' in characters:
-            goutils.log("INFO", "print_character_stats", "Get player char data from DB...")
-            query ="SELECT players.name, defId, \
-                    combatType, rarity, gear, relic_currentTier \
-                    FROM roster \
-                    JOIN players ON players.allyCode = roster.allyCode \
-                    WHERE players.allyCode = '"+txt_allyCode+"' \
-                    AND roster.combatType=1 AND roster.level >= 50 \
-                    ORDER BY players.name, defId"
-            goutils.log("DBG", "print_character_stats", query)
-            db_stat_data_char = connect_mysql.get_table(query)
-            
-            goutils.log("INFO", "print_character_stats", "Get player stats data from DB...")
-            query = "SELECT players.name, defId, "\
-                   +"roster.combatType, rarity, gear, relic_currentTier, "\
-                   +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
-                   +"stat5_base+stat5_gear+stat5_mods_crew AS stat5, "\
-                   +"stat6_base+stat5_gear+stat6_mods_crew AS stat6, "\
-                   +"stat7_base+stat5_gear+stat7_mods_crew AS stat7, "\
-                   +"stat17_base+stat17_gear+stat17_mods_crew AS stat17, "\
-                   +"stat18_base+stat18_gear+stat18_mods_crew AS stat18, "\
-                   +"stat28_base+stat28_gear+stat28_mods_crew AS stat28 "\
-                   +"FROM roster "\
-                   +"JOIN players ON players.allyCode = roster.allyCode "\
-                   +"WHERE players.allyCode = '"+txt_allyCode+"' "\
-                   +"AND roster.combatType=1 AND roster.level >= 50 "\
-                   +"ORDER BY players.name, defId"
-            goutils.log("DBG", "print_character_stats", query)
-            
-            db_stat_data = connect_mysql.get_table(query)
-            db_stat_data_mods = []
-            list_character_ids=set([x[1] for x in db_stat_data])
+            dict_stats = {player_name: dict_player['roster']}
+            list_character_ids=list(dict_player["roster"].keys())
             
         else:
             #specific list of characters for one player
             list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters, dict_unitsAlias, dict_tagAlias)
             if txt != '':
                 return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
-            for character_alias in dict_id_name:
-                [character_id, character_name] = dict_id_name[character_alias][0]
-                if (character_alias in dict_virtual_characters) and \
-                    character_alias != character_id:
-                    #replace the alias key by the ID key in the dictionary
-                    dict_virtual_characters[character_id] = \
-                        dict_virtual_characters[character_alias]
-                    dict_virtual_characters[character_id][3] = character_name
-                    del dict_virtual_characters[character_alias]
 
-            db_stat_data_char = []
-            goutils.log("INFO", "print_character_stats", "Get player_data data from DB...")
-            query = "SELECT players.name, defId, "\
-                   +"roster.combatType, rarity, gear, relic_currentTier, "\
-                   +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
-                   +"stat5_base+stat5_gear+stat5_mods_crew AS stat5, "\
-                   +"stat6_base+stat5_gear+stat6_mods_crew AS stat6, "\
-                   +"stat7_base+stat5_gear+stat7_mods_crew AS stat7, "\
-                   +"stat17_base+stat17_gear+stat17_mods_crew AS stat17, "\
-                   +"stat18_base+stat18_gear+stat18_mods_crew AS stat18, "\
-                   +"stat28_base+stat28_gear+stat28_mods_crew AS stat28 "\
-                   +"FROM roster "\
-                   +"JOIN players ON players.allyCode = roster.allyCode "\
-                   +"WHERE players.allyCode = '"+txt_allyCode+"' "\
-                   +"AND ("
-            for character_id in list_character_ids:
-                query += "defId = '"+character_id+"' OR "
-            query = query[:-3] + ") "\
-                   +"ORDER BY players.name, defId"
-            goutils.log("DBG", "print_character_stats", query)
-
-            db_stat_data = connect_mysql.get_table(query)
-            goutils.log("DBG", "print_character_stats", db_stat_data)
-            
-            #Get mod data for virtual characters
+            #Manage virtual characters
             if len(dict_virtual_characters) > 0:
-                goutils.log("INFO", "print_character_stats", "Get player mod data from DB...")
-                query ="SELECT players.name, defId,  \
-                        mods.id, pips, mod_set, mods.level, \
-                        prim_stat, prim_value, \
-                        sec1_stat, sec1_value, \
-                        sec2_stat, sec2_value, \
-                        sec3_stat, sec3_value, \
-                        sec4_stat, sec4_value \
-                        FROM roster \
-                        JOIN players ON players.allyCode = roster.allyCode \
-                        JOIN mods ON mods.roster_id = roster.id \
-                        WHERE players.allyCode = '"+txt_allyCode+"' \
-                        AND ("
-                for character_id in dict_virtual_characters.keys():
-                    query += "defId = '"+character_id+"' OR "
-                query = query[:-3] + ")"
-                goutils.log("DBG", "print_character_stats", query)
+                for character_alias in dict_id_name:
+                    [character_id, character_name] = dict_id_name[character_alias][0]
+                    if (character_alias in dict_virtual_characters) and \
+                        character_alias != character_id:
+                        #Update the character information in roster
+                        virtual_rarity = dict_virtual_characters[character_alias][0]
+                        virtual_gear = dict_virtual_characters[character_alias][1]
+                        virtual_relic = dict_virtual_characters[character_alias][2]
 
-                db_stat_data_mods = connect_mysql.get_table(query)
-            else:
-                db_stat_data_mods = []
-            
-        if len(db_stat_data) == 0:
-            query = "SELECT players.name FROM players WHERE allyCode = "+txt_allyCode
-            player_name = connect_mysql.get_value(query)
-        else:
-            player_name = db_stat_data[0][0]
-        list_player_names = [player_name]
+                        dict_player["roster"][character_id]["level"] = 85
+                        if virtual_rarity != None:
+                            dict_player["roster"][character_id]["rarity"] = virtual_rarity
+                        if dict_player["roster"][character_id]["combatType"] == 1:
+                            if virtual_gear != None:
+                                    dict_player["roster"][character_id]["gear"] = virtual_gear
+                            if virtual_relic != None:
+                                dict_player["roster"][character_id]["relic"]["currentTier"] = virtual_relic +2
+                
+                #Filter on useful only characters
+                del dict_player["arena"]
+                del dict_player["grandArena"]
+                del dict_player["portraits"]
+                del dict_player["stats"]
+                del dict_player["titles"]
+                
+                #Recompute stats with Crinolo API
+                dict_player = goutils.roster_from_dict_to_list(dict_player)
+                dict_player = connect_crinolo.add_stats(dict_player)
+                dict_player = goutils.roster_from_list_to_dict(dict_player)
+
+            dict_stats = {player_name: dict_player['roster']}
+
         
         ret_print_character_stats += "Statistiques pour "+player_name+'\n'
+
 
     elif len(characters) == 1 and characters[0] != "all" and not characters[0].startswith("tag:"):
         #Compute stats at guild level, only one character
@@ -1346,70 +1324,17 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         db_stat_data_mods = []
         list_character_ids=[character_id]
         list_player_names=set([x[0] for x in db_stat_data])
+        print(dict_id_name)
+        character_name = dict_id_name[character_alias][0][1]
         
         ret_print_character_stats += "Statistiques pour "+character_name+'\n'
     
+        # Generate dict from DB data
+        dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList)
     else:
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
-    # Generate dict with statistics
-    dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList)
 
-    #Manage virtual characters
-    #This works only with command SPJ, so only one player_name
-    if len(dict_virtual_characters)>0 and not ('all' in characters):
-        #eras previous atsts
-        dict_for_crinolo = {"nameKey": player_name, "allyCode": int(txt_allyCode),
-                            "roster":[]}
-
-        for character_id in dict_virtual_characters:
-            roster_element = {}
-            if character_id in dict_stats[player_name]:
-                #character is unlocked, let's get the mods
-                roster_element = dict_stats[player_name][character_id]
-                
-            roster_element["defId"] = character_id
-            if character_id in dict_unitsList:
-                roster_element["combatType"] = dict_unitsList[character_id]["combatType"]
-            else:
-                goutils.log("WAR", "print_character_stats", "unknown unit: "+character_id)
-
-            roster_element["nameKey"] = dict_virtual_characters[character_id][3]
-            roster_element["level"] = 85
-            roster_element["equipped"] = []
-            roster_element["rarity"] = dict_virtual_characters[character_id][0]
-            roster_element["gear"] = dict_virtual_characters[character_id][1]
-            if roster_element["gear"] < 13:
-                roster_element["relic"] = {"currentTier": 1}
-            else:
-                roster_element["relic"] = {
-                    "currentTier": dict_virtual_characters[character_id][2]+2}
-                    
-            dict_for_crinolo["roster"].append(roster_element)
-        
-        dict_from_crinolo = connect_crinolo.add_stats(dict_for_crinolo)
-        
-        for roster_element in dict_from_crinolo["roster"]:
-            base_stats = roster_element["stats"]["base"]
-            if "mods" in roster_element["stats"]:
-                mods_stats = roster_element["stats"]["mods"]
-            else:
-                mods_stats = {}
-            sum_stats  = {int(k): base_stats.get(k, 0) + mods_stats.get(k, 0) \
-                            for k in set(base_stats) | set(mods_stats)}
-            
-            if not player_name in dict_stats:
-                #no roster recovered from the player
-                roster_element["combatType"] = 1
-                dict_stats[player_name]={roster_element["defId"]: roster_element}
-                
-            if not roster_element["defId"] in dict_stats[player_name]:
-                #roster recovered without this character
-                roster_element["combatType"] = 1
-                dict_stats[player_name][roster_element["defId"]] = roster_element
-
-            dict_stats[player_name][roster_element["defId"]]["stats"] = sum_stats
-        
     # Create all lines before display
     list_print_stats=[]
     for player_name in list_player_names:
@@ -1430,7 +1355,17 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                         character_gear="G"+str(character_gear)
                 else: #ship
                     character_gear=''
-                character_stats = dict_player[character_id]["stats"]
+
+                #Sum all different stats into one
+                character_stats = {}
+                for stat_type in dict_player[character_id]["stats"]:
+                    for stat_id in dict_player[character_id]["stats"][stat_type]:
+                        stat_value = dict_player[character_id]["stats"][stat_type][stat_id]
+                        if stat_value != None:
+                            if stat_id in character_stats:
+                                character_stats[stat_id] += dict_player[character_id]["stats"][stat_type][stat_id]
+                            else:
+                                character_stats[stat_id] = dict_player[character_id]["stats"][stat_type][stat_id]
                 
                 if compute_guild:
                     line_header = player_name
