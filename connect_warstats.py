@@ -2,8 +2,10 @@ import urllib.request
 import string
 import random
 import re
-import config
 from html.parser import HTMLParser
+
+import config
+import goutils
 
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/'+config.WARSTATS_GUILD_ID
 warstats_platoons_baseurl='https://goh.warstats.net/platoons/view/'
@@ -357,7 +359,7 @@ class TBSPhaseParser(HTMLParser):
             elif data == 'Hoth - Light side':
                 self.detected_phase='HLS'
             else:
-                print('ERR: BT inconnue: '+data)
+                goutils.log('ERR', "TBSPhaseParser-handle_data", "BT inconnue: "+data)
             
             self.state_parser=0
                 
@@ -565,7 +567,7 @@ class TBSResumeParser(HTMLParser):
             elif data == 'Hoth - Light side':
                 self.detected_phase='HLS'
             else:
-                print('ERR: BT inconnue: '+data)
+                goutils.log('ERR', "TBSResumeParser-handle_data", "BT inconnue: "+data)
             
             self.state_parser=0
                 
@@ -822,23 +824,23 @@ def parse_warstats_page():
     try:
         page = fresh_urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
-        print('ERR: while opening '+warstats_tbs_url)
+        goutils.log('ERR', "parse_warstats_page", 'error while opening '+warstats_tbs_url)
         return '', None, None, None
         
     generic_parser = GenericTBSParser()
     generic_parser.feed(str(page.read()))
     
     if generic_parser.get_battle_id() == None:
-        print('ERR: no TB in progress')
+        goutils.log('ERR', "parse_warstats_page", 'no TB in progress')
         return '', None, None, None
     else:
-        print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
+        goutils.log('INFO', "parse_warstats_page", "TB "+generic_parser.get_battle_id()+" in progress")
         
     warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
     try:
         page = fresh_urlopen(warstats_platoon_url)
     except urllib.error.HTTPError as e:
-        print('ERR: while opening '+warstats_platoon_url)
+        goutils.log('ERR', "parse_warstats_page", 'error while opening '+warstats_platoon_url)
         return '', None, None, None
     
     complete_dict_platoons={}
@@ -854,7 +856,7 @@ def parse_warstats_page():
             #print("DBG - complete_dict_platoons: "+str(complete_dict_platoons))
             #print("DBG - complete_dict_player_allocations: "+str(complete_dict_player_allocations))
         except urllib.error.HTTPError as e:
-            print('WAR: page introuvable '+warstats_platoon_url+'/'+str(phase))
+            goutils.log('WAR', "parse_warstats_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
     
     warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
     page = fresh_urlopen(warstats_resume_url)
@@ -869,17 +871,17 @@ def parse_warstats_tb_scores():
     try:
         page = fresh_urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
-        print('ERR: while opening '+warstats_tbs_url)
+        goutils.log('ERR', "parse_warstats_tb_scores", 'error while opening '+warstats_tbs_url)
         return {}, 0
         
     generic_parser = GenericTBSParser()
     generic_parser.feed(str(page.read()))
     
     if generic_parser.get_battle_id() == None:
-        print('ERR: no TB in progress')
+        goutils.log('ERR', "parse_warstats_tb_scores", 'no TB in progress')
         return {}, 0
     else:
-        print("INFO: TB "+generic_parser.get_battle_id()+" in progress")
+        goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id()+" in progress")
     
     warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()
     page = fresh_urlopen(warstats_resume_url)
@@ -887,20 +889,20 @@ def parse_warstats_tb_scores():
     # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
     resume_parser.feed(str(page.read()))
     
-    print("TB name = "+resume_parser.get_battle_name())
+    goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+resume_parser.get_battle_name())
     return resume_parser.get_territory_scores(), resume_parser.get_last_track()
 
 def parse_warstats_tw_teams():
     try:
         page = fresh_urlopen(warstats_tws_url)
     except urllib.error.HTTPError as e:
-        print('ERR: while opening '+warstats_tws_url)
+        goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_tws_url)
         return {}, 0
         
     generic_parser = GenericTWSParser()
     generic_parser.feed(str(page.read()))
     
-    print("INFO: latest TW is "+generic_parser.get_war_id())
+    goutils.log('INFO', "parse_warstats_tw_teams", "latest TW is "+generic_parser.get_war_id())
     
     warstats_opp_squad_url=warstats_opp_squad_baseurl+generic_parser.get_war_id()
     page = fresh_urlopen(warstats_opp_squad_url)

@@ -232,7 +232,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
         
         line_defId = line[1]
         if cur_defId != line_defId:
-            if cur_defId in dict_unitsList:
+            if line_defId in dict_unitsList:
                 line_nameKey = dict_unitsList[line_defId]['nameKey']
             else:
                 line_nameKey = line_defId
@@ -242,11 +242,12 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
             line_relic_currentTier = line[5]
             dict_players[line_name][line_defId]={ \
                     "nameKey": line_nameKey,
+                    "defId": line_defId,
                     "combatType": line_combatType,
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {}}
+                    "stats": {'base':{}}}
                 
             cur_defId = line_defId            
 
@@ -261,7 +262,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
         
         line_defId = line[1]
         if cur_defId != line_defId:
-            if cur_defId in dict_unitsList:
+            if line_defId in dict_unitsList:
                 line_nameKey = dict_unitsList[line_defId]['nameKey']
             else:
                 line_nameKey = line_defId
@@ -278,19 +279,21 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
             line_stat28 = line[12]
             dict_players[line_name][line_defId]={ \
                     "nameKey": line_nameKey,
+                    "defId": line_defId,
                     "combatType": line_combatType,
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {}}
-                
-            dict_players[line_name][line_defId]["stats"][1] = int(line_stat1)
-            dict_players[line_name][line_defId]["stats"][5] = int(line_stat5)
-            dict_players[line_name][line_defId]["stats"][6] = int(line_stat6)
-            dict_players[line_name][line_defId]["stats"][7] = int(line_stat7)
-            dict_players[line_name][line_defId]["stats"][17] = int(line_stat17)
-            dict_players[line_name][line_defId]["stats"][18] = int(line_stat18)
-            dict_players[line_name][line_defId]["stats"][28] = int(line_stat28)
+                    "stats": {'base':{}}}
+            #All stats are put as "base" even if actualy
+            #  they are the sum of all stats
+            dict_players[line_name][line_defId]["stats"]["base"]['1'] = int(line_stat1)
+            dict_players[line_name][line_defId]["stats"]["base"]['5'] = int(line_stat5)
+            dict_players[line_name][line_defId]["stats"]["base"]['6'] = int(line_stat6)
+            dict_players[line_name][line_defId]["stats"]["base"]['7'] = int(line_stat7)
+            dict_players[line_name][line_defId]["stats"]["base"]['17'] = int(line_stat17)
+            dict_players[line_name][line_defId]["stats"]["base"]['18'] = int(line_stat18)
+            dict_players[line_name][line_defId]["stats"]["base"]['28'] = int(line_stat28)
 
             cur_defId = line_defId
 
@@ -323,20 +326,28 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
                 
             cur_mod_id = line_mod_id
             
-        line_isPrimary = line[6]
-        line_unitStat = line[7]
-        line_value = line[8]
-        if line_isPrimary:
-            dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["unitStat"] = line_unitStat
-            dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["value"] = line_value
-        else:
-            dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
-                {"unitStat": line_unitStat,
-                "value": line_value})
+        line_prim_stat = line[6]
+        line_prim_value = line[7]
+        dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["unitStat"] = line_prim_stat
+        dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["value"] = line_prim_value
 
-        dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
-            int(line_unscaledDecimalValue)
-    
+        line_sec1_stat = line[8]
+        line_sec1_value = line[9]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec1_stat, "value": line_sec1_value})
+        line_sec2_stat = line[10]
+        line_sec2_value = line[11]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec2_stat, "value": line_sec2_value})
+        line_sec3_stat = line[12]
+        line_sec3_value = line[13]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec3_stat, "value": line_sec3_value})
+        line_sec4_stat = line[14]
+        line_sec4_value = line[15]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec4_stat, "value": line_sec4_value})
+
     return dict_players
     
 def get_zeta_from_shorts(character_id, zeta_shorts):
@@ -351,7 +362,7 @@ def get_zeta_from_shorts(character_id, zeta_shorts):
             if dict_zetas[character_id][zeta_id][1]:
                 req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
         else:
-            print('WAR: cannot find zeta '+zeta+' for '+character_id)
+            log("WAR", "get_zeta_from_shorts", "cannot find zeta "+zeta+" for "+character_id)
     
     return req_zeta_ids
 

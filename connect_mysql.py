@@ -353,11 +353,6 @@ def insert_roster_evo(allyCode, defId, evo_txt):
         cursor.close()
     
 def update_player(dict_player, dict_units):
-    #Start by getting all stats for the player
-    dict_player = goutils.roster_from_dict_to_list(dict_player)
-    dict_player = connect_crinolo.add_stats(dict_player)
-    dict_player = goutils.roster_from_list_to_dict(dict_player)
-
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
@@ -533,9 +528,9 @@ def update_player(dict_player, dict_units):
                        +"prim_stat = "+str(mod_primaryStat_unitStat)+", "\
                        +"prim_value = "+str(mod_primaryStat_value)+", "\
                        +"sec1_stat = "+str(mod_secondaryStat1_unitStat)+", "\
-                       +"sec1_value = "+str(mod_secondaryStat2_value)+", "\
+                       +"sec1_value = "+str(mod_secondaryStat1_value)+", "\
                        +"sec2_stat = "+str(mod_secondaryStat2_unitStat)+", "\
-                       +"sec2_value = "+str(mod_secondaryStat3_value)+", "\
+                       +"sec2_value = "+str(mod_secondaryStat2_value)+", "\
                        +"sec3_stat = "+str(mod_secondaryStat3_unitStat)+", "\
                        +"sec3_value = "+str(mod_secondaryStat3_value)+", "\
                        +"sec4_stat = "+str(mod_secondaryStat4_unitStat)+", "\
