@@ -27,7 +27,7 @@ unitsList_FRE_FR_obtainable = unitsList_obtainable
 unitsList_ENG_US = json.load(open('DATA'+os.path.sep+'unitsList_ENG_US.json', 'r'))
 unitsList_ENG_US_obtainable = [x for x in list(filter(lambda f:f['rarity']==7 and f['obtainable'] and f['obtainableTime']==0, unitsList_ENG_US))]
 #priority_names=["LEGENDARY", "S3", "GLREY", "HOTHREBELSOLDIER", "IMPERIALPROBEDROID", "AURRA_SING", "AMILYNHOLDO", "VULTUREDROID", "GRIEVOUS", "B1BATTLEDROIDV2", "THEMANDALORIAN", "VADER", "OBJ_CRATE_01", "SCOOTTROOPER"]
-priority_names=[]
+priority_names=["CT210408"]
 
 unitsAlias_dict = {}
 for unitsList in [unitsList_FRE_FR_obtainable, unitsList_ENG_US_obtainable]:
@@ -49,8 +49,8 @@ for unitsList in [unitsList_FRE_FR_obtainable, unitsList_ENG_US_obtainable]:
                             prio_found = True
                     if not prio_found:
                         print('WAR: double definition of '+nameKey)
-                        print(unitsAlias_dict[nameKey][1])
-                        print(unit['baseId'])
+                        print(unitsAlias_dict[nameKey][1] + " is kept")
+                        print(unit['baseId'] + " is ignored")
                 else:
                     pass
             else:

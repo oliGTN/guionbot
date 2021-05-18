@@ -3,7 +3,10 @@ guionbot-gitcrypt-key.txt
 config.py
 IMAGES/CHARACTERS/*
 DATA/*
+DATA
 PLAYERS/*
+PLAYERS
 GUILDS/*
+GUILDS
 CACHE/*
 __pycache__/*

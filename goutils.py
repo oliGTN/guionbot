@@ -350,6 +350,10 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
 
     return dict_players
     
+def get_zeta_from_id(character_id, zeta_id):
+    dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
+    return dict_zetas[character_id][zeta_id][1]
+    
 def get_zeta_from_shorts(character_id, zeta_shorts):
     dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
     
@@ -485,6 +489,20 @@ def detect_delta_roster_element(allyCode, char1, char2):
         evo_txt = "gear changed from "+gear1+" to "+gear2
         log("INFO", "delta_roster_element", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #ZETAS
+    for skill2 in char2['skills']:
+        skill_id = skill2['id']
+        skill2_isZeta = skill2['isZeta']
+        skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
+        if len(skill1_matchID)>0:
+            skill1 = skill1_matchID[0]
+        else:
+            skill1 = None
+        if skill2_isZeta and (skill1 == None or not skill1['isZeta']):
+            evo_txt = "new zeta "+get_zeta_from_id(defId, skill_id)
+            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
 def roster_from_list_to_dict(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
