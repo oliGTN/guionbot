@@ -344,9 +344,9 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
             
             character_obj = dict_char_subobj[character_id]
             i_character = character_obj[0]
+            character_name = character_obj[7]
             if character_id in dict_player:
                 character_nogo = False
-                character_name = character_obj[7]
 
                 #Etoiles
                 req_rarity_min = character_obj[1]
