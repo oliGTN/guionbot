@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
 import json
 import math
-import config
+import difflib
 from datetime import datetime
+
+import config
+import connect_mysql
+import connect_gsheets
+
 
 ##############################################################
 # Function: pad_txt
@@ -161,12 +167,55 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
         line_defId = line[1]
         line_rarity = line[2]
         line_teamname = line_defId + "-GV"
+        if not line_playername in dict_players:
+            dict_players[line_playername] = {}
         if not line_teamname in dict_players[line_playername]:
             dict_players[line_playername][line_teamname] = {}
-        dict_players[line_playername][line_teamname][line_defId]={ \
+        if not line_defId in dict_players[line_playername][line_teamname]:
+            dict_players[line_playername][line_teamname][line_defId]={ \
                                                 "rarity": line_rarity}
 
     return dict_players
+    
+def create_guild_teams(db_data):
+    dict_teams={}
+
+    cur_teamname = ''
+    for line in db_data:
+        line_teamname = line[0]
+        if cur_teamname != line_teamname:
+            dict_teams[line_teamname]={"rarity":7, "categories":[]}
+            cur_subteamname = ''
+            cur_teamname = line_teamname
+        
+        line_subteamname = line[1]
+        if cur_subteamname != line_subteamname:
+            line_subteam_min = line[2]
+            dict_teams[line_teamname]["categories"].append([line_subteamname, line_subteam_min, {}])
+            cur_unit_id = ''
+            cur_subteamname = line_subteamname
+        
+        line_unit_id = line[4]
+        if cur_unit_id != line_unit_id:
+            line_id = line[3]
+            line_rarity_min = line[5]
+            line_gear_min = line[6]
+            line_rarity_reco = line[7]
+            line_gear_reco = line[8]
+            line_speed = line[9]
+            line_zetaList = line[10]
+            dict_teams[line_teamname]["categories"][-1][2][line_unit_id]=[ 
+                    line_id,
+                    line_rarity_min, line_gear_min,
+                    line_rarity_reco, line_gear_reco,
+                    line_zetaList,
+                    line_speed,
+                    ""]
+                    
+            cur_unit_id = line_unit_id
+
+    liste_teams = list(dict_teams.keys())
+    return liste_teams, dict_teams
     
 def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList):
     dict_players={}
@@ -183,7 +232,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
         
         line_defId = line[1]
         if cur_defId != line_defId:
-            if cur_defId in dict_unitsList:
+            if line_defId in dict_unitsList:
                 line_nameKey = dict_unitsList[line_defId]['nameKey']
             else:
                 line_nameKey = line_defId
@@ -193,11 +242,12 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
             line_relic_currentTier = line[5]
             dict_players[line_name][line_defId]={ \
                     "nameKey": line_nameKey,
+                    "defId": line_defId,
                     "combatType": line_combatType,
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {}}
+                    "stats": {'base':{}}}
                 
             cur_defId = line_defId            
 
@@ -212,7 +262,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
         
         line_defId = line[1]
         if cur_defId != line_defId:
-            if cur_defId in dict_unitsList:
+            if line_defId in dict_unitsList:
                 line_nameKey = dict_unitsList[line_defId]['nameKey']
             else:
                 line_nameKey = line_defId
@@ -220,21 +270,33 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
             line_rarity = line[3]
             line_gear = line[4]
             line_relic_currentTier = line[5]
+            line_stat1 = line[6]
+            line_stat5 = line[7]
+            line_stat6 = line[8]
+            line_stat7 = line[9]
+            line_stat17 = line[10]
+            line_stat18 = line[11]
+            line_stat28 = line[12]
             dict_players[line_name][line_defId]={ \
                     "nameKey": line_nameKey,
+                    "defId": line_defId,
                     "combatType": line_combatType,
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {}}
-                
-            cur_defId = line_defId
-            
-        line_unitStatId = line[6]
-        line_unscaledDecimalValue = line[7]
+                    "stats": {'base':{}}}
+            #All stats are put as "base" even if actualy
+            #  they are the sum of all stats
+            dict_players[line_name][line_defId]["stats"]["base"]['1'] = int(line_stat1)
+            dict_players[line_name][line_defId]["stats"]["base"]['5'] = int(line_stat5)
+            dict_players[line_name][line_defId]["stats"]["base"]['6'] = int(line_stat6)
+            dict_players[line_name][line_defId]["stats"]["base"]['7'] = int(line_stat7)
+            dict_players[line_name][line_defId]["stats"]["base"]['17'] = int(line_stat17)
+            dict_players[line_name][line_defId]["stats"]["base"]['18'] = int(line_stat18)
+            dict_players[line_name][line_defId]["stats"]["base"]['28'] = int(line_stat28)
 
-        dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
-            int(line_unscaledDecimalValue)
+            cur_defId = line_defId
+
     
     cur_name = ''
     for line in db_stat_data_mods:
@@ -264,24 +326,43 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
                 
             cur_mod_id = line_mod_id
             
-        line_isPrimary = line[6]
-        line_unitStat = line[7]
-        line_value = line[8]
-        if line_isPrimary:
-            dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["unitStat"] = line_unitStat
-            dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["value"] = line_value
-        else:
-            dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
-                {"unitStat": line_unitStat,
-                "value": line_value})
+        line_prim_stat = line[6]
+        line_prim_value = line[7]
+        dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["unitStat"] = line_prim_stat
+        dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["value"] = line_prim_value
 
-        dict_players[line_name][line_defId]["stats"][line_unitStatId] = \
-            int(line_unscaledDecimalValue)
-    
+        line_sec1_stat = line[8]
+        line_sec1_value = line[9]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec1_stat, "value": line_sec1_value})
+        line_sec2_stat = line[10]
+        line_sec2_value = line[11]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec2_stat, "value": line_sec2_value})
+        line_sec3_stat = line[12]
+        line_sec3_value = line[13]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec3_stat, "value": line_sec3_value})
+        line_sec4_stat = line[14]
+        line_sec4_value = line[15]
+        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
+            {"unitStat": line_sec4_stat, "value": line_sec4_value})
+
     return dict_players
     
+def get_zeta_from_id(character_id, zeta_id):
+    dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
+    if not character_id in dict_zetas:
+        log("ERR", "get_zeta_from_id", "unknown character id "+character_id)
+        return zeta_id
+    if not zeta_id in dict_zetas[character_id]:
+        log("ERR", "get_zeta_from_id", "unknown zeta id "+zeta_id)
+        return zeta_id
+
+    return dict_zetas[character_id][zeta_id][1]
+    
 def get_zeta_from_shorts(character_id, zeta_shorts):
-    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+    dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
     
     req_zeta_ids = []
     for zeta in zeta_shorts:
@@ -292,12 +373,12 @@ def get_zeta_from_shorts(character_id, zeta_shorts):
             if dict_zetas[character_id][zeta_id][1]:
                 req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
         else:
-            print('WAR: cannot find zeta '+zeta+' for '+character_id)
+            log("WAR", "get_zeta_from_shorts", "cannot find zeta "+zeta+" for "+character_id)
     
     return req_zeta_ids
 
 def get_zeta_id_from_short(character_id, zeta_short):
-    dict_zetas = json.load(open('unit_zeta_list.json', 'r'))
+    dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
 
     zeta_standard = zeta_short.upper().replace(' ', '')
     if zeta_standard == '':
@@ -333,10 +414,165 @@ def get_zeta_id_from_short(character_id, zeta_short):
 def log(level, fct, txt):
     now = datetime.now()
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    log_string = dt_string+":"+level+":"+fct+":"+txt
+    log_string = dt_string+":"+level+":"+fct+":"+str(txt)
 
     if level=='DBG':
         if config.LOG_LEVEL=='DBG':
             print(log_string)
     else:
         print(log_string)
+
+################################################
+# function: delta_dict_player
+# input: 2 dict_players (from API)
+# output: differences of dict2 over dict1
+################################################
+def delta_dict_player(dict1, dict2):
+    allyCode = dict2['allyCode']
+
+    #basic checks
+    if dict1 == None:
+        log("DBG", "delta_dict_player", "dict1 is empty, so dict2 is a full delta")
+        connect_mysql.insert_roster_evo(allyCode, "all", "adding full roster")
+        return dict2
+
+    if dict1['allyCode'] != dict2['allyCode']:
+        log("ERR", "delta_dict_player", "cannot compare 2 dict_players for different players")
+        return dict2
+
+    delta_dict = {}
+    delta_dict['allyCode'] = allyCode
+    delta_dict['roster'] = {}
+
+    #compare player information
+    for info in ['guildName', 'id', 'lastActivity', 'level', 'name', 'arena', 'stats', 'poUTCOffsetMinutes']:
+        if dict2[info] != dict1[info]:
+            log("INFO", "delta_dict_player", info+" has changed for "+str(allyCode))
+        delta_dict[info] = dict2[info]
+
+    #compare roster
+    for character_id in dict2['roster']:
+        character = dict2['roster'][character_id]
+        if character_id in dict1['roster']:
+            if character != dict1['roster'][character_id]:
+                log("INFO", "delta_dict_player", "character "+character_id+" has changed for "+str(allyCode))
+                detect_delta_roster_element(allyCode, dict1['roster'][character_id], character)
+                delta_dict['roster'][character_id] = character
+        else:
+            log("INFO", "delta_dict_player", "new character "+character_id+" for "+str(allyCode))
+            connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
+            delta_dict['roster'][character_id] = character
+
+    return delta_dict
+
+def detect_delta_roster_element(allyCode, char1, char2):
+    defId = char1['defId']
+
+    #RARITY
+    if char1['rarity'] != char2['rarity']:
+        evo_txt = "rarity changed from "\
+                  +str(char1['rarity'])+" to "+str(char2['rarity'])
+        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #LEVEL
+    if char1['level'] != char2['level']:
+        evo_txt = "level changed from "\
+                  +str(char1['level'])+" to "+str(char2['level'])
+        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #GEAR / RELIC
+    if char1['gear'] < 13:
+        gear1 = "G"+str(char1['gear'])
+    else:
+        gear1 = "R"+str(char1['relic']['currentTier']-2)
+    if char2['gear'] < 13:
+        gear2 = "G"+str(char2['gear'])
+    else:
+        gear2 = "R"+str(char2['relic']['currentTier']-2)
+
+    if gear1 != gear2:
+        evo_txt = "gear changed from "+gear1+" to "+gear2
+        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #ZETAS
+    for skill2 in char2['skills']:
+        skill_id = skill2['id']
+        skill2_isZeta = skill2['isZeta']
+        skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
+        if len(skill1_matchID)>0:
+            skill1 = skill1_matchID[0]
+        else:
+            skill1 = None
+        if skill2_isZeta and (skill1 == None or not skill1['isZeta']):
+            evo_txt = "new zeta "+get_zeta_from_id(defId, skill_id)
+            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+def roster_from_list_to_dict(dict_player):
+    txt_allyCode = str(dict_player['allyCode'])
+
+    if type(dict_player['roster']) == dict:
+        log("DBG", "roster_from_list_to_dict", "no transformation needed for "+txt_allyCode)
+        return dict_player
+
+    dict_roster = {}
+    for character in dict_player['roster']:
+        dict_roster[character['defId']] = character
+
+    dict_player['roster'] = dict_roster
+    log("DBG", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
+
+    return dict_player
+
+def roster_from_dict_to_list(dict_player):
+    txt_allyCode = str(dict_player['allyCode'])
+
+    if type(dict_player['roster']) == list:
+        log("DBG", "roster_from_dict_to_list", "no transformation needed for "+txt_allyCode)
+        return dict_player
+
+    list_roster = []
+    for character_id in dict_player['roster']:
+        character = dict_player['roster'][character_id]
+        list_roster.append(character)
+
+    dict_player['roster'] = list_roster
+    log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
+
+    return dict_player
+
+def get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias):
+    #Recuperation des dernieres donnees sur gdrive
+    dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
+
+    txt_not_found_characters = ''
+    dict_id_name = {}
+    list_ids = []
+    for character_alias in list_alias:
+        if character_alias.startswith("tag:"):
+            #Alias of a tag / faction
+            tag_alias = character_alias[4:]
+            closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
+            if len(closest_names)<1:
+                log('WAR', "get_characters_from_alias", "No tag found for "+tag_alias)
+                txt_not_found_characters += character_alias + ' '
+            else:
+                dict_id_name[character_alias] = []
+                for [character_id, character_name] in dict_tagAlias[closest_names[0]]:
+                    list_ids.append(character_id)
+                    dict_id_name[character_alias].append([character_id, character_name])
+        else:
+            #Normal alias
+            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+            if len(closest_names)<1:
+                log('WAR', "get_characters_from_alias", "No character found for "+character_alias)
+                txt_not_found_characters += character_alias + ' '
+            else:
+                [character_name, character_id]=dict_units[closest_names[0]]
+                list_ids.append(character_id)
+                dict_id_name[character_alias] = [[character_id, character_name]]
+            
+    return list_ids, dict_id_name, txt_not_found_characters

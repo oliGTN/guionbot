@@ -20,6 +20,7 @@ from connect_warstats import parse_warstats_page
 import connect_mysql
 from io import BytesIO
 from requests import get
+import traceback
 
 TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
@@ -31,7 +32,7 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 WARSTATS_REFRESH_SECS = 15*60
 WARSTATS_REFRESH_TIME = 2*60
-alert_sent_to_admin = False
+list_alerts_sent_to_admin = []
 bot_test_mode = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
@@ -110,8 +111,6 @@ dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
 
 dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
-BOT_LOOP60_ERR = "Unexpected error in bot_loop_60: "
-
 list_tw_opponent_msgIDs = []
 
 ##############################################################
@@ -125,7 +124,6 @@ list_tw_opponent_msgIDs = []
 # Function: bot_loop_60
 # Parameters: none
 # Purpose: cette fonction est exécutée toutes les 60 secondes
-#          elle rafraîchit les fichiers json récupérés de l'API swgoh
 # Output: none
 ##############################################################
 async def bot_loop_60():
@@ -135,15 +133,6 @@ async def bot_loop_60():
     while not bot.is_closed():
         t_start = time.time()
 
-        try:
-            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-            await bot.loop.run_in_executor(None, go.refresh_cache)
-            
-        except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-        
         try:
             #GET ONLINE AND MOBILE STATUS
             for guild in bot.guilds:
@@ -163,9 +152,11 @@ async def bot_loop_60():
             update_online_dates(dict_lastseen)
             
         except Exception as e:
-            print(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            print(e)
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         try:
             #CHECK ALERTS FOR BT
@@ -180,20 +171,53 @@ async def bot_loop_60():
                     await channel.send(message)
                 time_to_wait = WARSTATS_REFRESH_SECS - last_track_secs + WARSTATS_REFRESH_TIME
                 next_warstats_read = int(time.time()) + time_to_wait
-            goutils.log("INFO", "bot_loop_60", next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
+
+            goutils.log("INFO", "bot_loop_60", "next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
-            goutils.log("ERR", "bot_loop_60", BOT_LOOP60_ERR+str(sys.exc_info()[0]))
-            goutils.log("ERR", "bot_loop_60", str(e))
-            await send_alert_to_admins(BOT_LOOP60_ERR+str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_60", e)
+            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         # Wait X seconds before next loop
         t_end = time.time()
-        loop_duration = 60 * int(config.REFRESH_RATE_BOT_MINUTES)
-        waiting_time = max(0, loop_duration - (t_end - t_start))
+        waiting_time = max(0, 60 - (t_end - t_start))
         await asyncio.sleep(waiting_time)
 
-        #ensure logs are written
+        #Ensure writing in logs
+        sys.stdout.flush()
+
+##############################################################
+# Function: bot_loop_600
+# Parameters: none
+# Purpose: cette fonction est exécutée toutes les 600 secondes
+# Output: none
+##############################################################
+async def bot_loop_600():
+
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        t_start = time.time()
+
+        try:
+            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
+            await bot.loop.run_in_executor(None, go.refresh_cache)
+            
+        except Exception as e:
+            goutils.log("ERR", "bot_loop_600", str(sys.exc_info()[0]))
+            goutils.log("ERR", "bot_loop_600", e)
+            goutils.log("ERR", "bot_loop_600", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_600:"+str(sys.exc_info()[0]))
+
+        # Wait X seconds before next loop
+        t_end = time.time()
+        waiting_time = max(0, 600 - (t_end - t_start))
+        await asyncio.sleep(waiting_time)
+
+        #Ensure writing in logs
         sys.stdout.flush()
 
 ##############################################################
@@ -204,14 +228,14 @@ async def bot_loop_60():
 # Output: None
 ##############################################################
 async def send_alert_to_admins(message):
-    global alert_sent_to_admin
-    if not alert_sent_to_admin:
+    global list_alerts_sent_to_admin
+    if not message in list_alerts_sent_to_admin:
         list_ids = config.GO_ADMIN_IDS.split(' ')
         for userid in list_ids:
             member = bot.get_user(int(userid))
             channel = await member.create_dm()
             await channel.send(message)
-    alert_sent_to_admin = True
+        list_alerts_sent_to_admin.append(message)
 
 ##############################################################
 # Function: get_eb_allocation
@@ -485,7 +509,7 @@ def manage_me(ctx, allycode_txt):
     elif allycode_txt[:3] == '<@!':
         # discord @mention
         discord_id_txt = allycode_txt[3:-1]
-        print('INFO: cmd launched with discord @mention '+allycode_txt)
+        goutils.log("INFO", "manage_me", "command launched with discord @mention "+allycode_txt)
         dict_players = load_config_players()[1]
         if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players.keys():
             ret_allycode_txt = str(dict_players[int(discord_id_txt)][0])
@@ -502,7 +526,7 @@ def manage_me(ctx, allycode_txt):
         if len(closest_names)<1:
             ret_allycode_txt = 'ERR: '+allycode_txt+' ne fait pas partie des joueurs connus'
         else:
-            print('INFO: cmd launched with name that looks like '+closest_names[0])
+            goutils.log("INFO", "manage_me", "command launched with name that looks like "+closest_names[0])
             for r in results[0]:
                 if r[0] == closest_names[0]:
                     ret_allycode_txt = str(r[1])
@@ -529,17 +553,15 @@ def manage_me(ctx, allycode_txt):
 ##############################################################
 @bot.event
 async def on_ready():
-    go.load_guild(config.MASTER_GUILD_ALLYCODE, False)
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
 
     #recover external IP address
     ip = get('https://api.ipify.org').text
     
-    msg = "\n"+bot.user.name+" has connected to Discord from ip "+ip
-    print(msg)
+    msg = bot.user.name+" has connected to Discord from ip "+ip
+    goutils.log("INFO", "on_ready", msg)
     if not bot_test_mode:
         await send_alert_to_admins(msg)
-        alert_sent_to_admin = False
 
 
 ##############################################################
@@ -554,20 +576,20 @@ async def on_reaction_add(reaction, user):
     message = reaction.message
     author = message.author
     emoji = reaction.emoji
-    print("message: "+str(message))
-    print("author: "+str(author))
-    print("emoji: "+str(emoji))
-    print("user: "+str(user))
+    goutils.log("DBG", "on_reaction_add", "message: "+str(message))
+    goutils.log("DBG", "on_reaction_add", "author: "+str(author))
+    goutils.log("DBG", "on_reaction_add", "emoji: "+str(emoji))
+    goutils.log("DBG", "on_reaction_add", "user: "+str(user))
     
     #prevent reacting to bot's reactions
     if user == bot.user:
         return
 
-    # Manage the thumb up to boot60 error message, to reset the alert
-    if message.content.startswith(BOT_LOOP60_ERR) \
+    # Manage the thumb up to messages sent to admins
+    if message.content in list_alerts_sent_to_admin \
         and emoji == '\N{THUMBS UP SIGN}' \
         and author == bot.user:
-        alert_sent_to_admin = False
+        list_alerts_sent_to_admin.remove(message.content)
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     #Manage reactions to PGS messages
@@ -631,8 +653,8 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         stream = os.popen(arg)
         output = stream.read()
-        print('CMD: ' + arg)
-        print(output)
+        goutils.log("INFO", "go.cmd", 'CMD: ' + arg)
+        goutils.log("INFO", "go.cmd", 'output: ' + output)
         for txt in goutils.split_txt(output, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
         await ctx.message.add_reaction(emoji_check)
@@ -654,10 +676,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         for row in output_size:
             output_txt+=str(row)+'\n'
 
-        output_players = connect_mysql.simple_query("SELECT guildName AS Guilde, \
-                                                    count(*) as Joueurs \
-                                                    FROM players \
-                                                    GROUP BY guildName", True)
+        output_players = connect_mysql.simple_query("SELECT guilds.name AS Guilde, \
+                                                    count(*) as Joueurs, \
+                                                    guilds.lastUpdated as MàJ \
+                                                    FROM guilds \
+                                                    JOIN players ON players.guildName = guilds.name \
+                                                    GROUP BY guilds.name", True)
         output_txt += "\n"
         for row in output_players:
             output_txt+=str(row)+'\n'
@@ -1371,14 +1395,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
+goutils.log("INFO", "main", "Starting...")
 # Use command-line parameters
 if len(sys.argv) > 1:
     if sys.argv[1] == "test":
-        print("Launch in TEST MODE")
+        goutils.log("INFO", "main", "TEST MODE")
         bot_test_mode = True
 
-#création de la tâche périodique à 60 secondes
+#Create periodic tasks
 bot.loop.create_task(bot_loop_60())
+bot.loop.create_task(bot_loop_600())
 
 #Ajout des commandes groupées par catégorie
 bot.add_cog(AdminCog(bot))

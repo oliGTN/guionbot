@@ -13,6 +13,8 @@ import datetime
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 
+import goutils
+
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
 client=None
@@ -42,7 +44,7 @@ def get_gapi_client():
 
 ##############################################################
 # Function: load_config_teams
-# Parameters: none
+# Parameters: dict_unitsAlias from json file
 # Purpose: lit l'onglet "teams" du fichier Sheets
 # Output: liste_teams (liste des noms d'équipe)
 #         dict_teams {team_name: {
@@ -54,29 +56,40 @@ def get_gapi_client():
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams():
+def load_config_teams(dict_unitsAlias, dict_tagAlias):
     global client    
-    get_gapi_client()
-    file = client.open("GuiOnBot config")
-    feuille=file.worksheet("teams")
 
-    #Get latest dictionary for character names
-    dict_units = load_config_units()
+    json_file = "CACHE"+os.path.sep+"config_teams.json"
+    try:
+        get_gapi_client()
+        file = client.open("GuiOnBot config")
+        feuille=file.worksheet("teams")
+
+        liste_dict_feuille=feuille.get_all_records()
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps(liste_dict_feuille, sort_keys=True, indent=4))
+        fjson.close()
+    except:
+        goutils.log("WAR", "load_config_teams", "Cannot connect to Google API. Using cache file.")
+        liste_dict_feuille = json.load(open(json_file, 'r'))
+
+    #Extract all aliases and get associated ID+nameKey
+    list_alias=[x['Nom'] for x in liste_dict_feuille]
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias)
+    if txt != '':
+        goutils.log('WAR', 'load_config_teams', 'Cannot recognize following alias(es) >> '+txt)
+
 
     #Get latest definition of teams
     dict_teams={}
-
-    liste_dict_feuille=feuille.get_all_records()
-    #print(liste_dict_feuille)
     liste_teams=set([(lambda x:x['Nom équipe'])(x) for x in liste_dict_feuille])
     #print('\nDBG: liste_teams='+str(liste_teams))
     for team in liste_teams:
         liste_dict_team=list(filter(lambda x : x['Nom équipe'] == team, liste_dict_feuille))
-        #print(liste_dict_team)
-        complete_liste_categories=[(lambda x:x['Catégorie'])(x) for x in liste_dict_team]
+        complete_liste_categories=[x['Catégorie'] for x in liste_dict_team]
         liste_categories=sorted(set(complete_liste_categories), key=lambda x: complete_liste_categories.index(x))
         
-        #print('liste_categories='+str(liste_categories))
         dict_teams[team]={"rarity":liste_dict_team[0]["GV*"],
                           "categories":[[] for i in range(len(liste_categories))]
                           }
@@ -85,27 +98,23 @@ def load_config_teams():
             index_categorie+=1
             dict_teams[team]["categories"][index_categorie]=[categorie, 0, {}]
             liste_dict_categorie=list(filter(lambda x : x['Catégorie'] == categorie, liste_dict_team))
+
             index_perso=0
             for dict_perso in liste_dict_categorie:
-                index_perso+=1
-                
-                closest_names=difflib.get_close_matches(dict_perso['Nom'].lower(), dict_units.keys(), 3)
-                if len(closest_names)<1:
-                    sys.stderr.write('INFO: aucun personnage trouvé pour '+dict_perso['Nom']+' > ignoré\n')
-                else:
-                    [character_name, character_id]=dict_units[closest_names[0]]
-
-                    dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
-                    if character_id in dict_teams[team]["categories"][index_categorie][2]:
-                        print("WAR: twice the same character in that team: "+ character_id)
-                    dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
-                                                                        dict_perso['* min'],
-                                                                        dict_perso['G min'],
-                                                                        dict_perso['* reco'],
-                                                                        dict_perso['G reco'],
-                                                                        dict_perso['Zetas'],
-                                                                        dict_perso['Vitesse'],
-                                                                        dict_perso['Nom court']]
+                if dict_perso['Nom'] in dict_id_name:
+                    for [character_id, character_name] in dict_id_name[dict_perso['Nom']]:
+                        index_perso+=1
+                        dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
+                        if character_id in dict_teams[team]["categories"][index_categorie][2]:
+                            print("WAR: twice the same character in that team: "+ character_id)
+                        dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
+                                                                            dict_perso['* min'],
+                                                                            dict_perso['G min'],
+                                                                            dict_perso['* reco'],
+                                                                            dict_perso['G reco'],
+                                                                            dict_perso['Zetas'],
+                                                                            dict_perso['Vitesse'],
+                                                                            character_name]
     
     #Update DB
     connect_mysql.update_guild_teams(dict_teams)
@@ -212,18 +221,30 @@ def load_config_counter():
 ##############################################################
 def load_config_units(dict_unitsAlias):
     global client    
-    get_gapi_client()
-    file = client.open("GuiOnBot config")
-    feuille=file.worksheet("units")
+    
+    json_file = "CACHE"+os.path.sep+"config_units.json"
+    try:
+        get_gapi_client()
+        file = client.open("GuiOnBot config")
+        feuille=file.worksheet("units")
 
-    liste_dict_feuille=feuille.get_all_records()
+        liste_dict_feuille=feuille.get_all_records()
+        
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps(liste_dict_feuille, sort_keys=True, indent=4))
+        fjson.close()
+    except:
+        goutils.log("WAR", "load_config_units", "Cannot connect to Google API. Using cache file.")
+        liste_dict_feuille = json.load(open(json_file, 'r'))
+
     dict_units=dict_unitsAlias #key=alias, value=[nameKey, id]
     
     for ligne in liste_dict_feuille:
         full_name=ligne['Character/Ship']
         id=ligne['ID']
 
-        #Ful lName from file is not used as alias, because it is already read from json file
+        #Full Name from file is not used as alias, because it is already read from json file
         #if full_name.lower() in dict_units:
             #if dict_units[full_name.lower()][0] != full_name:
                 #print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
@@ -319,7 +340,7 @@ def update_online_dates(dict_lastseen):
                                 online_dates[l-1] = [last_date_value]
                     else:
                         # ID is gsheets does not match an ID in Discord
-                        print('id '+str(id)+' not found among guild members')
+                        goutils.log("WAR", "update_online_dates", 'Discord ID '+str(id)+' not found among guild members')
                         if l > len(online_dates):
                             online_dates.append(['not found in Discord'])
                         else:
