@@ -352,6 +352,13 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
     
 def get_zeta_from_id(character_id, zeta_id):
     dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
+    if not character_id in dict_zetas:
+        log("ERR", "get_zeta_from_id", "unknown character id "+character_id)
+        return zeta_id
+    if not zeta_id in dict_zetas[character_id]:
+        log("ERR", "get_zeta_from_id", "unknown zeta id "+zeta_id)
+        return zeta_id
+
     return dict_zetas[character_id][zeta_id][1]
     
 def get_zeta_from_shorts(character_id, zeta_shorts):
