@@ -126,7 +126,7 @@ def load_config_teams(dict_unitsAlias, dict_tagAlias):
 # Function: load_config_players
 # Parameters: none
 # Purpose: lit l'onglet "players" du fichier Sheets
-# Output:  dict_players_by_IG {key=IG name, value=[allycode, discord name, <@id>]}
+# Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>]}
 #          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
 def load_config_players():
@@ -146,11 +146,11 @@ def load_config_players():
         if discord_id!='':
             if liste_discord_id.count(discord_id)>1:
                 #cas des comptes discord avec plusieurs comptes IG
-                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], '<@'+str(discord_id)+'> ['+ligne['IG name']+']']
+                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+str(discord_id)+'> ['+ligne['IG name']+']']
             else:
-                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], '<@'+str(discord_id)+'>']
+                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+str(discord_id)+'>']
         else:
-            dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['Discord name'], ligne['IG name']]
+            dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['IG name']]
             
         #Fill dict_players_by_ID
         if discord_id!='':

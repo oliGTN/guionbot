@@ -71,26 +71,31 @@ def refresh_cache():
 # Function: refresh_cache
 # return: erro_code, err_text
 ##################################
-def load_player(txt_allyCode, force_update):
-    # The query tests if the update is less than 60 minutes for all players
-    # Assumption: when the command is player-related, updating one is costless
-    query_result = connect_mysql.get_line("SELECT \
-                        (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) AS recent, \
-                        name \
-                        FROM players WHERE allyCode = '"+txt_allyCode+"'")
+def load_player(txt_allyCode, force_update, no_db):
 
-    if query_result != None:
-        recent_player = query_result[0]
-        player_name = query_result[1]
-    else:
-        recent_player = 0
-
-    json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
-    if os.path.isfile(json_file):
-        prev_dict_player = json.load(open(json_file, 'r'))
-        prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
-    else:
+    if no_db:
+        recent_player = False
         prev_dict_player = None
+    else:
+        # The query tests if the update is less than 60 minutes for all players
+        # Assumption: when the command is player-related, updating one is costless
+        query_result = connect_mysql.get_line("SELECT \
+                            (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) AS recent, \
+                            name \
+                            FROM players WHERE allyCode = '"+txt_allyCode+"'")
+    
+        if query_result != None:
+            recent_player = query_result[0]
+            player_name = query_result[1]
+        else:
+            recent_player = 0
+
+        json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
+        if os.path.isfile(json_file):
+            prev_dict_player = json.load(open(json_file, 'r'))
+            prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+        else:
+            prev_dict_player = None
 
     if not recent_player or force_update:
         goutils.log("INFO", "load_player", 'requesting API data for ' + txt_allyCode + '...')
@@ -108,7 +113,7 @@ def load_player(txt_allyCode, force_update):
                             str(len(player_data)))
                             
                 dict_player = player_data[0]
-
+        
                 #Add statistics
                 dict_player = connect_crinolo.add_stats(dict_player)
 
@@ -118,25 +123,25 @@ def load_player(txt_allyCode, force_update):
                 goutils.log("INFO", "load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
                 sys.stdout.flush()
                 
-                # compute differences
-                delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
-                sys.stdout.flush()
+                if not no_db:
+                    # compute differences
+                    delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
+                    sys.stdout.flush()
                 
-                # store json file
-                fjson = open(json_file, 'w')
-                fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
-                fjson.close()
+                    # store json file
+                    fjson = open(json_file, 'w')
+                    fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
+                    fjson.close()
 
-                # update DB
-                #ret = connect_mysql.update_player(dict_player, dict_unitsList)
-                ret = connect_mysql.update_player(delta_dict_player, dict_unitsList)
-                if ret == 0:
-                    goutils.log("INFO", "load_player", "success updating "+dict_player['name']+" in DB")
-                else:
-                    goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
-                    return 1, None, 'ERR: update_player '+txt_allyCode+' returned an error'
-                sys.stdout.flush()
-                
+                    # update DB
+                    #ret = connect_mysql.update_player(dict_player, dict_unitsList)
+                    ret = connect_mysql.update_player(delta_dict_player, dict_unitsList)
+                    if ret == 0:
+                        goutils.log("INFO", "load_player", "success updating "+dict_player['name']+" in DB")
+                    else:
+                        goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
+                        return 1, None, 'ERR: update_player '+txt_allyCode+' returned an error'
+                    sys.stdout.flush()
                 
             else:
                 goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+txt_allyCode+
@@ -275,7 +280,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     i_player += 1
                     goutils.log("INFO", "load_guild", "player #"+str(i_player))
                     
-                    e, d, t = load_player(str(allyCode), False)
+                    e, d, t = load_player(str(allyCode), False, False)
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
                 parallel_work.set_guild_loading_status(guildName, None)
@@ -636,7 +641,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #only one player, potentially several teams
         
         #Load or update data for the player
-        e, d, t = load_player(txt_allyCode, False)
+        e, d, t = load_player(txt_allyCode, False, False)
         if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvée pour code allié ' + txt_allyCode
@@ -985,8 +990,8 @@ def assign_gt(allyCode, txt_mode):
                                 nb_joueurs_selectionnes += 1
                                 ret_assign_gt += nom_territoire + ': '
                                 if nom_joueur in dict_players and not txt_mode:
-                                    ret_assign_gt += dict_players[nom_joueur][
-                                        2]
+                                    player_mention = dict_players[nom_joueur][1]
+                                    ret_assign_gt += player_mention
                                 else:  #joueur non-défini dans gsheets ou mode texte
                                     ret_assign_gt += nom_joueur
                                 ret_assign_gt += ' doit placer sa team ' + team[
@@ -1231,7 +1236,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
-        e, dict_player, t = load_player(txt_allyCode, False)
+        e, dict_player, t = load_player(txt_allyCode, False, False)
         player_name = dict_player["name"]
         list_player_names = [player_name]
 
@@ -1570,10 +1575,10 @@ def get_character_image(list_characters_allyCode, is_ID):
         if line[2] > 1:
             load_guild(str(line[0]), True, True)
         else:
-            load_player(str(line[0]), False)
+            load_player(str(line[0]), False, False)
 
     #for txt_allyCode in list_allyCodes:
-    #    e, t = load_player(txt_allyCode, False)
+    #    e, t = load_player(txt_allyCode, False, False)
     #    if e != 0:
     #        #error wile loading guild data
     #        print('WAR: joueur non trouvé pour code allié ' + txt_allyCode)

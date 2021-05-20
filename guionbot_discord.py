@@ -13,14 +13,15 @@ import difflib
 import re
 from discord.ext import commands
 from discord import Activity, ActivityType, Intents, File
+from io import BytesIO
+from requests import get
+import traceback
+
 import go
 import goutils
 from connect_gsheets import load_config_players, update_online_dates
 from connect_warstats import parse_warstats_page
 import connect_mysql
-from io import BytesIO
-from requests import get
-import traceback
 
 TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
@@ -171,6 +172,7 @@ async def bot_loop_60():
                     await channel.send(message)
                 time_to_wait = WARSTATS_REFRESH_SECS - last_track_secs + WARSTATS_REFRESH_TIME
                 next_warstats_read = int(time.time()) + time_to_wait
+
             goutils.log("INFO", "bot_loop_60", "next warstat refresh in "+str(next_warstats_read-int(time.time()))+" secs")
             
         except Exception as e:
@@ -497,42 +499,59 @@ async def get_channel_from_channelname(ctx, channel_name):
 # Purpose: affecte le code allié de l'auteur si "me"
 # Output: code allié (string)
 ##############################################################
-def manage_me(ctx, allycode_txt):
+def manage_me(ctx, alias):
     #Special case of 'me' as allycode
-    if allycode_txt == 'me':
-        dict_players = load_config_players()[1]
-        if ctx.author.id in dict_players.keys():
-            ret_allycode_txt = str(dict_players[ctx.author.id][0])
+    if alias == 'me':
+        dict_players_by_ID = load_config_players()[1]
+        if ctx.author.id in dict_players_by_ID.keys():
+            ret_allycode_txt = str(dict_players_by_ID[ctx.author.id][0])
         else:
             ret_allycode_txt = 'ERR: \"me\" ne fait pas partie de la guilde'
-    elif allycode_txt[:3] == '<@!':
+    elif alias[:3] == '<@!':
         # discord @mention
-        discord_id_txt = allycode_txt[3:-1]
-        goutils.log("INFO", "manage_me", "command launched with discord @mention "+allycode_txt)
-        dict_players = load_config_players()[1]
-        if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players.keys():
-            ret_allycode_txt = str(dict_players[int(discord_id_txt)][0])
+        discord_id_txt = alias[3:-1]
+        goutils.log("INFO", "manage_me", "command launched with discord @mention "+alias)
+        dict_players_by_ID = load_config_players()[1]
+        if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players_by_ID.keys():
+            ret_allycode_txt = str(dict_players_by_ID[int(discord_id_txt)][0])
         else:
-            ret_allycode_txt = 'ERR: '+allycode_txt+' ne fait pas partie de la guilde'
-    elif not allycode_txt.isnumeric():
+            ret_allycode_txt = 'ERR: '+alias+' ne fait pas partie de la guilde'
+    elif not alias.isnumeric():
+        #check among discord names
+        list_discord_names = [x.display_name.replace("[Officier]", "") for x in ctx.guild.members]
+        closest_names=difflib.get_close_matches(alias, list_discord_names, 1)
+        #print(closest_names)
+        if len(closest_names)>0:
+            discord_name = closest_names[0]
+            goutils.log("INFO", "manage_me", alias + " looks like the discord name "+discord_name)
+            discord_id = [x.id for x in ctx.guild.members if x.display_name.replace("[Officier]", "") == discord_name][0]
+            dict_players_by_ID = load_config_players()[1]
+            if discord_id in dict_players_by_ID:
+                ret_allycode_txt = str(dict_players_by_ID[discord_id][0])
+                return ret_allycode_txt
+            else:
+                goutils.log("ERR", "manage_me", alias + " ne fait pas partie de la guilde")
+        else:
+            goutils.log("DBG", "manage_me", alias + " is not a discord name")
+
         # Look for the name among known player names
         results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
         #print(results)
         list_names = [x[0] for x in results[0]]
-        
-        closest_names=difflib.get_close_matches(allycode_txt, list_names, 1)
+    
+        closest_names=difflib.get_close_matches(alias, list_names, 1)
         #print(closest_names)
         if len(closest_names)<1:
-            ret_allycode_txt = 'ERR: '+allycode_txt+' ne fait pas partie des joueurs connus'
+            ret_allycode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs connus'
         else:
-            goutils.log("INFO", "manage_me", "command launched with name that looks like "+closest_names[0])
+            goutils.log("INFO", "manage_me", alias +" looks like the DB name "+closest_names[0])
             for r in results[0]:
                 if r[0] == closest_names[0]:
                     ret_allycode_txt = str(r[1])
 
     else:
         # number >> allyCode
-        ret_allycode_txt = allycode_txt
+        ret_allycode_txt = alias
     
     return ret_allycode_txt
 
@@ -572,6 +591,10 @@ async def on_ready():
 ##############################################################
 @bot.event
 async def on_reaction_add(reaction, user):
+    #prevent reacting to bot's reactions
+    if user == bot.user:
+        return
+
     message = reaction.message
     author = message.author
     emoji = reaction.emoji
@@ -580,10 +603,6 @@ async def on_reaction_add(reaction, user):
     goutils.log("DBG", "on_reaction_add", "emoji: "+str(emoji))
     goutils.log("DBG", "on_reaction_add", "user: "+str(user))
     
-    #prevent reacting to bot's reactions
-    if user == bot.user:
-        return
-
     # Manage the thumb up to messages sent to admins
     if message.content in list_alerts_sent_to_admin \
         and emoji == '\N{THUMBS UP SIGN}' \
@@ -751,9 +770,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     async def is_officer(ctx):
         ret_is_officer = False
-        dict_players = load_config_players()[1]
-        if ctx.author.id in dict_players.keys():
-            if dict_players[ctx.author.id][1]:
+        dict_players_by_ID = load_config_players()[1]
+        if ctx.author.id in dict_players_by_ID.keys():
+            if dict_players_by_ID[ctx.author.id][1]:
                 ret_is_officer = True
 
         is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
@@ -861,7 +880,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             list_open_territories = parse_warstats_page()
 
         #Recuperation des dernieres donnees sur gdrive
-        dict_players = load_config_players()[0]
+        dict_players_by_IG = load_config_players()[0]
 
         if tbs_round == '':
             await ctx.send('Aucune BT en cours')
@@ -893,11 +912,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                     if not allocated_player in dict_platoons_done[
                                             platoon_name][perso]:
                                         erreur_detectee = True
-                                        if (allocated_player in dict_players) and display_mentions:
+                                        if (allocated_player in dict_players_by_IG) and display_mentions:
                                             list_txt.append([
                                                 allocated_player, platoon_name,
                                                 '**' +
-                                                dict_players[allocated_player][2] +
+                                                dict_players_by_IG[allocated_player][1] +
                                                 '** n\'a pas affecté ' + perso +
                                                 ' en ' + platoon_name
                                             ])
@@ -967,6 +986,92 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
         return (not bot_test_mode) or is_owner
 
+    ##############################################################
+    # Command: qui
+    # Parameters: code allié (string) ou "me" ou pseudo ou @mention
+    # Purpose: Donner les infos de base d'unee personne
+    # Display: Nom IG, Nom discord, Code allié, statut dans la DB
+    #          pareil pour sa guild
+    #          et des liens (swgoh.gg ou warstats)
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='qui',
+                      brief="Identifie un joueur et sa guilde",
+                      help="Identifie un joueur et sa guilde\n\n"\
+                           "Exemple: go.qui 192126111\n"\
+                           "Exemple: go.qui dark Patoche\n"\
+                           "Exemple: go.qui @chaton372")
+    async def qui(self, ctx, *alias):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        full_alias = " ".join(alias)
+        allyCode = manage_me(ctx, full_alias)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            #Look in DB
+            query = "SELECT name, guildName, lastUpdated FROM players WHERE allyCode = " + allyCode
+            result = connect_mysql.get_line(query)
+            if result != None:
+                player_name = result[0]
+                guildName = result[1]
+                lastUpdated = result[2]
+                lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
+            else:
+                #Unknown allyCode in DB
+                e, dict_player, t = go.load_player(allyCode, False, True)
+                if e == 0:
+                    player_name = dict_player["name"]
+                    guildName = dict_player["guildName"]
+                    lastUpdated_txt = "joueur inconnu"
+                else:
+                    player_name = "???"
+                    guildName = "???"
+                    lastUpdated_txt = "joueur inconnu"
+
+            #Look for Discord Pseudo if in guild
+            dict_players_by_IG = load_config_players()[0]
+            if player_name in dict_players_by_IG:
+                discord_mention = dict_players_by_IG[player_name][1]
+                ret_re = re.search("<@(\\d*)>.*", discord_mention)
+                discord_id = ret_re.group(1)
+                try:
+                    discord_user = await ctx.guild.fetch_member(discord_id)
+                    discord_name = discord_user.display_name
+                except:
+                    discord_name = "???"
+            else:
+                discord_name = "???"
+
+            swgohgg_url = "https://swgoh.gg/p/" + allyCode
+            try:
+                r = get(swgohgg_url)
+                if r.status_code == 404:
+                    swgohgg_url = "introuvable"
+            except urllib.error.HTTPError as e:
+                swgohgg_url = "introuvable"
+
+            warstats_url = "https://goh.warstats.net/players/view/" + allyCode
+            try:
+                r = get(warstats_url)
+                if r.status_code == 404:
+                    warstats_url = "introuvable"
+            except urllib.error.HTTPError as e:
+                warstats_url = "introuvable"
+
+            txt = "Qui est **"+full_alias+"** ?\n"
+            txt+= "- code allié : "+str(allyCode)+"\n"
+            txt+= "- pseudo IG : "+player_name+"\n"
+            txt+= "- pseudo Discord : "+discord_name+"\n"
+            txt+= "- guilde : "+guildName+"\n"
+            txt+= "- dernier refresh du bot : "+lastUpdated_txt+"\n"
+            txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">\n"
+            txt+= "- lien WARSTATS : <"+warstats_url + ">"
+
+            await ctx.send(txt)
+
+            await ctx.message.add_reaction(emoji_check)
     ##############################################################
     # Command: vtg
     # Parameters: code allié (string) ou "me", une liste de teams séparées par des espaces ou "all"
