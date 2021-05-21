@@ -8,7 +8,7 @@ font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
-        url = 'https://swgoh.gg/game-asset/u/' + character_id
+        url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
         print("INFO: download portrait from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(character_img_name, 'wb')
@@ -75,7 +75,7 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
         
         if combatType == 1:
             # ZETAS
-            if zetas>0:
+            if zetas != None and zetas>0:
                 zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
                 zeta_frame_img = zeta_frame_img.resize((60,60))
                 portrait_image.paste(zeta_frame_img, (5, 95), zeta_frame_img)
