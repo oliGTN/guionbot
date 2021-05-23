@@ -22,6 +22,7 @@ import goutils
 from connect_gsheets import load_config_players, update_online_dates
 from connect_warstats import parse_warstats_page
 import connect_mysql
+import portraits
 
 TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
@@ -38,6 +39,7 @@ bot_test_mode = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
+emoji_thumbdown = '\N{THUMBS DOWN SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 emoji_error = '\N{CROSS MARK}'
 emoji_letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
@@ -113,6 +115,7 @@ dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
 dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
 list_tw_opponent_msgIDs = []
+list_tw_results_msgIDs = []
 
 ##############################################################
 #                                                            #
@@ -280,7 +283,7 @@ async def get_eb_allocation(tbs_round):
                         eb_sort_player = False
                 
                 if allocation_without_overview:
-                    print("ERR: some platoons have been defined but no Overview detected!")
+                    goutils.log("ERR", "get_eb_allocation", "some platoons have been defined but no Overview detected!")
 
             if eb_sort_territory and message.content.startswith('```prolog'):
                 #EB message by territory
@@ -288,7 +291,6 @@ async def get_eb_allocation(tbs_round):
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
                     if 'fields' in dict_embed:
-                        # print(dict_embed)
                         #on garde le nom de la BT mais on met X comme numéro de phase
                         #le numéro de phase sera affecté plus tard
                         ret_re = re.search(':.*: \*\*(.*)\*\* - (.*)',
@@ -320,7 +322,6 @@ async def get_eb_allocation(tbs_round):
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
                     if 'fields' in dict_embed:
-                        # print(dict_embed)
                         # on garde le nom de la BT mais on met X comme numéro de phase
                         # le numéro de phase sera affecté plus tard
 
@@ -328,7 +329,6 @@ async def get_eb_allocation(tbs_round):
                             char_name = re.search(':.*: (.*)', dict_char['name']).group(1)
 
                             for line in dict_char['value'].split('\n'):
-                                # print("DBG - line: |"+line+"|")
                                 if line.startswith("**"):
                                     ret_re = re.search('\*\*(.*) - [PS](.)\*\*', line)
                                     territory_position = ret_re.group(1)
@@ -356,7 +356,6 @@ async def get_eb_allocation(tbs_round):
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
                     if 'fields' in dict_embed:
-                        # print(dict_embed)
                         # on garde le nom de la BT mais on met X comme numéro de phase
                         # le numéro de phase sera affecté plus tard
                         char_name = dict_embed['author']['name']
@@ -390,20 +389,16 @@ async def get_eb_allocation(tbs_round):
             elif eb_sort_player and "<@" in message.content and \
                 not (message.content.startswith(":information_source:")):
 
-                # print("DBG - message.content:"+str(message.content))
                 #EB message by player
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
-                    # print("DBG - dict_embed:"+str(dict_embed))
                     if 'fields' in dict_embed:
-                        #print(dict_embed)
                         #on garde le nom de la BT mais on met X comme numéro de phase
                         #le numéro de phase sera affecté plus tard
                         player_name = re.search('\*\*(.*)\*\*',
                                 dict_embed['description']).group(1)
 
                         for dict_platoon in dict_embed['fields']:
-                            # print("DBG - dict_platoon['name']:"+str(dict_platoon['name']))
                             platoon_name = tbs_name + "X-" + re.search('(.*) - .*',
                                 dict_platoon['name']).group(1) + "-" + dict_platoon['name'][-1]
                                 
@@ -455,7 +450,7 @@ async def get_eb_allocation(tbs_round):
                                         del dict_platoons_allocation[key]
                                         
                             else:
-                                print('Mission \"'+territory_name+'\" inconnue')
+                                goutils.log("WAR", "get_eb_allocation", 'Mission \"'+territory_name+'\" inconnue')
 
                 #Also reset parsing status as it is the top (so the end) of the allocation
                 allocation_without_overview = False
@@ -614,19 +609,40 @@ async def on_reaction_add(reaction, user):
     for list_msg in list_tw_opponent_msgIDs:
         if message in list_msg:
             if emoji in emoji_letters:
+                img1_url = list_msg[0].attachments[0].url
+                img2_url = message.attachments[0].url
                 letter_position = emoji_letters.index(emoji)
-            list_tw_opponent_msgIDs.remove(list_msg)
-            list_msg.remove(message)
-            for msg in list_msg:
-                await msg.delete()
+                if img1_url == img2_url:
+                    letter_position += 1
 
-            #Display the chosen team
-            await message.edit(content="Choix de l'équipe "+chr(65+letter_position))
+                for msg in list_msg:
+                    await msg.delete()
+                list_tw_opponent_msgIDs.remove(list_msg)
 
-            #Remove all previous reactions
-            for react in message.reactions:
-                async for user in react.users():
-                    await react.remove(user)
+                image = portraits.get_result_image_from_images(img1_url, img2_url, letter_position)
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    new_msg = await message.channel.send(content = "<@"+str(user.id)+"> Victoire ou Défaite ?",
+                           file=File(fp=image_binary, filename='image.png'))
+                    await new_msg.add_reaction(emoji_thumb)
+                    await new_msg.add_reaction(emoji_thumbdown)
+                    list_tw_results_msgIDs.append(new_msg)
+
+    #Check if message is a result from TW, just missing the victory or defeat
+    if message in list_tw_results_msgIDs:
+        if emoji == emoji_thumb or emoji == emoji_thumbdown:
+            img_url = message.attachments[0].url
+            victory = (emoji == emoji_thumb)
+            image = portraits.get_image_full_result(img_url, victory)
+            channel = message.channel
+            await message.delete()
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await channel.send(content = "<@"+str(user.id)+"> Tu peux partager ton résultat",
+                       file=File(fp=image_binary, filename='image.png'))
+            list_tw_results_msgIDs.remove(message)
 
 
 ##############################################################
@@ -726,11 +742,11 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_thumb)
 
         output = connect_mysql.simple_query(arg, True)
-        print('SQL: ' + arg)
+        goutils.log('INFO', 'go.sql', 'SQL: ' + arg)
         output_txt=''
         for row in output:
             output_txt+=str(row)+'\n'
-        print(output_txt)
+        goutils.log('INFO', 'go.sql', output_txt)
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
         
@@ -886,7 +902,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send('Aucune BT en cours')
             await ctx.message.add_reaction(emoji_error)
         else:
-            print('Lecture terminée du statut BT sur warstats: round ' + tbs_round)
+            goutils.log("INFO", "go.vdp", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
 
             dict_platoons_allocation = await get_eb_allocation(tbs_round)
             
@@ -933,8 +949,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                 erreur_detectee = True
                                 list_err.append('ERR: ' + perso +
                                                 ' n\'a pas été affecté ('+platoon_name+')')
-                                print('ERR: ' + perso + ' n\'a pas été affecté')
-                                print(dict_platoons_allocation[platoon_name].keys())
+                                goutils.log('ERR', "go.vdp", perso + ' n\'a pas été affecté')
+                                goutils.log("ERR", "go.vdp", dict_platoons_allocation[platoon_name].keys())
 
             full_txt = ''
             cur_phase = 0

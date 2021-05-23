@@ -807,22 +807,14 @@ class TWSOpponentSquadParser(HTMLParser):
 # Input: url (string)
 # Output: same as urllib.request.urlopen
 ###############################################################
-def fresh_urlopen(url):
-    random_3letters=''.join(random.choice(string.ascii_lowercase) for i in range(3))
-    #fresh_url = url+'?'+random_3letters+'='
-    fresh_url = url
-
-    req = urllib.request.Request(fresh_url)
-    # req.add_header('Cache-Control', 'max-age=0')
-    # req.add_header('Cache-Control', 'no-store')
-    # req.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686) Gecko/20071127 Firefox/2.0.0.11')
-
-    print(fresh_url)
+def urlopen(url):
+    req = urllib.request.Request(url)
+    goutils.log("INFO", "urlopen", url)
     return urllib.request.urlopen(req)
 
 def parse_warstats_page():
     try:
-        page = fresh_urlopen(warstats_tbs_url)
+        page = urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
         goutils.log('ERR', "parse_warstats_page", 'error while opening '+warstats_tbs_url)
         return '', None, None, None
@@ -838,7 +830,7 @@ def parse_warstats_page():
         
     warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
     try:
-        page = fresh_urlopen(warstats_platoon_url)
+        page = urlopen(warstats_platoon_url)
     except urllib.error.HTTPError as e:
         goutils.log('ERR', "parse_warstats_page", 'error while opening '+warstats_platoon_url)
         return '', None, None, None
@@ -847,7 +839,7 @@ def parse_warstats_page():
     complete_dict_player_allocations={}
     for phase in range(1,7):
         try:
-            page = fresh_urlopen(warstats_platoon_url+'/'+str(phase))
+            page = urlopen(warstats_platoon_url+'/'+str(phase))
             #print(page.headers)
             platoon_parser = TBSPhaseParser()
             platoon_parser.feed(str(page.read()))
@@ -859,7 +851,7 @@ def parse_warstats_page():
             goutils.log('WAR', "parse_warstats_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
     
     warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
-    page = fresh_urlopen(warstats_resume_url)
+    page = urlopen(warstats_resume_url)
     resume_parser = TBSResumeParser()
     resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
     resume_parser.feed(str(page.read()))
@@ -869,7 +861,7 @@ def parse_warstats_page():
 
 def parse_warstats_tb_scores():
     try:
-        page = fresh_urlopen(warstats_tbs_url)
+        page = urlopen(warstats_tbs_url)
     except urllib.error.HTTPError as e:
         goutils.log('ERR', "parse_warstats_tb_scores", 'error while opening '+warstats_tbs_url)
         return {}, 0
@@ -884,7 +876,7 @@ def parse_warstats_tb_scores():
         goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id()+" in progress")
     
     warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()
-    page = fresh_urlopen(warstats_resume_url)
+    page = urlopen(warstats_resume_url)
     resume_parser = TBSResumeParser()
     # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
     resume_parser.feed(str(page.read()))
@@ -894,7 +886,7 @@ def parse_warstats_tb_scores():
 
 def parse_warstats_tw_teams():
     try:
-        page = fresh_urlopen(warstats_tws_url)
+        page = urlopen(warstats_tws_url)
     except urllib.error.HTTPError as e:
         goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_tws_url)
         return {}, 0
@@ -902,10 +894,11 @@ def parse_warstats_tw_teams():
     generic_parser = GenericTWSParser()
     generic_parser.feed(str(page.read()))
     
-    goutils.log('INFO', "parse_warstats_tw_teams", "latest TW is "+generic_parser.get_war_id())
+    war_id = generic_parser.get_war_id()
+    goutils.log('INFO', "parse_warstats_tw_teams", "latest TW is "+war_id)
     
-    warstats_opp_squad_url=warstats_opp_squad_baseurl+generic_parser.get_war_id()
-    page = fresh_urlopen(warstats_opp_squad_url)
+    warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
+    page = urlopen(warstats_opp_squad_url)
     opp_squad_parser = TWSOpponentSquadParser()
 
     page_read=str(page.read())

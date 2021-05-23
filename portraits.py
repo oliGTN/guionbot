@@ -5,10 +5,13 @@ from PIL import Image, ImageDraw, ImageFont
 
 font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 
+NAME_HEIGHT = 30
+PORTRAIT_SIZE = 168
+
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
-        url = 'https://swgoh.gg/game-asset/u/' + character_id
+        url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
         print("INFO: download portrait from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(character_img_name, 'wb')
@@ -20,7 +23,7 @@ def get_image_from_id(character_id):
     return char_img
     
 def get_image_from_character(character_id, force_alignment, rarity, level, gear, relic, zetas, combatType):
-    portrait_image = Image.new('RGB', (168, 168), (0,0,0))
+    portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
     portrait_draw = ImageDraw.Draw(portrait_image)
     
     character_image = get_image_from_id(character_id)
@@ -75,7 +78,7 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
         
         if combatType == 1:
             # ZETAS
-            if zetas>0:
+            if zetas != None and zetas>0:
                 zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
                 zeta_frame_img = zeta_frame_img.resize((60,60))
                 portrait_image.paste(zeta_frame_img, (5, 95), zeta_frame_img)
@@ -83,7 +86,7 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
     
     else:
         #character is invalid, display it in reduce
-        red_img = Image.new('RGB', (168, 168), 'red')
+        red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
         portrait_image = Image.blend(portrait_image, red_img, 0.5)
         
     return portrait_image
@@ -130,18 +133,18 @@ def get_image_from_team(list_character_ids, db_data, tw_territory, prefix):
     if tw_territory != '':
         tw_img = Image.open('IMAGES'+os.path.sep+'TW'+os.path.sep+tw_territory+'.png')
         tw_img.resize((120, 120))
-        team_img = Image.new('RGB', (170+168*len(list_portrait_images), 30+168), (0,0,0))
+        team_img = Image.new('RGB', (170+PORTRAIT_SIZE*len(list_portrait_images), NAME_HEIGHT+PORTRAIT_SIZE), (0,0,0))
         team_img.paste(tw_img, (24, 54))
         x = 170
     else:
-        team_img = Image.new('RGB', (168*len(list_portrait_images), 30+168), (0,0,0))
+        team_img = Image.new('RGB', (PORTRAIT_SIZE*len(list_portrait_images), NAME_HEIGHT+PORTRAIT_SIZE), (0,0,0))
         x = 0
     team_draw = ImageDraw.Draw(team_img)
     team_draw.text((10,5), prefix+str(player_name), (255, 255, 255), font=font)
 
     for img in list_portrait_images:
-        team_img.paste(img, (x, 30))
-        x+=168
+        team_img.paste(img, (x, NAME_HEIGHT))
+        x+=PORTRAIT_SIZE
     
     return team_img
 
@@ -184,3 +187,43 @@ def get_image_from_teams(list_ids_allyCode, db_data):
         cur_h += h
 
     return global_image
+
+#######################
+def get_result_image_from_images(img1_url, img2_url, idx_img2):
+    img1 = Image.open(requests.get(img1_url, stream=True).raw)
+    img2 = Image.open(requests.get(img2_url, stream=True).raw)
+
+    result_width = 6 * PORTRAIT_SIZE
+    result_image = Image.new('RGB', (result_width, 2*(NAME_HEIGHT+PORTRAIT_SIZE)), (0,0,0))
+    
+    #Get attacker team
+    attacker_img = img1.crop((0, 0, result_width, NAME_HEIGHT + PORTRAIT_SIZE))
+    
+    #Get defender team / remove the letter before the name
+    defender_img = img2.crop((0, idx_img2 * (NAME_HEIGHT + PORTRAIT_SIZE),
+                            result_width, (idx_img2 + 1) * (NAME_HEIGHT + PORTRAIT_SIZE)))
+    defender_name = defender_img.crop((40, 0, 6*PORTRAIT_SIZE, NAME_HEIGHT+5))
+    defender_img.paste(defender_name, (0,0))
+
+
+    #Merge images
+    result_image.paste(attacker_img, (0, 0))
+    result_image.paste(defender_img, (0, NAME_HEIGHT+PORTRAIT_SIZE))
+
+    return result_image
+
+def get_image_full_result(img_url, victory):
+    img = Image.open(requests.get(img_url, stream=True).raw)
+
+    #Get result icon
+    if victory:
+        result_icon = Image.open("IMAGES/ICONS/green_thumbup.png")
+    else:
+        result_icon = Image.open("IMAGES/ICONS/red_thumbdown.png")
+    result_icon = result_icon.resize((120, 120))
+
+    #Merge images
+    img.paste(result_icon, (5*PORTRAIT_SIZE+24, NAME_HEIGHT+24), result_icon)
+
+    return img
+

@@ -1671,7 +1671,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         squad_char_ids = []
         squad_char_alias = opp_squad[2]
         for char_alias in squad_char_alias:
-            char_id = dict_id_name[char_alias]
+            char_id = dict_id_name[char_alias][0][0]
             squad_char_ids.append(char_id)
 
         list_opp_squad_ids.append([territory, player_name, squad_char_ids])
