@@ -1660,6 +1660,11 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     list_opp_squad_ids = []
 
     list_opponent_squads, time_track = connect_warstats.parse_warstats_tw_teams()
+    if len(list_opponent_squads) == 0:
+        goutils.log("ERR", "get_tw_battle_image", "aucune phase d'attaque en cours en GT")
+        err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
+        return 1, err_txt, None
+
     list_opponent_char_alias = list(set([j for i in [x[2] for x in list_opponent_squads] for j in i]))
     list_opponent_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_opponent_char_alias, dict_unitsAlias, dict_tagAlias)
     if txt != '':

@@ -36,6 +36,7 @@ WARSTATS_REFRESH_SECS = 15*60
 WARSTATS_REFRESH_TIME = 2*60
 list_alerts_sent_to_admin = []
 bot_test_mode = False
+bot_noloop_mode = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -1518,13 +1519,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 goutils.log("INFO", "main", "Starting...")
 # Use command-line parameters
 if len(sys.argv) > 1:
-    if sys.argv[1] == "test":
-        goutils.log("INFO", "main", "TEST MODE")
-        bot_test_mode = True
+    goutils.log("INFO", "main", "TEST MODE - option= "+str(sys.argv))
+    bot_test_mode = True
+    if sys.argv[1] == "noloop":
+        goutils.log("INFO", "main", "Disable loops")
+        bot_noloop_mode = True
 
 #Create periodic tasks
-bot.loop.create_task(bot_loop_60())
-bot.loop.create_task(bot_loop_600())
+if not bot_noloop_mode:
+    bot.loop.create_task(bot_loop_60())
+    bot.loop.create_task(bot_loop_600())
 
 #Ajout des commandes groupées par catégorie
 bot.add_cog(AdminCog(bot))
