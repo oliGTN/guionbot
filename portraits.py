@@ -3,13 +3,18 @@ import os
 import math
 from PIL import Image, ImageDraw, ImageFont
 
+import goutils
+
 font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
+
+NAME_HEIGHT = 30
+PORTRAIT_SIZE = 168
 
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
         url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
-        print("INFO: download portrait from swgoh.gg "+url)
+        goutils.log("INFO", "get_image_from_id", "download portrait from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(character_img_name, 'wb')
         f.write(r.content)
@@ -20,7 +25,7 @@ def get_image_from_id(character_id):
     return char_img
     
 def get_image_from_character(character_id, force_alignment, rarity, level, gear, relic, zetas, combatType):
-    portrait_image = Image.new('RGB', (168, 168), (0,0,0))
+    portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
     portrait_draw = ImageDraw.Draw(portrait_image)
     
     character_image = get_image_from_id(character_id)
@@ -83,36 +88,43 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
     
     else:
         #character is invalid, display it in reduce
-        red_img = Image.new('RGB', (168, 168), 'red')
+        red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
         portrait_image = Image.blend(portrait_image, red_img, 0.5)
         
     return portrait_image
 
 #################################################
 # get_image_from_team
-# list_ids_allyCode: [toon1_ID, toon2_ID, ...]
-# db_data: players.name, players.allyCode,
-#          defId, rarity, roster.level, gear,
-#          relic_currentTier, forceAlignment, zeta_count, combatType
+# list_ids_allyCode: [toon1_ID, toon2_ID, ...], dict_player, 
 # tw_territory: 'T1', 'T2', 'F1', ...
 #################################################
-def get_image_from_team(list_character_ids, db_data, tw_territory, prefix):
+def get_image_from_team(list_character_ids, dict_player, tw_territory, prefix):
     list_portrait_images = []
+    player_name = dict_player["name"]
 
+    total_gp = 0
     for character_id in list_character_ids:
-        character_data = [line for line in db_data if line[2] == character_id]
-        if len(character_data) > 0:
-            player_name = character_data[0][0]
-            rarity = character_data[0][3]
-            level = character_data[0][4]
-            gear = character_data[0][5]
-            relic = character_data[0][6]-2
-            force_alignment = character_data[0][7]
-            zetas = character_data[0][8]
-            combatType = character_data[0][9]
+        if character_id in dict_player["roster"]:
+            character = dict_player["roster"][character_id]
+            rarity = character["rarity"]
+            level = character["level"]
+            combatType = character["combatType"]
+            forceAlignment = character["forceAlignment"]
+            total_gp += character["gp"]
+            if combatType == 1:
+                gear = character["gear"]
+                relic = character["relic"]["currentTier"]-2
+                zetas = 0
+                for skill in character["skills"]:
+                    if skill["isZeta"]:
+                        zetas += 1
+            else:
+                gear = 1
+                relic = 0
+                zetas = 0
         
             character_img = get_image_from_character(character_id,
-                                                    force_alignment,
+                                                    forceAlignment,
                                                     rarity, 
                                                     level, 
                                                     gear, 
@@ -130,39 +142,37 @@ def get_image_from_team(list_character_ids, db_data, tw_territory, prefix):
     if tw_territory != '':
         tw_img = Image.open('IMAGES'+os.path.sep+'TW'+os.path.sep+tw_territory+'.png')
         tw_img.resize((120, 120))
-        team_img = Image.new('RGB', (170+168*len(list_portrait_images), 30+168), (0,0,0))
+        team_img = Image.new('RGB', (170+PORTRAIT_SIZE*len(list_portrait_images), NAME_HEIGHT+PORTRAIT_SIZE), (0,0,0))
         team_img.paste(tw_img, (24, 54))
         x = 170
     else:
-        team_img = Image.new('RGB', (168*len(list_portrait_images), 30+168), (0,0,0))
+        team_img = Image.new('RGB', (PORTRAIT_SIZE*len(list_portrait_images), NAME_HEIGHT+PORTRAIT_SIZE), (0,0,0))
         x = 0
+
     team_draw = ImageDraw.Draw(team_img)
-    team_draw.text((10,5), prefix+str(player_name), (255, 255, 255), font=font)
+    complete_player_name = prefix + player_name + " - " + str(total_gp)
+    team_draw.text((10,5), complete_player_name, (255, 255, 255), font=font)
 
     for img in list_portrait_images:
-        team_img.paste(img, (x, 30))
-        x+=168
+        team_img.paste(img, (x, NAME_HEIGHT))
+        x+=PORTRAIT_SIZE
     
     return team_img
 
 #################################################
 # get_image_from_teams
-# list_ids_allyCode: [[list_character_ids, txt_allyCode, tw_territory], ...]
-# db_data: players.name, players.allyCode,
-#          defId, rarity, roster.level, gear,
-#          relic_currentTier, forceAlignment, zeta_count, combatType
+# list_ids_allyCode: [[list_character_ids, dict_plater, tw_territory], ...]
 #################################################
-def get_image_from_teams(list_ids_allyCode, db_data):
+def get_image_from_teams(list_ids_dictplayer):
     list_images = []
     
     #get individual images by team 
     tw_pos = 0
-    for [ids, allyCode, tw_terr] in list_ids_allyCode:
-        db_data_allyCode = list(filter(lambda x:x[1]==int(allyCode), db_data))
+    for [ids, dict_player, tw_terr] in list_ids_dictplayer:
         if tw_terr == '':
-            image = get_image_from_team(ids, db_data_allyCode, "", "")
+            image = get_image_from_team(ids, dict_player, "", "")
         else:
-            image = get_image_from_team(ids, db_data_allyCode, tw_terr, "["+chr(65+tw_pos)+"] ")
+            image = get_image_from_team(ids, dict_player, tw_terr, "["+chr(65+tw_pos)+"] ")
             tw_pos += 1
         list_images.append(image)
 
@@ -184,3 +194,43 @@ def get_image_from_teams(list_ids_allyCode, db_data):
         cur_h += h
 
     return global_image
+
+#######################
+def get_result_image_from_images(img1_url, img2_url, idx_img2):
+    img1 = Image.open(requests.get(img1_url, stream=True).raw)
+    img2 = Image.open(requests.get(img2_url, stream=True).raw)
+
+    result_width = 6 * PORTRAIT_SIZE
+    result_image = Image.new('RGB', (result_width, 2*(NAME_HEIGHT+PORTRAIT_SIZE)), (0,0,0))
+    
+    #Get attacker team
+    attacker_img = img1.crop((0, 0, result_width, NAME_HEIGHT + PORTRAIT_SIZE))
+    
+    #Get defender team / remove the letter before the name
+    defender_img = img2.crop((0, idx_img2 * (NAME_HEIGHT + PORTRAIT_SIZE),
+                            result_width, (idx_img2 + 1) * (NAME_HEIGHT + PORTRAIT_SIZE)))
+    defender_name = defender_img.crop((40, 0, 6*PORTRAIT_SIZE, NAME_HEIGHT+5))
+    defender_img.paste(defender_name, (0,0))
+
+
+    #Merge images
+    result_image.paste(attacker_img, (0, 0))
+    result_image.paste(defender_img, (0, NAME_HEIGHT+PORTRAIT_SIZE))
+
+    return result_image
+
+def get_image_full_result(img_url, victory):
+    img = Image.open(requests.get(img_url, stream=True).raw)
+
+    #Get result icon
+    if victory:
+        result_icon = Image.open("IMAGES/ICONS/green_thumbup.png")
+    else:
+        result_icon = Image.open("IMAGES/ICONS/red_thumbdown.png")
+    result_icon = result_icon.resize((120, 120))
+
+    #Merge images
+    img.paste(result_icon, (5*PORTRAIT_SIZE+24, NAME_HEIGHT+24), result_icon)
+
+    return img
+
