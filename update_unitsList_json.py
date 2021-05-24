@@ -70,13 +70,17 @@ dict_tags_by_id = {}
 for x in categoryList_FRE_FR:
     tag_id = x["id"]
     tag_name = x["descKey"]
-    if not tag_id.startswith("selftag_") and not tag_name == "Placeholder":
+    if not tag_id.startswith("selftag_") \
+        and not tag_id.startswith("specialmission_") \
+        and not tag_name == "Placeholder":
         dict_tags_by_id[tag_id] = [tag_name]
     
 for x in categoryList_ENG_US:
     tag_id = x["id"]
     tag_name = x["descKey"]
-    if not tag_id.startswith("selftag_") and not tag_name == "Placeholder":
+    if not tag_id.startswith("selftag_") \
+        and not tag_id.startswith("specialmission_") \
+        and not tag_name == "Placeholder":
         if tag_id in dict_tags_by_id:
             if not tag_name in dict_tags_by_id[tag_id]:
                 dict_tags_by_id[tag_id].append(tag_name)
