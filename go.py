@@ -1536,17 +1536,16 @@ def get_gp_distribution(txt_allyCode, inactive_duration, fast_chart):
 
 def get_tb_alerts():
     tb_trigger_messages=[]
-    last_track_secs = 0
 
     tb_active_triggers = connect_gsheets.get_tb_triggers({}, True)
     #print(tb_active_triggers)
     if len(tb_active_triggers) > 0:
-        territory_scores, last_track_secs = connect_warstats.parse_warstats_tb_scores()
+        territory_scores = connect_warstats.parse_warstats_tb_scores()
         #print(territory_scores)
         if len(territory_scores) > 0:
             tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores, False)
     
-    return tb_trigger_messages, last_track_secs
+    return tb_trigger_messages
     
 #################################
 # Function: get_character_image
@@ -1561,74 +1560,53 @@ def get_character_image(list_characters_allyCode, is_ID):
     #print(list_characters_allyCode)
     list_allyCodes = list(set([x[1] for x in list_characters_allyCode]))
     
-    #get the amount of different players per guild
-    # Goal is to update by player only if alone if the guild
-    # otherwise update guild (allows longer timeout)
-    query = "SELECT allyCode, guildName, count(*) from players "
-    query+= "WHERE allyCode in "+str(tuple(list_allyCodes)).replace(',)', ')') + " "
-    query+= "GROUP BY guildName"
-    goutils.log("DBG", "get_character_image", query)
-    db_data = connect_mysql.get_table(query)
-    goutils.log("DBG", "get_character_image", db_data)
-
-    for line in db_data:
-        if line[2] > 1:
-            load_guild(str(line[0]), True, True)
-        else:
-            load_player(str(line[0]), False, False)
-
-    #for txt_allyCode in list_allyCodes:
-    #    e, t = load_player(txt_allyCode, False, False)
-    #    if e != 0:
-    #        #error wile loading guild data
-    #        print('WAR: joueur non trouvé pour code allié ' + txt_allyCode)
-    #        err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
-    #        list_allyCodes.remove(txt_allyCode)
-    
     #transform aliases into IDs
     if not is_ID:
-        list_ids_allyCode = []
-        for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
-            #specific list of characters for one player
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters, dict_unitsAlias, dict_tagAlias)
-            if txt != '':
-                err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
-                
-            if len(list_character_ids) == 0:
-                err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode
-            else:
-                list_ids_allyCode.append([list_character_ids, txt_allyCode, tw_terr])
-    else:
-        list_ids_allyCode = list_characters_allyCode
+        list_alias = [j for i in [x[0] for x in list_characters_allyCode] for j in i]
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias)
+        if txt != '':
+            err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
-    if len(list_ids_allyCode) == 0:
+    list_ids_dictplayer = []
+    for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
+        e, dict_player, t = load_player(txt_allyCode, False, False)
+        if e != 0:
+            #error wile loading guild data
+            goutils.log("WAR", "get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
+            err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
+            dict_player = {"allyCode": txt_allyCode}
+
+        if is_ID:
+            list_ids = characters
+        else:
+            list_ids = []
+            for alias in characters:
+                if alias in dict_id_name:
+                    id = dict_id_name[alias][0][0]
+                    list_ids.append(id)
+        
+        for id in list_ids:
+            if id in dict_unitsList:
+                forceAlignment = dict_unitsList[id]["forceAlignment"]
+            else:
+                goutils.log("WAR", "get_character_image", "unknown forceAlignment for "+id)
+                forceAlignment = 1
+            dict_player["roster"][id]["forceAlignment"] = forceAlignment
+            
+        if len(list_ids) == 0:
+            err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode
+        else:
+            list_ids_dictplayer.append([list_ids, dict_player, tw_terr])
+
+    if len(list_ids_dictplayer) == 0:
         return 1, err_txt, None
 
-    db_stat_data_char = []
-    goutils.log("INFO", "get_character_image", "Get player_data from DB...")
-    query ="SELECT players.name, players.allyCode, \
-            defId, rarity, roster.level, gear, \
-            relic_currentTier, forceAlignment, zeta_count, combatType \
-            FROM roster \
-            JOIN players ON players.allyCode = roster.allyCode \
-            WHERE "
-    for [list_character_ids, txt_allyCode, tw_terr] in list_ids_allyCode:
-        query += "(players.allyCode = '"+txt_allyCode+"' AND ("
-        for character_id in list_character_ids:
-            query += "defId = '"+character_id+"' OR "
-        query = query[:-3] + ")) OR "
-    query = query[:-3]
-
-    goutils.log("DBG", "get_character_image", query)
-    db_data = connect_mysql.get_table(query)
-    goutils.log("DBG", "get_character_image", db_data)
-    
     list_images = []
     idx = 0
-    while len(list_ids_allyCode) > idx:
-        list_ids_allyCode_5 = list_ids_allyCode[idx:idx+5]
-        image = portraits.get_image_from_teams(list_ids_allyCode_5, db_data)
-        list_images.append([image, len(list_ids_allyCode_5)])
+    while len(list_ids_dictplayer) > idx:
+        list_ids_dictplayer_5 = list_ids_dictplayer[idx:idx+5]
+        image = portraits.get_image_from_teams(list_ids_dictplayer_5)
+        list_images.append([image, len(list_ids_dictplayer_5)])
         idx += 5
     
     return err_code, err_txt, list_images
@@ -1659,7 +1637,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     #Get full character names for defense squads
     list_opp_squad_ids = []
 
-    list_opponent_squads, time_track = connect_warstats.parse_warstats_tw_teams()
+    list_opponent_squads = connect_warstats.parse_warstats_tw_teams()
     if len(list_opponent_squads) == 0:
         goutils.log("ERR", "get_tw_battle_image", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"

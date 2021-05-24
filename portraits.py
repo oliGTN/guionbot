@@ -12,7 +12,7 @@ def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
         url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
-        print("INFO: download portrait from swgoh.gg "+url)
+        goutils.log("INFO", "get_image_from_id", "download portrait from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(character_img_name, 'wb')
         f.write(r.content)
@@ -93,29 +93,36 @@ def get_image_from_character(character_id, force_alignment, rarity, level, gear,
 
 #################################################
 # get_image_from_team
-# list_ids_allyCode: [toon1_ID, toon2_ID, ...]
-# db_data: players.name, players.allyCode,
-#          defId, rarity, roster.level, gear,
-#          relic_currentTier, forceAlignment, zeta_count, combatType
+# list_ids_allyCode: [toon1_ID, toon2_ID, ...], dict_player, 
 # tw_territory: 'T1', 'T2', 'F1', ...
 #################################################
-def get_image_from_team(list_character_ids, db_data, tw_territory, prefix):
+def get_image_from_team(list_character_ids, dict_player, tw_territory, prefix):
     list_portrait_images = []
+    player_name = dict_player["name"]
 
+    total_gp = 0
     for character_id in list_character_ids:
-        character_data = [line for line in db_data if line[2] == character_id]
-        if len(character_data) > 0:
-            player_name = character_data[0][0]
-            rarity = character_data[0][3]
-            level = character_data[0][4]
-            gear = character_data[0][5]
-            relic = character_data[0][6]-2
-            force_alignment = character_data[0][7]
-            zetas = character_data[0][8]
-            combatType = character_data[0][9]
+        if character_id in dict_player["roster"]:
+            character = dict_player["roster"][character_id]
+            rarity = character["rarity"]
+            level = character["level"]
+            combatType = character["combatType"]
+            forceAlignment = character["forceAlignment"]
+            total_gp += character["gp"]
+            if combatType == 1:
+                gear = character["gear"]
+                relic = character["relic"]["currentTier"]-2
+                zetas = 0
+                for skill in character["skills"]:
+                    if skill["isZeta"]:
+                        zetas += 1
+            else:
+                gear = 1
+                relic = 0
+                zetas = 0
         
             character_img = get_image_from_character(character_id,
-                                                    force_alignment,
+                                                    forceAlignment,
                                                     rarity, 
                                                     level, 
                                                     gear, 
@@ -139,8 +146,10 @@ def get_image_from_team(list_character_ids, db_data, tw_territory, prefix):
     else:
         team_img = Image.new('RGB', (PORTRAIT_SIZE*len(list_portrait_images), NAME_HEIGHT+PORTRAIT_SIZE), (0,0,0))
         x = 0
+
     team_draw = ImageDraw.Draw(team_img)
-    team_draw.text((10,5), prefix+str(player_name), (255, 255, 255), font=font)
+    complete_player_name = prefix = player_name + " - " + str(total_gp)
+    team_draw.text((10,5), complete_player_name, (255, 255, 255), font=font)
 
     for img in list_portrait_images:
         team_img.paste(img, (x, NAME_HEIGHT))
@@ -150,22 +159,18 @@ def get_image_from_team(list_character_ids, db_data, tw_territory, prefix):
 
 #################################################
 # get_image_from_teams
-# list_ids_allyCode: [[list_character_ids, txt_allyCode, tw_territory], ...]
-# db_data: players.name, players.allyCode,
-#          defId, rarity, roster.level, gear,
-#          relic_currentTier, forceAlignment, zeta_count, combatType
+# list_ids_allyCode: [[list_character_ids, dict_plater, tw_territory], ...]
 #################################################
-def get_image_from_teams(list_ids_allyCode, db_data):
+def get_image_from_teams(list_ids_dictplayer):
     list_images = []
     
     #get individual images by team 
     tw_pos = 0
-    for [ids, allyCode, tw_terr] in list_ids_allyCode:
-        db_data_allyCode = list(filter(lambda x:x[1]==int(allyCode), db_data))
+    for [ids, dict_player, tw_terr] in list_ids_dictplayer:
         if tw_terr == '':
-            image = get_image_from_team(ids, db_data_allyCode, "", "")
+            image = get_image_from_team(ids, dict_player, "", "")
         else:
-            image = get_image_from_team(ids, db_data_allyCode, tw_terr, "["+chr(65+tw_pos)+"] ")
+            image = get_image_from_team(ids, dict_player, tw_terr, "["+chr(65+tw_pos)+"] ")
             tw_pos += 1
         list_images.append(image)
 

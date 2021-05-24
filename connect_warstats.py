@@ -3,6 +3,7 @@ import string
 import random
 import re
 from html.parser import HTMLParser
+import time
 
 import config
 import goutils
@@ -224,11 +225,28 @@ dict_tw_territory_names['Main base']='F2'
 dict_tw_territory_names['Command post']='T4'
 dict_tw_territory_names['Special ops center']='B4'
 
+#timer and global variables due to warstats tracking
+next_warstats_read = time.time()
+territory_scores = []
+opponent_teams = []
+WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
+WARSTATS_REFRESH_TIME = 2 * 60 #Duration of refresh
+
+def set_next_warstats_read(seconds_since_last_track):
+    global next_warstats_read
+    time_to_wait = WARSTATS_REFRESH_SECS - seconds_since_last_track + WARSTATS_REFRESH_TIME
+    next_warstats_read = int(time.time()) + time_to_wait
+    goutils.log("DBG", "set_next_warstats_read", next_warstats_read)
+    
+def get_next_warstats_read():
+    global next_warstats_read
+    time_to_wait = next_warstats_read - int(time.time())
+    return time_to_wait
+    
 class TBSPhaseParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.dict_platoons={} #key="A1" to "C6", value={} key=perso, value=[player, ...]
-        self.dict_player_allocations={} #key=player, value={ key=perso, value=platoon}
         self.platoon_name=''
         self.char_name=''
         self.player_name=''
@@ -376,20 +394,10 @@ class TBSPhaseParser(HTMLParser):
                 self.dict_platoons[self.platoon_name][self.char_name]=[]
             self.dict_platoons[self.platoon_name][self.char_name].append(self.player_name)
             
-            #remplissage dict_player_allocations
-            if not self.player_name in self.dict_player_allocations:
-                self.dict_player_allocations[self.player_name]={}
-            if not self.char_name in self.dict_player_allocations[self.player_name]:
-                self.dict_player_allocations[self.player_name][self.char_name]=[]
-            self.dict_player_allocations[self.player_name][self.char_name]=self.platoon_name
-            
             self.state_parser=5
 
     def get_dict_platoons(self):
         return self.dict_platoons
-
-    def get_dict_player_allocations(self):
-        return self.dict_player_allocations
 
     def get_phase(self):
         return self.detected_phase
@@ -402,11 +410,18 @@ class GenericTBSParser(HTMLParser):
         HTMLParser.__init__(self)
         self.warstats_battle_id=''
         self.warstats_battle_in_progress=''
+        self_seconds_since_last_track = 0
+
         self.state_parser=0
         #0: en recherche de h2
         #1: en recherche de data=Territory Battles
         #2: en recherche de div class='card card-table'
         #3: en recherche de a href
+
+        self.state_parser2=0
+        #0: en recherche de <span id="track-timer"
+        #1: en recherche de script
+        #2: en recherche de data
         
     def handle_starttag(self, tag, attrs):
         if self.state_parser==0:
@@ -435,18 +450,38 @@ class GenericTBSParser(HTMLParser):
                         self.warstats_battle_id=value.split('/')[3]
                         self.state_parser=0
 
+        #PARSER 3 pour le timer du tracker
+        if self.state_parser2==0:
+            if tag=='span':
+                for name, value in attrs:
+                    if name=='id' and value=='track-timer':
+                        self.state_parser2=1
+                        
+        if self.state_parser2==1:
+            if tag=='script':
+                self.state_parser2=2
+
     def handle_data(self, data):
         if self.state_parser==1:
             if data=='Territory Battles':
                 self.state_parser=2
             else:
                 self.state_parser=0
+
+        if self.state_parser2==2:
+            ret_re = re.search('\\{seconds: (.*?)\\}', data)
+            timer_seconds_txt = ret_re.group(1)
+            self.seconds_since_last_track = int(timer_seconds_txt)
+            self.state_parser2=0
                 
     def get_battle_id(self):
         if self.warstats_battle_in_progress:
             return self.warstats_battle_id
         else:
             return None
+
+    def get_last_track(self):
+        return self.seconds_since_last_track
                 
 class TBSResumeParser(HTMLParser):
     def __init__(self):
@@ -812,99 +847,142 @@ def urlopen(url):
     goutils.log("INFO", "urlopen", url)
     return urllib.request.urlopen(req)
 
-def parse_warstats_page():
-    try:
-        page = urlopen(warstats_tbs_url)
-    except urllib.error.HTTPError as e:
-        goutils.log('ERR', "parse_warstats_page", 'error while opening '+warstats_tbs_url)
-        return '', None, None, None
-        
-    generic_parser = GenericTBSParser()
-    generic_parser.feed(str(page.read()))
-    
-    if generic_parser.get_battle_id() == None:
-        goutils.log('ERR', "parse_warstats_page", 'no TB in progress')
-        return '', None, None, None
+def parse_warstats_tb_page():
+    global next_warstats_read
+    global tb_active_round
+    global tb_dict_platoons
+    global tb_open_territories
+
+    #First, check there is value to re-parse the page
+    if time.time() < next_warstats_read:
+        goutils.log("DBG", "parse_warstats_tb_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
     else:
-        goutils.log('INFO', "parse_warstats_page", "TB "+generic_parser.get_battle_id()+" in progress")
-        
-    warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
-    try:
-        page = urlopen(warstats_platoon_url)
-    except urllib.error.HTTPError as e:
-        goutils.log('ERR', "parse_warstats_page", 'error while opening '+warstats_platoon_url)
-        return '', None, None, None
-    
-    complete_dict_platoons={}
-    complete_dict_player_allocations={}
-    for phase in range(1,7):
         try:
-            page = urlopen(warstats_platoon_url+'/'+str(phase))
-            #print(page.headers)
-            platoon_parser = TBSPhaseParser()
-            platoon_parser.feed(str(page.read()))
-            complete_dict_platoons.update(platoon_parser.get_dict_platoons())
-            complete_dict_player_allocations.update(platoon_parser.get_dict_player_allocations())
-            #print("DBG - complete_dict_platoons: "+str(complete_dict_platoons))
-            #print("DBG - complete_dict_player_allocations: "+str(complete_dict_player_allocations))
+            page = urlopen(warstats_tbs_url)
         except urllib.error.HTTPError as e:
-            goutils.log('WAR', "parse_warstats_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
+            goutils.log('ERR', "parse_warstats_tb_page", 'error while opening '+warstats_tbs_url)
+            return '', None, None
+        
+        generic_parser = GenericTBSParser()
+        generic_parser.feed(str(page.read()))
     
-    warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
-    page = urlopen(warstats_resume_url)
-    resume_parser = TBSResumeParser()
-    resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
-    resume_parser.feed(str(page.read()))
+        if generic_parser.get_battle_id() == None:
+            goutils.log('ERR', "parse_warstats_tb_page", 'no TB in progress')
+
+            tb_active_round = ""
+            tb_dict_platoons = None
+            tb_open_territories = None
+
+            set_next_warstats_read(generic_parser.get_last_track())
+
+            return '', None, None
+        else:
+            goutils.log('INFO', "parse_warstats_tb_page", "TB "+generic_parser.get_battle_id()+" in progress")
+        
+        warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
+        try:
+            page = urlopen(warstats_platoon_url)
+        except urllib.error.HTTPError as e:
+            goutils.log('ERR', "parse_warstats_tb_page", 'error while opening '+warstats_platoon_url)
+            return '', None, None
     
-    return platoon_parser.get_active_round(), complete_dict_platoons, \
-        complete_dict_player_allocations, resume_parser.get_open_territories()
+        tb_dict_platoons={}
+        for phase in range(1,7):
+            try:
+                page = urlopen(warstats_platoon_url+'/'+str(phase))
+                #print(page.headers)
+                platoon_parser = TBSPhaseParser()
+                platoon_parser.feed(str(page.read()))
+                tb_dict_platoons.update(platoon_parser.get_dict_platoons())
+            #print("DBG - tb_dict_platoons: "+str(tb_dict_platoons))
+            except urllib.error.HTTPError as e:
+                goutils.log('WAR', "parse_warstats_tb_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
+    
+        warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
+        page = urlopen(warstats_resume_url)
+        resume_parser = TBSResumeParser()
+        resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
+        resume_parser.feed(str(page.read()))
+    
+        tb_active_round = platoon_parser.get_active_round
+        tb_open_territories = resume_parser.get_open_territories()
+
+        set_next_warstats_read(resume_parser.get_last_track())
+
+    return tb_active_round(), tb_dict_platoons, tb_open_territories()
 
 def parse_warstats_tb_scores():
-    try:
-        page = urlopen(warstats_tbs_url)
-    except urllib.error.HTTPError as e:
-        goutils.log('ERR', "parse_warstats_tb_scores", 'error while opening '+warstats_tbs_url)
-        return {}, 0
-        
-    generic_parser = GenericTBSParser()
-    generic_parser.feed(str(page.read()))
-    
-    if generic_parser.get_battle_id() == None:
-        goutils.log('ERR', "parse_warstats_tb_scores", 'no TB in progress')
-        return {}, 0
+    global next_warstats_read
+    global territory_scores
+
+    #First, check there is value to re-parse the page
+    if time.time() < next_warstats_read:
+        goutils.log("DBG", "parse_warstats_tb_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
     else:
-        goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id()+" in progress")
+        try:
+            page = urlopen(warstats_tbs_url)
+        except urllib.error.HTTPError as e:
+            goutils.log('WAR', "parse_warstats_tb_scores", 'error while opening '+warstats_tbs_url)
+            return {}
+        
+        generic_parser = GenericTBSParser()
+        generic_parser.feed(str(page.read()))
+        
+        if generic_parser.get_battle_id() == None:
+            goutils.log('ERR', "parse_warstats_tb_scores", 'no TB in progress')
+
+            territory_scores = {}
+            set_next_warstats_read(generic_parser.get_last_track())
+
+            return {}
+        else:
+            goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id()+" in progress")
     
-    warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()
-    page = urlopen(warstats_resume_url)
-    resume_parser = TBSResumeParser()
-    # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
-    resume_parser.feed(str(page.read()))
+        warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()
+        page = urlopen(warstats_resume_url)
+        resume_parser = TBSResumeParser()
+        # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
+        resume_parser.feed(str(page.read()))
     
-    goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+resume_parser.get_battle_name())
-    return resume_parser.get_territory_scores(), resume_parser.get_last_track()
+        goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+resume_parser.get_battle_name())
+        territory_scores = resume_parser.get_territory_scores()
+
+        set_next_warstats_read(resume_parser.get_last_track())
+
+    return territory_scores
 
 def parse_warstats_tw_teams():
-    try:
-        page = urlopen(warstats_tws_url)
-    except urllib.error.HTTPError as e:
-        goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_tws_url)
-        return {}, 0
+    global next_warstats_read
+    global opponent_teams
+
+    #First, check there is value to re-parse the page
+    if time.time() < next_warstats_read:
+        goutils.log("DBG", "parse_warstats_tw_teams", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
+    else:
+        try:
+            page = urlopen(warstats_tws_url)
+        except urllib.error.HTTPError as e:
+            goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_tws_url)
+            return {}, 0
         
-    generic_parser = GenericTWSParser()
-    generic_parser.feed(str(page.read()))
+        generic_parser = GenericTWSParser()
+        generic_parser.feed(str(page.read()))
     
-    war_id = generic_parser.get_war_id()
-    goutils.log('INFO', "parse_warstats_tw_teams", "latest TW is "+war_id)
+        war_id = generic_parser.get_war_id()
+        goutils.log('INFO', "parse_warstats_tw_teams", "latest TW is "+war_id)
     
-    warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
-    page = urlopen(warstats_opp_squad_url)
-    opp_squad_parser = TWSOpponentSquadParser()
+        warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
+        page = urlopen(warstats_opp_squad_url)
+        opp_squad_parser = TWSOpponentSquadParser()
 
-    page_read=str(page.read())
-    page_read=page_read.replace("\\n", "")
-    page_read=page_read.replace("\\t", " ")
+        page_read=str(page.read())
+        page_read=page_read.replace("\\n", "")
+        page_read=page_read.replace("\\t", " ")
 
-    opp_squad_parser.feed(page_read)
+        opp_squad_parser.feed(page_read)
 
-    return opp_squad_parser.get_opp_teams(), opp_squad_parser.get_last_track()
+        opponent_teams = opp_squad_parser.get_opp_teams()
+
+        set_next_warstats_read(opp_squad_parser.get_last_track())
+
+    return opp_squad_parser.get_opp_teams()
