@@ -28,7 +28,7 @@ TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
 intents.members = True
 intents.presences = True
-bot = commands.Bot(command_prefix='go.', intents=intents)
+bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
@@ -1440,7 +1440,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.command(name='pgs',
                  brief="Image résumé d'un succès en Guerre de Territoire",
-                 help="Exemple: go.pgs me GAS echo cra fives rex VS MechantPaBo DR\n")
+                 help="Exemple: go.pgs me GAS echo cra fives rex VS DR\n")
     async def pgs(self, ctx, *options):
         await ctx.message.add_reaction(emoji_thumb)
 
