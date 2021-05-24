@@ -598,9 +598,9 @@ async def on_reaction_add(reaction, user):
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     #Manage reactions to PGS messages
-    for list_msg in list_tw_opponent_msgIDs:
+    for [pgs_user, list_msg] in list_tw_opponent_msgIDs:
         if message in list_msg:
-            if emoji in emoji_letters:
+            if emoji in emoji_letters and pgs_user == user:
                 img1_url = list_msg[0].attachments[0].url
                 img2_url = message.attachments[0].url
                 letter_position = emoji_letters.index(emoji)
@@ -609,7 +609,7 @@ async def on_reaction_add(reaction, user):
 
                 for msg in list_msg:
                     await msg.delete()
-                list_tw_opponent_msgIDs.remove(list_msg)
+                list_tw_opponent_msgIDs.remove([pgs_user, list_msg])
 
                 image = portraits.get_result_image_from_images(img1_url, img2_url, letter_position)
                 with BytesIO() as image_binary:
@@ -619,10 +619,10 @@ async def on_reaction_add(reaction, user):
                            file=File(fp=image_binary, filename='image.png'))
                     await new_msg.add_reaction(emoji_thumb)
                     await new_msg.add_reaction(emoji_thumbdown)
-                    list_tw_results_msgIDs.append(new_msg)
+                    list_tw_results_msgIDs.append([user, new_msg])
 
     #Check if message is a result from TW, just missing the victory or defeat
-    if message in list_tw_results_msgIDs:
+    if [user, message] in list_tw_results_msgIDs:
         if emoji == emoji_thumb or emoji == emoji_thumbdown:
             img_url = message.attachments[0].url
             victory = (emoji == emoji_thumb)
@@ -634,7 +634,7 @@ async def on_reaction_add(reaction, user):
                 image_binary.seek(0)
                 await channel.send(content = "<@"+str(user.id)+"> Tu peux partager ton résultat",
                        file=File(fp=image_binary, filename='image.png'))
-            list_tw_results_msgIDs.remove(message)
+            list_tw_results_msgIDs.remove([user, message])
 
 
 ##############################################################
@@ -1494,7 +1494,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 first_image = False
 
             # Add the message list to the global message list, waiting for reaction
-            list_tw_opponent_msgIDs.append(cur_list_msgIDs)
+            list_tw_opponent_msgIDs.append([ctx.author, cur_list_msgIDs])
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)

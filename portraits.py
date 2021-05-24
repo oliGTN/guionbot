@@ -3,6 +3,8 @@ import os
 import math
 from PIL import Image, ImageDraw, ImageFont
 
+import goutils
+
 font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 
 NAME_HEIGHT = 30
@@ -148,7 +150,7 @@ def get_image_from_team(list_character_ids, dict_player, tw_territory, prefix):
         x = 0
 
     team_draw = ImageDraw.Draw(team_img)
-    complete_player_name = prefix = player_name + " - " + str(total_gp)
+    complete_player_name = prefix + player_name + " - " + str(total_gp)
     team_draw.text((10,5), complete_player_name, (255, 255, 255), font=font)
 
     for img in list_portrait_images:
