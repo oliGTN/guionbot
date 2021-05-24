@@ -598,9 +598,9 @@ async def on_reaction_add(reaction, user):
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     #Manage reactions to PGS messages
-    for [pgs_user, list_msg] in list_tw_opponent_msgIDs:
+    for [rgt_user, list_msg] in list_tw_opponent_msgIDs:
         if message in list_msg:
-            if emoji in emoji_letters and pgs_user == user:
+            if emoji in emoji_letters and rgt_user == user:
                 img1_url = list_msg[0].attachments[0].url
                 img2_url = message.attachments[0].url
                 letter_position = emoji_letters.index(emoji)
@@ -609,7 +609,7 @@ async def on_reaction_add(reaction, user):
 
                 for msg in list_msg:
                     await msg.delete()
-                list_tw_opponent_msgIDs.remove([pgs_user, list_msg])
+                list_tw_opponent_msgIDs.remove([rgt_user, list_msg])
 
                 image = portraits.get_result_image_from_images(img1_url, img2_url, letter_position)
                 with BytesIO() as image_binary:
@@ -1392,7 +1392,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.command(name='ppj',
                  brief="Portraits de Perso d'un Joueur",
-                 help="Exemple: go.ppj 123456789 JKR\n"\
+                 help="Portraits de Perso d'un Joueur\n"\
+                      "Exemple: go.ppj 123456789 JKR\n"\
                       "Exemple: go.ppj me -v \"Dark Maul\" Bastila\n")
     async def ppj(self, ctx, allycode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
@@ -1429,7 +1430,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)                
                 
     ##############################################################
-    # Command: pgs
+    # Command: rgt
     # Parameters: code allié (string) ou "me"
     #             liste des persos du joueur
     #             séparateur "VS"
@@ -1438,21 +1439,22 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher une image avec les 2 équipes et un "SUCCESS"
     # Display: l'image produite
     ##############################################################
-    @commands.command(name='pgs',
-                 brief="Image résumé d'un succès en Guerre de Territoire",
-                 help="Exemple: go.pgs me GAS echo cra fives rex VS DR\n")
-    async def pgs(self, ctx, *options):
+    @commands.command(name='rgt',
+                 brief="Image d'un Résultat en Guerre de Territoire",
+                 help="Image d'un Résultat en Guerre de Territoire\n"\
+                      "Exemple: go.rgt me GAS echo cra fives rex VS DR\n")
+    async def rgt(self, ctx, *options):
         await ctx.message.add_reaction(emoji_thumb)
 
         # Extract command options
         if not ("VS" in options):
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rgt")
             await ctx.message.add_reaction(emoji_error)
             return
 
         pos_vs = options.index("VS")
         if pos_vs < 2:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rgt")
             await ctx.message.add_reaction(emoji_error)
             return
 
@@ -1466,7 +1468,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         if len(options) != (pos_vs+2):
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help pgs")
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rgt")
             await ctx.message.add_reaction(emoji_error)
             return
 
