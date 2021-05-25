@@ -1501,6 +1501,36 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
 
+    ##############################################################
+    # Command: gsp
+    # Parameters: code allié (string) ou "me"
+    #             un perso
+    #             une statistique
+    # Purpose: afficher un raph des stats de ce persos sur les G13 connus
+    #          et la position du joueur dans ce graph
+    # Display: l'image du graph
+    ##############################################################
+    @commands.command(name='gsp',
+                 brief="Graphique d'une Statistique d'un Perso",
+                 help="Graphique d'une Statistique d'un Perso\n"\
+                      "Exemple: go.gsp me GAS vitesse")
+    async def gsp(self, ctx, allyCode, alias, stat):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode= manage_me(ctx, allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode_attack)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        e, err_txt, image = await bot.loop.run_in_executor(None,
+                    go.get_stat_graph, allyCode, alias, stat)
+        if e == 0:
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(content = '',
+                       file=File(fp=image_binary, filename='image.png'))
 
 ##############################################################
 # MAIN EXECUTION

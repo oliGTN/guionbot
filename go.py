@@ -1304,13 +1304,13 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         ret, guild = load_guild(txt_allyCode, True, True)
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
-        
+                            
         #Get character_id
         character_alias = characters[0]
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
         if txt != '':
             return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
-            
+                                    
         character_id = list_character_ids[0]
         db_stat_data_char = []
         goutils.log("INFO", "print_character_stats", "Get guild_data from DB...")
@@ -1333,7 +1333,6 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         db_stat_data_mods = []
         list_character_ids=[character_id]
         list_player_names=set([x[0] for x in db_stat_data])
-        print(dict_id_name)
         character_name = dict_id_name[character_alias][0][1]
         
         ret_print_character_stats += "Statistiques pour "+character_name+'\n'
@@ -1632,3 +1631,43 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     return 0, err_txt, images
 
+def get_stat_graph(txt_allyCode, character_alias, stat_name):
+    ret, guild = load_guild(txt_allyCode, True, True)
+    if ret != 'OK':
+        return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
+        
+    #Get character_id
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+            
+    character_id = list_character_ids[0]
+
+    #Get statistic id
+    stat_id = 5
+    stat_name = 'speed'
+    stat_header = "stat"+str(stat_id)
+    stat_string = stat_header+"_base + "+\
+                  stat_header+"_gear + "+\
+                  stat_header+"_mods + "+\
+                  stat_header+"_crew"
+
+    #Get data from DB
+    db_stat_data_char = []
+    goutils.log("INFO", "get_stat_char", "Get guild_data from DB...")
+    query = "SELECT allyCode, gear,"\
+           +stat_string+","\
+           +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
+           +"from roster "\
+           +"where defId = '"+character_id+"' "\
+           +"AND not isnull("+stat_string+") "\
+           +"AND (gear = 13 or allyCode = "+txt_allyCode+")"
+    goutils.log("DBG", "get_stat_graph", query)
+    db_data = connect_mysql.get_table(query)
+
+    stat_g13_values = [x[2]/100000000 for x in db_data if x[1]==13]
+    player_value = [x[2]/100000000 for x in db_data if x[3]==1][0]
+
+    image = get_distribution_graph(stat_g13_values, 50, "Distribution de "+stat_name, player_value)
+    
+    return 0, "", image
