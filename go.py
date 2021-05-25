@@ -41,19 +41,19 @@ dict_tagAlias = json.load(open('DATA'+os.path.sep+'tagAlias_dict.json', 'r'))
 parallel_work.clean_cache()
 
 dict_stat_names={}
-dict_stat_names["speed"] = 5
-dict_stat_names["vitesse"] = 5
-dict_stat_names["protection"] = 28
-dict_stat_names["dégâts physiques"] = 6
-dict_stat_names["physical damages"] = 6
-dict_stat_names["dégâts spéciaux"] = 7
-dict_stat_names["special damages"] = 7
-dict_stat_names["santé"] = 1
-dict_stat_names["health"] = 1
-dict_stat_names["pouvoir"] = 17
-dict_stat_names["potency"] = 17
-dict_stat_names["tenacité"] = 18
-dict_stat_names["tenacity"] = 18
+dict_stat_names["speed"] = [5, False]
+dict_stat_names["vitesse"] = [5, False]
+dict_stat_names["protection"] = [28, False]
+dict_stat_names["dégâts physiques"] = [6, False]
+dict_stat_names["physical damages"] = [6, False]
+dict_stat_names["dégâts spéciaux"] = [7, False]
+dict_stat_names["special damages"] = [7, False]
+dict_stat_names["santé"] = [1, False]
+dict_stat_names["health"] = [1, False]
+dict_stat_names["pouvoir"] = [17, True]
+dict_stat_names["potency"] = [17, True]
+dict_stat_names["tenacité"] = [18, True]
+dict_stat_names["tenacity"] = [18, True]
 
 ##################################
 # Function: refresh_cache
@@ -1666,7 +1666,8 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     goutils.log("INFO", "get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
     stat_name = closest_names[0]
-    stat_id = dict_stat_names[stat_name]
+    stat_id = dict_stat_names[stat_name][0]
+    stat_isPercent = dict_stat_names[stat_name][1]
     stat_header = "stat"+str(stat_id)
     stat_string = stat_header+"_base + "+\
                   stat_header+"_gear + "+\
@@ -1686,8 +1687,13 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     goutils.log("DBG", "get_stat_graph", query)
     db_data = connect_mysql.get_table(query)
 
-    stat_g13_values = [x[2]/100000000 for x in db_data if x[1]==13]
-    player_value = [x[2]/100000000 for x in db_data if x[3]==1][0]
+    if stat_isPercent:
+        stat_divider = 1000000
+    else:
+        stat_divider = 100000000
+
+    stat_g13_values = [x[2]/stat_divider for x in db_data if x[1]==13]
+    player_value = [x[2]/stat_divider for x in db_data if x[3]==1][0]
 
     title = stat_name + " de " + character_name
     title+= " parmi les " + str(len(stat_g13_values)) + " relic connus"
