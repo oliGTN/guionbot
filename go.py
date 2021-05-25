@@ -11,6 +11,10 @@ import math
 from functools import reduce
 from math import ceil
 import json
+import matplotlib
+matplotlib.use('Agg') #Preventin GTK erros at startup
+import matplotlib.pyplot as plt
+from PIL import Image
 
 import connect_gsheets
 import connect_mysql
@@ -35,6 +39,21 @@ dict_tagAlias = json.load(open('DATA'+os.path.sep+'tagAlias_dict.json', 'r'))
 
 #Clean temp files
 parallel_work.clean_cache()
+
+dict_stat_names={}
+dict_stat_names["speed"] = [5, False]
+dict_stat_names["vitesse"] = [5, False]
+dict_stat_names["protection"] = [28, False]
+dict_stat_names["dégâts physiques"] = [6, False]
+dict_stat_names["physical damages"] = [6, False]
+dict_stat_names["dégâts spéciaux"] = [7, False]
+dict_stat_names["special damages"] = [7, False]
+dict_stat_names["santé"] = [1, False]
+dict_stat_names["health"] = [1, False]
+dict_stat_names["pouvoir"] = [17, True]
+dict_stat_names["potency"] = [17, True]
+dict_stat_names["tenacité"] = [18, True]
+dict_stat_names["tenacity"] = [18, True]
 
 ##################################
 # Function: refresh_cache
@@ -1300,13 +1319,13 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         ret, guild = load_guild(txt_allyCode, True, True)
         if ret != 'OK':
             return "ERR: cannot get guild data from SWGOH.HELP API"
-        
+                            
         #Get character_id
         character_alias = characters[0]
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
         if txt != '':
             return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
-            
+                                    
         character_id = list_character_ids[0]
         db_stat_data_char = []
         goutils.log("INFO", "print_character_stats", "Get guild_data from DB...")
@@ -1329,7 +1348,6 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         db_stat_data_mods = []
         list_character_ids=[character_id]
         list_player_names=set([x[0] for x in db_stat_data])
-        print(dict_id_name)
         character_name = dict_id_name[character_alias][0][1]
         
         ret_print_character_stats += "Statistiques pour "+character_name+'\n'
@@ -1425,114 +1443,45 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
 
     return ret_print_character_stats
 
-def get_gp_graph(guild_stats, inactive_duration):
-	ret_print_gp_graph=''
-	dict_gp_clusters={} #key=gp group, value=[nb active, nb inactive]
-	for player in guild_stats:
-		# print(guild_stats[player])
-		gp=guild_stats[player][0]+guild_stats[player][1]
-		gp_key=int(gp/500000)/2
-		if gp_key in dict_gp_clusters:
-			if guild_stats[player][2] < inactive_duration:
-				dict_gp_clusters[gp_key][0] = dict_gp_clusters[gp_key][0] + 1
-			else:
-				dict_gp_clusters[gp_key][1] = dict_gp_clusters[gp_key][1] + 1
-		else:
-			if guild_stats[player][2] < inactive_duration:
-				dict_gp_clusters[gp_key] = [1, 0]
-			else:
-				dict_gp_clusters[gp_key] = [0, 1]
+def get_distribution_graph(values, bins, title, highlight_value):
+    fig, ax = plt.subplots()
+    ax.hist(values, bins=bins)
+    fig.suptitle(title)
 
-	#print (dict_gp_clusters)	
-	#write line from the top = max bar size
-	max_cluster=max(dict_gp_clusters.values(), key=lambda p: p[0]+p[1])
-	line_graph=max_cluster[0]+max_cluster[1]
-	max_key=max(dict_gp_clusters.keys())
-	while line_graph > 0:
-		if (line_graph % 5) == 0:
-			line_txt="{:02d}".format(line_graph)
-		else:
-			line_txt='  '
-		for gp_key_x2 in range(0, int(max_key*2)+1):
-			gp_key=gp_key_x2 / 2
-			if gp_key in dict_gp_clusters:
-				#print(dict_gp_clusters[gp_key])
-				if dict_gp_clusters[gp_key][0] >= line_graph:
-					line_txt = line_txt + '    #'
-				elif dict_gp_clusters[gp_key][0]+dict_gp_clusters[gp_key][1] >= line_graph:
-					line_txt = line_txt + '    .'
-				else:
-					line_txt = line_txt + '     '
-			else:
-				line_txt = line_txt + '     '
-		ret_print_gp_graph+=line_txt+'\n'
-		line_graph=line_graph - 1
-	ret_print_gp_graph+='--'+'-----'*int(max(dict_gp_clusters.keys())*2+1)+'\n'
+    if highlight_value != None:
+        min_x = plt.xlim()[0]
+        max_x = plt.xlim()[1]
+        bin_width = (max_x - min_x) / bins
+        plt.axvspan(highlight_value - bin_width/2,
+                    highlight_value + bin_width/2,
+                    color='red', alpha = 0.5)
 
-	line_txt='   '
-	for gp_key_x2 in range(0, int(max_key*2)+1):
-		gp_key=gp_key_x2 / 2
-		if int(gp_key)==gp_key:
-			line_txt=line_txt+'   '+str(int(gp_key))+' '
-		else:
-			line_txt=line_txt+'  '+str(gp_key)
-	ret_print_gp_graph+=line_txt+'\n'
+    fig.canvas.draw()
+    fig_size = fig.canvas.get_width_height()
+    fig_bytes = fig.canvas.tostring_rgb()
+    image = Image.frombytes('RGB', fig_size, fig_bytes)
 
-	line_txt='   '
-	for gp_key_x2 in range(0, int(max_key*2)+1):
-		gp_key=gp_key_x2 / 2
-		if int(gp_key)==gp_key:
-			line_txt=line_txt+'  '+str(gp_key+0.5)
-		else:
-			line_txt=line_txt+'   '+str(int(gp_key+0.5))+' '
-	ret_print_gp_graph+=line_txt+'\n'
-	
-	return ret_print_gp_graph
+    return image
 
-def get_guild_gp(guild):
-	guild_stats={}
-	for player in guild['roster']:
-		guild_stats[player['name']]=[player['gpChar'], player['gpShip'], 0]
-	return guild_stats
-
-def get_gp_distribution(txt_allyCode, inactive_duration, fast_chart):
-    ret_get_gp_distribution = ''
-    
+def get_gp_distribution(txt_allyCode):
     #Load or update data for the guild
-    if (fast_chart):
-        #use only the guild data from the API
-        ret, guild = load_guild(txt_allyCode, False, True)
-        if ret != 'OK':
-            return "ERR: cannot get guild data from SWGOH.HELP API"
+    #use only the guild data from the API
+    ret, guild = load_guild(txt_allyCode, False, True)
+    if ret != 'OK':
+        return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
 
-        guild_stats=get_guild_gp(guild)
-        guild_name = guild["name"]
+    guild_stats=[] #Serie of all players
+    for player in guild['roster']:
+        gp = (player['gpChar'] + player['gpShip']) / 1000000
+        guild_stats.append(gp)
+    guild_name = guild["name"]
 
-        ret_get_gp_distribution = "==GP stats "+guild_name+ "==\n"
-    else:
-        # Need to load players also to get their lastActivity
-        ret, guild = load_guild(txt_allyCode, True, True)
-        if ret != 'OK':
-            return "ERR: cannot get guild data from SWGOH.HELP API"
-            
-        query = "SELECT guildName, allyCode, char_gp, ship_gp, \
-                timestampdiff(HOUR, lastActivity, CURRENT_TIMESTAMP) \
-                FROM players \
-                WHERE guildName = (SELECT guildName FROM players WHERE allyCode = "+txt_allyCode+")"
-        guild_db_data = connect_mysql.get_table(query)
-        guild_name = guild_db_data[0][0]
-        guild_stats = {}
-        for line in guild_db_data:
-            guild_stats[line[1]] = [line[2], line[3], line[4]]
-
-        ret_get_gp_distribution = '==GP stats '+guild_name+ \
-                                '== (. = inactif depuis '+ \
-                                str(inactive_duration)+' heures)\n'
+    graph_title = "GP stats " + guild_name + "("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
-    ret_get_gp_distribution += get_gp_graph(guild_stats, inactive_duration)
+    image = get_distribution_graph(guild_stats, 20, graph_title, None)
     
-    return ret_get_gp_distribution
+    return 0, "", image
 
 def get_tb_alerts():
     tb_trigger_messages=[]
@@ -1582,16 +1531,17 @@ def get_character_image(list_characters_allyCode, is_ID):
             list_ids = []
             for alias in characters:
                 if alias in dict_id_name:
-                    id = dict_id_name[alias][0][0]
-                    list_ids.append(id)
+                    for id_name in dict_id_name[alias]:
+                        list_ids.append(id_name[0])
         
         for id in list_ids:
-            if id in dict_unitsList:
-                forceAlignment = dict_unitsList[id]["forceAlignment"]
-            else:
-                goutils.log("WAR", "get_character_image", "unknown forceAlignment for "+id)
-                forceAlignment = 1
-            dict_player["roster"][id]["forceAlignment"] = forceAlignment
+            if id in dict_player["roster"]:
+                if id in dict_unitsList:
+                    forceAlignment = dict_unitsList[id]["forceAlignment"]
+                else:
+                    goutils.log("WAR", "get_character_image", "unknown forceAlignment for "+id)
+                    forceAlignment = 1
+                dict_player["roster"][id]["forceAlignment"] = forceAlignment
             
         if len(list_ids) == 0:
             err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode
@@ -1696,3 +1646,57 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     return 0, err_txt, images
 
+def get_stat_graph(txt_allyCode, character_alias, stat_name):
+    ret, guild = load_guild(txt_allyCode, True, True)
+    if ret != 'OK':
+        return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
+        
+    #Get character_id
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+            
+    character_id = list_character_ids[0]
+    character_name = dict_id_name[character_alias][0][1]
+
+    #Get statistic id
+    closest_names=difflib.get_close_matches(stat_name.lower(), dict_stat_names.keys(), 1)
+    if len(closest_names)<1:
+        return 1, 'ERR: '+stat_name+' ne fait pas partie des stats connues', None
+
+    goutils.log("INFO", "get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
+    stat_name = closest_names[0]
+    stat_id = dict_stat_names[stat_name][0]
+    stat_isPercent = dict_stat_names[stat_name][1]
+    stat_header = "stat"+str(stat_id)
+    stat_string = stat_header+"_base + "+\
+                  stat_header+"_gear + "+\
+                  stat_header+"_mods + "+\
+                  stat_header+"_crew"
+
+    #Get data from DB
+    db_stat_data_char = []
+    goutils.log("INFO", "get_stat_char", "Get guild_data from DB...")
+    query = "SELECT allyCode, gear,"\
+           +stat_string+","\
+           +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
+           +"from roster "\
+           +"where defId = '"+character_id+"' "\
+           +"AND not isnull("+stat_string+") "\
+           +"AND (gear = 13 or allyCode = "+txt_allyCode+")"
+    goutils.log("DBG", "get_stat_graph", query)
+    db_data = connect_mysql.get_table(query)
+
+    if stat_isPercent:
+        stat_divider = 1000000
+    else:
+        stat_divider = 100000000
+
+    stat_g13_values = [x[2]/stat_divider for x in db_data if x[1]==13]
+    player_value = [x[2]/stat_divider for x in db_data if x[3]==1][0]
+
+    title = stat_name + " de " + character_name
+    title+= " parmi les " + str(len(stat_g13_values)) + " relic connus"
+    image = get_distribution_graph(stat_g13_values, 50, title, player_value)
+    
+    return 0, "", image

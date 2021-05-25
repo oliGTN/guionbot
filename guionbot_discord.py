@@ -674,9 +674,10 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     ##############################################################
     @commands.command(name='cmd', help='Lance une ligne de commande sur le serveur')
     @commands.check(is_owner)
-    async def cmd(self, ctx, arg):
+    async def cmd(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
+        arg = " ".join(args)
         stream = os.popen(arg)
         output = stream.read()
         goutils.log("INFO", "go.cmd", 'CMD: ' + arg)
@@ -730,9 +731,10 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     ##############################################################
     @commands.command(name='sql', help='Lance une requête SQL dans la database')
     @commands.check(is_owner)
-    async def sql(self, ctx, arg):
+    async def sql(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
+        arg = " ".join(args)
         output = connect_mysql.simple_query(arg, True)
         goutils.log('INFO', 'go.sql', 'SQL: ' + arg)
         output_txt=''
@@ -1360,29 +1362,24 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             # First call to display the chart quickly, without the inactive players
-            ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_gp_distribution, allycode, 36, True)
-            if ret_cmd[0:3] == 'ERR':
-                await ctx.send(ret_cmd)
+            e, err_txt, image = await bot.loop.run_in_executor(None,
+                go.get_gp_distribution, allycode)
+            if e != 0:
+                await ctx.send(err_txt)
                 await ctx.message.add_reaction(emoji_error)
             else:
-                #texte classique
-                list_msg = []
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    msg = await ctx.send("```"+txt+"```")
-                    list_msg.append(msg)
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = "",
+                           file=File(fp=image_binary, filename='image.png'))
 
-                # Second call to load all players
-                ret_cmd = await bot.loop.run_in_executor(None,
-                    go.get_gp_distribution, allycode, 36, False)
-                i_msg = 0
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    msg = list_msg[i_msg]
-                    await msg.edit(content = "```"+txt+"```")
-                    i_msg += 1
-                
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
+
+                # Now load all players from the guild
+                go.load_guild(allycode, True, True)
+                
 
     ##############################################################
     # Command: ppj
@@ -1504,6 +1501,36 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
 
+    ##############################################################
+    # Command: gsp
+    # Parameters: code allié (string) ou "me"
+    #             un perso
+    #             une statistique
+    # Purpose: afficher un raph des stats de ce persos sur les G13 connus
+    #          et la position du joueur dans ce graph
+    # Display: l'image du graph
+    ##############################################################
+    @commands.command(name='gsp',
+                 brief="Graphique d'une Statistique d'un Perso",
+                 help="Graphique d'une Statistique d'un Perso\n"\
+                      "Exemple: go.gsp me GAS vitesse")
+    async def gsp(self, ctx, allyCode, alias, stat):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode= manage_me(ctx, allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode_attack)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        e, err_txt, image = await bot.loop.run_in_executor(None,
+                    go.get_stat_graph, allyCode, alias, stat)
+        if e == 0:
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(content = '',
+                       file=File(fp=image_binary, filename='image.png'))
 
 ##############################################################
 # MAIN EXECUTION
@@ -1511,7 +1538,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 goutils.log("INFO", "main", "Starting...")
 # Use command-line parameters
 if len(sys.argv) > 1:
-    goutils.log("INFO", "main", "TEST MODE - option= "+str(sys.argv[1:]))
+    goutils.log("INFO", "main", "TEST MODE - options="+str(sys.argv[1:]))
     bot_test_mode = True
     if sys.argv[1] == "noloop":
         goutils.log("INFO", "main", "Disable loops")
