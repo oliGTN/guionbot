@@ -1363,7 +1363,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             # First call to display the chart quickly, without the inactive players
             e, err_txt, image = await bot.loop.run_in_executor(None,
-                go.get_gp_distribution, allycode, 36, True)
+                go.get_gp_distribution, allycode)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1374,21 +1374,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send(content = "",
                            file=File(fp=image_binary, filename='image.png'))
 
-                # Second call to load all players
-                e, err_txt, image = await bot.loop.run_in_executor(None,
-                    go.get_gp_distribution, allycode, 36, False)
-                if e != 0:
-                    await ctx.send(err_txt)
-                    await ctx.message.add_reaction(emoji_error)
-                else:
-                    with BytesIO() as image_binary:
-                        image.save(image_binary, 'PNG')
-                        image_binary.seek(0)
-                        await ctx.send(content = "",
-                               file=File(fp=image_binary, filename='image.png'))
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+
+                # Now load all players from the guild
+                go.load_guild(allycode, True, True)
                 
-                    #Icône de confirmation de fin de commande dans le message d'origine
-                    await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: ppj

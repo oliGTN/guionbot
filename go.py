@@ -1435,8 +1435,8 @@ def get_distribution_graph(values, bins, title, highlight_value):
     fig.suptitle(title)
 
     if highlight_value != None:
-        min_x = plot.xlim()[0]
-        max_x = plot.xlim()[1]
+        min_x = plt.xlim()[0]
+        max_x = plt.xlim()[1]
         bin_width = (max_x - min_x) / bins
         plt.axvspan(highlight_value - bin_width/2,
                     highlight_value + bin_width/2,
@@ -1449,49 +1449,23 @@ def get_distribution_graph(values, bins, title, highlight_value):
 
     return image
 
-def get_gp_distribution(txt_allyCode, inactive_duration, fast_chart):
+def get_gp_distribution(txt_allyCode):
     #Load or update data for the guild
-    if (fast_chart):
-        #use only the guild data from the API
-        ret, guild = load_guild(txt_allyCode, False, True)
-        if ret != 'OK':
-            return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
+    #use only the guild data from the API
+    ret, guild = load_guild(txt_allyCode, False, True)
+    if ret != 'OK':
+        return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
 
-        guild_stats=[] #Serie of all players
-        for player in guild['roster']:
-            gp = (player['gpChar'] + player['gpShip']) / 1000000
-            guild_stats.append(gp)
-        guild_name = guild["name"]
+    guild_stats=[] #Serie of all players
+    for player in guild['roster']:
+        gp = (player['gpChar'] + player['gpShip']) / 1000000
+        guild_stats.append(gp)
+    guild_name = guild["name"]
 
-        graph_title = "==GP stats "+guild_name+ "==\n"
-    else:
-        # Need to load players also to get their lastActivity
-        ret, guild = load_guild(txt_allyCode, True, True)
-        if ret != 'OK':
-            return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
-            
-        query = "SELECT guildName, char_gp+ship_gp, \
-                timestampdiff(HOUR, lastActivity, CURRENT_TIMESTAMP) \
-                FROM players \
-                WHERE guildName = (SELECT guildName FROM players WHERE allyCode = "+txt_allyCode+")"
-        goutils.log("DBG", "get_gp_distribution", query)
-        guild_db_data = connect_mysql.get_table(query)
-        guild_name = guild_db_data[0][0]
-        guild_stats = [[], []] #Serie of active, serie of inactive
-        for line in guild_db_data:
-            gp = line[1] / 1000000
-            diff_time = line[2]
-            if diff_time > inactive_duration:
-                guild_stats[1].append(gp)
-            else:
-                guild_stats[0].append(gp)
-
-        graph_title = '==GP stats '+guild_name+ \
-                                '== (. = inactif depuis '+ \
-                                str(inactive_duration)+' heures)\n'
+    graph_title = "GP stats " + guild_name
 
     #compute ASCII graphs
-    image = get_distribution_graph(guild_stats, 20, graph_title, 4.2)
+    image = get_distribution_graph(guild_stats, 20, graph_title, None)
     
     return 0, "", image
 
