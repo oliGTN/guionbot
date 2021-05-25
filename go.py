@@ -40,6 +40,21 @@ dict_tagAlias = json.load(open('DATA'+os.path.sep+'tagAlias_dict.json', 'r'))
 #Clean temp files
 parallel_work.clean_cache()
 
+dict_stat_names={}
+dict_stat_names["speed"] = 5
+dict_stat_names["vitesse"] = 5
+dict_stat_names["protection"] = 28
+dict_stat_names["dégâts physiques"] = 6
+dict_stat_names["physical damages"] = 6
+dict_stat_names["dégâts spéciaux"] = 7
+dict_stat_names["special damages"] = 7
+dict_stat_names["santé"] = 1
+dict_stat_names["health"] = 1
+dict_stat_names["pouvoir"] = 17
+dict_stat_names["potency"] = 17
+dict_stat_names["tenacité"] = 18
+dict_stat_names["tenacity"] = 18
+
 ##################################
 # Function: refresh_cache
 # return: error code
@@ -1461,7 +1476,7 @@ def get_gp_distribution(txt_allyCode):
         guild_stats.append(gp)
     guild_name = guild["name"]
 
-    graph_title = "GP stats " + guild_name
+    graph_title = "GP stats " + guild_name + "("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
     image = get_distribution_graph(guild_stats, 20, graph_title, None)
@@ -1642,10 +1657,16 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
             
     character_id = list_character_ids[0]
+    character_name = dict_id_name[character_alias][0][1]
 
     #Get statistic id
-    stat_id = 5
-    stat_name = 'speed'
+    closest_names=difflib.get_close_matches(stat_name.lower(), dict_stat_names.keys(), 1)
+    if len(closest_names)<1:
+        return 1, 'ERR: '+stat_name+' ne fait pas partie des stats connues', None
+
+    goutils.log("INFO", "get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
+    stat_name = closest_names[0]
+    stat_id = dict_stat_names[stat_name]
     stat_header = "stat"+str(stat_id)
     stat_string = stat_header+"_base + "+\
                   stat_header+"_gear + "+\
@@ -1668,6 +1689,8 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     stat_g13_values = [x[2]/100000000 for x in db_data if x[1]==13]
     player_value = [x[2]/100000000 for x in db_data if x[3]==1][0]
 
-    image = get_distribution_graph(stat_g13_values, 50, "Distribution de "+stat_name, player_value)
+    title = stat_name + " de " + character_name
+    title+= " parmi les " + str(len(stat_g13_values)) + " relic connus"
+    image = get_distribution_graph(stat_g13_values, 50, title, player_value)
     
     return 0, "", image
