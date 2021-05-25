@@ -1529,7 +1529,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             with BytesIO() as image_binary:
                 image.save(image_binary, 'PNG')
                 image_binary.seek(0)
-                await ctx.send(content = '',
+                await ctx.send(content = err_txt,
                        file=File(fp=image_binary, filename='image.png'))
 
 ##############################################################
