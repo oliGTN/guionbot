@@ -1699,12 +1699,12 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     if len(player_values) > 0:
         player_value = player_values[0]
     else:
-        goutils.log("WAR", "get_stat_graph", "Character "+alias+" is locked for "+txt_allyCode)
-        err_txt + "WAR: Le perso "+alias+" n'est pas débloqué pour "+txt_allyCode
+        goutils.log("WAR", "get_stat_graph", "Character "+character_alias+" is locked for "+txt_allyCode)
+        err_txt +="WAR: Le perso "+character_alias+" n'est pas débloqué pour "+txt_allyCode
         player_value = None
 
-    title = stat_name + " de " + character_name
-    title+= " parmi les " + str(len(stat_g13_values)) + " relic connus"
+    title = stat_name + " de " + character_name + " (" + str(player_value) + ")\n"
+    title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " relic connus"
     image = get_distribution_graph(stat_g13_values, 50, title, player_value)
     
     return 0, err_txt, image
