@@ -116,7 +116,7 @@ def get_image_from_team(list_character_ids, dict_player, tw_territory, prefix):
                 relic = character["relic"]["currentTier"]-2
                 zetas = 0
                 for skill in character["skills"]:
-                    if skill["isZeta"]:
+                    if skill["isZeta"] and (skill["tier"]==skill["tiers"]):
                         zetas += 1
             else:
                 gear = 1

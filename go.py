@@ -1700,7 +1700,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         player_value = player_values[0]
     else:
         goutils.log("WAR", "get_stat_graph", "Character "+alias+" is locked for "+txt_allyCode)
-        err_txt + "WAR: Le perso "+alias+" n'est pas débloqué pour "+txt_allyCode)
+        err_txt + "WAR: Le perso "+alias+" n'est pas débloqué pour "+txt_allyCode
         player_value = None
 
     title = stat_name + " de " + character_name
