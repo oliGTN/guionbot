@@ -904,12 +904,12 @@ def parse_warstats_tb_page():
         resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
         resume_parser.feed(str(page.read()))
     
-        tb_active_round = platoon_parser.get_active_round
+        tb_active_round = platoon_parser.get_active_round()
         tb_open_territories = resume_parser.get_open_territories()
 
         set_next_warstats_read(resume_parser.get_last_track())
 
-    return tb_active_round(), tb_dict_platoons, tb_open_territories()
+    return tb_active_round, tb_dict_platoons, tb_open_territories
 
 def parse_warstats_tb_scores():
     global next_warstats_read
