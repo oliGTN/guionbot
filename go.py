@@ -40,7 +40,7 @@ dict_tagAlias = json.load(open('DATA'+os.path.sep+'tagAlias_dict.json', 'r'))
 #Clean temp files
 parallel_work.clean_cache()
 
-dict_stat_names={}
+dict_stat_names={} # unitStatUd, is percentage
 dict_stat_names["speed"] = [5, False]
 dict_stat_names["vitesse"] = [5, False]
 dict_stat_names["protection"] = [28, False]
@@ -54,6 +54,12 @@ dict_stat_names["pouvoir"] = [17, True]
 dict_stat_names["potency"] = [17, True]
 dict_stat_names["tenacité"] = [18, True]
 dict_stat_names["tenacity"] = [18, True]
+#dict_stat_names["dégâts critiques"] = [16, True]
+#dict_stat_names["dc"] = [16, True]
+#dict_stat_names["critical damages"] = [16, True]
+#dict_stat_names["chances de coup critique"] = [14, True]
+#dict_stat_names["critical damage chance"] = [14, True]
+#dict_stat_names["cdc"] = [14, True]
 
 ##################################
 # Function: refresh_cache
@@ -1551,6 +1557,7 @@ def get_character_image(list_characters_allyCode, is_ID):
     if len(list_ids_dictplayer) == 0:
         return 1, err_txt, None
 
+    #Return a list of images with no more than 5 lines/teams
     list_images = []
     idx = 0
     while len(list_ids_dictplayer) > idx:
@@ -1664,7 +1671,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     #Get statistic id
     closest_names=difflib.get_close_matches(stat_name.lower(), dict_stat_names.keys(), 1)
     if len(closest_names)<1:
-        return 1, 'ERR: '+stat_name+' ne fait pas partie des stats connues', None
+        return 1, 'ERR: '+stat_name+' ne fait pas partie des stats connues '+str(list(dict_stat_names.keys())), None
 
     goutils.log("INFO", "get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
     stat_name = closest_names[0]
