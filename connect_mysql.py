@@ -368,7 +368,9 @@ def update_player(dict_player, dict_units):
         p_level = dict_player['level']
         p_name = dict_player['name']
         p_arena_char_rank = dict_player['arena']['char']['rank']
+        p_arena_char_rank_txt = ("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))
         p_arena_ship_rank = dict_player['arena']['ship']['rank']
+        p_arena_ship_rank_txt = ("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))
 
         for stat in dict_player['stats']:
             if stat['nameKey'] == "Puissance Galactique (personnages)\u00a0:":
@@ -388,8 +390,8 @@ def update_player(dict_player, dict_units):
                +"    lastActivity = '"+p_lastActivity+"', "\
                +"    level = "+str(p_level)+", "\
                +"    name = '"+str(p_name).replace("'", "''")+"', "\
-               +"    arena_char_rank = "+("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))+", "\
-               +"    arena_ship_rank = "+("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))+", "\
+               +"    arena_char_rank = "+ p_arena_char_rank_txt +", "\
+               +"    arena_ship_rank = "+ p_arena_ship_rank_txt +", "\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
@@ -584,6 +586,15 @@ def update_player(dict_player, dict_units):
                    +"AND   defId = '"+c_defId+"'"
                 
         #Manage GP history
+        # Define delta minutes versus po time
+        time_now = datetime.datetime.now()
+        time_po_char_std = time_now.replace(hour=20, minute=0, second=0, microsecond=0)
+        time_po_char_player = time_po_char_std - datetime.timedelta(0, p_poUTCOffsetMinutes*60)
+        delta_time_po_char = abs((time_now - time_po_char_player).seconds/60)
+        time_po_ship_std = time_now.replace(hour=21, minute=0, second=0, microsecond=0)
+        time_po_ship_player = time_po_ship_std - datetime.timedelta(0, p_poUTCOffsetMinutes*60)
+        delta_time_po_ship = abs((time_now - time_po_ship_player).seconds/60)
+
         query = "INSERT IGNORE INTO gp_history(date, allyCode) "\
                +"VALUES(CURDATE(), "+str(p_allyCode)+")"
         goutils.log("DBG", "update_player", query)
@@ -591,8 +602,10 @@ def update_player(dict_player, dict_units):
 
         query = "UPDATE gp_history "\
                +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
-               +"    arena_char_rank = LEAST("+("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))+", arena_char_rank), "\
-               +"    arena_ship_rank = LEAST("+("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))+", arena_ship_rank), "\
+               +"    arena_char_rank = CASE WHEN arena_char_po_delta_minutes > "+str(delta_time_po_char)+" THEN "+ p_arena_char_rank_txt + " ELSE arena_char_rank END,"\
+               +"    arena_char_po_delta_minutes = CASE WHEN arena_char_po_delta_minutes > "+str(delta_time_po_char)+" THEN "+ str(delta_time_po_char) + " ELSE arena_char_po_delta_minutes END,"\
+               +"    arena_ship_rank = CASE WHEN arena_ship_po_delta_minutes > "+str(delta_time_po_ship)+" THEN "+ p_arena_ship_rank_txt + " ELSE arena_ship_rank END,"\
+               +"    arena_ship_po_delta_minutes = CASE WHEN arena_ship_po_delta_minutes > "+str(delta_time_po_ship)+" THEN "+ str(delta_time_po_ship) + " ELSE arena_ship_po_delta_minutes END,"\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+" "\
                +"WHERE date = CURDATE() "\
@@ -602,11 +615,10 @@ def update_player(dict_player, dict_units):
 
         mysql_db.commit()
     except Error as error:
-        print(error)
+        goutils.log("ERR", "update_player", error)
         return -1
         
     finally:
         cursor.close()
-        # db.close()
     
     return 0

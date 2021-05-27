@@ -43,6 +43,8 @@ CREATE TABLE `gp_history` (
   `ship_gp` int(11) DEFAULT NULL,
   `arena_char_rank` int(11) DEFAULT 999999,
   `arena_ship_rank` int(11) DEFAULT 999999,
+  `arena_char_po_delta_minutes` smallint(6) DEFAULT 9999,
+  `arena_ship_po_delta_minutes` smallint(6) DEFAULT 9999,
   UNIQUE KEY `gp_history_key` (`date`,`allyCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -60,7 +62,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=333 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=383 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -84,7 +86,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1583 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2070 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -99,7 +101,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=539 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=546 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -115,7 +117,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=124 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=126 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -128,6 +130,7 @@ DROP TABLE IF EXISTS `guilds`;
 CREATE TABLE `guilds` (
   `name` varchar(255) NOT NULL DEFAULT 'noname',
   `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
+  `lastRequested` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -248,7 +251,7 @@ CREATE TABLE `roster` (
   `stat28_mods_crew` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=910829 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1023860 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -282,7 +285,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18711071 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=19117630 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -792,4 +795,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-05-08 19:40:19
+-- Dump completed on 2021-05-27 20:49:32

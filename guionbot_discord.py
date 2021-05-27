@@ -1531,6 +1531,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 image_binary.seek(0)
                 await ctx.send(content = err_txt,
                        file=File(fp=image_binary, filename='image.png'))
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(err_txt)
+            await ctx.message.add_reaction(emoji_error)
 
 ##############################################################
 # MAIN EXECUTION

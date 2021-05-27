@@ -1476,7 +1476,7 @@ def get_gp_distribution(txt_allyCode):
         guild_stats.append(gp)
     guild_name = guild["name"]
 
-    graph_title = "GP stats " + guild_name + "("+str(len(guild_stats))+" joueurs)"
+    graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
     image = get_distribution_graph(guild_stats, 20, graph_title, None)
@@ -1544,7 +1544,7 @@ def get_character_image(list_characters_allyCode, is_ID):
                 dict_player["roster"][id]["forceAlignment"] = forceAlignment
             
         if len(list_ids) == 0:
-            err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode
+            err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode + "\n"
         else:
             list_ids_dictplayer.append([list_ids, dict_player, tw_terr])
 
