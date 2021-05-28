@@ -636,6 +636,35 @@ async def on_reaction_add(reaction, user):
                        file=File(fp=image_binary, filename='image.png'))
             list_tw_results_msgIDs.remove([user, message])
 
+##############################################################
+# Event: on_message
+# Parameters: message (object containing the discord message)
+# Purpose: basic checks before runing commands
+# Output: none
+##############################################################
+@bot.event
+async def on_message(message):
+    lower_msg = message.content.lower().strip()
+    if lower_msg.startswith("go."):
+        command_name = lower_msg.split(" ")[0].split(".")[1]
+        goutils.log("INFO", "guionbot_discord.on_message", "Command "+command_name+" launched by "+message.author.display_name)
+
+    await bot.process_commands(message)
+
+##############################################################
+# Event: on_error_command
+# Parameters: error (error raised by the command)
+#             ctx (context of the command)
+# Purpose: inform that a command is unknown
+# Output: error message to the user
+##############################################################
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("ERR: commande inconnue")
+        await ctx.message.add_reaction(emoji_error)
+    else:
+        raise error
 
 ##############################################################
 #                                                            #
