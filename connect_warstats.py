@@ -227,8 +227,13 @@ dict_tw_territory_names['Special ops center']='B4'
 
 #timer and global variables due to warstats tracking
 next_warstats_read = time.time()
+parse_warstats_tb_scores_run_once = False
 territory_scores = []
 opponent_teams = []
+parse_warstats_tb_page_run_once = False
+tb_active_round = ""
+tb_dict_platoons = None
+tb_open_territories = None
 WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
 WARSTATS_REFRESH_TIME = 2 * 60 #Duration of refresh
 
@@ -848,14 +853,15 @@ def urlopen(url):
     return urllib.request.urlopen(req)
 
 def parse_warstats_tb_page():
+    global parse_warstats_tb_page_run_once
     global next_warstats_read
     global tb_active_round
     global tb_dict_platoons
     global tb_open_territories
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read:
-        goutils.log("DBG", "parse_warstats_tb_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
+    if time.time() < next_warstats_read and parse_warstats_tb_page_run_once:
+        goutils.log("DBG", "parse_warstats_tb_page", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
     else:
         try:
             page = urlopen(warstats_tbs_url)
@@ -863,6 +869,8 @@ def parse_warstats_tb_page():
             goutils.log('ERR', "parse_warstats_tb_page", 'error while opening '+warstats_tbs_url)
             return '', None, None
         
+        parse_warstats_tb_page_run_once = True
+
         generic_parser = GenericTBSParser()
         generic_parser.feed(str(page.read()))
     
@@ -912,11 +920,12 @@ def parse_warstats_tb_page():
     return tb_active_round, tb_dict_platoons, tb_open_territories
 
 def parse_warstats_tb_scores():
+    global parse_warstats_tb_scores_run_once
     global next_warstats_read
     global territory_scores
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read:
+    if time.time() < next_warstats_read and parse_warstats_tb_scores_run_once:
         goutils.log("DBG", "parse_warstats_tb_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
     else:
         try:
@@ -925,6 +934,7 @@ def parse_warstats_tb_scores():
             goutils.log('WAR', "parse_warstats_tb_scores", 'error while opening '+warstats_tbs_url)
             return {}
         
+        parse_warstats_tb_scores_run_once = True
         generic_parser = GenericTBSParser()
         generic_parser.feed(str(page.read()))
         
