@@ -80,14 +80,14 @@ def refresh_cache():
            +"   AND (guilds.lastUpdated < CURRENT_TIMESTAMP - INTERVAL 6 HOUR)) "\
            +"GROUP BY guildName "\
            +"ORDER BY guilds.lastUpdated"
-    goutils.log('DBG', 'refresh_cache', query)
+    goutils.log('DBG', 'go.refresh_cache', query)
     ret_table = connect_mysql.get_table(query)
     
     if ret_table != None:
         #Refresh players from master guild
         guild_name = ret_table[0][0]
         guild_allyCode = ret_table[0][1]
-        goutils.log('INFO', 'refresh_cache', "refresh guild "+guild_name)
+        goutils.log('INFO', 'go.refresh_cache', "refresh guild "+guild_name)
         e, t = load_guild(str(guild_allyCode), True, False)
         
     return 0
@@ -123,17 +123,17 @@ def load_player(txt_allyCode, force_update, no_db):
             prev_dict_player = None
 
     if not recent_player or force_update:
-        goutils.log("INFO", "load_player", 'requesting API data for ' + txt_allyCode + '...')
+        goutils.log("INFO", "go.load_player", 'requesting API data for ' + txt_allyCode + '...')
         if client != None:
             player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
         else:
-            goutils.log("WAR", "load_player", 'Cannot connect to API. Using cache data from json')
+            goutils.log("WAR", "go.load_player", 'Cannot connect to API. Using cache data from json')
             player_data = [prev_dict_player]
 
         if isinstance(player_data, list):
             if len(player_data) > 0:
                 if len(player_data) > 1:
-                   goutils.log("WAR", "load_player", "client.get_data(\'player\', "+txt_allyCode+
+                   goutils.log("WAR", "go.load_player", "client.get_data(\'player\', "+txt_allyCode+
                             ", 'FRE_FR') has returned a list of size "+
                             str(len(player_data)))
                             
@@ -145,7 +145,7 @@ def load_player(txt_allyCode, force_update, no_db):
                 #Transform the roster into dictionary with key = defId
                 dict_player = goutils.roster_from_list_to_dict(dict_player)
 
-                goutils.log("INFO", "load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
+                goutils.log("INFO", "go.load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
                 sys.stdout.flush()
                 
                 if not no_db:
@@ -162,27 +162,27 @@ def load_player(txt_allyCode, force_update, no_db):
                     #ret = connect_mysql.update_player(dict_player, dict_unitsList)
                     ret = connect_mysql.update_player(delta_dict_player, dict_unitsList)
                     if ret == 0:
-                        goutils.log("INFO", "load_player", "success updating "+dict_player['name']+" in DB")
+                        goutils.log("INFO", "go.load_player", "success updating "+dict_player['name']+" in DB")
                     else:
-                        goutils.log('ERR', "load_player", 'update_player '+txt_allyCode+' returned an error')
+                        goutils.log('ERR', "go.load_player", 'update_player '+txt_allyCode+' returned an error')
                         return 1, None, 'ERR: update_player '+txt_allyCode+' returned an error'
                     sys.stdout.flush()
                 
             else:
-                goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+txt_allyCode+
+                goutils.log('ERR', 'go.load_player', 'client.get_data(\'player\', '+txt_allyCode+
                         ", 'FRE_FR') has returned an empty list")
                 sys.stdout.flush()
                 return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
 
         else:
-            goutils.log('ERR', 'load_player', 'client.get_data(\'player\', '+
+            goutils.log('ERR', 'go.load_player', 'client.get_data(\'player\', '+
                     txt_allyCode+", 'FRE_FR') has not returned a list")
-            goutils.log('ERR', 'load_player',player_data)
+            goutils.log('ERR', 'go.load_player',player_data)
             sys.stdout.flush()
             return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
-        goutils.log('INFO', 'load_player',player_name + ' OK')
+        goutils.log('INFO', 'go.load_player',player_name + ' OK')
         dict_player = prev_dict_player
     
     sys.stdout.flush()
@@ -190,12 +190,12 @@ def load_player(txt_allyCode, force_update, no_db):
 
 def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
-    goutils.log('INFO', "load_guild", 'Requesting guild data for allyCode ' + txt_allyCode)
+    goutils.log('INFO', "go.load_guild", 'Requesting guild data for allyCode ' + txt_allyCode)
     json_file = "GUILDS"+os.path.sep+"G"+txt_allyCode+".json"
     if client != None:
         client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
     else:
-        goutils.log("WAR", "load_guild", 'Cannot connect to API. Using cache data from json')
+        goutils.log("WAR", "go.load_guild", 'Cannot connect to API. Using cache data from json')
         if os.path.isfile(json_file):
             prev_dict_guild = json.load(open(json_file, 'r'))
             client_data = [prev_dict_guild]
@@ -205,7 +205,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     if isinstance(client_data, list):
         if len(client_data) > 0:
             if len(client_data) > 1:
-                goutils.log('WAR', 'load_guild',"client.get_data(\'guild\', "+txt_allyCode+
+                goutils.log('WAR', 'go.load_guild',"client.get_data(\'guild\', "+txt_allyCode+
                         ", 'FRE_FR') has returned a list of size "+
                         str(len(player_data)))            
                             
@@ -213,7 +213,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             guildName = dict_guild['name']
             total_players = len(dict_guild['roster'])
             allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
-            goutils.log("INFO", "load_guild", "success retrieving "+guildName+" ("\
+            goutils.log("INFO", "go.load_guild", "success retrieving "+guildName+" ("\
                         +str(total_players)+" players) from SWGOH.HELP API")
                         
             # store json file
@@ -221,25 +221,25 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
             fjson.close()
         else:
-            goutils.log("ERR", "load_guild", "client.get_data('guild', "+txt_allyCode+
+            goutils.log("ERR", "go.load_guild", "client.get_data('guild', "+txt_allyCode+
                     ", 'FRE_FR') has returned an empty list")
             return 'ERR: cannot fetch guild fo allyCode '+txt_allyCode, None
     else:
-        goutils.log ('ERR', "load_guild", "client.get_data('guild', "+
+        goutils.log ('ERR', "go.load_guild", "client.get_data('guild', "+
                 txt_allyCode+", 'FRE_FR') has not returned a list")
-        goutils.log ("ERR", "load_guild", client_data)
+        goutils.log ("ERR", "go.load_guild", client_data)
         return 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
 
     #Get guild data from DB
     query = "SELECT lastUpdated FROM guilds "\
            +"WHERE name = '"+guildName.replace("'", "''")+"'"
-    goutils.log('DBG', 'load_guild', query)
+    goutils.log('DBG', 'go.load_guild', query)
     lastUpdated = connect_mysql.get_value(query)
     is_new_guild = (lastUpdated == None)
 
     query = "SELECT allyCode FROM players "\
            +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
-    goutils.log('DBG', 'load_guild', query)
+    goutils.log('DBG', 'go.load_guild', query)
     allyCodes_in_DB = connect_mysql.get_column(query)
 
     allyCodes_to_add = []
@@ -275,7 +275,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 #The guild is already being loaded
                 #while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
                 while guild_loading_status != None:
-                    goutils.log('INFO', "load_guild", "Guild "+guildName+" already loading ("\
+                    goutils.log('INFO', "go.load_guild", "Guild "+guildName+" already loading ("\
                             + guild_loading_status + "), waiting 30 seconds...")
                     time.sleep(30)
                     guild_loading_status = parallel_work.get_guild_loading_status(guildName)
@@ -288,7 +288,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 #while len(dict_loading_guilds) > 1:
                 list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
                 while len(list_other_guilds_loading_status) > 0:
-                    goutils.log('INFO', "load_guild", "Guild "+guildName+" loading "\
+                    goutils.log('INFO', "go.load_guild", "Guild "+guildName+" loading "\
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
                     time.sleep(30)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
@@ -296,14 +296,14 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
                 #Create guild in DB only if the players are loaded
                 query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
-                goutils.log('DBG', 'load_guild', query)
+                goutils.log('DBG', 'go.load_guild', query)
                 connect_mysql.simple_execute(query)
 
                 #add player data
                 i_player = 0
                 for allyCode in list_allyCodes_to_update:
                     i_player += 1
-                    goutils.log("INFO", "load_guild", "player #"+str(i_player))
+                    goutils.log("INFO", "go.load_guild", "player #"+str(i_player))
                     
                     e, d, t = load_player(str(allyCode), False, False)
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
@@ -314,19 +314,19 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 query = "UPDATE guilds "\
                        +"SET lastUpdated = CURRENT_TIMESTAMP "\
                        +"WHERE name = '"+guildName.replace("'", "''") + "'"
-                goutils.log('DBG', 'load_guild', query)
+                goutils.log('DBG', 'go.load_guild', query)
                 connect_mysql.simple_execute(query)
 
         else:
             lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
-            goutils.log('INFO', "load_guild", "Guild "+guildName+" last update is "+lastUpdated_txt)
+            goutils.log('INFO', "go.load_guild", "Guild "+guildName+" last update is "+lastUpdated_txt)
 
     #Update dates in DB
     if cmd_request:
         query = "UPDATE guilds "\
                +"SET lastRequested = CURRENT_TIMESTAMP "\
                +"WHERE name = '"+guildName.replace("'", "''") + "'"
-        goutils.log('DBG', 'load_guild', query)
+        goutils.log('DBG', 'go.load_guild', query)
         connect_mysql.simple_execute(query)
 
     #Erase guildName for alyCodes not detected from API
@@ -334,7 +334,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         query = "UPDATE players "\
                +"SET guildName = '' "\
                +"WHERE allyCode IN "+str(tuple(allyCodes_to_remove)).replace(",)", ")")
-        goutils.log('DBG', 'load_guild', query)
+        goutils.log('DBG', 'go.load_guild', query)
         connect_mysql.simple_execute(query)
 
     return "OK", dict_guild
@@ -495,7 +495,7 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
 
-                goutils.log("DBG", "get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
+                goutils.log("DBG", "go.get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
 
             else:
                 if gv_mode:
@@ -675,7 +675,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         #Get data for the guild and associated players
         ret, guild = load_guild(txt_allyCode, True, True)
         if ret != 'OK':
-            goutils.log("WAR", "get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
+            goutils.log("WAR", "go.get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
 
     if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
@@ -685,7 +685,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         list_team_names = [x+"-GV" for x in list_character_ids]
 
     #Get player data
-    goutils.log("INFO", "get_team_progress", "Get player data from DB...")
+    goutils.log("INFO", "go.get_team_progress", "Get player data from DB...")
     query = "SELECT players.name, "\
            +"guild_teams.name, "\
            +"guild_team_roster.unit_id, "\
@@ -717,15 +717,15 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
     query += "GROUP BY players.name, guild_teams.name, guild_team_roster.unit_id, \
             rarity, gear, relic_currentTier, gp \
             ORDER BY players.name, guild_teams.name"
-    goutils.log("DBG", "get_team_progress", query)
+    goutils.log("DBG", "go.get_team_progress", query)
     
     # print(query)
     player_data = connect_mysql.get_table(query)
-    goutils.log("DBG", "get_team_progress", player_data)
+    goutils.log("DBG", "go.get_team_progress", player_data)
     
     if not gv_mode:
         # Need the zetas to compute the progress of a regular team
-        goutils.log("INFO", "get_team_progress", "Get zeta data from DB...")
+        goutils.log("INFO", "go.get_team_progress", "Get zeta data from DB...")
         query = "SELECT players.name, \
                 guild_teams.name, \
                 guild_team_roster.unit_id, \
@@ -754,7 +754,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             query += "AND guild_teams.name LIKE '%-GV'\n"
            
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
-        goutils.log("DBG", "get_team_progress", query)
+        goutils.log("DBG", "go.get_team_progress", query)
         
         player_zeta_data = connect_mysql.get_table(query)
         if player_zeta_data == None:
@@ -767,7 +767,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         player_zeta_data = []
         
         #There is a need to check if the target character is locked or unlocked
-        goutils.log("INFO", "get_team_progress", "Get GV characters data from DB...")
+        goutils.log("INFO", "go.get_team_progress", "Get GV characters data from DB...")
         query = "SELECT players.name, defId, rarity \
                 FROM roster \
                 JOIN players ON players.allyCode = roster.allyCode \n"
@@ -777,21 +777,21 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND defId IN (SELECT SUBSTRING_INDEX(name, '-GV', 1) FROM guild_teams WHERE name LIKE '%-GV')"
-        goutils.log("DBG", "get_team_progress", query)
+        goutils.log("DBG", "go.get_team_progress", query)
         
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
         
     if player_data != None:
-        goutils.log("INFO", "get_team_progress", "Recreate dict_teams...")
+        goutils.log("INFO", "go.get_team_progress", "Recreate dict_teams...")
         dict_teams = goutils.create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked)
-        goutils.log("INFO", "get_team_progress", "Recreation of dict_teams is OK")
+        goutils.log("INFO", "go.get_team_progress", "Recreation of dict_teams is OK")
     else:
         query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
-        goutils.log("DBG", "get_team_progress", query)
+        goutils.log("DBG", "go.get_team_progress", query)
         player_name = connect_mysql.get_value(query)
         dict_teams = {player_name: {}}
-        goutils.log("WAR", "get_team_progress", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
+        goutils.log("WAR", "go.get_team_progress", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
     
     # Compute teams for this player
     if gv_mode:
@@ -1334,7 +1334,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                                     
         character_id = list_character_ids[0]
         db_stat_data_char = []
-        goutils.log("INFO", "print_character_stats", "Get guild_data from DB...")
+        goutils.log("INFO", "go.print_character_stats", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
                +"roster.combatType, rarity, gear, relic_currentTier, "\
                +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
@@ -1527,7 +1527,7 @@ def get_character_image(list_characters_allyCode, is_ID):
         e, dict_player, t = load_player(txt_allyCode, False, False)
         if e != 0:
             #error wile loading guild data
-            goutils.log("WAR", "get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
+            goutils.log("WAR", "go.go.get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
             err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
             dict_player = {"allyCode": txt_allyCode}
 
@@ -1540,15 +1540,6 @@ def get_character_image(list_characters_allyCode, is_ID):
                     for id_name in dict_id_name[alias]:
                         list_ids.append(id_name[0])
         
-        for id in list_ids:
-            if id in dict_player["roster"]:
-                if id in dict_unitsList:
-                    forceAlignment = dict_unitsList[id]["forceAlignment"]
-                else:
-                    goutils.log("WAR", "get_character_image", "unknown forceAlignment for "+id)
-                    forceAlignment = 1
-                dict_player["roster"][id]["forceAlignment"] = forceAlignment
-            
         if len(list_ids) == 0:
             err_txt += 'WAR: aucun personnage valide pour '+txt_allyCode + "\n"
         else:
@@ -1562,7 +1553,7 @@ def get_character_image(list_characters_allyCode, is_ID):
     idx = 0
     while len(list_ids_dictplayer) > idx:
         list_ids_dictplayer_5 = list_ids_dictplayer[idx:idx+5]
-        image = portraits.get_image_from_teams(list_ids_dictplayer_5)
+        image = portraits.get_image_from_teams(list_ids_dictplayer_5, dict_unitsList)
         list_images.append([image, len(list_ids_dictplayer_5)])
         idx += 5
     
@@ -1596,7 +1587,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     list_opponent_squads = connect_warstats.parse_warstats_tw_teams()
     if len(list_opponent_squads) == 0:
-        goutils.log("ERR", "get_tw_battle_image", "aucune phase d'attaque en cours en GT")
+        goutils.log("ERR", "go.get_tw_battle_image", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
         return 1, err_txt, None
 
@@ -1673,7 +1664,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     if len(closest_names)<1:
         return 1, 'ERR: '+stat_name+' ne fait pas partie des stats connues '+str(list(dict_stat_names.keys())), None
 
-    goutils.log("INFO", "get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
+    goutils.log("INFO", "go.get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
     stat_name = closest_names[0]
     stat_id = dict_stat_names[stat_name][0]
     stat_isPercent = dict_stat_names[stat_name][1]
@@ -1685,7 +1676,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     #Get data from DB
     db_stat_data_char = []
-    goutils.log("INFO", "get_stat_char", "Get guild_data from DB...")
+    goutils.log("INFO", "go.get_stat_char", "Get guild_data from DB...")
     query = "SELECT allyCode, gear,"\
            +stat_string+","\
            +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
@@ -1693,7 +1684,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
            +"where defId = '"+character_id+"' "\
            +"AND not isnull("+stat_string+") "\
            +"AND (gear = 13 or allyCode = "+txt_allyCode+")"
-    goutils.log("DBG", "get_stat_graph", query)
+    goutils.log("DBG", "go.get_stat_graph", query)
     db_data = connect_mysql.get_table(query)
 
     if stat_isPercent:
@@ -1706,7 +1697,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     if len(player_values) > 0:
         player_value = player_values[0]
     else:
-        goutils.log("WAR", "get_stat_graph", "Character "+character_alias+" is locked for "+txt_allyCode)
+        goutils.log("WAR", "go.get_stat_graph", "Character "+character_alias+" is locked for "+txt_allyCode)
         err_txt +="WAR: Le perso "+character_alias+" n'est pas débloqué pour "+txt_allyCode
         player_value = None
 
