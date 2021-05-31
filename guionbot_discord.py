@@ -916,6 +916,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         #Lecture du statut des pelotons sur warstats
         tbs_round, dict_platoons_done, \
             list_open_territories = parse_warstats_tb_page()
+        goutils.log("DBG", "go.vdp", dict_platoons_done)
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = load_config_players()[0]

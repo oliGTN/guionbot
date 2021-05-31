@@ -89,16 +89,15 @@ for x in categoryList_ENG_US:
                 
 dict_categories_by_name = {}
 for x in unitsList_FRE_FR_obtainable:
-    if x["combatType"] == 1:
-        for tag in x["categoryIdList"]:
-            if tag in dict_tags_by_id:
-                for tag_name in dict_tags_by_id[tag]:
-                    id_name = [x["baseId"], x["nameKey"]]
-                    if tag_name in dict_categories_by_name:
-                        if not id_name in dict_categories_by_name[tag_name]:
-                            dict_categories_by_name[tag_name].append(id_name)
-                    else:
-                        dict_categories_by_name[tag_name] = [id_name]
+    for tag in x["categoryIdList"]:
+        if tag in dict_tags_by_id:
+            for tag_name in dict_tags_by_id[tag]:
+                id_name = [x["baseId"], x["nameKey"], x["combatType"]]
+                if tag_name in dict_categories_by_name:
+                    if not id_name in dict_categories_by_name[tag_name]:
+                        dict_categories_by_name[tag_name].append(id_name)
+                else:
+                    dict_categories_by_name[tag_name] = [id_name]
 
 fnew = open('DATA'+os.path.sep+'tagAlias_dict.json', 'w')
 fnew.write(json.dumps(dict_categories_by_name, sort_keys=True, indent=4))

@@ -554,16 +554,35 @@ def get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias):
     for character_alias in list_alias:
         if character_alias.startswith("tag:"):
             #Alias of a tag / faction
-            tag_alias = character_alias[4:]
+            tag_definition = character_alias[4:]
+            if tag_definition.lower().startswith("char:") or \
+               tag_definition.lower().startswith("c:") or \
+               tag_definition.lower().startswith("character:") or \
+               tag_definition.lower().startswith("characters:"):
+                #Alias of a tag / faction for characters
+                tag_alias = tag_definition[tag_definition.index(":")+1:]
+                combatType = 1
+            elif tag_definition.lower().startswith("ship:") or \
+                 tag_definition.lower().startswith("s:") or \
+                 tag_definition.lower().startswith("ships:"):
+                #Alias of a tag / faction for ships
+                tag_alias = tag_definition[tag_definition.index(":")+1:]
+                combatType = 2
+            else:
+                #Alias of tag / faction for characters and ships
+                tag_alias = character_alias[5:]
+                combatType = 0
+
             closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
             if len(closest_names)<1:
                 log('WAR', "get_characters_from_alias", "No tag found for "+tag_alias)
                 txt_not_found_characters += character_alias + ' '
             else:
                 dict_id_name[character_alias] = []
-                for [character_id, character_name] in dict_tagAlias[closest_names[0]]:
-                    list_ids.append(character_id)
-                    dict_id_name[character_alias].append([character_id, character_name])
+                for [character_id, character_name, char_ct] in dict_tagAlias[closest_names[0]]:
+                    if combatType == 0 or (combatType == char_ct):
+                        list_ids.append(character_id)
+                        dict_id_name[character_alias].append([character_id, character_name])
         else:
             #Normal alias
             closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
