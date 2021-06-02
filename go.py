@@ -41,25 +41,27 @@ dict_tagAlias = json.load(open('DATA'+os.path.sep+'tagAlias_dict.json', 'r'))
 parallel_work.clean_cache()
 
 dict_stat_names={} # unitStatUd, is percentage
-dict_stat_names["speed"] = [5, False]
-dict_stat_names["vitesse"] = [5, False]
-dict_stat_names["protection"] = [28, False]
-dict_stat_names["dégâts physiques"] = [6, False]
-dict_stat_names["physical damages"] = [6, False]
-dict_stat_names["dégâts spéciaux"] = [7, False]
-dict_stat_names["special damages"] = [7, False]
-dict_stat_names["santé"] = [1, False]
-dict_stat_names["health"] = [1, False]
-dict_stat_names["pouvoir"] = [17, True]
-dict_stat_names["potency"] = [17, True]
-dict_stat_names["tenacité"] = [18, True]
-dict_stat_names["tenacity"] = [18, True]
-#dict_stat_names["dégâts critiques"] = [16, True]
-#dict_stat_names["dc"] = [16, True]
-#dict_stat_names["critical damages"] = [16, True]
-#dict_stat_names["chances de coup critique"] = [14, True]
-#dict_stat_names["critical damage chance"] = [14, True]
-#dict_stat_names["cdc"] = [14, True]
+dict_stat_names["speed"] = [5, False, "Vitesse"]
+dict_stat_names["vitesse"] = [5, False, "Vitesse"]
+dict_stat_names["protection"] = [28, False, "Protection"]
+dict_stat_names["dégâts physiques"] = [6, False, "Dégâts Physiques"]
+dict_stat_names["physical damages"] = [6, False, "Dégâts Physiques"]
+dict_stat_names["dégâts spéciaux"] = [7, False, "Dégâts spéciaux"]
+dict_stat_names["special damages"] = [7, False, "Dégâts spéciaux"]
+dict_stat_names["santé"] = [1, False, "Santé"]
+dict_stat_names["health"] = [1, False, "Santé"]
+dict_stat_names["chances de coup critique"] = [14, True, "Chances de coups critique"]
+dict_stat_names["cdc"] = [14, True, "Chances de coups critique"]
+dict_stat_names["critical chance"] = [14, True, "Chances de coups critique"]
+dict_stat_names["cc"] = [14, True, "Chances de coups critique"]
+dict_stat_names["dégâts critiques"] = [16, True, "Dégâts critiques"]
+dict_stat_names["dc"] = [16, True, "Dégâts critiques"]
+dict_stat_names["critical damages"] = [16, True, "Dégâts critiques"]
+dict_stat_names["cd"] = [16, True, "Dégâts critiques"]
+dict_stat_names["pouvoir"] = [17, True, "Pouvoir"]
+dict_stat_names["potency"] = [17, True, "Pouvoir"]
+dict_stat_names["tenacité"] = [18, True, "Ténacité"]
+dict_stat_names["tenacity"] = [18, True, "Ténacité"]
 
 ##################################
 # Function: refresh_cache
@@ -693,7 +695,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
            +"gear, "\
            +"relic_currentTier, "\
            +"gp, "\
-           +"stat5_base+stat5_gear+stat5_mods_crew as speed "\
+           +"stat5 as speed "\
            +"FROM players "\
            +"JOIN guild_teams "\
            +"JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id "\
@@ -1337,13 +1339,13 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         goutils.log("INFO", "go.print_character_stats", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
                +"roster.combatType, rarity, gear, relic_currentTier, "\
-               +"stat1_base+stat1_gear+stat1_mods_crew AS stat1, "\
-               +"stat5_base+stat5_gear+stat5_mods_crew AS stat5, "\
-               +"stat6_base+stat5_gear+stat6_mods_crew AS stat6, "\
-               +"stat7_base+stat5_gear+stat7_mods_crew AS stat7, "\
-               +"stat17_base+stat17_gear+stat17_mods_crew AS stat17, "\
-               +"stat18_base+stat18_gear+stat18_mods_crew AS stat18, "\
-               +"stat28_base+stat28_gear+stat28_mods_crew AS stat28 "\
+               +"stat1, "\
+               +"stat5, "\
+               +"stat6, "\
+               +"stat7, "\
+               +"stat17, "\
+               +"stat18, "\
+               +"stat28 "\
                +"FROM roster "\
                +"JOIN players ON players.allyCode = roster.allyCode "\
                +"WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') "\
@@ -1387,7 +1389,8 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
 
                 #Sum all different stats into one
                 character_stats = {}
-                for stat_type in dict_player[character_id]["stats"]:
+                stat_type = "final"
+                if stat_type in dict_player[character_id]["stats"]:
                     for stat_id in dict_player[character_id]["stats"][stat_type]:
                         stat_value = dict_player[character_id]["stats"][stat_type][stat_id]
                         if stat_value != None:
@@ -1668,11 +1671,8 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     stat_name = closest_names[0]
     stat_id = dict_stat_names[stat_name][0]
     stat_isPercent = dict_stat_names[stat_name][1]
-    stat_header = "stat"+str(stat_id)
-    stat_string = stat_header+"_base + "+\
-                  stat_header+"_gear + "+\
-                  stat_header+"_mods + "+\
-                  stat_header+"_crew"
+    stat_frName = dict_stat_names[stat_name][2]
+    stat_string = "stat"+str(stat_id)
 
     #Get data from DB
     db_stat_data_char = []
@@ -1682,7 +1682,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
            +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
            +"from roster "\
            +"where defId = '"+character_id+"' "\
-           +"AND not isnull("+stat_string+") "\
+           +"AND not "+stat_string+"=0 "\
            +"AND (gear = 13 or allyCode = "+txt_allyCode+")"
     goutils.log("DBG", "go.get_stat_graph", query)
     db_data = connect_mysql.get_table(query)
@@ -1695,13 +1695,16 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     stat_g13_values = [x[2]/stat_divider for x in db_data if x[1]==13]
     player_values = [x[2]/stat_divider for x in db_data if x[3]==1]
     if len(player_values) > 0:
-        player_value = player_values[0]
+        if stat_isPercent:
+            player_value = int(100*player_values[0])/100
+        else:
+            player_value = int(player_values[0])
     else:
         goutils.log("WAR", "go.get_stat_graph", "Character "+character_alias+" is locked for "+txt_allyCode)
         err_txt +="WAR: Le perso "+character_alias+" n'est pas débloqué pour "+txt_allyCode
         player_value = None
 
-    title = stat_name + " de " + character_name + " (" + str(player_value) + ")\n"
+    title = stat_frName + " de " + character_name + " (" + str(player_value) + ")\n"
     title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " relic connus"
     image = get_distribution_graph(stat_g13_values, 50, title, player_value)
     

@@ -465,7 +465,7 @@ async def get_channel_from_channelname(ctx, channel_name):
     try:
         id_output_channel = int(channel_name[2:-1])
     except Exception as e:
-        print(e)
+        goutils.log("ERR", "guionbot_discord.get_channel_from_channelname", e)
         return None, channel_name + ' n\'est pas un channel valide'
 
     output_channel = bot.get_channel(id_output_channel)

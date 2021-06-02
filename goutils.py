@@ -247,7 +247,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {'base':{}}}
+                    "stats": {'final':{}}}
                 
             cur_defId = line_defId            
 
@@ -284,16 +284,15 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_u
                     "rarity": line_rarity,
                     "gear": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
-                    "stats": {'base':{}}}
-            #All stats are put as "base" even if actualy
-            #  they are the sum of all stats
-            dict_players[line_name][line_defId]["stats"]["base"]['1'] = int(line_stat1)
-            dict_players[line_name][line_defId]["stats"]["base"]['5'] = int(line_stat5)
-            dict_players[line_name][line_defId]["stats"]["base"]['6'] = int(line_stat6)
-            dict_players[line_name][line_defId]["stats"]["base"]['7'] = int(line_stat7)
-            dict_players[line_name][line_defId]["stats"]["base"]['17'] = int(line_stat17)
-            dict_players[line_name][line_defId]["stats"]["base"]['18'] = int(line_stat18)
-            dict_players[line_name][line_defId]["stats"]["base"]['28'] = int(line_stat28)
+                    "stats": {'final':{}}}
+
+            dict_players[line_name][line_defId]["stats"]["final"]['1'] = int(line_stat1)
+            dict_players[line_name][line_defId]["stats"]["final"]['5'] = int(line_stat5)
+            dict_players[line_name][line_defId]["stats"]["final"]['6'] = int(line_stat6)
+            dict_players[line_name][line_defId]["stats"]["final"]['7'] = int(line_stat7)
+            dict_players[line_name][line_defId]["stats"]["final"]['17'] = int(line_stat17)
+            dict_players[line_name][line_defId]["stats"]["final"]['18'] = int(line_stat18)
+            dict_players[line_name][line_defId]["stats"]["final"]['28'] = int(line_stat28)
 
             cur_defId = line_defId
 

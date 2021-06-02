@@ -446,14 +446,14 @@ def update_player(dict_player, dict_units):
                    query += ",eqpt"+str(i_eqpt+1)+" = '"+c_equipped[i_eqpt]+"'"
 
             if "stats" in character:
-                for stat_id in ['1', '5', '6', '7', '17', '18', '28']:
-                    for stat_type in ["base", "gear", "mods", "crew"]:
+                stat_type = "final"
+                if stat_type in character["stats"]:
+                    for stat_id in ['1', '5', '6', '7', '14', '16', '17', '18', '28']:
                         stat_value = 0
-                        if stat_type in character["stats"]:
-                            if stat_id in character["stats"][stat_type]:
-                                stat_value = character["stats"][stat_type][stat_id]
+                        if stat_id in character["stats"][stat_type]:
+                            stat_value = character["stats"][stat_type][stat_id]
                         
-                        query += ",stat"+stat_id+"_"+stat_type+" = "+str(stat_value)+" "
+                        query += ",stat"+stat_id+" = "+str(stat_value)+" "
 
             query +="WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"

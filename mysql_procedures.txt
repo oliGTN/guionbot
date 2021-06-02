@@ -62,7 +62,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=383 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=387 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -86,7 +86,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2070 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2095 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -214,44 +214,19 @@ CREATE TABLE `roster` (
   `eqpt4` varchar(45) DEFAULT NULL,
   `eqpt5` varchar(45) DEFAULT NULL,
   `eqpt6` varchar(45) DEFAULT NULL,
-  `stat1_base` bigint(20) DEFAULT 0,
-  `stat1_gear` bigint(20) DEFAULT 0,
-  `stat1_mods` bigint(20) DEFAULT 0,
-  `stat1_crew` bigint(20) DEFAULT 0,
-  `stat1_mods_crew` bigint(20) DEFAULT 0,
-  `stat5_base` bigint(20) DEFAULT 0,
-  `stat5_gear` bigint(20) DEFAULT 0,
-  `stat5_mods` bigint(20) DEFAULT 0,
-  `stat5_crew` bigint(20) DEFAULT NULL,
-  `stat5_mods_crew` bigint(20) DEFAULT 0,
-  `stat6_base` bigint(20) DEFAULT 0,
-  `stat6_gear` bigint(20) DEFAULT 0,
-  `stat6_mods` bigint(20) DEFAULT 0,
-  `stat6_crew` bigint(20) DEFAULT 0,
-  `stat6_mods_crew` bigint(20) DEFAULT 0,
-  `stat7_base` bigint(20) DEFAULT 0,
-  `stat7_gear` bigint(20) DEFAULT 0,
-  `stat7_mods` bigint(20) DEFAULT 0,
-  `stat7_crew` bigint(20) DEFAULT 0,
-  `stat7_mods_crew` bigint(20) DEFAULT 0,
-  `stat17_base` bigint(20) DEFAULT 0,
-  `stat17_gear` bigint(20) DEFAULT 0,
-  `stat17_mods` bigint(20) DEFAULT 0,
-  `stat17_crew` bigint(20) DEFAULT 0,
-  `stat17_mods_crew` bigint(20) DEFAULT 0,
-  `stat18_base` bigint(20) DEFAULT 0,
-  `stat18_gear` bigint(20) DEFAULT 0,
-  `stat18_mods` bigint(20) DEFAULT 0,
-  `stat18_crew` bigint(20) DEFAULT 0,
-  `stat18_mods_crew` bigint(20) DEFAULT 0,
-  `stat28_base` bigint(20) DEFAULT 0,
-  `stat28_gear` bigint(20) DEFAULT 0,
-  `stat28_mods` bigint(20) DEFAULT 0,
-  `stat28_crew` bigint(20) DEFAULT 0,
-  `stat28_mods_crew` bigint(20) DEFAULT 0,
+  `stat1` bigint(20) DEFAULT 0,
+  `stat5` bigint(20) DEFAULT 0,
+  `stat6` bigint(20) DEFAULT 0,
+  `stat7` bigint(20) DEFAULT 0,
+  `stat14` bigint(20) DEFAULT 0,
+  `stat15` bigint(20) DEFAULT 0,
+  `stat16` bigint(20) DEFAULT 0,
+  `stat17` bigint(20) DEFAULT 0,
+  `stat18` bigint(20) DEFAULT 0,
+  `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=1023860 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1027833 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -285,7 +260,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19117630 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=19133383 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -362,8 +337,10 @@ BEGIN
         FROM players
         LEFT JOIN gp_history
         ON gp_history.allyCode = players.allyCode
-        WHERE TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) >= delta_days*24*3600 AND TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) <= (delta_days+2)*24*3600
-        GROUP BY players.id
+        WHERE TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) >= delta_days*24*3600
+        AND TIMESTAMPDIFF(SECOND,date, CURRENT_TIMESTAMP) <= (delta_days+2)*24*3600
+        AND players.guildName = 'Kangoo Legends'
+        GROUP BY players.allyCode
 	) AS T;
 END ;;
 DELIMITER ;
@@ -795,4 +772,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-05-27 20:49:32
+-- Dump completed on 2021-06-01 22:14:02

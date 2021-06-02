@@ -3,7 +3,7 @@ import json
 import goutils
 import os
 
-crinolo_url = 'https://swgoh-stat-calc.glitch.me/api?flags=statIDs,unscaled,calcGP'
+crinolo_url = 'https://swgoh-stat-calc.glitch.me/api?flags=statIDs,unscaled,calcGP,percentVals,gameStyle'
 crinolo_character_list = json.load(open('DATA'+os.path.sep+'crinolo_gameData_light.json', 'r'))
 
 def add_stats(dict_player):
