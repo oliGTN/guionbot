@@ -1544,9 +1544,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Graphique d'une Statistique d'un Perso",
                  help="Graphique d'une Statistique d'un Perso\n"\
                       "Exemple: go.gsp me GAS vitesse")
-    async def gsp(self, ctx, allyCode, alias, stat):
+    async def gsp(self, ctx, *options):
         await ctx.message.add_reaction(emoji_thumb)
 
+        if len(options) != 3:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help gsp")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = options[0]
+        alias = options[1]
+        stat = options[2]
+            
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode_attack)
