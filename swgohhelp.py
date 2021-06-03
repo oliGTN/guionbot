@@ -50,7 +50,7 @@ class SWGOHhelp():
     def get_data(self, data_type, spec, language):
         token = self.get_token()
         # print("DBG - token: "+str(token))
-        if 'Authorization' in self.token:
+        if 'Authorization' in token:
             head = {'Method': 'POST','Content-Type': 'application/json','Authorization': token['Authorization']}
             if data_type == 'data':
                 payload = {'collection': str(spec), 'language': language}

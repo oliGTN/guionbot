@@ -202,9 +202,9 @@ async def bot_loop_600():
             await bot.loop.run_in_executor(None, go.refresh_cache)
             
         except Exception as e:
-            goutils.log("ERR", "bot_loop_600", str(sys.exc_info()[0]))
-            goutils.log("ERR", "bot_loop_600", e)
-            goutils.log("ERR", "bot_loop_600", traceback.format_exc())
+            goutils.log("ERR", "guionbot_discord.bot_loop_600", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_600", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_600", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins("Exception in bot_loop_600:"+str(sys.exc_info()[0]))
 
@@ -564,7 +564,7 @@ async def on_ready():
     ip = get('https://api.ipify.org').text
     
     msg = bot.user.name+" has connected to Discord from ip "+ip
-    goutils.log("INFO", "on_ready", msg)
+    goutils.log("INFO", "guionbot_discord.on_ready", msg)
     if not bot_test_mode:
         await send_alert_to_admins(msg)
 
@@ -737,7 +737,8 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                                                     guilds.lastUpdated as MàJ \
                                                     FROM guilds \
                                                     JOIN players ON players.guildName = guilds.name \
-                                                    GROUP BY guilds.name", True)
+                                                    GROUP BY guilds.name \
+                                                    ORDER BY guilds.lastUpdated DESC", True)
         output_txt += "\n"
         for row in output_players:
             output_txt+=str(row)+'\n'
@@ -1135,13 +1136,17 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allycode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
+            err, ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
                                                     teams, allycode, True)
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                await ctx.send(txt)
+            if err == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send(txt)
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
 
     ##############################################################
     # Command: vtj

@@ -366,11 +366,14 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
         else:  #score_type==3
             tab_progress_player[i_subobj] = [[0, '.         ', True]
                                             for i in range(nb_chars)]
+
+    goutils.log("DBG", "go.get_team_line_from_player", "player: "+player_name)
     # Loop on categories within the goals
     for i_subobj in range(0, nb_subobjs):
         dict_char_subobj = objectifs[i_subobj][2]
 
         for character_id in dict_char_subobj:
+            goutils.log("DBG", "go.get_team_line_from_player", "character_id: "+character_id)
             progress = 0
             progress_100 = 0
             
@@ -671,7 +674,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         e, d, t = load_player(txt_allyCode, False, False)
         if e != 0:
             #error wile loading guild data
-            return 'ERREUR: joueur non trouvée pour code allié ' + txt_allyCode
+            return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
             
     else:
         #Get data for the guild and associated players
@@ -820,7 +823,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
             #print(objectifs)
 
             if not gv_mode:
-                if len(list_team_names) == 1 and len(dict_teams.keys()) == 1:
+                if len(list_team_names) == 1:
                     entete = get_team_entete(team_name, objectifs, \
                                                 score_type, txt_mode)
                 else:
@@ -861,17 +864,21 @@ def print_vtx(list_team_names, txt_allyCode, compute_guild):
 
     ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
                             compute_guild, 1, 100, 80, False, False)
-    for team in ret_get_team_progress:
-        ret_team = ret_get_team_progress[team]
-        if type(ret_team) == str:
-            ret_print_vtx += ret_team + "\n"
-        else:
-            for team_line in ret_team[0]:
-                ret_print_vtx += team_line[0]
-    
-        ret_print_vtx += "\n"
+    if type(ret_get_team_progress) == str:
+        goutils.log("ERR", "go.print_vtx", "get_team_progress has returned an error: "+ret_print_vtx)
+        return 1,  ret_get_team_progress
+    else:
+        for team in ret_get_team_progress:
+            ret_team = ret_get_team_progress[team]
+            if type(ret_team) == str:
+                ret_print_vtx += ret_team + "\n"
+            else:
+                for team_line in ret_team[0]:
+                    ret_print_vtx += team_line[0]
+        
+            ret_print_vtx += "\n"
                 
-    return ret_print_vtx
+    return 0, ret_print_vtx
 
 def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
