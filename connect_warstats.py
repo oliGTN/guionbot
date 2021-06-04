@@ -995,4 +995,4 @@ def parse_warstats_tw_teams():
 
         set_next_warstats_read(opp_squad_parser.get_last_track())
 
-    return opp_squad_parser.get_opp_teams()
+    return opponent_teams
