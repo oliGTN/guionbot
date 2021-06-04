@@ -412,7 +412,7 @@ def get_zeta_id_from_short(character_id, zeta_short):
 ################################################
 def log(level, fct, txt):
     now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
     log_string = dt_string+":"+level+":"+fct+":"+str(txt)
 
     if level=='DBG':
