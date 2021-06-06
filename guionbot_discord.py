@@ -482,27 +482,27 @@ async def get_channel_from_channelname(ctx, channel_name):
 
 ##############################################################
 # Function: manage_me
-# Parameters: allycode_txt (string) > code allié
+# Parameters: allyCode_txt (string) > code allié
 # Purpose: affecte le code allié de l'auteur si "me"
 # Output: code allié (string)
 ##############################################################
 def manage_me(ctx, alias):
-    #Special case of 'me' as allycode
+    #Special case of 'me' as allyCode
     if alias == 'me':
         dict_players_by_ID = load_config_players()[1]
         if ctx.author.id in dict_players_by_ID.keys():
-            ret_allycode_txt = str(dict_players_by_ID[ctx.author.id][0])
+            ret_allyCode_txt = str(dict_players_by_ID[ctx.author.id][0])
         else:
-            ret_allycode_txt = 'ERR: \"me\" ne fait pas partie de la guilde'
+            ret_allyCode_txt = 'ERR: \"me\" ne fait pas partie de la guilde'
     elif alias[:3] == '<@!':
         # discord @mention
         discord_id_txt = alias[3:-1]
         goutils.log("INFO", "manage_me", "command launched with discord @mention "+alias)
         dict_players_by_ID = load_config_players()[1]
         if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players_by_ID.keys():
-            ret_allycode_txt = str(dict_players_by_ID[int(discord_id_txt)][0])
+            ret_allyCode_txt = str(dict_players_by_ID[int(discord_id_txt)][0])
         else:
-            ret_allycode_txt = 'ERR: '+alias+' ne fait pas partie de la guilde'
+            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie de la guilde'
     elif not alias.isnumeric():
         #check among discord names
         list_discord_names = [x.display_name.replace("[Officier]", "") for x in ctx.guild.members]
@@ -514,8 +514,8 @@ def manage_me(ctx, alias):
             discord_id = [x.id for x in ctx.guild.members if x.display_name.replace("[Officier]", "") == discord_name][0]
             dict_players_by_ID = load_config_players()[1]
             if discord_id in dict_players_by_ID:
-                ret_allycode_txt = str(dict_players_by_ID[discord_id][0])
-                return ret_allycode_txt
+                ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
+                return ret_allyCode_txt
             else:
                 goutils.log("ERR", "manage_me", alias + " ne fait pas partie de la guilde")
         else:
@@ -529,18 +529,18 @@ def manage_me(ctx, alias):
         closest_names=difflib.get_close_matches(alias, list_names, 1)
         #print(closest_names)
         if len(closest_names)<1:
-            ret_allycode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs connus'
+            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs connus'
         else:
             goutils.log("INFO", "manage_me", alias +" looks like the DB name "+closest_names[0])
             for r in results[0]:
                 if r[0] == closest_names[0]:
-                    ret_allycode_txt = str(r[1])
+                    ret_allyCode_txt = str(r[1])
 
     else:
         # number >> allyCode
-        ret_allycode_txt = alias
+        ret_allyCode_txt = alias
     
-    return ret_allycode_txt
+    return ret_allyCode_txt
 
 ##############################################################
 #                                                            #
@@ -834,16 +834,16 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                   "Exemple: go.vtg_agt 192126111 NS\n"\
                                   "Exemple: go.vtg_agt 192126111 PADME NS DR\n"\
                                   "Exemple: go.vtg_agt me NS")
-    async def vtg_agt(self, ctx, allycode, *teams):
+    async def vtg_agt(self, ctx, allyCode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        allyCode = manage_me(ctx, allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_team_progress, teams, allycode, True, 3, 100000, 80000, False)
+                go.get_team_progress, teams, allyCode, True, 3, 100000, 80000, False)
             for team in ret_cmd:
                 txt_team = ret_cmd[team][0]
                 for txt in goutils.split_txt(txt_team, MAX_MSG_SIZE):
@@ -862,17 +862,17 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.command(name='agt', brief="Assigne les équipes par territoire en GT",
                              help="Assigne les équipes par territoire en GT\n\n"\
                                   "Exemple: go.agt me")
-    async def agt(self, ctx, allycode):
+    async def agt(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None,
-                go.assign_gt, allycode, False)
+                go.assign_gt, allyCode, False)
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)
@@ -1127,17 +1127,17 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.vtg 192126111 NS\n"\
                            "Exemple: go.vtg 192126111 PADME NS DR\n"\
                            "Exemple: go.vtg me NS")
-    async def vtg(self, ctx, allycode, *teams):
+    async def vtg(self, ctx, allyCode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
                 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             err, ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
-                                                    teams, allycode, True)
+                                                    teams, allyCode, True)
             if err == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
@@ -1162,16 +1162,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.vtj 192126111 NS\n"\
                       "Exemple: go.vtj 192126111 PADME NS DR\n"\
                       "Exemple: go.vtj me NS")
-    async def vtj(self, ctx, allycode, *teams):
+    async def vtj(self, ctx, allyCode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        allyCode = manage_me(ctx, allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
-                                                    teams, allycode, False)
+                                                    teams, allyCode, False)
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send(txt)
 
@@ -1191,25 +1191,24 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvj 192126111 all\n"\
                       "Exemple: go.gvj me SEE\n"\
                       "Exemple: go.gvj me thrawn JKL")
-    async def gvj(self, ctx, allycode, *teams):
+    async def gvj(self, ctx, allyCode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(teams) == 0:
                 teams = ["all"]
                 
-            else:
-                ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allycode)
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("`"+txt+"`")
+            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allyCode)
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                await ctx.send("`"+txt+"`")
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: gvg
@@ -1225,19 +1224,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvg me SEE\n"\
                       "Exemple: go.gvg me thrawn JKL\n"\
                       "La commande n'affiche que les 40 premiers.")
-    async def gvg(self, ctx, allycode, *teams):
+    async def gvg(self, ctx, allyCode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(teams) == 0:
                 teams = ["all"]
 
-            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allycode)
+            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allyCode)
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send("`"+txt+"`")
 
@@ -1256,17 +1255,17 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Capacité de contre de la guilde\n\n"\
                       "Exemple: go.scg 192126111\n"\
                       "Exemple: go.scg me")
-    async def scg(self, ctx, allycode):
+    async def scg(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             ret_cmd = await bot.loop.run_in_executor(None,
-                go.guild_counter_score, allycode)
+                go.guild_counter_score, allyCode)
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)
@@ -1291,13 +1290,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.spj 123456789 JKR\n"\
                       "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
                       "Exemple: go.spj me -p all")
-    async def spj(self, ctx, allycode, *characters):
+    async def spj(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             list_options = []
@@ -1311,7 +1310,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_characters) > 0:
                 if len(list_options) <= 1:
                     ret_cmd = await bot.loop.run_in_executor(None,
-                        go.print_character_stats, list(characters), allycode, False)
+                        go.print_character_stats, list(characters), allyCode, False)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
@@ -1340,13 +1339,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
                       "Exemple: go.spg 123456789 JKR\n"\
                       "Exemple: go.spj me -v \"Dark Maul\"")
-    async def spg(self, ctx, allycode, *characters):
+    async def spg(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             list_options = []
@@ -1360,7 +1359,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_characters) > 0:
                 if len(list_options) <= 1:
                     ret_cmd = await bot.loop.run_in_executor(None,
-                        go.print_character_stats, list(characters), allycode, True)
+                        go.print_character_stats, list(characters), allyCode, True)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
@@ -1387,18 +1386,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Graphique des PG d'une guilde\n\n"\
                       "Exemple: go.gdp me\n"\
                       "Exemple: go.gdp 123456789")
-    async def gdp(self, ctx, allycode):
+    async def gdp(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             # First call to display the chart quickly, without the inactive players
             e, err_txt, image = await bot.loop.run_in_executor(None,
-                go.get_gp_distribution, allycode)
+                go.get_gp_distribution, allyCode)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1413,7 +1412,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_check)
 
                 # Now load all players from the guild
-                go.load_guild(allycode, True, True)
+                go.load_guild(allyCode, True, True)
                 
 
     ##############################################################
@@ -1427,25 +1426,25 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Portraits de Perso d'un Joueur\n"\
                       "Exemple: go.ppj 123456789 JKR\n"\
                       "Exemple: go.ppj me -v \"Dark Maul\" Bastila\n")
-    async def ppj(self, ctx, allycode, *characters):
+    async def ppj(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allycode = manage_me(ctx, allycode)
+        allyCode = manage_me(ctx, allyCode)
 
-        if allycode[0:3] == 'ERR':
-            await ctx.send(allycode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
                 e, ret_cmd, images = await bot.loop.run_in_executor(None,
-                    go.get_character_image, [[list(characters), allycode, '']], False)
+                    go.get_character_image, [[list(characters), allyCode, '']], False)
                     
                 if e == 0:
-                    image = images[0][0]
-                    with BytesIO() as image_binary:
-                        image.save(image_binary, 'PNG')
-                        image_binary.seek(0)
-                        await ctx.send(content = ret_cmd,
+                    for image in images:
+                        with BytesIO() as image_binary:
+                            image.save(image_binary, 'PNG')
+                            image_binary.seek(0)
+                            await ctx.send(content = ret_cmd,
                                    file=File(fp=image_binary, filename='image.png'))
 
                     #Icône de confirmation de fin de commande dans le message d'origine

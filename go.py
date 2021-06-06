@@ -1558,14 +1558,11 @@ def get_character_image(list_characters_allyCode, is_ID):
     if len(list_ids_dictplayer) == 0:
         return 1, err_txt, None
 
-    #Return a list of images with no more than 5 lines/teams
+    #Return a list of images
     list_images = []
-    idx = 0
-    while len(list_ids_dictplayer) > idx:
-        list_ids_dictplayer_5 = list_ids_dictplayer[idx:idx+5]
-        image = portraits.get_image_from_teams(list_ids_dictplayer_5, dict_unitsList)
-        list_images.append([image, len(list_ids_dictplayer_5)])
-        idx += 5
+    for [ids, dict_player, tw_terr] in list_ids_dictplayer:
+        image = portraits.get_image_from_team(ids, dict_player, tw_terr, dict_unitsList)
+        list_images.append(image)
     
     return err_code, err_txt, list_images
 
@@ -1623,7 +1620,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         return 1, err_txt, None
 
     # Look for the name among known player names in DB
-    results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
+    results = connect_mysql.get_table("SELECT name, allyCode FROM players", False)
     #print(results)
     list_names = [x[0] for x in results[0]]
 
