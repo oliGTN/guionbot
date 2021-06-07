@@ -1,7 +1,7 @@
 import requests
 import os
 import math
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 import goutils
 
@@ -10,6 +10,16 @@ font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 NAME_HEIGHT = 30
 PORTRAIT_SIZE = 168
 MAX_WIDTH_PORTRAITS = 10
+
+dict_colors = {}
+dict_colors["bright_orange"] = (255, 200, 10)
+dict_colors["brown"] = (128, 0, 0)
+dict_colors["gold"] = (255, 200, 10)
+dict_colors["purple"] = (100, 30, 150)
+dict_colors["white"] = (255, 255, 255)
+dict_colors["red"] = (128, 0, 0)
+dict_colors["bright_blue"] = (128, 128, 255)
+dict_colors["dark_blue"] = (0, 0, 255)
 
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
@@ -24,6 +34,81 @@ def get_image_from_id(character_id):
     char_img = Image.open(character_img_name)
     char_img = char_img.resize((128,128))
     return char_img
+
+def get_guild_logo(dict_guild, target_size):
+    logo_name = dict_guild["bannerLogo"]
+    logo_colors = dict_guild["bannerColor"]
+
+    logo_color_elements = logo_colors.split("_")
+    if logo_colors.startswith("bright"):
+        color1 = "bright_" + logo_color_elements[1]
+        color2 = "_".join(logo_color_elements[2:])
+    else:
+        color1 = logo_color_elements[0]
+        color2 = "_".join(logo_color_elements[1:])
+
+    if color1 in dict_colors:
+        rgb1 = dict_colors[color1]
+    else:
+        rgb1 = (255, 255, 255)
+        goutils.log("WAR", "get_guild_logo", "unknown color "+color1)
+    rgb1_dark = tuple([int(x/2) for x in rgb1])
+
+    if color2 in dict_colors:
+        rgb2 = dict_colors[color2]
+    else:
+        rgb2 = (0, 0, 0)
+        goutils.log("WAR", "get_guild_logo", "unknown color "+color2)
+
+    logo_img_name = 'IMAGES'+os.path.sep+'GUILD_LOGOS'+os.path.sep+logo_name+'.png'
+    if not os.path.exists(logo_img_name):
+        url = 'https://swgoh.gg/static/img/assets/tex.' + logo_name + ".png"
+        goutils.log("INFO", "get_guild_logo", "download guild logo from swgoh.gg "+url)
+        r = requests.get(url, allow_redirects=True)
+        f = open(logo_img_name, 'wb')
+        f.write(r.content)
+        f.close()
+    
+    image = Image.new('RGBA', (128, 128), (0,0,0,0))
+    image_draw = ImageDraw.Draw(image)
+
+    #Draw background circle with color2
+    image_draw.ellipse((2,2,126,126), fill=rgb2)
+
+    #Add guild image in foreground with color1
+    logo_img = Image.open(logo_img_name)
+    logo_img = logo_img.convert("RGBA")
+    logo_img = replace_color(logo_img, (0, 0, 0), rgb1_dark)
+
+    #Add edges
+    logo_edges = logo_img.filter(ImageFilter.FIND_EDGES)
+    logo_edges = replace_color(logo_edges, (0, 0, 0), rgb1)
+
+    #mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
+    image.paste(logo_img, (0, 0), logo_img)
+    image.paste(logo_edges, (0, 0), logo_edges)
+
+    image = image.resize(target_size)
+    return image
+
+def replace_color(img, c1, c2):
+    datas = img.getdata()
+
+    new_image_data = []
+    for item in datas:
+        # change all white (also shades of whites) pixels to yellow
+        if item[0:3] == c1:
+            if len(item) == 4:
+                new_image_data.append((c2[0], c2[1], c2[2], item[3]))
+            else:
+                new_image_data.append(c2)
+        else:
+            new_image_data.append(item)
+                                              
+    # update image data
+    img.putdata(new_image_data)
+
+    return img
 
 def add_vertical(img1, img2):
     if img1 == None:

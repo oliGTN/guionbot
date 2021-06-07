@@ -1482,20 +1482,22 @@ def get_distribution_graph(values, bins, title, highlight_value):
 def get_gp_distribution(txt_allyCode):
     #Load or update data for the guild
     #use only the guild data from the API
-    ret, guild = load_guild(txt_allyCode, False, True)
+    ret, dict_guild = load_guild(txt_allyCode, False, True)
     if ret != 'OK':
         return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
 
     guild_stats=[] #Serie of all players
-    for player in guild['roster']:
+    for player in dict_guild['roster']:
         gp = (player['gpChar'] + player['gpShip']) / 1000000
         guild_stats.append(gp)
-    guild_name = guild["name"]
+    guild_name = dict_guild["name"]
 
     graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
     image = get_distribution_graph(guild_stats, 20, graph_title, None)
+    logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
+    image.paste(logo_img, (10,10), logo_img)
     
     return 0, "", image
 
