@@ -1412,7 +1412,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_check)
 
                 # Now load all players from the guild
-                go.load_guild(allyCode, True, True)
+                await bot.loop.run_in_executor(None, go.load_guild, allyCode, True, True)
                 
 
     ##############################################################
