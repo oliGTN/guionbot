@@ -1170,13 +1170,25 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            ret_cmd = await bot.loop.run_in_executor(None, go.print_vtx,
+            err, txt, images = await bot.loop.run_in_executor(None, go.print_vtx,
                                                     teams, allyCode, False)
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+            if err != 0:
                 await ctx.send(txt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                if images != None:
+                    image = images[0]
+                    with BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        await ctx.send(content = txt,
+                            file=File(fp=image_binary, filename='image.png'))
+                else:
+                    for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
+                        await ctx.send(sub_txt)
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: gvj
