@@ -38,6 +38,7 @@ for unitsList in [unitsList_FRE_FR_obtainable, unitsList_ENG_US_obtainable]:
         if "" in names:
             names.remove("")
         for nameKey in names:
+            nameKey = nameKey.lower()
             if nameKey in unitsAlias_dict:
                 if unitsAlias_dict[nameKey][1] != unit['baseId']:
                     prio_found = False
