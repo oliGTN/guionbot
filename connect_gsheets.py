@@ -367,7 +367,7 @@ def get_tb_triggers(territory_scores, return_active_triggers):
         feuille=file.worksheet("BT")
     except:
         print("Unexpected error: "+str(sys.exc_info()[0]))
-        return
+        return []
         
     #parsing title row
     col_territory=0

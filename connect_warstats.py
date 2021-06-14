@@ -772,7 +772,8 @@ class TWSOpponentSquadParser(HTMLParser):
             if tag=='div':
                 #print('DBG: div - '+str(attrs))
                 for name, value in attrs:
-                    if name=='class' and value.startswith('char-detail'):
+                    if name=='class' and (value.startswith('char-detail') \
+                                          or value.startswith('ship-detail')):
                         char_detected=True
                     if name=='title' and char_detected:
                         #print("char: "+value)

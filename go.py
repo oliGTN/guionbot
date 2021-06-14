@@ -27,6 +27,11 @@ import parallel_work
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
 
+SCORE_GREEN = 100
+SCORE_ALMOST_GREEN = 95
+SCORE_AMBER = 80
+SCORE_RED = 50
+
 #login password sur https://api.swgoh.help/profile
 if config.SWGOHAPI_LOGIN != "":
     creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
@@ -341,14 +346,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
     return "OK", dict_guild
 
-def get_team_line_from_player(team_name, dict_player, dict_team, score_type, score_green,
-                              score_amber, gv_mode, txt_mode, player_name):
-    #score_type :
-    #   1 : from 0 to 100% counting rarity/gear+relic/zetas... and 0 for each character below minimum
-    #   2 : Same as #1, but still counting scores below minimum
-    #   3 : score = gp*vitesse/vitesse_requise
-    #   * : Affichage d'une icône verte (100%), orange (>=80%) ou rouge
-
+def get_team_line_from_player(team_name, dict_player, dict_team, gv_mode, player_name):
     line = ''
     objectifs = dict_team["categories"]
     nb_subobjs = len(objectifs)
@@ -357,15 +355,7 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
     tab_progress_player = [[] for i in range(nb_subobjs)]
     for i_subobj in range(0, nb_subobjs):
         nb_chars = len(objectifs[i_subobj][2])
-        if score_type == 1:
-            tab_progress_player[i_subobj] = [[0, '.     ', True]
-                                            for i in range(nb_chars)]
-        elif score_type == 2:
-            tab_progress_player[i_subobj] = [[0, '.     ', True]
-                                            for i in range(nb_chars)]
-        else:  #score_type==3
-            tab_progress_player[i_subobj] = [[0, '.         ', True]
-                                            for i in range(nb_chars)]
+        tab_progress_player[i_subobj] = [[0, '.     ', True, ''] for i in range(nb_chars)]
 
     goutils.log("DBG", "go.get_team_line_from_player", "player: "+player_name)
     # Loop on categories within the goals
@@ -419,10 +409,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 progress = progress + min(1, (player_gear+player_relic) / (req_gear_reco+req_relic_reco))
                 if (player_gear+player_relic) < (req_gear_min+req_relic_min):
                     character_nogo = True
-                # print('DBG: player_gear='+str(player_gear)+' player_relic='+str(player_relic))
-                # print('DBG: req_gear_min='+str(req_gear_min)+' req_relic_min='+str(req_relic_min))
-                # print('DBG: character_nogo='+str(character_nogo))
-                # print('DBG: progress='+str(progress)+' progress_100='+str(progress_100))
 
                 #Zetas
                 req_zetas = character_obj[5].split(',')
@@ -439,25 +425,10 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 if player_nb_zetas < len(req_zeta_ids):
                     character_nogo = True
 
-                #Vitesse (optionnel)
-                req_speed = character_obj[6]
-                player_speed = dict_player[character_id]['speed']
-                req_speed = character_obj[6]
-                if req_speed != '':
-                    progress_100 = progress_100 + 1
-                    progress = progress + min(1, player_speed / req_speed)
-                else:
-                    req_speed = player_speed
-
                 player_gp = dict_player[character_id]['gp']
 
                 #Progress
-                if score_type == 1:
-                    character_progress = progress / progress_100
-                elif score_type == 2:
-                    character_progress = progress / progress_100
-                else:  #score_type==3)
-                    character_progress = int(player_gp * player_speed / req_speed)
+                character_progress = progress / progress_100
 
                 #Display
                 character_display = str(player_rarity)
@@ -466,8 +437,6 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 else:
                     character_display += '.R' + str(player_relic)
                 character_display += '.' + str(player_nb_zetas)
-                if score_type == 3:
-                    character_display += '.' + "{:03d}".format(player_speed)
                         
                 if gv_mode:
                     if player_rarity < req_rarity_reco:
@@ -499,6 +468,7 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
                 tab_progress_player[i_subobj][i_character - 1][0] = character_progress
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
+                tab_progress_player[i_subobj][i_character - 1][3] = character_id
 
                 goutils.log("DBG", "go.get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
 
@@ -513,41 +483,36 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
     score = 0
     score100 = 0
     score_nogo = False
+    list_char_id = []
     for i_subobj in range(0, nb_subobjs):
         nb_sub_obj = len(objectifs[i_subobj][2])
         for i_character in range(0, nb_sub_obj):
             tab_progress_sub_obj = tab_progress_player[i_subobj][i_character]
-            if not gv_mode:
-                if not tab_progress_sub_obj[2]:
-                    if txt_mode:
-                        line += tab_progress_sub_obj[1] + '|'
-                    else:
-                        line += '**' + goutils.pad_txt2(tab_progress_sub_obj[1]) + '**|'
-                else:
-                    if txt_mode:
-                        line += tab_progress_sub_obj[1] + '|'
-                    else:
-                        line += goutils.pad_txt2(tab_progress_sub_obj[1]) + '|'
-            else:
-                line += tab_progress_sub_obj[1] + "\n"
+            line += tab_progress_sub_obj[1] + "\n"
 
         min_perso = objectifs[i_subobj][1]
 
         #Extraction des scores pour les persos non-exclus
-        tab_score_player_values = [(lambda f: (f[0] * (not f[2])))(x)
-                                   for x in tab_progress_player[i_subobj]]
+        sorted_tab_progress = sorted(tab_progress_player[i_subobj], key=lambda x: ((x[0] * (not x[2])), x[0]))
+        top_tab_progress = sorted_tab_progress[-min_perso:]
+        top_scores = [x[0] * (not x[2]) for x in top_tab_progress]
+        sum_scores = sum(top_scores)
+        top_chars = [x[3] for x in top_tab_progress]
+        for x in tab_progress_player[i_subobj]:
+            char_id = x[3]
+            if char_id in top_chars:
+                list_char_id.append(char_id)
 
-        score += sum(sorted(tab_score_player_values)[-min_perso:])
+        score += sum_scores
         score100 += min_perso
         
-        if 0.0 in sorted(tab_score_player_values)[-min_perso:]:
+        if 0.0 in top_scores:
             score_nogo = True
 
     #pourcentage sur la moyenne
-    if score_type == 1:
-        score = score / score100 * 100
-    elif score_type == 2:
-        score = score / score100 * 100
+    score = score / score100 * 100
+
+    goutils.log("DBG", "go.get_team_line_from_player", "list char_id = " + str(list_char_id))
         
     unlocked = False
     if gv_mode:
@@ -564,28 +529,28 @@ def get_team_line_from_player(team_name, dict_player, dict_team, score_type, sco
         line += str(int(score))
 
     # affichage de la couleur
-    if not txt_mode:
-        if score_nogo:
-            line += '\N{CROSS MARK}'
-        elif score >= score_green:
-            line += '\N{GREEN HEART}'
-        elif score >= score_amber:
-            line += '\N{LARGE ORANGE DIAMOND}'
-        else:
-            line += '\N{CROSS MARK}'
+    if score_nogo:
+        line += "\N{UP-POINTING RED TRIANGLE}"
+    elif score >= SCORE_GREEN:
+        line += "\N{WHITE HEAVY CHECK MARK}"
+    elif score >= SCORE_ALMOST_GREEN:
+        line += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+    elif score >= SCORE_AMBER:
+        line += "\N{CONFUSED FACE}"
+    else:
+        line += "\N{UP-POINTING RED TRIANGLE}"
 
     # Display the IG name only, as @mentions only pollute discord
     if not gv_mode:
         line += '|' + player_name + '\n'
 
-    return score, unlocked, line, score_nogo
+    return score, unlocked, line, score_nogo, list_char_id
 
 
-def get_team_entete(team_name, objectifs, score_type, txt_mode):
+def get_team_header(team_name, objectifs):
     entete = ''
 
     nb_levels = len(objectifs)
-    #print('DBG: nb_levels='+str(nb_levels))
 
     #Affichage des prérequis
     entete += '**Team: ' + team_name + '**\n'
@@ -630,37 +595,13 @@ def get_team_entete(team_name, objectifs, score_type, txt_mode):
                     req_zetas = objectifs[i_level][2][perso][5].split(',')
                     req_zeta_names = [x[1] for x in goutils.get_zeta_from_shorts(perso, req_zetas)]
                     
-                    entete += '**' + objectifs[i_level][0][0] + str(i_sub_obj + 1) + \
-                            '**: ' + perso + ' (' + perso_min_display + ' à ' + \
+                    perso_name = objectifs[i_level][2][perso][7]
+                    entete += "- " + perso_name + ' (' + perso_min_display + ' à ' + \
                             perso_reco_display + ', zetas=' + str(req_zeta_names) + ')\n'
-
-    #ligne d'entete
-    entete += '\n'
-    for i_level in range(0, nb_levels):
-        nb_sub_obj = len(objectifs[i_level][2])
-        #print('DBG: nb_sub_obj='+str(nb_sub_obj))
-        for i_sub_obj in range(0, nb_sub_obj):
-            #print('DBG:'+str(objectifs[i_level][0][0]+str(i_sub_obj)))
-            if score_type == 1:
-                nom_sub_obj = goutils.pad_txt(
-                    objectifs[i_level][0][0] + str(i_sub_obj + 1), 6)
-            elif score_type == 2:
-                nom_sub_obj = goutils.pad_txt(
-                    objectifs[i_level][0][0] + str(i_sub_obj + 1), 6)
-            else:
-                nom_sub_obj = goutils.pad_txt(
-                    objectifs[i_level][0][0] + str(i_sub_obj + 1), 10)
-            if txt_mode:
-                entete += nom_sub_obj + '|'
-            else:
-                entete += goutils.pad_txt2(nom_sub_obj) + '|'
-
-    entete += 'GLOB|Joueur\n'
 
     return entete
 
-def get_team_progress(list_team_names, txt_allyCode, compute_guild,
-                        score_type, score_green, score_amber, gv_mode, txt_mode):
+def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
                         
     ret_get_team_progress = {}
 
@@ -820,19 +761,20 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
         else:
             ret_team = []
             objectifs = dict_team_gt[team_name]["categories"]
-            #print(objectifs)
 
             if not gv_mode:
                 if len(list_team_names) == 1:
-                    entete = get_team_entete(team_name, objectifs, \
-                                                score_type, txt_mode)
+                    entete = get_team_header(team_name, objectifs)
                 else:
                     entete = "Team " + team_name + "\n"
-                ret_team.append([entete, 999999, '', True])
+                ret_team.append([999999, True, entete, False, '', []])
 
             tab_lines = []
             count_green = 0
+            count_almost_green = 0
             count_amber = 0
+            count_red = 0
+            count_not_enough = 0
             for player_name in dict_teams:
                 if team_name in dict_teams[player_name]:
                     dict_player = dict_teams[player_name][team_name]
@@ -840,22 +782,28 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild,
                     dict_player = {}
 
                 #resultats par joueur
-                score, unlocked, line, nogo = get_team_line_from_player(team_name,
-                    dict_player, dict_team_gt[team_name], score_type, score_green,
-                    score_amber, gv_mode, txt_mode, player_name)
-                tab_lines.append([score, unlocked, line, nogo, player_name])
+                score, unlocked, line, nogo, list_char = get_team_line_from_player(team_name,
+                    dict_player, dict_team_gt[team_name], gv_mode, player_name)
+                tab_lines.append([score, unlocked, line, nogo, player_name, list_char])
 
-                if score >= score_green and not nogo:
+                if score >= SCORE_GREEN and not nogo:
                     count_green += 1
-                if score >= score_amber and not nogo:
+                elif score >= SCORE_ALMOST_GREEN and not nogo:
+                    count_almost_green += 1
+                elif score >= SCORE_AMBER and not nogo:
                     count_amber += 1
+                elif score >= SCORE_RED and not nogo:
+                    count_red += 1
+                else:
+                    count_not_enough += 1
 
             #Tri des nogo=False en premier, puis score décroissant
-            for score, unlocked, txt, nogo, name in sorted(tab_lines,
+            for score, unlocked, txt, nogo, name, list_char in sorted(tab_lines,
                                            key=lambda x: (x[3], -x[0])):
-                ret_team.append([txt, score, name, unlocked])
+                ret_team.append([score, unlocked, txt, nogo, name, list_char])
 
-            ret_get_team_progress[team_name] = ret_team, count_green, count_amber
+            ret_get_team_progress[team_name] = ret_team, [count_green, count_almost_green,
+                                                          count_amber, count_red, count_not_enough]
 
     return ret_get_team_progress
 
@@ -863,28 +811,76 @@ def print_vtx(list_team_names, txt_allyCode, compute_guild):
     ret_print_vtx = ""
 
     ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
-                            compute_guild, 1, 100, 80, False, False)
+                                              compute_guild, False)
     if type(ret_get_team_progress) == str:
         goutils.log("ERR", "go.print_vtx", "get_team_progress has returned an error: "+ret_print_vtx)
-        return 1,  ret_get_team_progress
+        return 1,  ret_get_team_progress, None
     else:
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
             if type(ret_team) == str:
+                #error
                 ret_print_vtx += ret_team + "\n"
             else:
-                for team_line in ret_team[0]:
-                    ret_print_vtx += team_line[0]
+                if compute_guild:
+                    total_green = ret_team[1][0]
+                    total_almost_green = ret_team[1][1]
+                    total_amber = ret_team[1][2]
+                    total_not_enough = ret_team[1][4]
+                    for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
+                        if score == 999999:
+                            #Header of the team
+                            ret_print_vtx += txt + "\n"
+                        else:
+                            if score >= SCORE_GREEN and not nogo:
+                                ret_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
+                            elif score >= SCORE_ALMOST_GREEN and not nogo:
+                                ret_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                            elif score >= SCORE_AMBER and not nogo:
+                                ret_print_vtx += "\N{CONFUSED FACE}"
+                            elif score >= SCORE_RED:
+                                ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
+                                total_not_enough -= 1
+
+                            if score >= SCORE_RED:
+                                ret_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
+                    if total_not_enough > 0:
+                        ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
+
+                    ret_print_vtx += "\n**Total**: " + str(total_green) + " \N{WHITE HEAVY CHECK MARK}" \
+                                   + " + " + str(total_almost_green) + " \N{WHITE RIGHT POINTING BACKHAND INDEX}" \
+                                   + " + " + str(total_amber) + " \N{CONFUSED FACE}"
+
+                    images = None
+
+                else:
+                    ret_print_vtx = ''
+                    for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
+                        if score == 999999:
+                            #Header of the team
+                            ret_print_vtx += txt + "\n"
+                        else:
+                            if score >= SCORE_GREEN and not nogo:
+                                ret_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
+                            elif score >= SCORE_ALMOST_GREEN and not nogo:
+                                ret_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                            elif score >= SCORE_AMBER and not nogo:
+                                ret_print_vtx += "\N{CONFUSED FACE}"
+                            else:
+                                ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
+                            ret_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
+
+                            list_char_allycodes = [[list_char, txt_allyCode, ""]]
+                            e, t, images = get_character_image(list_char_allycodes, True)
         
             ret_print_vtx += "\n"
                 
-    return 0, ret_print_vtx
+    return 0, ret_print_vtx, images
 
 def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
     
-    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode,
-                            False, 1, 100, 80, True, True)
+    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, False, True)
     
     list_lines = []
     if len(ret_get_team_progress) == 1:
@@ -892,28 +888,22 @@ def print_gvj(list_team_names, txt_allyCode):
         team = list(ret_get_team_progress.keys())[0]
         ret_team = ret_get_team_progress[team]
         if type(ret_team) == str:
+            #error
             ret_print_gvj += ret_team
         else:
-            for ret_player in ret_team[0]:
-                player_txt = ret_player[0]
-                player_score = ret_player[1]
-                player_name = ret_player[2]
+            for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+team[:-3]+"\n"
-                ret_print_gvj += player_txt + "> Global: "+\
-                                            str(int(player_score))+"%"
+                ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))+"%"
 
     else:
         player_name = ''
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
             if type(ret_team) == str:
+                #error
                 ret_print_gvj += ret_team
             else:
-                for ret_player in ret_team[0]:
-                    player_txt = ret_player[0]
-                    player_score = ret_player[1]
-                    player_name = ret_player[2]
-                    player_unlocked = ret_player[3]
+                for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                     new_line = team[:-3] + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
@@ -940,20 +930,16 @@ def print_gvj(list_team_names, txt_allyCode):
 def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
     
-    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode,
-                            True, 1, 100, 80, True, True)
+    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, True, True)
     
     list_lines = []
     for team in ret_get_team_progress:
         ret_team = ret_get_team_progress[team]
         if type(ret_team) == str:
+            #error
             ret_print_gvg += ret_team + "\n"
         else:
-            for ret_player in ret_team[0]:
-                player_txt = ret_player[0]
-                player_score = ret_player[1]
-                player_name = ret_player[2]
-                player_unlocked = ret_player[3]
+            for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 if not player_unlocked:
                     new_line = team[:-3] + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
@@ -962,10 +948,7 @@ def print_gvg(list_team_names, txt_allyCode):
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
     ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
-    for line in list_lines[:MAX_GVG_LINES]:
-        score = line[0]
-        txt = line[1]
-        unlocked = line[2]
+    for [score, txt, unlocked] in list_lines[:MAX_GVG_LINES]:
         if score > 95:
             ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
         elif score > 80:
@@ -976,7 +959,7 @@ def print_gvg(list_team_names, txt_allyCode):
         
     return ret_print_gvg
                        
-def assign_gt(allyCode, txt_mode):
+def assign_gt(allyCode):
     ret_assign_gt = ''
 
     dict_players = connect_gsheets.load_config_players()[0]
@@ -991,7 +974,7 @@ def assign_gt(allyCode, txt_mode):
     #print(liste_team_names)
 
     #Calcule des meilleurs joueurs pour chaque team
-    dict_teams = get_team_progress(liste_team_names, allyCode, True, 3, -1, -1, True, True)
+    dict_teams = get_team_progress(liste_team_names, allyCode, True, True)
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1023,7 +1006,7 @@ def assign_gt(allyCode, txt_mode):
                             if req_nombre == '' or nb_joueurs_selectionnes < req_nombre:
                                 nb_joueurs_selectionnes += 1
                                 ret_assign_gt += nom_territoire + ': '
-                                if nom_joueur in dict_players and not txt_mode:
+                                if nom_joueur in dict_players:
                                     player_mention = dict_players[nom_joueur][1]
                                     ret_assign_gt += player_mention
                                 else:  #joueur non-défini dans gsheets ou mode texte
@@ -1062,8 +1045,7 @@ def guild_counter_score(txt_allyCode):
     list_counter_teams = connect_gsheets.load_config_counter()
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
-    dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True,
-                                            1, 100, 80, False, True)
+    dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True, True)
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]
@@ -1482,20 +1464,22 @@ def get_distribution_graph(values, bins, title, highlight_value):
 def get_gp_distribution(txt_allyCode):
     #Load or update data for the guild
     #use only the guild data from the API
-    ret, guild = load_guild(txt_allyCode, False, True)
+    ret, dict_guild = load_guild(txt_allyCode, False, True)
     if ret != 'OK':
         return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
 
     guild_stats=[] #Serie of all players
-    for player in guild['roster']:
+    for player in dict_guild['roster']:
         gp = (player['gpChar'] + player['gpShip']) / 1000000
         guild_stats.append(gp)
-    guild_name = guild["name"]
+    guild_name = dict_guild["name"]
 
     graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
     image = get_distribution_graph(guild_stats, 20, graph_title, None)
+    logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
+    image.paste(logo_img, (10,10), logo_img)
     
     return 0, "", image
 
@@ -1504,7 +1488,8 @@ def get_tb_alerts():
 
     tb_active_triggers = connect_gsheets.get_tb_triggers({}, True)
     #print(tb_active_triggers)
-    if len(tb_active_triggers) > 0:
+    tb_trigger_messages = []
+    if tb_active_triggers != None and len(tb_active_triggers) > 0:
         territory_scores = connect_warstats.parse_warstats_tb_scores()
         #print(territory_scores)
         if len(territory_scores) > 0:
@@ -1537,7 +1522,7 @@ def get_character_image(list_characters_allyCode, is_ID):
         e, dict_player, t = load_player(txt_allyCode, False, False)
         if e != 0:
             #error wile loading guild data
-            goutils.log("WAR", "go.go.get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
+            goutils.log("WAR", "go.get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
             err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
             dict_player = {"allyCode": txt_allyCode}
 
@@ -1558,14 +1543,11 @@ def get_character_image(list_characters_allyCode, is_ID):
     if len(list_ids_dictplayer) == 0:
         return 1, err_txt, None
 
-    #Return a list of images with no more than 5 lines/teams
+    #Return a list of images
     list_images = []
-    idx = 0
-    while len(list_ids_dictplayer) > idx:
-        list_ids_dictplayer_5 = list_ids_dictplayer[idx:idx+5]
-        image = portraits.get_image_from_teams(list_ids_dictplayer_5, dict_unitsList)
-        list_images.append([image, len(list_ids_dictplayer_5)])
-        idx += 5
+    for [ids, dict_player, tw_terr] in list_ids_dictplayer:
+        image = portraits.get_image_from_team(ids, dict_player, tw_terr, dict_unitsList)
+        list_images.append(image)
     
     return err_code, err_txt, list_images
 
@@ -1623,7 +1605,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         return 1, err_txt, None
 
     # Look for the name among known player names in DB
-    results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
+    results = connect_mysql.get_table("SELECT name, allyCode FROM players", False)
     #print(results)
     list_names = [x[0] for x in results[0]]
 
@@ -1635,7 +1617,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         if len(closest_names)<1:
             err_txt += 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n'
         else:
-            print('INFO: cmd launched with name that looks like '+closest_names[0])
+            goutils.log("INFO", "go.get_tw_battle_image", "cmd launched with name that looks like "+closest_names[0])
             for r in results[0]:
                 if r[0] == closest_names[0]:
                     opp_squad[1] = str(r[1])
