@@ -1537,7 +1537,8 @@ def get_tb_alerts():
 
     tb_active_triggers = connect_gsheets.get_tb_triggers({}, True)
     #print(tb_active_triggers)
-    if len(tb_active_triggers) > 0:
+    tb_trigger_messages = []
+    if tb_active_triggers != None and len(tb_active_triggers) > 0:
         territory_scores = connect_warstats.parse_warstats_tb_scores()
         #print(territory_scores)
         if len(territory_scores) > 0:
