@@ -844,7 +844,7 @@ def print_vtx(list_team_names, txt_allyCode, compute_guild):
 
                             if score >= SCORE_RED:
                                 ret_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
-                    if total_not_enogh > 0:
+                    if total_not_enough > 0:
                         ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
 
                     ret_print_vtx += "\n**Total**: " + str(total_green) + " \N{WHITE HEAVY CHECK MARK}" \
@@ -855,7 +855,7 @@ def print_vtx(list_team_names, txt_allyCode, compute_guild):
 
                 else:
                     ret_print_vtx = ''
-                    for [txt, score, name, unlocked, list_char] in ret_team[0]:
+                    for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
                         if score == 999999:
                             #Header of the team
                             ret_print_vtx += txt + "\n"
@@ -891,13 +891,9 @@ def print_gvj(list_team_names, txt_allyCode):
             #error
             ret_print_gvj += ret_team
         else:
-            for ret_player in ret_team[0]:
-                player_txt = ret_player[0]
-                player_score = ret_player[1]
-                player_name = ret_player[2]
+            for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+team[:-3]+"\n"
-                ret_print_gvj += player_txt + "> Global: "+\
-                                            str(int(player_score))+"%"
+                ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))+"%"
 
     else:
         player_name = ''
@@ -907,11 +903,7 @@ def print_gvj(list_team_names, txt_allyCode):
                 #error
                 ret_print_gvj += ret_team
             else:
-                for ret_player in ret_team[0]:
-                    player_txt = ret_player[0]
-                    player_score = ret_player[1]
-                    player_name = ret_player[2]
-                    player_unlocked = ret_player[3]
+                for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                     new_line = team[:-3] + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
@@ -947,11 +939,7 @@ def print_gvg(list_team_names, txt_allyCode):
             #error
             ret_print_gvg += ret_team + "\n"
         else:
-            for ret_player in ret_team[0]:
-                player_txt = ret_player[0]
-                player_score = ret_player[1]
-                player_name = ret_player[2]
-                player_unlocked = ret_player[3]
+            for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 if not player_unlocked:
                     new_line = team[:-3] + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
@@ -960,10 +948,7 @@ def print_gvg(list_team_names, txt_allyCode):
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
     ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
-    for line in list_lines[:MAX_GVG_LINES]:
-        score = line[0]
-        txt = line[1]
-        unlocked = line[2]
+    for [score, txt, unlocked] in list_lines[:MAX_GVG_LINES]:
         if score > 95:
             ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
         elif score > 80:
