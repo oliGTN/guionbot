@@ -1526,13 +1526,15 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         if e == 0:
             first_image = True
             cur_list_msgIDs = []
-            for [image, line_count] in images:
+            for image in images:
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
                     image_binary.seek(0)
                     new_msg = await ctx.send(content = ret_cmd,
                            file=File(fp=image_binary, filename='image.png'))
-                    for letter_idx in range(line_count-first_image):
+                    #for letter_idx in range(line_count-first_image):
+                    if not first_image:
+                        letter_idx = 0
                         emoji_letter = emoji_letters[letter_idx]
                         await new_msg.add_reaction(emoji_letter)
                     cur_list_msgIDs.append(new_msg)
