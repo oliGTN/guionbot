@@ -114,7 +114,6 @@ dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
 dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
 list_tw_opponent_msgIDs = []
-list_tw_results_msgIDs = []
 
 ##############################################################
 #                                                            #
@@ -598,43 +597,33 @@ async def on_reaction_add(reaction, user):
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
 
     #Manage reactions to PGS messages
-    for [rgt_user, list_msg] in list_tw_opponent_msgIDs:
+    for [rgt_user, list_msg_sizes] in list_tw_opponent_msgIDs:
+        list_msg = [x[0] for x in list_msg_sizes]
         if message in list_msg:
             if emoji in emoji_letters and rgt_user == user:
                 img1_url = list_msg[0].attachments[0].url
+                img1_size = list_msg_sizes[0][1][0]
+
+                img2_position = list_msg.index(message)
                 img2_url = message.attachments[0].url
+                img2_sizes = list_msg_sizes[img2_position][1]
+
                 letter_position = emoji_letters.index(emoji)
                 if img1_url == img2_url:
                     letter_position += 1
 
                 for msg in list_msg:
                     await msg.delete()
-                list_tw_opponent_msgIDs.remove([rgt_user, list_msg])
+                list_tw_opponent_msgIDs.remove([rgt_user, list_msg_sizes])
 
-                image = portraits.get_result_image_from_images(img1_url, img2_url, letter_position)
+                image = portraits.get_result_image_from_images(img1_url, img1_size,
+                                                               img2_url, img2_sizes,
+                                                               letter_position)
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
                     image_binary.seek(0)
-                    new_msg = await message.channel.send(content = "<@"+str(user.id)+"> Victoire ou Défaite ?",
+                    new_msg = await message.channel.send(content = "<@"+str(user.id)+"> Tu peux partager et commenter ton résultat",
                            file=File(fp=image_binary, filename='image.png'))
-                    await new_msg.add_reaction(emoji_thumb)
-                    await new_msg.add_reaction(emoji_thumbdown)
-                    list_tw_results_msgIDs.append([user, new_msg])
-
-    #Check if message is a result from TW, just missing the victory or defeat
-    if [user, message] in list_tw_results_msgIDs:
-        if emoji == emoji_thumb or emoji == emoji_thumbdown:
-            img_url = message.attachments[0].url
-            victory = (emoji == emoji_thumb)
-            image = portraits.get_image_full_result(img_url, victory)
-            channel = message.channel
-            await message.delete()
-            with BytesIO() as image_binary:
-                image.save(image_binary, 'PNG')
-                image_binary.seek(0)
-                await channel.send(content = "<@"+str(user.id)+"> Tu peux partager ton résultat",
-                       file=File(fp=image_binary, filename='image.png'))
-            list_tw_results_msgIDs.remove([user, message])
 
 ##############################################################
 # Event: on_message
@@ -1060,7 +1049,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
             else:
                 #Unknown allyCode in DB
-                e, dict_player, t = go.load_player(allyCode, False, True)
+                e, dict_player, t = go.load_player(allyCode, 0, True)
                 if e == 0:
                     player_name = dict_player["name"]
                     guildName = dict_player["guildName"]
@@ -1449,7 +1438,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             if len(characters) > 0:
                 e, ret_cmd, images = await bot.loop.run_in_executor(None,
-                    go.get_character_image, [[list(characters), allyCode, '']], False)
+                    go.get_character_image, [[list(characters), allyCode, '']], False, True)
                     
                 if e == 0:
                     for image in images:
@@ -1524,20 +1513,36 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                                              character_defense)
                     
         if e == 0:
+            #regroup images into bigger ones containing several teams
+            list_big_images = []
+            cur_big_image = None
+            cur_big_image_sizes = []
+            for image in images:
+                w, h = image.size
+                if sum(cur_big_image_sizes) == 0 or (sum(cur_big_image_sizes) + h <= 1000):
+                    cur_big_image = portraits.add_vertical(cur_big_image, image)
+                    cur_big_image_sizes.append(h)
+                    print("add "+str(cur_big_image_sizes))
+                else:
+                    list_big_images.append([cur_big_image, cur_big_image_sizes])
+                    cur_big_image = image
+                    cur_big_image_sizes = [h]
+                    print("new "+str(h))
+
+            list_big_images.append([cur_big_image, cur_big_image_sizes])
+
             first_image = True
             cur_list_msgIDs = []
-            for image in images:
+            for [image, sizes] in list_big_images:
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
                     image_binary.seek(0)
                     new_msg = await ctx.send(content = ret_cmd,
                            file=File(fp=image_binary, filename='image.png'))
-                    #for letter_idx in range(line_count-first_image):
-                    if not first_image:
-                        letter_idx = 0
+                    for letter_idx in range(len(sizes)-first_image):
                         emoji_letter = emoji_letters[letter_idx]
                         await new_msg.add_reaction(emoji_letter)
-                    cur_list_msgIDs.append(new_msg)
+                    cur_list_msgIDs.append([new_msg, sizes])
                 first_image = False
 
             # Add the message list to the global message list, waiting for reaction

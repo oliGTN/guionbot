@@ -101,6 +101,9 @@ def refresh_cache():
 
 ##################################
 # Function: refresh_cache
+# inputs: txt_allYCode (string)
+#         int force_update (0: default, 1: force update, -1, do not update)
+#         bool no_db: do not put player in DB
 # return: erro_code, err_text
 ##################################
 def load_player(txt_allyCode, force_update, no_db):
@@ -129,7 +132,7 @@ def load_player(txt_allyCode, force_update, no_db):
         else:
             prev_dict_player = None
 
-    if not recent_player or force_update:
+    if (not recent_player or force_update==1) and not (force_update==-1 and prev_dict_player != None):
         goutils.log("INFO", "go.load_player", 'requesting API data for ' + txt_allyCode + '...')
         if client != None:
             player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
@@ -312,7 +315,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     i_player += 1
                     goutils.log("INFO", "go.load_guild", "player #"+str(i_player))
                     
-                    e, d, t = load_player(str(allyCode), False, False)
+                    e, d, t = load_player(str(allyCode), 0, False)
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
                 parallel_work.set_guild_loading_status(guildName, None)
@@ -612,7 +615,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         #only one player, potentially several teams
         
         #Load or update data for the player
-        e, d, t = load_player(txt_allyCode, False, False)
+        e, d, t = load_player(txt_allyCode, 0, False)
         if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
@@ -871,7 +874,7 @@ def print_vtx(list_team_names, txt_allyCode, compute_guild):
                             ret_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
 
                             list_char_allycodes = [[list_char, txt_allyCode, ""]]
-                            e, t, images = get_character_image(list_char_allycodes, True)
+                            e, t, images = get_character_image(list_char_allycodes, True, True)
         
             ret_print_vtx += "\n"
                 
@@ -1252,7 +1255,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                     return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
-        e, dict_player, t = load_player(txt_allyCode, False, False)
+        e, dict_player, t = load_player(txt_allyCode, 0, False)
         player_name = dict_player["name"]
         list_player_names = [player_name]
 
@@ -1499,10 +1502,12 @@ def get_tb_alerts():
     
 #################################
 # Function: get_character_image
-# IN:list_characters_allyCode: [[[id1, id2, ...], allyCode, tw territory], ...]
+# IN: list_characters_allyCode: [[[id1, id2, ...], allyCode, tw territory], ...]
+# IN: is_ID: True if list_character_alyCode contains chartacter IDs (False if names)
+# IN: refresh_player: False to revent refreshing player via API
 # return: err_code, err_txt, image
 #################################
-def get_character_image(list_characters_allyCode, is_ID):
+def get_character_image(list_characters_allyCode, is_ID, refresh_player):
     err_code = 0
     err_txt = ''
 
@@ -1519,7 +1524,7 @@ def get_character_image(list_characters_allyCode, is_ID):
 
     list_ids_dictplayer = []
     for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
-        e, dict_player, t = load_player(txt_allyCode, False, False)
+        e, dict_player, t = load_player(txt_allyCode, -int(not(refresh_player)), False)
         if e != 0:
             #error wile loading guild data
             goutils.log("WAR", "go.get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
@@ -1629,7 +1634,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
-    e, t, images = get_character_image(list_char_allycodes, True)
+    e, t, images = get_character_image(list_char_allycodes, True, False)
     err_txt += t
     if e != 0:
         return 1, err_txt, None

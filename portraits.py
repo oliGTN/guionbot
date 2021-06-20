@@ -281,41 +281,22 @@ def get_image_from_team(list_character_ids, dict_player, tw_territory, dict_unit
     return team_img
 
 #######################
-def get_result_image_from_images(img1_url, img2_url, idx_img2):
+def get_result_image_from_images(img1_url, img1_size, img2_url, img2_sizes, idx_img2):
     img1 = Image.open(requests.get(img1_url, stream=True).raw)
+    w1, h1 = img1.size
     img2 = Image.open(requests.get(img2_url, stream=True).raw)
+    w2, h2 = img2.size
 
-    result_width = 6 * PORTRAIT_SIZE
-    result_image = Image.new('RGB', (result_width, 2*(NAME_HEIGHT+PORTRAIT_SIZE)), (0,0,0))
     
     #Get attacker team
-    attacker_img = img1.crop((0, 0, result_width, NAME_HEIGHT + PORTRAIT_SIZE))
+    attacker_img = img1.crop((0, 0, w1, img1_size))
     
     #Get defender team / remove the letter before the name
-    defender_img = img2.crop((0, idx_img2 * (NAME_HEIGHT + PORTRAIT_SIZE),
-                            result_width, (idx_img2 + 1) * (NAME_HEIGHT + PORTRAIT_SIZE)))
-    defender_name = defender_img.crop((40, 0, 6*PORTRAIT_SIZE, NAME_HEIGHT+5))
-    defender_img.paste(defender_name, (0,0))
-
+    img2_top = sum(img2_sizes[:idx_img2])
+    img2_bottom = sum(img2_sizes[:idx_img2+1])
+    defender_img = img2.crop((0, img2_top, w2, img2_bottom))
 
     #Merge images
-    result_image.paste(attacker_img, (0, 0))
-    result_image.paste(defender_img, (0, NAME_HEIGHT+PORTRAIT_SIZE))
+    result_image = add_vertical(attacker_img, defender_img)
 
     return result_image
-
-def get_image_full_result(img_url, victory):
-    img = Image.open(requests.get(img_url, stream=True).raw)
-
-    #Get result icon
-    if victory:
-        result_icon = Image.open("IMAGES/ICONS/green_thumbup.png")
-    else:
-        result_icon = Image.open("IMAGES/ICONS/red_thumbdown.png")
-    result_icon = result_icon.resize((120, 120))
-
-    #Merge images
-    img.paste(result_icon, (5*PORTRAIT_SIZE+24, NAME_HEIGHT+24), result_icon)
-
-    return img
-
