@@ -150,7 +150,7 @@ async def bot_loop_60():
                             list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
             update_online_dates(dict_lastseen)
-            
+
         except Exception as e:
             goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
             goutils.log("ERR", "bot_loop_60", e)
@@ -199,6 +199,13 @@ async def bot_loop_600():
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
             await bot.loop.run_in_executor(None, go.refresh_cache)
+
+            #Check GP amount for Kangoo Legends
+            r, d = await bot.loop.run_in_executor(None, go.load_guild, "189341793", False, False)
+            limit_gp = 199100000
+            if d["gp"] > limit_gp:
+                await send_alert_to_admins("Passage des "+str(limit_gp)+" gp : "+str(d["gp"]))
+            goutils.log("INFO", "guionbot_discord.bot_loop_600", "Total GP Kangoo Legends = "+str(d["gp"]))
             
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_600", str(sys.exc_info()[0]))
