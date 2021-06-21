@@ -480,7 +480,13 @@ def get_team_line_from_player(team_name, dict_player, dict_team, gv_mode, player
                     character_display = "\N{CROSS MARK} "+\
                                         character_name + \
                                         " n'est pas débloqué - 0%"
-                    tab_progress_player[i_subobj][i_character - 1][1] += character_display
+                else:
+                    character_display = ""
+
+                tab_progress_player[i_subobj][i_character - 1][0] = 0
+                tab_progress_player[i_subobj][i_character - 1][1] = character_display
+                tab_progress_player[i_subobj][i_character - 1][2] = True
+                tab_progress_player[i_subobj][i_character - 1][3] = character_id
     
     #calcul du score global
     score = 0
@@ -810,14 +816,14 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
 
     return ret_get_team_progress
 
-def print_vtx(list_team_names, txt_allyCode, compute_guild):
+def print_vtg(list_team_names, txt_allyCode):
     ret_print_vtx = ""
 
     ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
-                                              compute_guild, False)
+                                              True, False)
     if type(ret_get_team_progress) == str:
-        goutils.log("ERR", "go.print_vtx", "get_team_progress has returned an error: "+ret_print_vtx)
-        return 1,  ret_get_team_progress, None
+        goutils.log("ERR", "go.print_vtg", "get_team_progress has returned an error: "+ret_print_vtx)
+        return 1,  ret_get_team_progress
     else:
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
@@ -825,59 +831,85 @@ def print_vtx(list_team_names, txt_allyCode, compute_guild):
                 #error
                 ret_print_vtx += ret_team + "\n"
             else:
-                if compute_guild:
-                    total_green = ret_team[1][0]
-                    total_almost_green = ret_team[1][1]
-                    total_amber = ret_team[1][2]
-                    total_not_enough = ret_team[1][4]
-                    for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
-                        if score == 999999:
-                            #Header of the team
-                            ret_print_vtx += txt + "\n"
-                        else:
-                            if score >= SCORE_GREEN and not nogo:
-                                ret_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
-                            elif score >= SCORE_ALMOST_GREEN and not nogo:
-                                ret_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-                            elif score >= SCORE_AMBER and not nogo:
-                                ret_print_vtx += "\N{CONFUSED FACE}"
-                            elif score >= SCORE_RED:
-                                ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
-                                total_not_enough -= 1
+                total_green = ret_team[1][0]
+                total_almost_green = ret_team[1][1]
+                total_amber = ret_team[1][2]
+                total_not_enough = ret_team[1][4]
+                for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
+                    if score == 999999:
+                        #Header of the team
+                        ret_print_vtx += txt + "\n"
+                    else:
+                        if score >= SCORE_GREEN and not nogo:
+                            ret_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
+                        elif score >= SCORE_ALMOST_GREEN and not nogo:
+                            ret_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                        elif score >= SCORE_AMBER and not nogo:
+                            ret_print_vtx += "\N{CONFUSED FACE}"
+                        elif score >= SCORE_RED:
+                            ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
+                            total_not_enough -= 1
 
-                            if score >= SCORE_RED:
-                                ret_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
-                    if total_not_enough > 0:
-                        ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
-
-                    ret_print_vtx += "\n**Total**: " + str(total_green) + " \N{WHITE HEAVY CHECK MARK}" \
-                                   + " + " + str(total_almost_green) + " \N{WHITE RIGHT POINTING BACKHAND INDEX}" \
-                                   + " + " + str(total_amber) + " \N{CONFUSED FACE}"
-
-                    images = None
-
-                else:
-                    ret_print_vtx = ''
-                    for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
-                        if score == 999999:
-                            #Header of the team
-                            ret_print_vtx += txt + "\n"
-                        else:
-                            if score >= SCORE_GREEN and not nogo:
-                                ret_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
-                            elif score >= SCORE_ALMOST_GREEN and not nogo:
-                                ret_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-                            elif score >= SCORE_AMBER and not nogo:
-                                ret_print_vtx += "\N{CONFUSED FACE}"
-                            else:
-                                ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
+                        if score >= SCORE_RED:
                             ret_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
+                if total_not_enough > 0:
+                    ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
 
-                            list_char_allycodes = [[list_char, txt_allyCode, ""]]
-                            e, t, images = get_character_image(list_char_allycodes, True, True)
-        
+                ret_print_vtx += "\n**Total**: " + str(total_green) + " \N{WHITE HEAVY CHECK MARK}" \
+                               + " + " + str(total_almost_green) + " \N{WHITE RIGHT POINTING BACKHAND INDEX}" \
+                               + " + " + str(total_amber) + " \N{CONFUSED FACE}"
+
             ret_print_vtx += "\n"
                 
+    return 0, ret_print_vtx
+
+def print_vtj(list_team_names, txt_allyCode):
+    ret_print_vtx = ""
+
+    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
+                                              False, False)
+    if type(ret_get_team_progress) == str:
+        goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+ret_get_team_progress)
+        return 1,  ret_get_team_progress, None
+    else:
+        if len(ret_get_team_progress) > 0:
+            values_view = ret_get_team_progress.values()
+            value_iterator = iter(values_view)
+            first_team = next(value_iterator)
+            if type(first_team) == str:
+                goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+first_team)
+                return 1,  first_team, None
+            player_name = first_team[0][1][4]
+            ret_print_vtx += "**Joueur : " + player_name + "**\n"
+
+        for team in ret_get_team_progress:
+            ret_team = ret_get_team_progress[team]
+
+            #If onnly one team, display the detais
+            for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
+                if score == 999999:
+                    #Header of the team
+                    if len(ret_get_team_progress) == 1:
+                        ret_print_vtx += txt + "\n"
+                        team = "Score"
+                else:
+                    if score >= SCORE_GREEN and not nogo:
+                        ret_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
+                    elif score >= SCORE_ALMOST_GREEN and not nogo:
+                        ret_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                    elif score >= SCORE_AMBER and not nogo:
+                        ret_print_vtx += "\N{CONFUSED FACE}"
+                    else:
+                        ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
+                    ret_print_vtx += " " + team + ": " + str(round(score, 1)) + "%\n"
+
+                    list_char_allycodes = [[list_char, txt_allyCode, ""]]
+                    e, t, images = get_character_image(list_char_allycodes, True, True)
+
+    #In case of several teams, don't display images
+    if len(ret_get_team_progress) > 1:
+        images = None
+
     return 0, ret_print_vtx, images
 
 def print_gvj(list_team_names, txt_allyCode):

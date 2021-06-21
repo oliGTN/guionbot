@@ -1125,8 +1125,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, ret_cmd, images = await bot.loop.run_in_executor(None, go.print_vtx,
-                                                    teams, allyCode, True)
+            err, ret_cmd = await bot.loop.run_in_executor(None, go.print_vtg,
+                                                    teams, allyCode)
             if err == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
@@ -1159,8 +1159,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, txt, images = await bot.loop.run_in_executor(None, go.print_vtx,
-                                                    teams, allyCode, False)
+            err, txt, images = await bot.loop.run_in_executor(None, go.print_vtj,
+                                                    teams, allyCode)
             if err != 0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
