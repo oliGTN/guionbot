@@ -115,6 +115,8 @@ dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (id
 
 list_tw_opponent_msgIDs = []
 
+limit_gp = 0
+
 ##############################################################
 #                                                            #
 #                  FONCTIONS                                 #
@@ -191,6 +193,7 @@ async def bot_loop_60():
 # Output: none
 ##############################################################
 async def bot_loop_600():
+    global limit_gp
 
     await bot.wait_until_ready()
     while not bot.is_closed():
@@ -202,9 +205,9 @@ async def bot_loop_600():
 
             #Check GP amount for Kangoo Legends
             r, d = await bot.loop.run_in_executor(None, go.load_guild, "189341793", False, False)
-            limit_gp = 199100000
-            if d["gp"] > limit_gp:
-                await send_alert_to_admins("Passage des "+str(limit_gp)+" gp : "+str(d["gp"]))
+            if d["gp"] > limit_gp and limit_gp > 0:
+                await send_alert_to_admins("Passage des "+str(current_gp)+" gp : "+str(d["gp"]))
+            limit_gp = int(d["gp"]/100000)*100000 + 100000
             goutils.log("INFO", "guionbot_discord.bot_loop_600", "Total GP Kangoo Legends = "+str(d["gp"]))
             
         except Exception as e:
