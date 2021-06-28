@@ -223,8 +223,9 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             guildName = dict_guild['name']
             total_players = len(dict_guild['roster'])
             allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
+            guild_gp = dict_guild["gp"]
             goutils.log("INFO", "go.load_guild", "success retrieving "+guildName+" ("\
-                        +str(total_players)+" players) from SWGOH.HELP API")
+                        +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
                         
             # store json file
             fjson = open(json_file, 'w')
