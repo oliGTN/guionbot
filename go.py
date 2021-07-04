@@ -1644,7 +1644,6 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     # Look for the name among known player names in DB
     results = connect_mysql.get_table("SELECT name, allyCode FROM players")
-    print(results)
     list_names = [x[0] for x in results]
 
     for opp_squad in list_opp_squads_with_char:
@@ -1654,6 +1653,8 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         #print(closest_names)
         if len(closest_names)<1:
             err_txt += 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n'
+            goutils.log("ERR", "go.get_tw_battle_image", player_name+' ne fait pas partie des joueurs connus')
+            opp_squad[1]=''
         else:
             goutils.log("INFO", "go.get_tw_battle_image", "cmd launched with name that looks like "+closest_names[0])
             for r in results:
@@ -1664,7 +1665,8 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     list_char_allycodes = []
     list_char_allycodes.append([list_id_attack, allyCode_attack, ''])
     for opp_squad in list_opp_squads_with_char:
-        list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
+        if not opp_squad[1] == '':
+            list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
     e, t, images = get_character_image(list_char_allycodes, True, False)
