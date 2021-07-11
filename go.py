@@ -1738,3 +1738,65 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     image = get_distribution_graph(stat_g13_values, 50, title, player_value)
     
     return 0, err_txt, image
+
+###############################
+def print_erx(allyCode_txt, days, compute_guild):
+    if not compute_guild:
+        query = "SELECT name, defId FROM roster_evolutions " \
+              + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
+              + "WHERE players.allyCode = " + allyCode_txt + " " \
+              + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
+              + "ORDER BY timestamp DESC"
+
+    goutils.log("DBG", "go.print_erx", query)
+    db_data = connect_mysql.get_table(query)
+    if db_data != None:
+        player_name = db_data[0][0]
+        stats_units = {}
+        stats_categories = {}
+        for line in db_data:
+            unit_id = line[1]
+            if unit_id != "all":
+                unit_combatType = dict_unitsList[unit_id]["combatType"]
+                if unit_combatType == 1:
+                    unit_name = dict_unitsList[unit_id]["nameKey"]
+                    if unit_name in stats_units:
+                        stats_units[unit_name] = stats_units[unit_name] + 1
+                    else:
+                        stats_units[unit_name] = 1
+
+                    unit_categories = dict_unitsList[unit_id]["categoryIdList"]
+                    for category in unit_categories:
+                        if category in stats_categories:
+                            stats_categories[category] = stats_categories[category] + 1
+                        else:
+                            stats_categories[category] = 1
+
+        ret_cmd = "**Evolutions du roster de "+player_name+" durant les "+str(days)+" derniers jours**\n"
+        ret_cmd += "(1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso)\n"
+        if "alignment_light" in stats_categories:
+            lightside = stats_categories["alignment_light"]
+        else:
+            lightside=0
+        if "alignment_dark" in stats_categories:
+            darkside = stats_categories["alignment_dark"]
+        else:
+            darkside=0
+        ret_cmd += "\nLight / Dark = "+str(lightside)+"/"+str(darkside)+"\n"
+
+        ret_cmd += "\n__TOP 10 PERSOS__\n"
+        list_evo_units = sorted(stats_units.items(), key=lambda x:-x[1])
+        for evo in list_evo_units[:10]:
+            ret_cmd += str(evo)+'\n'
+
+        ret_cmd += "\n__EVOLUTIONS PAR FACTION__\n"
+        territory_items = [(x[0].split("_")[1], x[1]) for x in stats_categories.items() if x[0][:5] in ["affil", "profe"]]
+        list_evo_categories = sorted(territory_items, key=lambda x:-x[1])
+        for evo in list_evo_categories:
+            ret_cmd += str(evo)+'\n'
+
+        return 0, ret_cmd
+
+    else:
+        goutils.log("ERR", "go.print_erx", "error while running query, returned NULL")
+        return 1, "ERR: erreur lors de la connexion à la DB"

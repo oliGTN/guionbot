@@ -1600,6 +1600,40 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
 
+    ##############################################################
+    # Command: erj
+    # Parameters: player idenfier
+    #             amount of days (max 365)
+    # Purpose: summary of roster evolution for a player
+    #          if <= 30 days, duisplay full evolutions
+    #          if > 30 days, duisplay only unlocked and relics
+    # Display: list
+    ##############################################################
+    @commands.command(name='erj',
+                 brief="Evolution du Roster d'un Joueur",
+                 help="Evolution du roster d'un joueur sur X jours\n"\
+                      "Exemple: go.erj me 30")
+    async def erj(self, ctx, allyCode, days):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode= manage_me(ctx, allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode_attack)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        e, ret_cmd = await bot.loop.run_in_executor(None,
+                    go.print_erx, allyCode, days, False)
+        if e == 0:
+            #texte classique
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
