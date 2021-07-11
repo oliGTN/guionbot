@@ -1789,10 +1789,10 @@ def print_erx(allyCode_txt, days, compute_guild):
         for evo in list_evo_units[:10]:
             ret_cmd += str(evo)+'\n'
 
-        ret_cmd += "\n__EVOLUTIONS PAR FACTION__\n"
+        ret_cmd += "\n__TOP 10 FACTIONS__\n"
         territory_items = [(x[0].split("_")[1], x[1]) for x in stats_categories.items() if x[0][:5] in ["affil", "profe"]]
         list_evo_categories = sorted(territory_items, key=lambda x:-x[1])
-        for evo in list_evo_categories:
+        for evo in list_evo_categories[:10]:
             ret_cmd += str(evo)+'\n'
 
         return 0, ret_cmd
