@@ -277,7 +277,16 @@ async def get_eb_allocation(tbs_round):
                 if allocation_without_overview:
                     goutils.log("ERR", "get_eb_allocation", "some platoons have been defined but no Overview detected!")
 
-            if eb_sort_territory and message.content.startswith('```prolog'):
+            #Detect the color of embed to find the sorting rule
+            if message.embeds != None:
+                if len(message.embeds)>0:
+                    embed = message.embeds[0]
+                    dict_embed = embed.to_dict()
+                    print(dict_embed)
+                    if dict_embed["color"] == 16711680:
+                        continue
+
+            if message.content.startswith('```prolog'):
                 #EB message by territory
                   
                 for embed in message.embeds:
@@ -309,7 +318,7 @@ async def get_eb_allocation(tbs_round):
                     
                 allocation_without_overview = True
     
-            elif eb_sort_character and message.content.startswith('Common units:'):
+            elif message.content.startswith('Common units:'):
                 #EB message by unit / Common units
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
@@ -343,7 +352,7 @@ async def get_eb_allocation(tbs_round):
 
                 allocation_without_overview = True 
                 
-            elif eb_sort_character and message.content.startswith('Rare Units:'):
+            elif message.content.startswith('Rare Units:'):
                 #EB message by unit / Rare unis
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
@@ -378,8 +387,7 @@ async def get_eb_allocation(tbs_round):
                                             char_name].append(player_name)
 
                 allocation_without_overview = True            
-            elif eb_sort_player and "<@" in message.content and \
-                not (message.content.startswith(":information_source:")):
+            elif message.content.startswith("<@"):
 
                 #EB message by player
                 for embed in message.embeds:
@@ -907,7 +915,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         #Lecture du statut des pelotons sur warstats
         tbs_round, dict_platoons_done, \
             list_open_territories = parse_warstats_tb_page()
-        goutils.log("DBG", "go.vdp", dict_platoons_done)
+        goutils.log("DBG", "go.vdp", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = load_config_players()[0]
@@ -919,6 +927,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             goutils.log("INFO", "go.vdp", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
 
             dict_platoons_allocation = await get_eb_allocation(tbs_round)
+            goutils.log("DBG", "go.vdp", "Platoon allocation: "+str(dict_platoons_allocation))
             
             #Comparaison des dictionnaires
             #Recherche des persos non-affectés
