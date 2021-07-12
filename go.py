@@ -1784,7 +1784,7 @@ def print_erx(allyCode_txt, days, compute_guild):
         goutils.log("DBG", "go.print_erx", "stats_categories: "+str(stats_categories))
 
         ret_cmd = "**Evolutions du roster de "+player_name+" durant les "+str(days)+" derniers jours "\
-                + "(du "+oldest+" au "+latest+")**\n"
+                + "(du "+str(oldest)+" au "+str(latest)+")**\n"
         ret_cmd += "1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso\n"
         if "alignment_light" in stats_categories:
             lightside = stats_categories["alignment_light"][1]
