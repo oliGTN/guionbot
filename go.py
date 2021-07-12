@@ -79,10 +79,7 @@ def refresh_cache():
     query = "SELECT guilds.name, MIN(allyCode) "\
            +"FROM guilds "\
            +"JOIN players on players.guildName = guilds.name "\
-           +"WHERE ((guilds.lastRequested > CURRENT_TIMESTAMP - INTERVAL 1 DAY) "\
-           +"   AND (guilds.lastUpdated < CURRENT_TIMESTAMP - INTERVAL 60 MINUTE)) "\
-           +"OR ((guilds.lastRequested > CURRENT_TIMESTAMP - INTERVAL 7 DAY) "\
-           +"   AND (guilds.lastUpdated < CURRENT_TIMESTAMP - INTERVAL 6 HOUR)) "\
+           +"WHERE guilds.update=1 "\
            +"GROUP BY guildName "\
            +"ORDER BY guilds.lastUpdated"
     goutils.log('DBG', 'go.refresh_cache', query)
@@ -1742,13 +1739,13 @@ def print_erx(allyCode_txt, days, compute_guild):
     dict_categoryList = data.get("categoryList_dict.json")
 
     if not compute_guild:
-        query = "SELECT name, defId FROM roster_evolutions " \
+        query = "SELECT name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
               + "WHERE players.allyCode = " + allyCode_txt + " " \
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
     else:
-        query = "SELECT guildName, defId FROM roster_evolutions " \
+        query = "SELECT guildName, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
               + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+")) "\
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
@@ -1758,6 +1755,9 @@ def print_erx(allyCode_txt, days, compute_guild):
     db_data = connect_mysql.get_table(query)
     if db_data != None:
         player_name = db_data[0][0]
+        oldest = db_data[-1][2]
+        latest = db_data[0][2]
+
         stats_units = {} #id: [name, count]
         stats_categories = {} #id: [name, count]
         for line in db_data:
@@ -1783,7 +1783,8 @@ def print_erx(allyCode_txt, days, compute_guild):
         goutils.log("DBG", "go.print_erx", "stats_units: "+str(stats_units))
         goutils.log("DBG", "go.print_erx", "stats_categories: "+str(stats_categories))
 
-        ret_cmd = "**Evolutions du roster de "+player_name+" durant les "+str(days)+" derniers jours**\n"
+        ret_cmd = "**Evolutions du roster de "+player_name+" durant les "+str(days)+" derniers jours "\
+                + "(du "+oldest+" au "+latest+")**\n"
         ret_cmd += "1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso\n"
         if "alignment_light" in stats_categories:
             lightside = stats_categories["alignment_light"][1]

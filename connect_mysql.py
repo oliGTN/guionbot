@@ -7,6 +7,7 @@ from mysql.connector import MySQLConnection, Error
 import datetime
 import goutils
 import connect_crinolo
+import data
 
 mysql_db = None
 
