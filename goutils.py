@@ -8,6 +8,7 @@ from datetime import datetime
 import config
 import connect_mysql
 import connect_gsheets
+import data
 
 
 ##############################################################
@@ -217,8 +218,9 @@ def create_guild_teams(db_data):
     liste_teams = list(dict_teams.keys())
     return liste_teams, dict_teams
     
-def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList):
+def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
     dict_players={}
+    dict_unitsList = data.get("unitsList_dict.json")
 
     #db_stat_data_char is only used when db_stat_data does not
     # contain all characters (due to not using LEFT JOIN, case of 'all')
@@ -543,9 +545,10 @@ def roster_from_dict_to_list(dict_player):
 
     return dict_player
 
-def get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias):
+def get_characters_from_alias(list_alias):
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
+    dict_units = connect_gsheets.load_config_units()
+    dict_tagAlias = data.get("tagAlias_dict.json")
 
     txt_not_found_characters = ''
     dict_id_name = {}

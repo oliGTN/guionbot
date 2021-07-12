@@ -4,6 +4,7 @@ import math
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 import goutils
+import data
 
 font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 
@@ -138,7 +139,9 @@ def add_horizontal(img1, img2):
 
     return image
     
-def get_image_from_character(character_id, dict_player, dict_unitsList):
+def get_image_from_character(character_id, dict_player):
+    dict_unitsList = data.get("unitsList_dict.json")
+
     portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
     portrait_draw = ImageDraw.Draw(portrait_image)
     
@@ -223,7 +226,7 @@ def get_image_from_character(character_id, dict_player, dict_unitsList):
         else:
             for crew_element in character["crew"]:
                 crew_id = crew_element["unitId"]
-                crew_image = get_image_from_character(crew_id, dict_player, dict_unitsList)
+                crew_image = get_image_from_character(crew_id, dict_player)
                 portrait_image = add_vertical(portrait_image, crew_image)
     else:
         #character is invalid, display it in reduce
@@ -237,7 +240,7 @@ def get_image_from_character(character_id, dict_player, dict_unitsList):
 # list_ids_allyCode: [toon1_ID, toon2_ID, ...], dict_player, 
 # tw_territory: 'T1', 'T2', 'F1', ...
 #################################################
-def get_image_from_team(list_character_ids, dict_player, tw_territory, dict_unitsList):
+def get_image_from_team(list_character_ids, dict_player, tw_territory):
     list_portrait_images = []
     player_name = dict_player["name"]
 
@@ -245,7 +248,7 @@ def get_image_from_team(list_character_ids, dict_player, tw_territory, dict_unit
     for character_id in list_character_ids:
         if character_id in dict_player["roster"]:
             total_gp += dict_player["roster"][character_id]["gp"]
-        character_img = get_image_from_character(character_id, dict_player, dict_unitsList)
+        character_img = get_image_from_character(character_id, dict_player)
         list_portrait_images.append(character_img)
 
     if tw_territory != '':

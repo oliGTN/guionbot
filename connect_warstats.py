@@ -4,6 +4,7 @@ import random
 import re
 from html.parser import HTMLParser
 import time
+import datetime
 
 import config
 import goutils
@@ -241,7 +242,8 @@ def set_next_warstats_read(seconds_since_last_track):
     global next_warstats_read
     time_to_wait = WARSTATS_REFRESH_SECS - seconds_since_last_track + WARSTATS_REFRESH_TIME
     next_warstats_read = int(time.time()) + time_to_wait
-    goutils.log("DBG", "set_next_warstats_read", next_warstats_read)
+    next_warstats_read_txt = datetime.datetime.fromtimestamp(next_warstats_read).strftime('%Y-%m-%d %H:%M:%S')
+    goutils.log("DBG", "set_next_warstats_read", next_warstats_read_txt)
     
 def get_next_warstats_read():
     global next_warstats_read

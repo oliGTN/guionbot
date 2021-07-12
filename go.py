@@ -23,6 +23,7 @@ import connect_warstats
 import goutils
 import portraits
 import parallel_work
+import data
 
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 40
@@ -38,9 +39,6 @@ if config.SWGOHAPI_LOGIN != "":
     client = SWGOHhelp(creds)
 else:
     client = None
-dict_unitsList = json.load(open('DATA'+os.path.sep+'unitsList_dict.json', 'r'))
-dict_unitsAlias = json.load(open('DATA'+os.path.sep+'unitsAlias_dict.json', 'r'))
-dict_tagAlias = json.load(open('DATA'+os.path.sep+'tagAlias_dict.json', 'r'))
 
 #Clean temp files
 parallel_work.clean_cache()
@@ -169,8 +167,7 @@ def load_player(txt_allyCode, force_update, no_db):
                     fjson.close()
 
                     # update DB
-                    #ret = connect_mysql.update_player(dict_player, dict_unitsList)
-                    ret = connect_mysql.update_player(delta_dict_player, dict_unitsList)
+                    ret = connect_mysql.update_player(delta_dict_player)
                     if ret == 0:
                         goutils.log("INFO", "go.load_player", "success updating "+dict_player['name']+" in DB")
                     else:
@@ -616,7 +613,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive+
-    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(dict_unitsAlias, dict_tagAlias)
+    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams()
     
     if not compute_guild:
         #only one player, potentially several teams
@@ -635,7 +632,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
 
     if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_team_names, dict_unitsAlias, dict_tagAlias)
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_team_names)
         if txt != "":
             return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
         list_team_names = [x+"-GV" for x in list_character_ids]
@@ -1192,7 +1189,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
     ret_print_character_stats = ''
 
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
+    dict_units = connect_gsheets.load_config_units()
 
     list_stats_for_display=[['5', "Vit", False, 'v'],
                             ['6', "DegPhy", False, 'd'],
@@ -1303,7 +1300,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             
         else:
             #specific list of characters for one player
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters, dict_unitsAlias, dict_tagAlias)
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
             if txt != '':
                 return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
@@ -1355,7 +1352,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                             
         #Get character_id
         character_alias = characters[0]
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
         if txt != '':
             return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
                                     
@@ -1386,7 +1383,7 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         ret_print_character_stats += "Statistiques pour "+character_name+'\n'
     
         # Generate dict from DB data
-        dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods, dict_unitsList)
+        dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods)
     else:
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
@@ -1551,7 +1548,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player):
     #transform aliases into IDs
     if not is_ID:
         list_alias = [j for i in [x[0] for x in list_characters_allyCode] for j in i]
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias)
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
         if txt != '':
             err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
@@ -1584,7 +1581,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player):
     #Return a list of images
     list_images = []
     for [ids, dict_player, tw_terr] in list_ids_dictplayer:
-        image = portraits.get_image_from_team(ids, dict_player, tw_terr, dict_unitsList)
+        image = portraits.get_image_from_team(ids, dict_player, tw_terr)
         list_images.append(image)
     
     return err_code, err_txt, list_images
@@ -1599,15 +1596,15 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     err_txt = ''
 
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units(dict_unitsAlias)
+    dict_units = connect_gsheets.load_config_units()
     
     #Get full character names for attack
-    list_id_attack, dict_id_name, txt = goutils.get_characters_from_alias(list_char_attack, dict_unitsAlias, dict_tagAlias)
+    list_id_attack, dict_id_name, txt = goutils.get_characters_from_alias(list_char_attack)
     if txt != '':
         err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
     #Get full character name for defense
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_defense], dict_unitsAlias, dict_tagAlias)
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_defense])
     if txt != '':
         err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
     char_def_id = list_character_ids[0]
@@ -1622,7 +1619,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         return 1, err_txt, None
 
     list_opponent_char_alias = list(set([j for i in [x[2] for x in list_opponent_squads] for j in i]))
-    list_opponent_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_opponent_char_alias, dict_unitsAlias, dict_tagAlias)
+    list_opponent_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_opponent_char_alias)
     if txt != '':
         err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
@@ -1684,7 +1681,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
         
     #Get character_id
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias], dict_unitsAlias, dict_tagAlias)
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
     if txt != '':
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
             
@@ -1741,10 +1738,19 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
 ###############################
 def print_erx(allyCode_txt, days, compute_guild):
+    dict_unitsList = data.get("unitsList_dict.json")
+    dict_categoryList = data.get("categoryList_dict.json")
+
     if not compute_guild:
         query = "SELECT name, defId FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
               + "WHERE players.allyCode = " + allyCode_txt + " " \
+              + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
+              + "ORDER BY timestamp DESC"
+    else:
+        query = "SELECT guildName, defId FROM roster_evolutions " \
+              + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
+              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+")) "\
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
 
@@ -1752,48 +1758,53 @@ def print_erx(allyCode_txt, days, compute_guild):
     db_data = connect_mysql.get_table(query)
     if db_data != None:
         player_name = db_data[0][0]
-        stats_units = {}
-        stats_categories = {}
+        stats_units = {} #id: [name, count]
+        stats_categories = {} #id: [name, count]
         for line in db_data:
             unit_id = line[1]
             if unit_id != "all":
                 unit_combatType = dict_unitsList[unit_id]["combatType"]
                 if unit_combatType == 1:
                     unit_name = dict_unitsList[unit_id]["nameKey"]
-                    if unit_name in stats_units:
-                        stats_units[unit_name] = stats_units[unit_name] + 1
+                    if unit_id in stats_units:
+                        stats_units[unit_id][1] += 1
                     else:
-                        stats_units[unit_name] = 1
+                        stats_units[unit_id] = [unit_name, 1]
 
                     unit_categories = dict_unitsList[unit_id]["categoryIdList"]
                     for category in unit_categories:
-                        if category in stats_categories:
-                            stats_categories[category] = stats_categories[category] + 1
-                        else:
-                            stats_categories[category] = 1
+                        if category in dict_categoryList:
+                            category_name = dict_categoryList[category]["descKey"]
+                            if category in stats_categories:
+                                stats_categories[category][1] += 1
+                            else:
+                                stats_categories[category] = [category_name, 1]
+
+        goutils.log("DBG", "go.print_erx", "stats_units: "+str(stats_units))
+        goutils.log("DBG", "go.print_erx", "stats_categories: "+str(stats_categories))
 
         ret_cmd = "**Evolutions du roster de "+player_name+" durant les "+str(days)+" derniers jours**\n"
-        ret_cmd += "(1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso)\n"
+        ret_cmd += "1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso\n"
         if "alignment_light" in stats_categories:
-            lightside = stats_categories["alignment_light"]
+            lightside = stats_categories["alignment_light"][1]
         else:
             lightside=0
         if "alignment_dark" in stats_categories:
-            darkside = stats_categories["alignment_dark"]
+            darkside = stats_categories["alignment_dark"][1]
         else:
             darkside=0
         ret_cmd += "\nLight / Dark = "+str(lightside)+"/"+str(darkside)+"\n"
 
         ret_cmd += "\n__TOP 10 PERSOS__\n"
-        list_evo_units = sorted(stats_units.items(), key=lambda x:-x[1])
+        list_evo_units = sorted(stats_units.items(), key=lambda x:-x[1][1])
         for evo in list_evo_units[:10]:
-            ret_cmd += str(evo)+'\n'
+            ret_cmd += evo[1][0] + ": " + str(evo[1][1])+'\n'
 
         ret_cmd += "\n__TOP 10 FACTIONS__\n"
-        territory_items = [(x[0].split("_")[1], x[1]) for x in stats_categories.items() if x[0][:5] in ["affil", "profe"]]
-        list_evo_categories = sorted(territory_items, key=lambda x:-x[1])
+        faction_items = [x for x in stats_categories.items() if x[0][:5] in ["affil", "profe"]]
+        list_evo_categories = sorted(faction_items, key=lambda x:-x[1][1])
         for evo in list_evo_categories[:10]:
-            ret_cmd += str(evo)+'\n'
+            ret_cmd += evo[1][0] + ": " + str(evo[1][1])+'\n'
 
         return 0, ret_cmd
 

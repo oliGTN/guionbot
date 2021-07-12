@@ -14,6 +14,7 @@ from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 
 import goutils
+import data
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
@@ -44,7 +45,7 @@ def get_gapi_client():
 
 ##############################################################
 # Function: load_config_teams
-# Parameters: dict_unitsAlias from json file
+# Parameters: None
 # Purpose: lit l'onglet "teams" du fichier Sheets
 # Output: liste_teams (liste des noms d'équipe)
 #         dict_teams {team_name: {
@@ -56,8 +57,8 @@ def get_gapi_client():
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams(dict_unitsAlias, dict_tagAlias):
-    global client    
+def load_config_teams():
+    global client
 
     json_file = "CACHE"+os.path.sep+"config_teams.json"
     try:
@@ -76,7 +77,7 @@ def load_config_teams(dict_unitsAlias, dict_tagAlias):
 
     #Extract all aliases and get associated ID+nameKey
     list_alias=[x['Nom'] for x in liste_dict_feuille]
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias, dict_unitsAlias, dict_tagAlias)
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
     if txt != '':
         goutils.log('WAR', 'load_config_teams', 'Cannot recognize following alias(es) >> '+txt)
 
@@ -219,7 +220,7 @@ def load_config_counter():
 # Purpose: lit l'onglet "units" du fichier Sheets
 # Output:  dict_units {key=alias, value=[name, id]}
 ##############################################################
-def load_config_units(dict_unitsAlias):
+def load_config_units():
     global client    
     
     json_file = "CACHE"+os.path.sep+"config_units.json"
@@ -238,7 +239,7 @@ def load_config_units(dict_unitsAlias):
         goutils.log("WAR", "load_config_units", "Cannot connect to Google API. Using cache file.")
         liste_dict_feuille = json.load(open(json_file, 'r'))
 
-    dict_units=dict_unitsAlias #key=alias, value=[nameKey, id]
+    dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
     
     for ligne in liste_dict_feuille:
         full_name=ligne['Character/Ship']

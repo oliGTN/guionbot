@@ -103,3 +103,14 @@ for x in unitsList_FRE_FR_obtainable:
 fnew = open('DATA'+os.path.sep+'tagAlias_dict.json', 'w')
 fnew.write(json.dumps(dict_categories_by_name, sort_keys=True, indent=4))
 fnew.close()
+
+categoryList_dict = {}
+for category in categoryList_FRE_FR:
+    if len(category["uiFilterList"])>0:
+        if category['id'] in categoryList_dict:
+            print('WAR: double definition of '+category['id'])
+        categoryList_dict[category['id']] = category
+
+fnew = open('DATA'+os.path.sep+'categoryList_dict.json', 'w')
+fnew.write(json.dumps(categoryList_dict, sort_keys=True, indent=4))
+fnew.close()

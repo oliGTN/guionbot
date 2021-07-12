@@ -352,7 +352,8 @@ def insert_roster_evo(allyCode, defId, evo_txt):
     finally:
         cursor.close()
     
-def update_player(dict_player, dict_units):
+def update_player(dict_player):
+    dict_unitsList = data.get("unitsList_dict.json")
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
@@ -405,8 +406,8 @@ def update_player(dict_player, dict_units):
             character = dict_player['roster'][character_id]
             c_combatType = character['combatType']
             c_defId = character['defId']
-            if c_defId in dict_units:
-                c_forceAlignment = dict_units[c_defId]['forceAlignment']
+            if c_defId in dict_unitsList:
+                c_forceAlignment = dict_unitsList[c_defId]['forceAlignment']
             else:
                 c_forceAlignment = 1
             c_gear = character['gear']
