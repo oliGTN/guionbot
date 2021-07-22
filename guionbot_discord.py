@@ -111,9 +111,11 @@ dict_BT_missions['GDS']['Republic Fleet Mission']='GDS4-top'
 dict_BT_missions['GDS']['Count Dooku\'s Hangar Mission']='GDS4-mid'
 dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
 
-dict_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
+dict_member_lastseen={} #key=discord ID, value=[discord displayname, date last seen (idle or online)]
 
 list_tw_opponent_msgIDs = []
+
+list_previous_platoons_fillers = {} #Empy set
 
 ##############################################################
 #                                                            #
@@ -140,16 +142,16 @@ async def bot_loop_60():
                 for role in guild.roles:
                     if role.name==config.DISCORD_MEMBER_ROLE:
                         for member in role.members:
-                            if not member.id in dict_lastseen:
-                                dict_lastseen[member.id]= [member.display_name, None]
+                            if not member.id in dict_member_lastseen:
+                                dict_member_lastseen[member.id]= [member.display_name, None]
                             
                             if not(str(member.status) == 'offline' and
                                     str(member.mobile_status) == 'offline'):
-                                dict_lastseen[member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
+                                dict_member_lastseen[member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
                                 
                             list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
-            update_online_dates(dict_lastseen)
+            update_online_dates(dict_member_lastseen)
 
         except Exception as e:
             goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
@@ -200,6 +202,25 @@ async def bot_loop_600():
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
             await bot.loop.run_in_executor(None, go.refresh_cache)
+
+            #Lecture du statut des pelotons sur warstats
+            tbs_round, dict_platoons_done, \
+                list_open_territories = parse_warstats_tb_page()
+            if tbs_round == '':
+                goutils.log("DBG", "guionbot_discord.bot_loop_600", "No TB in progress")
+            else:
+                goutils.log("DBG", "guionbot_discord.bot_loop_600", "Current state of platoon filling: "+str(dict_platoons_done))
+                goutils.log("INFO", "guionbot_discord.bot_loop_600", "End of warstats parsing for TB: round " + tbs_round)
+                list_platoon_fillers = []
+                for territory in dict_platoons_done:
+                    for character in dict_platoons_done[territory]:
+                        for player in dict-platoons_done[territory][character]:
+                            list_platoons_fillers.append(player)
+                list_platoons_fillers = sorted(set(list_platoons_fillers))
+                new_fillers = set(list_platoons_fillers) - set(list_previous_platoons_fillers)
+                goutils.log("INFO", "guionbot_discord.bot_loop_600", "New platoon fillers " + str(new_fillers))
+                list_previous_platoons_fillers = list_platoons_fillers
+
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_600", str(sys.exc_info()[0]))
@@ -915,7 +936,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         #Lecture du statut des pelotons sur warstats
         tbs_round, dict_platoons_done, \
             list_open_territories = parse_warstats_tb_page()
-        goutils.log("DBG", "go.vdp", "Current state of platoon filling: "+str(dict_platoons_done))
+        goutils.log("DBG", "guionbot_discord.vdp", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = load_config_players()[0]
@@ -924,10 +945,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send('Aucune BT en cours')
             await ctx.message.add_reaction(emoji_error)
         else:
-            goutils.log("INFO", "go.vdp", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
+            goutils.log("INFO", "guionbot_discord.vdp", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
 
             dict_platoons_allocation = await get_eb_allocation(tbs_round)
-            goutils.log("DBG", "go.vdp", "Platoon allocation: "+str(dict_platoons_allocation))
+            goutils.log("DBG", "guionbot_discord.vdp", "Platoon allocation: "+str(dict_platoons_allocation))
             
             #Comparaison des dictionnaires
             #Recherche des persos non-affectés
@@ -972,8 +993,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                 erreur_detectee = True
                                 list_err.append('ERR: ' + perso +
                                                 ' n\'a pas été affecté ('+platoon_name+')')
-                                goutils.log('ERR', "go.vdp", perso + ' n\'a pas été affecté')
-                                goutils.log("ERR", "go.vdp", dict_platoons_allocation[platoon_name].keys())
+                                goutils.log('ERR', "guionbot_discord.vdp", perso + ' n\'a pas été affecté')
+                                goutils.log("ERR", "guionbot_discord.vdp", dict_platoons_allocation[platoon_name].keys())
 
             full_txt = ''
             cur_phase = 0
