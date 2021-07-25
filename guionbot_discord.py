@@ -218,6 +218,8 @@ async def bot_loop_600():
                         for player in dict_platoons_done[territory][character]:
                             list_platoons_fillers.append(player)
                 list_platoons_fillers = sorted(set(list_platoons_fillers))
+                goutils.log("DBG", "guionbot_discord.bot_loop_600", "Previous platoon fillers " + str(list_previous_platoons_fillers))
+                goutils.log("DBG", "guionbot_discord.bot_loop_600", "Current platoon fillers " + str(list_platoons_fillers))
                 new_fillers = set(list_platoons_fillers) - set(list_previous_platoons_fillers)
                 goutils.log("INFO", "guionbot_discord.bot_loop_600", "New platoon fillers " + str(new_fillers))
                 list_previous_platoons_fillers = list_platoons_fillers
