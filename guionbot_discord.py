@@ -194,6 +194,7 @@ async def bot_loop_60():
 ##############################################################
 async def bot_loop_600():
     global limit_gp
+    global list_previous_platoons_fillers
 
     await bot.wait_until_ready()
     while not bot.is_closed():
@@ -211,10 +212,10 @@ async def bot_loop_600():
             else:
                 goutils.log("DBG", "guionbot_discord.bot_loop_600", "Current state of platoon filling: "+str(dict_platoons_done))
                 goutils.log("INFO", "guionbot_discord.bot_loop_600", "End of warstats parsing for TB: round " + tbs_round)
-                list_platoon_fillers = []
+                list_platoons_fillers = []
                 for territory in dict_platoons_done:
                     for character in dict_platoons_done[territory]:
-                        for player in dict-platoons_done[territory][character]:
+                        for player in dict_platoons_done[territory][character]:
                             list_platoons_fillers.append(player)
                 list_platoons_fillers = sorted(set(list_platoons_fillers))
                 new_fillers = set(list_platoons_fillers) - set(list_previous_platoons_fillers)
