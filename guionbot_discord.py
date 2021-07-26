@@ -115,7 +115,7 @@ dict_member_lastseen={} #key=discord ID, value=[discord displayname, date last s
 
 list_tw_opponent_msgIDs = []
 
-list_previous_platoons_fillers = {} #Empy set
+dict_platoons_previously_done = {} #Empy set
 
 ##############################################################
 #                                                            #
@@ -194,7 +194,7 @@ async def bot_loop_60():
 ##############################################################
 async def bot_loop_600():
     global limit_gp
-    global list_previous_platoons_fillers
+    global dict_platoons_previously_done
 
     await bot.wait_until_ready()
     while not bot.is_closed():
@@ -209,21 +209,37 @@ async def bot_loop_600():
                 list_open_territories = parse_warstats_tb_page()
             if tbs_round == '':
                 goutils.log("DBG", "guionbot_discord.bot_loop_600", "No TB in progress")
+                dict_platoons_previously_done = {}
             else:
                 goutils.log("DBG", "guionbot_discord.bot_loop_600", "Current state of platoon filling: "+str(dict_platoons_done))
                 goutils.log("INFO", "guionbot_discord.bot_loop_600", "End of warstats parsing for TB: round " + tbs_round)
-                list_platoons_fillers = []
+                new_allocation_detected = False
                 for territory in dict_platoons_done:
-                    for character in dict_platoons_done[territory]:
-                        for player in dict_platoons_done[territory][character]:
-                            list_platoons_fillers.append(player)
-                list_platoons_fillers = sorted(set(list_platoons_fillers))
-                goutils.log("DBG", "guionbot_discord.bot_loop_600", "Previous platoon fillers " + str(list_previous_platoons_fillers))
-                goutils.log("DBG", "guionbot_discord.bot_loop_600", "Current platoon fillers " + str(list_platoons_fillers))
-                new_fillers = set(list_platoons_fillers) - set(list_previous_platoons_fillers)
-                goutils.log("INFO", "guionbot_discord.bot_loop_600", "New platoon fillers " + str(new_fillers))
-                list_previous_platoons_fillers = list_platoons_fillers
+                    if not territory in dict_platoons_previously_done:
+                        #If the territory was not already detected, then all allocation within that territory are new
+                        for character in dict_platoons_done[territory]:
+                            for player in dict_platoons_done[territory][character]:
+                                if player != '':
+                                    goutils.log("INFO", "guionbot_discord.bot_loop_600", "New platoon allocation: " + territory + ":" + character + " by " + player)
+                                    new_allocation_detected = True
+                    else:
+                        for character in dict_platoons_done[territory]:
+                            if not character in dict_platoons_previously_done[territory]:
+                            #If the character was not already detected, then all allocation within that character are new
+                                for player in dict_platoons_done[territory][character]:
+                                    if player != '':
+                                        goutils.log("INFO", "guionbot_discord.bot_loop_600", "New platoon allocation: " + territory + ":" + character + " by " + player)
+                                        new_allocation_detected = True
+                            else:
+                                for player in dict_platoons_done[territory][character]:
+                                    if not player in dict_platoons_previously_done[territory][character]:
+                                        if player != '':
+                                            goutils.log("INFO", "guionbot_discord.bot_loop_600", "New platoon allocation: " + territory + ":" + character + " by " + player)
+                                            new_allocation_detected = True
+                if not new_allocation_detected:
+                    goutils.log("INFO", "guionbot_discord.bot_loop_600", "No new platoon allocation")
 
+                dict_platoons_previously_done = dict_platoons_done
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_600", str(sys.exc_info()[0]))
