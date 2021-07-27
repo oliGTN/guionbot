@@ -67,6 +67,17 @@ dict_stat_names["tenacité"] = [18, True, "Ténacité"]
 dict_stat_names["tenacity"] = [18, True, "Ténacité"]
 
 ##################################
+# Function: manage_disk_usage
+# return: None
+##################################
+def manage_disk_usage():
+    st = os.statvfs('/')
+    free = st.f_bavail * st.f_frsize
+    total = st.f_blocks * st.f_frsize
+    used = total - free
+    goutils.log('INFO', 'go.manage_disk_usage', 'Disk usage = ' + str(int(used/total*1000)/10) + '%')
+
+##################################
 # Function: refresh_cache
 # return: error code
 ##################################

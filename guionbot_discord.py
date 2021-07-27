@@ -115,7 +115,7 @@ dict_member_lastseen={} #key=discord ID, value=[discord displayname, date last s
 
 list_tw_opponent_msgIDs = []
 
-list_previous_platoons_fillers = {} #Empy set
+dict_platoons_previously_done = {} #Empy set
 
 ##############################################################
 #                                                            #
@@ -193,9 +193,6 @@ async def bot_loop_60():
 # Output: none
 ##############################################################
 async def bot_loop_600():
-    global limit_gp
-    global list_previous_platoons_fillers
-
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
@@ -203,25 +200,6 @@ async def bot_loop_600():
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
             await bot.loop.run_in_executor(None, go.refresh_cache)
-
-            #Lecture du statut des pelotons sur warstats
-            tbs_round, dict_platoons_done, \
-                list_open_territories = parse_warstats_tb_page()
-            if tbs_round == '':
-                goutils.log("DBG", "guionbot_discord.bot_loop_600", "No TB in progress")
-            else:
-                goutils.log("DBG", "guionbot_discord.bot_loop_600", "Current state of platoon filling: "+str(dict_platoons_done))
-                goutils.log("INFO", "guionbot_discord.bot_loop_600", "End of warstats parsing for TB: round " + tbs_round)
-                list_platoons_fillers = []
-                for territory in dict_platoons_done:
-                    for character in dict_platoons_done[territory]:
-                        for player in dict_platoons_done[territory][character]:
-                            list_platoons_fillers.append(player)
-                list_platoons_fillers = sorted(set(list_platoons_fillers))
-                new_fillers = set(list_platoons_fillers) - set(list_previous_platoons_fillers)
-                goutils.log("INFO", "guionbot_discord.bot_loop_600", "New platoon fillers " + str(new_fillers))
-                list_previous_platoons_fillers = list_platoons_fillers
-
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_600", str(sys.exc_info()[0]))
@@ -233,6 +211,99 @@ async def bot_loop_600():
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 600 - (t_end - t_start))
+        await asyncio.sleep(waiting_time)
+
+##############################################################
+# Function: bot_loop_15minutes
+# Parameters: none
+# Purpose: executed every 15 minutes, typicaly for warstats sync
+# Output: none
+##############################################################
+async def bot_loop_15minutes():
+    global limit_gp
+    global dict_platoons_previously_done
+
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        t_start = time.time()
+
+        try:
+            #Lecture du statut des pelotons sur warstats
+            tbs_round, dict_platoons_done, \
+                list_open_territories = parse_warstats_tb_page()
+            if tbs_round == '':
+                goutils.log("DBG", "guionbot_discord.bot_loop_15minutes", "No TB in progress")
+                dict_platoons_previously_done = {}
+            else:
+                goutils.log("DBG", "guionbot_discord.bot_loop_15minutes", "Current state of platoon filling: "+str(dict_platoons_done))
+                goutils.log("INFO", "guionbot_discord.bot_loop_15minutes", "End of warstats parsing for TB: round " + tbs_round)
+                new_allocation_detected = False
+                for territory in dict_platoons_done:
+                    if not territory in dict_platoons_previously_done:
+                        #If the territory was not already detected, then all allocation within that territory are new
+                        for character in dict_platoons_done[territory]:
+                            for player in dict_platoons_done[territory][character]:
+                                if player != '':
+                                    goutils.log("INFO", "guionbot_discord.bot_loop_15minutes", "New platoon allocation: " + territory + ":" + character + " by " + player)
+                                    new_allocation_detected = True
+                    else:
+                        for character in dict_platoons_done[territory]:
+                            if not character in dict_platoons_previously_done[territory]:
+                            #If the character was not already detected, then all allocation within that character are new
+                                for player in dict_platoons_done[territory][character]:
+                                    if player != '':
+                                        goutils.log("INFO", "guionbot_discord.bot_loop_15minutes", "New platoon allocation: " + territory + ":" + character + " by " + player)
+                                        new_allocation_detected = True
+                            else:
+                                for player in dict_platoons_done[territory][character]:
+                                    if not player in dict_platoons_previously_done[territory][character]:
+                                        if player != '':
+                                            goutils.log("INFO", "guionbot_discord.bot_loop_15minutes", "New platoon allocation: " + territory + ":" + character + " by " + player)
+                                            new_allocation_detected = True
+                if not new_allocation_detected:
+                    goutils.log("INFO", "guionbot_discord.bot_loop_15minutes", "No new platoon allocation")
+
+                dict_platoons_previously_done = dict_platoons_done
+
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_15minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_15minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_15minutes", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_15minutes:"+str(sys.exc_info()[0]))
+
+        # Wait X seconds before next loop
+        t_end = time.time()
+        waiting_time = max(0, 60*15 - (t_end - t_start))
+        await asyncio.sleep(waiting_time)
+
+        #Ensure writing in logs
+        sys.stdout.flush()
+
+##############################################################
+# Function: bot_loop_6hours
+# Parameters: none
+# Purpose: high level monitoring, every 6 hours
+# Output: none
+##############################################################
+async def bot_loop_6hours():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        t_start = time.time()
+
+        try:
+            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
+            await bot.loop.run_in_executor(None, go.manage_disk_usage)
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_6hours", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_6hours", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_6hours", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_6hours:"+str(sys.exc_info()[0]))
+
+        # Wait X seconds before next loop
+        t_end = time.time()
+        waiting_time = max(0, 3600*6 - (t_end - t_start))
         await asyncio.sleep(waiting_time)
 
         #Ensure writing in logs
@@ -1711,6 +1782,8 @@ if len(sys.argv) > 1:
 if not bot_noloop_mode:
     bot.loop.create_task(bot_loop_60())
     bot.loop.create_task(bot_loop_600())
+    bot.loop.create_task(bot_loop_15minutes())
+    bot.loop.create_task(bot_loop_6hours())
 
 #Ajout des commandes groupées par catégorie
 bot.add_cog(AdminCog(bot))
