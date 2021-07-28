@@ -160,24 +160,6 @@ async def bot_loop_60():
             if not bot_test_mode:
                 await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
-        try:
-            #CHECK ALERTS FOR BT
-            list_tb_alerts = go.get_tb_alerts()
-            for tb_alert in list_tb_alerts:
-                userid = tb_alert[0]
-                message = tb_alert[1]
-                
-                member = bot.get_user(int(userid))
-                channel = await member.create_dm()
-                await channel.send(message)
-
-        except Exception as e:
-            goutils.log("ERR", "bot_loop_60", str(sys.exc_info()[0]))
-            goutils.log("ERR", "bot_loop_60", e)
-            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
-        
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 60 - (t_end - t_start))
@@ -226,6 +208,24 @@ async def bot_loop_5minutes():
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
+
+        try:
+            #CHECK ALERTS FOR BT
+            list_tb_alerts = go.get_tb_alerts()
+            for tb_alert in list_tb_alerts:
+                userid = tb_alert[0]
+                message = tb_alert[1]
+                
+                member = bot.get_user(int(userid))
+                channel = await member.create_dm()
+                await channel.send(message)
+
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
         try:
             #Lecture du statut des pelotons sur warstats

@@ -227,27 +227,30 @@ dict_tw_territory_names['Command post']='T4'
 dict_tw_territory_names['Special ops center']='B4'
 
 #timer and global variables due to warstats tracking
-next_warstats_read = time.time()
+next_warstats_read = {}
+WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
+WARSTATS_REFRESH_TIME = 2 * 60 #Duration of refresh
+next_warstats_read["tb_scores"] = time.time()
 parse_warstats_tb_scores_run_once = False
 territory_scores = []
-opponent_teams = []
+next_warstats_read["tb_page"] = time.time()
 parse_warstats_tb_page_run_once = False
 tb_active_round = ""
 tb_dict_platoons = None
 tb_open_territories = None
-WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
-WARSTATS_REFRESH_TIME = 2 * 60 #Duration of refresh
+next_warstats_read["tw_teams"] = time.time()
+opponent_teams = []
 
-def set_next_warstats_read(seconds_since_last_track):
+def set_next_warstats_read(seconds_since_last_track, counter_name):
     global next_warstats_read
     time_to_wait = WARSTATS_REFRESH_SECS - seconds_since_last_track + WARSTATS_REFRESH_TIME
-    next_warstats_read = int(time.time()) + time_to_wait
-    next_warstats_read_txt = datetime.datetime.fromtimestamp(next_warstats_read).strftime('%Y-%m-%d %H:%M:%S')
+    next_warstats_read[counter_name] = int(time.time()) + time_to_wait
+    next_warstats_read_txt = datetime.datetime.fromtimestamp(next_warstats_read[counter_name]).strftime('%Y-%m-%d %H:%M:%S')
     goutils.log("DBG", "set_next_warstats_read", next_warstats_read_txt)
     
-def get_next_warstats_read():
+def get_next_warstats_read(counter_name):
     global next_warstats_read
-    time_to_wait = next_warstats_read - int(time.time())
+    time_to_wait = next_warstats_read[counter_name] - int(time.time())
     return time_to_wait
     
 class TBSPhaseParser(HTMLParser):
@@ -863,8 +866,8 @@ def parse_warstats_tb_page():
     global tb_open_territories
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read and parse_warstats_tb_page_run_once:
-        goutils.log("DBG", "parse_warstats_tb_page", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
+    if time.time() < next_warstats_read["tb_page"] and parse_warstats_tb_page_run_once:
+        goutils.log("DBG", "parse_warstats_tb_page", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_page"))+" secs")
     else:
         try:
             page = urlopen(warstats_tbs_url)
@@ -884,7 +887,7 @@ def parse_warstats_tb_page():
             tb_dict_platoons = None
             tb_open_territories = None
 
-            set_next_warstats_read(generic_parser.get_last_track())
+            set_next_warstats_read(generic_parser.get_last_track(), "tb_page")
 
             return '', None, None
         else:
@@ -918,7 +921,7 @@ def parse_warstats_tb_page():
         tb_active_round = platoon_parser.get_active_round()
         tb_open_territories = resume_parser.get_open_territories()
 
-        set_next_warstats_read(resume_parser.get_last_track())
+        set_next_warstats_read(resume_parser.get_last_track(), "tb_page")
 
     return tb_active_round, tb_dict_platoons, tb_open_territories
 
@@ -928,8 +931,8 @@ def parse_warstats_tb_scores():
     global territory_scores
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read and parse_warstats_tb_scores_run_once:
-        goutils.log("DBG", "parse_warstats_tb_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
+    if time.time() < next_warstats_read["tb_scores"] and parse_warstats_tb_scores_run_once:
+        goutils.log("DBG", "parse_warstats_tb_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_scores"))+" secs")
     else:
         try:
             page = urlopen(warstats_tbs_url)
@@ -945,7 +948,7 @@ def parse_warstats_tb_scores():
             goutils.log('ERR', "parse_warstats_tb_scores", 'no TB in progress')
 
             territory_scores = {}
-            set_next_warstats_read(generic_parser.get_last_track())
+            set_next_warstats_read(generic_parser.get_last_track(), "tb_scores")
 
             return {}
         else:
@@ -960,7 +963,7 @@ def parse_warstats_tb_scores():
         goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+resume_parser.get_battle_name())
         territory_scores = resume_parser.get_territory_scores()
 
-        set_next_warstats_read(resume_parser.get_last_track())
+        set_next_warstats_read(resume_parser.get_last_track(), "tb_scores")
 
     return territory_scores
 
@@ -969,8 +972,8 @@ def parse_warstats_tw_teams():
     global opponent_teams
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read:
-        goutils.log("DBG", "parse_warstats_tw_teams", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read())+" secs")
+    if time.time() < next_warstats_read["tw_teams"]:
+        goutils.log("DBG", "parse_warstats_tw_teams", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tw_teams"))+" secs")
     else:
         try:
             page = urlopen(warstats_tws_url)
@@ -996,6 +999,6 @@ def parse_warstats_tw_teams():
 
         opponent_teams = opp_squad_parser.get_opp_teams()
 
-        set_next_warstats_read(opp_squad_parser.get_last_track())
+        set_next_warstats_read(opp_squad_parser.get_last_track(), "tw_teams")
 
     return opponent_teams
