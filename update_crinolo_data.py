@@ -4,6 +4,7 @@ import json
 
 # Download file
 url = 'https://swgoh-stat-calc.glitch.me/gameData.json'
+#url = 'https://raw.githubusercontent.com/Kidori78/swgoh-stat-calc/GAS-v2/gameData.json'
 r = requests.get(url, allow_redirects=True)
 
 fcrinolo = open('DATA'+os.path.sep+'crinolo_gameData.json', 'wb')

@@ -604,6 +604,23 @@ def manage_me(ctx, alias):
         else:
             ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie de la guilde'
     elif not alias.isnumeric():
+        # Look for the name among known player names
+        results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
+        #print(results)
+        list_names = [x[0] for x in results[0]]
+    
+        closest_names=difflib.get_close_matches(alias, list_names, 1)
+        #print(closest_names)
+        if len(closest_names)<1:
+            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs connus'
+            goutils.log("DBG", "manage_me", alias + " is not a DB name")
+        else:
+            goutils.log("INFO", "manage_me", alias +" looks like the DB name "+closest_names[0])
+            for r in results[0]:
+                if r[0] == closest_names[0]:
+                    ret_allyCode_txt = str(r[1])
+                    return ret_allyCode_txt
+
         #check among discord names
         list_discord_names = [x.display_name.replace("[Officier]", "") for x in ctx.guild.members]
         closest_names=difflib.get_close_matches(alias, list_discord_names, 1)
@@ -621,20 +638,6 @@ def manage_me(ctx, alias):
         else:
             goutils.log("DBG", "manage_me", alias + " is not a discord name")
 
-        # Look for the name among known player names
-        results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
-        #print(results)
-        list_names = [x[0] for x in results[0]]
-    
-        closest_names=difflib.get_close_matches(alias, list_names, 1)
-        #print(closest_names)
-        if len(closest_names)<1:
-            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs connus'
-        else:
-            goutils.log("INFO", "manage_me", alias +" looks like the DB name "+closest_names[0])
-            for r in results[0]:
-                if r[0] == closest_names[0]:
-                    ret_allyCode_txt = str(r[1])
 
     else:
         # number >> allyCode

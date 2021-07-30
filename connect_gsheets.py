@@ -265,10 +265,10 @@ def load_config_units():
                 alias = alias.strip().lower()
                 if alias in dict_units:
                     if dict_units[alias][0] != full_name:
-                        print(alias)
-                        print(dict_units[alias])
-                        print(full_name)
-                        print('ERR: double définition de '+alias+': '+dict_units[alias][0]+' et '+full_name)
+                        goutils("ERR", "connect_gsheets.load_config_units", "alias="+alias)
+                        goutils("ERR", "connect_gsheets.load_config_units", "dict_units[alias]="+dict_units[alias])
+                        goutils("ERR", "connect_gsheets.load_config_units", "full_name="+full_name)
+                        goutils("ERR", "connect_gsheets.load_config_units", 'double définition of '+alias+': '+dict_units[alias][0]+' and '+full_name)
                 else:
                     dict_units[alias]=[full_name, id]
                 
