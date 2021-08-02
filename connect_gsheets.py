@@ -260,8 +260,11 @@ def load_config_units():
         # else:
             # dict_units[id.lower()]=[full_name, id]
             
-        if ligne['Aliases'] != '':
-            for alias in ligne['Aliases'].split(','):
+        list_aliases = ligne['Aliases']
+        if type(list_aliases) != str:
+            list_aliases = str(list_aliases)
+        if list_aliases != '':
+            for alias in list_aliases.split(','):
                 alias = alias.strip().lower()
                 if alias in dict_units:
                     if dict_units[alias][0] != full_name:
