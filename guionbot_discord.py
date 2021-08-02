@@ -681,6 +681,8 @@ async def on_ready():
 ##############################################################
 @bot.event
 async def on_reaction_add(reaction, user):
+    global list_alerts_sent_to_admin
+
     #prevent reacting to bot's reactions
     if user == bot.user:
         return
@@ -689,9 +691,9 @@ async def on_reaction_add(reaction, user):
     author = message.author
     emoji = reaction.emoji
     goutils.log("DBG", "on_reaction_add", "message: "+str(message))
-    goutils.log("DBG", "on_reaction_add", "author: "+str(author))
+    goutils.log("DBG", "on_reaction_add", "author of the message: "+str(author))
     goutils.log("DBG", "on_reaction_add", "emoji: "+str(emoji))
-    goutils.log("DBG", "on_reaction_add", "user: "+str(user))
+    goutils.log("DBG", "on_reaction_add", "user of the reaction: "+str(user))
     
     # Manage the thumb up to messages sent to admins
     if message.content in list_alerts_sent_to_admin \
@@ -742,7 +744,14 @@ async def on_message(message):
         command_name = lower_msg.split(" ")[0].split(".")[1]
         goutils.log("INFO", "guionbot_discord.on_message", "Command "+command_name+" launched by "+message.author.display_name)
 
-    await bot.process_commands(message)
+    try:
+        await bot.process_commands(message)
+    except Exception as e:
+        goutils.log("ERR", "guionbot_discord.on_message", sys.exc_info()[0])
+        goutils.log("ERR", "guionbot_discord.on_message", e)
+        goutils.log("ERR", "guionbot_discord.on_message", traceback.format_exc())
+        if not bot_test_mode:
+            await send_alert_to_admins("Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
 ##############################################################
 # Event: on_error_command
