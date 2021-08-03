@@ -1723,7 +1723,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
                       "Exemple: go.erj me 30")
-    async def erj(self, ctx, allyCode, days):
+    async def erj(self, ctx, allyCode, days=30):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode= manage_me(ctx, allyCode)
@@ -1755,7 +1755,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
                       "Exemple: go.erg me 30")
-    async def erg(self, ctx, allyCode, days):
+    async def erg(self, ctx, allyCode, days=30):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode= manage_me(ctx, allyCode)
