@@ -87,23 +87,27 @@ def refresh_cache():
     
     # Get the allyCodes to be refreshed
     # the query gets one allyCode by guild in the DB
-    query = "SELECT guilds.name, MIN(allyCode) "\
+    query = "SELECT guilds.name, allyCode "\
            +"FROM guilds "\
            +"JOIN players on players.guildName = guilds.name "\
            +"WHERE guilds.update=1 "\
-           +"GROUP BY guildName "\
            +"ORDER BY guilds.lastUpdated"
     goutils.log('DBG', 'go.refresh_cache', query)
     ret_table = connect_mysql.get_table(query)
     
     if ret_table != None:
-        #Refresh players from master guild
-        guild_name = ret_table[0][0]
-        guild_allyCode = ret_table[0][1]
-        goutils.log('INFO', 'go.refresh_cache', "refresh guild "+guild_name)
-        e, t = load_guild(str(guild_allyCode), True, False)
+        for line in ret_table:
+            guild_name = line[0]
+            guild_allyCode = line[1]
+            goutils.log('INFO', 'go.refresh_cache', "refresh guild " + guild_name \
+                       +" with allyCode " + str(guild_allyCode))
+            e, t = load_guild(str(guild_allyCode), False, False)
+            if e == "OK" and t['name'] == guild_name:
+                e, t = load_guild(str(guild_allyCode), True, False)
+                return 0
         
-    return 0
+    goutils.log('ERR', 'go.refresh_cache', "Unable to refresh guilds")
+    return 1
 
 ##################################
 # Function: refresh_cache
