@@ -29,6 +29,11 @@ unitsList_ENG_US_obtainable = [x for x in list(filter(lambda f:f['rarity']==7 an
 #priority_names=["LEGENDARY", "S3", "GLREY", "HOTHREBELSOLDIER", "IMPERIALPROBEDROID", "AURRA_SING", "AMILYNHOLDO", "VULTUREDROID", "GRIEVOUS", "B1BATTLEDROIDV2", "THEMANDALORIAN", "VADER", "OBJ_CRATE_01", "SCOOTTROOPER"]
 priority_names=["CT210408"]
 
+if len(unitsList_FRE_FR_obtainable) != len(unitsList_ENG_US_obtainable):
+    print("Listes FRE_FR et ENG_US differentes ("+str(len(unitsList_FRE_FR_obtainable))+ " vs "+str(len(unitsList_ENG_US_obtainable))+")")
+    print(set(unitsList_FRE_FR_obtainable).difference(set(unitsList_ENG_US_obtainable)))
+    sys.exit(1)
+
 unitsAlias_dict = {}
 for unitsList in [unitsList_FRE_FR_obtainable, unitsList_ENG_US_obtainable]:
     for unit in unitsList:
