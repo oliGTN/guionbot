@@ -34,7 +34,6 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 list_alerts_sent_to_admin = []
 bot_test_mode = False
-bot_noloop_mode = False
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -1780,6 +1779,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 # MAIN EXECUTION
 ##############################################################
 def main():
+    bot_noloop_mode = False
     goutils.log("INFO", "main", "Starting...")
     # Use command-line parameters
     if len(sys.argv) > 1:
