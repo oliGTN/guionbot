@@ -605,7 +605,7 @@ def manage_me(ctx, alias):
             ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie de la guilde'
     elif not alias.isnumeric():
         # Look for the name among known player names
-        results = connect_mysql.simple_query("SELECT name, allyCode FROM players", False)
+        results = connect_mysql.get_table("SELECT name, allyCode FROM players")
         #print(results)
         list_names = [x[0] for x in results[0]]
     
@@ -830,17 +830,17 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         # get the DB information
         output_txt=''
-        output_size = connect_mysql.simple_query("CALL get_db_size()", True)
+        output_size = connect_mysql.text_query("CALL get_db_size()")
         for row in output_size:
             output_txt+=str(row)+'\n'
 
-        output_players = connect_mysql.simple_query("SELECT guilds.name AS Guilde, \
+        output_players = connect_mysql.text_query("SELECT guilds.name AS Guilde, \
                                                     count(*) as Joueurs, \
                                                     guilds.lastUpdated as MàJ \
                                                     FROM guilds \
                                                     JOIN players ON players.guildName = guilds.name \
                                                     GROUP BY guilds.name \
-                                                    ORDER BY guilds.lastUpdated DESC", True)
+                                                    ORDER BY guilds.lastUpdated DESC")
         output_txt += "\n"
         for row in output_players:
             output_txt+=str(row)+'\n'
@@ -867,7 +867,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_thumb)
 
         arg = " ".join(args)
-        output = connect_mysql.simple_query(arg, True)
+        output = connect_mysql.text_query(arg)
         goutils.log('INFO', 'go.sql', 'SQL: ' + arg)
         output_txt=''
         for row in output:

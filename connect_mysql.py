@@ -144,7 +144,7 @@ def update_guild_teams(dict_team):
         cursor.close()
         # db.close()
 
-def simple_query(query, txt_mode):
+def text_query(query):
     rows = []
     tuples = []
     try:
@@ -158,45 +158,42 @@ def simple_query(query, txt_mode):
                 results = cur.fetchall()
                 tuples.append(results)
             
-                if txt_mode:
-                    widths = []
-                    columns = []
-                    tavnit = '|'
-                    separator = '+' 
-                    
-                    index = 0
-                    for cd in cur.description:
-                        #print(results)
-                        max_col_length = max(list(map(lambda x: len(str(x[index])), results)))
-                        widths.append(max(max_col_length, len(cd[0])))
-                        columns.append(cd[0])
-                        index+=1
+                widths = []
+                columns = []
+                tavnit = '|'
+                separator = '+' 
+                
+                index = 0
+                for cd in cur.description:
+                    #print(results)
+                    max_col_length = max(list(map(lambda x: len(str(x[index])), results)))
+                    widths.append(max(max_col_length, len(cd[0])))
+                    columns.append(cd[0])
+                    index+=1
 
-                    for w in widths:
-                        tavnit += " %-"+"%s.%ss |" % (w,w)
-                        separator += '-'*w + '--+'
+                for w in widths:
+                    tavnit += " %-"+"%s.%ss |" % (w,w)
+                    separator += '-'*w + '--+'
 
-                    rows.append(separator)
-                    rows.append(tavnit % tuple(columns))
-                    rows.append(separator)
+                rows.append(separator)
+                rows.append(tavnit % tuple(columns))
+                rows.append(separator)
 
-                    for fetch in results:
-                        rows.append(tavnit % fetch)
+                for fetch in results:
+                    rows.append(tavnit % fetch)
 
-                    rows.append(separator)
+                rows.append(separator)
         
         mysql_db.commit()
     except Error as error:
-        print(error)
+        goutils.log("ERR", "connect_mysql.text_query", error)
+        rows=[error]
         
     finally:
         cursor.close()
         # db.close()
     
-    if txt_mode:
-        return rows
-    else:
-        return tuples
+    return rows
         
         
 def simple_execute(query):
