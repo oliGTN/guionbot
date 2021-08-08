@@ -606,8 +606,7 @@ def manage_me(ctx, alias):
     elif not alias.isnumeric():
         # Look for the name among known player names
         results = connect_mysql.get_table("SELECT name, allyCode FROM players")
-        #print(results)
-        list_names = [x[0] for x in results[0]]
+        list_names = [x[0] for x in results]
     
         closest_names=difflib.get_close_matches(alias, list_names, 1)
         #print(closest_names)
@@ -616,7 +615,7 @@ def manage_me(ctx, alias):
             goutils.log("DBG", "manage_me", alias + " is not a DB name")
         else:
             goutils.log("INFO", "manage_me", alias +" looks like the DB name "+closest_names[0])
-            for r in results[0]:
+            for r in results:
                 if r[0] == closest_names[0]:
                     ret_allyCode_txt = str(r[1])
                     return ret_allyCode_txt
@@ -1780,26 +1779,30 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
-goutils.log("INFO", "main", "Starting...")
-# Use command-line parameters
-if len(sys.argv) > 1:
-    goutils.log("INFO", "main", "TEST MODE - options="+str(sys.argv[1:]))
-    bot_test_mode = True
-    if sys.argv[1] == "noloop":
-        goutils.log("INFO", "main", "Disable loops")
-        bot_noloop_mode = True
+def main():
+    goutils.log("INFO", "main", "Starting...")
+    # Use command-line parameters
+    if len(sys.argv) > 1:
+        goutils.log("INFO", "main", "TEST MODE - options="+str(sys.argv[1:]))
+        bot_test_mode = True
+        if sys.argv[1] == "noloop":
+            goutils.log("INFO", "main", "Disable loops")
+            bot_noloop_mode = True
 
-#Create periodic tasks
-if not bot_noloop_mode:
-    bot.loop.create_task(bot_loop_60())
-    bot.loop.create_task(bot_loop_600())
-    bot.loop.create_task(bot_loop_5minutes())
-    bot.loop.create_task(bot_loop_6hours())
+    #Create periodic tasks
+    if not bot_noloop_mode:
+        bot.loop.create_task(bot_loop_60())
+        bot.loop.create_task(bot_loop_600())
+        bot.loop.create_task(bot_loop_5minutes())
+        bot.loop.create_task(bot_loop_6hours())
 
-#Ajout des commandes groupées par catégorie
-bot.add_cog(AdminCog(bot))
-bot.add_cog(OfficerCog(bot))
-bot.add_cog(MemberCog(bot))
+    #Ajout des commandes groupées par catégorie
+    bot.add_cog(AdminCog(bot))
+    bot.add_cog(OfficerCog(bot))
+    bot.add_cog(MemberCog(bot))
 
-#Lancement du bot
-bot.run(TOKEN)
+    #Lancement du bot
+    bot.run(TOKEN)
+
+if __name__ == "__main__":
+    main()
