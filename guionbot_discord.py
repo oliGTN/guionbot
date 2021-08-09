@@ -194,6 +194,11 @@ async def bot_loop_600():
         waiting_time = max(0, 600 - (t_end - t_start))
         await asyncio.sleep(waiting_time)
 
+def compute_platoon_progress(platoon_content):
+    all_allocations = [item for sublist in platoon_content.values() for item in sublist]
+    real_allocations = [x for x in all_allocations if x != '']
+    return len(real_allocations) / len(all_allocations)
+
 ##############################################################
 # Function: bot_loop_5minutes
 # Parameters: none
@@ -238,6 +243,8 @@ async def bot_loop_5minutes():
                 goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "End of warstats parsing for TB: round " + tbs_round)
                 new_allocation_detected = False
                 for territory in dict_platoons_done:
+                    current_progress = compute_platoon_progress(dict_platoons_done[territory])
+                    goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "Progress of platoon "+territory+": "+str(current_progress))
                     if not territory in dict_platoons_previously_done:
                         #If the territory was not already detected, then all allocation within that territory are new
                         for character in dict_platoons_done[territory]:
@@ -245,6 +252,12 @@ async def bot_loop_5minutes():
                                 if player != '':
                                     goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "New platoon allocation: " + territory + ":" + character + " by " + player)
                                     new_allocation_detected = True
+
+                        if current_progress == 1:
+                            msg = "Platoon "+territory+" has reached 100%"
+                            goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
+                            await send_alert_to_admins(msg)
+
                     else:
                         for character in dict_platoons_done[territory]:
                             if not character in dict_platoons_previously_done[territory]:
@@ -259,6 +272,13 @@ async def bot_loop_5minutes():
                                         if player != '':
                                             goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "New platoon allocation: " + territory + ":" + character + " by " + player)
                                             new_allocation_detected = True
+
+                        previous_progress = compute_platoon_progress(dict_platoons_previously_done[territory])
+                        if current_progress == 1 and previous_progress < 1:
+                            msg = "Platoon "+territory+" has reached 100%"
+                            goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
+                            await send_alert_to_admins(msg)
+
                 if not new_allocation_detected:
                     goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "No new platoon allocation")
 
@@ -1780,6 +1800,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 ##############################################################
 def main():
     bot_noloop_mode = False
+    global bot_test_mode
     goutils.log("INFO", "main", "Starting...")
     # Use command-line parameters
     if len(sys.argv) > 1:
