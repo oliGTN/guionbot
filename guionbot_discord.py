@@ -399,16 +399,16 @@ async def get_eb_allocation(tbs_round):
 
             if message.content.startswith('```prolog'):
                 #EB message by territory
+                ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
+                territory_position = ret_re.group(1)
                   
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
                     if 'fields' in dict_embed:
                         #on garde le nom de la BT mais on met X comme numéro de phase
                         #le numéro de phase sera affecté plus tard
-                        ret_re = re.search(':.*: \*\*(.*)\*\* - (.*)',
-                                            dict_embed['description'])
-                        territory_position = ret_re.group(2)
-                        platoon_position = ret_re.group(1)[-1]
+
+                        platoon_position = dict_embed['description'][-3]
                         platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
                         for dict_player in dict_embed['fields']:
                             player_name = dict_player['name']
@@ -442,10 +442,8 @@ async def get_eb_allocation(tbs_round):
 
                             for line in dict_char['value'].split('\n'):
                                 if line.startswith("**"):
-                                    ret_re = re.search('\*\*(.*) - [PS](.)\*\*', line)
-                                    territory_position = ret_re.group(1)
-                                    platoon_position = ret_re.group(2)
-                                    platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
+                                    platoon_position = line[-3]
+                                    platoon_name = tbs_name + "X-xxx-" + platoon_position
                                 else:
                                     ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
                                                         line)
@@ -510,8 +508,7 @@ async def get_eb_allocation(tbs_round):
                                 dict_embed['description']).group(1)
 
                         for dict_platoon in dict_embed['fields']:
-                            platoon_name = tbs_name + "X-" + re.search('(.*) - .*',
-                                dict_platoon['name']).group(1) + "-" + dict_platoon['name'][-1]
+                            platoon_name = tbs_name + "X-xxx-" + dict_platoon['name'][-1]
                                 
                             for character in dict_platoon['value'].split('\n'):
                                 char_name = character[1:-1]
@@ -533,6 +530,7 @@ async def get_eb_allocation(tbs_round):
             elif message.content.startswith(":information_source: **Overview**"):
                 #Overview of the EB posts. Gives the territory names
                 # this name helps allocatting the phase
+                # In case of single-territory, helps recovering its position
                 for line in message.content.split("\n"):
                     if line.startswith(":"):
                         ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
@@ -553,6 +551,8 @@ async def get_eb_allocation(tbs_round):
                                     keys_to_rename=[]                         
                                     for platoon_name in dict_platoons_allocation:
                                         if platoon_name.startswith(tbs_name + "X-"+territory_position):
+                                            keys_to_rename.append(platoon_name)
+                                        if platoon_name.startswith(tbs_name + "X-xxx"):
                                             keys_to_rename.append(platoon_name)
                                     for key in keys_to_rename:
                                         new_key = territory_name_position+key[-2:]
