@@ -25,7 +25,14 @@ dict_colors["dark_blue"] = (0, 0, 255)
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
-        url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
+        #url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
+        swgoh_img_name = character_id.lower()
+        swgoh_img_name = swgoh_img_name.replace("'", "")
+        swgoh_img_name = swgoh_img_name.replace(" ", "-")
+        swgoh_img_name = swgoh_img_name.replace("_", "-")
+        swgoh_img_name = swgoh_img_name.replace("capital", "")
+        swgoh_img_name = "tex.charui_" + swgoh_img_name + ".png"
+        url = 'https://game-assets.swgoh.gg/' + swgoh_img_name
         goutils.log("INFO", "get_image_from_id", "download portrait from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(character_img_name, 'wb')
