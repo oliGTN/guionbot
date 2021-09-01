@@ -359,16 +359,24 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
     return "OK", dict_guild
 
-def get_team_line_from_player(team_name, dict_player, dict_team, gv_mode, player_name):
+def get_team_line_from_player(team_name, dict_teams, dict_team_gt, gv_mode, player_name):
     line = ''
+    dict_team = dict_team_gt[team_name]
     objectifs = dict_team["categories"]
     nb_subobjs = len(objectifs)
+
+    if team_name in dict_teams[player_name]:
+        dict_player = dict_teams[player_name][team_name]
+    else:
+        dict_player = {}
     
     #INIT tableau des resultats
     tab_progress_player = [[] for i in range(nb_subobjs)]
     for i_subobj in range(0, nb_subobjs):
         nb_chars = len(objectifs[i_subobj][2])
-        tab_progress_player[i_subobj] = [[0, '.     ', True, ''] for i in range(nb_chars)]
+
+        #score, display, nogo, charater_id, weight
+        tab_progress_player[i_subobj] = [[0, '.     ', True, '', 1] for i in range(nb_chars)]
 
     goutils.log("DBG", "go.get_team_line_from_player", "player: "+player_name)
     # Loop on categories within the goals
@@ -482,22 +490,44 @@ def get_team_line_from_player(team_name, dict_player, dict_team, gv_mode, player
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
                 tab_progress_player[i_subobj][i_character - 1][3] = character_id
+                tab_progress_player[i_subobj][i_character - 1][4] = 1
 
                 goutils.log("DBG", "go.get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
 
             else:
                 if gv_mode:
-                    character_display = "\N{CROSS MARK} "+\
-                                        character_name + \
-                                        " n'est pas débloqué - 0%"
-                else:
-                    character_display = ""
+                    character_id_team = character_id + '-GV'
+                    if character_id_team in dict_teams[player_name]:
+                        score, unlocked, character_display, nogo, list_char = get_team_line_from_player(character_id_team,
+                            dict_teams, dict_team_gt, gv_mode, player_name)
 
-                tab_progress_player[i_subobj][i_character - 1][0] = 0
+                        character_display = "\N{CROSS MARK} "+\
+                                            character_name + \
+                                            " n'est pas débloqué - "+str(int(score))+"%"
+                        score = score / 100.0
+                        weight = len(list_char)
+                    else:
+                        score = 0
+                        character_display = "\N{CROSS MARK} "+\
+                                            character_name + \
+                                            " n'est pas débloqué - 0%"
+                        nogo = True
+                        weight = 1
+                else:
+                    score = 0
+                    character_display = ""
+                    nogo = True
+                    weight = 1
+
+                tab_progress_player[i_subobj][i_character - 1][0] = score
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
-                tab_progress_player[i_subobj][i_character - 1][2] = True
+                tab_progress_player[i_subobj][i_character - 1][2] = nogo
                 tab_progress_player[i_subobj][i_character - 1][3] = character_id
-    
+                tab_progress_player[i_subobj][i_character - 1][4] = weight
+
+                goutils.log("DBG", "go.get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
+
+
     #calcul du score global
     score = 0
     score100 = 0
@@ -514,8 +544,10 @@ def get_team_line_from_player(team_name, dict_player, dict_team, gv_mode, player
         #Extraction des scores pour les persos non-exclus
         sorted_tab_progress = sorted(tab_progress_player[i_subobj], key=lambda x: ((x[0] * (not x[2])), x[0]))
         top_tab_progress = sorted_tab_progress[-min_perso:]
-        top_scores = [x[0] * (not x[2]) for x in top_tab_progress]
-        sum_scores = sum(top_scores)
+        top_scores_weighted = [x[0] * (not x[2]) * x[4] for x in top_tab_progress]
+        sum_scores = sum(top_scores_weighted)
+        top_weights = [x[4] for x in top_tab_progress]
+        sum_weights = sum(top_weights)
         top_chars = [x[3] for x in top_tab_progress]
         for x in tab_progress_player[i_subobj]:
             char_id = x[3]
@@ -523,10 +555,13 @@ def get_team_line_from_player(team_name, dict_player, dict_team, gv_mode, player
                 list_char_id.append(char_id)
 
         score += sum_scores
-        score100 += min_perso
+        score100 += sum_weights
         
-        if 0.0 in top_scores:
+        if 0.0 in top_scores_weighted:
             score_nogo = True
+        print(sorted_tab_progress)
+        print("score="+str(score))
+        print("score100="+str(score100))
 
     #pourcentage sur la moyenne
     score = score / score100 * 100
@@ -669,12 +704,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
     else:
         query += "WHERE players.guildName = \
                 (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
-    if not 'all' in list_team_names:
-        query += "AND("
-        for team_name in list_team_names:
-            query += "guild_teams.name = '"+team_name+"' OR "
-        query = query[:-3] + ")\n"
-    elif gv_mode == False:
+    if gv_mode == False:
         query += "AND NOT guild_teams.name LIKE '%-GV'\n"
     else:
         query += "AND guild_teams.name LIKE '%-GV'\n"
@@ -708,15 +738,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         else:
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
-        if not 'all' in list_team_names:
-            query += "AND("
-            for team_name in list_team_names:
-                query += "guild_teams.name = '"+team_name+"' OR "
-            query = query[:-3] + ")\n"
-        elif gv_mode == False:
-            query += "AND NOT guild_teams.name LIKE '%-GV'\n"
-        else:
-            query += "AND guild_teams.name LIKE '%-GV'\n"
+        query += "AND NOT guild_teams.name LIKE '%-GV'\n"
            
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
         goutils.log("DBG", "go.get_team_progress", query)
@@ -746,6 +768,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
+        goutils.log("DBG", "go.get_team_progress", gv_characters_unlocked)
         
     if player_data != None:
         goutils.log("INFO", "go.get_team_progress", "Recreate dict_teams...")
@@ -795,14 +818,9 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
             count_red = 0
             count_not_enough = 0
             for player_name in dict_teams:
-                if team_name in dict_teams[player_name]:
-                    dict_player = dict_teams[player_name][team_name]
-                else:
-                    dict_player = {}
-
                 #resultats par joueur
                 score, unlocked, line, nogo, list_char = get_team_line_from_player(team_name,
-                    dict_player, dict_team_gt[team_name], gv_mode, player_name)
+                    dict_teams, dict_team_gt, gv_mode, player_name)
                 tab_lines.append([score, unlocked, line, nogo, player_name, list_char])
 
                 if score >= SCORE_GREEN and not nogo:
@@ -926,6 +944,8 @@ def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
     
     ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, False, True)
+    if type(ret_get_team_progress) == str:
+        return ret_get_team_progress
     
     list_lines = []
     if len(ret_get_team_progress) == 1:
