@@ -312,7 +312,11 @@ async def bot_loop_6hours():
 
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-            await bot.loop.run_in_executor(None, go.manage_disk_usage)
+            err_code, err_txt = await bot.loop.run_in_executor(None, go.manage_disk_usage)
+
+            if err_code > 0:
+                await send_alert_to_admins(err_txt)
+
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_6hours", str(sys.exc_info()[0]))
             goutils.log("ERR", "guionbot_discord.bot_loop_6hours", e)

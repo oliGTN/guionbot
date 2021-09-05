@@ -75,7 +75,13 @@ def manage_disk_usage():
     free = st.f_bavail * st.f_frsize
     total = st.f_blocks * st.f_frsize
     used = total - free
-    goutils.log('INFO', 'go.manage_disk_usage', 'Disk usage = ' + str(int(used/total*1000)/10) + '%')
+    used_percentage = int(used/total*1000)/10
+    goutils.log('INFO', 'go.manage_disk_usage', 'Disk usage = ' + str(used_percentage) + '%')
+
+    if used_percentage > 99:
+        return 1, "Disk usage is above 99%"
+    else:
+        return 0, ""
 
 ##################################
 # Function: refresh_cache
