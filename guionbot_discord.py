@@ -1261,6 +1261,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
+            if len(teams) == 0:
+                teams = ["all"]
+
             err, ret_cmd = await bot.loop.run_in_executor(None, go.print_vtg,
                                                     teams, allyCode)
             if err == 0:
@@ -1295,6 +1298,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
+            if len(teams) == 0:
+                teams = ["all"]
+
             err, txt, images = await bot.loop.run_in_executor(None, go.print_vtj,
                                                     teams, allyCode)
             if err != 0:

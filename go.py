@@ -565,9 +565,6 @@ def get_team_line_from_player(team_name, dict_teams, dict_team_gt, gv_mode, play
         
         if 0.0 in top_scores_weighted:
             score_nogo = True
-        print(sorted_tab_progress)
-        print("score="+str(score))
-        print("score100="+str(score100))
 
     #pourcentage sur la moyenne
     score = score / score100 * 100
