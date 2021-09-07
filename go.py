@@ -365,8 +365,15 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
     return "OK", dict_guild
 
-def get_team_line_from_player(team_name, dict_teams, dict_team_gt, gv_mode, player_name):
+def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
     line = ''
+
+    #manage team_name in a path for recursing requests
+    team_name = team_name_path.split('/')[-1]
+    if team_name_path.count(team_name) > 1:
+        #recurring loop, stop it
+        return 0, False, "", False, []
+
     dict_team = dict_team_gt[team_name]
     objectifs = dict_team["categories"]
     nb_subobjs = len(objectifs)
@@ -504,14 +511,16 @@ def get_team_line_from_player(team_name, dict_teams, dict_team_gt, gv_mode, play
                 if gv_mode:
                     character_id_team = character_id + '-GV'
                     if character_id_team in dict_teams[player_name]:
-                        score, unlocked, character_display, nogo, list_char = get_team_line_from_player(character_id_team,
+                        score, unlocked, character_display, nogo, list_char = get_team_line_from_player(team_name_path+'/'+character_id_team,
                             dict_teams, dict_team_gt, gv_mode, player_name)
 
+                        #Unlocking a chatacter only gives the rarity so by default 50%
+                        score = score / 200.0
+                        #weight = len(list_char)
+                        weight = 1
                         character_display = "\N{CROSS MARK} "+\
                                             character_name + \
-                                            " n'est pas débloqué - "+str(int(score))+"%"
-                        score = score / 100.0
-                        weight = len(list_char)
+                                            " n'est pas débloqué - "+str(int(score*100))+"%"
                     else:
                         score = 0
                         character_display = "\N{CROSS MARK} "+\
