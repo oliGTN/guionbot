@@ -411,9 +411,9 @@ async def get_eb_allocation(tbs_round):
                     if 'fields' in dict_embed:
                         #on garde le nom de la BT mais on met X comme numéro de phase
                         #le numéro de phase sera affecté plus tard
+                        platoon_num = dict_embed["description"].split(" ")[2][0]
 
-                        platoon_position = dict_embed['description'][-3]
-                        platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_position
+                        platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
                         for dict_player in dict_embed['fields']:
                             player_name = dict_player['name']
                             for character in dict_player['value'].split('\n'):
@@ -446,8 +446,9 @@ async def get_eb_allocation(tbs_round):
 
                             for line in dict_char['value'].split('\n'):
                                 if line.startswith("**"):
-                                    platoon_position = line[-3]
-                                    platoon_name = tbs_name + "X-xxx-" + platoon_position
+                                    platoon_pos = line.split(" ")[0][2:]
+                                    platoon_num = line.split(" ")[2][1]
+                                    platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
                                 else:
                                     ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
                                                         line)
@@ -512,7 +513,9 @@ async def get_eb_allocation(tbs_round):
                                 dict_embed['description']).group(1)
 
                         for dict_platoon in dict_embed['fields']:
-                            platoon_name = tbs_name + "X-xxx-" + dict_platoon['name'][-1]
+                            platoon_pos = dict_platoon['name'].split(" ")[0]
+                            platoon_num = dict_platoon['name'][-1]
+                            platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
                                 
                             for character in dict_platoon['value'].split('\n'):
                                 char_name = character[1:-1]
