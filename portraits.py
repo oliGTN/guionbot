@@ -13,9 +13,11 @@ PORTRAIT_SIZE = 168
 MAX_WIDTH_PORTRAITS = 10
 
 dict_colors = {}
+dict_colors["blue"] = (0, 0, 255)
 dict_colors["bright_orange"] = (255, 200, 10)
 dict_colors["brown"] = (128, 0, 0)
 dict_colors["gold"] = (255, 200, 10)
+dict_colors["green"] = (0, 255, 0)
 dict_colors["purple"] = (100, 30, 150)
 dict_colors["white"] = (255, 255, 255)
 dict_colors["red"] = (128, 0, 0)

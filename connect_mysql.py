@@ -566,7 +566,7 @@ def update_player(dict_player):
         
                 #launch query to update skills
                 query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
-                       +"VALUES("+str(roster_id)+", '"+capa_name+"')"
+                       +"VALUES("+str(roster_id)+", '"+capa_shortname+"')"
                 goutils.log("DBG", "update_player", query)
                 cursor.execute(query)
 
@@ -574,7 +574,7 @@ def update_player(dict_player):
                        +"SET level = "+str(capa_level)+", "\
                        +"isZeta = "+str(capa_isZeta)+" "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
-                       +"AND name = '"+capa_name+"'"
+                       +"AND name = '"+capa_shortname+"'"
                 goutils.log("DBG", "update_player", query)
                 cursor.execute(query)
 
