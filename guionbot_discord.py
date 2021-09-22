@@ -122,6 +122,12 @@ dict_platoons_previously_done = {} #Empy set
 #                                                            #
 ##############################################################
 
+def set_id_lastseen(event_name, id):
+    global dict_member_lastseen
+    if id in dict_member_lastseen:
+        dict_member_lastseen[id][1]=datetime.datetime.now(guild_timezone)
+        alias = dict_member_lastseen[id][0]
+        goutils.log("DBG", "set_id_last_seen", event_name+": user="+str(id)+" ("+alias+")")
 
 ##############################################################
 # Function: bot_loop_60
@@ -141,6 +147,8 @@ async def bot_loop_60():
                 for role in guild.roles:
                     if role.name==config.DISCORD_MEMBER_ROLE:
                         for member in role.members:
+                            #Ensure all guild members are in the dict, so that other events
+                            #  know which users to update
                             if not member.id in dict_member_lastseen:
                                 dict_member_lastseen[member.id]= [member.display_name, None]
                             
@@ -707,6 +715,7 @@ async def on_ready():
 @bot.event
 async def on_reaction_add(reaction, user):
     global list_alerts_sent_to_admin
+    set_id_lastseen("on_reaction_add", user.id)
 
     #prevent reacting to bot's reactions
     if user == bot.user:
@@ -764,6 +773,8 @@ async def on_reaction_add(reaction, user):
 ##############################################################
 @bot.event
 async def on_message(message):
+    set_id_lastseen("on_message", message.author.id)
+
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
         command_name = lower_msg.split(" ")[0].split(".")[1]
@@ -792,6 +803,42 @@ async def on_command_error(ctx, error):
         await ctx.message.add_reaction(emoji_error)
     else:
         raise error
+
+##############################################################
+# Other events used only to monitor the activity of guild members
+##############################################################
+@bot.event
+async def on_typing(channel, user, when):
+    set_id_lastseen("on_typing", user.id)
+
+@bot.event
+async def on_message_delete(message):
+    #Unable to detect who is deleting a message
+    pass
+
+@bot.event
+async def on_message_edit(before, after):
+    set_id_lastseen("on_message_edit", before.author.id)
+
+@bot.event
+async def on_reaction_remove(reaction, user):
+    set_id_lastseen("on_reaction_remove", user.id)
+
+@bot.event
+async def on_member_join(member):
+    set_id_lastseen("on_member_join", member.id)
+
+@bot.event
+async def on_member_update(before, after):
+    set_id_lastseen("on_member_update", before.id)
+
+@bot.event
+async def on_user_update(before, after):
+    set_id_lastseen("on_user_update", before.id)
+
+@bot.event
+async def on_voice_state_update(member, before, after):
+    set_id_lastseen("on_voice_state_update", member.id)
 
 ##############################################################
 #                                                            #
