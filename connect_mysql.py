@@ -146,43 +146,45 @@ def update_guild_teams(dict_team):
 
 def text_query(query):
     rows = []
-    tuples = []
+
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
         
         results = cursor.execute(query, multi=True)
+        #print("results: "+str(results))
         for cur in results:
+            #print("cur: "+str(cur))
             # rows.append('cursor: '+ str(cur))
             if cur.with_rows:
-                results = cur.fetchall()
-                tuples.append(results)
+                fetch_results = cur.fetchall()
             
-                widths = []
-                columns = []
-                tavnit = '|'
-                separator = '+' 
+                if len(fetch_results) >0:
+                    widths = []
+                    columns = []
+                    tavnit = '|'
+                    separator = '+' 
                 
-                index = 0
-                for cd in cur.description:
-                    #print(results)
-                    max_col_length = max(list(map(lambda x: len(str(x[index])), results)))
-                    widths.append(max(max_col_length, len(cd[0])))
-                    columns.append(cd[0])
-                    index+=1
+                    index = 0
+                    for cd in cur.description:
+                        #print("fetch_results: "+str(fetch_results))
+                        max_col_length = max(list(map(lambda x: len(str(x[index])), fetch_results)))
+                        widths.append(max(max_col_length, len(cd[0])))
+                        columns.append(cd[0])
+                        index+=1
 
-                for w in widths:
-                    tavnit += " %-"+"%s.%ss |" % (w,w)
-                    separator += '-'*w + '--+'
+                    for w in widths:
+                        tavnit += " %-"+"%s.%ss |" % (w,w)
+                        separator += '-'*w + '--+'
 
-                rows.append(separator)
-                rows.append(tavnit % tuple(columns))
-                rows.append(separator)
+                    rows.append(separator)
+                    rows.append(tavnit % tuple(columns))
+                    rows.append(separator)
 
-                for fetch in results:
-                    rows.append(tavnit % fetch)
+                    for fetch in fetch_results:
+                        rows.append(tavnit % fetch)
 
-                rows.append(separator)
+                    rows.append(separator)
         
         mysql_db.commit()
     except Error as error:
@@ -191,7 +193,6 @@ def text_query(query):
         
     finally:
         cursor.close()
-        # db.close()
     
     return rows
         

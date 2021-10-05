@@ -935,8 +935,9 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             output_txt+=str(row)+'\n'
 
 
-        await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+' (GMT)\n' +
-                        '``` '+output_txt[1:]+'```')
+        await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+' (GMT)')
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            await ctx.send('``` '+txt[1:]+'```')
 
         await ctx.message.add_reaction(emoji_check)
 
@@ -958,12 +959,15 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         arg = " ".join(args)
         output = connect_mysql.text_query(arg)
         goutils.log('INFO', 'go.sql', 'SQL: ' + arg)
-        output_txt=''
-        for row in output:
-            output_txt+=str(row)+'\n'
-        goutils.log('INFO', 'go.sql', output_txt)
-        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-            await ctx.send('`' + txt + '`')
+        if len(output) >0:
+            output_txt=''
+            for row in output:
+                output_txt+=str(row)+'\n'
+            goutils.log('INFO', 'go.sql', output_txt)
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+        else:
+            await ctx.send('*Aucun résultat*')
         
         await ctx.message.add_reaction(emoji_check)
         
