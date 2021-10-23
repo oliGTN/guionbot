@@ -34,6 +34,7 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 list_alerts_sent_to_admin = []
 bot_test_mode = False
+first_bot_loop_5minutes = True
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -225,6 +226,7 @@ def compute_territory_progress(dict_platoons, territory):
 async def bot_loop_5minutes():
     global limit_gp
     global dict_platoons_previously_done
+    global first_bot_loop_5minutes
 
     await bot.wait_until_ready()
     while not bot.is_closed():
@@ -234,12 +236,8 @@ async def bot_loop_5minutes():
             #CHECK ALERTS FOR BT
             list_tb_alerts = go.get_tb_alerts()
             for tb_alert in list_tb_alerts:
-                userid = tb_alert[0]
-                message = tb_alert[1]
-                
-                member = bot.get_user(int(userid))
-                channel = await member.create_dm()
-                await channel.send(message)
+                if not first_bot_loop_5minutes:
+                    await send_alert_to_echocommanders(tb_alert)
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
@@ -277,7 +275,8 @@ async def bot_loop_5minutes():
                             msg = "Platoon "+territory_platoon+" has reached 100% (" \
                                     +territory_display+": "+str(territory_full_count)+"/6)"
                             goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
-                            await send_alert_to_admins(msg)
+                            if not first_bot_loop_5minutes:
+                                await send_alert_to_echocommanders(msg)
 
                     else:
                         for character in dict_platoons_done[territory_platoon]:
@@ -315,6 +314,8 @@ async def bot_loop_5minutes():
             goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins("Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+
+        first_bot_loop_5minutes = False
 
         # Wait X seconds before next loop
         t_end = time.time()
@@ -373,6 +374,23 @@ async def send_alert_to_admins(message):
             channel = await member.create_dm()
             await channel.send(message)
         list_alerts_sent_to_admin.append(message)
+
+##############################################################
+# Function: send_alert_to_echocommanders
+# Parameters: message (string), message to be sent
+# Purpose: send a message to Echobot admins.
+# Output: None
+##############################################################
+async def send_alert_to_echocommanders(message):
+    if bot_test_mode:
+        await send_alert_to_admins(msg)
+    else:
+        for guild in bot.guilds:
+            for role in guild.roles:
+                if role.name=="EchoCommander":
+                    for member in role.members:
+                        channel = await member.create_dm()
+                        await channel.send(message)
 
 ##############################################################
 # Function: get_eb_allocation
@@ -978,15 +996,11 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #          avant déploiement en service
     # Display: ça dépend
     #############################################################
-    #@commands.command(name='test', help='Réservé aux admins')
-    #@commands.check(is_owner)
-    #async def test(self, ctx, *args):
-    #    emoji = args[0]
-    #    print(emoji)
-    #    emoji_ascii = emoji.encode('ascii', 'namereplace')
-    #    print(emoji_ascii)
-    #    msg = await ctx.send(emoji_ascii)
-    #    await msg.add_reaction(emoji_ascii)
+    @commands.command(name='test', help='Réservé aux admins')
+    @commands.check(is_owner)
+    async def test(self, ctx, *args):
+        pass
+
 
 ##############################################################
 # Class: OfficerCog

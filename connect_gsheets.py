@@ -376,11 +376,9 @@ def get_tb_triggers(territory_scores, return_active_triggers):
     #parsing title row
     col_territory=0
     col_gp=0
-    col_id=0
     col_date=0
     territory_column_title='Territoire alerte'
     gp_alert_column_title='PG alerte'
-    discord_id_column_title='Discord ID alerte'
     date_column_title='Date alerte'
     date_column_comment='Commentaire'
 
@@ -394,8 +392,6 @@ def get_tb_triggers(territory_scores, return_active_triggers):
             col_territory=c
         elif value==gp_alert_column_title:
             col_gp=c
-        elif value==discord_id_column_title:
-            col_id=c
         elif value==date_column_title:
             col_date=c
         elif value==date_column_comment:
@@ -403,11 +399,10 @@ def get_tb_triggers(territory_scores, return_active_triggers):
         c+=1
 
     if (col_date > 0) and (col_territory > 0) \
-        and (col_gp > 0) and (col_id > 0) and (col_cmt > 0):
+        and (col_gp > 0) and (col_cmt > 0):
         
         territories=feuille.col_values(col_territory)
         gp_alerts=feuille.col_values(col_gp)
-        discord_ids=feuille.col_values(col_id)
         alert_dates=feuille.col_values(col_date)
         alert_comments=feuille.col_values(col_cmt)
 
@@ -443,11 +438,10 @@ def get_tb_triggers(territory_scores, return_active_triggers):
                         # print("DBG - gp_alert: "+str(gp_alert))
                         # print("DBG - cur_date: "+str(cur_date))
                         if cur_date == '' and cur_score >= gp_alert and gp_alert!=-1:
-                            discord_id = discord_ids[l-1]
                             message = "BT: "+territory+" a atteint "+cur_cmt \
                                     + " (" + str(cur_score)+"/"+str(gp_alert) + ")"
                             # print("DBG - message: "+str(message))
-                            list_tb_triggers.append([discord_id, message])
+                            list_tb_triggers.append(message)
                             
                             last_date_value=datetime.datetime.now(guild_timezone).strftime("%Y-%m-%d %H:%M:%S")
                             if l > len(alert_dates):
@@ -464,12 +458,10 @@ def get_tb_triggers(territory_scores, return_active_triggers):
                         #no alert to be sent, just keep the date if already there
                         if l > len(alert_dates):
                             alert_dates.append([''])
-                            discord_id = discord_ids[l-1]
-                            list_active_tb_triggers.append([discord_id, territory])
+                            list_active_tb_triggers.append(territory)
                         else:
                             if alert_dates[l-1] == '':
-                                discord_id = discord_ids[l-1]
-                                list_active_tb_triggers.append([discord_id, territory])
+                                list_active_tb_triggers.append(territory)
                             alert_dates[l-1] = [alert_dates[l-1]]
                 else:
                     #no alert to be sent, just keep the date if already there
@@ -488,7 +480,6 @@ def get_tb_triggers(territory_scores, return_active_triggers):
     else:
         print('At least one column among "'+territory_column_title+'", "' +\
                 gp_alert_column_title+'", "' +\
-                discord_id_column_title+'" and "' +\
                 date_column_title+'" and "' +\
                 date_column_comment+'" is not found >> BT alerts not sent')
                 
