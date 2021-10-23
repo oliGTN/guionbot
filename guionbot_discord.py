@@ -441,7 +441,8 @@ async def get_eb_allocation(tbs_round):
                 if len(message.embeds)>0:
                     embed = message.embeds[0]
                     dict_embed = embed.to_dict()
-                    if dict_embed["color"] == 16711680:
+                    if ('color' in dict_embed) and (dict_embed["color"] == 16711680):
+                        goutils.log("ERR", "get_eb_allocation", "detection of color 16711680 in embed title = "+dict_embed['title'])
                         continue
 
             if message.content.startswith('```prolog'):
