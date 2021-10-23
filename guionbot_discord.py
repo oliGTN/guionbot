@@ -1121,6 +1121,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     await ctx.send('**ERR**: '+err_msg)
                     output_channel = ctx.message.channel
         else:
+            display_mentions=False
             output_channel = ctx.message.channel
 
         #Lecture du statut des pelotons sur warstats
