@@ -1034,6 +1034,7 @@ class RaidResumeParser(HTMLParser):
 
         elif self.state_parser==6:
             data = data.strip(" ")
+            data = data.replace('\\xc3\\xa9', 'é')
             if data!='':
                 self.player_name = data
                 self.state_parser=7
