@@ -1867,8 +1867,11 @@ def print_erx(allyCode_txt, days, compute_guild):
 def print_raid_progress(raid_alias):
     #raid_config = connect_gsheets.get_raid_config(raid_name)
     raid_config = ["Rancor (challenge)",
-            {"PADME-RANCOR":[1, 800000, 1200000, 1600000],
-             "SHAAKTI-RANCOR":[2, 800000, 1200000, 1600000]}]
+            {"PADME-RANCOR":  [1,  1647760,  2059700],
+             "JMK-RANCOR":    [1, 13000000, 21000000],
+             "VADOR-RANCOR":  [2,  1821292,  3642585],
+             "SHAAKTI-RANCOR":[2,  1821293,  3278327],
+             "SLKR-RANCOR":   [2,  5463879,  7285171]}]
     raid_name = raid_config[0]
     raid_teams = raid_config[1]
     raid_team_names = raid_teams.keys()
@@ -1881,21 +1884,21 @@ def print_raid_progress(raid_alias):
             player_name = line[4]
             dict_teams_by_player[team][player_name] = not nogo
 
+    print(dict_teams_by_player)
     raid_scores = connect_warstats.parse_warstats_raid_scores(raid_name)
 
     #Player lines
     list_scores = []
     for player_name in raid_scores:
         line=[player_name]
-        min_score = 0
         normal_score = 0
         super_score = 0
         for team in raid_team_names:
+            print(dict_teams_by_player[team])
             player_has_team = dict_teams_by_player[team][player_name]
             if player_has_team:
-                min_score += raid_teams[team][1]
-                normal_score += raid_teams[team][2]
-                super_score += raid_teams[team][3]
+                normal_score += raid_teams[team][1]
+                super_score += raid_teams[team][2]
             line.append(player_has_team)
         player_score_txt = raid_scores[player_name]
         if player_score_txt == '-':
@@ -1904,11 +1907,10 @@ def print_raid_progress(raid_alias):
             player_score_txt = player_score_txt.replace(',', '')
             player_score = int(player_score_txt)
         line.append(player_score)
-        line.append(min_score)
         line.append(normal_score)
         line.append(super_score)
 
-        if min_score == 0:
+        if normal_score == 0:
             player_status = "-"
         elif player_score >= super_score:
             player_status = "\N{WHITE HEAVY CHECK MARK}"
@@ -1925,20 +1927,19 @@ def print_raid_progress(raid_alias):
     ret_print_raid_progress+= "Teams utilisée :\n"
     team_id = 1
     for team in raid_team_names:
-        ret_print_raid_progress+= "T{0:1}: {1:20} (min: {2:8}, "\
-                                  "normal: {3:8}, super: {4:8})\n".format(
+        ret_print_raid_progress+= "T{0:1}: {1:20} (normal: {2:8}, "\
+                                  "super: {3:8})\n".format(
                                           team_id,
                                           team,
                                           raid_teams[team][1],
-                                          raid_teams[team][2],
-                                          raid_teams[team][3])
+                                          raid_teams[team][2])
         team_id += 1
 
     #Header line
     ret_print_raid_progress+= "\n{0:20}".format("Joueur")
     for id in range(1, team_id):
         ret_print_raid_progress+= "T"+str(id)+" "
-    ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}/{3:8}) Statut\n".format("Score", "Min", "Normal", "Super")
+    ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) Statut\n".format("Score", "Normal", "Super")
 
     #Display all players
     for line in list_scores:
@@ -1948,12 +1949,11 @@ def print_raid_progress(raid_alias):
                 ret_print_raid_progress+= "X  "
             else:
                 ret_print_raid_progress+= ".  "
-        ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}/{3:8}) {4:1}\n".format(
+        ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) {3:1}\n".format(
                                 line[id+1],
                                 line[id+2],
                                 line[id+3],
-                                line[id+4],
-                                line[id+5])
+                                line[id+4])
 
 
     return 0, "", ret_print_raid_progress
