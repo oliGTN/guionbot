@@ -1885,7 +1885,7 @@ def print_raid_progress(raid_alias):
             dict_teams_by_player[team][player_name] = not nogo
 
     print(dict_teams_by_player)
-    raid_scores = connect_warstats.parse_warstats_raid_scores(raid_name)
+    raid_phase, raid_scores = connect_warstats.parse_warstats_raid_scores(raid_name)
 
     #Player lines
     list_scores = []
@@ -1896,9 +1896,12 @@ def print_raid_progress(raid_alias):
         for team in raid_team_names:
             print(dict_teams_by_player[team])
             player_has_team = dict_teams_by_player[team][player_name]
-            if player_has_team:
-                normal_score += raid_teams[team][1]
-                super_score += raid_teams[team][2]
+            team_phase = raid_teams[team][0]
+            team_normal_score = raid_teams[team][1]
+            team_super_score = raid_teams[team][2]
+            if player_has_team and raid_phase >= team_phase:
+                normal_score += team_normal_score
+                super_score += team_super_score
             line.append(player_has_team)
         player_score_txt = raid_scores[player_name]
         if player_score_txt == '-':
@@ -1916,21 +1919,28 @@ def print_raid_progress(raid_alias):
             player_status = "\N{WHITE HEAVY CHECK MARK}"
         elif player_score >= normal_score:
             player_status = "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-        else:
+        elif player_score > 0:
             player_status = "\N{UP-POINTING RED TRIANGLE}"
+        else:
+            player_status = "\N{CROSS MARK}"
         line.append(player_status)
 
         list_scores.append(line)
 
     #Display
-    ret_print_raid_progress = "Résultat du raid "+raid_name+"\n\n"
+    if raid_phase == 0:
+        raid_phase_txt = "terminé"
+    else:
+        raid_phase_txt = "phase "+str(raid_phase)
+    ret_print_raid_progress = "Résultat du raid "+raid_name+" ("+raid_phase_txt+")\n\n"
     ret_print_raid_progress+= "Teams utilisée :\n"
     team_id = 1
     for team in raid_team_names:
-        ret_print_raid_progress+= "T{0:1}: {1:20} (normal: {2:8}, "\
-                                  "super: {3:8})\n".format(
+        ret_print_raid_progress+= "T{0:1}: {1:20} - P{2:1} (normal: {3:8}, "\
+                                  "super: {4:8})\n".format(
                                           team_id,
                                           team,
+                                          raid_teams[team][0],
                                           raid_teams[team][1],
                                           raid_teams[team][2])
         team_id += 1
