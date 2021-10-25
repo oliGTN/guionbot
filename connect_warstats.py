@@ -248,6 +248,7 @@ next_warstats_read["tw_teams"] = time.time()
 opponent_teams = []
 next_warstats_read["raid_scores"] = time.time()
 raid_player_scores = {} #{raid name:{player name:score}}
+raid_phase = {} #{raid name:phase}
 
 def set_next_warstats_read(seconds_since_last_track, counter_name):
     global next_warstats_read
@@ -966,7 +967,8 @@ class RaidResumeParser(HTMLParser):
         self.seconds_since_last_track = 0
         self.player_name = ""
         self.dict_player_scores = {}
-        self.state_parser=0
+        self.raid_phase = 0
+        self.state_parser = 0
         #0: en recherche de <h3>
         #1: en recherche de data = "Players"
         #2: en recherche de <tbody>
@@ -985,6 +987,11 @@ class RaidResumeParser(HTMLParser):
         #2: en recherche de data
         
     def handle_starttag(self, tag, attrs):
+        if tag=='div':
+            for name, value in attrs:
+                if name=='class' and value.startswith('todo p'):
+                    self.raid_phase = int(value[-1])
+
         if self.state_parser==0:
             if tag=='h3':
                 self.state_parser=1
@@ -1055,6 +1062,9 @@ class RaidResumeParser(HTMLParser):
                 
     def get_player_scores(self):
         return self.dict_player_scores
+                
+    def get_raid_phase(self):
+        return self.raid_phase
                 
     def get_last_track(self):
         return self.seconds_since_last_track
@@ -1221,6 +1231,7 @@ def parse_warstats_tw_teams():
 def parse_warstats_raid_scores(raid_name):
     global next_warstats_read
     global raid_player_scores
+    global raid_phase
 
     #First, check there is value to re-parse the page
     if time.time() < next_warstats_read["raid_scores"]:
@@ -1239,10 +1250,12 @@ def parse_warstats_raid_scores(raid_name):
         [raid_id, raid_in_progress] = generic_parser.get_raid_id()
         if raid_id == 0:
             goutils.log('ERR', "parse_warstats_raid_scores", raid_name+" raid not found")
-            raid_player_scores = {}
+            raid_player_scores[raid_name] = {}
+            raid_phase[raid_name] = 0
         else:
             if raid_in_progress:
-                goutils.log('INFO', "parse_warstats_raid_scores", "Current "+raid_name+" raid is "+raid_id)
+                goutils.log('INFO', "parse_warstats_raid_scores",
+                        "Current "+raid_name+" raid is "+raid_id+" (phase: "+str(raid_phase)+")")
             else:
                 goutils.log('INFO', "parse_warstats_raid_scores", "Latest "+raid_name+" raid is "+raid_id)
     
@@ -1256,8 +1269,9 @@ def parse_warstats_raid_scores(raid_name):
 
             raid_resume_parser.feed(page_read)
 
-            raid_player_scores = raid_resume_parser.get_player_scores()
+            raid_player_scores[raid_name] = raid_resume_parser.get_player_scores()
+            raid_phase[raid_name] = raid_resume_parser.get_raid_phase()
 
         set_next_warstats_read(generic_parser.get_last_track(), "raid_scores")
 
-    return raid_player_scores
+    return raid_phase[raid_name], raid_player_scores[raid_name]
