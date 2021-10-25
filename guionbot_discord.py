@@ -1777,12 +1777,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 if sum(cur_big_image_sizes) == 0 or (sum(cur_big_image_sizes) + h <= 1000):
                     cur_big_image = portraits.add_vertical(cur_big_image, image)
                     cur_big_image_sizes.append(h)
-                    print("add "+str(cur_big_image_sizes))
+                    #print("add "+str(cur_big_image_sizes))
                 else:
                     list_big_images.append([cur_big_image, cur_big_image_sizes])
                     cur_big_image = image
                     cur_big_image_sizes = [h]
-                    print("new "+str(h))
+                    #print("new "+str(h))
 
             list_big_images.append([cur_big_image, cur_big_image_sizes])
 

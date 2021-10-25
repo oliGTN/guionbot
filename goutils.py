@@ -583,8 +583,10 @@ def get_characters_from_alias(list_alias):
                 dict_id_name[character_alias] = []
                 for [character_id, character_name, char_ct] in dict_tagAlias[closest_names[0]]:
                     if combatType == 0 or (combatType == char_ct):
-                        list_ids.append(character_id)
-                        dict_id_name[character_alias].append([character_id, character_name])
+                        if not character_id in list_ids:
+                            list_ids.append(character_id)
+                        if not [character_id, character_name] in dict_id_name[character_alias]:
+                            dict_id_name[character_alias].append([character_id, character_name])
         else:
             #Normal alias
             closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
@@ -593,7 +595,8 @@ def get_characters_from_alias(list_alias):
                 txt_not_found_characters += character_alias + ' '
             else:
                 [character_name, character_id]=dict_units[closest_names[0]]
-                list_ids.append(character_id)
+                if not character_id in list_ids:
+                    list_ids.append(character_id)
                 dict_id_name[character_alias] = [[character_id, character_name]]
-            
+
     return list_ids, dict_id_name, txt_not_found_characters

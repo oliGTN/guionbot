@@ -41,7 +41,7 @@ def get_gapi_client():
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
             client = gspread.authorize(creds)
         except KeyError as e:
-            print('ERR: variable de configuration GAPI_CREDS non définie')
+            goutis.log('ERR', "connect_gsheets", 'variable de configuration GAPI_CREDS non définie')
 
 ##############################################################
 # Function: load_config_teams
@@ -107,7 +107,7 @@ def load_config_teams():
                         index_perso+=1
                         dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
                         if character_id in dict_teams[team]["categories"][index_categorie][2]:
-                            print("WAR: twice the same character in that team: "+ character_id)
+                            goutis.log('WAR', "connect_gsheets.load_config_team", "twice the same character in that team: "+ character_id)
                         dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
                                                                             dict_perso['* min'],
                                                                             dict_perso['G min'],

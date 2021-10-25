@@ -1867,7 +1867,7 @@ def print_erx(allyCode_txt, days, compute_guild):
 def print_raid_progress(raid_alias):
     #raid_config = connect_gsheets.get_raid_config(raid_name)
     raid_config = ["Rancor (challenge)",
-            {"PADME-RANCOR":  [1,  1647760,  2059700],
+            {"PADME-RANCOR":  [1,  1441790,  2059700],
              "JMK-RANCOR":    [1, 13000000, 21000000],
              "VADOR-RANCOR":  [2,  1821292,  3642585],
              "SHAAKTI-RANCOR":[2,  1821293,  3278327],
@@ -1884,7 +1884,6 @@ def print_raid_progress(raid_alias):
             player_name = line[4]
             dict_teams_by_player[team][player_name] = not nogo
 
-    print(dict_teams_by_player)
     raid_phase, raid_scores = connect_warstats.parse_warstats_raid_scores(raid_name)
 
     #Player lines
@@ -1894,7 +1893,6 @@ def print_raid_progress(raid_alias):
         normal_score = 0
         super_score = 0
         for team in raid_team_names:
-            print(dict_teams_by_player[team])
             player_has_team = dict_teams_by_player[team][player_name]
             team_phase = raid_teams[team][0]
             team_normal_score = raid_teams[team][1]
