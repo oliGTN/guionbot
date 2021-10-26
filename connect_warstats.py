@@ -968,7 +968,10 @@ class RaidResumeParser(HTMLParser):
         self.player_name = ""
         self.dict_player_scores = {}
         self.raid_phase = 0
-        self.state_parser = 0
+        self.state_parser = -3
+        #-3: en recherche de <div class="raid-banner
+        #-2: en recherche de <div class="current"
+        #-1: en recherche de data
         #0: en recherche de <h3>
         #1: en recherche de data = "Players"
         #2: en recherche de <tbody>
@@ -987,12 +990,19 @@ class RaidResumeParser(HTMLParser):
         #2: en recherche de data
         
     def handle_starttag(self, tag, attrs):
-        if tag=='div':
-            for name, value in attrs:
-                if name=='class' and value.startswith('todo p'):
-                    self.raid_phase = int(value[-1])
+        if self.state_parser==-3:
+            if tag=='div':
+                for name, value in attrs:
+                    if name=='class' and value.startswith("raid-banner"):
+                        self.state_parser=-2
 
-        if self.state_parser==0:
+        elif self.state_parser==-2:
+            if tag=='div':
+                for name, value in attrs:
+                    if name=='class' and value=="current":
+                        self.state_parser=-1
+
+        elif self.state_parser<=0:
             if tag=='h3':
                 self.state_parser=1
 
@@ -1034,7 +1044,12 @@ class RaidResumeParser(HTMLParser):
                 self.state_parser=9
 
     def handle_data(self, data):
-        if self.state_parser==1:
+        if self.state_parser==-1:
+            data = data.strip(" ")
+            self.raid_phase = int(float(data[:-1])/25 + 1)
+            self.state_parser=0
+
+        elif self.state_parser==1:
             data = data.strip(" ")
             if data=="Players":
                 self.state_parser=2
@@ -1255,7 +1270,7 @@ def parse_warstats_raid_scores(raid_name):
         else:
             if raid_in_progress:
                 goutils.log('INFO', "parse_warstats_raid_scores",
-                        "Current "+raid_name+" raid is "+raid_id+" (phase: "+str(raid_phase)+")")
+                        "Current "+raid_name+" raid is "+raid_id)
             else:
                 goutils.log('INFO', "parse_warstats_raid_scores", "Latest "+raid_name+" raid is "+raid_id)
     
