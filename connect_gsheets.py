@@ -44,6 +44,45 @@ def get_gapi_client():
             goutis.log('ERR', "connect_gsheets", 'variable de configuration GAPI_CREDS non définie')
 
 ##############################################################
+# Function: load_config_raids
+# Parameters: None
+# Purpose: lit l'onglet "Raids" du fichier Sheets
+# Output: dict_raids {raid_alias:
+#                       [full name,
+#                          {team_name:
+#                             [phase, normal, super]}]}
+##############################################################
+def load_config_raids():
+    global client
+
+    json_file = "CACHE"+os.path.sep+"config_raids.json"
+    try:
+        get_gapi_client()
+        file = client.open("GuiOnBot config")
+        feuille=file.worksheet("Raids")
+
+        liste_dict_feuille=feuille.get_all_records()
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps(liste_dict_feuille, sort_keys=True, indent=4))
+        fjson.close()
+    except:
+        goutils.log("WAR", "load_config_raids", "Cannot connect to Google API. Using cache file.")
+        liste_dict_feuille = json.load(open(json_file, 'r'))
+
+    #Extract all aliases and get associated ID+nameKey
+    dict_raids = {}
+    for line in liste_dict_feuille:
+        if not (line['Alias'] in dict_raids):
+            dict_raids[line['Alias']] = [line['Nom complet'], {}]
+
+        dict_raids[line['Alias']][1][line['Team']]=[int(line['Phase'][-1]),
+                                                    int(line['Normal']),
+                                                    int(line['Super'])]
+
+    return dict_raids
+
+##############################################################
 # Function: load_config_teams
 # Parameters: None
 # Purpose: lit l'onglet "teams" du fichier Sheets
