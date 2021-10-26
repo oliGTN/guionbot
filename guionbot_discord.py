@@ -1112,12 +1112,16 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
         else:
             err, errtxt, ret_cmd = go.print_raid_progress(args[0])
-            #texte classique
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                await ctx.send("```"+txt+"```")
+            if err != 0:
+                await ctx.send(errtxt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("```"+txt+"```")
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
 
     ##############################################################

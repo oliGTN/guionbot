@@ -550,9 +550,16 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
     list_char_id = []
     for i_subobj in range(0, nb_subobjs):
         nb_sub_obj = len(objectifs[i_subobj][2])
+
+        #Display the header of team requirements, for this category
+        # And filter already used characters from the available ones
+        tab_progress_player_subobj = []
         for i_character in range(0, nb_sub_obj):
-            tab_progress_sub_obj = tab_progress_player[i_subobj][i_character]
-            line += tab_progress_sub_obj[1] + "\n"
+            subobj_char_display = tab_progress_player[i_subobj][i_character][1]
+            line += subobj_char_display + "\n"
+
+            if not (tab_progress_player[i_subobj][i_character][1] in list_char_id):
+                tab_progress_player_subobj.append(tab_progress_player[i_subobj][i_character])
 
         min_perso = objectifs[i_subobj][1]
 
@@ -1419,6 +1426,9 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                +"ORDER BY players.name, defId"
 
         db_stat_data = connect_mysql.get_table(query)
+        if db_stat_data == None:
+            return "ERR: aucune donnée trouvée"
+
         db_stat_data_mods = []
         list_character_ids=[character_id]
         list_player_names=set([x[0] for x in db_stat_data])
@@ -1865,13 +1875,21 @@ def print_erx(allyCode_txt, days, compute_guild):
 # return: err_code, err_txt, list of players with teams and scores
 #################################
 def print_raid_progress(raid_alias):
+    dict_raids = connect_gsheets.load_config_raids()
+    if raid_alias in dict_raids:
+        raid_config = dict_raids[raid_alias]
+    else:
+        return 1, "ERR: unknown raid", ""
+
     #raid_config = connect_gsheets.get_raid_config(raid_name)
-    raid_config = ["Rancor (challenge)",
-            {"PADME-RANCOR":  [1,  1441790,  2059700],
-             "JMK-RANCOR":    [1, 13000000, 21000000],
-             "VADOR-RANCOR":  [2,  1821292,  3642585],
-             "SHAAKTI-RANCOR":[2,  1821293,  3278327],
-             "SLKR-RANCOR":   [2,  5463879,  7285171]}]
+    #raid_config = ["Rancor (challenge)",
+    #        {"PADME-RANCOR":  [1,  1441790,  2059700],
+    #         "SEE-RANCOR":    [1,  1441790,  2059700],
+    #         "JMK-RANCOR":    [1, 13000000, 21000000],
+    #         "VADOR-RANCOR":  [2,  1821292,  3642585],
+    #         "SHAAKTI-RANCOR":[2,  1821293,  3278327],
+    #         "SLKR-RANCOR":   [2,  5463879,  7285171]}]
+
     raid_name = raid_config[0]
     raid_teams = raid_config[1]
     raid_team_names = raid_teams.keys()
