@@ -45,10 +45,10 @@ def db_connect():
                 # print('Connected to MySQL database')
                 pass
             else:
-                print('Connection failed')
+                goutils.log("ERR", "connect_mysql.db_connect", 'Connection failed')
 
         except Error as e:
-            print('Exception during connect: '+str(e))
+            goutils.log("ERR", "connect_mysql.db_connect", 'Exception during connect: '+str(e))
             
     return mysql_db
         
@@ -138,7 +138,7 @@ def update_guild_teams(dict_team):
         
         mysql_db.commit()
     except Error as error:
-        print(error)
+        goutils.log("ERR", "connect_mysql.update_guild_teams", error)
         
     finally:
         cursor.close()
@@ -206,7 +206,7 @@ def simple_execute(query):
         
         mysql_db.commit()
     except Error as error:
-        goutils.log("ERR", "simple_execute", error)
+        goutils.log("ERR", "connect_mysql.simple_execute", error)
         
     finally:
         cursor.close()
@@ -223,7 +223,7 @@ def simple_callproc(proc_name, args):
         
         mysql_db.commit()
     except Error as error:
-        print(error)
+        goutils.log("ERR", "connect_mysql.simple_callproc", error)
         
     finally:
         cursor.close()
@@ -242,7 +242,7 @@ def get_value(query):
                 tuples.append(results)
 
     except Error as error:
-        print(error)
+        goutils.log("ERR", "connect_mysql.get_value", error)
         
     finally:
         cursor.close()
@@ -268,7 +268,7 @@ def get_column(query):
                 tuples.append(results)
 
     except Error as error:
-        print(error)
+        goutils.log("ERR", "connect_mysql.get_column", error)
         
     finally:
         cursor.close()
@@ -292,7 +292,7 @@ def get_line(query):
                 tuples.append(results)
 
     except Error as error:
-        print(error)
+        goutils.log("ERR", "connect_mysql.get_line", error)
         
     finally:
         cursor.close()
@@ -322,7 +322,7 @@ def get_table(query):
                 tuples.append(results)
 
     except Error as error:
-        print(error)
+        goutils.log("ERR", "connect_mysql.get_table", error)
         
     finally:
         cursor.close()

@@ -9,12 +9,18 @@ import datetime
 import config
 import goutils
 
+# URLs for TB
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/'+config.WARSTATS_GUILD_ID
 warstats_platoons_baseurl='https://goh.warstats.net/platoons/view/'
-warstats_resume_baseurl='https://goh.warstats.net/territory-battles/view/'
+warstats_tb_resume_baseurl='https://goh.warstats.net/territory-battles/view/'
 
+# URLs for TW
 warstats_tws_url='https://goh.warstats.net/guilds/tws/'+config.WARSTATS_GUILD_ID
 warstats_opp_squad_baseurl='https://goh.warstats.net/territory-wars/squads/opponent/'
+
+# URLs for RAIDS
+warstats_raids_url='https://goh.warstats.net/guilds/raids/'+config.WARSTATS_GUILD_ID
+warstats_raid_resume_baseurl='https://goh.warstats.net/raids/view/'
 
 tab_dict_platoons=[] #de haut en bas
 
@@ -240,6 +246,9 @@ tb_dict_platoons = None
 tb_open_territories = None
 next_warstats_read["tw_teams"] = time.time()
 opponent_teams = []
+next_warstats_read["raid_scores"] = time.time()
+raid_player_scores = {} #{raid name:{player name:score}}
+raid_phase = {} #{raid name:phase}
 
 def set_next_warstats_read(seconds_since_last_track, counter_name):
     global next_warstats_read
@@ -843,6 +852,237 @@ class TWSOpponentSquadParser(HTMLParser):
                 
     def get_last_track(self):
         return self.seconds_since_last_track
+
+class GenericRaidParser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.warstats_raid_name=''
+        self.warstats_raid_id=''
+        self.warstats_raid_in_progress=True
+        self.state_parser=0
+        #0: en recherche de div id="raids"
+        #1: en recherche de h2 ou h3
+        #2: en recherche de data="In progress" ou "Previous raids"
+        #3: en recherche de <tbody>
+        #4: en recherche de <tr>
+        #5: en recherche de <td>
+        #6: en recherche de <a>
+        #7: en recherche de data = raid_name >> goto state 8 si trouvé, sinon state 4
+        #>3: en recherche de </tbody> >> goto state 1
+        #8: état final, raid trouvé
+
+        self.state_parser2=0
+        #0: en recherche de <span id="track-timer"
+        #1: en recherche de script
+        #2: en recherche de data
+        
+    def handle_starttag(self, tag, attrs):
+        if self.state_parser==0:
+            if tag=='div':
+                for name, value in attrs:
+                    if name=='id' and value=='raids':
+                        self.state_parser=1
+
+        elif self.state_parser==1:
+            if tag=='h2' or tag=='h3':
+                self.state_parser=2
+
+        elif self.state_parser==3:
+            if tag=='tbody':
+                self.state_parser=4
+
+        elif self.state_parser==4:
+            if tag=='tr':
+                self.state_parser=5
+
+        elif self.state_parser==5:
+            if tag=='td':
+                self.state_parser=6
+
+        elif self.state_parser==6:
+            if tag=='a':
+                for name, value in attrs:
+                    if name=='href':
+                        self.warstats_raid_id = value.split("/")[3]
+                        self.state_parser=7
+
+
+        #PARSER 2 pour le timer du tracker
+        if self.state_parser2==0:
+            if tag=='span':
+                for name, value in attrs:
+                    if name=='id' and value=='track-timer':
+                        self.state_parser2=1
+                        
+        elif self.state_parser2==1:
+            if tag=='script':
+                self.state_parser2=2
+
+
+    def handle_endtag(self, tag):
+        if self.state_parser >3 and self.state_parser!=8:
+            if tag=='tbody':
+                self.state_parser=1
+
+    def handle_data(self, data):
+        if self.state_parser==2:
+            if data=='In progress':
+                self.warstats_raid_in_progress = True
+                self.state_parser=3
+            elif data=='Previous raids':
+                self.warstats_raid_in_progress = False
+                self.state_parser=3
+            else:
+                self.state_parser=1
+
+        if self.state_parser==7:
+            data = data.strip(" ")
+            if data==self.warstats_raid_name:
+                self.state_parser=8
+            else:
+                self.state_parser=4
+
+
+        #PARSER 2 for TIME TRACK
+        if self.state_parser2==2:
+            #print(data)
+            ret_re = re.search('{seconds: (.*?)}', data)
+            timer_seconds_txt = ret_re.group(1)
+            self.seconds_since_last_track = int(timer_seconds_txt)
+            self.state_parser2=0
+                
+    def get_raid_id(self):
+        return [self.warstats_raid_id, self.warstats_raid_in_progress]
+ 
+    def get_last_track(self):
+        return self.seconds_since_last_track
+
+    def set_raid_name(self, raid_name):
+        self.warstats_raid_name = raid_name
+                
+                
+class RaidResumeParser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.seconds_since_last_track = 0
+        self.player_name = ""
+        self.dict_player_scores = {}
+        self.raid_phase = 0
+        self.state_parser = -3
+        #-3: en recherche de <div class="raid-banner
+        #-2: en recherche de <div class="current"
+        #-1: en recherche de data
+        #0: en recherche de <h3>
+        #1: en recherche de data = "Players"
+        #2: en recherche de <tbody>
+        #3: en recherche de <tr>
+        #4: en recherche de <td>
+        #5: en recherche de <td>
+        #6: en recherche de data
+        #7: en recherche de <td>
+        #8: en recherche de data >> goto state 3
+        #>2: en recherche de </tbody> >> goto state 9
+        #9: état final
+        
+        self.state_parser2=0
+        #0: en recherche de <span id="track-timer"
+        #1: en recherche de script
+        #2: en recherche de data
+        
+    def handle_starttag(self, tag, attrs):
+        if self.state_parser==-3:
+            if tag=='div':
+                for name, value in attrs:
+                    if name=='class' and value.startswith("raid-banner"):
+                        self.state_parser=-2
+
+        elif self.state_parser==-2:
+            if tag=='div':
+                for name, value in attrs:
+                    if name=='class' and value=="current":
+                        self.state_parser=-1
+
+        elif self.state_parser<=0:
+            if tag=='h3':
+                self.state_parser=1
+
+        elif self.state_parser==2:
+            if tag=='tbody':
+                self.state_parser=3
+
+        elif self.state_parser==3:
+            if tag=='tr':
+                self.state_parser=4
+
+        elif self.state_parser==4:
+            if tag=='td':
+                self.state_parser=5
+
+        elif self.state_parser==5:
+            if tag=='td':
+                self.state_parser=6
+
+        elif self.state_parser==7:
+            if tag=='td':
+                self.state_parser=8
+
+
+        #PARSER 2 pour le timer du tracker
+        if self.state_parser2==0:
+            if tag=='span':
+                for name, value in attrs:
+                    if name=='id' and value=='track-timer':
+                        self.state_parser2=1
+                        
+        elif self.state_parser2==1:
+            if tag=='script':
+                self.state_parser2=2
+
+    def handle_endtag(self, tag):
+        if self.state_parser >2:
+            if tag=='tbody':
+                self.state_parser=9
+
+    def handle_data(self, data):
+        if self.state_parser==-1:
+            data = data.strip(" ")
+            self.raid_phase = int(float(data[:-1])/25 + 1)
+            self.state_parser=0
+
+        elif self.state_parser==1:
+            data = data.strip(" ")
+            if data=="Players":
+                self.state_parser=2
+
+        elif self.state_parser==6:
+            data = data.strip(" ")
+            data = data.replace('\\xc3\\xa9', 'é')
+            if data!='':
+                self.player_name = data
+                self.state_parser=7
+
+        elif self.state_parser==8:
+            data = data.strip(" ")
+            if data!='':
+                self.dict_player_scores[self.player_name] = data
+                self.state_parser=3
+
+        #PARSER 2 for TIME TRACK
+        if self.state_parser2==2:
+            #print(data)
+            ret_re = re.search('{seconds: (.*?)}', data)
+            timer_seconds_txt = ret_re.group(1)
+            self.seconds_since_last_track = int(timer_seconds_txt)
+            self.state_parser2=0
+                
+    def get_player_scores(self):
+        return self.dict_player_scores
+                
+    def get_raid_phase(self):
+        return self.raid_phase
+                
+    def get_last_track(self):
+        return self.seconds_since_last_track
                 
 
 ###############################################################
@@ -912,8 +1152,8 @@ def parse_warstats_tb_page():
             except urllib.error.HTTPError as e:
                 goutils.log('WAR', "parse_warstats_tb_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
     
-        warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
-        page = urlopen(warstats_resume_url)
+        warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
+        page = urlopen(warstats_tb_resume_url)
         resume_parser = TBSResumeParser()
         resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
         resume_parser.feed(str(page.read()))
@@ -954,8 +1194,8 @@ def parse_warstats_tb_scores():
         else:
             goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id()+" in progress")
     
-        warstats_resume_url=warstats_resume_baseurl+generic_parser.get_battle_id()
-        page = urlopen(warstats_resume_url)
+        warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id()
+        page = urlopen(warstats_tb_resume_url)
         resume_parser = TBSResumeParser()
         # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
         resume_parser.feed(str(page.read()))
@@ -1002,3 +1242,51 @@ def parse_warstats_tw_teams():
         set_next_warstats_read(opp_squad_parser.get_last_track(), "tw_teams")
 
     return opponent_teams
+
+def parse_warstats_raid_scores(raid_name):
+    global next_warstats_read
+    global raid_player_scores
+    global raid_phase
+
+    #First, check there is value to re-parse the page
+    if time.time() < next_warstats_read["raid_scores"]:
+        goutils.log("DBG", "parse_warstats_raid_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("raid_scores"))+" secs")
+    else:
+        try:
+            page = urlopen(warstats_raids_url)
+        except urllib.error.HTTPError as e:
+            goutils.log('ERR', "parse_warstats_raid_scores", 'error while opening '+warstats_raids_url)
+            return {}, 0
+        
+        generic_parser = GenericRaidParser()
+        generic_parser.set_raid_name(raid_name)
+        generic_parser.feed(str(page.read()))
+    
+        [raid_id, raid_in_progress] = generic_parser.get_raid_id()
+        if raid_id == 0:
+            goutils.log('ERR', "parse_warstats_raid_scores", raid_name+" raid not found")
+            raid_player_scores[raid_name] = {}
+            raid_phase[raid_name] = 0
+        else:
+            if raid_in_progress:
+                goutils.log('INFO', "parse_warstats_raid_scores",
+                        "Current "+raid_name+" raid is "+raid_id)
+            else:
+                goutils.log('INFO', "parse_warstats_raid_scores", "Latest "+raid_name+" raid is "+raid_id)
+    
+            warstats_raid_resume_url=warstats_raid_resume_baseurl+raid_id
+            page = urlopen(warstats_raid_resume_url)
+            raid_resume_parser = RaidResumeParser()
+
+            page_read=str(page.read())
+            page_read=page_read.replace("\\n", "")
+            page_read=page_read.replace("\\t", " ")
+
+            raid_resume_parser.feed(page_read)
+
+            raid_player_scores[raid_name] = raid_resume_parser.get_player_scores()
+            raid_phase[raid_name] = raid_resume_parser.get_raid_phase()
+
+        set_next_warstats_read(generic_parser.get_last_track(), "raid_scores")
+
+    return raid_phase[raid_name], raid_player_scores[raid_name]

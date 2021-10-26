@@ -550,9 +550,16 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
     list_char_id = []
     for i_subobj in range(0, nb_subobjs):
         nb_sub_obj = len(objectifs[i_subobj][2])
+
+        #Display the header of team requirements, for this category
+        # And filter already used characters from the available ones
+        tab_progress_player_subobj = []
         for i_character in range(0, nb_sub_obj):
-            tab_progress_sub_obj = tab_progress_player[i_subobj][i_character]
-            line += tab_progress_sub_obj[1] + "\n"
+            subobj_char_display = tab_progress_player[i_subobj][i_character][1]
+            line += subobj_char_display + "\n"
+
+            if not (tab_progress_player[i_subobj][i_character][1] in list_char_id):
+                tab_progress_player_subobj.append(tab_progress_player[i_subobj][i_character])
 
         min_perso = objectifs[i_subobj][1]
 
@@ -1419,6 +1426,9 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
                +"ORDER BY players.name, defId"
 
         db_stat_data = connect_mysql.get_table(query)
+        if db_stat_data == None:
+            return "ERR: aucune donnée trouvée"
+
         db_stat_data_mods = []
         list_character_ids=[character_id]
         list_player_names=set([x[0] for x in db_stat_data])
@@ -1859,3 +1869,117 @@ def print_erx(allyCode_txt, days, compute_guild):
     else:
         goutils.log("ERR", "go.print_erx", "error while running query, returned NULL")
         return 1, "ERR: erreur lors de la connexion à la DB"
+
+#################################
+# Function: print_raid_progress
+# return: err_code, err_txt, list of players with teams and scores
+#################################
+def print_raid_progress(raid_alias):
+    dict_raids = connect_gsheets.load_config_raids()
+    if raid_alias in dict_raids:
+        raid_config = dict_raids[raid_alias]
+    else:
+        return 1, "ERR: unknown raid", ""
+
+    #raid_config = connect_gsheets.get_raid_config(raid_name)
+    #raid_config = ["Rancor (challenge)",
+    #        {"PADME-RANCOR":  [1,  1441790,  2059700],
+    #         "SEE-RANCOR":    [1,  1441790,  2059700],
+    #         "JMK-RANCOR":    [1, 13000000, 21000000],
+    #         "VADOR-RANCOR":  [2,  1821292,  3642585],
+    #         "SHAAKTI-RANCOR":[2,  1821293,  3278327],
+    #         "SLKR-RANCOR":   [2,  5463879,  7285171]}]
+
+    raid_name = raid_config[0]
+    raid_teams = raid_config[1]
+    raid_team_names = raid_teams.keys()
+    dict_teams = get_team_progress(raid_team_names, config.MASTER_GUILD_ALLYCODE, True, False)
+    dict_teams_by_player = {}
+    for team in dict_teams:
+        dict_teams_by_player[team]={}
+        for line in dict_teams[team][0][1:]:
+            nogo = line[3]
+            player_name = line[4]
+            dict_teams_by_player[team][player_name] = not nogo
+
+    raid_phase, raid_scores = connect_warstats.parse_warstats_raid_scores(raid_name)
+
+    #Player lines
+    list_scores = []
+    for player_name in raid_scores:
+        line=[player_name]
+        normal_score = 0
+        super_score = 0
+        for team in raid_team_names:
+            player_has_team = dict_teams_by_player[team][player_name]
+            team_phase = raid_teams[team][0]
+            team_normal_score = raid_teams[team][1]
+            team_super_score = raid_teams[team][2]
+            if player_has_team and raid_phase >= team_phase:
+                normal_score += team_normal_score
+                super_score += team_super_score
+            line.append(player_has_team)
+        player_score_txt = raid_scores[player_name]
+        if player_score_txt == '-':
+            player_score = 0
+        else:
+            player_score_txt = player_score_txt.replace(',', '')
+            player_score = int(player_score_txt)
+        line.append(player_score)
+        line.append(normal_score)
+        line.append(super_score)
+
+        if normal_score == 0:
+            player_status = "-"
+        elif player_score >= super_score:
+            player_status = "\N{WHITE HEAVY CHECK MARK}"
+        elif player_score >= normal_score:
+            player_status = "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+        elif player_score > 0:
+            player_status = "\N{UP-POINTING RED TRIANGLE}"
+        else:
+            player_status = "\N{CROSS MARK}"
+        line.append(player_status)
+
+        list_scores.append(line)
+
+    #Display
+    if raid_phase == 0:
+        raid_phase_txt = "terminé"
+    else:
+        raid_phase_txt = "phase "+str(raid_phase)
+    ret_print_raid_progress = "Résultat du raid "+raid_name+" ("+raid_phase_txt+")\n\n"
+    ret_print_raid_progress+= "Teams utilisée :\n"
+    team_id = 1
+    for team in raid_team_names:
+        ret_print_raid_progress+= "T{0:1}: {1:20} - P{2:1} (normal: {3:8}, "\
+                                  "super: {4:8})\n".format(
+                                          team_id,
+                                          team,
+                                          raid_teams[team][0],
+                                          raid_teams[team][1],
+                                          raid_teams[team][2])
+        team_id += 1
+
+    #Header line
+    ret_print_raid_progress+= "\n{0:20}".format("Joueur")
+    for id in range(1, team_id):
+        ret_print_raid_progress+= "T"+str(id)+" "
+    ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) Statut\n".format("Score", "Normal", "Super")
+
+    #Display all players
+    for line in list_scores:
+        ret_print_raid_progress+= "{0:20}".format(line[0])
+        for id in range(1, team_id):
+            if line[id]:
+                ret_print_raid_progress+= "X  "
+            else:
+                ret_print_raid_progress+= ".  "
+        ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) {3:1}\n".format(
+                                line[id+1],
+                                line[id+2],
+                                line[id+3],
+                                line[id+4])
+
+
+    return 0, "", ret_print_raid_progress

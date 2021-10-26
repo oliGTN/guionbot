@@ -1095,6 +1095,36 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
+    # Command: rrg
+    # Parameters: nom du raid, tel que défini dans le fichier gsheets
+    # Purpose: Affichage des scores en fonction des teams du joueur
+    # Display: Une ligne par joueur, avec ses teams et son score
+    ##############################################################
+    @commands.check(is_officer)
+    @commands.command(name='rrg',
+                 brief="Résultats de raid de Guilde",
+                 help="Résultats de raid de Guilde\n\n"
+                      "Exemple : go.rrg hrancor")
+    async def rrg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+        if len(args) != 1:
+            await ctx.send("ERR: merci de spécifier le nom du raid (ex: \"go.rrg hrancor\")")
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, errtxt, ret_cmd = go.print_raid_progress(args[0])
+            if err != 0:
+                await ctx.send(errtxt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("```"+txt+"```")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+
+
+    ##############################################################
     # Command: vdp
     # Parameters: [optionnel] nom du channel où écrire les résultats (sous forme "#nom_du_channel")
     # Purpose: Vérification du déploiements de Pelotons
@@ -1751,12 +1781,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 if sum(cur_big_image_sizes) == 0 or (sum(cur_big_image_sizes) + h <= 1000):
                     cur_big_image = portraits.add_vertical(cur_big_image, image)
                     cur_big_image_sizes.append(h)
-                    print("add "+str(cur_big_image_sizes))
+                    #print("add "+str(cur_big_image_sizes))
                 else:
                     list_big_images.append([cur_big_image, cur_big_image_sizes])
                     cur_big_image = image
                     cur_big_image_sizes = [h]
-                    print("new "+str(h))
+                    #print("new "+str(h))
 
             list_big_images.append([cur_big_image, cur_big_image_sizes])
 
