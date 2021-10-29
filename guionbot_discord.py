@@ -272,8 +272,12 @@ async def bot_loop_5minutes():
                             territory = territory_platoon[:-1]
                             territory_full_count = compute_territory_progress(dict_platoons_done, territory)
                             territory_display = territory.split("-")[1]
-                            msg = "Platoon "+territory_platoon+" has reached 100% (" \
-                                    +territory_display+": "+str(territory_full_count)+"/6)"
+                            if territory_full_count == 6:
+                                msg = "Platoon "+territory_platoon+" has reached 100% (**" \
+                                        +territory_display+": 6/6**)"
+                            else:
+                                msg = "Platoon "+territory_platoon+" has reached 100% (" \
+                                        +territory_display+": "+str(territory_full_count)+"/6)"
                             goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
                             if not first_bot_loop_5minutes:
                                 await send_alert_to_echocommanders(msg)
@@ -298,8 +302,12 @@ async def bot_loop_5minutes():
                             territory = territory_platoon[:-1]
                             territory_full_count = compute_territory_progress(dict_platoons_done, territory)
                             territory_display = territory.split("-")[1]
-                            msg = "Platoon "+territory_platoon+" has reached 100% (" \
-                                    +territory_display+": "+str(territory_full_count)+"/6)"
+                            if territory_full_count == 6:
+                                msg = "Platoon "+territory_platoon+" has reached 100% (**" \
+                                        +territory_display+": 6/6**)"
+                            else:
+                                msg = "Platoon "+territory_platoon+" has reached 100% (" \
+                                        +territory_display+": "+str(territory_full_count)+"/6)"
                             goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
                             await send_alert_to_admins(msg)
 
