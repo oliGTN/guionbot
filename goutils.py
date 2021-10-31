@@ -486,10 +486,14 @@ def detect_delta_roster_element(allyCode, char1, char2):
     #GEAR / RELIC
     if char1['gear'] < 13:
         gear1 = "G"+str(char1['gear'])
+        if char1['gear'] > 9:
+            gear1 = gear1 + "+" + str(len(char1['equipped']))
     else:
         gear1 = "R"+str(char1['relic']['currentTier']-2)
     if char2['gear'] < 13:
         gear2 = "G"+str(char2['gear'])
+        if char2['gear'] > 9:
+            gear2 = gear2 + "+" + str(len(char2['equipped']))
     else:
         gear2 = "R"+str(char2['relic']['currentTier']-2)
 
