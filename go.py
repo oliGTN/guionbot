@@ -1795,6 +1795,9 @@ def print_erx(allyCode_txt, days, compute_guild):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_categoryList = data.get("categoryList_dict.json")
 
+    #Recuperation des dernieres donnees sur gdrive
+    liste_teams, dict_teams = connect_gsheets.load_config_teams()
+
     if not compute_guild:
         query = "SELECT name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
@@ -1809,15 +1812,49 @@ def print_erx(allyCode_txt, days, compute_guild):
               + "ORDER BY timestamp DESC"
 
     goutils.log("DBG", "go.print_erx", query)
-    db_data = connect_mysql.get_table(query)
-    if db_data != None:
-        player_name = db_data[0][0]
-        oldest = db_data[-1][2]
-        latest = db_data[0][2]
+    db_data_evo = connect_mysql.get_table(query)
+
+    if not compute_guild:
+        query = "SELECT name, defId FROM roster " \
+              + "JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE players.allyCode = " + allyCode_txt + " " \
+              + "AND defId IN (SELECT LEFT(name, LENGTH(name) - 3) FROM guild_teams WHERE name LIKE '%-GV')"
+    else:
+        query = "SELECT name, defId FROM roster " \
+              + "JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+")) "\
+              + "AND defId IN (SELECT LEFT(name, LENGTH(name) - 3) FROM guild_teams WHERE name LIKE '%-GV')"
+
+    goutils.log("DBG", "go.print_erx", query)
+    db_data_gv = connect_mysql.get_table(query)
+    dict_gv_done = {}
+    for line in db_data_gv:
+        player = line[0]
+        char_id = line[1]
+        if not (player in dict_gv_done):
+            dict_gv_done[player] = []
+        dict_gv_done[player].append(char_id)
+
+    if db_data_evo != None:
+        player_name = db_data_evo[0][0]
+        oldest = db_data_evo[-1][2]
+        latest = db_data_evo[0][2]
+
+        #prepare stats for Journey Guide
+        dict_teams_gv = {}
+        for team_name in dict_teams:
+            if team_name.endswith("-GV"):
+                team_name_gv = team_name[:-3]
+                team_elements = []
+                for team_category in dict_teams[team_name]["categories"]:
+                    list_alias = list(team_category[2].keys())
+                    team_elements = team_elements + list_alias
+                dict_teams_gv[team_name_gv] = team_elements
 
         stats_units = {} #id: [name, count]
         stats_categories = {} #id: [name, count]
-        for line in db_data:
+        stats_gv = {} #id: [name, count]
+        for line in db_data_evo:
             unit_id = line[1]
             if unit_id != "all":
                 unit_combatType = dict_unitsList[unit_id]["combatType"]
@@ -1837,8 +1874,21 @@ def print_erx(allyCode_txt, days, compute_guild):
                             else:
                                 stats_categories[category] = [category_name, 1]
 
+                    for char_gv_id in dict_teams_gv:
+                        if player_name in dict_gv_done:
+                            if char_gv_id in dict_gv_done[player_name]:
+                                continue
+                        char_gv_name = dict_unitsList[char_gv_id]["nameKey"]
+                        if unit_id in dict_teams_gv[char_gv_id]:
+                            if char_gv_id in stats_gv:
+                                stats_gv[char_gv_id][1] += 1
+                            else:
+                                stats_gv[char_gv_id] = [char_gv_name, 1]
+
+
         goutils.log("DBG", "go.print_erx", "stats_units: "+str(stats_units))
         goutils.log("DBG", "go.print_erx", "stats_categories: "+str(stats_categories))
+        goutils.log("DBG", "go.print_erx", "stats_gv: "+str(stats_gv))
 
         ret_cmd = "**Evolutions du roster de "+player_name+" durant les "+str(days)+" derniers jours "\
                 + "(du "+str(oldest)+" au "+str(latest)+")**\n"
@@ -1863,6 +1913,11 @@ def print_erx(allyCode_txt, days, compute_guild):
         list_evo_categories = sorted(faction_items, key=lambda x:-x[1][1])
         for evo in list_evo_categories[:10]:
             ret_cmd += evo[1][0] + ": " + str(evo[1][1])+'\n'
+
+        ret_cmd += "\n__TOP 10 GUIDE DE VOYAGE__\n"
+        list_gv_units = sorted(stats_gv.items(), key=lambda x:-x[1][1])
+        for gv in list_gv_units[:10]:
+            ret_cmd += gv[1][0] + ": " + str(gv[1][1])+'\n'
 
         return 0, ret_cmd
 
