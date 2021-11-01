@@ -632,7 +632,13 @@ def get_team_header(team_name, objectifs):
         #print('DBG: obj='+str(objectifs[i_level]))
         nb_sub_obj = len(objectifs[i_level][2])
         #print('DBG: nb_sub_obj='+str(nb_sub_obj))
-        entete += '**' + objectifs[i_level][0] + '**\n'
+        obj_target_count = objectifs[i_level][1]
+        if obj_target_count == nb_sub_obj:
+            obj_target_txt = "tous"
+        else:
+            obj_target_txt = str(obj_target_count)+" parmi "+str(nb_sub_obj)
+
+        entete += '**' + objectifs[i_level][0] + ' ('+obj_target_txt+')**\n'
         for i_sub_obj in range(0, nb_sub_obj):
             for perso in objectifs[i_level][2]:
                 if objectifs[i_level][2][perso][0] == i_sub_obj + 1:
