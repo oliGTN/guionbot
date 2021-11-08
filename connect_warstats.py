@@ -1140,26 +1140,32 @@ def parse_warstats_tb_page():
             goutils.log('ERR', "parse_warstats_tb_page", 'error while opening '+warstats_platoon_url)
             return '', None, None
     
-        tb_dict_platoons={}
+        tmp_tb_dict_platoons={}
+        tb_active_round = ""
         for phase in range(1,7):
             try:
                 page = urlopen(warstats_platoon_url+'/'+str(phase))
                 #print(page.headers)
                 platoon_parser = TBSPhaseParser()
                 platoon_parser.feed(str(page.read()))
-                tb_dict_platoons.update(platoon_parser.get_dict_platoons())
+                tmp_tb_dict_platoons.update(platoon_parser.get_dict_platoons())
+                tb_active_round = platoon_parser.get_active_round()
             #print("DBG - tb_dict_platoons: "+str(tb_dict_platoons))
             except urllib.error.HTTPError as e:
                 goutils.log('WAR', "parse_warstats_tb_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
     
-        warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id()+'/'+platoon_parser.get_active_round()[3]
-        page = urlopen(warstats_tb_resume_url)
-        resume_parser = TBSResumeParser()
-        resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
-        resume_parser.feed(str(page.read()))
+        if tb_active_round != "":
+            warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id()+'/'+tb_active_round[3]
+            tb_dict_platoons = tmp_tb_dict_platoons
+
+            page = urlopen(warstats_tb_resume_url)
+            resume_parser = TBSResumeParser()
+            resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
+            resume_parser.feed(str(page.read()))
     
-        tb_active_round = platoon_parser.get_active_round()
-        tb_open_territories = resume_parser.get_open_territories()
+            tb_open_territories = resume_parser.get_open_territories()
+        else:
+            goutils.log('WAR', "connect_warstats.parse_warstats_tb_page", "Erreur de lecture, renvoie des valeurs précédentes")
 
         set_next_warstats_read(resume_parser.get_last_track(), "tb_page")
 
