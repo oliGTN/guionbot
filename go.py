@@ -2005,7 +2005,7 @@ def print_raid_progress(raid_alias):
         list_scores.append(line)
 
     #Display
-    if raid_phase == 0:
+    if raid_phase == 0 or raid_phase == 5:
         raid_phase_txt = "terminé"
     else:
         raid_phase_txt = "phase "+str(raid_phase)
