@@ -1576,17 +1576,61 @@ def get_gp_distribution(txt_allyCode):
     
     return 0, "", image
 
-def get_tb_alerts():
-    tb_trigger_messages=[]
+def get_tb_alerts(force_latest):
+    territory_scores, active_round = connect_warstats.parse_warstats_tb_scores(force_latest)
+    territory_stars, daily_targets, margin = connect_gsheets.get_tb_triggers()
 
-    tb_active_triggers = connect_gsheets.get_tb_triggers({}, True)
-    #print(tb_active_triggers)
-    tb_trigger_messages = []
-    if tb_active_triggers != None and len(tb_active_triggers) > 0:
-        territory_scores = connect_warstats.parse_warstats_tb_scores()
-        #print(territory_scores)
-        if len(territory_scores) > 0:
-            tb_trigger_messages = connect_gsheets.get_tb_triggers(territory_scores, False)
+    #print(territory_scores)
+    tb_trigger_messages=[]
+    tb_name = list(territory_scores.keys())[0][0:3]
+    current_target = daily_targets[tb_name][active_round-1]
+
+    for pos, name in [[0, "top"]]:
+        current_target = current_target[pos]
+        current_target_phase = current_target.split('-')[0]
+        current_target_stars = current_target.split('-')[1]
+        full_phase_name = tb_name+"-"+current_target_phase+"-"+name
+        if not full_phase_name in territory_scores:
+            tb_trigger_messages.append("ERREUR: phase "+current_target_top_phase+" non atteinte en "+name)
+        else:
+            current_score = territory_scores[full_phase_name]
+            star1_score = territory_stars[full_phase_name][0]
+            star2_score = territory_stars[full_phase_name][1]
+            star3_score = territory_stars[full_phase_name][2]
+            if current_target_stars == "0":
+                if current_score >= star1_score:
+                    tb_trigger_messages.append("ALERTE: 1ère étoile atteinte en "+name+" alors qu'il ne fallait pas !")
+                elif current_score >= (star1_score-margin):
+                    tb_trigger_messages.append("ATTENTION: la 1ère étoile se raproche en "+name+" et il ne faut pas l'atteindre")
+            elif current_target_stars == "1":
+                if current_score >= star3_score:
+                    tb_trigger_messages.append("SUPER: 3e étoile atteinte en "+name+" alors qu'on en visait une seule !")
+                elif current_score >= star2_score:
+                    tb_trigger_messages.append("SUPER: 2e étoile atteinte en "+name+" alors qu'on en visait une seule !")
+                elif current_score >= star1_score:
+                    tb_trigger_messages.append("INFO: 1ère étoile atteinte en "+name+", objectif atteint")
+                elif current_score >= (star1_score-margin):
+                    tb_trigger_messages.append("INFO: la 1ère étoile se raproche en "+name)
+
+            elif current_target_stars == "2":
+                if current_score >= star3_score:
+                    tb_trigger_messages.append("SUPER: 3e étoile atteinte en "+name+" alors qu'on en visait seulement deux !")
+                elif current_score >= star2_score:
+                    tb_trigger_messages.append("INFO: 2e étoile atteinte en "+name+", objectif atteint")
+                elif current_score >= (star2_score-margin):
+                    tb_trigger_messages.append("INFO: la 2e étoile se raproche en "+name)
+                elif current_score >= star1_score:
+                    tb_trigger_messages.append("INFO: 1ère étoile atteinte en "+name+", en route vers la 2e")
+
+            elif current_target_stars == "3":
+                if current_score >= star3_score:
+                    tb_trigger_messages.append("INFO: 3e étoile atteinte en "+name+", objectif atteint")
+                elif current_score >= (star3_score-margin):
+                    tb_trigger_messages.append("INFO: la 3e étoile se raproche en "+name)
+                elif current_score >= star2_score:
+                    tb_trigger_messages.append("INFO: 1ère étoile atteinte en "+name+", en route vers la 3e")
+                elif current_score >= star1_score:
+                    tb_trigger_messages.append("INFO: 1ère étoile atteinte en "+name+", en route vers la 3e")
     
     return tb_trigger_messages
     
