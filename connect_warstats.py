@@ -1185,7 +1185,7 @@ def parse_warstats_tb_scores(force_latest):
             page = urlopen(warstats_tbs_url)
         except urllib.error.HTTPError as e:
             goutils.log('WAR', "parse_warstats_tb_scores", 'error while opening '+warstats_tbs_url)
-            return {}
+            return {}, 0
         
         parse_warstats_tb_scores_run_once = True
 
@@ -1200,7 +1200,7 @@ def parse_warstats_tb_scores(force_latest):
 
             set_next_warstats_read(generic_parser.get_last_track(), "tb_scores")
 
-            return {}
+            return {}, 0
         else:
             goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id(force_latest)+" in progress")
     
@@ -1209,7 +1209,7 @@ def parse_warstats_tb_scores(force_latest):
             page = urlopen(warstats_tb_resume_url)
         except urllib.error.HTTPError as e:
             goutils.log("ERR", "connect_warstats.parse_warstats_tb_scores", "error while opening "+warstats_tb_resume_url)
-            return None
+            return {}, 0
 
         resume_parser = TBSResumeParser()
         # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
