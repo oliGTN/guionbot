@@ -331,7 +331,7 @@ def update_online_dates(dict_lastseen):
         file = client.open("GuiOnBot config")
         feuille=file.worksheet("players")
     except:
-        print("Unexpected error: "+str(sys.exc_info()[0]))
+        goutils.log("ERR", "conect_gsheets.update_onlline_date", "Unexpected error: "+str(sys.exc_info()[0]))
         return
 
     #parsing title row
@@ -399,7 +399,7 @@ def update_online_dates(dict_lastseen):
         range_name=column_letter+'1:'+column_letter+str(l-1)
         feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
     else:
-        print('At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
+        goutils.log("ERR", "conect_gsheets.update_onlline_date", 'At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
 
 def get_tb_triggers():
     get_gapi_client()
