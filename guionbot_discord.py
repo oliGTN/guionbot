@@ -16,11 +16,12 @@ from discord import Activity, ActivityType, Intents, File
 from io import BytesIO
 from requests import get
 import traceback
+from collections import Counter
 
 import go
 import goutils
 from connect_gsheets import load_config_players, update_online_dates
-from connect_warstats import parse_warstats_tb_page
+from connect_warstats import parse_warstats_tb_page, parse_warstats_tw_teams
 import connect_mysql
 import portraits
 
@@ -116,6 +117,8 @@ dict_member_lastseen={} #key=discord ID, value=[discord displayname, date last s
 list_tw_opponent_msgIDs = []
 
 dict_platoons_previously_done = {} #Empy set
+list_tb_alerts_previously_done = []
+dict_open_tw_territories_previously_done = {}
 
 ##############################################################
 #                                                            #
@@ -177,12 +180,12 @@ async def bot_loop_60():
         sys.stdout.flush()
 
 ##############################################################
-# Function: bot_loop_600
+# Function: bot_loop_10minutes
 # Parameters: none
 # Purpose: cette fonction est exécutée toutes les 600 secondes
 # Output: none
 ##############################################################
-async def bot_loop_600():
+async def bot_loop_10minutes():
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
@@ -192,15 +195,15 @@ async def bot_loop_600():
             await bot.loop.run_in_executor(None, go.refresh_cache)
 
         except Exception as e:
-            goutils.log("ERR", "guionbot_discord.bot_loop_600", str(sys.exc_info()[0]))
-            goutils.log("ERR", "guionbot_discord.bot_loop_600", e)
-            goutils.log("ERR", "guionbot_discord.bot_loop_600", traceback.format_exc())
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins("Exception in bot_loop_600:"+str(sys.exc_info()[0]))
+                await send_alert_to_admins("Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
         # Wait X seconds before next loop
         t_end = time.time()
-        waiting_time = max(0, 600 - (t_end - t_start))
+        waiting_time = max(0, 60*10 - (t_end - t_start))
         await asyncio.sleep(waiting_time)
 
 def compute_platoon_progress(platoon_content):
@@ -224,8 +227,9 @@ def compute_territory_progress(dict_platoons, territory):
 # Output: none
 ##############################################################
 async def bot_loop_5minutes():
-    global limit_gp
     global dict_platoons_previously_done
+    global list_tb_alerts_previously_done
+    global dict_open_tw_territories_previously_done
     global first_bot_loop_5minutes
 
     await bot.wait_until_ready()
@@ -233,11 +237,51 @@ async def bot_loop_5minutes():
         t_start = time.time()
 
         try:
+            #CHECK ALERTS FOR TERRITORY WAR
+            list_opponent_squads = parse_warstats_tw_teams()
+            list_open_tw_territories = set([x[0] for x in list_opponent_squads])
+            dict_open_tw_territories = {}
+            for territory in list_open_tw_territories:
+                counter_leaders = Counter([x[2][0] for x in list_opponent_squads if x[0]==territory])
+                dict_open_tw_territories[territory] = dict(counter_leaders)
+
+                if not (territory in dict_open_tw_territories_previously_done):
+                    if territory[1] == "1" or territory[1] == "3":
+                        msg = "Le premier territoire "
+                    else:
+                        msg = "Le deuxième territoire "
+
+                    if territory[0] == "T" and int(territory[1]) < 3:
+                        msg += "du haut"
+                    elif territory[0] == "T":
+                        msg += "du milieu"
+                    else:
+                        msg += "du bas"
+
+                    msg += " ("+territory+") est ouvert. Avec ces adversaires :"
+                    for leader in counter_leaders:
+                        msg += "\n - "+leader+": "+str(counter_leaders[leader])
+
+                    await send_alert_to_admins(msg)
+
+            dict_open_tw_territories_previously_done = dict_open_tw_territories
+
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins("Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+
+        try:
             #CHECK ALERTS FOR BT
             list_tb_alerts = go.get_tb_alerts(False)
             for tb_alert in list_tb_alerts:
-                if not first_bot_loop_5minutes:
-                    await send_alert_to_echocommanders(tb_alert)
+                if not tb_alert in list_tb_alerts_previously_done:
+                    if not first_bot_loop_5minutes:
+                        await send_alert_to_echocommanders(tb_alert)
+
+            list_tb_alerts_previously = list_tb_alerts
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
@@ -1948,7 +1992,7 @@ def main():
     #Create periodic tasks
     if not bot_noloop_mode:
         bot.loop.create_task(bot_loop_60())
-        bot.loop.create_task(bot_loop_600())
+        bot.loop.create_task(bot_loop_10minutes())
         bot.loop.create_task(bot_loop_5minutes())
         bot.loop.create_task(bot_loop_6hours())
 
