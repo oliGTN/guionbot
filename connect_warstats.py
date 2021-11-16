@@ -235,7 +235,7 @@ dict_tw_territory_names['Special ops center']='B4'
 #timer and global variables due to warstats tracking
 next_warstats_read = {}
 WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
-WARSTATS_REFRESH_TIME = 2 * 60 #Duration of refresh
+WARSTATS_REFRESH_TIME = 5 * 60 #Duration of refresh
 next_warstats_read["tb_scores"] = time.time()
 parse_warstats_tb_scores_run_once = False
 territory_scores = []
@@ -488,13 +488,13 @@ class GenericTBSParser(HTMLParser):
                 self.state_parser=0
 
         if self.state_parser2==2:
-            ret_re = re.search('\\{seconds: (.*?)\\}', data)
+            ret_re = re.search('{seconds: (.*?)}', data)
             timer_seconds_txt = ret_re.group(1)
             self.seconds_since_last_track = int(timer_seconds_txt)
             self.state_parser2=0
                 
-    def get_battle_id(self):
-        if self.warstats_battle_in_progress:
+    def get_battle_id(self, force_latest):
+        if self.warstats_battle_in_progress or force_latest:
             return self.warstats_battle_id
         else:
             return None
@@ -508,7 +508,7 @@ class TBSResumeParser(HTMLParser):
         self.list_data=[]
         self.list_open_territories=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
         self.territory_scores=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
-        self.active_round=0
+        self.active_round=4 #if no active round is detected, the TBG is over and so active round is 4
         self.detected_phase=''
         self.seconds_since_last_track = 0
         
@@ -573,7 +573,7 @@ class TBSResumeParser(HTMLParser):
                     if name=='href':
                         self.active_round=int(value[-1])
                         self.state_parser2=0
-                        # print("DBG self.active_round: "+str(self.active_round))
+                        #print("DBG self.active_round: "+str(self.active_round))
 
         #PARSER 3 pour le timer du tracker
         if self.state_parser3==0:
@@ -603,6 +603,7 @@ class TBSResumeParser(HTMLParser):
                 self.state_parser=3
                         
     def handle_data(self, data):
+        data = data.strip(" \t\n")
         if self.state_parser==-3:
             #print(data)
             if data == 'Territory Battle ':
@@ -626,10 +627,10 @@ class TBSResumeParser(HTMLParser):
             self.state_parser=0
                 
         if self.state_parser==2:
-            if data[0]!='\\':
-                self.list_data.append(data.strip())
+            if data != '':
+                self.list_data.append(data)
         elif self.state_parser==4:
-            number = int(data.replace('/', '').replace(',', '').strip("\\nt "))
+            number = int(data.replace('/', '').replace(',', '').strip(" "))
             if self.list_data[0]=='North':
                 self.territory_scores[0]=number
             elif self.list_data[0]=='Middle':
@@ -639,13 +640,13 @@ class TBSResumeParser(HTMLParser):
             self.state_parser=1
 
         if self.state_parser3==2:
-            ret_re = re.search('\\{seconds: (.*?)\\}', data)
+            ret_re = re.search('{seconds: (.*?)}', data)
             timer_seconds_txt = ret_re.group(1)
             self.seconds_since_last_track = int(timer_seconds_txt)
             self.state_parser3=0
                 
-    def set_active_round(self, active_round):
-        self.active_round=active_round
+    def get_active_round(self):
+        return self.active_round
 
     def get_open_territories(self):
         return self.list_open_territories
@@ -653,7 +654,7 @@ class TBSResumeParser(HTMLParser):
     def get_territory_scores(self):
         dict_territory_scores = {}
 
-        # print("DBG - self.list_open_territories: "+str(self.list_open_territories))
+        #print("DBG - self.list_open_territories: "+str(self.list_open_territories))
         if self.list_open_territories[0] > 0:
             top_name = self.detected_phase+"-P"+str(self.list_open_territories[0])+"-top"
             dict_territory_scores[top_name] = self.territory_scores[0]
@@ -790,7 +791,7 @@ class TWSOpponentSquadParser(HTMLParser):
                                           or value.startswith('ship-detail')):
                         char_detected=True
                     if name=='title' and char_detected:
-                        #print("char: "+value)
+                        #print(value)
                         self.list_opp_teams[-1][2].append(value)
 
             elif tag=='td':
@@ -821,8 +822,8 @@ class TWSOpponentSquadParser(HTMLParser):
                 self.state_parser2=2
                         
     def handle_data(self, data):
+        data = data.strip(" \t\n")
         if self.state_parser==-1:
-            data = data.strip(" ")
             if data!='':
                 #print("Territory: "+data)
                 self.territory_name = dict_tw_territory_names[data]
@@ -831,7 +832,6 @@ class TWSOpponentSquadParser(HTMLParser):
                 self.state_parser=0
 
         elif self.state_parser==2:
-            data = data.strip(" ")
             if data!='':
                 #print("Player: "+data)
                 self.opp_name = data
@@ -925,6 +925,7 @@ class GenericRaidParser(HTMLParser):
                 self.state_parser=1
 
     def handle_data(self, data):
+        data = data.strip(" \t\n")
         if self.state_parser==2:
             if data=='In progress':
                 self.warstats_raid_in_progress = True
@@ -936,7 +937,6 @@ class GenericRaidParser(HTMLParser):
                 self.state_parser=1
 
         if self.state_parser==7:
-            data = data.strip(" ")
             if data==self.warstats_raid_name:
                 self.state_parser=8
             else:
@@ -1044,25 +1044,21 @@ class RaidResumeParser(HTMLParser):
                 self.state_parser=9
 
     def handle_data(self, data):
+        data = data.strip(" \t\n")
         if self.state_parser==-1:
-            data = data.strip(" ")
             self.raid_phase = int(float(data[:-1])/25 + 1)
             self.state_parser=0
 
         elif self.state_parser==1:
-            data = data.strip(" ")
             if data=="Players":
                 self.state_parser=2
 
         elif self.state_parser==6:
-            data = data.strip(" ")
-            data = data.replace('\\xc3\\xa9', 'é')
             if data!='':
                 self.player_name = data
                 self.state_parser=7
 
         elif self.state_parser==8:
-            data = data.strip(" ")
             if data!='':
                 self.dict_player_scores[self.player_name] = data
                 self.state_parser=3
@@ -1098,7 +1094,7 @@ def urlopen(url):
     goutils.log("INFO", "urlopen", url)
     return urllib.request.urlopen(req)
 
-def parse_warstats_tb_page():
+def parse_warstats_tb_page(force_latest):
     global parse_warstats_tb_page_run_once
     global next_warstats_read
     global tb_active_round
@@ -1113,15 +1109,15 @@ def parse_warstats_tb_page():
             page = urlopen(warstats_tbs_url)
         except urllib.error.HTTPError as e:
             goutils.log('ERR', "parse_warstats_tb_page", 'error while opening '+warstats_tbs_url)
-            return '', None, None
+            return tb_active_round, tb_dict_platoons, tb_open_territories
         
         parse_warstats_tb_page_run_once = True
 
         generic_parser = GenericTBSParser()
-        generic_parser.feed(str(page.read()))
+        generic_parser.feed(page.read().decode('utf-8', 'ignore'))
     
-        if generic_parser.get_battle_id() == None:
-            goutils.log('ERR', "parse_warstats_tb_page", 'no TB in progress')
+        if generic_parser.get_battle_id(force_latest) == None:
+            goutils.log('INFO', "parse_warstats_tb_page", 'no TB in progress')
 
             tb_active_round = ""
             tb_dict_platoons = None
@@ -1129,30 +1125,23 @@ def parse_warstats_tb_page():
 
             set_next_warstats_read(generic_parser.get_last_track(), "tb_page")
 
-            return '', None, None
+            return tb_active_round, tb_dict_platoons, tb_open_territories
         else:
             goutils.log('INFO', "parse_warstats_tb_page", "TB "+generic_parser.get_battle_id()+" in progress")
         
         warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
-        try:
-            page = urlopen(warstats_platoon_url)
-        except urllib.error.HTTPError as e:
-            goutils.log('ERR', "parse_warstats_tb_page", 'error while opening '+warstats_platoon_url)
-            return '', None, None
     
-        tmp_tb_dict_platoons={}
-        tb_active_round = ""
         for phase in range(1,7):
             try:
                 page = urlopen(warstats_platoon_url+'/'+str(phase))
-                #print(page.headers)
-                platoon_parser = TBSPhaseParser()
-                platoon_parser.feed(str(page.read()))
-                tmp_tb_dict_platoons.update(platoon_parser.get_dict_platoons())
-                tb_active_round = platoon_parser.get_active_round()
-            #print("DBG - tb_dict_platoons: "+str(tb_dict_platoons))
             except urllib.error.HTTPError as e:
                 goutils.log('WAR', "parse_warstats_tb_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
+                continue
+
+            platoon_parser = TBSPhaseParser()
+            platoon_parser.feed(page.read().decode('utf-8', 'ignore'))
+            tb_dict_platoons.update(platoon_parser.get_dict_platoons())
+            tb_active_round = platoon_parser.get_active_round()
     
         if tb_active_round != "":
             warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id()+'/'+tb_active_round[3]
@@ -1160,8 +1149,8 @@ def parse_warstats_tb_page():
 
             page = urlopen(warstats_tb_resume_url)
             resume_parser = TBSResumeParser()
-            resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
-            resume_parser.feed(str(page.read()))
+            #resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
+            resume_parser.feed(page.read().decode('utf-8', 'ignore'))
     
             tb_open_territories = resume_parser.get_open_territories()
         else:
@@ -1171,9 +1160,10 @@ def parse_warstats_tb_page():
 
     return tb_active_round, tb_dict_platoons, tb_open_territories
 
-def parse_warstats_tb_scores():
+def parse_warstats_tb_scores(force_latest):
     global parse_warstats_tb_scores_run_once
     global next_warstats_read
+    global tb_active_round
     global territory_scores
 
     #First, check there is value to re-parse the page
@@ -1184,34 +1174,44 @@ def parse_warstats_tb_scores():
             page = urlopen(warstats_tbs_url)
         except urllib.error.HTTPError as e:
             goutils.log('WAR', "parse_warstats_tb_scores", 'error while opening '+warstats_tbs_url)
-            return {}
+            return territory_scores, tb_active_round
         
         parse_warstats_tb_scores_run_once = True
-        generic_parser = GenericTBSParser()
-        generic_parser.feed(str(page.read()))
-        
-        if generic_parser.get_battle_id() == None:
-            goutils.log('ERR', "parse_warstats_tb_scores", 'no TB in progress')
 
+        generic_parser = GenericTBSParser()
+        generic_parser.feed(page.read().decode('utf-8', 'ignore'))
+        
+        if generic_parser.get_battle_id(force_latest) == None:
+            goutils.log('INFO', "parse_warstats_tb_scores", 'no TB in progress')
+
+            tb_active_round = ""
             territory_scores = {}
+
             set_next_warstats_read(generic_parser.get_last_track(), "tb_scores")
 
-            return {}
+            return territory_scores, tb_active_round
         else:
-            goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id()+" in progress")
+            goutils.log('INFO', "parse_warstats_tb_scores", "TB "+generic_parser.get_battle_id(force_latest)+" in progress")
     
-        warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id()
-        page = urlopen(warstats_tb_resume_url)
+        warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id(force_latest)
+        try:
+            page = urlopen(warstats_tb_resume_url)
+        except urllib.error.HTTPError as e:
+            goutils.log("ERR", "connect_warstats.parse_warstats_tb_scores", "error while opening "+warstats_tb_resume_url)
+            return territory_scores, tb_active_round
+
         resume_parser = TBSResumeParser()
         # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
-        resume_parser.feed(str(page.read()))
+        resume_parser.feed(page.read().decode('utf-8', 'ignore'))
+        tb_active_round = resume_parser.get_active_round()
     
-        goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+resume_parser.get_battle_name())
+        goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+resume_parser.get_battle_name()+\
+                                                        ", active round = "+str(tb_active_round))
         territory_scores = resume_parser.get_territory_scores()
 
         set_next_warstats_read(resume_parser.get_last_track(), "tb_scores")
 
-    return territory_scores
+    return territory_scores, tb_active_round
 
 def parse_warstats_tw_teams():
     global next_warstats_read
@@ -1225,23 +1225,23 @@ def parse_warstats_tw_teams():
             page = urlopen(warstats_tws_url)
         except urllib.error.HTTPError as e:
             goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_tws_url)
-            return {}, 0
+            return opponent_teams
         
         generic_parser = GenericTWSParser()
-        generic_parser.feed(str(page.read()))
+        generic_parser.feed(page.read().decode('utf-8', 'ignore'))
     
         war_id = generic_parser.get_war_id()
         goutils.log('INFO', "parse_warstats_tw_teams", "latest TW is "+war_id)
     
         warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
-        page = urlopen(warstats_opp_squad_url)
+        try:
+            page = urlopen(warstats_opp_squad_url)
+        except urllib.error.HTTPError as e:
+            goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_opp_squad_url)
+            return opponent_teams
+
         opp_squad_parser = TWSOpponentSquadParser()
-
-        page_read=str(page.read())
-        page_read=page_read.replace("\\n", "")
-        page_read=page_read.replace("\\t", " ")
-
-        opp_squad_parser.feed(page_read)
+        opp_squad_parser.feed(page.read().decode('utf-8', 'ignore'))
 
         opponent_teams = opp_squad_parser.get_opp_teams()
 
@@ -1262,15 +1262,15 @@ def parse_warstats_raid_scores(raid_name):
             page = urlopen(warstats_raids_url)
         except urllib.error.HTTPError as e:
             goutils.log('ERR', "parse_warstats_raid_scores", 'error while opening '+warstats_raids_url)
-            return {}, 0
+            return raid_phase[raid_name], raid_player_scores[raid_name]
         
         generic_parser = GenericRaidParser()
         generic_parser.set_raid_name(raid_name)
-        generic_parser.feed(str(page.read()))
+        generic_parser.feed(page.read().decode('utf-8', 'ignore'))
     
         [raid_id, raid_in_progress] = generic_parser.get_raid_id()
         if raid_id == 0:
-            goutils.log('ERR', "parse_warstats_raid_scores", raid_name+" raid not found")
+            goutils.log('INFO', "parse_warstats_raid_scores", raid_name+" raid not found")
             raid_player_scores[raid_name] = {}
             raid_phase[raid_name] = 0
         else:
@@ -1281,14 +1281,15 @@ def parse_warstats_raid_scores(raid_name):
                 goutils.log('INFO', "parse_warstats_raid_scores", "Latest "+raid_name+" raid is "+raid_id)
     
             warstats_raid_resume_url=warstats_raid_resume_baseurl+raid_id
-            page = urlopen(warstats_raid_resume_url)
+            try:
+                page = urlopen(warstats_raid_resume_url)
+            except urllib.error.HTTPError as e:
+                goutils.log('ERR', "parse_warstats_raid_scores", 'error while opening '+warstats_raid_resume_url)
+                return raid_phase[raid_name], raid_player_scores[raid_name]
+
             raid_resume_parser = RaidResumeParser()
 
-            page_read=str(page.read())
-            page_read=page_read.replace("\\n", "")
-            page_read=page_read.replace("\\t", " ")
-
-            raid_resume_parser.feed(page_read)
+            raid_resume_parser.feed(page.read().decode('utf-8', 'ignore'))
 
             raid_player_scores[raid_name] = raid_resume_parser.get_player_scores()
             raid_phase[raid_name] = raid_resume_parser.get_raid_phase()

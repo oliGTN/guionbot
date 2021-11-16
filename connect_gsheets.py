@@ -331,7 +331,7 @@ def update_online_dates(dict_lastseen):
         file = client.open("GuiOnBot config")
         feuille=file.worksheet("players")
     except:
-        print("Unexpected error: "+str(sys.exc_info()[0]))
+        goutils.log("ERR", "conect_gsheets.update_onlline_date", "Unexpected error: "+str(sys.exc_info()[0]))
         return
 
     #parsing title row
@@ -399,130 +399,136 @@ def update_online_dates(dict_lastseen):
         range_name=column_letter+'1:'+column_letter+str(l-1)
         feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
     else:
-        print('At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
+        goutils.log("ERR", "conect_gsheets.update_onlline_date", 'At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
 
-def get_tb_triggers(territory_scores, return_active_triggers):
-    global client    
+def get_tb_triggers():
     get_gapi_client()
     
     try:
         file = client.open("GuiOnBot config")
         feuille=file.worksheet("BT")
     except:
-        print("Unexpected error: "+str(sys.exc_info()[0]))
-        return []
+        goutils.log("ERR", "connect_gsheets.get_tb_triggers", "Unexpected error: "+str(sys.exc_info()[0]))
+        return None, None, 0
         
     #parsing title row
     col_territory=0
-    col_gp=0
-    col_date=0
-    territory_column_title='Territoire alerte'
-    gp_alert_column_title='PG alerte'
-    date_column_title='Date alerte'
-    date_column_comment='Commentaire'
+    col_star1=0
+    col_star2=0
+    col_star3=0
+    col_top=0
+    col_mid=0
+    col_bot=0
+    territory_column_title='Territoire'
+    star1_column_title='Etoile 1'
+    star2_column_title='Etoile 2'
+    star3_column_title='Etoile 3'
+    top_column_title='Top'
+    mid_column_title='Mid'
+    bot_column_title='Bot'
+    margin_column_title='Marge'
 
-    list_tb_triggers=[]
-    list_active_tb_triggers=[]
-    
+    #Detect columns
     c = 1
     first_row=feuille.row_values(1)
     for value in first_row:
         if value==territory_column_title:
             col_territory=c
-        elif value==gp_alert_column_title:
-            col_gp=c
-        elif value==date_column_title:
-            col_date=c
-        elif value==date_column_comment:
-            col_cmt=c
+        elif value==star1_column_title:
+            col_star1=c
+        elif value==star2_column_title:
+            col_star2=c
+        elif value==star3_column_title:
+            col_star3=c
+        elif value==top_column_title:
+            col_top=c
+        elif value==mid_column_title:
+            col_mid=c
+        elif value==bot_column_title:
+            col_bot=c
+        elif value==margin_column_title:
+            col_margin=c
         c+=1
 
-    if (col_date > 0) and (col_territory > 0) \
-        and (col_gp > 0) and (col_cmt > 0):
+    if (col_territory > 0) \
+        and (col_star1 > 0) \
+        and (col_star2 > 0) \
+        and (col_star3 > 0) \
+        and (col_top > 0) \
+        and (col_mid > 0) \
+        and (col_bot > 0) \
+        and (col_margin > 0):
         
-        territories=feuille.col_values(col_territory)
-        gp_alerts=feuille.col_values(col_gp)
-        alert_dates=feuille.col_values(col_date)
-        alert_comments=feuille.col_values(col_cmt)
-
         #Looping through lines, through the ID column
+        territories=feuille.col_values(col_territory)
+        star1_scores=feuille.col_values(col_star1)
+        star2_scores=feuille.col_values(col_star2)
+        star3_scores=feuille.col_values(col_star3)
+        territory_stars = {}
         l = 1
         for territory in territories:
-            if l > 1:
-                # print("DBG - territory: "+str(territory))
-                if territory!='':
-                    if territory in territory_scores:
-                        cur_score = territory_scores[territory]
-
-                        if l <= len(gp_alerts):
-                            gp_alert = gp_alerts[l-1].replace('\u202f', '')
-                            if gp_alert:
-                                gp_alert=int(gp_alert)
-                            else:
-                                gp_alert = -1
-                        else:
-                            gp_alert = -1
-
-                        if l <= len(alert_dates):
-                            cur_date = alert_dates[l-1]
-                        else:
-                            cur_date = ''
-                            
-                        if l <= len(alert_comments):
-                            cur_cmt = alert_comments[l-1]
-                        else:
-                            cur_cmt = ''
-                            
-                        # print("DBG - cur_score: "+str(cur_score))
-                        # print("DBG - gp_alert: "+str(gp_alert))
-                        # print("DBG - cur_date: "+str(cur_date))
-                        if cur_date == '' and cur_score >= gp_alert and gp_alert!=-1:
-                            message = "BT: "+territory+" a atteint "+cur_cmt \
-                                    + " (" + str(cur_score)+"/"+str(gp_alert) + ")"
-                            # print("DBG - message: "+str(message))
-                            list_tb_triggers.append(message)
-                            
-                            last_date_value=datetime.datetime.now(guild_timezone).strftime("%Y-%m-%d %H:%M:%S")
-                            if l > len(alert_dates):
-                                alert_dates.append([last_date_value])
-                            else:
-                                alert_dates[l-1] = [last_date_value]
-                        else:
-                            #no alert to be sent, just keep the date if already there
-                            if l > len(alert_dates):
-                                alert_dates.append([''])
-                            else:
-                                alert_dates[l-1] = [alert_dates[l-1]]
-                    else:
-                        #no alert to be sent, just keep the date if already there
-                        if l > len(alert_dates):
-                            alert_dates.append([''])
-                            list_active_tb_triggers.append(territory)
-                        else:
-                            if alert_dates[l-1] == '':
-                                list_active_tb_triggers.append(territory)
-                            alert_dates[l-1] = [alert_dates[l-1]]
+            if territory!='' and territory != territory_column_title:
+                star1_score = star1_scores[l-1].replace('\u202f', '')
+                if star1_score:
+                    star1_score = int(star1_score)
                 else:
-                    #no alert to be sent, just keep the date if already there
-                    if l > len(alert_dates):
-                        alert_dates.append([''])
-                    else:
-                        alert_dates[l-1] = [alert_dates[l-1]]
-            else:
-                # Title line. Need to keep it, changing the format to a list
-                alert_dates[l-1]=[alert_dates[l-1]]
+                    star1_score = -1
+
+                star2_score = star2_scores[l-1].replace('\u202f', '')
+                if star2_score:
+                    star2_score = int(star2_score)
+                else:
+                    star2_score = -1
+
+                star3_score = star3_scores[l-1].replace('\u202f', '')
+                if star3_score:
+                    star3_score = int(star3_score)
+                else:
+                    star3_score = -1
+
+                territory_stars[territory] = [star1_score, star2_score, star3_score]
+
             l+=1
-        
-        column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
-        range_name=column_letter+'1:'+column_letter+str(l-1)
-        feuille.update(range_name, alert_dates, value_input_option='USER_ENTERED')
+        goutils.log("DBG", "connect_gsheets.get_tb_triggers", 'territory_stars='+str(territory_stars))
+
+        daily_names=feuille.col_values(col_top-1)
+        top_stars=feuille.col_values(col_top)
+        mid_stars=feuille.col_values(col_mid)
+        bot_stars=feuille.col_values(col_bot)
+        daily_targets = {}
+        current_bt_name = ""
+        l = 1
+        for daily_name in daily_names:
+            top_target = top_stars[l-1] + '-' + top_stars[l]
+            mid_target = mid_stars[l-1] + '-' + mid_stars[l]
+            bot_target = bot_stars[l-1] + '-' + bot_stars[l]
+
+            if daily_name!='':
+                if top_stars[l-1] == top_column_title:
+                    current_bt_name = daily_name
+                elif daily_name!='':
+                    day_index = int(daily_name[-1])-1
+                    if not current_bt_name in daily_targets:
+                        daily_targets[current_bt_name] = [[], [], [], []]
+                    daily_targets[current_bt_name][day_index] = [top_target, mid_target, bot_target]
+            l+=1
+        goutils.log("DBG", "connect_gsheets.get_tb_triggers", 'daily_targets='+str(daily_targets))
+
+        margin = feuille.col_values(col_margin)[1]
+        margin = margin.replace('\u202f', '')
+        if margin:
+            margin = int(margin)
+        else:
+            margin = 0
+        goutils.log("DBG", "connect_gsheets.get_tb_triggers", 'margin='+str(margin))
+
     else:
-        print('At least one column among "'+territory_column_title+'", "' +\
-                gp_alert_column_title+'", "' +\
-                date_column_title+'" and "' +\
-                date_column_comment+'" is not found >> BT alerts not sent')
+        goutils.log("ERR", "connect_gsheets.get_tb_triggers", 'At least one column among "'+territory_column_title+'", "' +\
+                star1_column_title+'", "' +\
+                star2_column_title+'", "' +\
+                star3_column_title+'", "' +\
+                top_column_title+'", "' +\
+                mid_column_title+'", "' +\
+                bot_column_comment+'" is not found >> BT alerts not sent')
                 
-    if return_active_triggers:
-        return list_active_tb_triggers
-    else:
-        return list_tb_triggers
+    return territory_stars, daily_targets, margin
