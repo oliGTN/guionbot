@@ -406,7 +406,7 @@ def get_tb_triggers():
     
     try:
         file = client.open("GuiOnBot config")
-        feuille=file.worksheet("BTdev")
+        feuille=file.worksheet("BT")
     except:
         goutils.log("ERR", "connect_gsheets.get_tb_triggers", "Unexpected error: "+str(sys.exc_info()[0]))
         return None, None, 0
