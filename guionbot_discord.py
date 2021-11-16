@@ -255,6 +255,8 @@ async def bot_loop_5minutes():
                         msg += "du haut"
                     elif territory[0] == "T":
                         msg += "du milieu"
+                    elif territory[0] == "F":
+                        msg += "des vaisseaux"
                     else:
                         msg += "du bas"
 
@@ -262,7 +264,8 @@ async def bot_loop_5minutes():
                     for leader in counter_leaders:
                         msg += "\n - "+leader+": "+str(counter_leaders[leader])
 
-                    await send_alert_to_admins(msg)
+                    if not first_bot_loop_5minutes:
+                        await send_alert_to_admins(msg)
 
             dict_open_tw_territories_previously_done = dict_open_tw_territories
 
