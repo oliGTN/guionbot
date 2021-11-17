@@ -695,12 +695,15 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         if e != 0:
             #error wile loading guild data
             return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
+
+        collection_name = d["name"]
             
     else:
         #Get data for the guild and associated players
         ret, guild = load_guild(txt_allyCode, True, True)
         if ret != 'OK':
             goutils.log("WAR", "go.get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
+        collection_name = guild["name"]
 
     if not ('all' in list_team_names) and gv_mode:
         #Need to transform the name of the team into a character
@@ -867,17 +870,17 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
             ret_get_team_progress[team_name] = ret_team, [count_green, count_almost_green,
                                                           count_amber, count_red, count_not_enough]
 
-    return ret_get_team_progress
+    return collection_name, ret_get_team_progress
 
 def print_vtg(list_team_names, txt_allyCode):
-    ret_print_vtx = ""
 
-    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
+    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
                                               True, False)
     if type(ret_get_team_progress) == str:
         goutils.log("ERR", "go.print_vtg", "get_team_progress has returned an error: "+ret_print_vtx)
         return 1,  ret_get_team_progress
     else:
+        ret_print_vtx = "Vérification des Teams de la Guilde **"+guild_name+"**\n\n"
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
             if type(ret_team) == str:
@@ -891,40 +894,49 @@ def print_vtg(list_team_names, txt_allyCode):
                 for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
                     if score == 999999:
                         #Header of the team
-                        ret_print_vtx += txt + "\n"
+                        ret_print_vtx += txt
+                        if len(list_team_names)==1 and list_team_names[0]!="all":
+                            ret_print_vtx += "\n"
                     else:
+                        line_print_vtx = ""
                         if score >= SCORE_GREEN and not nogo:
-                            ret_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
+                            line_print_vtx += "\N{WHITE HEAVY CHECK MARK}"
                         elif score >= SCORE_ALMOST_GREEN and not nogo:
-                            ret_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                            line_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
                         elif score >= SCORE_AMBER and not nogo:
-                            ret_print_vtx += "\N{CONFUSED FACE}"
+                            line_print_vtx += "\N{CONFUSED FACE}"
                         elif score >= SCORE_RED:
-                            ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
+                            line_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
                             total_not_enough -= 1
 
                         if score >= SCORE_RED:
-                            ret_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
-                if total_not_enough > 0:
-                    ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
+                            line_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
 
-                ret_print_vtx += "\n**Total**: " + str(total_green) + " \N{WHITE HEAVY CHECK MARK}" \
+                        if len(list_team_names)==1 and list_team_names[0]!="all":
+                            ret_print_vtx += line_print_vtx
+
+                if total_not_enough > 0:
+                    if len(list_team_names)==1 and list_team_names[0]!="all":
+                        ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
+
+                if len(list_team_names)==1 and list_team_names[0]!="all":
+                    ret_print_vtx += "\n"
+                ret_print_vtx += "**Total**: " + str(total_green) + " \N{WHITE HEAVY CHECK MARK}" \
                                + " + " + str(total_almost_green) + " \N{WHITE RIGHT POINTING BACKHAND INDEX}" \
                                + " + " + str(total_amber) + " \N{CONFUSED FACE}"
 
-            ret_print_vtx += "\n"
+            ret_print_vtx += "\n\n"
                 
     return 0, ret_print_vtx
 
 def print_vtj(list_team_names, txt_allyCode):
-    ret_print_vtx = ""
-
-    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
+    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
                                               False, False)
     if type(ret_get_team_progress) == str:
         goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
     else:
+        ret_print_vtx = "Vérification des Teams du Joueur **"+player_name+"**\n\n"
         if len(ret_get_team_progress) > 0:
             values_view = ret_get_team_progress.values()
             value_iterator = iter(values_view)
@@ -968,7 +980,7 @@ def print_vtj(list_team_names, txt_allyCode):
 def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
     
-    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, False, True)
+    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, False, True)
     if type(ret_get_team_progress) == str:
         return ret_get_team_progress
     
@@ -1020,7 +1032,7 @@ def print_gvj(list_team_names, txt_allyCode):
 def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
     
-    ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, True, True)
+    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, True, True)
     
     list_lines = []
     for team in ret_get_team_progress:
@@ -1064,7 +1076,7 @@ def assign_gt(allyCode):
     #print(liste_team_names)
 
     #Calcule des meilleurs joueurs pour chaque team
-    dict_teams = get_team_progress(liste_team_names, allyCode, True, True)
+    dict_teams = guild_name, get_team_progress(liste_team_names, allyCode, True, True)
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1135,7 +1147,7 @@ def guild_counter_score(txt_allyCode):
     list_counter_teams = connect_gsheets.load_config_counter()
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
-    dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True, True)
+    guild_name, dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True, True)
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]
@@ -2004,7 +2016,7 @@ def print_raid_progress(raid_alias):
     raid_name = raid_config[0]
     raid_teams = raid_config[1]
     raid_team_names = raid_teams.keys()
-    dict_teams = get_team_progress(raid_team_names, config.MASTER_GUILD_ALLYCODE, True, False)
+    guild_name, dict_teams = get_team_progress(raid_team_names, config.MASTER_GUILD_ALLYCODE, True, False)
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
