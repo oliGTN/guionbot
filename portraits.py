@@ -24,15 +24,22 @@ dict_colors["red"] = (128, 0, 0)
 dict_colors["bright_blue"] = (128, 128, 255)
 dict_colors["dark_blue"] = (0, 0, 255)
 
+dict_specific_image_names={}
+dict_specific_image_names["TIEFIGHTERFOSF"] = "fosf_tie_fighter"
+
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
         #url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
-        swgoh_img_name = character_id.lower()
-        swgoh_img_name = swgoh_img_name.replace("'", "")
-        swgoh_img_name = swgoh_img_name.replace(" ", "-")
-        swgoh_img_name = swgoh_img_name.replace("_", "-")
-        swgoh_img_name = swgoh_img_name.replace("capital", "")
+        if character_id in dict_specific_image_names:
+            swgoh_img_name = dict_specific_image_names[character_id]
+        else:
+            swgoh_img_name = character_id.lower()
+            swgoh_img_name = swgoh_img_name.replace("'", "")
+            swgoh_img_name = swgoh_img_name.replace(" ", "-")
+            swgoh_img_name = swgoh_img_name.replace("_", "-")
+            swgoh_img_name = swgoh_img_name.replace("capital", "")
+
         swgoh_img_name = "tex.charui_" + swgoh_img_name + ".png"
         url = 'https://game-assets.swgoh.gg/' + swgoh_img_name
         goutils.log("INFO", "get_image_from_id", "download portrait from swgoh.gg "+url)
