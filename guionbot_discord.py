@@ -722,46 +722,68 @@ def manage_me(ctx, alias):
     elif alias[:3] == '<@!':
         # discord @mention
         discord_id_txt = alias[3:-1]
-        goutils.log("INFO", "manage_me", "command launched with discord @mention "+alias)
+        goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
         dict_players_by_ID = load_config_players()[1]
         if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players_by_ID.keys():
             ret_allyCode_txt = str(dict_players_by_ID[int(discord_id_txt)][0])
         else:
-            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie de la guilde'
+            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
     elif not alias.isnumeric():
         # Look for the name among known player names
         results = connect_mysql.get_table("SELECT name, allyCode FROM players")
         list_names = [x[0] for x in results]
-    
-        closest_names=difflib.get_close_matches(alias, list_names, 1)
-        #print(closest_names)
-        if len(closest_names)<1:
-            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs connus'
-            goutils.log("DBG", "manage_me", alias + " is not a DB name")
+        closest_names_db=difflib.get_close_matches(alias, list_names, 1)
+        if len(closest_names_db) == 0:
+            closest_name_db = ""
+            closest_name_db_score = 0
         else:
-            goutils.log("INFO", "manage_me", alias +" looks like the DB name "+closest_names[0])
-            for r in results:
-                if r[0] == closest_names[0]:
-                    ret_allyCode_txt = str(r[1])
-                    return ret_allyCode_txt
+            closest_name_db = closest_names_db[0]
+            closest_name_db_score = difflib.SequenceMatcher(None, alias, closest_name_db).ratio()
+        print(closest_name_db+": "+str(closest_name_db_score))
 
         #check among discord names
-        list_discord_names = [x.display_name.replace("[Officier]", "") for x in ctx.guild.members]
-        closest_names=difflib.get_close_matches(alias, list_discord_names, 1)
-        #print(closest_names)
-        if len(closest_names)>0:
-            discord_name = closest_names[0]
-            goutils.log("INFO", "manage_me", alias + " looks like the discord name "+discord_name)
-            discord_id = [x.id for x in ctx.guild.members if x.display_name.replace("[Officier]", "") == discord_name][0]
+        if ctx != None and (closest_name_db != alias):
+            #Remove text in [] and in ()
+            list_discord_names = [re.sub(r'\([^)]*\)', '',
+                                    re.sub(r'\[[^)]*\]', '',x.display_name)).strip()
+                                    for x in ctx.guild.members]
+            closest_names_discord=difflib.get_close_matches(alias, list_discord_names, 1)
+            if len(closest_names_discord) == 0:
+                closest_name_discord = ""
+                closest_name_discord_score = 0
+            else:
+                closest_name_discord = closest_names_discord[0]
+                closest_name_discord_score = difflib.SequenceMatcher(None, alias, closest_name_discord).ratio()
+            print(closest_name_discord+": "+str(closest_name_discord_score))
+
+            if closest_name_db_score >= closest_name_discord_score:
+                select_db_name = True
+            else:
+                select_db_name = False
+        else:
+            select_db_name = True
+
+        if select_db_name:
+            if closest_name_db_score == 0:
+                goutils.log("WAR", "guionbot_discord.manage_me", alias +" not found in DB and in discord")
+                ret_allyCode_txt = "ERR: "+alias+" n'a pas été trouvé"
+            else:
+                goutils.log("INFO", "guionbot_discord.manage_me", alias +" looks like the DB name "+closest_name_db)
+                for r in results:
+                    if r[0] == closest_name_db:
+                        ret_allyCode_txt = str(r[1])
+
+        else:
+            goutils.log("INFO", "guionbot_discord.manage_me", alias + " looks like the discord name "+closest_name_discord)
+
+            discord_id = [x.id for x in ctx.guild.members \
+                            if x.display_name.replace("[Officier]", "") == closest_name_discord][0]
             dict_players_by_ID = load_config_players()[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
-                return ret_allyCode_txt
             else:
-                goutils.log("ERR", "manage_me", alias + " ne fait pas partie de la guilde")
-        else:
-            goutils.log("DBG", "manage_me", alias + " is not a discord name")
-
+                goutils.log("ERR", "guionbot_discord.manage_me", alias + " ne fait pas partie des joueurs enregistrés")
+                ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
     else:
         # number >> allyCode
