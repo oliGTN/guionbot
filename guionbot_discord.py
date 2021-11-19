@@ -1188,7 +1188,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         await ctx.message.add_reaction(emoji_thumb)
 
         if len(options) != 2:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help gsp")
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rrg")
             await ctx.message.add_reaction(emoji_error)
             return
 
