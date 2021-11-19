@@ -266,6 +266,10 @@ async def bot_loop_5minutes():
 
                     if not first_bot_loop_5minutes:
                         await send_alert_to_admins(msg)
+                        tw_bot_channel_id = 828319466341138472
+                        tw_bot_channel = bot.get_channel(tw_bot_channel_id)
+                        await tw_bot_channel.send(msg)
+
 
             dict_open_tw_territories_previously_done = dict_open_tw_territories
 
@@ -739,7 +743,6 @@ def manage_me(ctx, alias):
         else:
             closest_name_db = closest_names_db[0]
             closest_name_db_score = difflib.SequenceMatcher(None, alias, closest_name_db).ratio()
-        print(closest_name_db+": "+str(closest_name_db_score))
 
         #check among discord names
         if ctx != None and (closest_name_db != alias):
@@ -754,7 +757,6 @@ def manage_me(ctx, alias):
             else:
                 closest_name_discord = closest_names_discord[0]
                 closest_name_discord_score = difflib.SequenceMatcher(None, alias, closest_name_discord).ratio()
-            print(closest_name_discord+": "+str(closest_name_discord_score))
 
             if closest_name_db_score >= closest_name_discord_score:
                 select_db_name = True
@@ -1181,14 +1183,25 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.command(name='rrg',
                  brief="Résultats de raid de Guilde",
                  help="Résultats de raid de Guilde\n\n"
-                      "Exemple : go.rrg hrancor")
-    async def rrg(self, ctx, *args):
+                      "Exemple : go.rrg me hrancor")
+    async def rrg(self, ctx, *options):
         await ctx.message.add_reaction(emoji_thumb)
-        if len(args) != 1:
-            await ctx.send("ERR: merci de spécifier le nom du raid (ex: \"go.rrg hrancor\")")
+
+        if len(options) != 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help gsp")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = options[0]
+        raid_name = options[1]
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.print_raid_progress(args[0])
+            err, errtxt, ret_cmd = go.print_raid_progress(allyCode, raid_name)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
