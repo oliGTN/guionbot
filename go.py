@@ -511,8 +511,10 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                 if gv_mode:
                     character_id_team = character_id + '-GV'
                     if character_id_team in dict_teams[player_name]:
+                        print(team_name_path+'/'+character_id_team, dict_teams, dict_team_gt, gv_mode, player_name)
                         score, unlocked, character_display, nogo, list_char = get_team_line_from_player(team_name_path+'/'+character_id_team,
                             dict_teams, dict_team_gt, gv_mode, player_name)
+                        print(score, unlocked, character_display, nogo, list_char)
 
                         #Unlocking a chatacter only gives the rarity so by default 50%
                         score = score / 200.0
@@ -1997,26 +1999,25 @@ def print_erx(allyCode_txt, days, compute_guild):
 # Function: print_raid_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_raid_progress(raid_alias):
+def print_raid_progress(allyCode_txt, raid_alias):
     dict_raids = connect_gsheets.load_config_raids()
     if raid_alias in dict_raids:
         raid_config = dict_raids[raid_alias]
     else:
         return 1, "ERR: unknown raid", ""
 
-    #raid_config = connect_gsheets.get_raid_config(raid_name)
-    #raid_config = ["Rancor (challenge)",
-    #        {"PADME-RANCOR":  [1,  1441790,  2059700],
-    #         "SEE-RANCOR":    [1,  1441790,  2059700],
-    #         "JMK-RANCOR":    [1, 13000000, 21000000],
-    #         "VADOR-RANCOR":  [2,  1821292,  3642585],
-    #         "SHAAKTI-RANCOR":[2,  1821293,  3278327],
-    #         "SLKR-RANCOR":   [2,  5463879,  7285171]}]
+    query = "SELECT warstats_id FROM guilds "
+    query+= "JOIN players ON guilds.name = players.guildName "
+    query+= "where allyCode = "+allyCode_txt
+    warstats_id = connect_mysql.get_value(query)
+
+    if warstats_id == None or warstats_id == 0:
+        return 1, "ERR: ID de guilde warstats non défini", ""
 
     raid_name = raid_config[0]
     raid_teams = raid_config[1]
     raid_team_names = raid_teams.keys()
-    guild_name, dict_teams = get_team_progress(raid_team_names, config.MASTER_GUILD_ALLYCODE, True, False)
+    guild_name, dict_teams = get_team_progress(raid_team_names, allyCode_txt, True, False)
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -2025,7 +2026,7 @@ def print_raid_progress(raid_alias):
             player_name = line[4]
             dict_teams_by_player[team][player_name] = not nogo
 
-    raid_phase, raid_scores = connect_warstats.parse_warstats_raid_scores(raid_name)
+    raid_phase, raid_scores = connect_warstats.parse_warstats_raid_scores(warstats_id, raid_name)
 
     #Player lines
     list_scores = []
@@ -2071,7 +2072,7 @@ def print_raid_progress(raid_alias):
         raid_phase_txt = "terminé"
     else:
         raid_phase_txt = "phase "+str(raid_phase)
-    ret_print_raid_progress = "Résultat du raid "+raid_name+" ("+raid_phase_txt+")\n\n"
+    ret_print_raid_progress = "Résultat du Raid "+raid_name+" ("+raid_phase_txt+") pour la guilde "+guild_name+"\n\n"
     ret_print_raid_progress+= "Teams utilisée :\n"
     team_id = 1
     for team in raid_team_names:
