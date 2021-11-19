@@ -19,7 +19,7 @@ warstats_tws_url='https://goh.warstats.net/guilds/tws/'+config.WARSTATS_GUILD_ID
 warstats_opp_squad_baseurl='https://goh.warstats.net/territory-wars/squads/opponent/'
 
 # URLs for RAIDS
-warstats_raids_url='https://goh.warstats.net/guilds/raids/'+config.WARSTATS_GUILD_ID
+warstats_raids_url='https://goh.warstats.net/guilds/raids/'
 warstats_raid_resume_baseurl='https://goh.warstats.net/raids/view/'
 
 tab_dict_platoons=[] #de haut en bas
@@ -1249,7 +1249,7 @@ def parse_warstats_tw_teams():
 
     return opponent_teams
 
-def parse_warstats_raid_scores(raid_name):
+def parse_warstats_raid_scores(guild_warstats_id, raid_name):
     global next_warstats_read
     global raid_player_scores
     global raid_phase
@@ -1258,10 +1258,11 @@ def parse_warstats_raid_scores(raid_name):
     if time.time() < next_warstats_read["raid_scores"]:
         goutils.log("DBG", "parse_warstats_raid_scores", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("raid_scores"))+" secs")
     else:
+        warstats_raids_url_guild = warstats_raids_url + str(guild_warstats_id)
         try:
-            page = urlopen(warstats_raids_url)
+            page = urlopen(warstats_raids_url_guild)
         except urllib.error.HTTPError as e:
-            goutils.log('ERR', "parse_warstats_raid_scores", 'error while opening '+warstats_raids_url)
+            goutils.log('ERR', "parse_warstats_raid_scores", 'error while opening '+warstats_raids_url_guild)
             return raid_phase[raid_name], raid_player_scores[raid_name]
         
         generic_parser = GenericRaidParser()
