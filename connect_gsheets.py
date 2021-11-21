@@ -383,11 +383,11 @@ def update_online_dates(dict_lastseen):
                                 online_dates[l-1] = [last_date_value]
                     else:
                         # ID is gsheets does not match an ID in Discord
-                        goutils.log("WAR", "update_online_dates", 'Discord ID '+str(id)+' not found among guild members')
+                        goutils.log("DBG", "connect_gsheets.update_online_dates", 'Discord ID '+str(id)+' not found among guild members')
                         if l > len(online_dates):
-                            online_dates.append(['not found in Discord'])
+                            online_dates.append(['Not a guild member'])
                         else:
-                            online_dates[l-1] = ['not found in Discord']
+                            online_dates[l-1] = ['Not a guild member']
                         
                     # print('id='+str(id)+' '+str(online_dates[l-1]))
             else:
