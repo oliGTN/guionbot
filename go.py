@@ -15,6 +15,7 @@ import matplotlib
 matplotlib.use('Agg') #Preventin GTK erros at startup
 import matplotlib.pyplot as plt
 from PIL import Image
+from collections import Counter
 
 import connect_gsheets
 import connect_mysql
@@ -1734,9 +1735,16 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     char_def_id = list_character_ids[0]
 
     #Get full character names for defense squads
-    list_opp_squad_ids = []
 
-    list_opponent_squads = connect_warstats.parse_warstats_tw_teams()
+    query = "SELECT warstats_id FROM guilds "
+    query+= "JOIN players ON guilds.name = players.guildName "
+    query+= "where allyCode = "+allyCode_txt
+    warstats_id = connect_mysql.get_value(query)
+
+    if warstats_id == None or warstats_id == 0:
+        return 1, "ERR: ID de guilde warstats non défini\n", None
+
+    list_opponent_squads = connect_warstats.parse_warstats_tw_teams(warstats_id)
     if len(list_opponent_squads) == 0:
         goutils.log("ERR", "go.get_tw_battle_image", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
@@ -1747,6 +1755,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if txt != '':
         err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
+    list_opp_squad_ids = []
     for opp_squad in list_opponent_squads:
         territory = opp_squad[0]
         player_name = opp_squad[1]
@@ -2107,3 +2116,41 @@ def print_raid_progress(allyCode_txt, raid_alias):
 
 
     return 0, "", ret_print_raid_progress
+
+def get_tw_alerts():
+    query = "SELECT name, twChannel_id, warstats_id FROM guilds "
+    query+= "WHERE twChannel_id > 0 AND warstats_id > 0"
+    goutils.log('DBG', 'go.get_tw_alerts', query)
+    db_data = connect_mysql.get_table(query)
+
+    dict_tw_alerts = {}
+    for [guildName, twChannel_id, warstats_id] in db_data:
+        dict_tw_alerts[guildName] = [twChannel_id, []]
+
+        list_opponent_squads = connect_warstats.parse_warstats_tw_teams(warstats_id)
+        list_open_tw_territories = set([x[0] for x in list_opponent_squads])
+
+        for territory in list_open_tw_territories:
+            counter_leaders = Counter([x[2][0] for x in list_opponent_squads if x[0]==territory])
+
+            if territory[1] == "1" or territory[1] == "3":
+                msg = "Le premier territoire "
+            else:
+                msg = "Le deuxième territoire "
+
+            if territory[0] == "T" and int(territory[1]) < 3:
+                msg += "du haut"
+            elif territory[0] == "T":
+                msg += "du milieu"
+            elif territory[0] == "F":
+                msg += "des vaisseaux"
+            else:
+                msg += "du bas"
+
+            msg += " ("+territory+") est ouvert. Avec ces adversaires :"
+            for leader in counter_leaders:
+                msg += "\n - "+leader+": "+str(counter_leaders[leader])
+
+            dict_tw_alerts[guildName][1].append(msg)
+
+    return dict_tw_alerts
