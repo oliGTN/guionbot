@@ -15,7 +15,7 @@ warstats_platoons_baseurl='https://goh.warstats.net/platoons/view/'
 warstats_tb_resume_baseurl='https://goh.warstats.net/territory-battles/view/'
 
 # URLs for TW
-warstats_tws_url='https://goh.warstats.net/guilds/tws/'+config.WARSTATS_GUILD_ID
+warstats_tws_url='https://goh.warstats.net/guilds/tws/'
 warstats_opp_squad_baseurl='https://goh.warstats.net/territory-wars/squads/opponent/'
 
 # URLs for RAIDS
@@ -1213,7 +1213,7 @@ def parse_warstats_tb_scores(force_latest):
 
     return territory_scores, tb_active_round
 
-def parse_warstats_tw_teams():
+def parse_warstats_tw_teams(guild_id):
     global next_warstats_read
     global opponent_teams
 
@@ -1222,9 +1222,10 @@ def parse_warstats_tw_teams():
         goutils.log("DBG", "parse_warstats_tw_teams", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tw_teams"))+" secs")
     else:
         try:
-            page = urlopen(warstats_tws_url)
+            warstats_tws_url_guild = warstats_tws_url + str(guild_id)
+            page = urlopen(warstats_tws_url_guild)
         except urllib.error.HTTPError as e:
-            goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_tws_url)
+            goutils.log('ERR', "parse_warstats_tw_teams", 'error while opening '+warstats_tws_url_guild)
             return opponent_teams
         
         generic_parser = GenericTWSParser()
