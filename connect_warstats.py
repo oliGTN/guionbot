@@ -232,6 +232,9 @@ dict_tw_territory_names['Main base']='F2'
 dict_tw_territory_names['Command post']='T4'
 dict_tw_territory_names['Special ops center']='B4'
 
+dict_raid_tiers={}
+dict_raid_tiers['Rancor (challenge)']=[41193988, 36425856, 39461352, 37943604]
+
 #timer and global variables due to warstats tracking
 next_warstats_read = {}
 WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
@@ -1060,7 +1063,12 @@ class RaidResumeParser(HTMLParser):
 
         elif self.state_parser==8:
             if data!='':
-                self.dict_player_scores[self.player_name] = data
+                if data == "-":
+                    score = 0
+                else:
+                    score_txt = data.replace(",", "")
+                    score=int(score_txt)
+                self.dict_player_scores[self.player_name] = score
                 self.state_parser=3
 
         #PARSER 2 for TIME TRACK
@@ -1295,6 +1303,18 @@ def parse_warstats_raid_scores(guild_warstats_id, raid_name):
 
             raid_player_scores[raid_name] = raid_resume_parser.get_player_scores()
             raid_phase[raid_name] = raid_resume_parser.get_raid_phase()
+            if raid_phase[raid_name] == 5:
+                total_score = sum(raid_player_scores[raid_name].values())
+                if total_score >= sum(dict_raid_tiers[raid_name]):
+                    raid_phase[raid_name] = 5
+                elif total_score >= sum(dict_raid_tiers[raid_name][:3]):
+                    raid_phase[raid_name] = 4
+                elif total_score >= sum(dict_raid_tiers[raid_name][:2]):
+                    raid_phase[raid_name] = 3
+                elif total_score >= sum(dict_raid_tiers[raid_name][:1]):
+                    raid_phase[raid_name] = 2
+                else:
+                    raid_phase[raid_name] = 1
 
         set_next_warstats_read(generic_parser.get_last_track(), "raid_scores")
 

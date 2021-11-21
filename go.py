@@ -2052,12 +2052,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
                 normal_score += team_normal_score
                 super_score += team_super_score
             line.append(player_has_team)
-        player_score_txt = raid_scores[player_name]
-        if player_score_txt == '-':
-            player_score = 0
-        else:
-            player_score_txt = player_score_txt.replace(',', '')
-            player_score = int(player_score_txt)
+        player_score = raid_scores[player_name]
         line.append(player_score)
         line.append(normal_score)
         line.append(super_score)
