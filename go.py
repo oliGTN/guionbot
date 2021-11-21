@@ -1738,7 +1738,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     query = "SELECT warstats_id FROM guilds "
     query+= "JOIN players ON guilds.name = players.guildName "
-    query+= "where allyCode = "+allyCode_txt
+    query+= "where allyCode = "+allyCode_attack
     warstats_id = connect_mysql.get_value(query)
 
     if warstats_id == None or warstats_id == 0:
