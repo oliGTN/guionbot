@@ -16,7 +16,6 @@ from discord import Activity, ActivityType, Intents, File
 from io import BytesIO
 from requests import get
 import traceback
-from collections import Counter
 
 import go
 import goutils
@@ -118,7 +117,7 @@ list_tw_opponent_msgIDs = []
 
 dict_platoons_previously_done = {} #Empy set
 list_tb_alerts_previously_done = []
-dict_open_tw_territories_previously_done = {}
+dict_tw_alerts_previously_done = {}
 
 ##############################################################
 #                                                            #
@@ -229,7 +228,7 @@ def compute_territory_progress(dict_platoons, territory):
 async def bot_loop_5minutes():
     global dict_platoons_previously_done
     global list_tb_alerts_previously_done
-    global dict_open_tw_territories_previously_done
+    global dict_tw_alerts_previously_done
     global first_bot_loop_5minutes
 
     await bot.wait_until_ready()
@@ -238,40 +237,20 @@ async def bot_loop_5minutes():
 
         try:
             #CHECK ALERTS FOR TERRITORY WAR
-            list_opponent_squads = parse_warstats_tw_teams()
-            list_open_tw_territories = set([x[0] for x in list_opponent_squads])
-            dict_open_tw_territories = {}
-            for territory in list_open_tw_territories:
-                counter_leaders = Counter([x[2][0] for x in list_opponent_squads if x[0]==territory])
-                dict_open_tw_territories[territory] = dict(counter_leaders)
+            dict_tw_alerts = go.get_tw_alerts()
+            for guildName in dict_tw_alerts:
+                [channel_id, list_messages] = dict_tw_alerts[guildName]
+                for msg in list_messages:
+                    if     (not guildName in dict_tw_alerts_previously_done) \
+                        or (not msg in dict_tw_alerts_previously_done[guildName][1]):
 
-                if not (territory in dict_open_tw_territories_previously_done):
-                    if territory[1] == "1" or territory[1] == "3":
-                        msg = "Le premier territoire "
-                    else:
-                        msg = "Le deuxième territoire "
+                        if not first_bot_loop_5minutes:
+                            await send_alert_to_admins(guildName+": "+msg)
+                            tw_bot_channel = bot.get_channel(channel_id)
+                            await tw_bot_channel.send(msg)
+                    goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", "TW alert: "+msg)
 
-                    if territory[0] == "T" and int(territory[1]) < 3:
-                        msg += "du haut"
-                    elif territory[0] == "T":
-                        msg += "du milieu"
-                    elif territory[0] == "F":
-                        msg += "des vaisseaux"
-                    else:
-                        msg += "du bas"
-
-                    msg += " ("+territory+") est ouvert. Avec ces adversaires :"
-                    for leader in counter_leaders:
-                        msg += "\n - "+leader+": "+str(counter_leaders[leader])
-
-                    if not first_bot_loop_5minutes:
-                        await send_alert_to_admins(msg)
-                        tw_bot_channel_id = 828319466341138472
-                        tw_bot_channel = bot.get_channel(tw_bot_channel_id)
-                        await tw_bot_channel.send(msg)
-
-
-            dict_open_tw_territories_previously_done = dict_open_tw_territories
+            dict_tw_alerts_previously_done = dict_tw_alerts
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
