@@ -266,6 +266,7 @@ async def bot_loop_5minutes():
                 if not tb_alert in list_tb_alerts_previously_done:
                     if not first_bot_loop_5minutes:
                         await send_alert_to_echocommanders(tb_alert)
+                goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "TB alert: "+tb_alert)
 
             list_tb_alerts_previously = list_tb_alerts
 
@@ -339,7 +340,8 @@ async def bot_loop_5minutes():
                                 msg = "Platoon "+territory_platoon+" has reached 100% (" \
                                         +territory_display+": "+str(territory_full_count)+"/6)"
                             goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
-                            await send_alert_to_admins(msg)
+                            if not first_bot_loop_5minutes:
+                                await send_alert_to_echocommanders(msg)
 
                 if not new_allocation_detected:
                     goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "No new platoon allocation")
