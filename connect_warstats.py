@@ -265,15 +265,18 @@ def get_next_warstats_read(counter_name):
     time_to_wait = next_warstats_read[counter_name] - int(time.time())
     return time_to_wait
     
-class TBSPhaseParser(HTMLParser):
+###################################################################################
+# Parseing of a platoon page for a specific phase in TB
+###################################################################################
+class TBSPhasePlatoonParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.dict_platoons={} #key="A1" to "C6", value={} key=perso, value=[player, ...]
         self.platoon_name=''
         self.char_name=''
         self.player_name=''
-        self.detected_phase=''
-        self.active_round=''
+        self.page_round='' # "GDS1" with the phase of the parsed page
+        self.active_round='' # "GDS1" with the current phase of the TB
         self.state_parser=-4
         #-4: en recherche de h2
         #-3: en recharche de data="Territory Battle"
@@ -313,7 +316,7 @@ class TBSPhaseParser(HTMLParser):
             if tag=='a':
                 for name, value in attrs:
                     if name=='href':
-                        self.detected_phase=self.detected_phase[0:3]+value[-1]
+                        self.page_round=self.page_round[0:3]+value[-1]
                     if name=='class' and value=='active':
                         self.state_parser=3
 
@@ -328,7 +331,7 @@ class TBSPhaseParser(HTMLParser):
                     if name=='class' and value=='card platoon':
                         self.state_parser=4
                     if name=='id' and self.state_parser==4:
-                        self.platoon_name=self.detected_phase+'-'+dict_platoon_names[self.detected_phase][value[-2:-1]]+'-'+value[-1]
+                        self.platoon_name=self.page_round+'-'+dict_platoon_names[self.page_round][value[-2:-1]]+'-'+value[-1]
                         self.state_parser=5
                         
         if self.state_parser==5:
@@ -377,7 +380,7 @@ class TBSPhaseParser(HTMLParser):
             if tag=='a':
                 for name, value in attrs:
                     if name=='href':
-                        self.active_round=self.detected_phase[0:3]+value[-1]
+                        self.active_round=self.page_round[0:3]+value[-1]
                         self.state_parser2=0                
                         
     def handle_data(self, data):
@@ -391,15 +394,15 @@ class TBSPhaseParser(HTMLParser):
         if self.state_parser==-1:
             #print(data)
             if data == 'Geonosian - Dark side':
-                self.detected_phase='GDS'
+                self.page_round='GDS'
             elif data == 'Geonosian - Light side':
-                self.detected_phase='GLS'
+                self.page_round='GLS'
             elif data == 'Hoth - Dark side':
-                self.detected_phase='HDS'
+                self.page_round='HDS'
             elif data == 'Hoth - Light side':
-                self.detected_phase='HLS'
+                self.page_round='HLS'
             else:
-                goutils.log('ERR', "TBSPhaseParser-handle_data", "BT inconnue: "+data)
+                goutils.log('ERR', "TBSPhasePlatoonParser-handle_data", "BT inconnue: "+data)
             
             self.state_parser=0
                 
@@ -421,8 +424,8 @@ class TBSPhaseParser(HTMLParser):
     def get_dict_platoons(self):
         return self.dict_platoons
 
-    def get_phase(self):
-        return self.detected_phase
+    def get_page_round(self):
+        return self.page_round
 
     def get_active_round(self):
         return self.active_round
@@ -505,14 +508,17 @@ class GenericTBSParser(HTMLParser):
     def get_last_track(self):
         return self.seconds_since_last_track
                 
-class TBSResumeParser(HTMLParser):
+###################################################################################
+# Parseing of a normale (resume) page for a specific phase in TB
+###################################################################################
+class TBSPhaseResumeParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.list_data=[]
         self.list_open_territories=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
         self.territory_scores=[0, 0, 0] #[top open territory, mid open territory, bottom open territory]
-        self.active_round=4 #if no active round is detected, the TBG is over and so active round is 4
-        self.detected_phase=''
+        self.active_round=''
+        self.page_round=''
         self.seconds_since_last_track = 0
         
         self.state_parser=-4
@@ -574,7 +580,7 @@ class TBSResumeParser(HTMLParser):
             if tag=='a':
                 for name, value in attrs:
                     if name=='href':
-                        self.active_round=int(value[-1])
+                        self.active_round=self.page_round[0:3]+value[-1]
                         self.state_parser2=0
                         #print("DBG self.active_round: "+str(self.active_round))
 
@@ -593,8 +599,10 @@ class TBSResumeParser(HTMLParser):
         if self.state_parser==2:
             if tag=='div':
                 if len(self.list_data)==1:
-                    territory_phase=self.active_round
+                    # there is a TB in progress
+                    territory_phase=int(self.active_round[-1])
                 else:
+                    # no TB i progress
                     territory_phase=int(self.list_data[1][-1])
 
                 if self.list_data[0]=='North':
@@ -615,17 +623,16 @@ class TBSResumeParser(HTMLParser):
                 self.state_parser=-4
                 
         if self.state_parser==-1:
-            print(data)
             if data == 'Geonosian - Dark side':
-                self.detected_phase='GDS'
+                self.page_round='GDS'
             elif data == 'Geonosian - Light side':
-                self.detected_phase='GLS'
+                self.page_round='GLS'
             elif data == 'Hoth - Dark side':
-                self.detected_phase='HDS'
+                self.page_round='HDS'
             elif data == 'Hoth - Light side':
-                self.detected_phase='HLS'
+                self.page_round='HLS'
             else:
-                goutils.log('ERR', "TBSResumeParser-handle_data", "BT inconnue: "+data)
+                goutils.log('ERR', "TBSPhaseResumeParser-handle_data", "BT inconnue: "+data)
             
             self.state_parser=0
                 
@@ -648,6 +655,9 @@ class TBSResumeParser(HTMLParser):
             self.seconds_since_last_track = int(timer_seconds_txt)
             self.state_parser3=0
                 
+    def get_page_round(self):
+        return self.page_round
+
     def get_active_round(self):
         return self.active_round
 
@@ -659,19 +669,16 @@ class TBSResumeParser(HTMLParser):
 
         #print("DBG - self.list_open_territories: "+str(self.list_open_territories))
         if self.list_open_territories[0] > 0:
-            top_name = self.detected_phase+"-P"+str(self.list_open_territories[0])+"-top"
+            top_name = self.page_round+"-P"+str(self.list_open_territories[0])+"-top"
             dict_territory_scores[top_name] = self.territory_scores[0]
         if self.list_open_territories[1] > 0:
-            top_name = self.detected_phase+"-P"+str(self.list_open_territories[1])+"-mid"
+            top_name = self.page_round+"-P"+str(self.list_open_territories[1])+"-mid"
             dict_territory_scores[top_name] = self.territory_scores[1]
         if self.list_open_territories[2] > 0:
-            top_name = self.detected_phase+"-P"+str(self.list_open_territories[2])+"-bot"
+            top_name = self.page_round+"-P"+str(self.list_open_territories[2])+"-bot"
             dict_territory_scores[top_name] = self.territory_scores[2]
             
         return dict_territory_scores
-
-    def get_battle_name(self):
-        return self.detected_phase
 
     def get_last_track(self):
         return self.seconds_since_last_track
@@ -1146,7 +1153,7 @@ def parse_warstats_tb_page(force_latest):
                 goutils.log('WAR', "parse_warstats_tb_page", 'page introuvable '+warstats_platoon_url+'/'+str(phase))
                 continue
 
-            platoon_parser = TBSPhaseParser()
+            platoon_parser = TBSPhasePlatoonParser()
             platoon_parser.feed(page.read().decode('utf-8', 'ignore'))
             tb_dict_platoons.update(platoon_parser.get_dict_platoons())
             tb_active_round = platoon_parser.get_active_round()
@@ -1155,7 +1162,7 @@ def parse_warstats_tb_page(force_latest):
             warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id(force_latest)+'/'+tb_active_round[3]
 
             page = urlopen(warstats_tb_resume_url)
-            resume_parser = TBSResumeParser()
+            resume_parser = TBSPhaseResumeParser()
             #resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
             resume_parser.feed(page.read().decode('utf-8', 'ignore'))
     
@@ -1207,13 +1214,12 @@ def parse_warstats_tb_scores(force_latest):
             goutils.log("ERR", "connect_warstats.parse_warstats_tb_scores", "error while opening "+warstats_tb_resume_url)
             return territory_scores, tb_active_round
 
-        resume_parser = TBSResumeParser()
+        resume_parser = TBSPhaseResumeParser()
         # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
         resume_parser.feed(page.read().decode('utf-8', 'ignore'))
         tb_active_round = resume_parser.get_active_round()
     
-        goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+resume_parser.get_battle_name()+\
-                                                        ", active round = "+str(tb_active_round))
+        goutils.log('INFO', "parse_warstats_tb_scores", "TB name = "+tb_active_round)
         territory_scores = resume_parser.get_territory_scores()
 
         set_next_warstats_read(resume_parser.get_last_track(), "tb_scores")
