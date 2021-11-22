@@ -268,7 +268,7 @@ async def bot_loop_5minutes():
                         await send_alert_to_echocommanders(tb_alert)
                 goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "TB alert: "+tb_alert)
 
-            list_tb_alerts_previously = list_tb_alerts
+            list_tb_alerts_previously_done = list_tb_alerts
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
