@@ -1600,7 +1600,8 @@ def get_tb_alerts(force_latest):
         #print(territory_scores)
         tb_trigger_messages=[]
         tb_name = list(territory_scores.keys())[0][0:3]
-        current_targets = daily_targets[tb_name][active_round-1]
+        round_number = int(active_round[-1])
+        current_targets = daily_targets[tb_name][round_number-1]
 
         for pos, name in [[0, "top"], [1, "mid"], [2, "bot"]]:
             current_target = current_targets[pos]
