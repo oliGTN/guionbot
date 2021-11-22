@@ -245,8 +245,8 @@ territory_scores = []
 next_warstats_read["tb_page"] = time.time()
 parse_warstats_tb_page_run_once = False
 tb_active_round = ""
-tb_dict_platoons = None
-tb_open_territories = None
+tb_dict_platoons = {}
+tb_open_territories = []
 next_warstats_read["tw_teams"] = time.time()
 opponent_teams = []
 next_warstats_read["raid_scores"] = time.time()
@@ -609,13 +609,13 @@ class TBSResumeParser(HTMLParser):
         data = data.strip(" \t\n")
         if self.state_parser==-3:
             #print(data)
-            if data == 'Territory Battle ':
+            if data == 'Territory Battle':
                 self.state_parser=-2
             else:
                 self.state_parser=-4
                 
         if self.state_parser==-1:
-            #print(data)
+            print(data)
             if data == 'Geonosian - Dark side':
                 self.detected_phase='GDS'
             elif data == 'Geonosian - Light side':
@@ -1128,16 +1128,16 @@ def parse_warstats_tb_page(force_latest):
             goutils.log('INFO', "parse_warstats_tb_page", 'no TB in progress')
 
             tb_active_round = ""
-            tb_dict_platoons = None
-            tb_open_territories = None
+            tb_dict_platoons = {}
+            tb_open_territories = []
 
             set_next_warstats_read(generic_parser.get_last_track(), "tb_page")
 
             return tb_active_round, tb_dict_platoons, tb_open_territories
         else:
-            goutils.log('INFO', "parse_warstats_tb_page", "TB "+generic_parser.get_battle_id()+" in progress")
+            goutils.log('INFO', "parse_warstats_tb_page", "TB "+generic_parser.get_battle_id(force_latest)+" in progress")
         
-        warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id()
+        warstats_platoon_url=warstats_platoons_baseurl+generic_parser.get_battle_id(force_latest)
     
         for phase in range(1,7):
             try:
@@ -1152,8 +1152,7 @@ def parse_warstats_tb_page(force_latest):
             tb_active_round = platoon_parser.get_active_round()
     
         if tb_active_round != "":
-            warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id()+'/'+tb_active_round[3]
-            tb_dict_platoons = tmp_tb_dict_platoons
+            warstats_tb_resume_url=warstats_tb_resume_baseurl+generic_parser.get_battle_id(force_latest)+'/'+tb_active_round[3]
 
             page = urlopen(warstats_tb_resume_url)
             resume_parser = TBSResumeParser()
