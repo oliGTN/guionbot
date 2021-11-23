@@ -217,15 +217,33 @@ def load_player(txt_allyCode, force_update, no_db):
 def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
     goutils.log('INFO', "go.load_guild", 'Requesting guild data for allyCode ' + txt_allyCode)
-    json_file = "GUILDS"+os.path.sep+"G"+txt_allyCode+".json"
+
+    query = "SELECT id FROM guilds "
+    query+= "JOIN players ON players.guildName = guilds.name "
+    query+= "WHERE allyCode = " + txt_allyCode
+    goutils.log("DBG", "go.load_guild", 'query: '+query)
+    db_result = connect_mysql.get_value(query)
+
+    if db_result == None or db_result == "":
+        goutils.log("WAR", "go.load_guild", 'Guild ID not found for '+txt_allyCode)
+        guild_id = ""
+    else:
+        guild_id = db_result
+        goutils.log("INFO", "go.load_guild", 'Guild ID for '+txt_allyCode+' is '+guild_id)
+    json_file = "GUILDS"+os.path.sep+guild_id+".json"
+
     if client != None:
         client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
     else:
         goutils.log("WAR", "go.load_guild", 'Cannot connect to API. Using cache data from json')
-        if os.path.isfile(json_file):
+        if guild_id == "":
+            goutils.log("WAR", "go.load_guild", 'Unknown guild for player '+txt_allyCode)
+            client_data = None
+        elif os.path.isfile(json_file):
             prev_dict_guild = json.load(open(json_file, 'r'))
             client_data = [prev_dict_guild]
         else:
+            goutils.log("WAR", "go.load_guild", 'Failed to find cache data '+json_file)
             client_data = None
 
     if isinstance(client_data, list):
@@ -237,6 +255,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                             
             dict_guild = client_data[0]
             guildName = dict_guild['name']
+            guild_id = dict_guild['id']
             total_players = len(dict_guild['roster'])
             allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
             guild_gp = dict_guild["gp"]
@@ -244,6 +263,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                         +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
                         
             # store json file
+            json_file = "GUILDS"+os.path.sep+guild_id+".json"
             fjson = open(json_file, 'w')
             fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
             fjson.close()
@@ -339,7 +359,8 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
                 #Update dates in DB
                 query = "UPDATE guilds "\
-                       +"SET lastUpdated = CURRENT_TIMESTAMP "\
+                       +"SET id = "+guild_id+", "\
+                       +"lastUpdated = CURRENT_TIMESTAMP "\
                        +"WHERE name = '"+guildName.replace("'", "''") + "'"
                 goutils.log('DBG', 'go.load_guild', query)
                 connect_mysql.simple_execute(query)
