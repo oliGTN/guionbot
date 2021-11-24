@@ -359,7 +359,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
                 #Update dates in DB
                 query = "UPDATE guilds "\
-                       +"SET id = "+guild_id+", "\
+                       +"SET id = '"+guild_id+"', "\
                        +"lastUpdated = CURRENT_TIMESTAMP "\
                        +"WHERE name = '"+guildName.replace("'", "''") + "'"
                 goutils.log('DBG', 'go.load_guild', query)
