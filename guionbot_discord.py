@@ -288,6 +288,7 @@ async def bot_loop_5minutes():
                 goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "Current state of platoon filling: "+str(dict_platoons_done))
                 goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "End of warstats parsing for TB: round " + tbs_round)
                 new_allocation_detected = False
+                dict_msg_platoons = {}
                 for territory_platoon in dict_platoons_done:
                     current_progress = compute_platoon_progress(dict_platoons_done[territory_platoon])
                     goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "Progress of platoon "+territory_platoon+": "+str(current_progress))
@@ -303,15 +304,10 @@ async def bot_loop_5minutes():
                             territory = territory_platoon[:-1]
                             territory_full_count = compute_territory_progress(dict_platoons_done, territory)
                             territory_display = territory.split("-")[1]
-                            if territory_full_count == 6:
-                                msg = "Platoon "+territory_platoon+" has reached 100% (**" \
-                                        +territory_display+": 6/6**)"
-                            else:
-                                msg = "Platoon "+territory_platoon+" has reached 100% (" \
-                                        +territory_display+": "+str(territory_full_count)+"/6)"
-                            goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
-                            if not first_bot_loop_5minutes:
-                                await send_alert_to_echocommanders(msg)
+                            if not territory_display in dict_msg_platoons:
+                                dict_msg_platoons[territory_display] = [0, []]
+                            dict_msg_platoons[territory_display][0] = territory_full_count
+                            dict_msg_platoons[territory_display][1].append(territory_platoon)
 
                     else:
                         for character in dict_platoons_done[territory_platoon]:
@@ -333,18 +329,36 @@ async def bot_loop_5minutes():
                             territory = territory_platoon[:-1]
                             territory_full_count = compute_territory_progress(dict_platoons_done, territory)
                             territory_display = territory.split("-")[1]
-                            if territory_full_count == 6:
-                                msg = "Platoon "+territory_platoon+" has reached 100% (**" \
-                                        +territory_display+": 6/6**)"
-                            else:
-                                msg = "Platoon "+territory_platoon+" has reached 100% (" \
-                                        +territory_display+": "+str(territory_full_count)+"/6)"
-                            goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
-                            if not first_bot_loop_5minutes:
-                                await send_alert_to_echocommanders(msg)
+                            if not territory_display in dict_msg_platoons:
+                                dict_msg_platoons[territory_display] = [0, []]
+                            dict_msg_platoons[territory_display][0] = territory_full_count
+                            dict_msg_platoons[territory_display][1].append(territory_platoon)
 
                 if not new_allocation_detected:
                     goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "No new platoon allocation")
+                
+                for territory_display in dict_msg_platoons:
+                    territory_full_count = dict_msg_platoons[territory_display][0]
+                    list_platoons = dict_msg_platoons[territory_display][1]
+
+                    if territory_full_count == 6:
+                        msg = '\N{WHITE HEAVY CHECK MARK}'
+                    else:
+                        msg = ''
+                    if len(list_platoons) <= 1:
+                        msg += "Nouveau peloton "
+                        msg += list_platoons[0]
+                        msg += " qui atteint 100% ("
+                    else:
+                        msg += "Nouveaux pelotons "
+                        for territory_platoon in list_platoons:
+                            msg += territory_platoon + " + "
+                        msg = msg[:-3]
+                        msg += " qui atteignent 100% ("
+                    msg += territory_display+": "+str(territory_full_count)+"/6)"
+                    goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", msg)
+                    if not first_bot_loop_5minutes:
+                        await send_alert_to_echocommanders(msg)
 
                 dict_platoons_previously_done = dict_platoons_done
 
