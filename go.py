@@ -1669,7 +1669,7 @@ def get_tb_alerts(force_latest):
                     elif current_score >= (star3_score-margin):
                         tb_trigger_messages.append(":point_right: la 3e étoile se raproche en "+name)
                     elif current_score >= star2_score:
-                        tb_trigger_messages.append(":thumbsup: 1ère étoile atteinte en "+name+", en route vers la 3e")
+                        tb_trigger_messages.append(":thumbsup: 2e étoile atteinte en "+name+", en route vers la 3e")
                     elif current_score >= star1_score:
                         tb_trigger_messages.append(":thumbsup: 1ère étoile atteinte en "+name+", en route vers la 3e")
     else:

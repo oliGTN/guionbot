@@ -312,7 +312,6 @@ async def bot_loop_5minutes():
                     else:
                         for character in dict_platoons_done[territory_platoon]:
                             if not character in dict_platoons_previously_done[territory_platoon]:
-                            #If the character was not already detected, then all allocation within that character are new
                                 for player in dict_platoons_done[territory_platoon][character]:
                                     if player != '':
                                         goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
@@ -360,7 +359,7 @@ async def bot_loop_5minutes():
                     if not first_bot_loop_5minutes:
                         await send_alert_to_echocommanders(msg)
 
-                dict_platoons_previously_done = dict_platoons_done
+                dict_platoons_previously_done = dict_platoons_done.copy()
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
