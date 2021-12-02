@@ -2150,10 +2150,14 @@ def get_tw_alerts():
         for territory in list_open_tw_territories:
             counter_leaders = Counter([x[2][0] for x in list_opponent_squads if x[0]==territory])
 
-            if territory[1] == "1" or territory[1] == "3":
-                msg = "Le premier territoire "
+            n_territory = int(territory[1])
+            if territory[0] == "T" and int(territory[1]) > 2:
+                n_territory -= 2
+
+            if n_territory == 1
+                msg = "Le 1er territoire "
             else:
-                msg = "Le deuxième territoire "
+                msg = "Le "+str(n_territory)+"e territoire "
 
             if territory[0] == "T" and int(territory[1]) < 3:
                 msg += "du haut"
