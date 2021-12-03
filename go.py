@@ -2154,7 +2154,7 @@ def get_tw_alerts():
             if territory[0] == "T" and int(territory[1]) > 2:
                 n_territory -= 2
 
-            if n_territory == 1
+            if n_territory == 1:
                 msg = "Le 1er territoire "
             else:
                 msg = "Le "+str(n_territory)+"e territoire "
