@@ -26,6 +26,9 @@ dict_colors["dark_blue"] = (0, 0, 255)
 
 dict_specific_image_names={}
 dict_specific_image_names["TIEFIGHTERFOSF"] = "fosf_tie_fighter"
+dict_specific_image_names["YWINGCLONEWARS"] = "ywing_btlb"
+dict_specific_image_names["JEDISTARFIGHTERCONSULAR"] = "jedi_fighter"
+dict_specific_image_names["YWINGREBEL"] = "ywing"
 
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
