@@ -16,6 +16,7 @@ matplotlib.use('Agg') #Preventin GTK erros at startup
 import matplotlib.pyplot as plt
 from PIL import Image
 from collections import Counter
+import inspect
 
 import connect_gsheets
 import connect_mysql
@@ -124,6 +125,7 @@ def refresh_cache():
 # return: erro_code, err_text
 ##################################
 def load_player(txt_allyCode, force_update, no_db):
+    goutils.log2("DBG", "START")
 
     if no_db:
         recent_player = False
@@ -705,11 +707,12 @@ def get_team_header(team_name, objectifs):
     return entete
 
 def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
+    goutils.log2("DBG", "START")
                         
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive+
-    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams()
+    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(False)
     
     if not compute_guild:
         #only one player, potentially several teams
@@ -733,7 +736,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         #Need to transform the name of the team into a character
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_team_names)
         if txt != "":
-            return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+            return "", "ERR: impossible de reconnaître ce(s) nom(s) >> "+txt
         list_team_names = [x+"-GV" for x in list_character_ids]
 
     #Get player data
@@ -1281,9 +1284,6 @@ def guild_counter_score(txt_allyCode):
 def print_character_stats(characters, txt_allyCode, compute_guild):
     ret_print_character_stats = ''
 
-    #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units()
-
     list_stats_for_display=[['5', "Vit", False, 'v'],
                             ['6', "DegPhy", False, 'd'],
                             ['7', "DegSpé", False, ''],
@@ -1742,9 +1742,6 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     err_code = 0
     err_txt = ''
 
-    #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units()
-    
     #Get full character names for attack
     list_id_attack, dict_id_name, txt = goutils.get_characters_from_alias(list_char_attack)
     if txt != '':
@@ -1897,7 +1894,7 @@ def print_erx(allyCode_txt, days, compute_guild):
     dict_categoryList = data.get("categoryList_dict.json")
 
     #Recuperation des dernieres donnees sur gdrive
-    liste_teams, dict_teams = connect_gsheets.load_config_teams()
+    liste_teams, dict_teams = connect_gsheets.load_config_teams(False)
 
     if not compute_guild:
         query = "SELECT name, defId, timestamp FROM roster_evolutions " \
