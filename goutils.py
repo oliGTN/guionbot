@@ -4,6 +4,7 @@ import json
 import math
 import difflib
 from datetime import datetime
+import inspect
 
 import config
 import connect_mysql
@@ -424,6 +425,22 @@ def log(level, fct, txt):
         print(log_string)
 
 ################################################
+# function: log
+################################################
+def log2(level, txt):
+    now = datetime.now()
+    dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
+    module_name = inspect.stack()[1][1].split("/")[-1][:-3]
+    fct = module_name+"."+inspect.stack()[1][3]
+    log_string = dt_string+":"+level+":"+fct+":"+str(txt)
+
+    if level=='DBG':
+        if config.LOG_LEVEL=='DBG':
+            print(log_string)
+    else:
+        print(log_string)
+
+################################################
 # function: delta_dict_player
 # input: 2 dict_players (from API)
 # output: differences of dict2 over dict1
@@ -558,9 +575,12 @@ def roster_from_dict_to_list(dict_player):
     return dict_player
 
 def get_characters_from_alias(list_alias):
+    log2("DBG", "START")
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units()
+    dict_units = connect_gsheets.load_config_units(False)
+    log2("DBG", inspect.stack()[0][2])
     dict_tagAlias = data.get("tagAlias_dict.json")
+    log2("DBG", inspect.stack()[0][2])
 
     txt_not_found_characters = ''
     dict_id_name = {}
@@ -600,15 +620,24 @@ def get_characters_from_alias(list_alias):
                         if not [character_id, character_name] in dict_id_name[character_alias]:
                             dict_id_name[character_alias].append([character_id, character_name])
         else:
-            #Normal alias
-            closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
-            if len(closest_names)<1:
-                log('WAR', "get_characters_from_alias", "No character found for "+character_alias)
-                txt_not_found_characters += character_alias + ' '
-            else:
-                [character_name, character_id]=dict_units[closest_names[0]]
+            #First look for exact match (better for performance)
+            if character_alias.lower() in dict_units:
+                [character_name, character_id]=dict_units[character_alias.lower()]
                 if not character_id in list_ids:
                     list_ids.append(character_id)
                 dict_id_name[character_alias] = [[character_id, character_name]]
+            else:
+                #Normal alias
+                closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+                if len(closest_names)<1:
+                    log('WAR', "get_characters_from_alias", "No character found for "+character_alias)
+                    txt_not_found_characters += character_alias + ' '
+                else:
+                    [character_name, character_id]=dict_units[closest_names[0]]
+                    if not character_id in list_ids:
+                        list_ids.append(character_id)
+                    dict_id_name[character_alias] = [[character_id, character_name]]
+        log2("DBG", inspect.stack()[0][2])
 
+    log2("DBG", inspect.stack()[0][2])
     return list_ids, dict_id_name, txt_not_found_characters
