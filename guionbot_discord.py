@@ -19,7 +19,7 @@ import traceback
 
 import go
 import goutils
-from connect_gsheets import load_config_players, update_online_dates
+import connect_gsheets
 from connect_warstats import parse_warstats_tb_page, parse_warstats_tw_teams
 import connect_mysql
 import portraits
@@ -161,7 +161,7 @@ async def bot_loop_60():
                                 
                             list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
-            update_online_dates(dict_member_lastseen)
+            connect_gsheets.update_online_dates(dict_member_lastseen)
 
         except Exception as e:
             goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
@@ -703,7 +703,7 @@ async def get_channel_from_channelname(ctx, channel_name):
 def manage_me(ctx, alias):
     #Special case of 'me' as allyCode
     if alias == 'me':
-        dict_players_by_ID = load_config_players()[1]
+        dict_players_by_ID = connect_gsheets.load_config_players()[1]
         if ctx.author.id in dict_players_by_ID.keys():
             ret_allyCode_txt = str(dict_players_by_ID[ctx.author.id][0])
         else:
@@ -712,7 +712,7 @@ def manage_me(ctx, alias):
         # discord @mention
         discord_id_txt = alias[3:-1]
         goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
-        dict_players_by_ID = load_config_players()[1]
+        dict_players_by_ID = connect_gsheets.load_config_players()[1]
         if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players_by_ID.keys():
             ret_allyCode_txt = str(dict_players_by_ID[int(discord_id_txt)][0])
         else:
@@ -765,7 +765,7 @@ def manage_me(ctx, alias):
 
             discord_id = [x.id for x in ctx.guild.members \
                             if x.display_name.replace("[Officier]", "") == closest_name_discord][0]
-            dict_players_by_ID = load_config_players()[1]
+            dict_players_by_ID = connect_gsheets.load_config_players()[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
             else:
@@ -1084,7 +1084,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     async def is_officer(ctx):
         ret_is_officer = False
-        dict_players_by_ID = load_config_players()[1]
+        dict_players_by_ID = connect_gsheets.load_config_players()[1]
         if ctx.author.id in dict_players_by_ID.keys():
             if dict_players_by_ID[ctx.author.id][1]:
                 ret_is_officer = True
@@ -1124,6 +1124,39 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: lgs
+    # Parameters: None
+    # Purpose: Update cache files from google sheet
+    # Display: None
+    ##############################################################
+    @commands.check(is_officer)
+    @commands.command(name='lgs', brief="Lit les dernières infos du google sheet",
+                             help="Lit les dernières infos du google sheet")
+    async def lgs(self, ctx):
+        await ctx.message.add_reaction(emoji_thumb)
+        is_error = False
+
+        d = connect_gsheets.load_config_units(True)
+        if d == {}:
+            await ctx.send("ERR: erreur en mettant à jour les UNITS")
+            is_error = True
+
+        l, d = connect_gsheets.load_config_teams(True)
+        if d == {}:
+            await ctx.send("ERR: erreur en mettant à jour les TEAMS")
+            is_error = True
+
+        d = connect_gsheets.load_config_raids(True)
+        if d == {}:
+            await ctx.send("ERR: erreur en mettant à jour les RAIDS")
+            is_error = True
+
+        if is_error:
+            await ctx.message.add_reaction(emoji_error)
+        else:
             await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
@@ -1236,7 +1269,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         goutils.log("DBG", "guionbot_discord.vdp", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
-        dict_players_by_IG = load_config_players()[0]
+        dict_players_by_IG = connect_gsheets.load_config_players()[0]
 
         if tbs_round == '':
             await ctx.send('Aucune BT en cours')
@@ -1388,7 +1421,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     lastUpdated_txt = "joueur inconnu"
 
             #Look for Discord Pseudo if in guild
-            dict_players_by_IG = load_config_players()[0]
+            dict_players_by_IG = connect_gsheets.load_config_players()[0]
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
