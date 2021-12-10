@@ -12,6 +12,7 @@ import connect_mysql
 import datetime
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
+import inspect
 
 import goutils
 import data
@@ -52,33 +53,38 @@ def get_gapi_client():
 #                          {team_name:
 #                             [phase, normal, super]}]}
 ##############################################################
-def load_config_raids():
+def load_config_raids(force_load):
     global client
 
     json_file = "CACHE"+os.path.sep+"config_raids.json"
-    try:
-        get_gapi_client()
-        file = client.open("GuiOnBot config")
-        feuille=file.worksheet("Raids")
 
-        liste_dict_feuille=feuille.get_all_records()
+    if force_load or not os.path.isfile(json_file):
+        try:
+            get_gapi_client()
+            file = client.open("GuiOnBot config")
+            feuille=file.worksheet("Raids")
+
+            liste_dict_feuille=feuille.get_all_records()
+        except:
+            goutils.log("WAR", "load_config_raids", "Cannot connect to Google API")
+            return {}
+
+        #Extract all aliases and get associated ID+nameKey
+        dict_raids = {}
+        for line in liste_dict_feuille:
+            if not (line['Alias'] in dict_raids):
+                dict_raids[line['Alias']] = [line['Nom complet'], {}]
+
+            dict_raids[line['Alias']][1][line['Team']]=[int(line['Phase'][-1]),
+                                                        int(line['Normal']),
+                                                        int(line['Super'])]
+
         # store json file
         fjson = open(json_file, 'w')
-        fjson.write(json.dumps(liste_dict_feuille, sort_keys=True, indent=4))
+        fjson.write(json.dumps(dict_raids, sort_keys=True, indent=4))
         fjson.close()
-    except:
-        goutils.log("WAR", "load_config_raids", "Cannot connect to Google API. Using cache file.")
-        liste_dict_feuille = json.load(open(json_file, 'r'))
-
-    #Extract all aliases and get associated ID+nameKey
-    dict_raids = {}
-    for line in liste_dict_feuille:
-        if not (line['Alias'] in dict_raids):
-            dict_raids[line['Alias']] = [line['Nom complet'], {}]
-
-        dict_raids[line['Alias']][1][line['Team']]=[int(line['Phase'][-1]),
-                                                    int(line['Normal']),
-                                                    int(line['Super'])]
+    else:
+        dict_raids = json.load(open(json_file, "r"))
 
     return dict_raids
 
@@ -96,71 +102,86 @@ def load_config_raids():
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams():
+def load_config_teams(force_load):
     global client
 
-    json_file = "CACHE"+os.path.sep+"config_teams.json"
-    try:
-        get_gapi_client()
-        file = client.open("GuiOnBot config")
-        feuille=file.worksheet("teams")
+    goutils.log2("DBG", "START")
 
-        liste_dict_feuille=feuille.get_all_records()
+    json_file = "CACHE"+os.path.sep+"config_teams.json"
+
+    if force_load or not os.path.isfile(json_file):
+        try:
+            get_gapi_client()
+            goutils.log2("DBG", inspect.stack()[0][2])
+            file = client.open("GuiOnBot config")
+            feuille=file.worksheet("teams")
+            goutils.log2("DBG", inspect.stack()[0][2])
+    
+            liste_dict_feuille=feuille.get_all_records()
+            goutils.log2("DBG", inspect.stack()[0][2])
+        except:
+            goutils.log("WAR", "load_config_teams", "Cannot connect to Google API")
+            return [], {}
+
+        goutils.log2("DBG", inspect.stack()[0][2])
+        #Extract all aliases and get associated ID+nameKey
+        list_alias=[x['Nom'] for x in liste_dict_feuille]
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
+        if txt != '':
+            goutils.log('WAR', 'load_config_teams', 'Cannot recognize following alias(es) >> '+txt)
+        goutils.log2("DBG", inspect.stack()[0][2])
+
+
+        #Get latest definition of teams
+        dict_teams={}
+        liste_teams=set([(lambda x:x['Nom équipe'])(x) for x in liste_dict_feuille])
+        #print('\nDBG: liste_teams='+str(liste_teams))
+        for team in liste_teams:
+            liste_dict_team=list(filter(lambda x : x['Nom équipe'] == team, liste_dict_feuille))
+            complete_liste_categories=[x['Catégorie'] for x in liste_dict_team]
+            liste_categories=sorted(set(complete_liste_categories), key=lambda x: complete_liste_categories.index(x))
+        
+            dict_teams[team]={"rarity":liste_dict_team[0]["GV*"],
+                            "categories":[[] for i in range(len(liste_categories))]
+                            }
+            index_categorie=-1
+            for categorie in liste_categories:
+                index_categorie+=1
+                dict_teams[team]["categories"][index_categorie]=[categorie, 0, {}]
+                liste_dict_categorie=list(filter(lambda x : x['Catégorie'] == categorie, liste_dict_team))
+
+                index_perso=0
+                for dict_perso in liste_dict_categorie:
+                    if dict_perso['Nom'] in dict_id_name:
+                        for [character_id, character_name] in dict_id_name[dict_perso['Nom']]:
+                            index_perso+=1
+                            dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
+                            if character_id in dict_teams[team]["categories"][index_categorie][2]:
+                                goutis.log('WAR', "connect_gsheets.load_config_team", "twice the same character in that team: "+ character_id)
+                            dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
+                                                                                dict_perso['* min'],
+                                                                                dict_perso['G min'],
+                                                                                dict_perso['* reco'],
+                                                                                dict_perso['G reco'],
+                                                                                dict_perso['Zetas'],
+                                                                                dict_perso['Vitesse'],
+                                                                                character_name]
+    
+        #Update DB
+        goutils.log2("DBG", inspect.stack()[0][2])
+        connect_mysql.update_guild_teams(dict_teams)
+        goutils.log2("DBG", inspect.stack()[0][2])
+
         # store json file
         fjson = open(json_file, 'w')
-        fjson.write(json.dumps(liste_dict_feuille, sort_keys=True, indent=4))
+        fjson.write(json.dumps(dict_teams, sort_keys=True, indent=4))
         fjson.close()
-    except:
-        goutils.log("WAR", "load_config_teams", "Cannot connect to Google API. Using cache file.")
-        liste_dict_feuille = json.load(open(json_file, 'r'))
-
-    #Extract all aliases and get associated ID+nameKey
-    list_alias=[x['Nom'] for x in liste_dict_feuille]
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
-    if txt != '':
-        goutils.log('WAR', 'load_config_teams', 'Cannot recognize following alias(es) >> '+txt)
-
-
-    #Get latest definition of teams
-    dict_teams={}
-    liste_teams=set([(lambda x:x['Nom équipe'])(x) for x in liste_dict_feuille])
-    #print('\nDBG: liste_teams='+str(liste_teams))
-    for team in liste_teams:
-        liste_dict_team=list(filter(lambda x : x['Nom équipe'] == team, liste_dict_feuille))
-        complete_liste_categories=[x['Catégorie'] for x in liste_dict_team]
-        liste_categories=sorted(set(complete_liste_categories), key=lambda x: complete_liste_categories.index(x))
-        
-        dict_teams[team]={"rarity":liste_dict_team[0]["GV*"],
-                          "categories":[[] for i in range(len(liste_categories))]
-                          }
-        index_categorie=-1
-        for categorie in liste_categories:
-            index_categorie+=1
-            dict_teams[team]["categories"][index_categorie]=[categorie, 0, {}]
-            liste_dict_categorie=list(filter(lambda x : x['Catégorie'] == categorie, liste_dict_team))
-
-            index_perso=0
-            for dict_perso in liste_dict_categorie:
-                if dict_perso['Nom'] in dict_id_name:
-                    for [character_id, character_name] in dict_id_name[dict_perso['Nom']]:
-                        index_perso+=1
-                        dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
-                        if character_id in dict_teams[team]["categories"][index_categorie][2]:
-                            goutis.log('WAR', "connect_gsheets.load_config_team", "twice the same character in that team: "+ character_id)
-                        dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
-                                                                            dict_perso['* min'],
-                                                                            dict_perso['G min'],
-                                                                            dict_perso['* reco'],
-                                                                            dict_perso['G reco'],
-                                                                            dict_perso['Zetas'],
-                                                                            dict_perso['Vitesse'],
-                                                                            character_name]
-    
-    #Update DB
-    connect_mysql.update_guild_teams(dict_teams)
+    else:
+        dict_teams = json.load(open(json_file, "r"))
 
     #print('DBG: dict_teams='+str(dict_teams))
-    return liste_teams, dict_teams
+    #return liste_teams, dict_teams
+    return list(dict_teams.keys()), dict_teams
 
 ##############################################################
 # Function: load_config_players
@@ -259,30 +280,27 @@ def load_config_counter():
 # Purpose: lit l'onglet "units" du fichier Sheets
 # Output:  dict_units {key=alias, value=[name, id]}
 ##############################################################
-def load_config_units():
-    global client    
+def load_config_units(force_load):
+    global client
     
     json_file = "CACHE"+os.path.sep+"config_units.json"
-    try:
-        get_gapi_client()
-        file = client.open("GuiOnBot config")
-        feuille=file.worksheet("units")
 
-        liste_dict_feuille=feuille.get_all_records()
-        
-        # store json file
-        fjson = open(json_file, 'w')
-        fjson.write(json.dumps(liste_dict_feuille, sort_keys=True, indent=4))
-        fjson.close()
-    except:
-        goutils.log("WAR", "load_config_units", "Cannot connect to Google API. Using cache file.")
-        liste_dict_feuille = json.load(open(json_file, 'r'))
+    if force_load or not os.path.isfile(json_file):
+        try:
+            get_gapi_client()
+            file = client.open("GuiOnBot config")
+            feuille=file.worksheet("units")
 
-    dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
+            liste_dict_feuille=feuille.get_all_records()
+        except:
+            goutils.log("ERR", "load_config_units", "Cannot connect to Google API")
+            return {}
+
+        dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
     
-    for ligne in liste_dict_feuille:
-        full_name=ligne['Character/Ship']
-        id=ligne['ID']
+        for ligne in liste_dict_feuille:
+            full_name=ligne['Character/Ship']
+            id=ligne['ID']
 
         #Full Name from file is not used as alias, because it is already read from json file
         #if full_name.lower() in dict_units:
@@ -299,20 +317,27 @@ def load_config_units():
         # else:
             # dict_units[id.lower()]=[full_name, id]
             
-        list_aliases = ligne['Aliases']
-        if type(list_aliases) != str:
-            list_aliases = str(list_aliases)
-        if list_aliases != '':
-            for alias in list_aliases.split(','):
-                alias = alias.strip().lower()
-                if alias in dict_units:
-                    if dict_units[alias][0] != full_name:
-                        goutils("ERR", "connect_gsheets.load_config_units", "alias="+alias)
-                        goutils("ERR", "connect_gsheets.load_config_units", "dict_units[alias]="+dict_units[alias])
-                        goutils("ERR", "connect_gsheets.load_config_units", "full_name="+full_name)
-                        goutils("ERR", "connect_gsheets.load_config_units", 'double définition of '+alias+': '+dict_units[alias][0]+' and '+full_name)
-                else:
-                    dict_units[alias]=[full_name, id]
+            list_aliases = ligne['Aliases']
+            if type(list_aliases) != str:
+                list_aliases = str(list_aliases)
+            if list_aliases != '':
+                for alias in list_aliases.split(','):
+                    alias = alias.strip().lower()
+                    if alias in dict_units:
+                        if dict_units[alias][0] != full_name:
+                            goutils("ERR", "connect_gsheets.load_config_units", "alias="+alias)
+                            goutils("ERR", "connect_gsheets.load_config_units", "dict_units[alias]="+dict_units[alias])
+                            goutils("ERR", "connect_gsheets.load_config_units", "full_name="+full_name)
+                            goutils("ERR", "connect_gsheets.load_config_units", 'double définition of '+alias+': '+dict_units[alias][0]+' and '+full_name)
+                    else:
+                        dict_units[alias]=[full_name, id]
+
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps(dict_units, sort_keys=True, indent=4))
+        fjson.close()
+    else:
+        dict_units = json.load(open(json_file, "r"))
                 
     return dict_units
 ##############################################################
