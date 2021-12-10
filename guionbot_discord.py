@@ -540,7 +540,7 @@ async def get_eb_allocation(tbs_round):
                                 else:
                                     ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
                                                         line)
-                                    player_name = ret_re.group(3)
+                                    player_name = ret_re.group(3).strip()
                                     
                                     if player_name != 'Filled in another phase':
                                         if not platoon_name in dict_platoons_allocation:
@@ -573,7 +573,7 @@ async def get_eb_allocation(tbs_round):
                                 for line in dict_platoon['value'].split('\n'):
                                     ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
                                                     line)
-                                    player_name = ret_re.group(3)
+                                    player_name = ret_re.group(3).strip()
                                         
                                     if char_name != 'Filled in another phase':
                                         if char_name[0:4]=='*` *':
