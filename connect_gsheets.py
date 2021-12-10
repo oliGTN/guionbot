@@ -112,24 +112,19 @@ def load_config_teams(force_load):
     if force_load or not os.path.isfile(json_file):
         try:
             get_gapi_client()
-            goutils.log2("DBG", inspect.stack()[0][2])
             file = client.open("GuiOnBot config")
             feuille=file.worksheet("teams")
-            goutils.log2("DBG", inspect.stack()[0][2])
     
             liste_dict_feuille=feuille.get_all_records()
-            goutils.log2("DBG", inspect.stack()[0][2])
         except:
             goutils.log("WAR", "load_config_teams", "Cannot connect to Google API")
             return [], {}
 
-        goutils.log2("DBG", inspect.stack()[0][2])
         #Extract all aliases and get associated ID+nameKey
         list_alias=[x['Nom'] for x in liste_dict_feuille]
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
         if txt != '':
             goutils.log('WAR', 'load_config_teams', 'Cannot recognize following alias(es) >> '+txt)
-        goutils.log2("DBG", inspect.stack()[0][2])
 
 
         #Get latest definition of teams
@@ -168,9 +163,7 @@ def load_config_teams(force_load):
                                                                                 character_name]
     
         #Update DB
-        goutils.log2("DBG", inspect.stack()[0][2])
         connect_mysql.update_guild_teams(dict_teams)
-        goutils.log2("DBG", inspect.stack()[0][2])
 
         # store json file
         fjson = open(json_file, 'w')
