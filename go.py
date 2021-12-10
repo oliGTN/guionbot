@@ -535,10 +535,8 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                 if gv_mode:
                     character_id_team = character_id + '-GV'
                     if character_id_team in dict_teams[player_name]:
-                        print(team_name_path+'/'+character_id_team, dict_teams, dict_team_gt, gv_mode, player_name)
                         score, unlocked, character_display, nogo, list_char = get_team_line_from_player(team_name_path+'/'+character_id_team,
                             dict_teams, dict_team_gt, gv_mode, player_name)
-                        print(score, unlocked, character_display, nogo, list_char)
 
                         #Unlocking a chatacter only gives the rarity so by default 50%
                         score = score / 200.0
