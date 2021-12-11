@@ -2,6 +2,7 @@ import requests
 import os
 import math
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+import json
 
 import goutils
 import data
@@ -24,34 +25,39 @@ dict_colors["red"] = (128, 0, 0)
 dict_colors["bright_blue"] = (128, 128, 255)
 dict_colors["dark_blue"] = (0, 0, 255)
 
-dict_specific_image_names={}
-dict_specific_image_names["TIEFIGHTERFOSF"] = "fosf_tie_fighter"
-dict_specific_image_names["YWINGCLONEWARS"] = "ywing_btlb"
-dict_specific_image_names["JEDISTARFIGHTERCONSULAR"] = "jedi_fighter"
-dict_specific_image_names["YWINGREBEL"] = "ywing"
-
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
-        #url = 'https://swgoh.gg/game-asset/u/' + character_id + ".png"
-        if character_id in dict_specific_image_names:
-            swgoh_img_name = dict_specific_image_names[character_id]
-        else:
-            swgoh_img_name = character_id.lower()
-            swgoh_img_name = swgoh_img_name.replace("'", "")
-            swgoh_img_name = swgoh_img_name.replace(" ", "-")
-            swgoh_img_name = swgoh_img_name.replace("_", "-")
-            swgoh_img_name = swgoh_img_name.replace("capital", "")
+        swgohgg_characters_url = 'https://swgoh.gg/api/characters'
+        r = requests.get(swgohgg_characters_url, allow_redirects=True)
+        list_characters = json.loads(r.content.decode('utf-8'))
 
-        swgoh_img_name = "tex.charui_" + swgoh_img_name + ".png"
-        url = 'https://game-assets.swgoh.gg/' + swgoh_img_name
-        goutils.log("INFO", "get_image_from_id", "download portrait from swgoh.gg "+url)
-        r = requests.get(url, allow_redirects=True)
-        f = open(character_img_name, 'wb')
-        f.write(r.content)
-        f.close()
+        swgohgg_ships_url = 'https://swgoh.gg/api/ships'
+        r = requests.get(swgohgg_ships_url, allow_redirects=True)
+        list_ships = json.loads(r.content.decode('utf-8'))
+
+        list_units = list_characters + list_ships
+
+        swgohgg_img_url = ''
+        for character in list_units:
+            if character['base_id'] == character_id:
+                swgohgg_img_url = character['image']
+
+        if swgohgg_img_url == '':
+            goutils.log2("ERR", "Cannot find image name for "+character_id)
+        else:
+            goutils.log2("INFO", "download portrait from swgoh.gg "+swgohgg_img_url)
+            r = requests.get(swgohgg_img_url, allow_redirects=True)
+            f = open(character_img_name, 'wb')
+            f.write(r.content)
+            f.close()
     
-    char_img = Image.open(character_img_name)
+    try:
+        char_img = Image.open(character_img_name)
+    except OSError as e:
+        goutils.log2("ERR", "cannot open image "+character_img_name)
+        char_img = Image.new('RGBA', (128, 128), (0,0,0,0))
+
     char_img = char_img.resize((128,128))
     return char_img
 
