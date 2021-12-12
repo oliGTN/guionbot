@@ -575,7 +575,6 @@ def roster_from_dict_to_list(dict_player):
     return dict_player
 
 def get_characters_from_alias(list_alias):
-    log2("DBG", "START")
     #Recuperation des dernieres donnees sur gdrive
     dict_units = connect_gsheets.load_config_units(False)
     dict_tagAlias = data.get("tagAlias_dict.json")
