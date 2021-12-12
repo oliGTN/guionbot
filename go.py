@@ -1611,7 +1611,7 @@ def get_gp_distribution(txt_allyCode):
     return 0, "", image
 
 def get_tb_alerts(force_latest):
-    territory_scores, active_round = connect_warstats.parse_warstats_tb_scores(force_latest)
+    territory_scores, active_round = connect_warstats.parse_tb_guild_scores(force_latest)
 
     if active_round != "":
         [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(False)
@@ -1761,7 +1761,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini\n", None
 
-    list_opponent_squads = connect_warstats.parse_warstats_tw_teams(warstats_id)
+    list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
     if len(list_opponent_squads) == 0:
         goutils.log("ERR", "go.get_tw_battle_image", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
@@ -2052,7 +2052,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
             player_name = line[4]
             dict_teams_by_player[team][player_name] = not nogo
 
-    raid_phase, raid_scores = connect_warstats.parse_warstats_raid_scores(warstats_id, raid_name)
+    raid_phase, raid_scores = connect_warstats.parse_raid_scores(warstats_id, raid_name)
 
     #Player lines
     list_scores = []
@@ -2132,14 +2132,14 @@ def print_raid_progress(allyCode_txt, raid_alias):
 def get_tw_alerts():
     query = "SELECT name, twChannel_id, warstats_id FROM guilds "
     query+= "WHERE twChannel_id > 0 AND warstats_id > 0"
-    goutils.log('DBG', 'go.get_tw_alerts', query)
+    goutils.log2('DBG', query)
     db_data = connect_mysql.get_table(query)
 
     dict_tw_alerts = {}
     for [guildName, twChannel_id, warstats_id] in db_data:
         dict_tw_alerts[guildName] = [twChannel_id, []]
 
-        list_opponent_squads = connect_warstats.parse_warstats_tw_teams(warstats_id)
+        list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
         for territory in list_open_tw_territories:
