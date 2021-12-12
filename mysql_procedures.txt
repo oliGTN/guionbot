@@ -62,7 +62,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1987 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1999 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -86,7 +86,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8835 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=8950 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -101,7 +101,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=731 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=764 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -117,7 +117,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=157 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=158 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -231,7 +231,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=1989022 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2128840 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -265,7 +265,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=22655168 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=23170333 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -424,6 +424,73 @@ BEGIN
 	FROM (SELECT DISTINCT(defId) AS defId FROM roster) T
 	LEFT JOIN units ON units.baseId = T.defId
 	WHERE ISNULL(nameKey);
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `Pivot` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `Pivot`(
+    IN tbl_name VARCHAR(99),       -- table name (or db.tbl)
+    IN base_cols VARCHAR(99),      -- column(s) on the left, separated by commas
+    IN pivot_col VARCHAR(64),      -- name of column to put across the top
+    IN tally_col VARCHAR(64),      -- name of column to SUM up
+    IN where_clause VARCHAR(99),   -- empty string or "WHERE ..."
+    IN order_by VARCHAR(99)        -- empty string or "ORDER BY ..."; usually the base_cols
+    )
+    DETERMINISTIC
+    SQL SECURITY INVOKER
+BEGIN
+    -- Find the distinct values
+    -- Build the SUM()s
+    SET @subq = CONCAT('SELECT DISTINCT ', pivot_col, ' AS val ',
+                    ' FROM ', tbl_name, ' ', where_clause, ' ORDER BY 1');
+    -- select @subq;
+
+    SET @cc1 = "CONCAT('SUM(IF(&p = ', &v, ', &t, 0)) AS ', &v)";
+    SET @cc2 = REPLACE(@cc1, '&p', pivot_col);
+    SET @cc3 = REPLACE(@cc2, '&t', tally_col);
+    -- select @cc2, @cc3;
+    SET @qval = CONCAT("'\"', val, '\"'");
+    -- select @qval;
+    SET @cc4 = REPLACE(@cc3, '&v', @qval);
+    -- select @cc4;
+
+    SET SESSION group_concat_max_len = 10000;   -- just in case
+    SET @stmt = CONCAT(
+            'SELECT  GROUP_CONCAT(', @cc4, ' SEPARATOR ",\n")  INTO @sums',
+            ' FROM ( ', @subq, ' ) AS top');
+     select @stmt;
+    PREPARE _sql FROM @stmt;
+    EXECUTE _sql;                      -- Intermediate step: build SQL for columns
+    DEALLOCATE PREPARE _sql;
+    -- Construct the query and perform it
+    SET @stmt2 = CONCAT(
+            'SELECT ',
+                base_cols, ',\n',
+                @sums,
+                ',\n SUM(', tally_col, ') AS Total'
+            '\n FROM ', tbl_name, ' ',
+            where_clause,
+            ' GROUP BY ', base_cols,
+            '\n WITH ROLLUP',
+            '\n', order_by
+        );
+    select @stmt2;                    -- The statement that generates the result
+    PREPARE _sql FROM @stmt2;
+    EXECUTE _sql;                     -- The resulting pivot table ouput
+    DEALLOCATE PREPARE _sql;
+    -- For debugging / tweaking, SELECT the various @variables after CALLing.
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -777,4 +844,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-11-23 22:01:20
+-- Dump completed on 2021-12-12 17:37:58
