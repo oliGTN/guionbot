@@ -32,6 +32,7 @@ guild_timezone=timezone(config.GUILD_TIMEZONE)
 ##############################################################
 def get_gapi_client():
     global client
+
     if client == None:
         # use creds to create a client to interact with the Google Drive API
         scope = ['https://spreadsheets.google.com/feeds',
@@ -42,7 +43,7 @@ def get_gapi_client():
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
             client = gspread.authorize(creds)
         except KeyError as e:
-            goutis.log('ERR', "connect_gsheets", 'variable de configuration GAPI_CREDS non définie')
+            goutis.log2('ERR', 'variable de configuration GAPI_CREDS non définie')
 
 ##############################################################
 # Function: load_config_raids
@@ -54,8 +55,6 @@ def get_gapi_client():
 #                             [phase, normal, super]}]}
 ##############################################################
 def load_config_raids(force_load):
-    global client
-
     json_file = "CACHE"+os.path.sep+"config_raids.json"
 
     if force_load or not os.path.isfile(json_file):
@@ -66,8 +65,8 @@ def load_config_raids(force_load):
 
             liste_dict_feuille=feuille.get_all_records()
         except:
-            goutils.log("WAR", "load_config_raids", "Cannot connect to Google API")
-            return {}
+            goutils.log2("WAR", "Cannot connect to Google API")
+            return None
 
         #Extract all aliases and get associated ID+nameKey
         dict_raids = {}
@@ -103,8 +102,6 @@ def load_config_raids(force_load):
 #                      }
 ##############################################################
 def load_config_teams(force_load):
-    global client
-
     goutils.log2("DBG", "START")
 
     json_file = "CACHE"+os.path.sep+"config_teams.json"
@@ -117,14 +114,14 @@ def load_config_teams(force_load):
     
             liste_dict_feuille=feuille.get_all_records()
         except:
-            goutils.log("WAR", "load_config_teams", "Cannot connect to Google API")
-            return [], {}
+            goutils.log2("WAR", "Cannot connect to Google API")
+            return None, None
 
         #Extract all aliases and get associated ID+nameKey
         list_alias=[x['Nom'] for x in liste_dict_feuille]
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
         if txt != '':
-            goutils.log('WAR', 'load_config_teams', 'Cannot recognize following alias(es) >> '+txt)
+            goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
 
 
         #Get latest definition of teams
@@ -152,7 +149,7 @@ def load_config_teams(force_load):
                             index_perso+=1
                             dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
                             if character_id in dict_teams[team]["categories"][index_categorie][2]:
-                                goutis.log('WAR', "connect_gsheets.load_config_team", "twice the same character in that team: "+ character_id)
+                                goutis.log2('WAR', "twice the same character in that team: "+ character_id)
                             dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
                                                                                 dict_perso['* min'],
                                                                                 dict_perso['G min'],
@@ -183,34 +180,49 @@ def load_config_teams(force_load):
 # Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>]}
 #          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
-def load_config_players():
-    global client    
-    get_gapi_client()
-    file = client.open("GuiOnBot config")
-    feuille=file.worksheet("players")
-    liste_dict_feuille=feuille.get_all_records()
-    liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in liste_dict_feuille]
-    dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
-    dict_players_by_ID={} # {key=discord ID, value=[allycode, isOfficer]}
+def load_config_players(force_load):
+    json_file = "CACHE"+os.path.sep+"config_players.json"
 
-    #print(liste_dict_feuille)
-    for ligne in liste_dict_feuille:
-        #Fill dict_players_by_IG
-        discord_id=ligne['Discord ID']
-        if discord_id!='':
-            if liste_discord_id.count(discord_id)>1:
-                #cas des comptes discord avec plusieurs comptes IG
-                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+str(discord_id)+'> ['+ligne['IG name']+']']
+    if force_load or not os.path.isfile(json_file):
+        try:
+            get_gapi_client()
+            file = client.open("GuiOnBot config")
+            feuille=file.worksheet("players")
+            liste_dict_feuille=feuille.get_all_records()
+        except:
+            goutils.log2("WAR", "Cannot connect to Google API")
+            return [None, None]
+
+        liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in liste_dict_feuille]
+        dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
+        dict_players_by_ID={} # {key=discord ID, value=[allycode, isOfficer]}
+
+        #print(liste_dict_feuille)
+        for ligne in liste_dict_feuille:
+            #Fill dict_players_by_IG
+            #needs to transform into str as json only uses str as keys
+            discord_id=str(ligne['Discord ID'])
+            if discord_id!='':
+                if liste_discord_id.count(discord_id)>1:
+                    #cas des comptes discord avec plusieurs comptes IG
+                    dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+discord_id+'> ['+ligne['IG name']+']']
+                else:
+                    dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+discord_id+'>']
             else:
-                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+str(discord_id)+'>']
-        else:
-            dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['IG name']]
+                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['IG name']]
             
-        #Fill dict_players_by_ID
-        if discord_id!='':
-            dict_players_by_ID[discord_id] = [ligne['Allycode'], ligne['Officier']!='']
+            #Fill dict_players_by_ID
+            if discord_id!='':
+                dict_players_by_ID[discord_id] = [ligne['Allycode'], ligne['Officier']!='']
+
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps([dict_players_by_IG, dict_players_by_ID], sort_keys=True, indent=4))
+        fjson.close()
+    else:
+        [dict_players_by_IG, dict_players_by_ID] = json.load(open(json_file, "r"))
         
-    return dict_players_by_IG, dict_players_by_ID
+    return [dict_players_by_IG, dict_players_by_ID]
 
 ##############################################################
 # Function: load_config_gt
@@ -286,8 +298,8 @@ def load_config_units(force_load):
 
             liste_dict_feuille=feuille.get_all_records()
         except:
-            goutils.log("ERR", "load_config_units", "Cannot connect to Google API")
-            return {}
+            goutils.log2("ERR", "Cannot connect to Google API")
+            return None
 
         dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
     
@@ -349,7 +361,7 @@ def update_online_dates(dict_lastseen):
         file = client.open("GuiOnBot config")
         feuille=file.worksheet("players")
     except:
-        goutils.log("ERR", "conect_gsheets.update_onlline_date", "Unexpected error: "+str(sys.exc_info()[0]))
+        goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
         return
 
     #parsing title row
@@ -416,136 +428,146 @@ def update_online_dates(dict_lastseen):
         range_name=column_letter+'1:'+column_letter+str(l-1)
         feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
     else:
-        goutils.log("ERR", "conect_gsheets.update_onlline_date", 'At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
+        goutils.log2("ERR", 'At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
 
-def get_tb_triggers():
+def get_tb_triggers(force_load):
     get_gapi_client()
     
-    try:
-        file = client.open("GuiOnBot config")
-        feuille=file.worksheet("BT")
-    except:
-        goutils.log("ERR", "connect_gsheets.get_tb_triggers", "Unexpected error: "+str(sys.exc_info()[0]))
-        return None, None, 0
+    json_file = "CACHE"+os.path.sep+"config_tb.json"
+
+    if force_load or not os.path.isfile(json_file):
+        try:
+            file = client.open("GuiOnBot config")
+            feuille=file.worksheet("BT")
+        except:
+            goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+            return [None, None, 0]
         
-    #parsing title row
-    col_territory=0
-    col_star1=0
-    col_star2=0
-    col_star3=0
-    col_top=0
-    col_mid=0
-    col_bot=0
-    territory_column_title='Territoire'
-    star1_column_title='Etoile 1'
-    star2_column_title='Etoile 2'
-    star3_column_title='Etoile 3'
-    top_column_title='Top'
-    mid_column_title='Mid'
-    bot_column_title='Bot'
-    margin_column_title='Marge'
+        #parsing title row
+        col_territory=0
+        col_star1=0
+        col_star2=0
+        col_star3=0
+        col_top=0
+        col_mid=0
+        col_bot=0
+        territory_column_title='Territoire'
+        star1_column_title='Etoile 1'
+        star2_column_title='Etoile 2'
+        star3_column_title='Etoile 3'
+        top_column_title='Top'
+        mid_column_title='Mid'
+        bot_column_title='Bot'
+        margin_column_title='Marge'
 
-    #Detect columns
-    c = 1
-    first_row=feuille.row_values(1)
-    for value in first_row:
-        if value==territory_column_title:
-            col_territory=c
-        elif value==star1_column_title:
-            col_star1=c
-        elif value==star2_column_title:
-            col_star2=c
-        elif value==star3_column_title:
-            col_star3=c
-        elif value==top_column_title:
-            col_top=c
-        elif value==mid_column_title:
-            col_mid=c
-        elif value==bot_column_title:
-            col_bot=c
-        elif value==margin_column_title:
-            col_margin=c
-        c+=1
+        #Detect columns
+        c = 1
+        first_row=feuille.row_values(1)
+        for value in first_row:
+            if value==territory_column_title:
+                col_territory=c
+            elif value==star1_column_title:
+                col_star1=c
+            elif value==star2_column_title:
+                col_star2=c
+            elif value==star3_column_title:
+                col_star3=c
+            elif value==top_column_title:
+                col_top=c
+            elif value==mid_column_title:
+                col_mid=c
+            elif value==bot_column_title:
+                col_bot=c
+            elif value==margin_column_title:
+                col_margin=c
+            c+=1
 
-    if (col_territory > 0) \
-        and (col_star1 > 0) \
-        and (col_star2 > 0) \
-        and (col_star3 > 0) \
-        and (col_top > 0) \
-        and (col_mid > 0) \
-        and (col_bot > 0) \
-        and (col_margin > 0):
+        if (col_territory > 0) \
+            and (col_star1 > 0) \
+            and (col_star2 > 0) \
+            and (col_star3 > 0) \
+            and (col_top > 0) \
+            and (col_mid > 0) \
+            and (col_bot > 0) \
+            and (col_margin > 0):
         
-        #Looping through lines, through the ID column
-        territories=feuille.col_values(col_territory)
-        star1_scores=feuille.col_values(col_star1)
-        star2_scores=feuille.col_values(col_star2)
-        star3_scores=feuille.col_values(col_star3)
-        territory_stars = {}
-        l = 1
-        for territory in territories:
-            if territory!='' and territory != territory_column_title:
-                star1_score = star1_scores[l-1].replace('\u202f', '')
-                if star1_score:
-                    star1_score = int(star1_score)
-                else:
-                    star1_score = -1
+            #Looping through lines, through the ID column
+            territories=feuille.col_values(col_territory)
+            star1_scores=feuille.col_values(col_star1)
+            star2_scores=feuille.col_values(col_star2)
+            star3_scores=feuille.col_values(col_star3)
+            territory_stars = {}
+            l = 1
+            for territory in territories:
+                if territory!='' and territory != territory_column_title:
+                    star1_score = star1_scores[l-1].replace('\u202f', '')
+                    if star1_score:
+                        star1_score = int(star1_score)
+                    else:
+                        star1_score = -1
 
-                star2_score = star2_scores[l-1].replace('\u202f', '')
-                if star2_score:
-                    star2_score = int(star2_score)
-                else:
-                    star2_score = -1
+                    star2_score = star2_scores[l-1].replace('\u202f', '')
+                    if star2_score:
+                        star2_score = int(star2_score)
+                    else:
+                        star2_score = -1
 
-                star3_score = star3_scores[l-1].replace('\u202f', '')
-                if star3_score:
-                    star3_score = int(star3_score)
-                else:
-                    star3_score = -1
+                    star3_score = star3_scores[l-1].replace('\u202f', '')
+                    if star3_score:
+                        star3_score = int(star3_score)
+                    else:
+                        star3_score = -1
 
-                territory_stars[territory] = [star1_score, star2_score, star3_score]
+                    territory_stars[territory] = [star1_score, star2_score, star3_score]
 
-            l+=1
-        goutils.log("DBG", "connect_gsheets.get_tb_triggers", 'territory_stars='+str(territory_stars))
+                l+=1
+            goutils.log2("DBG", 'territory_stars='+str(territory_stars))
 
-        daily_names=feuille.col_values(col_top-1)
-        top_stars=feuille.col_values(col_top)
-        mid_stars=feuille.col_values(col_mid)
-        bot_stars=feuille.col_values(col_bot)
-        daily_targets = {}
-        current_bt_name = ""
-        l = 1
-        for daily_name in daily_names:
-            top_target = top_stars[l-1] + '-' + top_stars[l]
-            mid_target = mid_stars[l-1] + '-' + mid_stars[l]
-            bot_target = bot_stars[l-1] + '-' + bot_stars[l]
+            daily_names=feuille.col_values(col_top-1)
+            top_stars=feuille.col_values(col_top)
+            mid_stars=feuille.col_values(col_mid)
+            bot_stars=feuille.col_values(col_bot)
+            daily_targets = {}
+            current_bt_name = ""
+            l = 1
+            for daily_name in daily_names:
+                top_target = top_stars[l-1] + '-' + top_stars[l]
+                mid_target = mid_stars[l-1] + '-' + mid_stars[l]
+                bot_target = bot_stars[l-1] + '-' + bot_stars[l]
 
-            if daily_name!='':
-                if top_stars[l-1] == top_column_title:
-                    current_bt_name = daily_name
-                elif daily_name!='':
-                    day_index = int(daily_name[-1])-1
-                    if not current_bt_name in daily_targets:
-                        daily_targets[current_bt_name] = [[], [], [], []]
-                    daily_targets[current_bt_name][day_index] = [top_target, mid_target, bot_target]
-            l+=1
-        goutils.log("DBG", "connect_gsheets.get_tb_triggers", 'daily_targets='+str(daily_targets))
+                if daily_name!='':
+                    if top_stars[l-1] == top_column_title:
+                        current_bt_name = daily_name
+                    elif daily_name!='':
+                        day_index = int(daily_name[-1])-1
+                        if not current_bt_name in daily_targets:
+                            daily_targets[current_bt_name] = [[], [], [], []]
+                        daily_targets[current_bt_name][day_index] = [top_target, mid_target, bot_target]
+                l+=1
+            goutils.log2("DBG", 'daily_targets='+str(daily_targets))
 
-        margin = feuille.col_values(col_margin)[1]
-        margin = margin.replace('\u202f', '')
-        if margin:
-            margin = int(margin)
+            margin = feuille.col_values(col_margin)[1]
+            margin = margin.replace('\u202f', '')
+            if margin:
+                margin = int(margin)
+            else:
+                margin = 0
+            goutils.log2("DBG", 'margin='+str(margin))
+
         else:
-            margin = 0
-        goutils.log("DBG", "connect_gsheets.get_tb_triggers", 'margin='+str(margin))
-
-    else:
-        goutils.log("ERR", "connect_gsheets.get_tb_triggers", 'At least one column among "'+territory_column_title+'", "' +\
-                star1_column_title+'", "' +\
-                star2_column_title+'", "' +\
-                star3_column_title+'", "' +\
-                top_column_title+'", "' +\
-                mid_column_title+'", "' +\
-                bot_column_comment+'" is not found >> BT alerts not sent')
+            goutils.log2("ERR", 'At least one column among "'+territory_column_title+'", "' +\
+                    star1_column_title+'", "' +\
+                    star2_column_title+'", "' +\
+                    star3_column_title+'", "' +\
+                    top_column_title+'", "' +\
+                    mid_column_title+'", "' +\
+                    bot_column_comment+'" is not found >> BT alerts not sent')
                 
-    return territory_stars, daily_targets, margin
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps([territory_stars, daily_targets, margin], sort_keys=True, indent=4))
+        fjson.close()
+    else:
+        [territory_stars, daily_targets, margin] = json.load(open(json_file, "r"))
+
+    return [territory_stars, daily_targets, margin]
