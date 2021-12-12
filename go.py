@@ -1089,7 +1089,7 @@ def print_gvg(list_team_names, txt_allyCode):
 def assign_gt(allyCode):
     ret_assign_gt = ''
 
-    dict_players = connect_gsheets.load_config_players()[0]
+    dict_players = connect_gsheets.load_config_players(False)[0]
 
     liste_territoires = connect_gsheets.load_config_gt()
         # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
@@ -1614,7 +1614,7 @@ def get_tb_alerts(force_latest):
     territory_scores, active_round = connect_warstats.parse_warstats_tb_scores(force_latest)
 
     if active_round != "":
-        territory_stars, daily_targets, margin = connect_gsheets.get_tb_triggers()
+        [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(False)
 
         #print(territory_scores)
         tb_trigger_messages=[]

@@ -703,18 +703,18 @@ async def get_channel_from_channelname(ctx, channel_name):
 def manage_me(ctx, alias):
     #Special case of 'me' as allyCode
     if alias == 'me':
-        dict_players_by_ID = connect_gsheets.load_config_players()[1]
-        if ctx.author.id in dict_players_by_ID.keys():
-            ret_allyCode_txt = str(dict_players_by_ID[ctx.author.id][0])
+        dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
+        if str(ctx.author.id) in dict_players_by_ID:
+            ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
         else:
             ret_allyCode_txt = 'ERR: \"me\" ne fait pas partie de la guilde'
     elif alias[:3] == '<@!':
         # discord @mention
         discord_id_txt = alias[3:-1]
         goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
-        dict_players_by_ID = connect_gsheets.load_config_players()[1]
-        if discord_id_txt.isnumeric() and int(discord_id_txt) in dict_players_by_ID.keys():
-            ret_allyCode_txt = str(dict_players_by_ID[int(discord_id_txt)][0])
+        dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
+        if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
+            ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
         else:
             ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
     elif not alias.isnumeric():
@@ -763,9 +763,9 @@ def manage_me(ctx, alias):
         else:
             goutils.log("INFO", "guionbot_discord.manage_me", alias + " looks like the discord name "+closest_name_discord)
 
-            discord_id = [x.id for x in ctx.guild.members \
+            discord_id = [str(x.id) for x in ctx.guild.members \
                             if x.display_name.replace("[Officier]", "") == closest_name_discord][0]
-            dict_players_by_ID = connect_gsheets.load_config_players()[1]
+            dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
             else:
@@ -1084,9 +1084,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     async def is_officer(ctx):
         ret_is_officer = False
-        dict_players_by_ID = connect_gsheets.load_config_players()[1]
-        if ctx.author.id in dict_players_by_ID.keys():
-            if dict_players_by_ID[ctx.author.id][1]:
+        dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
+        if str(ctx.author.id) in dict_players_by_ID:
+            if dict_players_by_ID[str(ctx.author.id)][1]:
                 ret_is_officer = True
 
         is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
@@ -1140,18 +1140,28 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         is_error = False
 
         d = connect_gsheets.load_config_units(True)
-        if d == {}:
+        if d == None:
             await ctx.send("ERR: erreur en mettant à jour les UNITS")
             is_error = True
 
         l, d = connect_gsheets.load_config_teams(True)
-        if d == {}:
+        if d == None:
             await ctx.send("ERR: erreur en mettant à jour les TEAMS")
             is_error = True
 
         d = connect_gsheets.load_config_raids(True)
-        if d == {}:
+        if d == None:
             await ctx.send("ERR: erreur en mettant à jour les RAIDS")
+            is_error = True
+
+        [ts, dt, m] = connect_gsheets.get_tb_triggers(True)
+        if ts == None:
+            await ctx.send("ERR: erreur en mettant à jour la BT")
+            is_error = True
+
+        [d1, d2] = connect_gsheets.load_config_players(True)
+        if d1 == None:
+            await ctx.send("ERR: erreur en mettant à jour les PLAYERS")
             is_error = True
 
         if is_error:
@@ -1269,7 +1279,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         goutils.log("DBG", "guionbot_discord.vdp", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
-        dict_players_by_IG = connect_gsheets.load_config_players()[0]
+        dict_players_by_IG = connect_gsheets.load_config_players(False)[0]
 
         if tbs_round == '':
             await ctx.send('Aucune BT en cours')
@@ -1421,7 +1431,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     lastUpdated_txt = "joueur inconnu"
 
             #Look for Discord Pseudo if in guild
-            dict_players_by_IG = connect_gsheets.load_config_players()[0]
+            dict_players_by_IG = connect_gsheets.load_config_players(False)[0]
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
