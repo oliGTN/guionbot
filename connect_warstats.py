@@ -24,145 +24,6 @@ warstats_raid_resume_baseurl='https://goh.warstats.net/raids/view/'
 
 tab_dict_platoons=[] #de haut en bas
 
-dict_noms_warstats={}
-dict_noms_warstats['Admiral Ackbar']='Amiral Ackbar'
-dict_noms_warstats['Admiral Piett']='Amiral Piett'
-dict_noms_warstats['Ahsoka Tano\'s Jedi Starfighter']='Chasseur stellaire Jedi d\'Ahsoka Tano'
-dict_noms_warstats['Anakin\'s Eta-2 Starfighter']='Chasseur Eta-2 d\'Anakin'
-dict_noms_warstats['ARC Trooper']='Soldat CRA'
-dict_noms_warstats['B-28 Extinction-class Bomber']='Bombardier de classe extinction B-28'
-dict_noms_warstats['B1 Battle Droid']='Droïde de combat B1'
-dict_noms_warstats['B2 Super Battle Droid']='Super droïde de combat B2'
-dict_noms_warstats['Bastila Shan (Fallen)']='Bastila Shan (déchue)'
-dict_noms_warstats['Biggs Darklighter\'s X-wing']='X-Wing de Biggs Darklighter'
-dict_noms_warstats['Bistan\'s U-wing']='U-Wing de Bistan'
-dict_noms_warstats['BTL-B Y-wing Starfighter']='Chasseur Y-wing BTL-B'
-dict_noms_warstats['Captain Han Solo']='Capitaine Han Solo'
-dict_noms_warstats['Captain Phasma']='Capitaine Phasma'
-dict_noms_warstats['Cassian\'s U-wing']='U-wing de Cassian'
-dict_noms_warstats['CC-2224 ']='CC-2224 "Cody"'
-dict_noms_warstats['Chief Chirpa']='Chef Chirpa'
-dict_noms_warstats['Chief Nebit']='Chef Nebit'
-dict_noms_warstats['Chimaera']='Chimère'
-dict_noms_warstats['Chirrut \\xc3\\x8emwe']='Chirrut Îmwe'
-dict_noms_warstats['Clone Sergeant - Phase I']='Sergent clone - Phase I'
-dict_noms_warstats['Clone Sergeant\'s ARC-170']='ARC-170 du Sergent clone'
-dict_noms_warstats['Clone Wars Chewbacca']='Chewbacca Guerre des Clones'
-dict_noms_warstats['Commander Luke Skywalker']='Commandant Luke Skywalker'
-dict_noms_warstats['Coruscant Underworld Police']='Police de la pègre de Coruscant'
-dict_noms_warstats['Count Dooku']='Comte Dooku'
-dict_noms_warstats['CT-21-0408 ']='CT-21-0408 "Écho"'
-dict_noms_warstats['CT-5555 ']='CT-5555 "Cinqs"'
-dict_noms_warstats['CT-7567 ']='CT-7567 "Rex"'
-dict_noms_warstats['Darth Malak']='Dark Malak'
-dict_noms_warstats['Darth Maul']='Dark Maul'
-dict_noms_warstats['Darth Nihilus']='Dark Nihilus'
-dict_noms_warstats['Darth Revan']='Dark Revan'
-dict_noms_warstats['Darth Sidious']='Dark Sidious'
-dict_noms_warstats['Darth Sion']='Dark Sion'
-dict_noms_warstats['Darth Traya']='Dark Traya'
-dict_noms_warstats['Darth Vader']='Dark Vador'
-dict_noms_warstats['Director Krennic']='Directeur Krennic'
-dict_noms_warstats['Droideka']='Droïdeka'
-dict_noms_warstats['Emperor Palpatine']='Empereur Palpatine'
-dict_noms_warstats['Emperor\'s Shuttle']='Navette de l’Empereur'
-dict_noms_warstats['Ewok Elder']='Ancien ewok'
-dict_noms_warstats['Ewok Scout']='Éclaireur ewok'
-dict_noms_warstats['First Order Executioner']='Exécuteur du Premier Ordre'
-dict_noms_warstats['First Order Officer']='Officier du Premier Ordre'
-dict_noms_warstats['First Order SF TIE Fighter']='Chasseur TIE/S du Premier Ordre'
-dict_noms_warstats['First Order SF TIE Pilot']='Pilote de TIE/S du Premier Ordre'
-dict_noms_warstats['First Order Stormtrooper']='Stormtrooper du Premier Ordre'
-dict_noms_warstats['First Order TIE Fighter']='Chasseur TIE du Premier Ordre'
-dict_noms_warstats['First Order TIE Pilot']='Pilote de chasseur TIE du Premier Ordre'
-dict_noms_warstats['Gamorrean Guard']='Garde Gamorréen'
-dict_noms_warstats['Garazeb ']='Garazeb "Zeb" Orrelios'
-dict_noms_warstats['Gauntlet Starfighter']='Chasseur Gauntlet'
-dict_noms_warstats['General Grievous']='Général Grievous'
-dict_noms_warstats['General Hux']='Général Hux'
-dict_noms_warstats['General Kenobi']='Général Kenobi'
-dict_noms_warstats['General Veers']='Général Veers'
-dict_noms_warstats['Geonosian Brood Alpha']='Alpha Géonosien'
-dict_noms_warstats['Geonosian Soldier']='Soldat géonosien'
-dict_noms_warstats['Geonosian Soldier\'s Starfighter']='Chasseur stellaire du soldat géonosien'
-dict_noms_warstats['Geonosian Spy']='Espion géonosien'
-dict_noms_warstats['Geonosian Spy\'s Starfighter']='Chasseur stellaire de l\'espion géonosien'
-dict_noms_warstats['Grand Admiral Thrawn']='Grand Amiral Thrawn'
-dict_noms_warstats['Grand Master Yoda']='Grand Maître Yoda'
-dict_noms_warstats['Han\'s Millennium Falcon']='Faucon Millenium de Han'
-dict_noms_warstats['Hermit Yoda']='Yoda Ermite'
-dict_noms_warstats['Hoth Rebel Scout']='Éclaireur rebelle de Hoth'
-dict_noms_warstats['Hoth Rebel Soldier']='Soldat rebelle de Hoth'
-dict_noms_warstats['Hound\'s Tooth']='Dent du Molosse'
-dict_noms_warstats['Hyena Bomber']='Droïde bombardier de classe Hyène'
-dict_noms_warstats['IG-100 MagnaGuard']='MagnaGarde IG-100'
-dict_noms_warstats['IG-86 Sentinel Droid']='Droïde sentinelle IG-86'
-dict_noms_warstats['Imperial Probe Droid']='Droïde Sonde Impérial'
-dict_noms_warstats['Imperial Super Commando']='Super commando impérial'
-dict_noms_warstats['Imperial TIE Fighter']='Chasseur TIE impérial'
-dict_noms_warstats['Jawa Engineer']='Ingénieur Jawa'
-dict_noms_warstats['Jawa Scavenger']='Pillard Jawa'
-dict_noms_warstats['Jedi Consular']='Jedi consulaire'
-dict_noms_warstats['Jedi Consular\'s Starfighter']='Chasseur stellaire du Jedi Consulaire'
-dict_noms_warstats['Jedi Knight Anakin']='Chevalier Jedi Anakin'
-dict_noms_warstats['Jedi Knight Guardian']='Chevalier Jedi Gardien'
-dict_noms_warstats['Jedi Knight Revan']='Chevalier Jedi Revan'
-dict_noms_warstats['Kylo Ren (Unmasked)']='Kylo Ren (sans masque)'
-dict_noms_warstats['Kylo Ren\'s Command Shuttle']='Navette de commandement de Kylo Ren'
-dict_noms_warstats['Lando\'s Millennium Falcon']='Faucon Millenium de Lando'
-dict_noms_warstats['Luke Skywalker (Farmboy)']='Luke Skywalker (fermier)'
-dict_noms_warstats['Mob Enforcer']='Homme de main de la pègre'
-dict_noms_warstats['Mother Talzin']='Mère Talzin'
-dict_noms_warstats['Nightsister Acolyte']='Acolyte des Soeurs de la Nuit'
-dict_noms_warstats['Nightsister Initiate']='Initiée des Soeurs de la Nuit'
-dict_noms_warstats['Nightsister Spirit']='Esprit Sœur de la Nuit'
-dict_noms_warstats['Nightsister Zombie']='Zombie Sœur de la Nuit'
-dict_noms_warstats['Obi-Wan Kenobi (Old Ben)']='Obi-Wan Kenobi (Vieux Ben)'
-dict_noms_warstats['Old Daka']='Vieille Daka'
-dict_noms_warstats['Phantom II']='Phantom\xa0II'
-dict_noms_warstats['Plo Koon\'s Jedi Starfighter']='Chasseur stellaire Jedi de Plo Koon'
-dict_noms_warstats['Poe Dameron\'s X-wing']='X-Wing de Poe Dameron'
-dict_noms_warstats['Poggle the Lesser']='Poggle le bref'
-dict_noms_warstats['Princess Leia']='Princesse Leia'
-dict_noms_warstats['Qi\'ra']='Qi\'ra'
-dict_noms_warstats['Rebel Officer Leia Organa']='Officier rebelle Leia Organa'
-dict_noms_warstats['Resistance Hero Finn']='Héros de la Résistance Finn'
-dict_noms_warstats['Resistance Hero Poe']='Héros de la Résistance Poe'
-dict_noms_warstats['Resistance Pilot']='Pilote de la Résistance'
-dict_noms_warstats['Resistance Trooper']='Soldat de la Résistance'
-dict_noms_warstats['Resistance X-wing']='X-wing de la Résistance'
-dict_noms_warstats['Rex\'s ARC-170']='ARC-170 de Rex'
-dict_noms_warstats['Rey (Jedi Training)']='Rey (entraînement de Jedi)'
-dict_noms_warstats['Rey (Scavenger)']='Rey (Pilleuse)'
-dict_noms_warstats['Rey\'s Millennium Falcon']='Faucon Millenium de Rey'
-dict_noms_warstats['Royal Guard']='Garde royal'
-dict_noms_warstats['Scarif Rebel Pathfinder']='Pisteur rebelle de Scarif'
-dict_noms_warstats['Scimitar']='Cimeterre'
-dict_noms_warstats['Sith Assassin']='Assassin Sith'
-dict_noms_warstats['Sith Empire Trooper']='Soldat Sith de l\'Empire'
-dict_noms_warstats['Sith Fighter']='Chasseur Sith'
-dict_noms_warstats['Sith Marauder']='Maraudeur Sith'
-dict_noms_warstats['Sith Trooper']='Soldat Sith'
-dict_noms_warstats['Slave I']='Esclave I'
-dict_noms_warstats['Stormtrooper Han']='Han en stormtrooper'
-dict_noms_warstats['Sun Fac\'s Geonosian Starfighter']='Chasseur stellaire géonosien de Sun Fac'
-dict_noms_warstats['The Mandalorian']='Le Mandalorien'
-dict_noms_warstats['Threepio & Chewie']='3PO et Chewie'
-dict_noms_warstats['TIE Advanced x1']='TIE avancé x1'
-dict_noms_warstats['TIE Fighter Pilot']='Pilote de chasseur TIE'
-dict_noms_warstats['TIE Reaper']='Faucheur TIE'
-dict_noms_warstats['TIE Silencer']='TIE silencer'
-dict_noms_warstats['Tusken Raider']='Pillard Tusken'
-dict_noms_warstats['Tusken Shaman']='Chaman Tusken'
-dict_noms_warstats['Umbaran Starfighter']='Chasseur umbarien'
-dict_noms_warstats['Vandor Chewbacca']='Chewbacca Vandor'
-dict_noms_warstats['Veteran Smuggler Chewbacca']='Contrebandier vétéran Chewbacca'
-dict_noms_warstats['Veteran Smuggler Han Solo']='Contrebandier vétéran Han Solo'
-dict_noms_warstats['Vulture Droid']='Chasseur droïde de classe Vautour'
-dict_noms_warstats['Wedge Antilles\'s X-wing']='X-Wing de Wedge Antilles'
-dict_noms_warstats['Young Han Solo']='Han Solo jeune'
-dict_noms_warstats['Young Lando Calrissian']='Lando Calrissian jeune'
-
 dict_platoon_names={} #key=bataille + phase (ex "GDS1), value= {key=warstats letter, value=echobot position}
 dict_platoon_names['GDS1']={}
 dict_platoon_names['GDS1']['A']='top'
@@ -238,16 +99,20 @@ dict_raid_tiers['Rancor (challenge)']=[41193988, 36425856, 39461352, 37943604]
 next_warstats_read = {}
 WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
 WARSTATS_REFRESH_TIME = 5 * 60 #Duration of refresh
+
 next_warstats_read["tb_scores"] = time.time()
 parse_warstats_tb_scores_run_once = False
 territory_scores = []
+
 next_warstats_read["tb_page"] = time.time()
 parse_warstats_tb_page_run_once = False
 tb_active_round = ""
 tb_dict_platoons = {}
 tb_open_territories = []
+
 next_warstats_read["tw_teams"] = time.time()
 opponent_teams = []
+
 next_warstats_read["raid_scores"] = time.time()
 raid_player_scores = {} #{raid name:{player name:score}}
 raid_phase = {} #{raid name:phase}
@@ -401,15 +266,14 @@ class TBSPhasePlatoonParser(HTMLParser):
             elif data == 'Hoth - Light side':
                 self.page_round='HLS'
             else:
-                goutils.log('ERR', "TBSPhasePlatoonParser-handle_data", "BT inconnue: "+data)
+                goutils.log2('ERR', "BT inconnue: "+data)
             
             self.state_parser=0
                 
         if self.state_parser==9:
             self.player_name=data
-            if self.char_name in dict_noms_warstats:
-                self.char_name=dict_noms_warstats[self.char_name]
-            #print(self.platoon_name+': '+self.char_name+' > '+self.player_name)
+            list_ids, dict_id_name, txt = goutils.get_characters_from_alias([self.char_name])
+            self.char_name = dict_id_name[self.char_name][0][1]
             
             #remplissage dict_platoons
             if not self.platoon_name in self.dict_platoons:
