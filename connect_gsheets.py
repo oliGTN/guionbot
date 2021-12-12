@@ -8,12 +8,12 @@ import sys
 import json
 import requests
 import difflib
-import connect_mysql
 import datetime
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 import inspect
 
+import connect_mysql
 import goutils
 import data
 
@@ -63,14 +63,14 @@ def load_config_raids(force_load):
             file = client.open("GuiOnBot config")
             feuille=file.worksheet("Raids")
 
-            liste_dict_feuille=feuille.get_all_records()
+            list_dict_sheet=feuille.get_all_records()
         except:
             goutils.log2("WAR", "Cannot connect to Google API")
             return None
 
         #Extract all aliases and get associated ID+nameKey
         dict_raids = {}
-        for line in liste_dict_feuille:
+        for line in list_dict_sheet:
             if not (line['Alias'] in dict_raids):
                 dict_raids[line['Alias']] = [line['Nom complet'], {}]
 
@@ -112,13 +112,13 @@ def load_config_teams(force_load):
             file = client.open("GuiOnBot config")
             feuille=file.worksheet("teams")
     
-            liste_dict_feuille=feuille.get_all_records()
+            list_dict_sheet=feuille.get_all_records()
         except:
             goutils.log2("WAR", "Cannot connect to Google API")
             return None, None
 
         #Extract all aliases and get associated ID+nameKey
-        list_alias=[x['Nom'] for x in liste_dict_feuille]
+        list_alias=[x['Nom'] for x in list_dict_sheet]
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
         if txt != '':
             goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
@@ -126,10 +126,10 @@ def load_config_teams(force_load):
 
         #Get latest definition of teams
         dict_teams={}
-        liste_teams=set([(lambda x:x['Nom équipe'])(x) for x in liste_dict_feuille])
+        liste_teams=set([(lambda x:x['Nom équipe'])(x) for x in list_dict_sheet])
         #print('\nDBG: liste_teams='+str(liste_teams))
         for team in liste_teams:
-            liste_dict_team=list(filter(lambda x : x['Nom équipe'] == team, liste_dict_feuille))
+            liste_dict_team=list(filter(lambda x : x['Nom équipe'] == team, list_dict_sheet))
             complete_liste_categories=[x['Catégorie'] for x in liste_dict_team]
             liste_categories=sorted(set(complete_liste_categories), key=lambda x: complete_liste_categories.index(x))
         
@@ -188,17 +188,17 @@ def load_config_players(force_load):
             get_gapi_client()
             file = client.open("GuiOnBot config")
             feuille=file.worksheet("players")
-            liste_dict_feuille=feuille.get_all_records()
+            list_dict_sheet=feuille.get_all_records()
         except:
             goutils.log2("WAR", "Cannot connect to Google API")
             return [None, None]
 
-        liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in liste_dict_feuille]
+        liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in list_dict_sheet]
         dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
         dict_players_by_ID={} # {key=discord ID, value=[allycode, isOfficer]}
 
-        #print(liste_dict_feuille)
-        for ligne in liste_dict_feuille:
+        #print(list_dict_sheet)
+        for ligne in list_dict_sheet:
             #Fill dict_players_by_IG
             #needs to transform into str as json only uses str as keys
             discord_id=str(ligne['Discord ID'])
@@ -236,12 +236,12 @@ def load_config_gt():
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("GT")
 
-    liste_dict_feuille=feuille.get_all_records()
-    liste_priorites=set([(lambda x:0 if x['Priorité']=='' else x['Priorité'])(x) for x in liste_dict_feuille])
+    list_dict_sheet=feuille.get_all_records()
+    liste_priorites=set([(lambda x:0 if x['Priorité']=='' else x['Priorité'])(x) for x in list_dict_sheet])
 
     liste_territoires=[['', []] for x in range(0,max(liste_priorites))] # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
     
-    for ligne in liste_dict_feuille:
+    for ligne in list_dict_sheet:
         #print(ligne)
         priorite=ligne['Priorité']
         if priorite != '':
@@ -262,10 +262,10 @@ def load_config_counter():
     file = client.open("GuiOnBot config")
     feuille=file.worksheet("COUNTER")
 
-    liste_dict_feuille=feuille.get_all_records()
+    list_dict_sheet=feuille.get_all_records()
     list_counter_teams=[]
     
-    for ligne in liste_dict_feuille:
+    for ligne in list_dict_sheet:
         counter_team=['', [], 0]
         for key in ligne.keys():
             if key=='Adversaire':
@@ -286,8 +286,6 @@ def load_config_counter():
 # Output:  dict_units {key=alias, value=[name, id]}
 ##############################################################
 def load_config_units(force_load):
-    global client
-    
     json_file = "CACHE"+os.path.sep+"config_units.json"
 
     if force_load or not os.path.isfile(json_file):
@@ -296,14 +294,14 @@ def load_config_units(force_load):
             file = client.open("GuiOnBot config")
             feuille=file.worksheet("units")
 
-            liste_dict_feuille=feuille.get_all_records()
+            list_dict_sheet=feuille.get_all_records()
         except:
             goutils.log2("ERR", "Cannot connect to Google API")
             return None
 
         dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
     
-        for ligne in liste_dict_feuille:
+        for ligne in list_dict_sheet:
             full_name=ligne['Character/Ship']
             id=ligne['ID']
 
@@ -345,6 +343,7 @@ def load_config_units(force_load):
         dict_units = json.load(open(json_file, "r"))
                 
     return dict_units
+
 ##############################################################
 # Function: update_online_dates
 # Parameters: dict_lastseen
@@ -354,10 +353,8 @@ def load_config_units(force_load):
 # Output:  none
 ##############################################################
 def update_online_dates(dict_lastseen):
-    global client    
-    get_gapi_client()
-    
     try:
+        get_gapi_client()
         file = client.open("GuiOnBot config")
         feuille=file.worksheet("players")
     except:
@@ -430,13 +427,20 @@ def update_online_dates(dict_lastseen):
     else:
         goutils.log2("ERR", 'At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
 
+##############################################################
+# Function: get_tb_triggers
+# Parameters: force_load (True: read the sheet / False: read the cache)
+# Purpose: Read the "BT" tab of the gsheets
+# Output: dict of scores by territory
+#         dict of star tagrets by TB and by day
+#         margin of score before reaching the target
+##############################################################
 def get_tb_triggers(force_load):
-    get_gapi_client()
-    
     json_file = "CACHE"+os.path.sep+"config_tb.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
+            get_gapi_client()
             file = client.open("GuiOnBot config")
             feuille=file.worksheet("BT")
         except:
@@ -571,3 +575,39 @@ def get_tb_triggers(force_load):
         [territory_stars, daily_targets, margin] = json.load(open(json_file, "r"))
 
     return [territory_stars, daily_targets, margin]
+
+def load_bt_teams(force_load):
+    json_file = "CACHE"+os.path.sep+"config_bt_teams.json"
+
+    if force_load or not os.path.isfile(json_file):
+        try:
+            get_gapi_client()
+            file = client.open("GuiOnBot config")
+            feuille=file.worksheet("BT teams")
+
+            list_dict_sheet=feuille.get_all_records()
+        except:
+            goutils.log2("ERR", "Cannot connect to Google API")
+            return None
+
+        bt_teams = [{}, {}, {}, {}]
+        cur_day = 0
+        for dict_line in list_dict_sheet:
+            if dict_line['Jour'] != '':
+                cur_day = int(dict_line['Jour'][-1])
+
+            terr = dict_line['Territoire']
+            if not terr in bt_teams[cur_day-1]:
+                bt_teams[cur_day-1][terr] = []
+
+            team = dict_line['Team']
+            bt_teams[cur_day-1][terr].append(team)
+
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps(bt_teams, sort_keys=True, indent=4))
+        fjson.close()
+    else:
+        bt_teams = json.load(open(json_file, "r"))
+
+    return bt_teams
