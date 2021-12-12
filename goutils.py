@@ -578,9 +578,7 @@ def get_characters_from_alias(list_alias):
     log2("DBG", "START")
     #Recuperation des dernieres donnees sur gdrive
     dict_units = connect_gsheets.load_config_units(False)
-    log2("DBG", inspect.stack()[0][2])
     dict_tagAlias = data.get("tagAlias_dict.json")
-    log2("DBG", inspect.stack()[0][2])
 
     txt_not_found_characters = ''
     dict_id_name = {}
@@ -637,7 +635,5 @@ def get_characters_from_alias(list_alias):
                     if not character_id in list_ids:
                         list_ids.append(character_id)
                     dict_id_name[character_alias] = [[character_id, character_name]]
-        log2("DBG", inspect.stack()[0][2])
 
-    log2("DBG", inspect.stack()[0][2])
     return list_ids, dict_id_name, txt_not_found_characters
