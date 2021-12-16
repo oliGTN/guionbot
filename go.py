@@ -1640,7 +1640,8 @@ def get_tb_alerts(force_latest):
                     if current_score >= star1_score:
                         tb_trigger_messages.append(":x: 1ère étoile atteinte en "+name+" alors qu'il ne fallait pas !")
                     elif current_score >= (star1_score-margin):
-                        tb_trigger_messages.append(":warning: la 1ère étoile se raproche en "+name+" et il ne faut pas l'atteindre")
+                        delta_score_M = round((star1_score-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":warning: la 1ère étoile se rapproche en "+name+" et il ne faut pas l'atteindre (il reste "+str(delta_score_M)+"M)")
                 elif current_target_stars == "1":
                     if current_score >= star3_score:
                         tb_trigger_messages.append(":heart_eyes: 3e étoile atteinte en "+name+" alors qu'on en visait une seule !")
@@ -1649,7 +1650,8 @@ def get_tb_alerts(force_latest):
                     elif current_score >= star1_score:
                         tb_trigger_messages.append(":white_check_mark: 1ère étoile atteinte en "+name+", objectif atteint")
                     elif current_score >= (star1_score-margin):
-                        tb_trigger_messages.append(":point_right: la 1ère étoile se raproche en "+name)
+                        delta_score_M = round((star1_score-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":point_right: la 1ère étoile se rapproche en "+name+" (il reste "+str(delta_score_M)+"M)")
     
                 elif current_target_stars == "2":
                     if current_score >= star3_score:
@@ -1657,7 +1659,8 @@ def get_tb_alerts(force_latest):
                     elif current_score >= star2_score:
                         tb_trigger_messages.append(":white_check_mark: 2e étoile atteinte en "+name+", objectif atteint")
                     elif current_score >= (star2_score-margin):
-                        tb_trigger_messages.append(":point_right: la 2e étoile se raproche en "+name)
+                        delta_score_M = round((star2_score-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":point_right: la 2e étoile se rapproche en "+name+" (il reste "+str(delta_score_M)+"M)")
                     elif current_score >= star1_score:
                         tb_trigger_messages.append(":thumbsup: 1ère étoile atteinte en "+name+", en route vers la 2e")
 
@@ -1665,7 +1668,8 @@ def get_tb_alerts(force_latest):
                     if current_score >= star3_score:
                         tb_trigger_messages.append(":white_check_mark: 3e étoile atteinte en "+name+", objectif atteint")
                     elif current_score >= (star3_score-margin):
-                        tb_trigger_messages.append(":point_right: la 3e étoile se raproche en "+name)
+                        delta_score_M = round((star3_score-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":point_right: la 3e étoile se rapproche en "+name+" (il reste "+str(delta_score_M)+"M)")
                     elif current_score >= star2_score:
                         tb_trigger_messages.append(":thumbsup: 2e étoile atteinte en "+name+", en route vers la 3e")
                     elif current_score >= star1_score:
@@ -2026,7 +2030,7 @@ def print_erx(allyCode_txt, days, compute_guild):
 # return: err_code, err_txt, list of players with teams and scores
 #################################
 def print_raid_progress(allyCode_txt, raid_alias):
-    dict_raids = connect_gsheets.load_config_raids()
+    dict_raids = connect_gsheets.load_config_raids(False)
     if raid_alias in dict_raids:
         raid_config = dict_raids[raid_alias]
     else:
@@ -2087,6 +2091,146 @@ def print_raid_progress(allyCode_txt, raid_alias):
         line.append(player_status)
 
         list_scores.append(line)
+
+    #Display
+    if raid_phase == 0 or raid_phase == 5:
+        raid_phase_txt = "terminé"
+    else:
+        raid_phase_txt = "phase "+str(raid_phase)
+    ret_print_raid_progress = "Résultat du Raid "+raid_name+" ("+raid_phase_txt+") pour la guilde "+guild_name+"\n\n"
+    ret_print_raid_progress+= "Teams utilisée :\n"
+    team_id = 1
+    for team in raid_team_names:
+        ret_print_raid_progress+= "T{0:1}: {1:20} - P{2:1} (normal: {3:8}, "\
+                                  "super: {4:8})\n".format(
+                                          team_id,
+                                          team,
+                                          raid_teams[team][0],
+                                          raid_teams[team][1],
+                                          raid_teams[team][2])
+        team_id += 1
+
+    #Header line
+    ret_print_raid_progress+= "\n{0:20}".format("Joueur")
+    for id in range(1, team_id):
+        ret_print_raid_progress+= "T"+str(id)+" "
+    ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) Statut\n".format("Score", "Normal", "Super")
+
+    #Display all players
+    for line in list_scores:
+        ret_print_raid_progress+= "{0:20}".format(line[0])
+        for id in range(1, team_id):
+            if line[id]:
+                ret_print_raid_progress+= "X  "
+            else:
+                ret_print_raid_progress+= ".  "
+        ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) {3:1}\n".format(
+                                line[id+1],
+                                line[id+2],
+                                line[id+3],
+                                line[id+4])
+
+
+    return 0, "", ret_print_raid_progress
+
+#################################
+# Function: print_bt_progress
+# return: err_code, err_txt, list of players with teams and scores
+#################################
+def print_bt_progress(allyCode_txt, tb_alias):
+    bt_teams = connect_gsheets.load_bt_teams(False)
+    list_known_bt = list(set(sum([[y[0:3] for y in x.keys()] for x in bt_teams], [])))
+    if not tb_alias in list_known_bt:
+        return 1, "ERR: unknown BT", ""
+
+    query = "SELECT warstats_id FROM guilds "
+    query+= "JOIN players ON guilds.name = players.guildName "
+    query+= "where allyCode = "+allyCode_txt
+    warstats_id = connect_mysql.get_value(query)
+
+    if warstats_id == None or warstats_id == 0:
+        return 1, "ERR: ID de guilde warstats non défini", ""
+
+    bt_team_names = list(set(sum(sum([list(x.values()) for x in bt_teams], []), [])))
+    guild_name, dict_teams = get_team_progress(bt_team_names, allyCode_txt, True, False)
+    dict_teams_by_player = {}
+    for team in dict_teams:
+        dict_teams_by_player[team]={}
+        for line in dict_teams[team][0][1:]:
+            nogo = line[3]
+            player_name = line[4]
+            dict_teams_by_player[team][player_name] = not nogo
+
+    active_round, dict_player_scores, list_open_territories = \
+            connect_warstats.parse_tb_player_scores(warstats_id, tb_alias, True)
+
+    list_bt_teams = connect_gsheets.load_bt_teams(False)
+
+    #Player lines
+    ret_print_bt_progress = ""
+    for player_name in dict_player_scores:
+        line=[player_name]
+
+        if tb_alias[0] == "H":
+            tb_day_count = 6
+        else:
+            tb_day_count = 4
+
+        for i_day in range(tb_day_count):
+            day_name = tb_alias+str(i_day+1)
+            day_scores = dict_player_scores[player_name][day_name]
+            if len(day_scores)==2:
+                list_territories = [[0, "top"], [1, "bot"]]
+            else:
+                list_territories = [[0, "top"], [1, "mid"], [2, "bot"]]
+
+            for [idx, pos] in list_territories:
+                territory_scores = day_scores[idx]
+                terr_round = territory_scores[0]
+                full_terr_name = tb_alias+"-P"+str(terr_round)+"-"+pos
+
+                terr_teams = list_bt_teams[i_day][full_terr_name]
+
+                team_count = 0
+                for team in terr_teams:
+                    if team == "":
+                        continue
+                    if dict_teams_by_player[team][player_name]:
+                        team_count += 1
+
+                count_4=0
+                count_1to3=0
+                count_0=0
+                for score in territory_scores[1:]:
+                    if score == '4' or (pos=="top" and score == "1"):
+                        count_4+=1
+                    elif score in ['1', '2', '3']:
+                        count_1to3+=1
+                    elif score == '0':
+                        count_0+=1
+
+                terr_txt = ""
+                while team_count > 0:
+                    if count_4 > 0:
+                        count_4 -= 1
+                        terr_txt += "\N{WHITE HEAVY CHECK MARK}"
+                    elif count_1to3 > 0:
+                        count_1to3 -= 1
+                        terr_txt +=  "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                    elif count_0 > 0:
+                        count_0 -= 1
+                        terr_txt += "\N{UP-POINTING RED TRIANGLE}"
+                    else:
+                        terr_txt += "\N{CROSS MARK}"
+
+                    team_count -= 1
+
+                if len(terr_txt) < len(territory_scores[1:]):
+                    terr_txt += "-" * (len(territory_scores[1:]) - len(terr_txt))
+
+                ret_print_bt_progress += player_name+": "+full_terr_name+": "+terr_txt+"\n"
+
+    return 0, "", ret_print_bt_progress
 
     #Display
     if raid_phase == 0 or raid_phase == 5:
