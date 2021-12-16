@@ -1064,7 +1064,24 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(is_owner)
     async def test(self, ctx, *args):
-        pass
+        await ctx.message.add_reaction(emoji_thumb)
+        allyCode = manage_me(ctx, args[0])
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, errtxt, ret_cmd = await bot.loop.run_in_executor(None,
+                go.print_bt_progress, allyCode, args[1])
+            if err != 0:
+                await ctx.send(errtxt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("```"+txt+"```")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
 
 ##############################################################
