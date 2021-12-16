@@ -302,6 +302,7 @@ class TBSPhasePlatoonParser(HTMLParser):
 class TBSListParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
+        self.tb_alias=''
         self.warstats_battle_id=''
         self.warstats_battle_in_progress=''
         self_seconds_since_last_track = 0
@@ -310,7 +311,13 @@ class TBSListParser(HTMLParser):
         #0: en recherche de h2
         #1: en recherche de data=Territory Battles
         #2: en recherche de div class='card card-table'
-        #3: en recherche de a href
+        #3: en recherche de tbody
+        #4: en recherche de tr
+        #5: en recherche de <i title="In progress" OR <a href
+        #6: en recherche de img
+        #    if tb_alias found >> 7
+        #    else >> 4
+        #7: end
 
         self.state_parser2=0
         #0: en recherche de <span id="track-timer"
@@ -331,6 +338,14 @@ class TBSListParser(HTMLParser):
                         self.state_parser=3
 
         if self.state_parser==3:
+            if tag=='tbody':
+                self.state_parser=4
+
+        if self.state_parser==4:
+            if tag=='tr':
+                self.state_parser=5
+
+        if self.state_parser==5:
             if tag=="i":
                 #print('DBG: i - '+str(attrs))
                 for name, value in attrs:
@@ -341,10 +356,29 @@ class TBSListParser(HTMLParser):
                 for name, value in attrs:
                     if name=='href':
                         #print(value.split('/'))
-                        self.warstats_battle_id=value.split('/')[3]
-                        self.state_parser=0
+                        if value!='':
+                            self.warstats_battle_id=value.split('/')[3]
+                        self.state_parser=6
 
-        #PARSER 3 pour le timer du tracker
+        if self.state_parser==6:
+            if tag=='img':
+                for name, value in attrs:
+                    if name=='alt':
+                        if self.tb_alias == "":
+                            #If no specific battle required, the latest is OK
+                            self.state_parser=7
+                        elif value == "geo_light" and self.tb_alias == "GLS":
+                            self.state_parser=7
+                        elif value == "geo_dark" and self.tb_alias == "GDS":
+                            self.state_parser=7
+                        elif value == "light" and self.tb_alias == "HLS":
+                            self.state_parser=7
+                        elif value == "dark" and self.tb_alias == "HDS":
+                            self.state_parser=7
+                        else:
+                            self.state_parser=4
+
+        #PARSER 2 pour le timer du tracker
         if self.state_parser2==0:
             if tag=='span':
                 for name, value in attrs:
@@ -369,6 +403,10 @@ class TBSListParser(HTMLParser):
             self.state_parser2=0
                 
     def get_battle_id(self, force_latest):
+        #If the oarser has not reached the end status, the required battle was not found
+        if self.state_parser!=7:
+            return None
+
         if self.warstats_battle_in_progress or force_latest:
             return self.warstats_battle_id
         else:
@@ -376,6 +414,9 @@ class TBSListParser(HTMLParser):
 
     def get_last_track(self):
         return self.seconds_since_last_track
+                
+    def set_tb_alias(self, tb_alias):
+        self.tb_alias = tb_alias
                 
 ###################################################################################
 # Parseing of a normale (resume) page for a specific phase in TB
@@ -507,6 +548,7 @@ class TBSPhaseResumeParser(HTMLParser):
 
         elif self.state_parser4==2:
             if tag=='tr':
+                self.td_count=-4
                 self.state_parser4=3
 
         elif self.state_parser4==3:
@@ -523,6 +565,7 @@ class TBSPhaseResumeParser(HTMLParser):
 
         elif self.state_parser4==7:
             if tag=='td':
+                self.td_count+=1
                 self.span_count=0
                 self.state_parser4=8
 
@@ -606,7 +649,8 @@ class TBSPhaseResumeParser(HTMLParser):
                 
         if self.state_parser4==9:
             if self.span_count == 1:
-                self.dict_player_scores[self.player_name].append([])
+                territory_phase = self.list_open_territories[self.td_count-1]
+                self.dict_player_scores[self.player_name].append([territory_phase])
             self.dict_player_scores[self.player_name][-1].append(data)
             self.state_parser4=8
                 
@@ -1134,7 +1178,7 @@ def parse_tb_platoons(guild_id, force_latest):
 
     return tb_active_round, tb_dict_platoons, tb_open_territories
 
-def parse_tb_player_scores(guild_id, force_latest):
+def parse_tb_player_scores(guild_id, tb_alias, force_latest):
     global parse_tb_player_scores_run_once
     global next_warstats_read
     global tb_active_round
@@ -1155,10 +1199,11 @@ def parse_tb_player_scores(guild_id, force_latest):
         parse_tb_player_scores_run_once = True
 
         tb_list_parser = TBSListParser()
+        tb_list_parser.set_tb_alias(tb_alias)
         tb_list_parser.feed(page.read().decode('utf-8', 'ignore'))
     
         if tb_list_parser.get_battle_id(force_latest) == None:
-            goutils.log2('INFO', 'no TB in progress')
+            goutils.log2('INFO', 'no TB '+tb_alias+' found')
 
             tb_active_round = ""
             tb_dict_player_scores = {}
