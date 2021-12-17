@@ -2287,7 +2287,7 @@ def get_tw_alerts():
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
         for territory in list_open_tw_territories:
-            counter_leaders = Counter([x[2][0] for x in list_opponent_squads if x[0]==territory])
+            counter_leaders = Counter([x[2][0] for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)])
 
             n_territory = int(territory[1])
             if territory[0] == "T" and int(territory[1]) > 2:
