@@ -532,7 +532,7 @@ def get_tb_triggers(force_load):
             mid_stars=feuille.col_values(col_mid)
             bot_stars=feuille.col_values(col_bot)
             daily_targets = {}
-            current_bt_name = ""
+            current_tb_name = ""
             l = 1
             for daily_name in daily_names:
                 top_target = top_stars[l-1] + '-' + top_stars[l]
@@ -541,12 +541,12 @@ def get_tb_triggers(force_load):
 
                 if daily_name!='':
                     if top_stars[l-1] == top_column_title:
-                        current_bt_name = daily_name
+                        current_tb_name = daily_name
                     elif daily_name!='':
                         day_index = int(daily_name[-1])-1
-                        if not current_bt_name in daily_targets:
-                            daily_targets[current_bt_name] = [[], [], [], []]
-                        daily_targets[current_bt_name][day_index] = [top_target, mid_target, bot_target]
+                        if not current_tb_name in daily_targets:
+                            daily_targets[current_tb_name] = [[], [], [], []]
+                        daily_targets[current_tb_name][day_index] = [top_target, mid_target, bot_target]
                 l+=1
             goutils.log2("DBG", 'daily_targets='+str(daily_targets))
 
@@ -576,8 +576,8 @@ def get_tb_triggers(force_load):
 
     return [territory_stars, daily_targets, margin]
 
-def load_bt_teams(force_load):
-    json_file = "CACHE"+os.path.sep+"config_bt_teams.json"
+def load_tb_teams(force_load):
+    json_file = "CACHE"+os.path.sep+"config_tb_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -590,24 +590,24 @@ def load_bt_teams(force_load):
             goutils.log2("ERR", "Cannot connect to Google API")
             return None
 
-        bt_teams = [{}, {}, {}, {}]
+        tb_teams = [{}, {}, {}, {}]
         cur_day = 0
         for dict_line in list_dict_sheet:
             if dict_line['Jour'] != '':
                 cur_day = int(dict_line['Jour'][-1])
 
             terr = dict_line['Territoire']
-            if not terr in bt_teams[cur_day-1]:
-                bt_teams[cur_day-1][terr] = []
+            if not terr in tb_teams[cur_day-1]:
+                tb_teams[cur_day-1][terr] = []
 
             team = dict_line['Team']
-            bt_teams[cur_day-1][terr].append(team)
+            tb_teams[cur_day-1][terr].append(team)
 
         # store json file
         fjson = open(json_file, 'w')
-        fjson.write(json.dumps(bt_teams, sort_keys=True, indent=4))
+        fjson.write(json.dumps(tb_teams, sort_keys=True, indent=4))
         fjson.close()
     else:
-        bt_teams = json.load(open(json_file, "r"))
+        tb_teams = json.load(open(json_file, "r"))
 
-    return bt_teams
+    return tb_teams
