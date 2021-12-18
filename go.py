@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from collections import Counter
 import inspect
+from texttable import Texttable
 
 import connect_gsheets
 import connect_mysql
@@ -2098,7 +2099,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
     else:
         raid_phase_txt = "phase "+str(raid_phase)
     ret_print_raid_progress = "Résultat du Raid "+raid_name+" ("+raid_phase_txt+") pour la guilde "+guild_name+"\n\n"
-    ret_print_raid_progress+= "Teams utilisée :\n"
+    ret_print_raid_progress+= "Teams utilisées :\n"
     team_id = 1
     for team in raid_team_names:
         ret_print_raid_progress+= "T{0:1}: {1:20} - P{2:1} (normal: {3:8}, "\
@@ -2134,12 +2135,14 @@ def print_raid_progress(allyCode_txt, raid_alias):
     return 0, "", ret_print_raid_progress
 
 #################################
-# Function: print_bt_progress
+# Function: print_tb_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_bt_progress(allyCode_txt, tb_alias):
-    bt_teams = connect_gsheets.load_bt_teams(False)
-    list_known_bt = list(set(sum([[y[0:3] for y in x.keys()] for x in bt_teams], [])))
+def print_tb_progress(allyCode_txt, tb_alias):
+    list_tb_teams = connect_gsheets.load_tb_teams(False)
+    tb_team_names = list(set(sum(sum([list(x.values()) for x in list_tb_teams], []), [])))
+    tb_team_names.remove('')
+    list_known_bt = list(set(sum([[y[0:3] for y in x.keys()] for x in list_tb_teams], [])))
     if not tb_alias in list_known_bt:
         return 1, "ERR: unknown BT", ""
 
@@ -2151,8 +2154,7 @@ def print_bt_progress(allyCode_txt, tb_alias):
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini", ""
 
-    bt_team_names = list(set(sum(sum([list(x.values()) for x in bt_teams], []), [])))
-    guild_name, dict_teams = get_team_progress(bt_team_names, allyCode_txt, True, False)
+    guild_name, dict_teams = get_team_progress(tb_team_names, allyCode_txt, True, False)
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -2164,19 +2166,30 @@ def print_bt_progress(allyCode_txt, tb_alias):
     active_round, dict_player_scores, list_open_territories = \
             connect_warstats.parse_tb_player_scores(warstats_id, tb_alias, True)
 
-    list_bt_teams = connect_gsheets.load_bt_teams(False)
+    if tb_alias[0] == "H":
+        tb_day_count = 6
+    else:
+        tb_day_count = 4
 
     #Player lines
-    ret_print_bt_progress = ""
+    list_scores = []
+    list_terr_by_day = [""] * tb_day_count
+    first_player = True
     for player_name in dict_player_scores:
         line=[player_name]
 
-        if tb_alias[0] == "H":
-            tb_day_count = 6
-        else:
-            tb_day_count = 4
+        for team in tb_team_names:
+            player_has_team = False
+            if player_name in dict_teams_by_player[team]:
+                player_has_team = dict_teams_by_player[team][player_name]
+
+            if player_has_team:
+                line.append("X")
+            else:
+                line.append("")
 
         for i_day in range(tb_day_count):
+            day_progress_txt = ""
             day_name = tb_alias+str(i_day+1)
             day_scores = dict_player_scores[player_name][day_name]
             if len(day_scores)==2:
@@ -2188,8 +2201,10 @@ def print_bt_progress(allyCode_txt, tb_alias):
                 territory_scores = day_scores[idx]
                 terr_round = territory_scores[0]
                 full_terr_name = tb_alias+"-P"+str(terr_round)+"-"+pos
+                if first_player:
+                    list_terr_by_day[i_day] += "P"+str(terr_round)+"-"+pos + "\n"
 
-                terr_teams = list_bt_teams[i_day][full_terr_name]
+                terr_teams = list_tb_teams[i_day][full_terr_name]
 
                 team_count = 0
                 for team in terr_teams:
@@ -2226,52 +2241,55 @@ def print_bt_progress(allyCode_txt, tb_alias):
                     team_count -= 1
 
                 if len(terr_txt) < len(territory_scores[1:]):
-                    terr_txt += "-" * (len(territory_scores[1:]) - len(terr_txt))
+                    terr_txt += "\N{WHITE SMALL SQUARE}" * (len(territory_scores[1:]) - len(terr_txt))
 
-                ret_print_bt_progress += player_name+": "+full_terr_name+": "+terr_txt+"\n"
-
-    return 0, "", ret_print_bt_progress
+                day_progress_txt += terr_txt+"\n"
+            line.append(day_progress_txt[:-1])
+        list_scores.append(line)
+        first_player = False
 
     #Display
-    if raid_phase == 0 or raid_phase == 5:
-        raid_phase_txt = "terminé"
+    if active_round == "":
+        tb_phase_txt = "terminée"
     else:
-        raid_phase_txt = "phase "+str(raid_phase)
-    ret_print_raid_progress = "Résultat du Raid "+raid_name+" ("+raid_phase_txt+") pour la guilde "+guild_name+"\n\n"
-    ret_print_raid_progress+= "Teams utilisée :\n"
+        tb_phase_txt = "Jour "+str(active_round)
+    ret_print_tb_progress = "Résultat de la BT "+tb_alias+" ("+tb_phase_txt+") pour la guilde "+guild_name+"\n\n"
+    ret_print_tb_progress+= "Teams utilisées :\n"
+
     team_id = 1
-    for team in raid_team_names:
-        ret_print_raid_progress+= "T{0:1}: {1:20} - P{2:1} (normal: {3:8}, "\
-                                  "super: {4:8})\n".format(
-                                          team_id,
-                                          team,
-                                          raid_teams[team][0],
-                                          raid_teams[team][1],
-                                          raid_teams[team][2])
+    for team in tb_team_names:
+        #look in which territory the team is useful
+        team_terr_set = set([])
+        for day_teams in list_tb_teams:
+            for terr_name in day_teams:
+                if team in day_teams[terr_name]:
+                    team_terr_set.add(terr_name[4:])
+
+        ret_print_tb_progress+= "T"+str(team_id)+": "+team+" "+str(team_terr_set)+"\n"
         team_id += 1
 
+    #Legend of emojis
+    ret_print_tb_progress+= "\nLégende :\n"
+    ret_print_tb_progress+= "- \N{WHITE HEAVY CHECK MARK} : team dispo et max atteint\n"
+    ret_print_tb_progress+= "- \N{WHITE RIGHT POINTING BACKHAND INDEX} : team dispo et entre 1 et 3 vagues\n"
+    ret_print_tb_progress+= "- \N{UP-POINTING RED TRIANGLE} : team dispo et aucune vague de réussie\n"
+    ret_print_tb_progress+= "- \N{CROSS MARK} : team dispo et combat pas tenté\n"
+    ret_print_tb_progress+= "- \N{WHITE SMALL SQUARE} : pas de team dispo\n"
+
     #Header line
-    ret_print_raid_progress+= "\n{0:20}".format("Joueur")
+    line_header = ["Joueur"]
     for id in range(1, team_id):
-        ret_print_raid_progress+= "T"+str(id)+" "
-    ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) Statut\n".format("Score", "Normal", "Super")
+        line_header.append("T"+str(id))
+    for id in range(0, tb_day_count):
+        terr_day = list_terr_by_day[id]
+        line_header.append("Jour "+str(id+1) + "\n" + terr_day[:-1])
 
     #Display all players
-    for line in list_scores:
-        ret_print_raid_progress+= "{0:20}".format(line[0])
-        for id in range(1, team_id):
-            if line[id]:
-                ret_print_raid_progress+= "X  "
-            else:
-                ret_print_raid_progress+= ".  "
-        ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) {3:1}\n".format(
-                                line[id+1],
-                                line[id+2],
-                                line[id+3],
-                                line[id+4])
+    t = Texttable()
+    t.add_rows([line_header] + list_scores)
+    ret_print_tb_progress+= "\n"+t.draw()
 
-
-    return 0, "", ret_print_raid_progress
+    return 0, "", ret_print_tb_progress
 
 def get_tw_alerts():
     query = "SELECT name, twChannel_id, warstats_id FROM guilds "
