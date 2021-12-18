@@ -1612,7 +1612,7 @@ def get_gp_distribution(txt_allyCode):
     return 0, "", image
 
 def get_tb_alerts(force_latest):
-    territory_scores, active_round = connect_warstats.parse_tb_guild_scores(force_latest)
+    territory_scores, active_round = connect_warstats.parse_tb_guild_scores(4090, force_latest)
 
     if active_round != "":
         [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(False)
