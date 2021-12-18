@@ -280,7 +280,7 @@ async def bot_loop_5minutes():
         try:
             #Lecture du statut des pelotons sur warstats
             tbs_round, dict_platoons_done, \
-                list_open_territories = connect_warstats.parse_tb_platoons(False)
+                list_open_territories = connect_warstats.parse_tb_platoons(4090, False)
             if tbs_round == '':
                 goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "No TB in progress")
                 dict_platoons_previously_done = {}
@@ -1314,7 +1314,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         #Lecture du statut des pelotons sur warstats
         tbs_round, dict_platoons_done, \
-            list_open_territories = connect_warstats.parse_tb_platoons(False)
+            list_open_territories = connect_warstats.parse_tb_platoons(4090, False)
         goutils.log("DBG", "guionbot_discord.vdp", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
