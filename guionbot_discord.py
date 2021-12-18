@@ -454,7 +454,7 @@ async def send_alert_to_echocommanders(message):
 ##############################################################
 async def get_eb_allocation(tbs_round):
     # Lecture des affectation ECHOBOT
-    bt_channel = bot.get_channel(int(config.EB_CHANNEL))
+    tb_channel = bot.get_channel(int(config.EB_CHANNEL))
     dict_platoons_allocation = {}  #key=platton_name, value={key=perso, value=[player...]}
     eb_phases = []
     eb_missions_full = []
@@ -467,7 +467,7 @@ async def get_eb_allocation(tbs_round):
     tbs_name = tbs_round[0:3]
     
     allocation_without_overview = False
-    async for message in bt_channel.history(limit=500):
+    async for message in tb_channel.history(limit=500):
         if str(message.author) == config.EB_PROFILE:
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
@@ -1064,25 +1064,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(is_owner)
     async def test(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-        allyCode = manage_me(ctx, args[0])
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            err, errtxt, ret_cmd = await bot.loop.run_in_executor(None,
-                go.print_bt_progress, allyCode, args[1])
-            if err != 0:
-                await ctx.send(errtxt)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                #texte classique
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("```"+txt+"```")
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
-
+        pass
 
 ##############################################################
 # Class: OfficerCog
@@ -1247,6 +1229,46 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
         else:
             err, errtxt, ret_cmd = go.print_raid_progress(allyCode, raid_name)
+            if err != 0:
+                await ctx.send(errtxt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                #texte classique
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("```"+txt+"```")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: rbg
+    # Parameters: name of the TB (GDS, HLS...)
+    # Purpose: Display results by player depending on whcih teams they have
+    # Display: One line per player, with emojis
+    ##############################################################
+    @commands.check(is_officer)
+    @commands.command(name='rbg',
+                 brief="Résultats de BT de Guilde",
+                 help="Résultats de BT de Guilde\n\n"
+                      "Exemple : go.rbg me GLS")
+    async def rbg(self, ctx, *options):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(options) != 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rbg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = options[0]
+        tb_name = options[1]
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, tb_name)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
