@@ -1055,6 +1055,74 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_check)
         
     ##############################################################
+    # Command: fsj
+    # Parameters: allyCode
+    #             "clearcache" (or any other text)
+    # Purpose: get latest info from API, and also clear cache XML if reaquired
+    # Display: INFO if new data if different from the previous
+    ##############################################################
+    @commands.command(name='fsj',
+                 brief="Force la synchro API d'un Joueur",
+                 help="Force la synchro API d'un Joueur\n\n"\
+                      "Exemple: go.spj 123456789\n"\
+                      "Exemple: go.spj me clearcache")
+    @commands.check(is_owner)
+    async def spj(self, ctx, allyCode, *options):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            clear_cache = (len(options)>0)
+            timestamp_before = datetime.datetime.timestamp(datetime.datetime.now())
+            e, player_before, t = await bot.loop.run_in_executor(
+                                            None, go.load_player,
+                                            allyCode, -1, True)
+            if e!=0:
+                await ctx.send(t)
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            if clear_cache:
+                json_file = "PLAYERS/"+allyCode+".json"
+                if os.path.isfile(json_file):
+                    os.remove(json_file)
+
+            e, player_now, t = await bot.loop.run_in_executor(
+                                            None, go.load_player,
+                                            allyCode, 1, False)
+            if e!=0:
+                await ctx.send(t)
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+
+            delta_player = goutils.delta_dict_player(player_before, player_now)
+
+            query = "SELECT * FROM roster_evolutions\n"
+            query+= "WHERE allyCode="+allyCode+"\n"
+            query+= "AND TIMESTAMPDIFF(SECOND, '1970-01-01', timestamp) >= "+str(timestamp_before)+"\n"
+            query+= "ORDER BY timestamp DESC"
+            goutils.log2("DBG", query)
+
+            output = connect_mysql.text_query(query)
+            if len(output) >0:
+                output_txt=''
+                for row in output:
+                    output_txt+=str(row)+'\n'
+                goutils.log('INFO', 'go.sql', output_txt)
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send('`' + txt + '`')
+            else:
+                await ctx.send('*Aucune mise à jour*')
+        
+            await ctx.message.add_reaction(emoji_check)
+
+
+    ##############################################################
     # Command: test
     # Parameters: ça dépend...
     # Purpose: commande de test lors du dev. Doit être mise en commentaires

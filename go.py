@@ -121,7 +121,7 @@ def refresh_cache():
 ##################################
 # Function: refresh_cache
 # inputs: txt_allYCode (string)
-#         int force_update (0: default, 1: force update, -1, do not update)
+#         int force_update (0: default, 1: force update, -1, do not update unless there is no XML)
 #         bool no_db: do not put player in DB
 # return: erro_code, err_text
 ##################################
