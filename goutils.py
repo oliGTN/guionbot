@@ -85,20 +85,27 @@ FORCE_CUT_PATTERN = "SPLIT_HERE"
 def split_txt(txt, max_size):
     ret_split_txt = []
     while (len(txt) > max_size) or (FORCE_CUT_PATTERN in txt):
-        force_split = txt.find(FORCE_CUT_PATTERN, 0, max_size)
+        force_split = txt.find(FORCE_CUT_PATTERN, 0, max_size+len(FORCE_CUT_PATTERN))
         if force_split != -1:
+            # FORCE_CUT_PATTERN found
             ret_split_txt.append(txt[:force_split])
             txt = txt[force_split + len(FORCE_CUT_PATTERN):]
             continue
 
-        last_cr = -1
-        last_cr = txt.rfind("\n", 0, max_size)
-        if last_cr == -1:
-            ret_split_txt.append(txt[-3] + '...')
-            txt = ''
+        last_cr_in_max = txt.rfind("\n", 0, max_size+1)
+        if last_cr_in_max == -1:
+            # CR not found within the max_size
+            ret_split_txt.append(txt[:max_size-3] + '...')
+            next_cr = txt.find("\n")
+            if next_cr != -1:
+                #There is a CR, let's skip to the next line
+                txt = txt[next_cr + 1:]
+            else:
+                #No CR at all, end this
+                txt = ''
         else:
-            ret_split_txt.append(txt[:last_cr])
-            txt = txt[last_cr + 1:]
+            ret_split_txt.append(txt[:last_cr_in_max])
+            txt = txt[last_cr_in_max + 1:]
     ret_split_txt.append(txt)
 
     return ret_split_txt
