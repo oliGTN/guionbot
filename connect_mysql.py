@@ -401,6 +401,7 @@ def update_player(dict_player):
         cursor.execute(query)
 
         # Update the roster
+        goutils.log2("DBG", "update "+str(len(dict_player['roster']))+" character(s)")
         for character_id in dict_player['roster']:
             character = dict_player['roster'][character_id]
             c_combatType = character['combatType']
@@ -556,13 +557,13 @@ def update_player(dict_player):
                 capa_isZeta = capa['isZeta']
                 
                 capa_shortname = capa_name[0].upper()
-                if capa_name[-1] in '0123456789':
+                if capa_shortname in ['SU'] and capa_name[-1] in '0123456789':
                     capa_shortname += capa_name[-1]
                     
                 if capa_name == 'uniqueskill_GALACTICLEGEND01':
                     capa_shortname = 'GL'
                     
-                if capa_isZeta == 1 and capa_level == 8:
+                if capa_isZeta == 1 and capa_level >= 8:
                     c_zeta_count += 1
         
                 #launch query to update skills
@@ -584,6 +585,8 @@ def update_player(dict_player):
                    +"SET zeta_count = "+str(c_zeta_count)+" "\
                    +"WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"
+            goutils.log2("DBG", query)
+            cursor.execute(query)
                 
         #Manage GP history
         # Define delta minutes versus po time
