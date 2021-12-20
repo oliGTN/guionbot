@@ -1110,7 +1110,7 @@ class RaidResumeParser(HTMLParser):
 def urlopen(url):
     req = urllib.request.Request(url)
     goutils.log2("INFO", url)
-    return urllib.request.urlopen(req)
+    return urllib.request.urlopen(req, timeout=10)
 
 def parse_tb_platoons(guild_id, force_latest):
     global parse_tb_platoons_run_once
@@ -1126,7 +1126,7 @@ def parse_tb_platoons(guild_id, force_latest):
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
             page = urlopen(warstats_tbs_url_guild)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tbs_url_guild)
             return tb_active_round, tb_dict_platoons, tb_open_territories
         
@@ -1153,7 +1153,7 @@ def parse_tb_platoons(guild_id, force_latest):
         for phase in range(1,7):
             try:
                 page = urlopen(warstats_platoon_url+'/'+str(phase))
-            except urllib.error.HTTPError as e:
+            except (urllib.error.HTTPError, urllib.error.URLError) as e:
                 goutils.log2('WAR', 'page introuvable '+warstats_platoon_url+'/'+str(phase))
                 continue
 
@@ -1192,7 +1192,7 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
             page = urlopen(warstats_tbs_url_guild)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tbs_url_guild)
             return tb_active_round, tb_dict_player_scores, tb_open_territories
         
@@ -1220,7 +1220,7 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
         for phase in range(1,7):
             try:
                 page = urlopen(warstats_tb_resume_url+'/'+str(phase))
-            except urllib.error.HTTPError as e:
+            except (urllib.error.HTTPError, urllib.error.URLError) as e:
                 goutils.log2('WAR', 'page introuvable '+warstats_tb_resume_url+'/'+str(phase))
                 continue
 
@@ -1255,7 +1255,7 @@ def parse_tb_guild_scores(guild_id, force_latest):
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
             page = urlopen(warstats_tbs_url_guild)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('WAR', 'error while opening '+warstats_tbs_url_guild)
             return territory_scores, tb_active_round
         
@@ -1279,7 +1279,7 @@ def parse_tb_guild_scores(guild_id, force_latest):
         warstats_tb_resume_url=warstats_tb_resume_baseurl+tb_list_parser.get_battle_id(force_latest)
         try:
             page = urlopen(warstats_tb_resume_url)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2("ERR", "error while opening "+warstats_tb_resume_url)
             return territory_scores, tb_active_round
 
@@ -1306,7 +1306,7 @@ def parse_tw_teams(guild_id):
         warstats_tws_url_guild = warstats_tws_url + str(guild_id)
         try:
             page = urlopen(warstats_tws_url_guild)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tws_url_guild)
             return opponent_teams
         
@@ -1319,7 +1319,7 @@ def parse_tw_teams(guild_id):
         warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
         try:
             page = urlopen(warstats_opp_squad_url)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_opp_squad_url)
             return opponent_teams
 
@@ -1344,7 +1344,7 @@ def parse_raid_scores(guild_id, raid_name):
         warstats_raids_url_guild = warstats_raids_url + str(guild_id)
         try:
             page = urlopen(warstats_raids_url_guild)
-        except urllib.error.HTTPError as e:
+        except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_raids_url_guild)
             return raid_phase[raid_name], raid_player_scores[raid_name]
         
@@ -1366,7 +1366,7 @@ def parse_raid_scores(guild_id, raid_name):
             warstats_raid_resume_url=warstats_raid_resume_baseurl+raid_id
             try:
                 page = urlopen(warstats_raid_resume_url)
-            except urllib.error.HTTPError as e:
+            except (urllib.error.HTTPError, urllib.error.URLError) as e:
                 goutils.log2('ERR', 'error while opening '+warstats_raid_resume_url)
                 return raid_phase[raid_name], raid_player_scores[raid_name]
 
