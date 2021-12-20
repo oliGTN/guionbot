@@ -8,7 +8,23 @@ skillList = json.load(open('DATA'+os.path.sep+'skillList.json', 'r'))
 
 dict_abilities={}
 for ability in abilityList:
-    dict_abilities[ability['id']] = [ability['nameKey'], False, '']
+    #Look for Omicron
+    omicron_type = ""
+    if len(ability["tierList"]) > 0:
+        upgradeKey_lastTier = ability["tierList"][-1]["upgradeDescKey"]
+        if upgradeKey_lastTier.lower().startswith("[c][e7e7e7]"):
+            if "pendant une guerre de territoire" in upgradeKey_lastTier.lower():
+                omicron_type = "TW"
+            elif "dans les guerres de territoire" in upgradeKey_lastTier.lower():
+                omicron_type = "TW"
+            elif "pendant une bataille de territoire" in upgradeKey_lastTier.lower():
+                omicron_type = "TW"
+            elif "dans les batailles de territoire" in upgradeKey_lastTier.lower():
+                omicron_type = "TW"
+            elif "en grande ar\u00e8ne" in upgradeKey_lastTier.lower():
+                omicron_type = "GA"
+
+    dict_abilities[ability['id']] = [ability['nameKey'], False, '', omicron_type]
 for skill in skillList:
     dict_abilities[skill['abilityReference']][1] = skill['isZeta']
     dict_abilities[skill['abilityReference']][2] = skill['id']
@@ -31,7 +47,9 @@ for unit in unitsList_obtainable:
             dict_unit_abilities[unit['baseId']]['B'] = dict_abilities[ability['abilityId']]
             skill_name = dict_abilities[ability['abilityId']][0]
             skill_id = dict_abilities[ability['abilityId']][2]
-            dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Basique']
+            skill_isZeta = dict_abilities[ability['abilityId']][1]
+            skill_omicron = dict_abilities[ability['abilityId']][3]
+            dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Basique', skill_isZeta, skill_omicron]
     
     #Leader
     for ability in [unit['leaderAbilityRef']]:
@@ -41,7 +59,9 @@ for unit in unitsList_obtainable:
             dict_unit_abilities[unit['baseId']]['L'] = dict_abilities[ability['abilityId']]
             skill_name = dict_abilities[ability['abilityId']][0]
             skill_id = dict_abilities[ability['abilityId']][2]
-            dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Leader']
+            skill_isZeta = dict_abilities[ability['abilityId']][1]
+            skill_omicron = dict_abilities[ability['abilityId']][3]
+            dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Leader', skill_isZeta, skill_omicron]
 
     #Specials
     id_spe = 1
@@ -52,7 +72,9 @@ for unit in unitsList_obtainable:
             dict_unit_abilities[unit['baseId']]['S'+str(id_spe)] = dict_abilities[ability['abilityId']]
             skill_name = dict_abilities[ability['abilityId']][0]
             skill_id = dict_abilities[ability['abilityId']][2]
-            dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Spéciale '+str(id_spe)]
+            skill_isZeta = dict_abilities[ability['abilityId']][1]
+            skill_omicron = dict_abilities[ability['abilityId']][3]
+            dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Spéciale '+str(id_spe), skill_isZeta, skill_omicron]
             id_spe += 1
             
     #Uniques
@@ -65,14 +87,18 @@ for unit in unitsList_obtainable:
                 dict_unit_abilities[unit['baseId']]['GL'] = dict_abilities[ability['abilityId']]
                 skill_name = dict_abilities[ability['abilityId']][0]
                 skill_id = dict_abilities[ability['abilityId']][2]
-                dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Légende Galactique']
+                skill_isZeta = dict_abilities[ability['abilityId']][1]
+                skill_omicron = dict_abilities[ability['abilityId']][3]
+                dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Légende Galactique', skill_isZeta, skill_omicron]
             else:
                 #if dict_abilities[ability['abilityId']][1]:
                     #line+='|'+dict_abilities[ability['abilityId']][0]
                 dict_unit_abilities[unit['baseId']]['U'+str(id_unique)] = dict_abilities[ability['abilityId']]
                 skill_name = dict_abilities[ability['abilityId']][0]
                 skill_id = dict_abilities[ability['abilityId']][2]
-                dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Unique '+str(id_unique)]
+                skill_isZeta = dict_abilities[ability['abilityId']][1]
+                skill_omicron = dict_abilities[ability['abilityId']][3]
+                dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, 'Unique '+str(id_unique), skill_isZeta, skill_omicron]
                 id_unique += 1                
             
     #list_lines.append(line)
