@@ -898,10 +898,17 @@ async def on_message(message):
 ##############################################################
 @bot.event
 async def on_command_error(ctx, error):
+    await ctx.message.add_reaction(emoji_thumb)
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("ERR: commande inconnue")
         await ctx.message.add_reaction(emoji_error)
+    elif isinstance(error, commands.errors.MissingRequiredArgument):
+        cmd_name = ctx.command.name
+        await ctx.send("ERR: argument manquant. Consultez l'aide avec go.help "+cmd_name)
+        await ctx.message.add_reaction(emoji_error)
     else:
+        await ctx.send("ERR: erreur inconnue")
+        await ctx.message.add_reaction(emoji_error)
         raise error
 
 ##############################################################
