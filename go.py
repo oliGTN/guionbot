@@ -721,7 +721,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         e, d, t = load_player(txt_allyCode, 0, False)
         if e != 0:
             #error wile loading guild data
-            return 'ERREUR: joueur non trouvé pour code allié ' + txt_allyCode
+            return "", 'ERR: joueur non trouvé pour code allié ' + txt_allyCode
 
         collection_name = d["name"]
             
