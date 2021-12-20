@@ -1071,10 +1071,10 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='fsj',
                  brief="Force la synchro API d'un Joueur",
                  help="Force la synchro API d'un Joueur\n\n"\
-                      "Exemple: go.spj 123456789\n"\
-                      "Exemple: go.spj me clearcache")
+                      "Exemple: go.fsj 123456789\n"\
+                      "Exemple: go.fsj me clearcache")
     @commands.check(is_owner)
-    async def spj(self, ctx, allyCode, *options):
+    async def fsj(self, ctx, allyCode, *options):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode = manage_me(ctx, allyCode)
@@ -1799,14 +1799,15 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 else:
                     list_characters.append(item)
             
-            if len(list_characters) > 0:
-                if len(list_options) <= 1:
-                    ret_cmd = await bot.loop.run_in_executor(None,
-                        go.print_character_stats, list(characters), allyCode, False)
-                else:
-                    ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
+            if len(list_characters)  == 0:
+                list_characters=['all']
+
+            if len(list_options) <= 1:
+                ret_cmd = await bot.loop.run_in_executor(None,
+                    go.print_character_stats, list_characters,
+                    list_options, allyCode, False)
             else:
-                ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
+                ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
                 
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
@@ -1851,7 +1852,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_characters) > 0:
                 if len(list_options) <= 1:
                     ret_cmd = await bot.loop.run_in_executor(None,
-                        go.print_character_stats, list(characters), allyCode, True)
+                        go.print_character_stats, list_characters,
+                        list_options, allyCode, True)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:

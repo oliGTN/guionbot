@@ -1281,22 +1281,30 @@ def guild_counter_score(txt_allyCode):
 
     return ret_guild_counter_score
 
-def print_character_stats(characters, txt_allyCode, compute_guild):
+def print_character_stats(characters, options, txt_allyCode, compute_guild):
     ret_print_character_stats = ''
 
-    list_stats_for_display=[['5', "Vit", False, 'v'],
-                            ['6', "DegPhy", False, 'd'],
-                            ['7', "DegSpé", False, ''],
-                            ['1', " Santé", False, 's'],
-                            ['28', "Protec", False, ''],
-                            ['17', "Pouvoir", True, 'p'],
-                            ['18', "Ténacité", True, '']]
+    list_stats_for_display=[['speed', "Vit"],
+                            ['physical damages', "DegPhy"],
+                            ['special damages', "DegSpé"],
+                            ['health', " Santé"],
+                            ['protection', "Protec"],
+                            ['potency', "Pouvoir"],
+                            ['tenacity', "Ténacité"]]
     
     #manage sorting options
-    sort_option='name'
-    if characters[0][0] == '-':
-        sort_option = characters[0][1:]
-        characters = characters[1:]
+    sort_option_id=0 # sort by name
+    if len(options) == 1:
+        sort_option_alias = options[0][1:].lower()
+        closest_names = difflib.get_close_matches(sort_option_alias,
+                                                  dict_stat_names.keys(),
+                                                  1)
+        if len(closest_names) < 1:
+            return "ERR: "+options[0]+" ne fait pas partie des stats connues "+\
+                    str(list(dict_stat_names.keys()))
+        sort_option_name = closest_names[0]
+        sort_option_id = dict_stat_names[sort_option_name][0]
+
         
     dict_virtual_characters={} #{key=alias or ID, value=[gear, relic, nameKey]}
 
@@ -1432,7 +1440,12 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             dict_stats = {player_name: dict_player['roster']}
 
         
-        ret_print_character_stats += "Statistiques pour "+player_name+'\n'
+        ret_print_character_stats += "Statistiques pour "+player_name
+        if sort_option_id == 0:
+            ret_print_character_stats += " (tri par nom)\n"
+        else:
+            sort_option_full_name = dict_stat_names[sort_option_name][2]
+            ret_print_character_stats += " (tri par "+sort_option_full_name+")\n"
 
 
     elif len(characters) == 1 and characters[0] != "all" and not characters[0].startswith("tag:"):
@@ -1476,7 +1489,12 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         list_player_names=set([x[0] for x in db_stat_data])
         character_name = dict_id_name[character_alias][0][1]
         
-        ret_print_character_stats += "Statistiques pour "+character_name+'\n'
+        ret_print_character_stats += "Statistiques pour "+character_name
+        if sort_option_id == 0:
+            ret_print_character_stats += " (tri par nom)\n"
+        else:
+            sort_option_full_name = dict_stat_names[sort_option_name][2]
+            ret_print_character_stats += " (tri par "+sort_option_full_name+")\n"
     
         # Generate dict from DB data
         dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods)
@@ -1530,13 +1548,13 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
         # Default sort by character name in case of "all" for characters
         # or by player name if guild statistics
         if 'all' in characters or compute_guild:
-            list_print_stats = sorted(list_print_stats, key=lambda x: x[0])
+            list_print_stats = sorted(list_print_stats, key=lambda x: x[0].lower())
             
         # Sort by specified stat
-        for stat in list_stats_for_display:
-            if sort_option == stat[3]:
-                list_print_stats = sorted(list_print_stats,
-                    key=lambda x: -x[2][stat[0]] if stat[0] in x[2] else 0)
+        if sort_option_id != 0:
+            stat_txt = str(sort_option_id)
+            list_print_stats = sorted(list_print_stats,
+                key=lambda x: -x[2][stat_txt] if stat_txt in x[2] else 0)
         
         ret_print_character_stats += "=====================================\n"
         max_size_char = max([len(x[0]) for x in list_print_stats])
@@ -1555,11 +1573,13 @@ def print_character_stats(characters, txt_allyCode, compute_guild):
             ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format(print_stat_row[0])
             ret_print_character_stats += ("{0:5} ").format(print_stat_row[1])
             for stat in list_stats_for_display:
-                if stat[0] in print_stat_row[2]:
-                    stat_value = print_stat_row[2][stat[0]]
+                stat_id = str(dict_stat_names[stat[0]][0])
+                stat_percent = dict_stat_names[stat[0]][1]
+                if stat_id in print_stat_row[2]:
+                    stat_value = print_stat_row[2][stat_id]
                 else:
                     stat_value = 0
-                if stat[2]:
+                if stat_percent:
                     # Percent value
                     ret_print_character_stats += ("{0:"+str(len(stat[1])-1)+".2f}% ").format(stat_value/1e6)
                 else:
