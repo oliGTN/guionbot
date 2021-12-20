@@ -484,6 +484,7 @@ def delta_dict_player(dict1, dict2):
     return delta_dict
 
 def detect_delta_roster_element(allyCode, char1, char2):
+    dict_zetas = json.load(open('DATA'+os.path.sep+'unit_zeta_list.json', 'r'))
     defId = char1['defId']
 
     #RARITY
@@ -523,13 +524,13 @@ def detect_delta_roster_element(allyCode, char1, char2):
     for skill2 in char2['skills']:
         skill_id = skill2['id']
         skill2_isZeta = skill2['isZeta'] and skill2['tier']>=8
-        skill2_isOmicron = skill2['tier']==9
+        skill2_isOmicron = dict_zetas[skill_id][3]!="" and skill2['tier']>=8
 
         skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
         if len(skill1_matchID)>0:
             skill1 = skill1_matchID[0]
             skill1_isZeta = skill1['isZeta'] and skill1['tier']>=8
-            skill1_isOmicron = skill1['tier']==9
+            skill1_isOmicron = dict_zetas[skill_id][3]!="" and skill2['tier']>=8
         else:
             skill1 = None
         if skill2_isZeta and (skill1 == None or not skill1_isZeta):
@@ -538,6 +539,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
             evo_txt = "new omicron "+get_zeta_from_id(defId, skill_id)
+            eco_txt += " for " + dict_zetas[skill_id][3]
             log("INFO", "delta_roster_element", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
