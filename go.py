@@ -2323,10 +2323,23 @@ def get_tw_alerts():
         dict_tw_alerts[guildName] = [twChannel_id, []]
 
         list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
+        list_opponent_players = [x[1] for x in list_opponent_squads]
+        longest_opp_player_name = max(list_opponent_players, key=len)
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
+        query = "SELECT players.name, defId from roster\n"
+        query+= "JOIN roster_skills ON roster_id=roster.id\n"
+        query+= "JOIN players ON players.allyCode=roster.allyCode\n"
+        query+= "WHERE guildName=(SELECT guildName FROM players WHERE name='"+longest_opp_player_name+"')\n"
+        query+= "AND omicron_tier=roster_skills.level\n"
+        query+= "AND omicron_type='TW'"
+        goutils.log2("DBG", query)
+        omicron_table = connect_mysql.get_table(query)
+        goutils.log2("DBG", omicron_table)
+
         for territory in list_open_tw_territories:
-            counter_leaders = Counter([x[2][0] for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)])
+            list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
+            counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
 
             n_territory = int(territory[1])
             if territory[0] == "T" and int(territory[1]) > 2:
@@ -2349,6 +2362,13 @@ def get_tw_alerts():
             msg += " ("+territory+") est ouvert. Avec ces adversaires :"
             for leader in counter_leaders:
                 msg += "\n - "+leader+": "+str(counter_leaders[leader])
+                for squad in list_opp_squads_terr:
+                    opp_name = squad[1]
+                    if squad[2][0] == leader:
+                        for toon in squad[2]:
+                            if (opp_name, toon) in omicron_table:
+                                msg += "\n    - "+opp_name+": omicron sur "+toon
+
 
             dict_tw_alerts[guildName][1].append(msg)
 
