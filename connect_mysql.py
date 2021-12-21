@@ -353,6 +353,7 @@ def insert_roster_evo(allyCode, defId, evo_txt):
     
 def update_player(dict_player):
     dict_unitsList = data.get("unitsList_dict.json")
+    dict_zetas = data.get("unit_zeta_list.json")
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
@@ -556,6 +557,13 @@ def update_player(dict_player):
                 capa_level = capa['tier']
                 capa_isZeta = capa['isZeta']
                 
+                capa_omicron_type = ""
+                capa_omicron_tier = "-1"
+                if character_id in dict_zetas:
+                    if capa_name in dict_zetas[character_id]:
+                        capa_omicron_type = dict_zetas[character_id][capa_name][3]
+                        capa_omicron_tier = dict_zetas[character_id][capa_name][4]
+                
                 capa_shortname = capa_name[0].upper()
                 if capa_shortname in 'SU' and capa_name[-1] in '0123456789':
                     capa_shortname += capa_name[-1]
@@ -575,7 +583,9 @@ def update_player(dict_player):
 
                 query = "UPDATE roster_skills "\
                        +"SET level = "+str(capa_level)+", "\
-                       +"isZeta = "+str(capa_isZeta)+" "\
+                       +"isZeta = "+str(capa_isZeta)+", "\
+                       +"omicron_type = '"+capa_omicron_type+"', "\
+                       +"omicron_tier = "+str(capa_omicron_tier)+" "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
                 goutils.log("DBG", "update_player", query)
