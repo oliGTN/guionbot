@@ -1084,7 +1084,9 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             await ctx.message.add_reaction(emoji_error)
         else:
             clear_cache = (len(options)>0)
-            timestamp_before = datetime.datetime.timestamp(datetime.datetime.now())
+            query = "SELECT CURRENT_TIMESTAMP"
+            goutils.log2("DBG", query)
+            timestamp_before = connect_mysql.get_value(query)
             e, player_before, t = await bot.loop.run_in_executor(
                                             None, go.load_player,
                                             allyCode, -1, True)
@@ -1111,7 +1113,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
             query = "SELECT * FROM roster_evolutions\n"
             query+= "WHERE allyCode="+allyCode+"\n"
-            query+= "AND TIMESTAMPDIFF(SECOND, '1970-01-01', timestamp) >= "+str(timestamp_before)+"\n"
+            query+= "AND timestamp >= '"+str(timestamp_before)+"'\n"
             query+= "ORDER BY timestamp DESC"
             goutils.log2("DBG", query)
 
