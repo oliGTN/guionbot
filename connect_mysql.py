@@ -557,8 +557,9 @@ def update_player(dict_player):
                 capa_isZeta = capa['isZeta']
                 
                 capa_shortname = capa_name[0].upper()
-                if capa_shortname in ['SU'] and capa_name[-1] in '0123456789':
+                if capa_shortname in 'SU' and capa_name[-1] in '0123456789':
                     capa_shortname += capa_name[-1]
+                goutils.log2("DBG", capa_name + " >> " + capa_shortname)
                     
                 if capa_name == 'uniqueskill_GALACTICLEGEND01':
                     capa_shortname = 'GL'
