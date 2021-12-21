@@ -740,7 +740,8 @@ class TWSOpponentSquadParser(HTMLParser):
         self.seconds_since_last_track = 0
         self.territory_name = ""
         self.opp_name = ""
-        self.list_opp_teams = []
+        self.list_opp_teams = [] # [['T1', 'Karcot', ['Genaral Skywoalker', 'CT-555 Fives, ...]],
+                                 #  ['T1', 'E80', [...]]]
         self.state_parser=-3
         #-3: en recherche de <h2>
         #-2: en recherche de <h2>
