@@ -62,7 +62,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1999 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2001 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -86,7 +86,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8950 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=8975 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -117,7 +117,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=158 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=159 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -231,7 +231,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=2128840 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2175368 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -261,11 +261,13 @@ CREATE TABLE `roster_skills` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(45) DEFAULT NULL,
   `level` int(11) DEFAULT NULL,
-  `isZeta` tinyint(4) DEFAULT NULL,
+  `isZeta` tinyint(4) DEFAULT 0,
+  `omicron_type` varchar(2) DEFAULT '',
+  `omicron_tier` tinyint(4) DEFAULT -1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23170333 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=23350297 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -347,6 +349,49 @@ BEGIN
         AND players.guildName = 'Kangoo Legends'
         GROUP BY players.allyCode
 	) AS T;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_omicrons` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_omicrons`()
+BEGIN
+	select players.guildName, players.name, players.allyCode, defId, gear,
+	case relic_currentTier
+	when 1 then ''
+	else relic_currentTier-2
+	end as relic,
+	zeta_count
+	from roster 
+	join roster_skills on roster.id = roster_skills.roster_id
+	join players on players.allyCode = roster.allyCode
+	where guildName='Kangoo Legends' and (
+	(defId = 'QUIGONJINN' and roster_skills.name='L' and roster_skills.level=9)
+	or (defId = 'ZAMWESELL' and roster_skills.name='U1' and roster_skills.level=9)
+	or (defId = 'CHIEFCHIRPA' and roster_skills.name='L' and roster_skills.level=9)
+	or (defId = 'DARTHTALON' and roster_skills.name='U2' and roster_skills.level=8)
+	or (defId = 'ROSETICO' and roster_skills.name='U1' and roster_skills.level=9)
+	or (defId = 'HOTHLEIA' and roster_skills.name='L' and roster_skills.level=9)
+	or (defId = 'KYLEKATARN' and roster_skills.name='U1' and roster_skills.level=8) #TBC
+	or (defId = 'IMPERIALPROBEDROID' and roster_skills.name='U1' and roster_skills.level=9) #TBC
+	or (defId = 'PHASMA' and roster_skills.name='L' and roster_skills.level=9)
+	or (defId = 'DARTHSIDIOUS' and roster_skills.name='U1' and roster_skills.level=9)
+	or (defId = 'HERASYNDULLAS3' and roster_skills.name='L' and roster_skills.level=9) #TBC
+	or (defId = 'CHIEFNEBIT' and roster_skills.name='L' and roster_skills.level=8)
+	or (defId = 'MARAJADE' and roster_skills.name='U1' and roster_skills.level=8)
+	or (defId = 'DASHRENDAR' and roster_skills.name='U1' and roster_skills.level=8) #TBC
+	);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -844,4 +889,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-12-12 17:37:58
+-- Dump completed on 2021-12-21  3:38:43
