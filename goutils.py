@@ -546,7 +546,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
             evo_txt = "new omicron "+get_zeta_from_id(defId, skill_id)
-            eco_txt += " for " + dict_zetas[skill_id][3]
+            evo_txt += " for " + dict_zetas[skill_id][3]
             log("INFO", "delta_roster_element", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
