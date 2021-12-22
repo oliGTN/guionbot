@@ -372,6 +372,12 @@ def update_player(dict_player):
         p_arena_char_rank_txt = ("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))
         p_arena_ship_rank = dict_player['arena']['ship']['rank']
         p_arena_ship_rank_txt = ("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))
+        if len(dict_player['grandArena'])>0:
+            p_grand_arena_league = dict_player['grandArena'][-1]['league']
+            p_grand_arena_division = 6 - int(dict_player['grandArena'][-1]['division']/5)
+            p_grand_arena_rank = p_grand_arena_league + str(p_grand_arena_division)
+        else:
+            p_grand_arena_rank = "NULL"
 
         for stat in dict_player['stats']:
             if stat['nameKey'] == "Puissance Galactique (personnages)\u00a0:":
@@ -393,6 +399,7 @@ def update_player(dict_player):
                +"    name = '"+str(p_name).replace("'", "''")+"', "\
                +"    arena_char_rank = "+ p_arena_char_rank_txt +", "\
                +"    arena_ship_rank = "+ p_arena_ship_rank_txt +", "\
+               +"    grand_arena_rank = '"+ p_grand_arena_rank +"', "\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
@@ -616,10 +623,11 @@ def update_player(dict_player):
 
         query = "UPDATE gp_history "\
                +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
-               +"    arena_char_rank = CASE WHEN arena_char_po_delta_minutes > "+str(delta_time_po_char)+" THEN "+ p_arena_char_rank_txt + " ELSE arena_char_rank END,"\
-               +"    arena_char_po_delta_minutes = CASE WHEN arena_char_po_delta_minutes > "+str(delta_time_po_char)+" THEN "+ str(delta_time_po_char) + " ELSE arena_char_po_delta_minutes END,"\
-               +"    arena_ship_rank = CASE WHEN arena_ship_po_delta_minutes > "+str(delta_time_po_ship)+" THEN "+ p_arena_ship_rank_txt + " ELSE arena_ship_rank END,"\
-               +"    arena_ship_po_delta_minutes = CASE WHEN arena_ship_po_delta_minutes > "+str(delta_time_po_ship)+" THEN "+ str(delta_time_po_ship) + " ELSE arena_ship_po_delta_minutes END,"\
+               +"    arena_char_rank = "+ p_arena_char_rank_txt + ", "\
+               +"    arena_char_po_delta_minutes = "+ str(delta_time_po_char) + ", "\
+               +"    arena_ship_rank = "+ p_arena_ship_rank_txt + ","\
+               +"    arena_ship_po_delta_minutes = "+ str(delta_time_po_ship) + ", "\
+               +"    grand_arena_rank = '"+ p_grand_arena_rank + "',"\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+" "\
                +"WHERE date = CURDATE() "\

@@ -43,6 +43,7 @@ CREATE TABLE `gp_history` (
   `ship_gp` int(11) DEFAULT NULL,
   `arena_char_rank` int(11) DEFAULT 999999,
   `arena_ship_rank` int(11) DEFAULT 999999,
+  `grand_arena_rank` varchar(10) COLLATE utf8_bin DEFAULT NULL,
   `arena_char_po_delta_minutes` smallint(6) DEFAULT 9999,
   `arena_ship_po_delta_minutes` smallint(6) DEFAULT 9999,
   UNIQUE KEY `gp_history_key` (`date`,`allyCode`)
@@ -185,6 +186,7 @@ CREATE TABLE `players` (
   `name` varchar(255) DEFAULT NULL,
   `arena_char_rank` int(11) DEFAULT NULL,
   `arena_ship_rank` int(11) DEFAULT NULL,
+  `grand_arena_rank` varchar(10) DEFAULT NULL,
   `char_gp` int(11) DEFAULT NULL,
   `ship_gp` int(11) DEFAULT NULL,
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
@@ -231,7 +233,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=2175368 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2180912 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -267,7 +269,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23350297 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=23374186 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -889,4 +891,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-12-21  3:38:43
+-- Dump completed on 2021-12-22  2:27:22

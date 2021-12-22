@@ -470,7 +470,7 @@ def delta_dict_player(dict1, dict2):
     delta_dict['roster'] = {}
 
     #compare player information
-    for info in ['guildName', 'id', 'lastActivity', 'level', 'name', 'arena', 'stats', 'poUTCOffsetMinutes']:
+    for info in ['guildName', 'id', 'lastActivity', 'level', 'name', 'arena', 'grandArena', 'stats', 'poUTCOffsetMinutes']:
         if dict2[info] != dict1[info]:
             log("INFO", "delta_dict_player", info+" has changed for "+str(allyCode))
         delta_dict[info] = dict2[info]
