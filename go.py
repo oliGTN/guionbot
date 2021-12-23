@@ -2082,12 +2082,18 @@ def print_raid_progress(allyCode_txt, raid_alias):
 
     #Player lines
     list_scores = []
+    list_unknown_players = []
     for player_name in raid_scores:
         line=[player_name]
         normal_score = 0
         super_score = 0
         for team in raid_team_names:
-            player_has_team = dict_teams_by_player[team][player_name]
+            if player_name in dict_teams_by_player[team]:
+                player_has_team = dict_teams_by_player[team][player_name]
+            else:
+                if not player_name in list_unknown_players:
+                    list_unknown_players.append(player_name)
+                player_has_team = False
             team_phase = raid_teams[team][0]
             team_normal_score = raid_teams[team][1]
             team_super_score = raid_teams[team][2]
@@ -2151,7 +2157,9 @@ def print_raid_progress(allyCode_txt, raid_alias):
                                 line[id+2],
                                 line[id+3],
                                 line[id+4])
-
+    
+    if len(list_unknown_players)>0:
+        ret_print_raid_progress+= "\nWAR: joueurs inconnus de la guilde "+str(list_unknown_players)
 
     return 0, "", ret_print_raid_progress
 
@@ -2196,6 +2204,7 @@ def print_tb_progress(allyCode_txt, tb_alias):
     list_scores = []
     list_terr_by_day = [""] * tb_day_count
     first_player = True
+    list_unknown_players = []
     for player_name in dict_player_scores:
         line=[player_name]
 
@@ -2203,6 +2212,9 @@ def print_tb_progress(allyCode_txt, tb_alias):
             player_has_team = False
             if player_name in dict_teams_by_player[team]:
                 player_has_team = dict_teams_by_player[team][player_name]
+            else:
+                if not player_name in list_unknown_players:
+                    list_unknown_players.append(player_name)
 
             if player_has_team:
                 line.append("X")
@@ -2231,8 +2243,9 @@ def print_tb_progress(allyCode_txt, tb_alias):
                 for team in terr_teams:
                     if team == "":
                         continue
-                    if dict_teams_by_player[team][player_name]:
-                        team_count += 1
+                    if player_name in dict_teams_by_player[team]:
+                        if dict_teams_by_player[team][player_name]:
+                            team_count += 1
 
                 count_4=0
                 count_1to3=0
@@ -2309,6 +2322,9 @@ def print_tb_progress(allyCode_txt, tb_alias):
     t = Texttable()
     t.add_rows([line_header] + list_scores)
     ret_print_tb_progress+= "\n"+t.draw()
+
+    if len(list_unknown_players)>0:
+        ret_print_tb_progress+= "\nWAR: joueurs inconnus dans la guilde "+str(list_unknown_players)
 
     return 0, "", ret_print_tb_progress
 
