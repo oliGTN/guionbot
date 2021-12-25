@@ -2083,6 +2083,8 @@ def print_raid_progress(allyCode_txt, raid_alias):
     #Player lines
     list_scores = []
     list_unknown_players = []
+    total_normal_score = 0
+    total_super_score = 0
     for player_name in raid_scores:
         line=[player_name]
         normal_score = 0
@@ -2102,6 +2104,8 @@ def print_raid_progress(allyCode_txt, raid_alias):
                 super_score += team_super_score
             line.append(player_has_team)
         player_score = raid_scores[player_name]
+        total_normal_score += normal_score
+        total_super_score += super_score
         line.append(player_score)
         line.append(normal_score)
         line.append(super_score)
@@ -2157,6 +2161,31 @@ def print_raid_progress(allyCode_txt, raid_alias):
                                 line[id+2],
                                 line[id+3],
                                 line[id+4])
+
+    #Display theoretical obtainable score and phase
+    if total_normal_score >= sum(data.dict_raid_tiers[raid_name]):
+        normal_raid_phase = 5
+    elif total_normal_score >= sum(data.dict_raid_tiers[raid_name][:3]):
+        normal_raid_phase = 4
+        normal_progress = (                  total_normal_score - sum(data.dict_raid_tiers[raid_name][:3]))/ \
+                          (sum(data.dict_raid_tiers[raid_name]) - sum(data.dict_raid_tiers[raid_name][:3]))
+    elif total_normal_score >= sum(data.dict_raid_tiers[raid_name][:2]):
+        normal_raid_phase = 3
+        normal_progress = (                      total_normal_score - sum(data.dict_raid_tiers[raid_name][:2]))/ \
+                          (sum(data.dict_raid_tiers[raid_name][:3]) - sum(data.dict_raid_tiers[raid_name][:2]))
+    elif total_normal_score >= sum(data.dict_raid_tiers[raid_name][0]):
+        normal_raid_phase = 2
+        normal_progress = (                      total_normal_score - sum(data.dict_raid_tiers[raid_name][0]))/ \
+                          (sum(data.dict_raid_tiers[raid_name][:2]) - sum(data.dict_raid_tiers[raid_name][0]))
+    else:
+        normal_raid_phase = 1
+        normal_progress = total_normal_score / sum(data.dict_raid_tiers[raid_name][0])
+    ret_print_raid_progress+= "\nScore atteignable par la guilde en mode normal : "+str(total_normal_score)
+    if normal_raid_phase == 5:
+        ret_print_raid_progress+= " (raid terminé)"
+    else:
+        normal_progress_percent = int(normal_progress*100)
+        ret_print_raid_progress+= " ("+str(normal_progress_percent)+"% de la phase "+str(normal_raid_phase)+")"
     
     if len(list_unknown_players)>0:
         ret_print_raid_progress+= "\nWAR: joueurs inconnus de la guilde "+str(list_unknown_players)
