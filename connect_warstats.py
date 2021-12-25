@@ -8,6 +8,7 @@ import datetime
 
 import config
 import goutils
+import data
 
 # URLs for TB
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/'
@@ -91,9 +92,6 @@ dict_tw_territory_names['Ion cannon']='B3'
 dict_tw_territory_names['Main base']='F2'
 dict_tw_territory_names['Command post']='T4'
 dict_tw_territory_names['Special ops center']='B4'
-
-dict_raid_tiers={}
-dict_raid_tiers['Rancor (challenge)']=[41193988, 36425856, 39461352, 37943604]
 
 #timer and global variables due to warstats tracking
 next_warstats_read = {}
@@ -1379,13 +1377,13 @@ def parse_raid_scores(guild_id, raid_name):
             raid_phase[raid_name] = raid_resume_parser.get_raid_phase()
             if raid_phase[raid_name] == 5:
                 total_score = sum(raid_player_scores[raid_name].values())
-                if total_score >= sum(dict_raid_tiers[raid_name]):
+                if total_score >= sum(data.dict_raid_tiers[raid_name]):
                     raid_phase[raid_name] = 5
-                elif total_score >= sum(dict_raid_tiers[raid_name][:3]):
+                elif total_score >= sum(data.dict_raid_tiers[raid_name][:3]):
                     raid_phase[raid_name] = 4
-                elif total_score >= sum(dict_raid_tiers[raid_name][:2]):
+                elif total_score >= sum(data.dict_raid_tiers[raid_name][:2]):
                     raid_phase[raid_name] = 3
-                elif total_score >= sum(dict_raid_tiers[raid_name][:1]):
+                elif total_score >= sum(data.dict_raid_tiers[raid_name][:1]):
                     raid_phase[raid_name] = 2
                 else:
                     raid_phase[raid_name] = 1
