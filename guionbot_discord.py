@@ -2109,7 +2109,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode_attack)
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
             return
 
@@ -2141,7 +2141,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode_attack)
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
             return
 
@@ -2157,6 +2157,73 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
+
+    ##############################################################
+    # Command: loj
+    # Parameters: player idenfier
+    # Purpose: list of omicrons of a player
+    # Display: list
+    ##############################################################
+    @commands.command(name='loj',
+                 brief="Liste des Omicrons d'un Joueur",
+                 help="Liste des Omicrons d'un Joueur\n"\
+                      "Exemple: go.loj 123456789")
+    async def loj(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode= manage_me(ctx, allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode_attack)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        e, err_txt, txt_lines = await bot.loop.run_in_executor(None,
+                                      go.print_lox, allyCode, False)
+        if e == 0 and len(txt_lines) >0:
+            output_txt=''
+            for row in txt_lines:
+                output_txt+=str(row)+'\n'
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(err_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    ##############################################################
+    # Command: log
+    # Parameters: player idenfier
+    # Purpose: list of omicrons of a guild
+    # Display: list
+    ##############################################################
+    @commands.command(name='log',
+                 brief="Liste des Omicrons d'une Guilde",
+                 help="Liste des Omicrons d'une Guilde\n"\
+                      "Exemple: go.log 123456789")
+    async def log(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode= manage_me(ctx, allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode_attack)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        e, err_txt, txt_lines = await bot.loop.run_in_executor(None,
+                    go.print_lox, allyCode, True)
+        if e == 0 and len(txt_lines) >0:
+            output_txt=''
+            for row in txt_lines:
+                output_txt+=str(row)+'\n'
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+
 
 ##############################################################
 # MAIN EXECUTION

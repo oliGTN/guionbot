@@ -1913,6 +1913,31 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     return 0, err_txt, image
 
 ###############################
+def print_lox(txt_allyCode, compute_guild):
+    if compute_guild:
+        ret, guild = load_guild(txt_allyCode, True, True)
+        if ret != 'OK':
+            return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, []
+    else:
+        e, d, t = load_player(txt_allyCode, 0, False)
+        if e != 0:
+            return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
+
+    query = "select players.name, defId, roster_skills.name, omicron_type from roster \n"
+    query+= "join roster_skills on roster_id = roster.id \n"
+    query+= "join players on players.allyCode=roster.allyCode \n"
+    query+= "where (roster_skills.omicron_tier>0 and roster_skills.level>=roster_skills.omicron_tier) \n"
+    if compute_guild:
+        query+= "and guildName=(select guildName from players where allyCode="+txt_allyCode+") \n"
+    else:
+        query+= "and players.allyCode="+txt_allyCode+" \n"
+    query+= "order by omicron_type, defId, players.name"
+    goutils.log2("DBG", query)
+
+    db_lines = connect_mysql.text_query(query)
+    return 0, "", db_lines
+
+###############################
 def print_erx(allyCode_txt, days, compute_guild):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_categoryList = data.get("categoryList_dict.json")
