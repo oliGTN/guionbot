@@ -909,6 +909,7 @@ async def on_command_error(ctx, error):
     else:
         await ctx.send("ERR: erreur inconnue")
         await ctx.message.add_reaction(emoji_error)
+        print(error)
         raise error
 
 ##############################################################
