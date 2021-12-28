@@ -2108,8 +2108,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
     #Player lines
     list_scores = []
     list_unknown_players = []
-    total_normal_score = 0
-    total_super_score = 0
+    guild_score_by_phase = [0, 0, 0, 0]
     for player_name in raid_scores:
         line=[player_name]
         normal_score = 0
@@ -2127,10 +2126,14 @@ def print_raid_progress(allyCode_txt, raid_alias):
             if player_has_team and raid_phase >= team_phase:
                 normal_score += team_normal_score
                 super_score += team_super_score
+
+
+            guild_score_by_phase[team_phase-1] += team_normal_score
+            if guild_score_by_phase[team_phase-1] > data.dict_raid_tiers[raid_name][team_phase-1]:
+                guild_score_by_phase[team_phase-1] = data.dict_raid_tiers[raid_name][team_phase-1]
+
             line.append(player_has_team)
         player_score = raid_scores[player_name]
-        total_normal_score += normal_score
-        total_super_score += super_score
         line.append(player_score)
         line.append(normal_score)
         line.append(super_score)
@@ -2188,6 +2191,15 @@ def print_raid_progress(allyCode_txt, raid_alias):
                                 line[id+4])
 
     #Display theoretical obtainable score and phase
+    if guild_score_by_phase[0] < data.dict_raid_tiers[raid_name][0]:
+        total_normal_score = guild_score_by_phase[0]
+    elif guild_score_by_phase[1] < data.dict_raid_tiers[raid_name][1]:
+        total_normal_score = sum(guild_score_by_phase[:2])
+    elif guild_score_by_phase[2] < data.dict_raid_tiers[raid_name][2]:
+        total_normal_score = sum(guild_score_by_phase[:3])
+    else:
+        total_normal_score = sum(guild_score_by_phase)
+
     if total_normal_score >= sum(data.dict_raid_tiers[raid_name]):
         normal_raid_phase = 5
     elif total_normal_score >= sum(data.dict_raid_tiers[raid_name][:3]):
