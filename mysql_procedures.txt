@@ -63,7 +63,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2001 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2003 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -87,7 +87,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8975 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=8981 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -102,7 +102,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=764 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=773 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -233,7 +233,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=2180912 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2202228 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -269,8 +269,25 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=23374186 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=23460324 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Temporary table structure for view `upgrade GA`
+--
+
+DROP TABLE IF EXISTS `upgrade GA`;
+/*!50001 DROP VIEW IF EXISTS `upgrade GA`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `upgrade GA` (
+  `date` tinyint NOT NULL,
+  `allyCode` tinyint NOT NULL,
+  `name` tinyint NOT NULL,
+  `grand_arena_rank` tinyint NOT NULL,
+  `count` tinyint NOT NULL
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
 
 --
 -- Dumping routines for database 'guionbotdb'
@@ -351,49 +368,6 @@ BEGIN
         AND players.guildName = 'Kangoo Legends'
         GROUP BY players.allyCode
 	) AS T;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `get_omicrons` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_omicrons`()
-BEGIN
-	select players.guildName, players.name, players.allyCode, defId, gear,
-	case relic_currentTier
-	when 1 then ''
-	else relic_currentTier-2
-	end as relic,
-	zeta_count
-	from roster 
-	join roster_skills on roster.id = roster_skills.roster_id
-	join players on players.allyCode = roster.allyCode
-	where guildName='Kangoo Legends' and (
-	(defId = 'QUIGONJINN' and roster_skills.name='L' and roster_skills.level=9)
-	or (defId = 'ZAMWESELL' and roster_skills.name='U1' and roster_skills.level=9)
-	or (defId = 'CHIEFCHIRPA' and roster_skills.name='L' and roster_skills.level=9)
-	or (defId = 'DARTHTALON' and roster_skills.name='U2' and roster_skills.level=8)
-	or (defId = 'ROSETICO' and roster_skills.name='U1' and roster_skills.level=9)
-	or (defId = 'HOTHLEIA' and roster_skills.name='L' and roster_skills.level=9)
-	or (defId = 'KYLEKATARN' and roster_skills.name='U1' and roster_skills.level=8) #TBC
-	or (defId = 'IMPERIALPROBEDROID' and roster_skills.name='U1' and roster_skills.level=9) #TBC
-	or (defId = 'PHASMA' and roster_skills.name='L' and roster_skills.level=9)
-	or (defId = 'DARTHSIDIOUS' and roster_skills.name='U1' and roster_skills.level=9)
-	or (defId = 'HERASYNDULLAS3' and roster_skills.name='L' and roster_skills.level=9) #TBC
-	or (defId = 'CHIEFNEBIT' and roster_skills.name='L' and roster_skills.level=8)
-	or (defId = 'MARAJADE' and roster_skills.name='U1' and roster_skills.level=8)
-	or (defId = 'DASHRENDAR' and roster_skills.name='U1' and roster_skills.level=8) #TBC
-	);
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -881,6 +855,25 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Final view structure for view `upgrade GA`
+--
+
+/*!50001 DROP TABLE IF EXISTS `upgrade GA`*/;
+/*!50001 DROP VIEW IF EXISTS `upgrade GA`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`guionbot`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `upgrade GA` AS select `T`.`date` AS `date`,`T`.`allyCode` AS `allyCode`,`T`.`name` AS `name`,`T`.`grand_arena_rank` AS `grand_arena_rank`,`T`.`count` AS `count` from (select `guionbotdb`.`gp_history`.`date` AS `date`,`guionbotdb`.`players`.`allyCode` AS `allyCode`,`guionbotdb`.`players`.`name` AS `name`,`guionbotdb`.`gp_history`.`grand_arena_rank` AS `grand_arena_rank`,count(0) AS `count` from (`guionbotdb`.`gp_history` join `guionbotdb`.`players` on(`guionbotdb`.`players`.`allyCode` = `guionbotdb`.`gp_history`.`allyCode`)) where `guionbotdb`.`players`.`guildName` = (select `guionbotdb`.`players`.`guildName` from `guionbotdb`.`players` where `guionbotdb`.`players`.`name` = 'Heavenboy') and `guionbotdb`.`gp_history`.`date` >= '2021-12-27' group by `guionbotdb`.`gp_history`.`allyCode`,`guionbotdb`.`gp_history`.`grand_arena_rank`) `T` where `T`.`count` = 1 order by `T`.`name`,`T`.`date` */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -891,4 +884,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-12-22  2:27:22
+-- Dump completed on 2021-12-28  1:08:57
