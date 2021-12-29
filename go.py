@@ -2405,6 +2405,9 @@ def get_tw_alerts():
         dict_tw_alerts[guildName] = [twChannel_id, []]
 
         list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
+        if len(list_opponent_squads) == 0:
+            #TW not started
+            continue
         list_opponent_players = [x[1] for x in list_opponent_squads]
         longest_opp_player_name = max(list_opponent_players, key=len)
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
