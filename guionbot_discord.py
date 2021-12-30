@@ -2188,6 +2188,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send('`' + txt + '`')
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
+        elif e == 0:
+            await ctx.send("Aucun omicron trouvé pour "+allyCode)
+            await ctx.message.add_reaction(emoji_check)
         else:
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
