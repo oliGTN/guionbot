@@ -574,28 +574,25 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
     score100 = 0
     score_nogo = False
     list_char_id = []
+    sorted_tab_progress = [[]] * len(tab_progress_player)
     for i_subobj in range(0, nb_subobjs):
-        nb_sub_obj = len(objectifs[i_subobj][2])
+        #Sort best characters first
+        min_perso = objectifs[i_subobj][1] #Minimum characters to be ready for this sub objective
+        sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((-x[0] * (not x[2])), -x[0]))
 
-        #Display the header of team requirements, for this category
-        # And filter already used characters from the available ones
-        tab_progress_player_subobj = []
-        for i_character in range(0, nb_sub_obj):
-            subobj_char_display = tab_progress_player[i_subobj][i_character][1]
-            line += subobj_char_display + "\n"
+        #remove already used characters
+        for char in sorted_tab_progress[i_subobj]:
+            if char[3] in list_char_id:
+                sorted_tab_progress[i_subobj].remove(char)
 
-            if not (tab_progress_player[i_subobj][i_character][1] in list_char_id):
-                tab_progress_player_subobj.append(tab_progress_player[i_subobj][i_character])
-
-        min_perso = objectifs[i_subobj][1]
-
-        #Extraction des scores pour les persos non-exclus
-        sorted_tab_progress = sorted(tab_progress_player[i_subobj], key=lambda x: ((x[0] * (not x[2])), x[0]))
-        top_tab_progress = sorted_tab_progress[-min_perso:]
+        #Compute scores on the best characters
+        top_tab_progress = sorted_tab_progress[i_subobj][:min_perso]
         top_scores_weighted = [x[0] * (not x[2]) * x[4] for x in top_tab_progress]
         sum_scores = sum(top_scores_weighted)
         top_weights = [x[4] for x in top_tab_progress]
         sum_weights = sum(top_weights)
+
+        #Remove used characters (only if part of the best as used to compute the score)
         top_chars = [x[3] for x in top_tab_progress]
         for x in tab_progress_player[i_subobj]:
             char_id = x[3]
@@ -608,6 +605,17 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
         if 0.0 in top_scores_weighted:
             score_nogo = True
 
+        #Display the header of team requirements, for this category
+        # And filter already used characters from the available ones
+        subobj_size = len(sorted_tab_progress[i_subobj]) #Amount of chars in this sub-objective
+        tab_progress_player_subobj = []
+        for i_character in range(0, subobj_size):
+            subobj_char_display = sorted_tab_progress[i_subobj][i_character][1]
+            if i_character >= min_perso:
+                line += "-- " + subobj_char_display + "\n"
+            else:
+                line += subobj_char_display + "\n"
+
     #pourcentage sur la moyenne
     score = score / score100 * 100
 
@@ -615,7 +623,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
         
     unlocked = False
     if gv_mode:
-        # in gv_mode, we check if the target character is unlocked
+        # in gv_mode, we check if the target character is fully unlocked
         # with the target max rarity
         target_character = team_name[:-3]
         target_rarity = dict_team["rarity"]
@@ -889,7 +897,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
                 else:
                     count_not_enough += 1
 
-            #Tri des nogo=False en premier, puis score décroissant
+            #Tri des équipes par nogo=False en premier, puis score décroissant
             for score, unlocked, txt, nogo, name, list_char in sorted(tab_lines,
                                            key=lambda x: (x[3], -x[0])):
                 ret_team.append([score, unlocked, txt, nogo, name, list_char])
@@ -1022,9 +1030,11 @@ def print_gvj(list_team_names, txt_allyCode):
         else:
             for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+team[:-3]+"\n"
+                ret_print_gvj += "(Les persos avec -- ne sont pas pris en compte pour le score)\n"
                 ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))+"%"
 
     else:
+        #Several tams
         player_name = ''
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
@@ -1037,6 +1047,7 @@ def print_gvj(list_team_names, txt_allyCode):
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
                                             
+        #Teams are sorted with the best progress on top
         list_lines = sorted(list_lines, key=lambda x: -x[0])
         if player_name != '':
             ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+"\n"
