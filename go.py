@@ -940,12 +940,13 @@ def print_vtg(list_team_names, txt_allyCode):
                             line_print_vtx += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
                         elif score >= SCORE_AMBER and not nogo:
                             line_print_vtx += "\N{CONFUSED FACE}"
-                        elif score >= SCORE_RED:
+                        #elif score >= SCORE_RED:
+                        else:
                             line_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
                             total_not_enough -= 1
 
-                        if score >= SCORE_RED:
-                            line_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
+                        #if score >= SCORE_RED:
+                        line_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
 
                         if len(list_team_names)==1 and list_team_names[0]!="all":
                             ret_print_vtx += line_print_vtx
