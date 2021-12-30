@@ -29,7 +29,7 @@ import parallel_work
 import data
 
 FORCE_CUT_PATTERN = "SPLIT_HERE"
-MAX_GVG_LINES = 40
+MAX_GVG_LINES = 50
 
 SCORE_GREEN = 100
 SCORE_ALMOST_GREEN = 95
@@ -1017,7 +1017,7 @@ def print_gvj(list_team_names, txt_allyCode):
     
     player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, False, True)
     if type(ret_get_team_progress) == str:
-        return ret_get_team_progress
+        return 1, ret_get_team_progress
     
     list_lines = []
     if len(ret_get_team_progress) == 1:
@@ -1065,13 +1065,16 @@ def print_gvj(list_team_names, txt_allyCode):
                 ret_print_gvj += "\N{UP-POINTING RED TRIANGLE}"
             ret_print_gvj += txt
 
-    return ret_print_gvj
+    return 0, ret_print_gvj
                         
 def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
     
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, True, True)
     
+    if type(ret_get_tam_progress) == str:
+        return 1, ret_get_team_progress
+
     list_lines = []
     for team in ret_get_team_progress:
         ret_team = ret_get_team_progress[team]
@@ -1088,16 +1091,23 @@ def print_gvg(list_team_names, txt_allyCode):
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
     ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
-    for [score, txt, unlocked] in list_lines[:MAX_GVG_LINES]:
-        if score > 95:
-            ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-        elif score > 80:
-            ret_print_gvg += "\N{CONFUSED FACE}"
-        else:
-            ret_print_gvg += "\N{UP-POINTING RED TRIANGLE}"
-        ret_print_gvg += txt
+    if len(list_lines) > 0:
+        for [score, txt, unlocked] in list_lines[:MAX_GVG_LINES]:
+            if score > 95:
+                ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+            elif score > 80:
+                ret_print_gvg += "\N{CONFUSED FACE}"
+            else:
+                ret_print_gvg += "\N{UP-POINTING RED TRIANGLE}"
+            ret_print_gvg += txt
         
-    return ret_print_gvg
+        not_displayed_count = max(0, len(list_lines) - MAX_GVG_LINES)
+        if not_displayed_count > 0:
+            ret_print_gvg += "... et encore "+str(not_displayed_count)+" lignes mais ça fait trop à afficher"
+    else:
+        ret_print_gvg += "... sauf que tout le monde l'a \N{SMILING FACE WITH HEART-SHAPED EYES}"
+        
+    return 0, ret_print_gvg
                        
 def assign_gt(allyCode):
     ret_assign_gt = ''

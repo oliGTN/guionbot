@@ -1698,12 +1698,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(teams) == 0:
                 teams = ["all"]
                 
-            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allyCode)
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                await ctx.send("`"+txt+"`")
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allyCode)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
 
     ##############################################################
     # Command: gvg
@@ -1731,12 +1735,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(teams) == 0:
                 teams = ["all"]
 
-            ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allyCode)
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                await ctx.send("`"+txt+"`")
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allyCode)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
 
     ##############################################################
     # Command: scg
