@@ -587,14 +587,28 @@ def roster_from_dict_to_list(dict_player):
 
 def get_characters_from_alias(list_alias):
     #Recuperation des dernieres donnees sur gdrive
-    dict_units = connect_gsheets.load_config_units(False)
+    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitAlias = connect_gsheets.load_config_units(False)
     dict_tagAlias = data.get("tagAlias_dict.json")
+    dict_zetas = data.get('unit_zeta_list.json')
 
     txt_not_found_characters = ''
     dict_id_name = {}
     list_ids = []
     for character_alias in list_alias:
-        if character_alias.startswith("tag:"):
+        if character_alias.startswith("tag:omicron"):
+            dict_id_name[character_alias] = []
+            for char_id in dict_zetas:
+                char_with_omicron = False
+                for skill in dict_zetas[char_id]:
+                    if dict_zetas[char_id][skill][4] >= 0:
+                        char_with_omicron = True
+                if char_with_omicron:
+                    list_ids.append(char_id)
+                    char_name = dict_unitsList[char_id]["nameKey"]
+                    dict_id_name[character_alias].append([char_id, char_name])
+
+        elif character_alias.startswith("tag:"):
             #Alias of a tag / faction
             tag_definition = character_alias[4:]
             if tag_definition.lower().startswith("char:") or \
@@ -629,19 +643,19 @@ def get_characters_from_alias(list_alias):
                             dict_id_name[character_alias].append([character_id, character_name])
         else:
             #First look for exact match (better for performance)
-            if character_alias.lower() in dict_units:
-                [character_name, character_id]=dict_units[character_alias.lower()]
+            if character_alias.lower() in dict_unitAlias:
+                [character_name, character_id]=dict_unitAlias[character_alias.lower()]
                 if not character_id in list_ids:
                     list_ids.append(character_id)
                 dict_id_name[character_alias] = [[character_id, character_name]]
             else:
                 #Normal alias
-                closest_names=difflib.get_close_matches(character_alias.lower(), dict_units.keys(), 3)
+                closest_names=difflib.get_close_matches(character_alias.lower(), dict_unitAlias.keys(), 3)
                 if len(closest_names)<1:
                     log('WAR', "get_characters_from_alias", "No character found for "+character_alias)
                     txt_not_found_characters += character_alias + ' '
                 else:
-                    [character_name, character_id]=dict_units[closest_names[0]]
+                    [character_name, character_id]=dict_unitAlias[closest_names[0]]
                     if not character_id in list_ids:
                         list_ids.append(character_id)
                     dict_id_name[character_alias] = [[character_id, character_name]]
