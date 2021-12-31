@@ -2434,7 +2434,7 @@ def get_tw_alerts():
         longest_opp_player_name = max(list_opponent_players, key=len)
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
-        query = "SELECT players.name, defId from roster\n"
+        query = "SELECT players.name, defId, roster_skills.name from roster\n"
         query+= "JOIN roster_skills ON roster_id=roster.id\n"
         query+= "JOIN players ON players.allyCode=roster.allyCode\n"
         query+= "WHERE guildName=(SELECT guildName FROM players WHERE name='"+longest_opp_player_name+"')\n"
@@ -2472,9 +2472,14 @@ def get_tw_alerts():
                 for squad in list_opp_squads_terr:
                     opp_name = squad[1]
                     if squad[2][0] == leader:
+                        leader_toon = True
                         for toon in squad[2]:
-                            if (opp_name, toon) in omicron_table:
+                            filtered_omicron_table = filter(lambda x: x[:2]==[opp_name, toon], omicron_table)
+                            if len(filtered_omicron_table) == 1:
                                 msg += "\n    - "+opp_name+": omicron sur "+toon
+                                if filtered_omicron_table[0][2] == 'L' and not leader_toon:
+                                    msg += "... qui n'est pas posé en chef \N{THINKING FACE}"
+                            leader_toon = False
 
 
             dict_tw_alerts[guildName][1].append(msg)
