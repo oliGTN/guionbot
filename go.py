@@ -1874,9 +1874,9 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 def get_stat_graph(txt_allyCode, character_alias, stat_name):
     err_txt = ""
 
-    ret, guild = load_guild(txt_allyCode, True, True)
-    if ret != 'OK':
-        return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
+    e, d, t = load_player(txt_allyCode, 0, False)
+    if e != 0:
+        return 1, "ERR: cannot get player data from SWGOH.HELP API", None
         
     #Get character_id
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
@@ -1900,7 +1900,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     #Get data from DB
     db_stat_data_char = []
-    goutils.log("INFO", "go.get_stat_char", "Get guild_data from DB...")
+    goutils.log("INFO", "go.get_stat_char", "Get player data from DB...")
     query = "SELECT allyCode, gear,"\
            +stat_string+","\
            +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
