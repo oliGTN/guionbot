@@ -2474,7 +2474,7 @@ def get_tw_alerts():
                     if squad[2][0] == leader:
                         leader_toon = True
                         for toon in squad[2]:
-                            filtered_omicron_table = filter(lambda x: x[:2]==[opp_name, toon], omicron_table)
+                            filtered_omicron_table = list(filter(lambda x: x[:2]==[opp_name, toon], omicron_table))
                             if len(filtered_omicron_table) == 1:
                                 msg += "\n    - "+opp_name+": omicron sur "+toon
                                 if filtered_omicron_table[0][2] == 'L' and not leader_toon:
