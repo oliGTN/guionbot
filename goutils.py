@@ -631,7 +631,7 @@ def get_characters_from_alias(list_alias):
 
             closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
             if len(closest_names)<1:
-                log('WAR', "get_characters_from_alias", "No tag found for "+tag_alias)
+                log2('WAR', "No tag found for "+tag_alias)
                 txt_not_found_characters += character_alias + ' '
             else:
                 dict_id_name[character_alias] = []
@@ -652,7 +652,7 @@ def get_characters_from_alias(list_alias):
                 #Normal alias
                 closest_names=difflib.get_close_matches(character_alias.lower(), dict_unitAlias.keys(), 3)
                 if len(closest_names)<1:
-                    log('WAR', "get_characters_from_alias", "No character found for "+character_alias)
+                    log2('WAR', "No character found for "+character_alias)
                     txt_not_found_characters += character_alias + ' '
                 else:
                     [character_name, character_id]=dict_unitAlias[closest_names[0]]

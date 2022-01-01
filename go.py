@@ -2417,6 +2417,8 @@ def print_tb_progress(allyCode_txt, tb_alias):
     return 0, "", ret_print_tb_progress
 
 def get_tw_alerts():
+    dict_unitsList = data.get("unitsList_dict.json")
+
     query = "SELECT name, twChannel_id, warstats_id FROM guilds "
     query+= "WHERE twChannel_id > 0 AND warstats_id > 0"
     goutils.log2('DBG', query)
@@ -2474,7 +2476,9 @@ def get_tw_alerts():
                     if squad[2][0] == leader:
                         leader_toon = True
                         for toon in squad[2]:
-                            filtered_omicron_table = list(filter(lambda x: x[:2]==[opp_name, toon], omicron_table))
+                            list_id, dict_id, txt = goutils.get_characters_from_alias([toon])
+                            toon_id = list_id[0]
+                            filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
                             if len(filtered_omicron_table) == 1:
                                 msg += "\n    - "+opp_name+": omicron sur "+toon
                                 if filtered_omicron_table[0][2] == 'L' and not leader_toon:
