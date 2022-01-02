@@ -2006,8 +2006,8 @@ def print_erx(allyCode_txt, days, compute_guild):
 
     if db_data_evo != None:
         guild_name = db_data_evo[0][0]
-        oldest = db_data_evo[-1][2]
-        latest = db_data_evo[0][2]
+        oldest = db_data_evo[-1][3]
+        latest = db_data_evo[0][3]
 
         #prepare stats for Journey Guide
         dict_teams_gv = {}
