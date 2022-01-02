@@ -1968,19 +1968,19 @@ def print_erx(allyCode_txt, days, compute_guild):
     liste_teams, dict_teams = connect_gsheets.load_config_teams(False)
 
     if not compute_guild:
-        query = "SELECT name, defId, timestamp FROM roster_evolutions " \
+        query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
               + "WHERE players.allyCode = " + allyCode_txt + " " \
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
     else:
-        query = "SELECT guildName, defId, timestamp FROM roster_evolutions " \
+        query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
               + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+")) "\
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
 
-    goutils.log("DBG", "go.print_erx", query)
+    goutils.log2("DBG", query)
     db_data_evo = connect_mysql.get_table(query)
 
     if not compute_guild:
@@ -1994,7 +1994,7 @@ def print_erx(allyCode_txt, days, compute_guild):
               + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+")) "\
               + "AND defId IN (SELECT LEFT(name, LENGTH(name) - 3) FROM guild_teams WHERE name LIKE '%-GV')"
 
-    goutils.log("DBG", "go.print_erx", query)
+    goutils.log2("DBG", query)
     db_data_gv = connect_mysql.get_table(query)
     dict_gv_done = {}
     for line in db_data_gv:
@@ -2005,7 +2005,7 @@ def print_erx(allyCode_txt, days, compute_guild):
         dict_gv_done[player].append(char_id)
 
     if db_data_evo != None:
-        player_name = db_data_evo[0][0]
+        guild_name = db_data_evo[0][0]
         oldest = db_data_evo[-1][2]
         latest = db_data_evo[0][2]
 
@@ -2024,7 +2024,8 @@ def print_erx(allyCode_txt, days, compute_guild):
         stats_categories = {} #id: [name, count]
         stats_gv = {} #id: [name, count]
         for line in db_data_evo:
-            unit_id = line[1]
+            player_name = line[1]
+            unit_id = line[2]
             if unit_id != "all":
                 unit_combatType = dict_unitsList[unit_id]["combatType"]
                 if unit_combatType == 1:
@@ -2055,11 +2056,16 @@ def print_erx(allyCode_txt, days, compute_guild):
                                 stats_gv[char_gv_id] = [char_gv_name, 1]
 
 
-        goutils.log("DBG", "go.print_erx", "stats_units: "+str(stats_units))
-        goutils.log("DBG", "go.print_erx", "stats_categories: "+str(stats_categories))
-        goutils.log("DBG", "go.print_erx", "stats_gv: "+str(stats_gv))
+        goutils.log2("DBG", "stats_units: "+str(stats_units))
+        goutils.log2("DBG", "stats_categories: "+str(stats_categories))
+        goutils.log2("DBG", "stats_gv: "+str(stats_gv))
 
-        ret_cmd = "**Evolutions du roster de "+player_name+" durant les "+str(days)+" derniers jours "\
+        if compute_guild:
+            evo_item_name = guild_name
+        else:
+            evo_item_name = player_name
+            
+        ret_cmd = "**Evolutions du roster de "+evo_item_name+" durant les "+str(days)+" derniers jours "\
                 + "(du "+str(oldest)+" au "+str(latest)+")**\n"
         ret_cmd += "1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso\n"
         if "alignment_light" in stats_categories:
@@ -2091,7 +2097,7 @@ def print_erx(allyCode_txt, days, compute_guild):
         return 0, ret_cmd
 
     else:
-        goutils.log("ERR", "go.print_erx", "error while running query, returned NULL")
+        goutils.log2("ERR", "error while running query, returned NULL")
         return 1, "ERR: erreur lors de la connexion à la DB"
 
 #################################
