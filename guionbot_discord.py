@@ -41,6 +41,7 @@ emoji_thumb = '\N{THUMBS UP SIGN}'
 emoji_thumbdown = '\N{THUMBS DOWN SIGN}'
 emoji_check = '\N{WHITE HEAVY CHECK MARK}'
 emoji_error = '\N{CROSS MARK}'
+emoji_hourglass = '\N{HOURGLASS}'
 emoji_letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
                  '\N{REGIONAL INDICATOR SYMBOL LETTER B}', \
                  '\N{REGIONAL INDICATOR SYMBOL LETTER C}', \
@@ -1917,11 +1918,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send(content = "",
                            file=File(fp=image_binary, filename='image.png'))
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emoji_hourglass)
 
                 # Now load all players from the guild
                 await bot.loop.run_in_executor(None, go.load_guild, allyCode, True, True)
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.remove_reaction(emoji_hourglass, bot.user)
+                await ctx.message.add_reaction(emoji_check)
                 
 
     ##############################################################
