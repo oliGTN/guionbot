@@ -735,9 +735,10 @@ def manage_me(ctx, alias):
         #check among discord names
         if ctx != None and (closest_name_db != alias):
             #Remove text in [] and in ()
-            list_discord_names = [re.sub(r'\([^)]*\)', '',
-                                    re.sub(r'\[[^)]*\]', '',x.display_name)).strip()
+            guild_members_clean = [[x.id, re.sub(r'\([^)]*\)', '',
+                                    re.sub(r'\[[^)]*\]', '',x.display_name)).strip()]
                                     for x in ctx.guild.members]
+            list_discord_names = [x[1] for x in guild_members_clean]
             closest_names_discord=difflib.get_close_matches(alias, list_discord_names, 1)
             if len(closest_names_discord) == 0:
                 closest_name_discord = ""
@@ -766,8 +767,8 @@ def manage_me(ctx, alias):
         else:
             goutils.log("INFO", "guionbot_discord.manage_me", alias + " looks like the discord name "+closest_name_discord)
 
-            discord_id = [str(x.id) for x in ctx.guild.members \
-                            if x.display_name.replace("[Officier]", "") == closest_name_discord][0]
+            discord_id = [str(x[0]) for x in guild_members_clean \
+                            if x[1] == closest_name_discord][0]
             dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
