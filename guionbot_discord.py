@@ -707,10 +707,13 @@ def manage_me(ctx, alias):
         if str(ctx.author.id) in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
         else:
-            ret_allyCode_txt = 'ERR: \"me\" ne fait pas partie de la guilde'
-    elif alias[:3] == '<@!':
+            ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot"
+    elif alias.startswith('<@'):
         # discord @mention
-        discord_id_txt = alias[3:-1]
+        if alias.startswith('<@!'):
+            discord_id_txt = alias[3:-1]
+        else: # '<@ without the !
+            discord_id_txt = alias[2:-1]
         goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
         dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
         if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
