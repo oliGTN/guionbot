@@ -2461,18 +2461,18 @@ def get_tw_alerts():
                 n_territory -= 2
 
             if n_territory == 1:
-                msg = "Le 1er territoire "
+                msg = "__Le 1er territoire "
             else:
-                msg = "Le "+str(n_territory)+"e territoire "
+                msg = "__Le "+str(n_territory)+"e territoire "
 
             if territory[0] == "T" and int(territory[1]) < 3:
-                msg += "du haut"
+                msg += "du haut__"
             elif territory[0] == "T":
-                msg += "du milieu"
+                msg += "du milieu__"
             elif territory[0] == "F":
-                msg += "des vaisseaux"
+                msg += "des vaisseaux__"
             else:
-                msg += "du bas"
+                msg += "du bas__"
 
             msg += " ("+territory+") est ouvert. Avec ces adversaires :"
             for leader in counter_leaders:

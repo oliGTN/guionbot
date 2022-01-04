@@ -246,7 +246,7 @@ async def bot_loop_5minutes():
                         or (not msg in dict_tw_alerts_previously_done[guildName][1]):
 
                         if not first_bot_loop_5minutes:
-                            await send_alert_to_admins(guildName+": "+msg)
+                            await send_alert_to_admins("**" + guildName + "**: "+msg)
                             tw_bot_channel = bot.get_channel(channel_id)
                             await tw_bot_channel.send(msg)
                     goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "TW alert: "+msg)
