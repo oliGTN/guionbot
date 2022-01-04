@@ -5,6 +5,10 @@ import urllib.parse
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import datetime
+import wcwidth
+def wc_ljust(text, length):
+    return text + ' ' * max(0, length - wcwidth.wcswidth(text))
+
 import goutils
 import connect_crinolo
 import data
@@ -168,8 +172,8 @@ def text_query(query):
                     index = 0
                     for cd in cur.description:
                         #print("fetch_results: "+str(fetch_results))
-                        max_col_length = max(list(map(lambda x: len(str(x[index])), fetch_results)))
-                        widths.append(max(max_col_length, len(cd[0])))
+                        max_col_length = max(list(map(lambda x: wcwidth.wcswidth(str(x[index])), fetch_results)))
+                        widths.append(max(max_col_length, wcwidth.wcswidth(cd[0])))
                         columns.append(cd[0])
                         index+=1
 
@@ -182,7 +186,12 @@ def text_query(query):
                     rows.append(separator)
 
                     for fetch in fetch_results:
-                        rows.append(tavnit % fetch)
+                        index=0
+                        row = "|"
+                        for value in fetch:
+                            row += " " + wc_ljust(str(value), widths[index]) + " |"
+                            index+=1
+                        rows.append(row)
 
                     rows.append(separator)
         
