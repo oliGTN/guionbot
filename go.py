@@ -81,8 +81,8 @@ def manage_disk_usage():
     used_percentage = int(used/total*1000)/10
     goutils.log('INFO', 'go.manage_disk_usage', 'Disk usage = ' + str(used_percentage) + '%')
 
-    if used_percentage > 99:
-        return 1, "Disk usage is above 99%"
+    if used_percentage > 98:
+        return 1, "Disk usage is above 98%"
     else:
         return 0, ""
 
