@@ -193,7 +193,7 @@ def load_config_players(force_load):
             goutils.log2("WAR", "Cannot connect to Google API")
             return [None, None]
 
-        liste_discord_id=[(lambda x:x['Discord ID'])(x) for x in list_dict_sheet]
+        liste_discord_id=[str(x['Discord ID']) for x in list_dict_sheet]
         dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
         dict_players_by_ID={} # {key=discord ID, value=[allycode, isOfficer]}
 
