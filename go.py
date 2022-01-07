@@ -2109,7 +2109,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
     if raid_alias in dict_raids:
         raid_config = dict_raids[raid_alias]
     else:
-        return 1, "ERR: unknown raid", ""
+        return 1, "ERR: unknown raid "+raid_alias+" among "+str(list(dict_raids.keys())), ""
 
     query = "SELECT warstats_id FROM guilds "
     query+= "JOIN players ON guilds.name = players.guildName "
@@ -2160,14 +2160,16 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
             team_phase = raid_teams[team][0]
             team_normal_score = raid_teams[team][1]
             team_super_score = raid_teams[team][2]
+
             if player_has_team and raid_phase >= team_phase:
                 normal_score += team_normal_score
                 super_score += team_super_score
                 txt_alert += " " + team + ","
 
-            guild_score_by_phase[team_phase-1] += team_normal_score
-            if guild_score_by_phase[team_phase-1] > data.dict_raid_tiers[raid_name][team_phase-1]:
-                guild_score_by_phase[team_phase-1] = data.dict_raid_tiers[raid_name][team_phase-1]
+            if player_has_team:
+                guild_score_by_phase[team_phase-1] += team_normal_score
+                if guild_score_by_phase[team_phase-1] > data.dict_raid_tiers[raid_name][team_phase-1]:
+                    guild_score_by_phase[team_phase-1] = data.dict_raid_tiers[raid_name][team_phase-1]
 
             line.append(player_has_team)
         player_score = raid_scores[player_name]
@@ -2229,6 +2231,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
                                 line[id+4])
 
     #Display theoretical obtainable score and phase
+    goutils.log2("DBG", "guild_score_by_phase = "+str(guild_score_by_phase))
     if guild_score_by_phase[0] < data.dict_raid_tiers[raid_name][0]:
         total_normal_score = guild_score_by_phase[0]
     elif guild_score_by_phase[1] < data.dict_raid_tiers[raid_name][1]:
@@ -2248,10 +2251,10 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
         normal_raid_phase = 3
         normal_progress = (                      total_normal_score - sum(data.dict_raid_tiers[raid_name][:2]))/ \
                           (sum(data.dict_raid_tiers[raid_name][:3]) - sum(data.dict_raid_tiers[raid_name][:2]))
-    elif total_normal_score >= sum(data.dict_raid_tiers[raid_name][0]):
+    elif total_normal_score >= data.dict_raid_tiers[raid_name][0]:
         normal_raid_phase = 2
-        normal_progress = (                      total_normal_score - sum(data.dict_raid_tiers[raid_name][0]))/ \
-                          (sum(data.dict_raid_tiers[raid_name][:2]) - sum(data.dict_raid_tiers[raid_name][0]))
+        normal_progress = (                      total_normal_score - data.dict_raid_tiers[raid_name][0])/ \
+                          (sum(data.dict_raid_tiers[raid_name][:2]) - data.dict_raid_tiers[raid_name][0])
     else:
         normal_raid_phase = 1
         normal_progress = total_normal_score / sum(data.dict_raid_tiers[raid_name][0])
