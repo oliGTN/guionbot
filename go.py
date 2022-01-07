@@ -2300,6 +2300,10 @@ def print_tb_progress(allyCode_txt, tb_alias):
     first_player = True
     list_unknown_players = []
     for player_name in dict_player_scores:
+        if player_name == "":
+            continue
+
+        goutils.log2('DBG', 'player_name: '+player_name)
         line=[player_name]
 
         for team in tb_team_names:
@@ -2318,7 +2322,14 @@ def print_tb_progress(allyCode_txt, tb_alias):
         for i_day in range(tb_day_count):
             day_progress_txt = ""
             day_name = tb_alias+str(i_day+1)
+            goutils.log2('DBG', 'day_name: '+day_name)
+            if not day_name in dict_player_scores[player_name]:
+                line.append("")
+                continue
+
             day_scores = dict_player_scores[player_name][day_name]
+            goutils.log2('DBG', 'day_scores: '+str(day_scores))
+            max_combats_day = max([len(x) for x in day_scores])
             if len(day_scores)==2:
                 list_territories = [[0, "top"], [1, "bot"]]
             else:
@@ -2369,7 +2380,9 @@ def print_tb_progress(allyCode_txt, tb_alias):
                     team_count -= 1
 
                 if len(terr_txt) < len(territory_scores[1:]):
-                    terr_txt += "\N{WHITE SMALL SQUARE}" * (len(territory_scores[1:]) - len(terr_txt))
+                    terr_txt += "\N{WHITE LARGE SQUARE}" * (len(territory_scores[1:]) - len(terr_txt))
+                if len(terr_txt) < max_combats_day:
+                    terr_txt += "\N{BLACK LARGE SQUARE}" * (max_combats_day - len(terr_txt))
 
                 day_progress_txt += terr_txt+"\n"
             line.append(day_progress_txt[:-1])
@@ -2402,7 +2415,7 @@ def print_tb_progress(allyCode_txt, tb_alias):
     ret_print_tb_progress+= "- \N{WHITE RIGHT POINTING BACKHAND INDEX} : team dispo et entre 1 et 3 vagues\n"
     ret_print_tb_progress+= "- \N{UP-POINTING RED TRIANGLE} : team dispo et aucune vague de réussie\n"
     ret_print_tb_progress+= "- \N{CROSS MARK} : team dispo et combat pas tenté\n"
-    ret_print_tb_progress+= "- \N{WHITE SMALL SQUARE} : pas de team dispo\n"
+    ret_print_tb_progress+= "- \N{WHITE LARGE SQUARE} : pas de team dispo\n"
 
     #Header line
     line_header = ["Joueur"]
