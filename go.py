@@ -2104,7 +2104,7 @@ def print_erx(allyCode_txt, days, compute_guild):
 # Function: print_raid_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_raid_progress(allyCode_txt, raid_alias):
+def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
     dict_raids = connect_gsheets.load_config_raids(False)
     if raid_alias in dict_raids:
         raid_config = dict_raids[raid_alias]
@@ -2134,11 +2134,20 @@ def print_raid_progress(allyCode_txt, raid_alias):
     raid_phase, raid_scores = connect_warstats.parse_raid_scores(warstats_id, raid_name)
 
     #Player lines
+    dict_players_by_IG = connect_gsheets.load_config_players(False)[0]
     list_scores = []
     list_unknown_players = []
+    list_alerts = []
     guild_score_by_phase = [0, 0, 0, 0]
     for player_name in raid_scores:
         line=[player_name]
+
+        if use_mentions and (player_name in dict_players_by_IG):
+            player_mention = dict_players_by_IG[player_name][1]
+            txt_alert = "**" + player_mention + "** n'a pas joué malgré :"
+        else:
+            txt_alert = "**" + player_name + "** n'a pas joué malgré :"
+
         normal_score = 0
         super_score = 0
         for team in raid_team_names:
@@ -2154,7 +2163,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
             if player_has_team and raid_phase >= team_phase:
                 normal_score += team_normal_score
                 super_score += team_super_score
-
+                txt_alert += " " + team + ","
 
             guild_score_by_phase[team_phase-1] += team_normal_score
             if guild_score_by_phase[team_phase-1] > data.dict_raid_tiers[raid_name][team_phase-1]:
@@ -2176,6 +2185,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
             player_status = "\N{UP-POINTING RED TRIANGLE}"
         else:
             player_status = "\N{CROSS MARK}"
+            list_alerts.append(txt_alert[:-1])
         line.append(player_status)
 
         list_scores.append(line)
@@ -2186,7 +2196,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
     else:
         raid_phase_txt = "phase "+str(raid_phase)
     ret_print_raid_progress = "Résultat du Raid "+raid_name+" ("+raid_phase_txt+") pour la guilde "+guild_name+"\n\n"
-    ret_print_raid_progress+= "Teams utilisées :\n"
+    ret_print_raid_progress+= "Teams recommandées :\n"
     team_id = 1
     for team in raid_team_names:
         ret_print_raid_progress+= "T{0:1}: {1:20} - P{2:1} (normal: {3:8}, "\
@@ -2199,7 +2209,7 @@ def print_raid_progress(allyCode_txt, raid_alias):
         team_id += 1
 
     #Header line
-    ret_print_raid_progress+= "\n{0:20}".format("Joueur")
+    ret_print_raid_progress+= "\nSPLIT_HERE{0:20}".format("Joueur")
     for id in range(1, team_id):
         ret_print_raid_progress+= "T"+str(id)+" "
     ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) Statut\n".format("Score", "Normal", "Super")
@@ -2254,6 +2264,12 @@ def print_raid_progress(allyCode_txt, raid_alias):
     
     if len(list_unknown_players)>0:
         ret_print_raid_progress+= "\nWAR: joueurs inconnus de la guilde "+str(list_unknown_players)
+
+    if len(list_alerts)>0:
+        ret_print_raid_progress+= "\n\nSPLIT_HERE__Rappels pour le raid **"+raid_name+"** :__"
+        ret_print_raid_progress+= "\n(dites \"go.vtj me <nom team>\" au bot pour voir la composition)"
+        for txt_alert in list_alerts:
+            ret_print_raid_progress+= "\n" + txt_alert
 
     return 0, "", ret_print_raid_progress
 
