@@ -1241,6 +1241,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send("ERR: erreur en mettant à jour la BT")
             is_error = True
 
+        l = connect_gsheets.load_tb_teams(True)
+        if l == None:
+            await ctx.send("ERR: erreur en mettant à jour les BT teams")
+            is_error = True
+
         [d1, d2] = connect_gsheets.load_config_players(True)
         if d1 == None:
             await ctx.send("ERR: erreur en mettant à jour les PLAYERS")
