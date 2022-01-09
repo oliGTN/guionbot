@@ -2137,7 +2137,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
     dict_players_by_IG = connect_gsheets.load_config_players(False)[0]
     list_scores = []
     list_unknown_players = []
-    list_alerts = []
+    list_inactive_players = []
     guild_score_by_phase = [0, 0, 0, 0]
     for player_name in raid_scores:
         line=[player_name]
@@ -2187,7 +2187,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
             player_status = "\N{UP-POINTING RED TRIANGLE}"
         else:
             player_status = "\N{CROSS MARK}"
-            list_alerts.append(txt_alert[:-1])
+            list_inactive_players.append(txt_alert[:-1])
         line.append(player_status)
 
         list_scores.append(line)
@@ -2268,10 +2268,10 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
     if len(list_unknown_players)>0:
         ret_print_raid_progress+= "\nWAR: joueurs inconnus de la guilde "+str(list_unknown_players)
 
-    if len(list_alerts)>0:
+    if len(list_inactive_players)>0:
         ret_print_raid_progress+= "\n\nSPLIT_HERE__Rappels pour le raid **"+raid_name+"** :__"
         ret_print_raid_progress+= "\n(dites \"go.vtj me <nom team>\" au bot pour voir la composition)"
-        for txt_alert in list_alerts:
+        for txt_alert in list_inactive_players:
             ret_print_raid_progress+= "\n" + txt_alert
 
     return 0, "", ret_print_raid_progress
@@ -2280,7 +2280,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
 # Function: print_tb_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_tb_progress(allyCode_txt, tb_alias):
+def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
     list_tb_teams = connect_gsheets.load_tb_teams(False)
     tb_team_names = list(set(sum(sum([list(x.values()) for x in list_tb_teams], []), [])))
     tb_team_names.remove('')
@@ -2314,16 +2314,23 @@ def print_tb_progress(allyCode_txt, tb_alias):
         tb_day_count = 4
 
     #Player lines
+    dict_players_by_IG = connect_gsheets.load_config_players(False)[0]
     list_scores = []
     list_terr_by_day = [""] * tb_day_count
     first_player = True
     list_unknown_players = []
+    list_inactive_players_by_day = [[] for i in range(tb_day_count)]
     for player_name in dict_player_scores:
         if player_name == "":
             continue
 
         goutils.log2('DBG', 'player_name: '+player_name)
         line=[player_name]
+
+        if use_mentions and (player_name in dict_players_by_IG):
+            player_mention = dict_players_by_IG[player_name][1]
+        else:
+            player_mention = player_name
 
         for team in tb_team_names:
             player_has_team = False
@@ -2342,19 +2349,22 @@ def print_tb_progress(allyCode_txt, tb_alias):
             day_progress_txt = ""
             day_name = tb_alias+str(i_day+1)
             goutils.log2('DBG', 'day_name: '+day_name)
+
             if not day_name in dict_player_scores[player_name]:
                 line.append("")
                 continue
 
             day_scores = dict_player_scores[player_name][day_name]
             goutils.log2('DBG', 'day_scores: '+str(day_scores))
-            max_combats_day = max([len(x) for x in day_scores])
-            if len(day_scores)==2:
-                list_territories = [[0, "top"], [1, "bot"]]
+            max_fights_day = max([len(x) for x in day_scores])
+            if len(day_scores)==2: #index, name, is_ground
+                list_territories = [[0, "top", True], [1, "bot", True]]
             else:
-                list_territories = [[0, "top"], [1, "mid"], [2, "bot"]]
+                list_territories = [[0, "top", False], [1, "mid", True], [2, "bot", True]]
 
-            for [idx, pos] in list_territories:
+            fight_count_day = [0, 0] #[ships, ground]
+            team_list_day = [[], []] #[ships, ground]
+            for [idx, pos, is_ground] in list_territories:
                 territory_scores = day_scores[idx]
                 terr_round = territory_scores[0]
                 full_terr_name = tb_alias+"-P"+str(terr_round)+"-"+pos
@@ -2363,27 +2373,33 @@ def print_tb_progress(allyCode_txt, tb_alias):
 
                 terr_teams = list_tb_teams[i_day][full_terr_name]
 
-                team_count = 0
+                team_count_terr = 0
                 for team in terr_teams:
                     if team == "":
                         continue
                     if player_name in dict_teams_by_player[team]:
                         if dict_teams_by_player[team][player_name]:
-                            team_count += 1
+                            goutils.log2("DBG", player_name + " has " + team)
+                            team_count_terr += 1
+                            team_list_day[is_ground].append(team)
 
                 count_4=0
                 count_1to3=0
                 count_0=0
                 for score in territory_scores[1:]:
+                    fight_count_day[is_ground] += 1
                     if score == '4' or (pos=="top" and score == "1"):
                         count_4+=1
                     elif score in ['1', '2', '3']:
                         count_1to3+=1
                     elif score == '0':
                         count_0+=1
+                    else:#no fight
+                        #cancel the +1 for fight count
+                        fight_count_day[is_ground] -= 1
 
                 terr_txt = ""
-                while team_count > 0:
+                while team_count_terr > 0:
                     if count_4 > 0:
                         count_4 -= 1
                         terr_txt += "\N{WHITE HEAVY CHECK MARK}"
@@ -2396,15 +2412,29 @@ def print_tb_progress(allyCode_txt, tb_alias):
                     else:
                         terr_txt += "\N{CROSS MARK}"
 
-                    team_count -= 1
+                    team_count_terr -= 1
 
                 if len(terr_txt) < len(territory_scores[1:]):
                     terr_txt += "\N{WHITE LARGE SQUARE}" * (len(territory_scores[1:]) - len(terr_txt))
-                if len(terr_txt) < max_combats_day:
-                    terr_txt += "\N{BLACK LARGE SQUARE}" * (max_combats_day - len(terr_txt))
+                if len(terr_txt) < max_fights_day:
+                    terr_txt += "\N{BLACK LARGE SQUARE}" * (max_fights_day - len(terr_txt))
 
                 day_progress_txt += terr_txt+"\n"
+
             line.append(day_progress_txt[:-1])
+
+            #create alerts for inactive players
+            #SHIPS
+            if len(team_list_day[0]) > fight_count_day[0]:
+                txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[0]) \
+                            + " combats de vaisseaux malgré "+str(team_list_day[0])
+                list_inactive_players_by_day[i_day].append(txt_alert)
+            #TOONS
+            if len(team_list_day[1]) > fight_count_day[1]:
+                txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[1]) \
+                            + " combats terrestres malgré "+str(team_list_day[1])
+                list_inactive_players_by_day[i_day].append(txt_alert)
+
         list_scores.append(line)
         first_player = False
 
@@ -2450,7 +2480,14 @@ def print_tb_progress(allyCode_txt, tb_alias):
     ret_print_tb_progress+= "\n"+t.draw()
 
     if len(list_unknown_players)>0:
-        ret_print_tb_progress+= "\nWAR: joueurs inconnus dans la guilde "+str(list_unknown_players)
+        ret_print_tb_progress+= "\n joueurs inconnus dans la guilde "+str(list_unknown_players)
+
+    for i_day in range(tb_day_count):
+        if len(list_inactive_players_by_day[i_day])>0:
+            ret_print_tb_progress+= "\n\nSPLIT_HERE__Rappels pour le jour "\
+                                 +str(i_day+1) + " de la **BT " + tb_alias + "**__ :"
+            for row in list_inactive_players_by_day[i_day]:
+                ret_print_tb_progress+= "\n"+row
 
     return 0, "", ret_print_tb_progress
 

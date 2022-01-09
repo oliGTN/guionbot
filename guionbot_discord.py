@@ -1335,7 +1335,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
             else:
-                #texte classique
                 output_part = 0
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     if txt.startswith("__Rappels"):
@@ -1362,16 +1361,30 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                  brief="Résultats de BT de Guilde",
                  help="Résultats de BT de Guilde\n\n"
                       "Exemple : go.rbg me GLS")
-    async def rbg(self, ctx, *options):
+    async def rbg(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        if len(options) != 2:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rbg")
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 3:
+            if args[2].startswith('no'):
+                display_mentions=False
+                output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[2])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+        elif len(args) == 2:
+            display_mentions=False
+            output_channel = ctx.message.channel
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rrg")
             await ctx.message.add_reaction(emoji_error)
             return
 
-        allyCode = options[0]
-        tb_name = options[1]
+        allyCode = args[0]
+        tb_name = args[1]
 
         allyCode = manage_me(ctx, allyCode)
                 
@@ -1379,14 +1392,22 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, tb_name)
+            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, tb_name, display_mentions)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
             else:
-                #texte classique
+                output_part = 0
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("```"+txt+"```")
+                    if txt.startswith("__Rappels"):
+                        output_part = 1
+
+                    if output_part == 0:
+                        await ctx.send("```"+txt+"```")
+                    else:
+                        await ctx.send(txt)
+                        if output_channel != ctx.message.channel:
+                            await output_channel.send(txt)
 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
