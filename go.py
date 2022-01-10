@@ -2363,7 +2363,7 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
             else:
                 list_territories = [[0, "top", False], [1, "mid", True], [2, "bot", True]]
 
-            team_list_day = []
+            team_list_day = [[], []]
             fight_count_day = [0, 0] #[ships, ground]
             for [idx, pos, is_ground] in list_territories:
                 territory_scores = day_scores[idx]
@@ -2382,7 +2382,7 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
                         if dict_teams_by_player[team][player_name]:
                             goutils.log2("DBG", player_name + " has " + team)
                             team_count_terr += 1
-                            team_list_day.append(team)
+                            team_list_day[is_ground].append(team)
 
                 count_4=0
                 count_1to3=0
@@ -2428,9 +2428,17 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
             line.append(day_progress_txt[:-1])
 
             #create alerts for inactive players
-            if len(team_list_day) > total_fight_count_day:
-                txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[0]) \
-                            + " combats malgré "+str(team_list_day)
+            full_team_list_day = [y for x in team_list_day for y in x]
+            if len(full_team_list_day) > total_fight_count_day:
+                if len(team_list_day[False]) == fight_count_day[False]:
+                    txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[True]) \
+                                + " combats terrestres malgré "+str(team_list_day[True])
+                elif len(team_list_day[True]) == fight_count_day[True]:
+                    txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[False]) \
+                                + " combats de vaisseaux malgré "+str(team_list_day[False])
+                else:
+                    txt_alert = "**" + player_mention + "** a fait " + str(total_fight_count_day) \
+                                + " combats malgré "+str(full_team_list_day)
                 list_inactive_players_by_day[i_day].append(txt_alert)
 
         list_scores.append(line)
@@ -2485,14 +2493,14 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
         if len(list_inactive_players_by_day[i_day])>0:
             ret_print_tb_progress+= "\n\nSPLIT_HERE__Rappels pour le jour "\
                                  +str(i_day+1) + " de la **BT " + tb_alias + "**__ :"
-            if str(active_round) == (i_day+1):
+            if active_round[-1] == str(i_day+1):
                 ret_print_tb_progress+= " *phase en cours*"
 
             ret_print_tb_progress+= "\n(dites \"go.vtj me <nom team>\" au bot pour voir la composition)"
             for row in list_inactive_players_by_day[i_day]:
                 ret_print_tb_progress+= "\n"+row
 
-    ret_print_tb_progress+= "\n\n**Ces rappels sont en rôdage**. Contactez un officier si vous voyez une erreur."
+    ret_print_tb_progress+= "\n\nCes rappels sont __en rôdage__. Contactez un officier si vous voyez une erreur."
 
     return 0, "", ret_print_tb_progress
 
