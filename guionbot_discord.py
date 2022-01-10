@@ -931,6 +931,9 @@ async def on_message_delete(message):
 
 @bot.event
 async def on_message_edit(before, after):
+    goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+before.channel.name+"\n" +\
+                         "BEFORE:\n" + before.content + "\n" +\
+                         "AFTER:\n" + after.content)
     set_id_lastseen("on_message_edit", before.author.id)
 
 @bot.event
