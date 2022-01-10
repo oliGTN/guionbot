@@ -2440,7 +2440,7 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
     if active_round == "":
         tb_phase_txt = "terminée"
     else:
-        tb_phase_txt = "Jour "+str(active_round)
+        tb_phase_txt = "Jour "+active_round
     ret_print_tb_progress = "Résultat de la BT "+tb_alias+" ("+tb_phase_txt+") pour la guilde "+guild_name+"\n\n"
     ret_print_tb_progress+= "Teams utilisées :\n"
 
@@ -2485,8 +2485,14 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
         if len(list_inactive_players_by_day[i_day])>0:
             ret_print_tb_progress+= "\n\nSPLIT_HERE__Rappels pour le jour "\
                                  +str(i_day+1) + " de la **BT " + tb_alias + "**__ :"
+            if str(active_round) == (i_day+1):
+                ret_print_tb_progress+= " *phase en cours*"
+
+            ret_print_tb_progress+= "\n(dites \"go.vtj me <nom team>\" au bot pour voir la composition)"
             for row in list_inactive_players_by_day[i_day]:
                 ret_print_tb_progress+= "\n"+row
+
+    ret_print_tb_progress+= "\n\n**Ces rappels sont en rôdage**. Contactez un officier si vous voyez une erreur."
 
     return 0, "", ret_print_tb_progress
 

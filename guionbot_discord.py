@@ -1298,7 +1298,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.command(name='rrg',
                  brief="Résultats de raid de Guilde",
                  help="Résultats de raid de Guilde\n\n"
-                      "Exemple : go.rrg me hrancor")
+                      "Exemple : go.rrg me crancor")
     async def rrg(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1339,12 +1339,14 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     if txt.startswith("__Rappels"):
                         output_part = 1
+                    if txt.endswith("*phase en cours*"):
+                        output_part = 2
 
                     if output_part == 0:
                         await ctx.send("```"+txt+"```")
-                    else:
+                    else: # 1 or 2
                         await ctx.send(txt)
-                        if output_channel != ctx.message.channel:
+                        if (output_channel != ctx.message.channel) and (output_part == 2):
                             await output_channel.send(txt)
 
                 #Icône de confirmation de fin de commande dans le message d'origine
