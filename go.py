@@ -2356,14 +2356,15 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
 
             day_scores = dict_player_scores[player_name][day_name]
             goutils.log2('DBG', 'day_scores: '+str(day_scores))
+            total_fight_count_day = int(day_scores[-1])
             max_fights_day = max([len(x) for x in day_scores])
             if len(day_scores)==2: #index, name, is_ground
                 list_territories = [[0, "top", True], [1, "bot", True]]
             else:
                 list_territories = [[0, "top", False], [1, "mid", True], [2, "bot", True]]
 
+            team_list_day = []
             fight_count_day = [0, 0] #[ships, ground]
-            team_list_day = [[], []] #[ships, ground]
             for [idx, pos, is_ground] in list_territories:
                 territory_scores = day_scores[idx]
                 terr_round = territory_scores[0]
@@ -2381,7 +2382,7 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
                         if dict_teams_by_player[team][player_name]:
                             goutils.log2("DBG", player_name + " has " + team)
                             team_count_terr += 1
-                            team_list_day[is_ground].append(team)
+                            team_list_day.append(team)
 
                 count_4=0
                 count_1to3=0
@@ -2410,7 +2411,10 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
                         count_0 -= 1
                         terr_txt += "\N{UP-POINTING RED TRIANGLE}"
                     else:
-                        terr_txt += "\N{CROSS MARK}"
+                        if total_fight_count_day == sum(fight_count_day):
+                            terr_txt += "\N{CROSS MARK}"
+                        else:
+                            terr_txt += "\N{TRIANGULAR FLAG ON POST}"
 
                     team_count_terr -= 1
 
@@ -2424,15 +2428,9 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
             line.append(day_progress_txt[:-1])
 
             #create alerts for inactive players
-            #SHIPS
-            if len(team_list_day[0]) > fight_count_day[0]:
+            if len(team_list_day) > total_fight_count_day:
                 txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[0]) \
-                            + " combats de vaisseaux malgré "+str(team_list_day[0])
-                list_inactive_players_by_day[i_day].append(txt_alert)
-            #TOONS
-            if len(team_list_day[1]) > fight_count_day[1]:
-                txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[1]) \
-                            + " combats terrestres malgré "+str(team_list_day[1])
+                            + " combats malgré "+str(team_list_day)
                 list_inactive_players_by_day[i_day].append(txt_alert)
 
         list_scores.append(line)
@@ -2464,6 +2462,7 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
     ret_print_tb_progress+= "- \N{WHITE RIGHT POINTING BACKHAND INDEX} : team dispo et entre 1 et 3 vagues\n"
     ret_print_tb_progress+= "- \N{UP-POINTING RED TRIANGLE} : team dispo et aucune vague de réussie\n"
     ret_print_tb_progress+= "- \N{CROSS MARK} : team dispo et combat pas tenté\n"
+    ret_print_tb_progress+= "- \N{TRIANGULAR FLAG ON POST} : team dispo et inconnu entre pas tenté et aucune vague\n"
     ret_print_tb_progress+= "- \N{WHITE LARGE SQUARE} : pas de team dispo\n"
 
     #Header line

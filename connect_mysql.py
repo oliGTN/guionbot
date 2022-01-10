@@ -34,7 +34,7 @@ def db_connect():
             # 'HOST': url.hostname,
             # 'PORT': url.port,
         except Exception:
-            print('Unexpected error in connect:', sys.exc_info())
+            goutils.log2("ERR", 'Unexpected error in connect:', sys.exc_info())
             return
         
         # Connect to DB

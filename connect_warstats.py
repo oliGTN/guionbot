@@ -463,8 +463,10 @@ class TBSPhaseResumeParser(HTMLParser):
         #5: en recherche de a
         #6: en recherche de data
         #7: en recherche de td
-        #8: en recherche de span
-        #9: en recherche de data > state 8
+        #8: en recherche de span >9 OU data!="" >11
+        #9: en recherche de data > state 10
+        #10:waiting for /span
+        #11:end
 
     def handle_starttag(self, tag, attrs):
         if self.state_parser==-4:
@@ -546,7 +548,7 @@ class TBSPhaseResumeParser(HTMLParser):
 
         elif self.state_parser4==2:
             if tag=='tr':
-                self.td_count=-4
+                self.td_count=0
                 self.state_parser4=3
 
         elif self.state_parser4==3:
@@ -594,9 +596,13 @@ class TBSPhaseResumeParser(HTMLParser):
             if tag=='tr':
                 self.state_parser4 = 2
 
-        if self.state_parser4 > 7:
+        if self.state_parser4 in [7, 8]:
             if tag=='td':
                 self.state_parser4 = 7
+
+        if self.state_parser4 == 10:
+            if tag=='span':
+                self.state_parser4 = 8
 
     def handle_data(self, data):
         data = data.strip(" \t\n")
@@ -645,13 +651,21 @@ class TBSPhaseResumeParser(HTMLParser):
             self.dict_player_scores[self.player_name] = []
             self.state_parser4=7
                 
+        if self.state_parser4==8:
+            if data != "" and self.td_count > 5:
+                self.dict_player_scores[self.player_name].append(data)
+                self.state_parser4=11
+                
         if self.state_parser4==9:
             if self.span_count == 1:
-                territory_phase = self.list_open_territories[self.td_count-1]
+                #after the first <span, create the list for the territory and initiate with phase ID
+                territory_phase = self.list_open_territories[self.td_count-5]
                 self.dict_player_scores[self.player_name].append([territory_phase])
+
+            #then fill the scores, each <span is a new fight in the territory
             self.dict_player_scores[self.player_name][-1].append(data)
-            self.state_parser4=8
-                
+            self.state_parser4=10
+
     def get_active_round(self):
         return self.active_round
 
@@ -666,11 +680,11 @@ class TBSPhaseResumeParser(HTMLParser):
             top_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[0])+"-top"
             dict_territory_scores[top_name] = self.territory_scores[0]
         if self.list_open_territories[1] > 0:
-            top_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[1])+"-mid"
-            dict_territory_scores[top_name] = self.territory_scores[1]
+            mid_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[1])+"-mid"
+            dict_territory_scores[mid_name] = self.territory_scores[1]
         if self.list_open_territories[2] > 0:
-            top_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[2])+"-bot"
-            dict_territory_scores[top_name] = self.territory_scores[2]
+            bot_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[2])+"-bot"
+            dict_territory_scores[bot_name] = self.territory_scores[2]
             
         return dict_territory_scores
 
