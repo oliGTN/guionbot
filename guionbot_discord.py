@@ -1342,7 +1342,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     if txt.startswith("__Rappels"):
                         output_part = 1
-                    if txt.endswith("*phase en cours*"):
+                    if "*phase en cours*" in txt:
                         output_part = 2
 
                     if output_part == 0:
