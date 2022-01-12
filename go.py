@@ -156,7 +156,7 @@ def load_player(txt_allyCode, force_update, no_db):
     if (not recent_player or force_update==1) and not (force_update==-1 and prev_dict_player != None):
         goutils.log("INFO", "go.load_player", 'requesting API data for ' + txt_allyCode + '...')
         if client != None:
-            player_data = client.get_data('player', txt_allyCode, 'FRE_FR')
+            player_data = client.get_data('player', [txt_allyCode], 'FRE_FR')
         else:
             goutils.log("WAR", "go.load_player", 'Cannot connect to API. Using cache data from json')
             player_data = [prev_dict_player]
