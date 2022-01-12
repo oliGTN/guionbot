@@ -1611,8 +1611,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
-                discord_id = ret_re.group(1)
                 try:
+                    discord_id = ret_re.group(1)
                     discord_user = await ctx.guild.fetch_member(discord_id)
                     discord_name = discord_user.display_name
                 except:
