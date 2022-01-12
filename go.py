@@ -2493,7 +2493,7 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
         if len(list_inactive_players_by_day[i_day])>0:
             ret_print_tb_progress+= "\n\nSPLIT_HERE__Rappels pour le jour "\
                                  +str(i_day+1) + " de la **BT " + tb_alias + "**__ :"
-            if active_round[-1] == str(i_day+1):
+            if active_round != "" and active_round[-1] == str(i_day+1):
                 ret_print_tb_progress+= " *phase en cours*"
 
             ret_print_tb_progress+= "\n(dites \"go.vtj me <nom team>\" au bot pour voir la composition)"
