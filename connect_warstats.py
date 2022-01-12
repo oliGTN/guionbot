@@ -5,6 +5,8 @@ import re
 from html.parser import HTMLParser
 import time
 import datetime
+import tzlocal
+from dateutil import tz
 
 import config
 import goutils
@@ -121,10 +123,32 @@ next_warstats_read["raid_scores"] = time.time()
 raid_player_scores = {} #{raid name:{player name:score}}
 raid_phase = {} #{raid name:phase}
 
-def set_next_warstats_read(seconds_since_last_track, counter_name):
+def set_next_warstats_read_short(seconds_since_last_track, counter_name):
     global next_warstats_read
     time_to_wait = WARSTATS_REFRESH_SECS - seconds_since_last_track + WARSTATS_REFRESH_TIME
     next_warstats_read[counter_name] = int(time.time()) + time_to_wait
+    next_warstats_read_txt = datetime.datetime.fromtimestamp(next_warstats_read[counter_name]).strftime('%Y-%m-%d %H:%M:%S')
+    goutils.log2("DBG", next_warstats_read_txt)
+    
+def set_next_warstats_read_long(time_hour, tz_name, counter_name):
+    global next_warstats_read
+
+    next_time_tz = tz.gettz(tz_name)
+    next_time = datetime.datetime.now().replace(hour=time_hour,
+                                                minute=0, 
+                                                second=0, 
+                                                microsecond=0,
+                                                tzinfo=next_time_tz)
+
+    bot_tz = tz.tzlocal()
+    bot_now = datetime.datetime.now().replace(tzinfo=bot_tz)
+
+    while next_time < bot_now:
+        goutils.log2('DBG', "next_time="+str(next_time)+" < bot_now="+str(bot_now))
+        next_time = next_time + datetime.timedelta(days=1)
+    next_time_secs = datetime.datetime.timestamp(next_time)
+
+    next_warstats_read[counter_name] = next_time_secs
     next_warstats_read_txt = datetime.datetime.fromtimestamp(next_warstats_read[counter_name]).strftime('%Y-%m-%d %H:%M:%S')
     goutils.log2("DBG", next_warstats_read_txt)
     
@@ -1155,7 +1179,7 @@ def parse_tb_platoons(guild_id, force_latest):
             tb_dict_platoons = {}
             tb_open_territories = []
 
-            set_next_warstats_read(tb_list_parser.get_last_track(), "tb_platoons")
+            set_next_warstats_read_long(18, 'UTC', "tb_platoons")
 
             return tb_active_round, tb_dict_platoons, tb_open_territories
         else:
@@ -1187,7 +1211,7 @@ def parse_tb_platoons(guild_id, force_latest):
         else:
             goutils.log2('WAR', "Erreur de lecture, renvoie des valeurs précédentes")
 
-        set_next_warstats_read(resume_parser.get_last_track(), "tb_platoons")
+        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_platoons")
 
     return tb_active_round, tb_dict_platoons, tb_open_territories
 
@@ -1222,7 +1246,7 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
             tb_dict_player_scores = {}
             tb_open_territories = []
 
-            set_next_warstats_read(tb_list_parser.get_last_track(), "tb_player_scores")
+            set_next_warstats_read_long(18, 'UTC', "tb_platoons")
 
             return tb_active_round, tb_dict_player_scores, tb_open_territories
         else:
@@ -1251,7 +1275,7 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
             if phase == tb_active_round:
                 tb_open_territories = resume_parser.get_open_territories()
     
-        set_next_warstats_read(resume_parser.get_last_track(), "tb_player_scores")
+        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_player_scores")
 
     return tb_active_round, tb_dict_player_scores, tb_open_territories
 
@@ -1283,7 +1307,7 @@ def parse_tb_guild_scores(guild_id, force_latest):
             tb_active_round = ""
             territory_scores = {}
 
-            set_next_warstats_read(tb_list_parser.get_last_track(), "tb_scores")
+            set_next_warstats_read_long(18, 'UTC', "tb_platoons")
 
             return territory_scores, tb_active_round
         else:
@@ -1304,7 +1328,7 @@ def parse_tb_guild_scores(guild_id, force_latest):
         goutils.log2('INFO', "TB name = "+tb_active_round)
         territory_scores = resume_parser.get_territory_scores()
 
-        set_next_warstats_read(resume_parser.get_last_track(), "tb_scores")
+        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_scores")
 
     return territory_scores, tb_active_round
 
@@ -1341,7 +1365,7 @@ def parse_tw_teams(guild_id):
 
         opponent_teams = opp_squad_parser.get_opp_teams()
 
-        set_next_warstats_read(opp_squad_parser.get_last_track(), "tw_teams")
+        set_next_warstats_read_short(opp_squad_parser.get_last_track(), "tw_teams")
 
     return opponent_teams
 
@@ -1402,6 +1426,6 @@ def parse_raid_scores(guild_id, raid_name):
                 else:
                     raid_phase[raid_name] = 1
 
-        set_next_warstats_read(raid_list_parser.get_last_track(), "raid_scores")
+        set_next_warstats_read_short(raid_list_parser.get_last_track(), "raid_scores")
 
     return raid_phase[raid_name], raid_player_scores[raid_name]
