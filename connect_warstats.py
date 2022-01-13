@@ -1246,7 +1246,7 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
             tb_dict_player_scores = {}
             tb_open_territories = []
 
-            set_next_warstats_read_long(18, 'UTC', "tb_platoons")
+            set_next_warstats_read_long(18, 'UTC', "tb_player_scores")
 
             return tb_active_round, tb_dict_player_scores, tb_open_territories
         else:
@@ -1307,7 +1307,7 @@ def parse_tb_guild_scores(guild_id, force_latest):
             tb_active_round = ""
             territory_scores = {}
 
-            set_next_warstats_read_long(18, 'UTC', "tb_platoons")
+            set_next_warstats_read_long(18, 'UTC', "tb_scores")
 
             return territory_scores, tb_active_round
         else:
