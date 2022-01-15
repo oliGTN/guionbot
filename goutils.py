@@ -490,56 +490,73 @@ def delta_dict_player(dict1, dict2):
 
     return delta_dict
 
+def extended_gear(gear, equipped, relic):
+    if gear < 10:
+        return gear
+    elif gear < 13:
+        return 10 + (gear-10)*6 + equipped
+    else:
+        return 26 + relic['currentTier']
+
+def extended_gear_to_txt(extended_gear):
+    if extended_gear >= 29:
+        return "R" + str(extended_gear-28)
+    elif extended_gear == 28:
+        return "G13"
+    elif extended_gear >= 10:
+        equipped = (extended_gear-10)%6
+        gear = 10 + int((extended_gear-equipped-10)/6)
+        return "G"+str(gear)+"+"+str(equipped)
+    else:
+        return str(extended_gear)
+    
 def detect_delta_roster_element(allyCode, char1, char2):
     dict_zetas = data.get('unit_zeta_list.json')
     defId = char1['defId']
 
     #RARITY
-    if char1['rarity'] != char2['rarity']:
-        evo_txt = "rarity changed from "\
-                  +str(char1['rarity'])+" to "+str(char2['rarity'])
-        log("INFO", "delta_roster_element", defId+": "+evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+    if (char1['rarity'] != char2['rarity']) and (char2['rarity'] >= 4):
+        for rarity_step in range(max(char1['rarity']+1, 4),
+                                 char2['rarity']+1):
+            evo_txt = "rarity changed to "+str(rarity_step)
+            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #LEVEL
-    if char1['level'] != char2['level']:
-        evo_txt = "level changed from "\
-                  +str(char1['level'])+" to "+str(char2['level'])
+    if (char1['level'] != char2['level']) and (char2['level'] == 85):
+        evo_txt = "level changed to 85"
         log("INFO", "delta_roster_element", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #GEAR / RELIC
-    if char1['gear'] < 13:
-        gear1 = "G"+str(char1['gear'])
-        if char1['gear'] > 9:
-            gear1 = gear1 + "+" + str(len(char1['equipped']))
-    else:
-        gear1 = "R"+str(char1['relic']['currentTier']-2)
-    if char2['gear'] < 13:
-        gear2 = "G"+str(char2['gear'])
-        if char2['gear'] > 9:
-            gear2 = gear2 + "+" + str(len(char2['equipped']))
-    else:
-        gear2 = "R"+str(char2['relic']['currentTier']-2)
-
-    if gear1 != gear2:
-        evo_txt = "gear changed from "+gear1+" to "+gear2
-        log("INFO", "delta_roster_element", defId+": "+evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+    gear1 = extended_gear(char1['gear'], len(char1['equipped']), char1['relic'])
+    gear2 = extended_gear(char2['gear'], len(char2['equipped']), char2['relic'])
+    if (gear1 != gear2) and (gear2>=8):
+        for gear_step in range(max(gear1+1, 8), gear2+1):
+            evo_txt = "gear changed to "+extended_gear_to_txt(gear_step)
+            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ZETAS
     for skill2 in char2['skills']:
         skill_id = skill2['id']
         skill2_isZeta = skill2['isZeta'] and skill2['tier']>=8
-        skill2_isOmicron = dict_zetas[defId][skill_id][3]!="" \
-                           and skill2['tier'] == dict_zetas[defId][skill_id][4]
+        if defId in dict_zetas:
+            skill2_isOmicron = dict_zetas[defId][skill_id][3]!="" \
+                               and skill2['tier'] == dict_zetas[defId][skill_id][4]
+        else:
+            log2('ERR', defId + " not found in dict_zetas")
+            skill2_isOmicron = False
 
         skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
         if len(skill1_matchID)>0:
             skill1 = skill1_matchID[0]
             skill1_isZeta = skill1['isZeta'] and skill1['tier']>=8
-            skill1_isOmicron = dict_zetas[defId][skill_id][3]!="" \
-                               and skill1['tier'] == dict_zetas[defId][skill_id][4]
+            if defId in dict_zetas:
+                skill1_isOmicron = dict_zetas[defId][skill_id][3]!="" \
+                                   and skill1['tier'] == dict_zetas[defId][skill_id][4]
+            else:
+                skill1_isOmicron = False
         else:
             skill1 = None
         if skill2_isZeta and (skill1 == None or not skill1_isZeta):
