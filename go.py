@@ -18,6 +18,7 @@ from PIL import Image
 from collections import Counter
 import inspect
 from texttable import Texttable
+import itertools
 
 import connect_gsheets
 import connect_mysql
@@ -2577,3 +2578,37 @@ def get_tw_alerts():
             dict_tw_alerts[guildName][1].append(msg)
 
     return dict_tw_alerts
+
+############################################
+# develop_teams
+# IN - dict_teams (output of connect_gsheets.load_config_teams)
+# OUT - dict_develop_teams {'PADME-RANCOR': [[PADME, ANAKIN, AHSOKA, C3PO, GK], [PADME, ANAKIN, AHSOKA, CAT, GK]],
+#                           'SEE-RANCOR': [[SEE, Malak, Vader, Gard, WAT], [...]]}
+############################################
+def develop_teams(dict_teams):
+    dict_developed_teams = {}
+
+    for team_name in dict_teams:
+        print(team_name)
+        list_combinations = []
+        for category in dict_teams[team_name]['categories']:
+            list_toons = list(category[2].keys())
+            toon_amount = category[1]
+            combination = list(itertools.combinations(list_toons, toon_amount))
+            list_combinations.append(combination)
+        product_combinations = list(itertools.product(*list_combinations))
+        list_developed_toons = [[i for s in x for i in s] for x in product_combinations]
+        dict_developed_teams[team_name] = list_developed_toons
+
+    return 0, "", dict_developed_teams
+
+############################################
+# find_best_teams
+# IN - list_player_toon [['123456789', 'PADMEAMIDALA'], ['123456789', 'LORDVADER'], ['111222333', 'PADMEAMIDALA']]
+# IN - player_name 'toto'
+# IN - list_team_score [['PADME-RANCOR', 3], ['JMK-RANCOR', 10]]
+# OUT - error_code, error_text, list_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13]
+############################################
+def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, list_team_score):
+    list_teams_score = [[], 0]
+    return 0, "", list_teams_score
