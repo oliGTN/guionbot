@@ -2606,9 +2606,68 @@ def develop_teams(dict_teams):
 # find_best_teams
 # IN - list_player_toon [['123456789', 'PADMEAMIDALA'], ['123456789', 'LORDVADER'], ['111222333', 'PADMEAMIDALA']]
 # IN - player_name 'toto'
-# IN - list_team_score [['PADME-RANCOR', 3], ['JMK-RANCOR', 10]]
-# OUT - error_code, error_text, list_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13]
+# IN - dict_team_score {'PADME-RANCOR': 3, 'JMK-RANCOR': 10]
+# IN - dict_teams {'PADME-RANCOR': [[PADME, GK, SNIPS, CAT], [PADME, GK, SNIPS, C3P0]],
+#                  'JMK-RANCOR': [[...]]}
+# OUT - error_code, error_text, list_best_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13]
 ############################################
-def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, list_team_score):
-    list_teams_score = [[], 0]
-    return 0, "", list_teams_score
+def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score, dict_teams):
+    list_best_teams_score = ["", 0, []]
+
+    list_toon_player = [x[1] for x in list_allyCode_toon if x[0]==int(txt_allyCode)]
+    print(list_allyCode_toon)
+    print(list_toon_player)
+
+    list_scoring_teams = [] #[['PADME', [padme, gk, snips]], ['PADME', [padme GK CAT]], ...]
+    for scoring_team_name in dict_team_score:
+        if scoring_team_name == 'SEE-RANCOR':
+            continue
+        if scoring_team_name in dict_teams:
+            for list_toons in dict_teams[scoring_team_name]:
+                team_complete=True
+                for toon in list_toons:
+                    if not (toon in list_toon_player):
+                        team_complete=False
+                if team_complete:
+                    list_scoring_teams.append([scoring_team_name, list_toons])
+        else:
+            err_txt = "Team "+scoring_team_name+ " required but not defined"
+            goutils.log2('ERR', err_txt)
+            return 1, err_txt, None
+
+    goutils.log2('INFO', "List of teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
+
+    permutations_scoring_teams = itertools.permutations(list_scoring_teams)
+    for permutation in permutations_scoring_teams:
+        toon_bucket = list(list_toon_player)
+        cur_team_list_score = ["",  0, []]
+        permutation_name = ""
+        for scoring_team in permutation:
+            scoring_team_name = scoring_team[0]
+            scoring_team_toons = scoring_team[1]
+            if permutation_name == "":
+                permutation_name = scoring_team_name
+            else:
+                permutation_name+= ", "+scoring_team_name
+
+            team_complete=True
+            for toon in scoring_team_toons:
+                if toon in toon_bucket:
+                    toon_bucket.remove(toon)
+                else:
+                    team_complete=False
+
+            print(scoring_team_name+" "+str(team_complete))
+            if team_complete:
+                cur_team_list_score[0] = permutation_name
+                cur_team_list_score[1] += dict_team_score[scoring_team_name]
+                cur_team_list_score[2].append(scoring_team_toons)
+            else:
+                break
+
+        if cur_team_list_score[1] > list_best_teams_score[1]:
+            list_best_teams_score = list(cur_team_list_score)
+            print(list_best_teams_score)
+
+
+    return 0, "", list_best_teams_score
