@@ -372,7 +372,6 @@ def get_zeta_from_id(character_id, zeta_id):
     
 def get_zeta_from_shorts(character_id, zeta_shorts):
     dict_zetas = data.get('unit_zeta_list.json')
-    
     req_zeta_ids = []
     for zeta in zeta_shorts:
         zeta_id = get_zeta_id_from_short(character_id, zeta)
@@ -381,8 +380,10 @@ def get_zeta_from_shorts(character_id, zeta_shorts):
         if zeta_id in dict_zetas[character_id]:
             if dict_zetas[character_id][zeta_id][1]:
                 req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
+            else:
+                log2("WAR", zeta+" is not a zeta for "+character_id)
         else:
-            log("WAR", "get_zeta_from_shorts", "cannot find zeta "+zeta+" for "+character_id)
+            log2("WAR", "cannot find zeta "+zeta+" for "+character_id)
     
     return req_zeta_ids
 
