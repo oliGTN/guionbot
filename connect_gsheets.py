@@ -545,7 +545,10 @@ def get_tb_triggers(force_load):
                     elif daily_name!='':
                         day_index = int(daily_name[-1])-1
                         if not current_tb_name in daily_targets:
-                            daily_targets[current_tb_name] = [[], [], [], []]
+                            if current_tb_name[0] == 'G': #Geonosis: 4 days
+                                daily_targets[current_tb_name] = [[], [], [], []]
+                            else: #Hoth: 6 days
+                                daily_targets[current_tb_name] = [[], [], [], [], [], []]
                         daily_targets[current_tb_name][day_index] = [top_target, mid_target, bot_target]
                 l+=1
             goutils.log2("DBG", 'daily_targets='+str(daily_targets))
