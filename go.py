@@ -2615,13 +2615,9 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
     list_best_teams_score = ["", 0, []]
 
     list_toon_player = [x[1] for x in list_allyCode_toon if x[0]==int(txt_allyCode)]
-    print(list_allyCode_toon)
-    print(list_toon_player)
 
     list_scoring_teams = [] #[['PADME', [padme, gk, snips]], ['PADME', [padme GK CAT]], ...]
     for scoring_team_name in dict_team_score:
-        if scoring_team_name == 'SEE-RANCOR':
-            continue
         if scoring_team_name in dict_teams:
             for list_toons in dict_teams[scoring_team_name]:
                 team_complete=True
@@ -2637,6 +2633,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 
     goutils.log2('INFO', "List of teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
 
+    goutils.log2('DBG', str(len(list_scoring_teams))+" list to permute...")
     permutations_scoring_teams = itertools.permutations(list_scoring_teams)
     for permutation in permutations_scoring_teams:
         toon_bucket = list(list_toon_player)
@@ -2657,7 +2654,6 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
                 else:
                     team_complete=False
 
-            print(scoring_team_name+" "+str(team_complete))
             if team_complete:
                 cur_team_list_score[0] = permutation_name
                 cur_team_list_score[1] += dict_team_score[scoring_team_name]
@@ -2667,7 +2663,6 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 
         if cur_team_list_score[1] > list_best_teams_score[1]:
             list_best_teams_score = list(cur_team_list_score)
-            print(list_best_teams_score)
 
 
     return 0, "", list_best_teams_score
