@@ -2305,16 +2305,17 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 def main():
     bot_noloop_mode = False
     global bot_test_mode
-    goutils.log("INFO", "main", "Starting...")
+    goutils.log2("INFO", "Starting...")
     # Use command-line parameters
     if len(sys.argv) > 1:
-        goutils.log("INFO", "main", "TEST MODE - options="+str(sys.argv[1:]))
+        goutils.log2("INFO", "TEST MODE - options="+str(sys.argv[1:]))
         bot_test_mode = True
         if sys.argv[1] == "noloop":
-            goutils.log("INFO", "main", "Disable loops")
+            goutils.log2("INFO", "Disable loops")
             bot_noloop_mode = True
 
     #Create periodic tasks
+    goutils.log2("INFO", "Create tasks...")
     if not bot_noloop_mode:
         bot.loop.create_task(bot_loop_60())
         bot.loop.create_task(bot_loop_10minutes())
@@ -2322,11 +2323,13 @@ def main():
         bot.loop.create_task(bot_loop_6hours())
 
     #Ajout des commandes groupées par catégorie
+    goutils.log2("INFO", "Create Cogs...")
     bot.add_cog(AdminCog(bot))
     bot.add_cog(OfficerCog(bot))
     bot.add_cog(MemberCog(bot))
 
     #Lancement du bot
+    goutils.log2("INFO", "Run bot...")
     bot.run(TOKEN)
 
 if __name__ == "__main__":
