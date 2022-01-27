@@ -1074,7 +1074,7 @@ def print_gvg(list_team_names, txt_allyCode):
     
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, True, True)
     
-    if type(ret_get_tam_progress) == str:
+    if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
     list_lines = []
