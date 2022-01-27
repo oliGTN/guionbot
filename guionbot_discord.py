@@ -267,7 +267,11 @@ async def bot_loop_5minutes():
                 if not tb_alert in list_tb_alerts_previously_done:
                     if not first_bot_loop_5minutes:
                         await send_alert_to_echocommanders(tb_alert)
-                goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "TB alert: "+tb_alert)
+                        goutils.log2("INFO", "New TB alert: "+tb_alert)
+                    else:
+                        goutils.log2("DBG", "New TB alert within the first 5 minutes: "+tb_alert
+                else:
+                    goutils.log2("DBG", "Already known TB alert: "+tb_alert)
 
             list_tb_alerts_previously_done = list_tb_alerts
 
