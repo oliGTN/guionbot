@@ -111,9 +111,9 @@ def refresh_cache():
             guild_allyCode = line[1]
             goutils.log('INFO', 'go.refresh_cache', "refresh guild " + guild_name \
                        +" with allyCode " + str(guild_allyCode))
-            e, t = load_guild(str(guild_allyCode), False, False)
-            if e == "OK" and t['name'] == guild_name:
-                e, t = load_guild(str(guild_allyCode), True, False)
+            e, t, d = load_guild(str(guild_allyCode), False, False)
+            if e == 0 and d['name'] == guild_name:
+                e, t, d = load_guild(str(guild_allyCode), True, False)
                 return 0
         
     goutils.log('ERR', 'go.refresh_cache', "Unable to refresh guilds")
@@ -155,29 +155,29 @@ def load_player(txt_allyCode, force_update, no_db):
             prev_dict_player = None
 
     if (not recent_player or force_update==1) and not (force_update==-1 and prev_dict_player != None):
-        goutils.log("INFO", "go.load_player", 'requesting API data for ' + txt_allyCode + '...')
+        goutils.log2("INFO", 'requesting API data for ' + txt_allyCode + '...')
         if client != None:
             player_data = client.get_data('player', [txt_allyCode], 'FRE_FR')
         else:
-            goutils.log("WAR", "go.load_player", 'Cannot connect to API. Using cache data from json')
+            goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
             player_data = [prev_dict_player]
 
         if isinstance(player_data, list):
             if len(player_data) > 0:
                 if len(player_data) > 1:
-                   goutils.log("WAR", "go.load_player", "client.get_data(\'player\', "+txt_allyCode+
+                   goutils.log2("WAR", "client.get_data(\'player\', "+txt_allyCode+
                             ", 'FRE_FR') has returned a list of size "+
                             str(len(player_data)))
                             
                 dict_player = player_data[0]
         
                 #Add statistics
-                dict_player = connect_crinolo.add_stats(dict_player)
+                err_code, err_txt, dict_player = connect_crinolo.add_stats(dict_player)
 
                 #Transform the roster into dictionary with key = defId
                 dict_player = goutils.roster_from_list_to_dict(dict_player)
 
-                goutils.log("INFO", "go.load_player", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
+                goutils.log2("INFO", "success retrieving "+dict_player['name']+" from SWGOH.HELP API")
                 sys.stdout.flush()
                 
                 if not no_db:
@@ -193,27 +193,27 @@ def load_player(txt_allyCode, force_update, no_db):
                     # update DB
                     ret = connect_mysql.update_player(delta_dict_player)
                     if ret == 0:
-                        goutils.log("INFO", "go.load_player", "success updating "+dict_player['name']+" in DB")
+                        goutils.log2("INFO", "success updating "+dict_player['name']+" in DB")
                     else:
-                        goutils.log('ERR', "go.load_player", 'update_player '+txt_allyCode+' returned an error')
+                        goutils.log2('ERR', 'update_player '+txt_allyCode+' returned an error')
                         return 1, None, 'ERR: update_player '+txt_allyCode+' returned an error'
                     sys.stdout.flush()
                 
             else:
-                goutils.log('ERR', 'go.load_player', 'client.get_data(\'player\', '+txt_allyCode+
+                goutils.log2('ERR', 'client.get_data(\'player\', '+txt_allyCode+
                         ", 'FRE_FR') has returned an empty list")
                 sys.stdout.flush()
                 return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
 
         else:
-            goutils.log('ERR', 'go.load_player', 'client.get_data(\'player\', '+
+            goutils.log2('ERR', 'client.get_data(\'player\', '+
                     txt_allyCode+", 'FRE_FR') has not returned a list")
-            goutils.log('ERR', 'go.load_player',player_data)
+            goutils.log2('ERR', player_data)
             sys.stdout.flush()
             return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
 
     else:
-        goutils.log('INFO', 'go.load_player',player_name + ' OK')
+        goutils.log2('INFO', player_name + ' OK')
         dict_player = prev_dict_player
     
     sys.stdout.flush()
@@ -221,40 +221,40 @@ def load_player(txt_allyCode, force_update, no_db):
 
 def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
-    goutils.log('INFO', "go.load_guild", 'Requesting guild data for allyCode ' + txt_allyCode)
+    goutils.log2('INFO', 'Requesting guild data for allyCode ' + txt_allyCode)
 
     query = "SELECT id FROM guilds "
     query+= "JOIN players ON players.guildName = guilds.name "
     query+= "WHERE allyCode = " + txt_allyCode
-    goutils.log("DBG", "go.load_guild", 'query: '+query)
+    goutils.log2("DBG", 'query: '+query)
     db_result = connect_mysql.get_value(query)
 
     if db_result == None or db_result == "":
-        goutils.log("WAR", "go.load_guild", 'Guild ID not found for '+txt_allyCode)
+        goutils.log2("WAR", 'Guild ID not found for '+txt_allyCode)
         guild_id = ""
     else:
         guild_id = db_result
-        goutils.log("INFO", "go.load_guild", 'Guild ID for '+txt_allyCode+' is '+guild_id)
+        goutils.log2("INFO", 'Guild ID for '+txt_allyCode+' is '+guild_id)
     json_file = "GUILDS"+os.path.sep+guild_id+".json"
 
     if client != None:
         client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
     else:
-        goutils.log("WAR", "go.load_guild", 'Cannot connect to API. Using cache data from json')
+        goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
         if guild_id == "":
-            goutils.log("WAR", "go.load_guild", 'Unknown guild for player '+txt_allyCode)
+            goutils.log2("WAR", 'Unknown guild for player '+txt_allyCode)
             client_data = None
         elif os.path.isfile(json_file):
             prev_dict_guild = json.load(open(json_file, 'r'))
             client_data = [prev_dict_guild]
         else:
-            goutils.log("WAR", "go.load_guild", 'Failed to find cache data '+json_file)
+            goutils.log2("WAR", 'Failed to find cache data '+json_file)
             client_data = None
 
     if isinstance(client_data, list):
         if len(client_data) > 0:
             if len(client_data) > 1:
-                goutils.log('WAR', 'go.load_guild',"client.get_data(\'guild\', "+txt_allyCode+
+                goutils.log2('WAR', "client.get_data(\'guild\', "+txt_allyCode+
                         ", 'FRE_FR') has returned a list of size "+
                         str(len(player_data)))            
                             
@@ -264,7 +264,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             total_players = len(dict_guild['roster'])
             allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
             guild_gp = dict_guild["gp"]
-            goutils.log("INFO", "go.load_guild", "success retrieving "+guildName+" ("\
+            goutils.log2("INFO", "success retrieving "+guildName+" ("\
                         +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
                         
             # store json file
@@ -273,25 +273,25 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
             fjson.close()
         else:
-            goutils.log("ERR", "go.load_guild", "client.get_data('guild', "+txt_allyCode+
+            goutils.log2("ERR", "client.get_data('guild', "+txt_allyCode+
                     ", 'FRE_FR') has returned an empty list")
-            return 'ERR: cannot fetch guild fo allyCode '+txt_allyCode, None
+            return 1, 'ERR: cannot fetch guild fo allyCode '+txt_allyCode, None
     else:
-        goutils.log ('ERR', "go.load_guild", "client.get_data('guild', "+
+        goutils.log2('ERR', "client.get_data('guild', "+
                 txt_allyCode+", 'FRE_FR') has not returned a list")
-        goutils.log ("ERR", "go.load_guild", client_data)
-        return 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+        goutils.log2("ERR", client_data)
+        return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
 
     #Get guild data from DB
     query = "SELECT lastUpdated FROM guilds "\
            +"WHERE name = '"+guildName.replace("'", "''")+"'"
-    goutils.log('DBG', 'go.load_guild', query)
+    goutils.log2('DBG', query)
     lastUpdated = connect_mysql.get_value(query)
     is_new_guild = (lastUpdated == None)
 
     query = "SELECT allyCode FROM players "\
            +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
-    goutils.log('DBG', 'go.load_guild', query)
+    goutils.log2('DBG', query)
     allyCodes_in_DB = connect_mysql.get_column(query)
 
     allyCodes_to_add = []
@@ -327,7 +327,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 #The guild is already being loaded
                 #while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
                 while guild_loading_status != None:
-                    goutils.log('INFO', "go.load_guild", "Guild "+guildName+" already loading ("\
+                    goutils.log2('INFO', "Guild "+guildName+" already loading ("\
                             + guild_loading_status + "), waiting 30 seconds...")
                     time.sleep(30)
                     guild_loading_status = parallel_work.get_guild_loading_status(guildName)
@@ -340,7 +340,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 #while len(dict_loading_guilds) > 1:
                 list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
                 while len(list_other_guilds_loading_status) > 0:
-                    goutils.log('INFO', "go.load_guild", "Guild "+guildName+" loading "\
+                    goutils.log2('INFO', "Guild "+guildName+" loading "\
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
                     time.sleep(30)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
@@ -348,16 +348,16 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
                 #Create guild in DB only if the players are loaded
                 query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
-                goutils.log('DBG', 'go.load_guild', query)
+                goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
 
                 #add player data
                 i_player = 0
                 for allyCode in list_allyCodes_to_update:
                     i_player += 1
-                    goutils.log("INFO", "go.load_guild", "player #"+str(i_player))
+                    goutils.log2("INFO", "player #"+str(i_player))
                     
-                    e, d, t = load_player(str(allyCode), 0, False)
+                    e, t, d = load_player(str(allyCode), 0, False)
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
                 parallel_work.set_guild_loading_status(guildName, None)
@@ -367,19 +367,19 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                        +"SET id = '"+guild_id+"', "\
                        +"lastUpdated = CURRENT_TIMESTAMP "\
                        +"WHERE name = '"+guildName.replace("'", "''") + "'"
-                goutils.log('DBG', 'go.load_guild', query)
+                goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
 
         else:
             lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
-            goutils.log('INFO', "go.load_guild", "Guild "+guildName+" last update is "+lastUpdated_txt)
+            goutils.log2('INFO', "Guild "+guildName+" last update is "+lastUpdated_txt)
 
     #Update dates in DB
     if cmd_request:
         query = "UPDATE guilds "\
                +"SET lastRequested = CURRENT_TIMESTAMP "\
                +"WHERE name = '"+guildName.replace("'", "''") + "'"
-        goutils.log('DBG', 'go.load_guild', query)
+        goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
     #Erase guildName for alyCodes not detected from API
@@ -387,10 +387,10 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         query = "UPDATE players "\
                +"SET guildName = '' "\
                +"WHERE allyCode IN "+str(tuple(allyCodes_to_remove)).replace(",)", ")")
-        goutils.log('DBG', 'go.load_guild', query)
+        goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
-    return "OK", dict_guild
+    return 0, "", dict_guild
 
 def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
     line = ''
@@ -727,7 +727,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         #only one player, potentially several teams
         
         #Load or update data for the player
-        e, d, t = load_player(txt_allyCode, 0, False)
+        e, t, d = load_player(txt_allyCode, 0, False)
         if e != 0:
             #error wile loading guild data
             return "", 'ERR: joueur non trouvé pour code allié ' + txt_allyCode
@@ -736,9 +736,9 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
             
     else:
         #Get data for the guild and associated players
-        ret, guild = load_guild(txt_allyCode, True, True)
-        if ret != 'OK':
-            goutils.log("WAR", "go.get_team_progress", "cannot get guild data from SWGOH.HELP API. Using previous data.")
+        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        if err_code != 0:
+            goutils.log2("WAR", "cannot get guild data from SWGOH.HELP API. Using previous data.")
         collection_name = guild["name"]
 
     if not ('all' in list_team_names) and gv_mode:
@@ -1409,7 +1409,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                     return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
-        e, dict_player, t = load_player(txt_allyCode, 0, False)
+        e, t, dict_player = load_player(txt_allyCode, 0, False)
         player_name = dict_player["name"]
         list_player_names = [player_name]
 
@@ -1457,7 +1457,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                 
                 #Recompute stats with Crinolo API
                 dict_player = goutils.roster_from_dict_to_list(dict_player)
-                dict_player = connect_crinolo.add_stats(dict_player)
+                err_code, err_txt, dict_player = connect_crinolo.add_stats(dict_player)
                 dict_player = goutils.roster_from_list_to_dict(dict_player)
 
             dict_stats = {player_name: dict_player['roster']}
@@ -1475,8 +1475,8 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
         #Compute stats at guild level, only one character
         
         #Get data for the guild and associated players
-        ret, guild = load_guild(txt_allyCode, True, True)
-        if ret != 'OK':
+        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        if err_code != 0:
             return "ERR: cannot get guild data from SWGOH.HELP API"
                             
         #Get character_id
@@ -1636,8 +1636,8 @@ def get_distribution_graph(values, bins, title, highlight_value):
 def get_gp_distribution(txt_allyCode):
     #Load or update data for the guild
     #use only the guild data from the API
-    ret, dict_guild = load_guild(txt_allyCode, False, True)
-    if ret != 'OK':
+    err_code, err_txt, dict_guild = load_guild(txt_allyCode, False, True)
+    if err_code != 0:
         return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
 
     guild_stats=[] #Serie of all players
@@ -1748,7 +1748,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player):
 
     list_ids_dictplayer = []
     for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
-        e, dict_player, t = load_player(txt_allyCode, -int(not(refresh_player)), False)
+        e, t, dict_player = load_player(txt_allyCode, -int(not(refresh_player)), False)
         if e != 0:
             #error wile loading guild data
             goutils.log("WAR", "go.get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
@@ -1875,7 +1875,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 def get_stat_graph(txt_allyCode, character_alias, stat_name):
     err_txt = ""
 
-    e, d, t = load_player(txt_allyCode, 0, False)
+    e, t, d = load_player(txt_allyCode, 0, False)
     if e != 0:
         return 1, "ERR: cannot get player data from SWGOH.HELP API", None
         
@@ -1938,11 +1938,11 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 ###############################
 def print_lox(txt_allyCode, compute_guild):
     if compute_guild:
-        ret, guild = load_guild(txt_allyCode, True, True)
-        if ret != 'OK':
+        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        if err_code != 0:
             return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, []
     else:
-        e, d, t = load_player(txt_allyCode, 0, False)
+        e, t, d = load_player(txt_allyCode, 0, False)
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
 

@@ -269,7 +269,7 @@ async def bot_loop_5minutes():
                         await send_alert_to_echocommanders(tb_alert)
                         goutils.log2("INFO", "New TB alert: "+tb_alert)
                     else:
-                        goutils.log2("DBG", "New TB alert within the first 5 minutes: "+tb_alert
+                        goutils.log2("DBG", "New TB alert within the first 5 minutes: "+tb_alert)
                 else:
                     goutils.log2("DBG", "Already known TB alert: "+tb_alert)
 
@@ -1101,7 +1101,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             query = "SELECT CURRENT_TIMESTAMP"
             goutils.log2("DBG", query)
             timestamp_before = connect_mysql.get_value(query)
-            e, player_before, t = await bot.loop.run_in_executor(
+            e, t, player_before = await bot.loop.run_in_executor(
                                             None, go.load_player,
                                             allyCode, -1, True)
             if e!=0:
@@ -1114,7 +1114,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 if os.path.isfile(json_file):
                     os.remove(json_file)
 
-            e, player_now, t = await bot.loop.run_in_executor(
+            e, t, player_now = await bot.loop.run_in_executor(
                                             None, go.load_player,
                                             allyCode, 1, False)
             if e!=0:
@@ -1601,7 +1601,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
             else:
                 #Unknown allyCode in DB
-                e, dict_player, t = go.load_player(allyCode, 0, True)
+                e, t, dict_player = go.load_player(allyCode, 0, True)
                 if e == 0:
                     player_name = dict_player["name"]
                     guildName = dict_player["guildName"]
