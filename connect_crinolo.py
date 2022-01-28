@@ -14,8 +14,8 @@ def add_stats(dict_player):
     for character in dict_player['roster']:
         #if (character['combatType'] == None)\
         if not (character['defId'] in crinolo_character_list):
-            goutils.log('DBG', "add_stats", "character: "+str(character))
-            goutils.log('WAR', "add_stats", "unknown character "+character['defId']+" in crinolo API > removed from stats")
+            goutils.log2('DBG', "character: "+str(character))
+            goutils.log2('WAR', "unknown character "+character['defId']+" in crinolo API > removed from stats")
             list_non_buggy_characters.remove(character)
             character['combatType'] = 1
             list_buggy_characters.append(character)
@@ -25,26 +25,28 @@ def add_stats(dict_player):
     try:
         r=requests.post(crinolo_url, json=[dict_player])
         if r.status_code != 200:
-            goutils.log('ERR', "add_stats", "Cannot connect to crinolo API")
-            goutils.log('ERR', "add_stats", "status_code: " +str(r.status_code))
-            goutils.log('ERR', "add_stats", "content: " + r.content.decode('utf-8').replace('\n', ' '))
-            goutils.log('ERR', "add_stats", "headers: " + str(r.headers))
+            goutils.log2('ERR', "Cannot connect to crinolo API")
+            goutils.log2('ERR', "status_code: " +str(r.status_code))
+            goutils.log2('ERR', "content: " + r.content.decode('utf-8').replace('\n', ' '))
+            goutils.log2('ERR', "headers: " + str(r.headers))
             for char in dict_player['roster']:
-                goutils.log('ERR', "add_stats", "dict_player roster contains "+char['defId'])
+                goutils.log2('ERR', "dict_player roster contains "+char['defId'])
 
-            return dict_player
+            return 1, "Cannot connect to crinolo API", dict_player
             
     except requests.exceptions.ConnectionError as e:
-        goutils.log('ERR', "add_stats", "Cannot connect to Crinolo API")
-        goutils.log('ERR', "add_stats", e)
-        return dict_player
+        goutils.log2('ERR', "Cannot connect to Crinolo API")
+        goutils.log2('ERR', e)
+        return 1, "Cannot connect to crinolo API", dict_player
     
     
     dict_player_with_stats = json.loads(r.content.decode('utf-8'))[0]
     
     # Re-put the buggy characters before going to update player
     #  They will have no stats, yet they will appear in the list
+    list_buggy_character_ids = ""
     for character in list_buggy_characters:
         dict_player_with_stats['roster'].append(character)
+        list_buggy_character_ids += character['defId']
     
-    return dict_player_with_stats
+    return 0, list_buggy_character_ids, dict_player_with_stats
