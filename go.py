@@ -196,28 +196,28 @@ def load_player(txt_allyCode, force_update, no_db):
                         goutils.log2("INFO", "success updating "+dict_player['name']+" in DB")
                     else:
                         goutils.log2('ERR', 'update_player '+txt_allyCode+' returned an error')
-                        return 1, None, 'ERR: update_player '+txt_allyCode+' returned an error'
+                        return 1, 'ERR: update_player '+txt_allyCode+' returned an error', None
                     sys.stdout.flush()
                 
             else:
                 goutils.log2('ERR', 'client.get_data(\'player\', '+txt_allyCode+
                         ", 'FRE_FR') has returned an empty list")
                 sys.stdout.flush()
-                return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
+                return 1, 'ERR: allyCode '+txt_allyCode+' not found', None
 
         else:
             goutils.log2('ERR', 'client.get_data(\'player\', '+
                     txt_allyCode+", 'FRE_FR') has not returned a list")
             goutils.log2('ERR', player_data)
             sys.stdout.flush()
-            return 1, None, 'ERR: allyCode '+txt_allyCode+' not found'
+            return 1, 'ERR: allyCode '+txt_allyCode+' not found', None
 
     else:
         goutils.log2('INFO', player_name + ' OK')
         dict_player = prev_dict_player
     
     sys.stdout.flush()
-    return 0, dict_player, ''
+    return 0, "", dict_player
 
 def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
