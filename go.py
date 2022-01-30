@@ -2028,33 +2028,39 @@ def print_erx(allyCode_txt, days, compute_guild):
             player_name = line[1]
             unit_id = line[2]
             if unit_id != "all":
-                unit_combatType = dict_unitsList[unit_id]["combatType"]
-                if unit_combatType == 1:
+                if unit_id in dict_unitsList:
                     unit_name = dict_unitsList[unit_id]["nameKey"]
-                    if unit_id in stats_units:
-                        stats_units[unit_id][1] += 1
-                    else:
-                        stats_units[unit_id] = [unit_name, 1]
+                else:
+                    unit_name = unit_id
 
+                if unit_id in stats_units:
+                    stats_units[unit_id][1] += 1
+                else:
+                    stats_units[unit_id] = [unit_name, 1]
+
+                if unit_id in dict_unitsList:
                     unit_categories = dict_unitsList[unit_id]["categoryIdList"]
-                    for category in unit_categories:
-                        if category in dict_categoryList:
-                            category_name = dict_categoryList[category]["descKey"]
-                            if category in stats_categories:
-                                stats_categories[category][1] += 1
-                            else:
-                                stats_categories[category] = [category_name, 1]
+                else:
+                    unit_categories = []
 
-                    for char_gv_id in dict_teams_gv:
-                        if player_name in dict_gv_done:
-                            if char_gv_id in dict_gv_done[player_name]:
-                                continue
-                        char_gv_name = dict_unitsList[char_gv_id]["nameKey"]
-                        if unit_id in dict_teams_gv[char_gv_id]:
-                            if char_gv_id in stats_gv:
-                                stats_gv[char_gv_id][1] += 1
-                            else:
-                                stats_gv[char_gv_id] = [char_gv_name, 1]
+                for category in unit_categories:
+                    if category in dict_categoryList:
+                        category_name = dict_categoryList[category]["descKey"]
+                        if category in stats_categories:
+                            stats_categories[category][1] += 1
+                        else:
+                            stats_categories[category] = [category_name, 1]
+
+                for char_gv_id in dict_teams_gv:
+                    if player_name in dict_gv_done:
+                        if char_gv_id in dict_gv_done[player_name]:
+                            continue
+                    char_gv_name = dict_unitsList[char_gv_id]["nameKey"]
+                    if unit_id in dict_teams_gv[char_gv_id]:
+                        if char_gv_id in stats_gv:
+                            stats_gv[char_gv_id][1] += 1
+                        else:
+                            stats_gv[char_gv_id] = [char_gv_name, 1]
 
 
         goutils.log2("DBG", "stats_units: "+str(stats_units))

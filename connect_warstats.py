@@ -146,6 +146,20 @@ next_warstats_read["raid_scores"] = time.time()
 raid_player_scores = {} #{raid name:{player name:score}}
 raid_phase = {} #{raid name:phase}
 
+#Dictionary to transform txt date into number
+dict_months = {'Jan.':1,
+               'Feb.':2,
+               'Mar.':3,
+               'Apr.':4,
+               'May.':5,
+               'Jun.':6,
+               'Jul.':7,
+               'Aug.':8,
+               'Sep.':9,
+               'Oct.':10,
+               'Nov.':11,
+               'Dec.':12}
+
 def set_next_warstats_read_short(seconds_since_last_track, counter_name):
     global next_warstats_read
     time_to_wait = WARSTATS_REFRESH_SECS - seconds_since_last_track + WARSTATS_REFRESH_TIME
@@ -349,7 +363,7 @@ class TBSListParser(HTMLParser):
         HTMLParser.__init__(self)
         self.tb_alias=''
         self.warstats_battle_id=''
-        self.warstats_battle_in_progress=''
+        self.warstats_battle_in_progress=False
         self_seconds_since_last_track = 0
 
         self.state_parser=0
@@ -749,12 +763,15 @@ class TWSListParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.warstats_war_id=''
-        self.warstats_war_in_progress=''
+        self.start_time = None
+        self.warstats_war_in_progress=False
         self.state_parser=0
         #0: en recherche de h2
-        #1: en recherche de data=Territory Battles
+        #1: en recherche de data=Territory Wars
         #2: en recherche de div class='card card-table'
         #3: en recherche de a href
+        #4: en recherche de data (date)
+        #5: fin
         
     def handle_starttag(self, tag, attrs):
         if self.state_parser==0:
@@ -776,7 +793,7 @@ class TWSListParser(HTMLParser):
                     if name=='href':
                         #print(value.split('/'))
                         self.warstats_war_id=value.split('/')[3]
-                        self.state_parser=0
+                        self.state_parser=4
 
     def handle_data(self, data):
         if self.state_parser==1:
@@ -786,9 +803,28 @@ class TWSListParser(HTMLParser):
             else:
                 #print("state_parser=0")
                 self.state_parser=0
+
+        if self.state_parser==4:
+            split_data = data.split(' ')
+            day = int(split_data[0])
+            month = dict_months[split_data[1]]
+            year = int(split_data[2])
+
+            start_time_tz = tz.gettz('UTC')
+            self.start_time = datetime.datetime(year=year, month=month, day=day, hour=19)\
+                              .replace(tzinfo=start_time_tz)
+
+            bot_tz = tz.tzlocal()
+            bot_now = datetime.datetime.now().replace(tzinfo=bot_tz)
+            delta_days = (bot_now - self.start_time)
+            goutils.log2("DBG", "days since start of TW: "+str(delta_days.days))
+            if delta_days.days >= 2 and delta_days.days < 3:
+                self.warstats_war_in_progress=True
+
+            self.state_parser=5
                 
     def get_war_id(self):
-        return self.warstats_war_id
+        return [self.warstats_war_id, self.warstats_war_in_progress]
  
     def get_last_track(self):
         return self.seconds_since_last_track
@@ -1373,9 +1409,16 @@ def parse_tw_teams(guild_id):
         tw_list_parser = TWSListParser()
         tw_list_parser.feed(page.read().decode('utf-8', 'ignore'))
     
-        war_id = tw_list_parser.get_war_id()
-        goutils.log2('INFO', "latest TW is "+war_id)
+        [war_id, war_in_progress] = tw_list_parser.get_war_id()
+        if not war_in_progress:
+            goutils.log2('INFO', "no TW in progress")
+            opponent_teams = []
+
+            set_next_warstats_read_long(19, 'UTC', "tw_teams")
+
+            return opponent_teams
     
+        goutils.log2('INFO', "Current TW is "+war_id)
         warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
         try:
             page = urlopen(warstats_opp_squad_url)
