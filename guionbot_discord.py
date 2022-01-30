@@ -1367,6 +1367,76 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Display: One line per player, with emojis
     ##############################################################
     @commands.check(is_officer)
+    @commands.command(name='trg',
+                 brief="Teams de Raid de Guilde",
+                 help="Teams de Raid de Guilde\n\n"
+                      "Exemple : go.trg me crancor")
+    async def trg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) != 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help trg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = args[0]
+        raid_name = args[1]
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            query = "SELECT allyCode, defId FROM roster " \
+                  + "WHERE allyCode IN (" \
+                  + "SELECT allyCode from players WHERE guildName=(" \
+                  + "SELECT guildName from players WHERE allyCode="+allyCode \
+                  + ")) AND relic_currentTier>=7"
+            goutils.log2("DBG", query)
+            allyCode_toon = connect_mysql.get_table(query)
+
+            query = "SELECT allyCode, name FROM players " \
+                  + "WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+")"
+            goutils.log2("DBG", query)
+            ac_name = connect_mysql.get_table(query)
+
+            l, d = connect_gsheets.load_config_teams(True)
+            ec, et, ddt = go.develop_teams(d)
+            dict_raids = connect_gsheets.load_config_raids(True)
+
+            if not raid_name in dict_raids:
+                await ctx.send("ERR: raid "+raid_name+" inconnu")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            dts = {}
+            for team_name in dict_raids[raid_name][1]:
+                dts[team_name] = dict_raids[raid_name][1][team_name][1]
+            goutils.log2("DBG", dts)
+            
+            list_acs = set([str(x[0]) for x in allyCode_toon])
+            output_txt = ""
+            for ac in list_acs:
+                ec, et, lbts = go.find_best_teams_for_player(allyCode_toon, ac, dts, ddt)
+                if lbts[0] == "":
+                    lbts[0] = "aucune"
+                pname = [x[1] for x in ac_name if x[0]==int(ac)]
+                output_txt += pname[0] + ": " +lbts[0] + "\n"
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: rbg
+    # Parameters: name of the TB (GDS, HLS...)
+    # Purpose: Display results by player depending on whcih teams they have
+    # Display: One line per player, with emojis
+    ##############################################################
+    @commands.check(is_officer)
     @commands.command(name='rbg',
                  brief="Résultats de BT de Guilde",
                  help="Résultats de BT de Guilde\n\n"
@@ -2339,3 +2409,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

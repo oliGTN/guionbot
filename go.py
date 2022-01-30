@@ -18,6 +18,7 @@ from PIL import Image
 from collections import Counter
 import inspect
 from texttable import Texttable
+import itertools
 
 import connect_gsheets
 import connect_mysql
@@ -2577,3 +2578,91 @@ def get_tw_alerts():
             dict_tw_alerts[guildName][1].append(msg)
 
     return dict_tw_alerts
+
+############################################
+# develop_teams
+# IN - dict_teams (output of connect_gsheets.load_config_teams)
+# OUT - dict_develop_teams {'PADME-RANCOR': [[PADME, ANAKIN, AHSOKA, C3PO, GK], [PADME, ANAKIN, AHSOKA, CAT, GK]],
+#                           'SEE-RANCOR': [[SEE, Malak, Vader, Gard, WAT], [...]]}
+############################################
+def develop_teams(dict_teams):
+    dict_developed_teams = {}
+
+    for team_name in dict_teams:
+        goutils.log2("DBG", "team: "+team_name)
+        list_combinations = []
+        for category in dict_teams[team_name]['categories']:
+            list_toons = list(category[2].keys())
+            toon_amount = category[1]
+            combination = list(itertools.combinations(list_toons, toon_amount))
+            list_combinations.append(combination)
+        product_combinations = list(itertools.product(*list_combinations))
+        list_developed_toons = [[i for s in x for i in s] for x in product_combinations]
+        dict_developed_teams[team_name] = list_developed_toons
+
+    return 0, "", dict_developed_teams
+
+############################################
+# find_best_teams
+# IN - list_player_toon [['123456789', 'PADMEAMIDALA'], ['123456789', 'LORDVADER'], ['111222333', 'PADMEAMIDALA']]
+# IN - player_name 'toto'
+# IN - dict_team_score {'PADME-RANCOR': 3, 'JMK-RANCOR': 10]
+# IN - dict_teams {'PADME-RANCOR': [[PADME, GK, SNIPS, CAT], [PADME, GK, SNIPS, C3P0]],
+#                  'JMK-RANCOR': [[...]]}
+# OUT - error_code, error_text, list_best_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13]
+############################################
+def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score, dict_teams):
+    list_best_teams_score = ["", 0, []]
+
+    list_toon_player = [x[1] for x in list_allyCode_toon if x[0]==int(txt_allyCode)]
+
+    list_scoring_teams = [] #[['PADME', [padme, gk, snips]], ['PADME', [padme GK CAT]], ...]
+    for scoring_team_name in dict_team_score:
+        if scoring_team_name in dict_teams:
+            for list_toons in dict_teams[scoring_team_name]:
+                team_complete=True
+                for toon in list_toons:
+                    if not (toon in list_toon_player):
+                        team_complete=False
+                if team_complete:
+                    list_scoring_teams.append([scoring_team_name, list_toons])
+        else:
+            err_txt = "Team "+scoring_team_name+ " required but not defined"
+            goutils.log2('ERR', err_txt)
+            return 1, err_txt, None
+
+    goutils.log2('INFO', "List of teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
+
+    goutils.log2('DBG', str(len(list_scoring_teams))+" list to permute...")
+    permutations_scoring_teams = itertools.permutations(list_scoring_teams)
+    for permutation in permutations_scoring_teams:
+        toon_bucket = list(list_toon_player)
+        cur_team_list_score = ["",  0, []]
+        permutation_name = ""
+        for scoring_team in permutation:
+            scoring_team_name = scoring_team[0]
+            scoring_team_toons = scoring_team[1]
+            if permutation_name == "":
+                permutation_name = scoring_team_name
+            else:
+                permutation_name+= ", "+scoring_team_name
+
+            team_complete=True
+            for toon in scoring_team_toons:
+                if toon in toon_bucket:
+                    toon_bucket.remove(toon)
+                else:
+                    team_complete=False
+
+            if team_complete:
+                cur_team_list_score[0] = permutation_name
+                cur_team_list_score[1] += dict_team_score[scoring_team_name]
+                cur_team_list_score[2].append(scoring_team_toons)
+            else:
+                break
+
+        if cur_team_list_score[1] > list_best_teams_score[1]:
+            list_best_teams_score = list(cur_team_list_score)
+
+
+    return 0, "", list_best_teams_score
