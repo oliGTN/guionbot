@@ -2589,7 +2589,7 @@ def develop_teams(dict_teams):
     dict_developed_teams = {}
 
     for team_name in dict_teams:
-        print(team_name)
+        goutils.log2("DBG", "team: "+team_name)
         list_combinations = []
         for category in dict_teams[team_name]['categories']:
             list_toons = list(category[2].keys())
