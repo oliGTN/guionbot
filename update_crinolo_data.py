@@ -1,15 +1,17 @@
 import requests
 import os
 import json
+import sys
 
-# Download file
-url = 'https://swgoh-stat-calc.glitch.me/gameData.json'
+if len(sys.argv) == 1:
+    # Download file
+    url = 'https://swgoh-stat-calc.glitch.me/gameData.json'
 #url = 'https://raw.githubusercontent.com/Kidori78/swgoh-stat-calc/GAS-v2/gameData.json'
-r = requests.get(url, allow_redirects=True)
+    r = requests.get(url, allow_redirects=True)
 
-fcrinolo = open('DATA'+os.path.sep+'crinolo_gameData.json', 'wb')
-fcrinolo.write(r.content)
-fcrinolo.close()
+    fcrinolo = open('DATA'+os.path.sep+'crinolo_gameData.json', 'wb')
+    fcrinolo.write(r.content)
+    fcrinolo.close()
 
 # Create light file
 fcrinolo = open('DATA'+os.path.sep+'crinolo_gameData.json', 'r')
