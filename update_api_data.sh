@@ -4,7 +4,7 @@ if [ -f version ]; then
 	rm version
 fi
 wget https://api.swgoh.help/version 2> /dev/null
-set DIFF_RES=$(diff version ../DATA/version)
+DIFF_RES=$(diff version ../DATA/version)
 cd ..
 if [ "$DIFF_RES" != "" ]; then
 	echo "New data available in SWGOH API"
@@ -13,13 +13,13 @@ else
 fi
 
 if [ "$DIFF_RES" != "" ] || [ "$1" == "force" ]; then
-	mv CACHE/version DATA/
-	echo python get_data.py unitsList
-	echo python get_data.py unitsList ENG_US
-	echo python get_data.py categoryList
-	echo python get_data.py categoryList ENG_US
-	echo python get_data.py abilityList
-	echo python get_data.py skillList
+	cp CACHE/version DATA/
+	python get_data.py unitsList
+	python get_data.py unitsList ENG_US
+	python get_data.py categoryList
+	python get_data.py categoryList ENG_US
+	python get_data.py abilityList
+	python get_data.py skillList
 fi
 
 rm CACHE/version
