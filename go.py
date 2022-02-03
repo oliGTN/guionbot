@@ -2533,6 +2533,7 @@ def get_tw_alerts():
             continue
         list_opponent_players = [x[1] for x in list_opponent_squads]
         longest_opp_player_name = max(list_opponent_players, key=len)
+        longest_opp_player_name = longest_opp_player_name.replace("'", "''")
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
         query = "SELECT players.name, defId, roster_skills.name from roster\n"
