@@ -2231,6 +2231,9 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
                 ret_print_raid_progress+= "X  "
             else:
                 ret_print_raid_progress+= ".  "
+            if id > 9:
+                ret_print_raid_progress+= " "
+
         ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) {3:1}\n".format(
                                 line[id+1],
                                 line[id+2],
@@ -2239,6 +2242,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
 
     #Display theoretical obtainable score and phase
     goutils.log2("DBG", "guild_score_by_phase = "+str(guild_score_by_phase))
+    goutils.log2("DBG", "data.dict_raid_tiers = "+str(data.dict_raid_tiers))
     if guild_score_by_phase[0] < data.dict_raid_tiers[raid_name][0]:
         total_normal_score = guild_score_by_phase[0]
     elif guild_score_by_phase[1] < data.dict_raid_tiers[raid_name][1]:
@@ -2264,7 +2268,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
                           (sum(data.dict_raid_tiers[raid_name][:2]) - data.dict_raid_tiers[raid_name][0])
     else:
         normal_raid_phase = 1
-        normal_progress = total_normal_score / sum(data.dict_raid_tiers[raid_name][0])
+        normal_progress = total_normal_score / sum(data.dict_raid_tiers[raid_name])
     ret_print_raid_progress+= "\nScore atteignable par la guilde en mode normal : "+str(total_normal_score)
     if normal_raid_phase == 5:
         ret_print_raid_progress+= " (raid terminé)"
