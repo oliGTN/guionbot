@@ -1770,6 +1770,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Une ligne par joueur avec des peros + stats en colonne
     #          ou plusieurs ligne à la suite si plusieurs teams
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='vtj',
                  brief="Vérifie la dispo d'une ou plusieurs teams chez un joueur",
                  help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
@@ -1815,6 +1816,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Une ligne par requis du guide de voyage
     #          un score global à la fin
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='gvj',
                  brief="Donne le progrès dans le guide de voyage pour une perso chez un joueur",
                  help="Donne le progrès dans le guide de voyage pour une perso chez un un joueur\n\n"\
@@ -1851,6 +1853,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: Progrès dans le guide de voyage pour un perso
     # Display: Une ligne par perso - joueur, avec son score
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='gvg',
                  brief="Donne le progrès dans le guide de voyage pour une perso dans la guilde",
                  help="Donne le progrès dans le guide de voyage pour une perso dans la guilde\n\n"\
@@ -1888,6 +1891,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Un premier tableau donnant la dispo des équipes utilisées en counter
     #          Un 2e tableau donnant les possibilités de counter contre des équipes données
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='scg',
                  brief="Capacité de contre de la guilde",
                  help="Capacité de contre de la guilde\n\n"\
@@ -1921,6 +1925,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: stats vitesse et pouvoir d'un perso
     # Display: la vitess et le pouvoir
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
@@ -1972,6 +1977,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: stats vitesse et pouvoir d'un perso sur toute la guilde
     # Display: la vitess et le pouvoir
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='spg',
                  brief="Stats de Perso d'une Guilde",
                  help="Stats de Perso d'une Guilde\n\n"\
@@ -2021,6 +2027,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: graph de distribution des PG des membres de la guilde
     # Display: graph (#=actif, .=inactif depuis 36 heures)
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='gdp',
                  brief="Graphique des PG d'une guilde",
                  help="Graphique des PG d'une guilde\n\n"\
@@ -2064,6 +2071,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher une image des portraits choisis
     # Display: l'image produite
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='ppj',
                  brief="Portraits de Perso d'un Joueur",
                  help="Portraits de Perso d'un Joueur\n"\
@@ -2113,6 +2121,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher une image avec les 2 équipes et un "SUCCESS"
     # Display: l'image produite
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='rgt',
                  brief="Image d'un Résultat en Guerre de Territoire",
                  help="Image d'un Résultat en Guerre de Territoire\n"\
@@ -2205,6 +2214,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     #          et la position du joueur dans ce graph
     # Display: l'image du graph
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='gsp',
                  brief="Graphique d'une Statistique d'un Perso",
                  help="Graphique d'une Statistique d'un Perso\n"\
@@ -2247,6 +2257,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: summary of roster evolution for a player
     # Display: list
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='erj',
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
@@ -2279,6 +2290,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: summary of roster evolution for a guild
     # Display: list
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='erg',
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
@@ -2311,6 +2323,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: list of omicrons of a player
     # Display: list
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='loj',
                  brief="Liste des Omicrons d'un Joueur",
                  help="Liste des Omicrons d'un Joueur\n"\
@@ -2347,6 +2360,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: list of omicrons of a guild
     # Display: list
     ##############################################################
+    @commands.check(command_allowed)
     @commands.command(name='log',
                  brief="Liste des Omicrons d'une Guilde",
                  help="Liste des Omicrons d'une Guilde\n"\
@@ -2373,6 +2387,95 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
+
+    ##############################################################
+    # Command: ntg
+    # Parameters: 
+    #    IN: player from the guild
+    #    IN: amount of teams per TW territory
+    #    IN: [optional] list of players that do not participate in the TW
+    # Purpose: give a recommendation of teams per player in defense
+    # Display: one recommendation per group of 1M of PG
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='ntg',
+                 brief="Nombre de Teams en GT",
+                 help="Nombre de Teams en GT\n\n"\
+                      "Exemple : go.ntg me 27\n"\
+                      "Exemple : go.ntg 123456789 23 toto123 345123678")
+    async def ntg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) < 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+        else:
+            ac_guild = manage_me(ctx, args[0])
+            if ac_guild[0:3] == 'ERR':
+                await ctx.send(ac_guild)
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            try:
+                team_count = int(args[1])
+            except Exception as e:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            list_ac_nonplayers = []
+            for player in args[2:]:
+                ac = manage_me(ctx, player)
+                if ac[0:3] == 'ERR':
+                    await ctx.send(ac)
+                    await ctx.message.add_reaction(emoji_error)
+                    return
+                list_ac_nonplayers.append(ac)
+
+            query = "SELECT FLOOR((char_gp+ship_gp)/1000000) AS bucket, count(*) FROM players " \
+                  + "WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+ac_guild+") "
+            if len(list_ac_nonplayers) > 0:
+                query += "AND NOT allyCode IN "+str(tuple(list_ac_nonplayers)).replace(",)", ")")+" "
+            query+= "GROUP BY bucket " \
+                  + "ORDER BY bucket"
+
+            goutils.log2("DBG", query)
+            bucket_count = connect_mysql.get_table(query)
+
+            target_count = 10 * team_count
+            actual_count = 0
+            multiplier = 1.0
+            total_players = sum([x[1] for x in bucket_count])
+            total_pg = sum([(x[0]+0.5)*x[1] for x in bucket_count])
+            goutils.log2("DBG", "total_players="+str(total_players))
+            goutils.log2("DBG", "total_pg="+str(total_pg))
+            while actual_count < target_count:
+                pg_teams = ""
+                actual_count = 0
+                for b_c in bucket_count:
+                    teams = int(round(b_c[0] * target_count / total_pg * multiplier, 0))
+                    actual_count += teams * b_c[1]
+
+                    if b_c[1] == 1:
+                        pg_teams += str(b_c[1])+" joueur"
+                    else:
+                        pg_teams += str(b_c[1])+" joueurs"
+
+                    pg_teams += " de "+str(b_c[0])+" à "+str(b_c[0]+1)+" M de PG : "
+
+                    if teams == 1:
+                        pg_teams += str(teams)+" team\n"
+                    else:
+                        pg_teams += str(teams)+" teams\n"
+
+                multiplier += 0.01
+                goutils.log2("DBG", "actual_count="+str(actual_count))
+
+            pg_teams = "**Nombre de teams recommandé à poser en défense pour la GT**\n" + pg_teams
+            await ctx.send(pg_teams)
+            await ctx.message.add_reaction(emoji_check)
+
 
 
 ##############################################################
