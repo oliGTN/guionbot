@@ -1435,7 +1435,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             display_mentions=False
             output_channel = ctx.message.channel
         else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rrg")
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rbg")
             await ctx.message.add_reaction(emoji_error)
             return
 

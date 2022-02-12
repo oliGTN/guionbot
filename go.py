@@ -1961,7 +1961,7 @@ def print_lox(txt_allyCode, compute_guild):
     return 0, "", db_lines
 
 ###############################
-def print_erx(allyCode_txt, days, compute_guild):
+def print_erx(txt_allyCode, days, compute_guild):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_categoryList = data.get("categoryList_dict.json")
 
@@ -1971,13 +1971,13 @@ def print_erx(allyCode_txt, days, compute_guild):
     if not compute_guild:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
-              + "WHERE players.allyCode = " + allyCode_txt + " " \
+              + "WHERE players.allyCode = " + txt_allyCode + " " \
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
     else:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
-              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+")) "\
+              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+txt_allyCode+")) "\
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
 
@@ -1987,12 +1987,12 @@ def print_erx(allyCode_txt, days, compute_guild):
     if not compute_guild:
         query = "SELECT name, defId FROM roster " \
               + "JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE players.allyCode = " + allyCode_txt + " " \
+              + "WHERE players.allyCode = " + txt_allyCode + " " \
               + "AND defId IN (SELECT LEFT(name, LENGTH(name) - 3) FROM guild_teams WHERE name LIKE '%-GV')"
     else:
         query = "SELECT name, defId FROM roster " \
               + "JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+")) "\
+              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+txt_allyCode+")) "\
               + "AND defId IN (SELECT LEFT(name, LENGTH(name) - 3) FROM guild_teams WHERE name LIKE '%-GV')"
 
     goutils.log2("DBG", query)
@@ -2111,17 +2111,27 @@ def print_erx(allyCode_txt, days, compute_guild):
 # Function: print_raid_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
+def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
     dict_raids = connect_gsheets.load_config_raids(False)
     if raid_alias in dict_raids:
         raid_config = dict_raids[raid_alias]
     else:
         return 1, "ERR: unknown raid "+raid_alias+" among "+str(list(dict_raids.keys())), ""
 
-    query = "SELECT warstats_id FROM guilds "
+    ec, et, dict_teams_by_player = find_best_teams_for_raid(txt_allyCode, raid_alias)
+    if ec != 0:
+        return 1, et, ""
+    dict_players_by_team = {}
+    for player in dict_teams_by_player:
+        for team in dict_teams_by_player[player][0]:
+            if not team in dict_players_by_team:
+                dict_players_by_team[team] = []
+            dict_players_by_team[team].append(player)
+
+    query = "SELECT guildName, warstats_id FROM guilds "
     query+= "JOIN players ON guilds.name = players.guildName "
-    query+= "where allyCode = "+allyCode_txt
-    warstats_id = connect_mysql.get_value(query)
+    query+= "where allyCode = "+txt_allyCode
+    [guild_name, warstats_id] = connect_mysql.get_line(query)
 
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini", ""
@@ -2129,15 +2139,6 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
     raid_name = raid_config[0]
     raid_teams = raid_config[1]
     raid_team_names = raid_teams.keys()
-    guild_name, dict_teams = get_team_progress(raid_team_names, allyCode_txt, True, False)
-    dict_teams_by_player = {}
-    for team in dict_teams:
-        dict_teams_by_player[team]={}
-        for line in dict_teams[team][0][1:]:
-            nogo = line[3]
-            player_name = line[4]
-            dict_teams_by_player[team][player_name] = not nogo
-
     raid_phase, raid_scores = connect_warstats.parse_raid_scores(warstats_id, raid_name)
 
     #Player lines
@@ -2155,15 +2156,22 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
         else:
             txt_alert = "**" + player_name + "** n'a pas joué malgré :"
 
+        #Check if player is known in the guild
+        if not player_name in dict_teams_by_player:
+            if not player_name in list_unknown_players:
+                list_unknown_players.append(player_name)
+
         normal_score = 0
         super_score = 0
         for team in raid_team_names:
-            if player_name in dict_teams_by_player[team]:
-                player_has_team = dict_teams_by_player[team][player_name]
+            if team in dict_players_by_team:
+                if player_name in dict_players_by_team[team]:
+                    player_has_team = True
+                else:
+                    player_has_team = False
             else:
-                if not player_name in list_unknown_players:
-                    list_unknown_players.append(player_name)
                 player_has_team = False
+
             team_phase = raid_teams[team][0]
             team_normal_score = raid_teams[team][1]
             team_super_score = raid_teams[team][2]
@@ -2291,7 +2299,7 @@ def print_raid_progress(allyCode_txt, raid_alias, use_mentions):
 # Function: print_tb_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
+def print_tb_progress(txt_allyCode, tb_alias, use_mentions):
     list_tb_teams = connect_gsheets.load_tb_teams(False)
     tb_team_names = list(set(sum(sum([list(x.values()) for x in list_tb_teams], []), [])))
     tb_team_names.remove('')
@@ -2301,13 +2309,13 @@ def print_tb_progress(allyCode_txt, tb_alias, use_mentions):
 
     query = "SELECT warstats_id FROM guilds "
     query+= "JOIN players ON guilds.name = players.guildName "
-    query+= "where allyCode = "+allyCode_txt
+    query+= "where allyCode = "+txt_allyCode
     warstats_id = connect_mysql.get_value(query)
 
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini", ""
 
-    guild_name, dict_teams = get_team_progress(tb_team_names, allyCode_txt, True, False)
+    guild_name, dict_teams = get_team_progress(tb_team_names, txt_allyCode, True, False)
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -2680,20 +2688,22 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
     goutils.log2('DBG', str(factorial(len(list_scoring_teams)))+" permutations...")
     list_txt_scores = []
     for permutation in permutations_scoring_teams:
+        #print("NEW PERMUTATION")
         toon_bucket = list(list_toon_player)
-        cur_team_list_score = ["",  0, []]
+        cur_team_list_score = ["",  0, 0]
         permutation_teams = []
         team_per_raid_phase = [False, False, False, False]
         for scoring_team in permutation:
+            #print(scoring_team)
             scoring_team_name = scoring_team[0]
             scoring_team_toons = scoring_team[1]
             scoring_team_phase = dict_team_score[scoring_team_name][0]
+            permutation_teams.append(scoring_team)
 
-            if team_per_raid_phase[scoring_team_phase-1]:
-                continue
+            if scoring_team_phase in [2, 3] and team_per_raid_phase[scoring_team_phase-1]:
+                #print("phase break")
+                break
             team_per_raid_phase[scoring_team_phase-1] = True
-
-            permutation_teams.append(scoring_team_name)
 
             team_complete=True
             for toon in scoring_team_toons:
@@ -2704,10 +2714,13 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 
 
             if team_complete:
-                cur_team_list_score[0] = permutation_teams
+                permutation_team_names = [x[0] for x in permutation_teams]
+                cur_team_list_score[0] = permutation_team_names
                 cur_team_list_score[1] += dict_team_score[scoring_team_name][1]
                 cur_team_list_score[2] += dict_team_score[scoring_team_name][2]
+                #print("complete: "+str(permutation_teams))
             else:
+                #print("incomplete break")
                 break
 
         txt_score = str(cur_team_list_score[0]) + ": " + str(cur_team_list_score[1])    
@@ -2760,6 +2773,7 @@ def find_best_teams_for_raid(txt_allyCode, raid_name):
     ac_name = connect_mysql.get_table(query)
 
     list_acs = [str(x[0]) for x in ac_name]
+    #list_acs = ['513353354']
     dict_best_teams = {}
     for ac in list_acs:
         ec, et, lbts = find_best_teams_for_player(allyCode_toon, ac, dts, ddt)
