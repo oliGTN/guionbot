@@ -1388,48 +1388,23 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            query = "SELECT allyCode, defId FROM roster " \
-                  + "WHERE allyCode IN (" \
-                  + "SELECT allyCode from players WHERE guildName=(" \
-                  + "SELECT guildName from players WHERE allyCode="+allyCode \
-                  + ")) AND relic_currentTier>=7"
-            goutils.log2("DBG", query)
-            allyCode_toon = connect_mysql.get_table(query)
-
-            query = "SELECT allyCode, name FROM players " \
-                  + "WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") " \
-                  + "ORDER BY name"
-            goutils.log2("DBG", query)
-            ac_name = connect_mysql.get_table(query)
-
-            l, d = connect_gsheets.load_config_teams(True)
-            ec, et, ddt = go.develop_teams(d)
-            dict_raids = connect_gsheets.load_config_raids(True)
-
-            if not raid_name in dict_raids:
-                await ctx.send("ERR: raid "+raid_name+" inconnu")
-                await ctx.message.add_reaction(emoji_error)
-                return
-
-            dts = {}
-            for team_name in dict_raids[raid_name][1]:
-                dts[team_name] = dict_raids[raid_name][1][team_name][1]
-            goutils.log2("DBG", dts)
-            
-            list_acs = [str(x[0]) for x in ac_name]
-            output_txt = ""
-            for ac in list_acs:
-                ec, et, lbts = go.find_best_teams_for_player(allyCode_toon, ac, dts, ddt)
-                if lbts[0] == "":
-                    lbts[0] = "aucune"
-                pname = [x[1] for x in ac_name if x[0]==int(ac)]
-                output_txt += "**" + pname[0] + "**: " +lbts[0] + "\n"
-
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
+                                                    go.find_best_teams_for_raid,
+                                                    allyCode, raid_name)
+            if err !=0:
                 await ctx.send(txt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                output_txt = ""
+                for pname in dict_best_teams:
+                    lbts = dict_best_teams[pname]
+                    output_txt += "**" + pname + "**: " + str(lbts[0]) + "\n"
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send(txt)
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: rbg

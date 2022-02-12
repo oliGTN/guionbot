@@ -9,7 +9,7 @@ import config
 import difflib
 import math
 from functools import reduce
-from math import ceil
+from math import ceil, factorial
 import json
 import matplotlib
 matplotlib.use('Agg') #Preventin GTK erros at startup
@@ -2608,8 +2608,12 @@ def develop_teams(dict_teams):
             combination = list(itertools.combinations(list_toons, toon_amount))
             list_combinations.append(combination)
         product_combinations = list(itertools.product(*list_combinations))
-        list_developed_toons = [[i for s in x for i in s] for x in product_combinations]
-        dict_developed_teams[team_name] = list_developed_toons
+        #list_developed_toons = [[i for s in x for i in s] for x in product_combinations]
+        #dict_developed_teams[team_name] = list_developed_toons
+        if len(product_combinations) == 1:
+            product_combinations = [((product_combinations[0][0], ()))]
+
+        dict_developed_teams[team_name] = product_combinations
 
     return 0, "", dict_developed_teams
 
@@ -2617,26 +2621,53 @@ def develop_teams(dict_teams):
 # find_best_teams
 # IN - list_player_toon [['123456789', 'PADMEAMIDALA'], ['123456789', 'LORDVADER'], ['111222333', 'PADMEAMIDALA']]
 # IN - player_name 'toto'
-# IN - dict_team_score {'PADME-RANCOR': 3, 'JMK-RANCOR': 10]
-# IN - dict_teams {'PADME-RANCOR': [[PADME, GK, SNIPS, CAT], [PADME, GK, SNIPS, C3P0]],
+# IN - dict_team_score {'PADME-RANCOR': [1, 234, 345], 'JMK-RANCOR': [3, 34, 45]]
+# IN - dict_teams {'PADME-RANCOR': [[(PADME, GK), (SNIPS, CAT)], [(PADME, GK), (SNIPS, C3P0)]],
 #                  'JMK-RANCOR': [[...]]}
-# OUT - error_code, error_text, list_best_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13]
+# OUT - error_code, error_text, list_best_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13, 24]
 ############################################
 def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score, dict_teams):
     list_best_teams_score = ["", 0, []]
 
     list_toon_player = [x[1] for x in list_allyCode_toon if x[0]==int(txt_allyCode)]
 
+    list_all_required_toons = []
+    for team in dict_teams:
+        for team_combination in dict_teams[team]:
+            for required_toon in team_combination[0]:
+                if not required_toon in list_all_required_toons:
+                    list_all_required_toons.append(required_toon)
+
     list_scoring_teams = [] #[['PADME', [padme, gk, snips]], ['PADME', [padme GK CAT]], ...]
     for scoring_team_name in dict_team_score:
         if scoring_team_name in dict_teams:
-            for list_toons in dict_teams[scoring_team_name]:
+            dict_scoring_teams_by_required_toons = {}
+            for [required_toons, important_toons] in dict_teams[scoring_team_name]:
                 team_complete=True
-                for toon in list_toons:
+                list_toons = []
+                for toon in required_toons:
+                    list_toons.append(toon)
                     if not (toon in list_toon_player):
                         team_complete=False
+
+                list_required_toons = []
+                for toon in important_toons:
+                    list_toons.append(toon)
+                    if not (toon in list_toon_player):
+                        team_complete=False
+                    if toon in list_all_required_toons:
+                        list_required_toons .append(toon)
                 if team_complete:
-                    list_scoring_teams.append([scoring_team_name, list_toons])
+                    list_required_toons.sort()
+                    key_required_toons = str(list_required_toons)
+                    dict_scoring_teams_by_required_toons[key_required_toons] = list_toons
+
+            if '[]' in dict_scoring_teams_by_required_toons:
+                list_scoring_teams.append([scoring_team_name, dict_scoring_teams_by_required_toons['[]']])
+            else:
+                for key in dict_scoring_teams_by_required_toons:
+                    list_scoring_teams.append([scoring_team_name, dict_scoring_teams_by_required_toons[key]])
+
         else:
             err_txt = "Team "+scoring_team_name+ " required but not defined"
             goutils.log2('ERR', err_txt)
@@ -2646,17 +2677,23 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 
     goutils.log2('DBG', str(len(list_scoring_teams))+" list to permute...")
     permutations_scoring_teams = itertools.permutations(list_scoring_teams)
+    goutils.log2('DBG', str(factorial(len(list_scoring_teams)))+" permutations...")
+    list_txt_scores = []
     for permutation in permutations_scoring_teams:
         toon_bucket = list(list_toon_player)
         cur_team_list_score = ["",  0, []]
-        permutation_name = ""
+        permutation_teams = []
+        team_per_raid_phase = [False, False, False, False]
         for scoring_team in permutation:
             scoring_team_name = scoring_team[0]
             scoring_team_toons = scoring_team[1]
-            if permutation_name == "":
-                permutation_name = scoring_team_name
-            else:
-                permutation_name+= ", "+scoring_team_name
+            scoring_team_phase = dict_team_score[scoring_team_name][0]
+
+            if team_per_raid_phase[scoring_team_phase-1]:
+                continue
+            team_per_raid_phase[scoring_team_phase-1] = True
+
+            permutation_teams.append(scoring_team_name)
 
             team_complete=True
             for toon in scoring_team_toons:
@@ -2665,15 +2702,71 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
                 else:
                     team_complete=False
 
+
             if team_complete:
-                cur_team_list_score[0] = permutation_name
-                cur_team_list_score[1] += dict_team_score[scoring_team_name]
-                cur_team_list_score[2].append(scoring_team_toons)
+                cur_team_list_score[0] = permutation_teams
+                cur_team_list_score[1] += dict_team_score[scoring_team_name][1]
+                cur_team_list_score[2] += dict_team_score[scoring_team_name][2]
             else:
                 break
+
+        txt_score = str(cur_team_list_score[0]) + ": " + str(cur_team_list_score[1])    
+        if not txt_score in list_txt_scores:
+            list_txt_scores.append(txt_score)
 
         if cur_team_list_score[1] > list_best_teams_score[1]:
             list_best_teams_score = list(cur_team_list_score)
 
+    #if txt_allyCode == '419576861':
+    #    for txt_score in list_txt_scores:
+    #        print(txt_score)
 
     return 0, "", list_best_teams_score
+
+################################################################
+# find_best_teams_for_raid
+# IN: txt_allyCode
+# IN: raid_name
+# OUT: err_code, err_txt, dict_best_teams {'Gui On': ['JKR', 'DR'], ...}
+################################################################
+def find_best_teams_for_raid(txt_allyCode, raid_name):
+    dict_raids = connect_gsheets.load_config_raids(True)
+
+    if not raid_name in dict_raids:
+        goutils.log2("ERR", "raid "+raid_name+" inconnu")
+        return 1, "ERR: raid "+raid_name+" inconnu", {}
+
+    dts = {}
+    for team_name in dict_raids[raid_name][1]:
+        dts[team_name] = dict_raids[raid_name][1][team_name]
+    goutils.log2("DBG", dts)
+
+    l, d = connect_gsheets.load_config_teams(True)
+    d_raid = {k: d[k] for k in dts.keys()}
+    ec, et, ddt = develop_teams(d_raid)
+
+    query = "SELECT allyCode, defId FROM roster " \
+          + "WHERE allyCode IN (" \
+          + "SELECT allyCode from players WHERE guildName=(" \
+          + "SELECT guildName from players WHERE allyCode="+txt_allyCode \
+          + ")) AND relic_currentTier>=7"
+    goutils.log2("DBG", query)
+    allyCode_toon = connect_mysql.get_table(query)
+
+    query = "SELECT allyCode, name FROM players " \
+          + "WHERE guildName=(SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+          + "ORDER BY name"
+    goutils.log2("DBG", query)
+    ac_name = connect_mysql.get_table(query)
+
+    list_acs = [str(x[0]) for x in ac_name]
+    dict_best_teams = {}
+    for ac in list_acs:
+        ec, et, lbts = find_best_teams_for_player(allyCode_toon, ac, dts, ddt)
+        if ec != 0:
+            return 1, et, {}
+        pname = [x[1] for x in ac_name if x[0]==int(ac)][0]
+        dict_best_teams[pname] = lbts
+
+    return 0, "", dict_best_teams
+
