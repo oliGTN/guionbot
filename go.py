@@ -2671,10 +2671,15 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
                     dict_scoring_teams_by_required_toons[key_required_toons] = list_toons
 
             if '[]' in dict_scoring_teams_by_required_toons:
-                list_scoring_teams.append([scoring_team_name, dict_scoring_teams_by_required_toons['[]']])
+                print(dict_teams[scoring_team_name])
+                list_scoring_teams.append([scoring_team_name,
+                                           dict_scoring_teams_by_required_toons['[]'],
+                                           dict_team_score[scoring_team_name][1]])
             else:
                 for key in dict_scoring_teams_by_required_toons:
-                    list_scoring_teams.append([scoring_team_name, dict_scoring_teams_by_required_toons[key]])
+                    list_scoring_teams.append([scoring_team_name, 
+                                               dict_scoring_teams_by_required_toons[key], 
+                                               dict_team_score[scoring_team_name][1]])
 
         else:
             err_txt = "Team "+scoring_team_name+ " required but not defined"
@@ -2682,12 +2687,21 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
             return 1, err_txt, None
 
     goutils.log2('INFO', "List of teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
-
     goutils.log2('DBG', str(len(list_scoring_teams))+" list to permute...")
+    max_permutable_teams = 9
+    if len(list_scoring_teams)>max_permutable_teams:
+        goutils.log2('DBG', str(len(list_scoring_teams))+"reducing to "+str(max_permutable_teams)+" best")
+        list_scoring_teams = sorted(list_scoring_teams, key=lambda x: -x[2])[:max_permutable_teams]
+        goutils.log2('INFO', "List of "+str(max_permutable_teams)+" best teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
+
     permutations_scoring_teams = itertools.permutations(list_scoring_teams)
-    goutils.log2('DBG', str(factorial(len(list_scoring_teams)))+" permutations...")
+    goutils.log2('INFO', str(factorial(len(list_scoring_teams)))+" permutations...")
     list_txt_scores = []
+    i_permutation = 0
     for permutation in permutations_scoring_teams:
+        i_permutation += 1
+        if (i_permutation % 100000) == 0:
+            goutils.log2('INFO', "Current permutation: "+str(i_permutation))
         #print("NEW PERMUTATION")
         toon_bucket = list(list_toon_player)
         cur_team_list_score = ["",  0, 0]
