@@ -2138,7 +2138,10 @@ def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
 
     raid_name = raid_config[0]
     raid_teams = raid_config[1]
-    raid_team_names = raid_teams.keys()
+    #sort team names by phase, then by name
+    raid_team_names = list({k: v for k, v in sorted(raid_teams.items(),
+                                                    key=lambda item: (
+                                                        item[1][0], item[0]))}.keys())
     raid_phase, raid_scores = connect_warstats.parse_raid_scores(warstats_id, raid_name)
 
     #Player lines
