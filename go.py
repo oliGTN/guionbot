@@ -2232,7 +2232,7 @@ def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
     ret_print_raid_progress+= "\nSPLIT_HERE{0:20}".format("Joueur")
     for id in range(1, team_id):
         ret_print_raid_progress+= "T"+str(id)+" "
-    ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) Statut\n".format("Score", "Normal", "Super")
+    ret_print_raid_progress+= "S ({0:8}/{1:8}) {2:8}\n".format("Normal", "Super", "Score")
 
     #Display all players
     for line in list_scores:
@@ -2245,11 +2245,11 @@ def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
             if id > 9:
                 ret_print_raid_progress+= " "
 
-        ret_print_raid_progress+= "{0:8} ({1:8}/{2:8}) {3:1}\n".format(
-                                line[id+1],
+        ret_print_raid_progress+= "{0:1} ({1:8}/{2:8}) {3:8}\n".format(
+                                line[id+4],
                                 line[id+2],
                                 line[id+3],
-                                line[id+4])
+                                line[id+1])
 
     #Display theoretical obtainable score and phase
     goutils.log2("DBG", "guild_score_by_phase = "+str(guild_score_by_phase))
