@@ -2757,9 +2757,19 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 # find_best_teams_for_raid
 # IN: txt_allyCode
 # IN: raid_name
+# IN: compute_guild (True/False)
 # OUT: err_code, err_txt, dict_best_teams {'Gui On': ['JKR', 'DR'], ...}
 ################################################################
-def find_best_teams_for_raid(txt_allyCode, raid_name):
+def find_best_teams_for_raid(txt_allyCode, raid_name, compute_guild):
+    if compute_guild:
+        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        if err_code != 0:
+            return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, {}
+    else:
+        e, t, d = load_player(txt_allyCode, 0, False)
+        if e != 0:
+            return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, {}
+
     dict_raids = connect_gsheets.load_config_raids(True)
 
     if not raid_name in dict_raids:
@@ -2775,17 +2785,29 @@ def find_best_teams_for_raid(txt_allyCode, raid_name):
     d_raid = {k: d[k] for k in dts.keys()}
     ec, et, ddt = develop_teams(d_raid)
 
-    query = "SELECT allyCode, defId FROM roster " \
-          + "WHERE allyCode IN (" \
-          + "SELECT allyCode from players WHERE guildName=(" \
-          + "SELECT guildName from players WHERE allyCode="+txt_allyCode \
-          + ")) AND relic_currentTier>=7"
+    if compute_guild:
+        query = "SELECT allyCode, defId FROM roster " \
+              + "WHERE allyCode IN (" \
+              + "SELECT allyCode from players WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode \
+              + ")) AND relic_currentTier>=7"
+    else:
+        query = "SELECT allyCode, defId FROM roster " \
+              + "WHERE allyCode="+txt_allyCode+" " \
+              + "AND relic_currentTier>=7"
+
     goutils.log2("DBG", query)
     allyCode_toon = connect_mysql.get_table(query)
 
-    query = "SELECT allyCode, name FROM players " \
-          + "WHERE guildName=(SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
-          + "ORDER BY name"
+    if compute_guild:
+        query = "SELECT allyCode, name FROM players " \
+              + "WHERE guildName=(SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "ORDER BY name"
+    else:
+        query = "SELECT allyCode, name FROM players " \
+              + "WHERE allyCode="+txt_allyCode+" " \
+              + "ORDER BY name"
+
     goutils.log2("DBG", query)
     ac_name = connect_mysql.get_table(query)
 

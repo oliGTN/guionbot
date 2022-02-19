@@ -1390,7 +1390,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         else:
             err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
                                                     go.find_best_teams_for_raid,
-                                                    allyCode, raid_name)
+                                                    allyCode, raid_name, True)
             if err !=0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -2450,6 +2450,51 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             pg_teams = "**Nombre de teams recommandé à poser en défense pour la GT**\n" + pg_teams
             await ctx.send(pg_teams)
             await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: trj
+    # IN: name of the payer, name of the raid
+    # OUT: a line with the teams for the payer to make the best score
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='trj',
+                 brief="Teams de Raid du Joueur",
+                 help="Teams de Raid du Joueur\n\n"
+                      "Exemple : go.trj me crancor")
+    async def trj(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) != 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help trj")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = args[0]
+        raid_name = args[1]
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
+                                                    go.find_best_teams_for_raid,
+                                                    allyCode, raid_name, False)
+            if err !=0:
+                await ctx.send(txt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                output_txt = ""
+                for pname in dict_best_teams:
+                    lbts = dict_best_teams[pname]
+                    output_txt += "**" + pname + "**: " + str(lbts[0]) + "\n"
+
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send(txt)
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
 
 
 
