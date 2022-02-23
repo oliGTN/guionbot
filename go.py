@@ -2118,7 +2118,7 @@ def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
     else:
         return 1, "ERR: unknown raid "+raid_alias+" among "+str(list(dict_raids.keys())), ""
 
-    ec, et, dict_teams_by_player = find_best_teams_for_raid(txt_allyCode, raid_alias)
+    ec, et, dict_teams_by_player = find_best_teams_for_raid(txt_allyCode, raid_alias, True)
     if ec != 0:
         return 1, et, ""
     dict_players_by_team = {}
