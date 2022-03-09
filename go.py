@@ -715,13 +715,11 @@ def get_team_header(team_name, objectifs):
 
     return entete
 
-def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
-    goutils.log2("DBG", "START")
-                        
+def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild, gv_mode):
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive+
-    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(False)
+    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(server_name, False)
     
     if not compute_guild:
         #only one player, potentially several teams
@@ -749,7 +747,7 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
         list_team_names = [x+"-GV" for x in list_character_ids]
 
     #Get player data
-    goutils.log("INFO", "go.get_team_progress", "Get player data from DB...")
+    goutils.log2("INFO", "Get player data from DB...")
     query = "SELECT players.name, "\
            +"guild_teams.name, "\
            +"guild_team_roster.unit_id, "\
@@ -908,10 +906,10 @@ def get_team_progress(list_team_names, txt_allyCode, compute_guild, gv_mode):
 
     return collection_name, ret_get_team_progress
 
-def print_vtg(list_team_names, txt_allyCode):
+def print_vtg(list_team_names, txt_allyCode, server_name):
 
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
-                                              True, False)
+                                              server_name, True, False)
     if type(ret_get_team_progress) == str:
         goutils.log("ERR", "go.print_vtg", "get_team_progress has returned an error: "+ret_print_vtx)
         return 1,  ret_get_team_progress
@@ -966,9 +964,9 @@ def print_vtg(list_team_names, txt_allyCode):
                 
     return 0, ret_print_vtx
 
-def print_vtj(list_team_names, txt_allyCode):
+def print_vtj(list_team_names, txt_allyCode, server_name):
     player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
-                                              False, False)
+                                              server_name, False, False)
     if type(ret_get_team_progress) == str:
         goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
@@ -1014,10 +1012,10 @@ def print_vtj(list_team_names, txt_allyCode):
 
     return 0, ret_print_vtx, images
 
-def print_gvj(list_team_names, txt_allyCode):
+def print_gvj(list_team_names, txt_allyCode, server_name):
     ret_print_gvj = ""
     
-    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, False, True)
+    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, server_name, False, True)
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
     
@@ -1069,10 +1067,10 @@ def print_gvj(list_team_names, txt_allyCode):
 
     return 0, ret_print_gvj
                         
-def print_gvg(list_team_names, txt_allyCode):
+def print_gvg(list_team_names, txt_allyCode, server_name):
     ret_print_gvg = ""
     
-    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, True, True)
+    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, server_name, True, True)
     
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -1111,12 +1109,12 @@ def print_gvg(list_team_names, txt_allyCode):
         
     return 0, ret_print_gvg
                        
-def assign_gt(allyCode):
+def assign_gt(allyCode, server_name):
     ret_assign_gt = ''
 
-    dict_players = connect_gsheets.load_config_players(False)[0]
+    dict_players = connect_gsheets.load_config_players(server_name, False)[0]
 
-    liste_territoires = connect_gsheets.load_config_gt()
+    liste_territoires = connect_gsheets.load_config_gt(server_name)
         # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
     liste_team_names = []
     for territoire in liste_territoires:
@@ -1126,7 +1124,7 @@ def assign_gt(allyCode):
     #print(liste_team_names)
 
     #Calcule des meilleurs joueurs pour chaque team
-    dict_teams = guild_name, get_team_progress(liste_team_names, allyCode, True, True)
+    dict_teams = guild_name, get_team_progress(liste_team_names, allyCode, server_name, True, True)
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1186,7 +1184,7 @@ def score_of_counter_interest(team_name, counter_matrix):
     return current_score
 
 
-def guild_counter_score(txt_allyCode):
+def guild_counter_score(txt_allyCode, server_name):
     ret_guild_counter_score = f"""
 *Rec = Niveau recommandé / Min = Niveau minimum*
 *w/o TW Def = Idem en enlevant les équipes placées en défense d'une TW*
@@ -1194,16 +1192,16 @@ def guild_counter_score(txt_allyCode):
 {FORCE_CUT_PATTERN}
 """
 
-    list_counter_teams = connect_gsheets.load_config_counter()
+    list_counter_teams = connect_gsheets.load_config_counter(server_name)
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
-    guild_name, dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, True, True)
+    guild_name, dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, server_name, True, True)
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]
     # print(list_counter_teams)
 
-    gt_teams = connect_gsheets.load_config_gt()
+    gt_teams = connect_gsheets.load_config_gt(server_name)
     gt_teams = [(name[0], name[1]) for name in
                 [teams for territory in gt_teams for teams in territory[1]]]
 
@@ -1655,11 +1653,11 @@ def get_gp_distribution(txt_allyCode):
     
     return 0, "", image
 
-def get_tb_alerts(force_latest):
+def get_tb_alerts(server_name, force_latest):
     territory_scores, active_round = connect_warstats.parse_tb_guild_scores(4090, force_latest)
 
     if active_round != "":
-        [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(False)
+        [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(server_name, False)
 
         #print(territory_scores)
         tb_trigger_messages=[]
@@ -1964,12 +1962,12 @@ def print_lox(txt_allyCode, compute_guild):
     return 0, "", db_lines
 
 ###############################
-def print_erx(txt_allyCode, days, compute_guild):
+def print_erx(txt_allyCode, server_name, days, compute_guild):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_categoryList = data.get("categoryList_dict.json")
 
     #Recuperation des dernieres donnees sur gdrive
-    liste_teams, dict_teams = connect_gsheets.load_config_teams(False)
+    liste_teams, dict_teams = connect_gsheets.load_config_teams(server_name, False)
 
     if not compute_guild:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
@@ -2114,8 +2112,8 @@ def print_erx(txt_allyCode, days, compute_guild):
 # Function: print_raid_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
-    dict_raids = connect_gsheets.load_config_raids(False)
+def print_raid_progress(txt_allyCode, server_name, raid_alias, use_mentions):
+    dict_raids = connect_gsheets.load_config_raids(server_name, False)
     if raid_alias in dict_raids:
         raid_config = dict_raids[raid_alias]
     else:
@@ -2148,7 +2146,7 @@ def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
     raid_phase, raid_scores = connect_warstats.parse_raid_scores(warstats_id, raid_name)
 
     #Player lines
-    dict_players_by_IG = connect_gsheets.load_config_players(False)[0]
+    dict_players_by_IG = connect_gsheets.load_config_players(server_name, False)[0]
     list_scores = []
     list_unknown_players = []
     list_inactive_players = []
@@ -2305,8 +2303,8 @@ def print_raid_progress(txt_allyCode, raid_alias, use_mentions):
 # Function: print_tb_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_tb_progress(txt_allyCode, tb_alias, use_mentions):
-    list_tb_teams = connect_gsheets.load_tb_teams(False)
+def print_tb_progress(txt_allyCode, server_name, tb_alias, use_mentions):
+    list_tb_teams = connect_gsheets.load_tb_teams(server_name, False)
     tb_team_names = list(set(sum(sum([list(x.values()) for x in list_tb_teams], []), [])))
     tb_team_names.remove('')
     list_known_bt = list(set(sum([[y[0:3] for y in x.keys()] for x in list_tb_teams], [])))
@@ -2321,7 +2319,7 @@ def print_tb_progress(txt_allyCode, tb_alias, use_mentions):
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini", ""
 
-    guild_name, dict_teams = get_team_progress(tb_team_names, txt_allyCode, True, False)
+    guild_name, dict_teams = get_team_progress(tb_team_names, txt_allyCode, server_name, True, False)
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -2339,7 +2337,7 @@ def print_tb_progress(txt_allyCode, tb_alias, use_mentions):
         tb_day_count = 4
 
     #Player lines
-    dict_players_by_IG = connect_gsheets.load_config_players(False)[0]
+    dict_players_by_IG = connect_gsheets.load_config_players(server_name, False)[0]
     list_scores = []
     list_terr_by_day = [""] * tb_day_count
     first_player = True
@@ -2529,80 +2527,85 @@ def print_tb_progress(txt_allyCode, tb_alias, use_mentions):
 
     return 0, "", ret_print_tb_progress
 
-def get_tw_alerts():
+def get_tw_alerts(server_name):
     dict_unitsList = data.get("unitsList_dict.json")
 
     query = "SELECT name, twChannel_id, warstats_id FROM guilds "
-    query+= "WHERE twChannel_id > 0 AND warstats_id > 0"
+    query+= "WHERE name='"+server_name.replace("'", "''")+"'"
     goutils.log2('DBG', query)
-    db_data = connect_mysql.get_table(query)
+    db_data = connect_mysql.get_line(query)
 
-    dict_tw_alerts = {}
-    for [guildName, twChannel_id, warstats_id] in db_data:
-        dict_tw_alerts[guildName] = [twChannel_id, []]
+    guildName = db_data[0]
+    twChannel_id = db_data[1]
+    warstats_id = db_data[2]
+    if twChannel_id == 0 or warstats_id == 0:
+        return []
 
-        list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
-        if len(list_opponent_squads) == 0:
-            #TW not started
-            continue
-        list_opponent_players = [x[1] for x in list_opponent_squads]
-        longest_opp_player_name = max(list_opponent_players, key=len)
-        longest_opp_player_name = longest_opp_player_name.replace("'", "''")
-        list_open_tw_territories = set([x[0] for x in list_opponent_squads])
+    list_tw_alerts = [twChannel_id, []]
 
-        query = "SELECT players.name, defId, roster_skills.name from roster\n"
-        query+= "JOIN roster_skills ON roster_id=roster.id\n"
-        query+= "JOIN players ON players.allyCode=roster.allyCode\n"
-        query+= "WHERE guildName=(SELECT guildName FROM players WHERE name='"+longest_opp_player_name+"')\n"
-        query+= "AND omicron_tier=roster_skills.level\n"
-        query+= "AND omicron_type='TW'"
-        goutils.log2("DBG", query)
-        omicron_table = connect_mysql.get_table(query)
-        goutils.log2("DBG", omicron_table)
+    list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
+    if len(list_opponent_squads) == 0:
+        #TW not started
+        return []
 
-        for territory in list_open_tw_territories:
-            list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
-            counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
+    list_opponent_players = [x[1] for x in list_opponent_squads]
+    longest_opp_player_name = max(list_opponent_players, key=len)
+    longest_opp_player_name = longest_opp_player_name.replace("'", "''")
+    list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
-            n_territory = int(territory[1])
-            if territory[0] == "T" and int(territory[1]) > 2:
-                n_territory -= 2
+    query = "SELECT players.name, defId, roster_skills.name from roster\n"
+    query+= "JOIN roster_skills ON roster_id=roster.id\n"
+    query+= "JOIN players ON players.allyCode=roster.allyCode\n"
+    query+= "WHERE guildName=(SELECT guildName FROM players WHERE name='"+longest_opp_player_name+"')\n"
+    query+= "AND omicron_tier=roster_skills.level\n"
+    query+= "AND omicron_type='TW'"
+    goutils.log2("DBG", query)
+    omicron_table = connect_mysql.get_table(query)
+    goutils.log2("DBG", omicron_table)
 
-            if n_territory == 1:
-                msg = "__Le 1er territoire "
-            else:
-                msg = "__Le "+str(n_territory)+"e territoire "
+    for territory in list_open_tw_territories:
+        list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
+        counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
 
-            if territory[0] == "T" and int(territory[1]) < 3:
-                msg += "du haut__"
-            elif territory[0] == "T":
-                msg += "du milieu__"
-            elif territory[0] == "F":
-                msg += "des vaisseaux__"
-            else:
-                msg += "du bas__"
+        n_territory = int(territory[1])
+        if territory[0] == "T" and int(territory[1]) > 2:
+            n_territory -= 2
 
-            msg += " ("+territory+") est ouvert. Avec ces adversaires :"
-            for leader in counter_leaders:
-                msg += "\n - "+leader+": "+str(counter_leaders[leader])
-                for squad in list_opp_squads_terr:
-                    opp_name = squad[1]
-                    if squad[2][0] == leader:
-                        leader_toon = True
-                        for toon in squad[2]:
-                            list_id, dict_id, txt = goutils.get_characters_from_alias([toon])
-                            toon_id = list_id[0]
-                            filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
-                            if len(filtered_omicron_table) == 1:
-                                msg += "\n    - "+opp_name+": omicron sur "+toon
-                                if filtered_omicron_table[0][2] == 'L' and not leader_toon:
-                                    msg += "... qui n'est pas posé en chef \N{THINKING FACE}"
-                            leader_toon = False
+        if n_territory == 1:
+            msg = "__Le 1er territoire "
+        else:
+            msg = "__Le "+str(n_territory)+"e territoire "
+
+        if territory[0] == "T" and int(territory[1]) < 3:
+            msg += "du haut__"
+        elif territory[0] == "T":
+            msg += "du milieu__"
+        elif territory[0] == "F":
+            msg += "des vaisseaux__"
+        else:
+            msg += "du bas__"
+
+        msg += " ("+territory+") est ouvert. Avec ces adversaires :"
+        for leader in counter_leaders:
+            msg += "\n - "+leader+": "+str(counter_leaders[leader])
+            for squad in list_opp_squads_terr:
+                opp_name = squad[1]
+                if squad[2][0] == leader:
+                    leader_toon = True
+                    for toon in squad[2]:
+                        list_id, dict_id, txt = goutils.get_characters_from_alias([toon])
+                        toon_id = list_id[0]
+                        filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
+                        if len(filtered_omicron_table) == 1:
+                            msg += "\n    - "+opp_name+": omicron sur "+toon
+                            if filtered_omicron_table[0][2] == 'L' and not leader_toon:
+                                msg += "... qui n'est pas posé en chef \N{THINKING FACE}"
+                        leader_toon = False
 
 
-            dict_tw_alerts[guildName][1].append(msg)
+        list_tw_alerts[1].append(msg)
 
-    return dict_tw_alerts
+    return list_tw_alerts
 
 ############################################
 # develop_teams
@@ -2763,7 +2766,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 # IN: compute_guild (True/False)
 # OUT: err_code, err_txt, dict_best_teams {'Gui On': ['JKR', 'DR'], ...}
 ################################################################
-def find_best_teams_for_raid(txt_allyCode, raid_name, compute_guild):
+def find_best_teams_for_raid(txt_allyCode, server_name, raid_name, compute_guild):
     if compute_guild:
         err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
         if err_code != 0:
@@ -2773,7 +2776,7 @@ def find_best_teams_for_raid(txt_allyCode, raid_name, compute_guild):
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, {}
 
-    dict_raids = connect_gsheets.load_config_raids(True)
+    dict_raids = connect_gsheets.load_config_raids(server_name, True)
 
     if not raid_name in dict_raids:
         goutils.log2("ERR", "raid "+raid_name+" inconnu")
@@ -2784,7 +2787,7 @@ def find_best_teams_for_raid(txt_allyCode, raid_name, compute_guild):
         dts[team_name] = dict_raids[raid_name][1][team_name]
     goutils.log2("DBG", dts)
 
-    l, d = connect_gsheets.load_config_teams(True)
+    l, d = connect_gsheets.load_config_teams(server_name, True)
     d_raid = {k: d[k] for k in dts.keys()}
     ec, et, ddt = develop_teams(d_raid)
 
