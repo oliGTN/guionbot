@@ -12,7 +12,7 @@ from pytz import timezone
 import difflib
 import re
 from discord.ext import commands
-from discord import Activity, ActivityType, Intents, File
+from discord import Activity, ActivityType, Intents, File, GroupChannel
 from io import BytesIO
 from requests import get
 import traceback
@@ -892,17 +892,6 @@ async def on_reaction_add(reaction, user):
                     new_msg = await message.channel.send(content = "<@"+str(user.id)+"> Tu peux partager et commenter ton résultat",
                            file=File(fp=image_binary, filename='image.png'))
 
-##############################################################
-# Event: on_message
-# Parameters: message (object containing the discord message)
-# Purpose: basic checks before runing commands
-# Output: none
-##############################################################
-@bot.event
-async def on_message(message):
-    if isinstance(message.channel, GroupChannel):
-        guild_name = message.channel.guild.name
-        set_id_lastseen("on_message", guild_name, message.author.id)
 
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
