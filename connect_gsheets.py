@@ -55,7 +55,7 @@ def get_gapi_client():
 #                             [phase, normal, super]}]}
 ##############################################################
 def load_config_raids(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+"config_raids.json"
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_raids.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -102,9 +102,7 @@ def load_config_raids(guild_name, force_load):
 #                      }
 ##############################################################
 def load_config_teams(guild_name, force_load):
-    goutils.log2("DBG", "START")
-
-    json_file = "CACHE"+os.path.sep+"config_teams.json"
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -181,7 +179,7 @@ def load_config_teams(guild_name, force_load):
 #          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
 def load_config_players(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+"config_players.json"
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_players.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -437,7 +435,7 @@ def update_online_dates(guild_name, dict_lastseen):
 #         margin of score before reaching the target
 ##############################################################
 def get_tb_triggers(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+"config_tb.json"
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_tb.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -581,7 +579,7 @@ def get_tb_triggers(guild_name, force_load):
     return [territory_stars, daily_targets, margin]
 
 def load_tb_teams(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+"config_tb_teams.json"
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_tb_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:

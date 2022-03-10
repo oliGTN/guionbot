@@ -12,7 +12,7 @@ from pytz import timezone
 import difflib
 import re
 from discord.ext import commands
-from discord import Activity, ActivityType, Intents, File, GroupChannel
+from discord import Activity, ActivityType, Intents, File, GroupChannel, errors as discorderrors
 from io import BytesIO
 from requests import get
 import traceback
@@ -154,19 +154,19 @@ async def bot_loop_60():
 
                 list_members=[]
                 for role in guild.roles:
-                    if role.name==config.DISCORD_MEMBER_ROLE:
-                        for member in role.members:
-                            #Ensure all guild members are in the dict, so that other events
-                            #  know which users to update
-                            if not member.id in dict_member_lastseen[guild.name]:
-                                dict_member_lastseen[guild.name][member.id]= [member.display_name, None]
+                    for member in role.members:
+                        #Ensure all guild members are in the dict, so that other events
+                        #  know which users to update
+                        if not member.id in dict_member_lastseen[guild.name]:
+                            dict_member_lastseen[guild.name][member.id]= [member.display_name, None]
                             
-                            if not(str(member.status) == 'offline' and
-                                    str(member.mobile_status) == 'offline'):
-                                dict_member_lastseen[guild.name][member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
+                        if not(str(member.status) == 'offline' and
+                                str(member.mobile_status) == 'offline'):
+                            dict_member_lastseen[guild.name][member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
                                 
-                            list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
+                        list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
+                goutils.log2("DBG", "guildname="+guild.name+", dict_last_seen="+str(dict_member_lastseen[guild.name]))
                 connect_gsheets.update_online_dates(guild.name, dict_member_lastseen[guild.name])
 
         except Exception as e:
@@ -174,7 +174,7 @@ async def bot_loop_60():
             goutils.log("ERR", "bot_loop_60", e)
             goutils.log("ERR", "bot_loop_60", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins("Exception in bot_loop_60:"+str(sys.exc_info()[0]))
+                await send_alert_to_admins(None, "Exception in bot_loop_60:"+str(sys.exc_info()[0]))
         
         # Wait X seconds before next loop
         t_end = time.time()
@@ -204,7 +204,7 @@ async def bot_loop_10minutes():
             goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
             goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins("Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
+                await send_alert_to_admins(None, "Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
         # Wait X seconds before next loop
         t_end = time.time()
@@ -454,16 +454,37 @@ async def send_alert_to_admins(server_name, message):
 # Output: None
 ##############################################################
 async def send_alert_to_echocommanders(server_name, message):
+    goutils.log2("DBG", "server_name="+server_name+", message="+message)
     if bot_test_mode:
-        await send_alert_to_admins(msg)
+        await send_alert_to_admins(server_name, message)
     else:
-        for guild in bot.guilds:
-            if guild.name == server_name:
-                for role in guild.roles:
-                    if role.name=="EchoCommander":
-                        for member in role.members:
-                            channel = await member.create_dm()
-                            await channel.send(message)
+        query = "SELECT tbChanOut_id, tbRoleOut FROM guilds WHERE name='"+server_name.replace("'", "''")+"'"
+        goutils.log2("DBG", query)
+        result = connect_mysql.get_line(query)
+        if result == None:
+            await ctx.send('ERR: commande non utilisable sur ce serveur')
+            return
+
+        [tbChanOut_id, tbRoleOut] = result
+
+        if tbChanOut_id != 0:
+            tb_channel = bot.get_channel(tbChanOut_id)
+            try:
+                await channel.send("["+server_name+"]"+ message)
+            except discorderrors.Forbidden as e:
+                goutils.log2("WAR", "["+server_name+"] Cannot send message to "+str(tbChanOut_id))
+
+        if tbRoleOut != "":
+            for guild in bot.guilds:
+                if guild.name == server_name:
+                    for role in guild.roles:
+                        if role.name == tbRoleOut:
+                            for member in role.members:
+                                channel = await member.create_dm()
+                                try:
+                                    await channel.send("["+server_name+"]"+ message)
+                                except discorderrors.Forbidden as e:
+                                    goutils.log2("WAR", "["+server_name+"] Cannot send DM to "+member.name)
 
 ##############################################################
 # Function: get_eb_allocation
@@ -735,7 +756,7 @@ def manage_me(ctx, alias):
         else: # '<@ without the !
             discord_id_txt = alias[2:-1]
         goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
-        dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
+        dict_players_by_ID = connect_gsheets.load_config_players(ctx.guild.name, False)[1]
         if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
         else:
@@ -789,7 +810,7 @@ def manage_me(ctx, alias):
 
             discord_id = [str(x[0]) for x in guild_members_clean \
                             if x[1] == closest_name_discord][0]
-            dict_players_by_ID = connect_gsheets.load_config_players(False)[1]
+            dict_players_by_ID = connect_gsheets.load_config_players(ctx.guild.name, False)[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
             else:
@@ -892,6 +913,16 @@ async def on_reaction_add(reaction, user):
                     new_msg = await message.channel.send(content = "<@"+str(user.id)+"> Tu peux partager et commenter ton résultat",
                            file=File(fp=image_binary, filename='image.png'))
 
+##############################################################
+# Event: on_message
+# Parameters: message (discord object)
+# Purpose: basic checks before running command
+# Output: none
+##############################################################
+@bot.event
+async def on_message(message):
+    if isinstance(message.channel, GroupChannel):
+        set_id_lastseen("on_message", message.channel.guild.name, message.author.id)
 
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
@@ -1520,7 +1551,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         query = "SELECT warstats_id, tbChannel_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
         result = connect_mysql.get_line(query)
 
-        if len(result) == 0:
+        if result == None:
             await ctx.send('ERR: commande non utilisable sur ce serveur')
             return
 

@@ -1654,7 +1654,15 @@ def get_gp_distribution(txt_allyCode):
     return 0, "", image
 
 def get_tb_alerts(server_name, force_latest):
-    territory_scores, active_round = connect_warstats.parse_tb_guild_scores(4090, force_latest)
+    query = "SELECT warstats_id FROM guilds where name='"+server_name.replace("'", "''")+"'"
+    goutils.log2("DBG", query)
+    warstats_id = connect_mysql.get_value(query)
+
+    if warstats_id == 0:
+        goutils.log2("ERR", "warstats_id=0 for guild "+server_name)
+        return []
+
+    territory_scores, active_round = connect_warstats.parse_tb_guild_scores(warstats_id, force_latest)
 
     if active_round != "":
         [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(server_name, False)
@@ -1673,7 +1681,7 @@ def get_tb_alerts(server_name, force_latest):
             current_target_stars = current_target.split('-')[1]
             full_phase_name = tb_name+"-"+current_target_phase+"-"+name
             if not full_phase_name in territory_scores:
-                tb_trigger_messages.append("ERREUR: phase "+current_target_top_phase+" non atteinte en "+name)
+                tb_trigger_messages.append("ERREUR: phase "+full_phase_name+" non atteinte en "+name)
             else:
                 current_score = territory_scores[full_phase_name]
                 star1_score = territory_stars[full_phase_name][0]
@@ -2530,7 +2538,7 @@ def print_tb_progress(txt_allyCode, server_name, tb_alias, use_mentions):
 def get_tw_alerts(server_name):
     dict_unitsList = data.get("unitsList_dict.json")
 
-    query = "SELECT name, twChannel_id, warstats_id FROM guilds "
+    query = "SELECT name, twChanOut_id, warstats_id FROM guilds "
     query+= "WHERE name='"+server_name.replace("'", "''")+"'"
     goutils.log2('DBG', query)
     db_data = connect_mysql.get_line(query)
