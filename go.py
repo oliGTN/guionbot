@@ -420,13 +420,13 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
         #score, display, nogo, charater_id, weight
         tab_progress_player[i_subobj] = [[0, '.     ', True, '', 1] for i in range(nb_chars)]
 
-    goutils.log("DBG", "go.get_team_line_from_player", "player: "+player_name)
+    goutils.log2("DBG", "player: "+player_name)
     # Loop on categories within the goals
     for i_subobj in range(0, nb_subobjs):
         dict_char_subobj = objectifs[i_subobj][2]
 
         for character_id in dict_char_subobj:
-            goutils.log("DBG", "go.get_team_line_from_player", "character_id: "+character_id)
+            goutils.log2("DBG", "character_id: "+character_id)
             progress = 0
             progress_100 = 0
             
@@ -475,20 +475,33 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
 
                 #Zetas
                 req_zetas = character_obj[5].split(',')
-                req_zeta_ids = [goutils.get_zeta_id_from_short(character_id, x) for x in req_zetas]
+                req_zeta_ids = [goutils.get_capa_id_from_short(character_id, x) for x in req_zetas]
                 req_zeta_ids = list(filter(lambda x: x != '', req_zeta_ids))
                         
                 player_nb_zetas = 0
                 progress_100 += len(req_zeta_ids)
                 for zeta in dict_player[character_id]['zetas']:
                     if zeta in req_zeta_ids:
-                        if dict_player[character_id]['zetas'][zeta] == 8:
+                        if dict_player[character_id]['zetas'][zeta]:
                             player_nb_zetas += 1
                             progress += 1
                 if player_nb_zetas < len(req_zeta_ids):
                     character_nogo = True
 
-                player_gp = dict_player[character_id]['gp']
+                #Omicrons
+                req_omicrons = character_obj[6].split(',')
+                req_omicron_ids = [goutils.get_capa_id_from_short(character_id, x) for x in req_omicrons]
+                req_omicron_ids = list(filter(lambda x: x != '', req_omicron_ids))
+                        
+                player_nb_omicrons = 0
+                progress_100 += len(req_omicron_ids)
+                for omicron in dict_player[character_id]['omicrons']:
+                    if omicron in req_omicron_ids:
+                        if dict_player[character_id]['omicrons'][omicron]:
+                            player_nb_omicrons += 1
+                            progress += 1
+                if player_nb_omicrons < len(req_omicron_ids):
+                    character_nogo = True
 
                 #Progress
                 character_progress = progress / progress_100
@@ -534,7 +547,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                 tab_progress_player[i_subobj][i_character - 1][3] = character_id
                 tab_progress_player[i_subobj][i_character - 1][4] = 1
 
-                goutils.log("DBG", "go.get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
+                goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
 
             else:
                 if gv_mode:
@@ -569,7 +582,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                 tab_progress_player[i_subobj][i_character - 1][3] = character_id
                 tab_progress_player[i_subobj][i_character - 1][4] = weight
 
-                goutils.log("DBG", "go.get_team_line_from_player", tab_progress_player[i_subobj][i_character - 1])
+                goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
 
 
     #calcul du score global
@@ -622,7 +635,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
     #pourcentage sur la moyenne
     score = score / score100 * 100
 
-    goutils.log("DBG", "go.get_team_line_from_player", "list char_id = " + str(list_char_id))
+    goutils.log2("DBG", "list char_id = " + str(list_char_id))
         
     unlocked = False
     if gv_mode:
@@ -709,11 +722,14 @@ def get_team_header(team_name, objectifs):
 
                     #Zetas
                     req_zetas = objectifs[i_level][2][perso][5].split(',')
-                    req_zeta_names = [x[1] for x in goutils.get_zeta_from_shorts(perso, req_zetas)]
+                    req_zeta_names = [x[1] for x in goutils.get_capa_from_shorts(perso, req_zetas)]
+                    req_omicrons = objectifs[i_level][2][perso][6].split(',')
+                    req_omicron_names = [x[1] for x in goutils.get_capa_from_shorts(perso, req_omicrons)]
                     
                     perso_name = objectifs[i_level][2][perso][7]
                     entete += "- " + perso_name + ' (' + perso_min_display + ' à ' + \
-                            perso_reco_display + ', zetas=' + str(req_zeta_names) + ')\n'
+                            perso_reco_display + ', zetas=' + str(req_zeta_names) + \
+                            ', omicrons=' + str(req_omicron_names) + ')\n'
 
     return entete
 
@@ -784,12 +800,13 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
     
     if not gv_mode:
         # Need the zetas to compute the progress of a regular team
-        goutils.log("INFO", "go.get_team_progress", "Get zeta data from DB...")
+        goutils.log2("INFO", "Get zeta data from DB...")
         query = "SELECT players.name, \
                 guild_teams.name, \
                 guild_team_roster.unit_id, \
                 guild_team_roster_zetas.name as zeta, \
-                roster_skills.level \
+                roster_skills.level, \
+                roster_skills.omicron_tier \
                 FROM players \
                 JOIN guild_teams \
                 JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
@@ -803,19 +820,29 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND NOT guild_teams.name LIKE '%-GV'\n"
+        query += "AND guild_teams.GuildName = '"+server_name.replace("'", "''")+"'\n"
            
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
-        goutils.log("DBG", "go.get_team_progress", query)
+        goutils.log2("DBG", query)
         
         player_zeta_data = connect_mysql.get_table(query)
         if player_zeta_data == None:
             player_zeta_data = []
+
+        # Reuse previous query for omicrons
+        query = query.replace("zeta", "omicron")
+        goutils.log2("DBG", query)
+        
+        player_omicron_data = connect_mysql.get_table(query)
+        if player_omicron_data == None:
+            player_omicron_data = []
         
         gv_characters_unlocked = []
     
     else:
         #In gv_mode, there is no requirement for zetas
         player_zeta_data = []
+        player_omicron_data = []
         
         #There is a need to check if the target character is locked or unlocked
         goutils.log("INFO", "go.get_team_progress", "Get GV characters data from DB...")
@@ -836,7 +863,10 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         
     if player_data != None:
         goutils.log("INFO", "go.get_team_progress", "Recreate dict_teams...")
-        dict_teams = goutils.create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked)
+        dict_teams = goutils.create_dict_teams(player_data,
+                                               player_zeta_data,
+                                               player_omicron_data,
+                                               gv_characters_unlocked)
         goutils.log("INFO", "go.get_team_progress", "Recreation of dict_teams is OK")
     else:
         query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
