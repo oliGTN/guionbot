@@ -70,6 +70,8 @@ dict_stat_names["potency"] = [17, True, "Pouvoir"]
 dict_stat_names["tenacité"] = [18, True, "Ténacité"]
 dict_stat_names["tenacity"] = [18, True, "Ténacité"]
 
+BOT_GFILE = "GuiOnBot config"
+
 ##################################
 # Function: manage_disk_usage
 # return: None
@@ -1012,10 +1014,10 @@ def print_vtj(list_team_names, txt_allyCode, server_name):
 
     return 0, ret_print_vtx, images
 
-def print_gvj(list_team_names, txt_allyCode, server_name):
+def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
     
-    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, server_name, False, True)
+    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, False, True)
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
     
@@ -1067,10 +1069,10 @@ def print_gvj(list_team_names, txt_allyCode, server_name):
 
     return 0, ret_print_gvj
                         
-def print_gvg(list_team_names, txt_allyCode, server_name):
+def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
     
-    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, server_name, True, True)
+    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, True, True)
     
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -1663,9 +1665,11 @@ def get_tb_alerts(server_name, force_latest):
         return []
 
     territory_scores, active_round = connect_warstats.parse_tb_guild_scores(warstats_id, force_latest)
+    goutils.log2("DBG", "["+server_name+"] territory_scores="+str(territory_scores))
 
     if active_round != "":
         [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(server_name, False)
+        goutils.log2("DBG", "["+server_name+"] tb_triggers="+str([territory_stars, daily_targets, margin]))
 
         #print(territory_scores)
         tb_trigger_messages=[]
@@ -2127,7 +2131,7 @@ def print_raid_progress(txt_allyCode, server_name, raid_alias, use_mentions):
     else:
         return 1, "ERR: unknown raid "+raid_alias+" among "+str(list(dict_raids.keys())), ""
 
-    ec, et, dict_teams_by_player = find_best_teams_for_raid(txt_allyCode, raid_alias, True)
+    ec, et, dict_teams_by_player = find_best_teams_for_raid(txt_allyCode, server_name, raid_alias, True)
     if ec != 0:
         return 1, et, ""
     dict_players_by_team = {}

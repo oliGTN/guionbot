@@ -123,7 +123,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2074 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2373 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -147,7 +147,7 @@ CREATE TABLE `guild_team_roster` (
   `pg_min` int(11) DEFAULT NULL,
   `zetaList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9427 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=10946 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -162,7 +162,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=829 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1167 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -174,11 +174,12 @@ DROP TABLE IF EXISTS `guild_teams`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_teams` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `guildName` varchar(2555) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=185 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=364 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -297,7 +298,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=2541530 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2547924 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -333,7 +334,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=24810349 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=24834915 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -820,72 +821,55 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_teams`(
+    IN guild_name VARCHAR(255),
     IN guild_teams_txt MEDIUMTEXT
     )
 BEGIN
-	
-	
-
 	SELECT CURRENT_TIMESTAMP INTO @currentUpdateTS;
-    
+
 	iterator:
 	LOOP
-		
-		
 		IF CHAR_LENGTH(TRIM(guild_teams_txt)) = 0 OR guild_teams_txt IS NULL THEN
 			LEAVE iterator;
 		END IF;
 
-		
 		SET @next_team = SUBSTRING_INDEX(guild_teams_txt,'\\',1);
-		
-
-		
-		
-		
 		SET @next_team_len = CHAR_LENGTH(@next_team);
-
-		
 		SET @team_name = SUBSTRING_INDEX(@next_team,'/',1);
-        
 		SET @before_subteams_txt = SUBSTRING_INDEX(@next_team,'/',1);
 		SET @pos_subteams_txt = CHAR_LENGTH(@before_subteams_txt);
 		SET @subteams_txt = INSERT(@next_team,1,@pos_subteams_txt + 1,'');
 
-        
-		IF NOT EXISTS (SELECT * FROM guild_teams WHERE guild_teams.name = @team_name) THEN
-			INSERT INTO guild_teams(name) VALUES(@team_name);
+INSERT INTO debug(timestamp, txt) VALUES(CURRENT_TIMESTAMP, CONCAT(@team_name, ' - ', guild_name));
+		IF NOT EXISTS (SELECT * FROM guild_teams WHERE guild_teams.name = @team_name AND guild_teams.guildName = guild_name) THEN
+			INSERT INTO guild_teams(guildName, name) VALUES(guild_name, @team_name);
 		END IF;
+INSERT INTO debug(timestamp, txt) VALUES(CURRENT_TIMESTAMP, 'a');
         UPDATE guild_teams SET
 			lastUpdated = @currentUpdateTS
-		WHERE guild_teams.name = @team_name;
+		WHERE guild_teams.name = @team_name AND guild_teams.guildName = guild_name;
         
-		SET @team_md5 = (SELECT md5 FROM guild_teams WHERE guild_teams.name = @team_name);
+INSERT INTO debug(timestamp, txt) VALUES(CURRENT_TIMESTAMP, 'b');
+		SET @team_md5 = (SELECT md5 FROM guild_teams WHERE guild_teams.name = @team_name AND guild_teams.guildName = guild_name);
 		SET @new_md5 = MD5(@subteams_txt);
         IF NOT @team_md5 = @new_md5 THEN
-			SET @team_id = (SELECT id FROM guild_teams WHERE guild_teams.name = @team_name);
+INSERT INTO debug(timestamp, txt) VALUES(CURRENT_TIMESTAMP, 'c');
+			SET @team_id = (SELECT id FROM guild_teams WHERE guild_teams.name = @team_name AND guild_teams.guildName = guild_name);
+INSERT INTO debug(timestamp, txt) VALUES(CURRENT_TIMESTAMP, CONCAT('team_id=', @team_id));
 			CALL update_guild_subteams(@team_id, @subteams_txt);
             
 			UPDATE guild_teams SET
 				md5 = MD5(@subteams_txt)
 			WHERE guild_teams.id = @team_id;
 		END IF;
-            
-		
-		
-		
-		
+
 		SET guild_teams_txt = INSERT(guild_teams_txt,1,@next_team_len + 1,'');
 	END LOOP;
     
-    
-    DELETE FROM guild_teams WHERE lastUpdated < @currentUpdateTS;
-    
-    
+    DELETE FROM guild_teams WHERE lastUpdated < @currentUpdateTS  AND guild_teams.guildName = guild_name;
 	DELETE FROM guild_subteams WHERE team_id NOT IN (SELECT id FROM guild_teams);
 	DELETE FROM guild_team_roster WHERE subteam_id NOT IN (SELECT id FROM guild_subteams);
 	DELETE FROM guild_team_roster_zetas WHERE roster_id NOT IN (SELECT id FROM guild_team_roster);
-
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1029,4 +1013,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-03-10  1:09:17
+-- Dump completed on 2022-03-11 20:25:16

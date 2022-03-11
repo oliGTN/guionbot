@@ -158,7 +158,7 @@ def load_config_teams(guild_name, force_load):
                                                                                 character_name]
     
         #Update DB
-        connect_mysql.update_guild_teams(dict_teams)
+        connect_mysql.update_guild_teams(guild_name, dict_teams)
 
         # store json file
         fjson = open(json_file, 'w')

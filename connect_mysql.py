@@ -56,7 +56,7 @@ def db_connect():
             
     return mysql_db
         
-def update_guild_teams(dict_team):
+def update_guild_teams(guild_name, dict_team):
 #         dict_team {
 #             team_name:{
 #                 "rarity": unlocking rarity of GV character
@@ -136,13 +136,14 @@ def update_guild_teams(dict_team):
 
             
         # Launch the unique update with all information
-        query_parameters = (guild_teams_txt,)
+        query_parameters = (guild_name, guild_teams_txt)
+        goutils.log2("DBG", query_parameters)
         #print("CALL update_guild_teams"+str(query_parameters))
         cursor.callproc('update_guild_teams', query_parameters)
         
         mysql_db.commit()
     except Error as error:
-        goutils.log("ERR", "connect_mysql.update_guild_teams", error)
+        goutils.log2("ERR", error)
         
     finally:
         cursor.close()

@@ -470,7 +470,7 @@ async def send_alert_to_echocommanders(server_name, message):
         if tbChanOut_id != 0:
             tb_channel = bot.get_channel(tbChanOut_id)
             try:
-                await channel.send("["+server_name+"]"+ message)
+                await tb_channel.send("["+server_name+"]"+ message)
             except discorderrors.Forbidden as e:
                 goutils.log2("WAR", "["+server_name+"] Cannot send message to "+str(tbChanOut_id))
 
@@ -1385,7 +1385,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.print_raid_progress(allyCode, raid_name, display_mentions)
+            err, errtxt, ret_cmd = go.print_raid_progress(allyCode, ctx.guild.name, raid_name, display_mentions)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1495,7 +1495,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, tb_name, display_mentions)
+            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, ctx.guild.name, tb_name, display_mentions)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1548,7 +1548,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             output_channel = ctx.message.channel
 
         #get warstats_id from DB
-        query = "SELECT warstats_id, tbChannel_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
+        query = "SELECT warstats_id, tbChanRead_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
+        goutils.log2("DBG", query)
         result = connect_mysql.get_line(query)
 
         if result == None:
@@ -1787,7 +1788,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 teams = ["all"]
 
             err, ret_cmd = await bot.loop.run_in_executor(None, go.print_vtg,
-                                                    teams, allyCode)
+                                                    teams, allyCode, ctx.guild.name)
             if err == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
@@ -1825,7 +1826,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 teams = ["all"]
 
             err, txt, images = await bot.loop.run_in_executor(None, go.print_vtj,
-                                                    teams, allyCode)
+                                                    teams, allyCode, ctx.guild.name)
             if err != 0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
