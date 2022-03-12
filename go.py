@@ -2004,12 +2004,12 @@ def print_lox(txt_allyCode, compute_guild):
     return 0, "", db_lines
 
 ###############################
-def print_erx(txt_allyCode, server_name, days, compute_guild):
+def print_erx(txt_allyCode, days, compute_guild):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_categoryList = data.get("categoryList_dict.json")
 
     #Recuperation des dernieres donnees sur gdrive
-    liste_teams, dict_teams = connect_gsheets.load_config_teams(server_name, False)
+    liste_teams, dict_teams = connect_gsheets.load_config_teams("GuiOnBot config", False)
 
     if not compute_guild:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \

@@ -1199,10 +1199,10 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #          avant déploiement en service
     # Display: ça dépend
     #############################################################
-    @commands.command(name='test', help='Réservé aux admins')
-    @commands.check(is_owner)
-    async def test(self, ctx, *args):
-        pass
+    #@commands.command(name='test', help='Réservé aux admins')
+    #@commands.check(is_owner)
+    #async def test(self, ctx, *args):
+    #    pass
 
 ##############################################################
 # Class: OfficerCog
@@ -1229,39 +1229,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
         return (ret_is_officer and (not bot_test_mode)) or is_owner
-
-    ##############################################################
-    # Command: vtg_agt
-    # Parameters: code allié (string) ou "me", une liste de teams séparées par des espaces ou "all"
-    # Purpose: Vérification des Teams de la Guilde avec tri par PG
-    # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
-    #          ou plusieurs tableaux à la suite si plusieurs teams
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='vtg_agt',
-                 brief="Comme vtg mais avec un autre scoring utilisé pour agt",
-                 help="Comme vtg mais avec un autre scoring utilisé pour agt\n\n"\
-                                  "Exemple: go.vtg_agt 192126111 all\n"\
-                                  "Exemple: go.vtg_agt 192126111 NS\n"\
-                                  "Exemple: go.vtg_agt 192126111 PADME NS DR\n"\
-                                  "Exemple: go.vtg_agt me NS")
-    async def vtg_agt(self, ctx, allyCode, *teams):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        allyCode = manage_me(ctx, allyCode)
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            ret_cmd = await bot.loop.run_in_executor(None,
-                go.get_team_progress, teams, allyCode, True, 3, 100000, 80000, False)
-            for team in ret_cmd:
-                txt_team = ret_cmd[team][0]
-                for txt in goutils.split_txt(txt_team, MAX_MSG_SIZE):
-                    await ctx.send(txt)
-
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: lgs
@@ -1310,38 +1277,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
         else:
             await ctx.message.add_reaction(emoji_check)
-
-    ##############################################################
-    # Command: agt
-    # Parameters: code allié (string) ou "me"
-    # Purpose: Assignation Guerre de Territoire
-    # Display: Une ligne par affectation "joueurX doit affecter teamY en territoireZ"
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='agt', brief="Assigne les équipes par territoire en GT",
-                             help="Assigne les équipes par territoire en GT\n\n"\
-                                  "Exemple: go.agt me")
-    async def agt(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        allyCode = manage_me(ctx, allyCode)
-
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            ret_cmd = await bot.loop.run_in_executor(None,
-                go.assign_gt, allyCode, False)
-            if ret_cmd[0:3] == 'ERR':
-                await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                #texte classique
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send(txt)
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: rrg

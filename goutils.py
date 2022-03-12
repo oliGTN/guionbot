@@ -189,7 +189,7 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
         line_omicron = line[3]
         line_level = line[4]
         line_omicron_tier = line[5]
-        is_omicron_active = (line_level >= line_omicron_tier)
+        is_omicron_active = (line_level >= line_omicron_tier) and (line_omicron_tier != -1)
         dict_players[line_playername][line_teamname]\
             [line_defId]["omicrons"][line_omicron]=is_omicron_active
 
