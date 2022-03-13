@@ -955,6 +955,10 @@ async def on_command_error(ctx, error):
         cmd_name = ctx.command.name
         await ctx.send("ERR: argument manquant. Consultez l'aide avec go.help "+cmd_name)
         await ctx.message.add_reaction(emoji_error)
+    elif isinstance(error, commands.CheckFailure):
+        if not bot_test_mode:
+            await ctx.send("ERR: erreur interdite")
+            await ctx.message.add_reaction(emoji_error)
     else:
         await ctx.send("ERR: erreur inconnue")
         await ctx.message.add_reaction(emoji_error)
@@ -1246,6 +1250,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         d = connect_gsheets.load_config_units(True)
         if d == None:
             await ctx.send("ERR: erreur en mettant à jour les UNITS")
+            is_error = True
+
+        l, d = connect_gsheets.load_config_teams("GuiOnBot config", True)
+        if d == None:
+            await ctx.send("ERR: erreur en mettant à jour les TEAMS GV")
             is_error = True
 
         l, d = connect_gsheets.load_config_teams(ctx.guild.name, True)

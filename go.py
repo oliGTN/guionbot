@@ -2028,15 +2028,24 @@ def print_erx(txt_allyCode, days, compute_guild):
     db_data_evo = connect_mysql.get_table(query)
 
     if not compute_guild:
-        query = "SELECT name, defId FROM roster " \
+        query = "SELECT players.name, defId FROM roster " \
               + "JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE players.allyCode = " + txt_allyCode + " " \
-              + "AND defId IN (SELECT LEFT(name, LENGTH(name) - 3) FROM guild_teams WHERE name LIKE '%-GV')"
+              + "JOIN guild_teams ON (" \
+              + "    defId=LEFT(guild_teams.name, LENGTH(guild_teams.name) - 3) " \
+              + "    AND rarity>=GVrarity) " \
+              + "WHERE players.allyCode = " + txt_allyCode
     else:
-        query = "SELECT name, defId FROM roster " \
+        query = "SELECT players.name, defId FROM roster " \
               + "JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+txt_allyCode+")) "\
-              + "AND defId IN (SELECT LEFT(name, LENGTH(name) - 3) FROM guild_teams WHERE name LIKE '%-GV')"
+              + "JOIN guild_teams ON (" \
+              + "    defId=LEFT(guild_teams.name, LENGTH(guild_teams.name) - 3) " \
+              + "    AND rarity>=GVrarity) " \
+              + "WHERE players.allyCode IN (" \
+              + "    SELECT allyCode FROM players " \
+              + "    WHERE guildName = (" \
+              + "        SELECT guildName " \
+              + "        FROM players " \
+              + "        WHERE allyCode="+txt_allyCode+"))"
 
     goutils.log2("DBG", query)
     db_data_gv = connect_mysql.get_table(query)
