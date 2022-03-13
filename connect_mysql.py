@@ -56,7 +56,7 @@ def db_connect():
             
     return mysql_db
         
-def update_guild_teams(dict_team):
+def update_guild_teams(guild_name, dict_team):
 #         dict_team {
 #             team_name:{
 #                 "rarity": unlocking rarity of GV character
@@ -97,26 +97,25 @@ def update_guild_teams(dict_team):
                     
                     toon_zetas = ''
                     for zeta in toon[5].split(","):
-                        zeta_id = goutils.get_zeta_id_from_short(toon_id, zeta)
+                        zeta_id = goutils.get_capa_id_from_short(toon_id, zeta)
                         toon_zetas += zeta_id+","
                     if len(toon_zetas)>0:
                         toon_zetas = toon_zetas[:-1]
-                    
-                    toon_speed = toon[6]
-                    toon_capaLevel = ""
-                    toon_modLevel = ""
-                    toon_pg_min = ""
+
+                    toon_omicrons = ''
+                    for omicron in toon[6].split(","):
+                        omicron_id = goutils.get_capa_id_from_short(toon_id, omicron)
+                        toon_omicrons += omicron_id+","
+                    if len(toon_omicrons)>0:
+                        toon_omicrons = toon_omicrons[:-1]
                     
                     toons_txt += toon_id + ";" + \
                                  str(toon_rarity_min) + ";" + \
                                  str(toon_gear_min) + ";" + \
                                  str(toon_rarity_reco) + ";" + \
                                  str(toon_gear_reco) + ";" + \
-                                 str(toon_speed) + ";" + \
-                                 str(toon_capaLevel) + ";" + \
-                                 str(toon_modLevel) + ";" + \
-                                 str(toon_pg_min) + ";" + \
-                                 str(toon_zetas) + "|"
+                                 str(toon_zetas) + ";" + \
+                                 str(toon_omicrons) + "|"
                 
                 # remove last "|"
                 toons_txt = toons_txt[:-1]
@@ -136,13 +135,14 @@ def update_guild_teams(dict_team):
 
             
         # Launch the unique update with all information
-        query_parameters = (guild_teams_txt,)
+        query_parameters = (guild_name, guild_teams_txt)
+        goutils.log2("DBG", query_parameters)
         #print("CALL update_guild_teams"+str(query_parameters))
         cursor.callproc('update_guild_teams', query_parameters)
         
         mysql_db.commit()
     except Error as error:
-        goutils.log("ERR", "connect_mysql.update_guild_teams", error)
+        goutils.log2("ERR", error)
         
     finally:
         cursor.close()
@@ -362,7 +362,7 @@ def insert_roster_evo(allyCode, defId, evo_txt):
     
 def update_player(dict_player):
     dict_unitsList = data.get("unitsList_dict.json")
-    dict_zetas = data.get("unit_zeta_list.json")
+    dict_capas = data.get("unit_capa_list.json")
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
@@ -575,10 +575,10 @@ def update_player(dict_player):
                 
                 capa_omicron_type = ""
                 capa_omicron_tier = "-1"
-                if character_id in dict_zetas:
-                    if capa_name in dict_zetas[character_id]:
-                        capa_omicron_type = dict_zetas[character_id][capa_name][3]
-                        capa_omicron_tier = dict_zetas[character_id][capa_name][4]
+                if character_id in dict_capas:
+                    if capa_name in dict_capas[character_id]:
+                        capa_omicron_type = dict_capas[character_id][capa_name][3]
+                        capa_omicron_tier = dict_capas[character_id][capa_name][4]
                 
                 capa_shortname = capa_name[0].upper()
                 if capa_shortname in 'SU' and capa_name[-1] in '0123456789':

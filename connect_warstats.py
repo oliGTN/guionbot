@@ -119,32 +119,25 @@ dict_tw_territory_names['Command post']='T4'
 dict_tw_territory_names['Special ops center']='B4'
 
 #timer and global variables due to warstats tracking
-next_warstats_read = {}
+dict_next_warstats_read = {}
 WARSTATS_REFRESH_SECS = 15 * 60 # Time between 2 refresh
 WARSTATS_REFRESH_TIME = 5 * 60 #Duration of refresh
 
-next_warstats_read["tb_scores"] = time.time()
-parse_tb_guild_scores_run_once = False
-territory_scores = []
+dict_parse_tb_guild_scores_run_once = {}
+dict_tb_territory_scores = {}
 
-next_warstats_read["tb_platoons"] = time.time()
-parse_tb_platoons_run_once = False
-tb_active_round = ""
-tb_dict_platoons = {}
-tb_open_territories = []
+dict_parse_tb_platoons_run_once = {}
+dict_tb_active_round = {}
+dict_tb_platoons = {}
+dict_tb_open_territories = {}
 
-next_warstats_read["tb_player_scores"] = time.time()
-parse_tb_player_scores_run_once = False
-tb_active_round = ""
-tb_dict_player_scores = {}
-tb_open_territories = []
+dict_parse_tb_player_scores_run_once = {}
+dict_tb_player_scores = {}
 
-next_warstats_read["tw_teams"] = time.time()
-opponent_teams = []
+dict_opponent_teams = {}
 
-next_warstats_read["raid_scores"] = time.time()
-raid_player_scores = {} #{raid name:{player name:score}}
-raid_phase = {} #{raid name:phase}
+dict_raid_player_scores = {} #{raid name:{player name:score}}
+dict_raid_phase = {} #{raid name:phase}
 
 #Dictionary to transform txt date into number
 dict_months = {'Jan.':1,
@@ -160,15 +153,39 @@ dict_months = {'Jan.':1,
                'Nov.':11,
                'Dec.':12}
 
-def set_next_warstats_read_short(seconds_since_last_track, counter_name):
-    global next_warstats_read
+def init_globals(guild_id):
+    dict_tb_active_round[guild_id] = ""
+    dict_tb_territory_scores[guild_id] = {}
+    dict_tb_player_scores[guild_id] = {}
+    dict_tb_platoons[guild_id] = {}
+    dict_tb_open_territories[guild_id] = []
+
+    dict_parse_tb_guild_scores_run_once[guild_id] = False
+    dict_parse_tb_player_scores_run_once[guild_id] = False
+    dict_parse_tb_platoons_run_once[guild_id] = False
+
+    dict_opponent_teams[guild_id] = []
+
+    dict_raid_player_scores[guild_id] = {}
+    dict_raid_phase[guild_id] = {}
+
+    dict_next_warstats_read[guild_id] = {}
+    dict_next_warstats_read[guild_id]["tb_territory_scores"] = time.time()
+    dict_next_warstats_read[guild_id]["tb_platoons"] = time.time()
+    dict_next_warstats_read[guild_id]["tb_player_scores"] = time.time()
+    dict_next_warstats_read[guild_id]["tw_teams"] = time.time()
+    dict_next_warstats_read[guild_id]["raid_scores"] = time.time()
+    
+def set_next_warstats_read_short(seconds_since_last_track, counter_name, guild_id):
+    global dict_next_warstats_read
+
     time_to_wait = WARSTATS_REFRESH_SECS - seconds_since_last_track + WARSTATS_REFRESH_TIME
-    next_warstats_read[counter_name] = int(time.time()) + time_to_wait
-    next_warstats_read_txt = datetime.datetime.fromtimestamp(next_warstats_read[counter_name]).strftime('%Y-%m-%d %H:%M:%S')
+    dict_next_warstats_read[guild_id][counter_name] = int(time.time()) + time_to_wait
+    next_warstats_read_txt = datetime.datetime.fromtimestamp(dict_next_warstats_read[guild_id][counter_name]).strftime('%Y-%m-%d %H:%M:%S')
     goutils.log2("DBG", next_warstats_read_txt)
     
-def set_next_warstats_read_long(time_hour, tz_name, counter_name):
-    global next_warstats_read
+def set_next_warstats_read_long(time_hour, tz_name, counter_name, guild_id):
+    global dict_next_warstats_read
 
     next_time_tz = tz.gettz(tz_name)
     next_time = datetime.datetime.now().replace(hour=time_hour,
@@ -185,13 +202,12 @@ def set_next_warstats_read_long(time_hour, tz_name, counter_name):
         next_time = next_time + datetime.timedelta(days=1)
     next_time_secs = datetime.datetime.timestamp(next_time)
 
-    next_warstats_read[counter_name] = next_time_secs
-    next_warstats_read_txt = datetime.datetime.fromtimestamp(next_warstats_read[counter_name]).strftime('%Y-%m-%d %H:%M:%S')
+    dict_next_warstats_read[guild_id][counter_name] = next_time_secs
+    next_warstats_read_txt = datetime.datetime.fromtimestamp(dict_next_warstats_read[guild_id][counter_name]).strftime('%Y-%m-%d %H:%M:%S')
     goutils.log2("DBG", next_warstats_read_txt)
     
-def get_next_warstats_read(counter_name):
-    global next_warstats_read
-    time_to_wait = next_warstats_read[counter_name] - int(time.time())
+def get_next_warstats_read(counter_name, guild_id):
+    time_to_wait = dict_next_warstats_read[guild_id][counter_name] - int(time.time())
     return time_to_wait
     
 ###################################################################################
@@ -734,20 +750,20 @@ class TBSPhaseResumeParser(HTMLParser):
         return self.list_open_territories
 
     def get_territory_scores(self):
-        dict_territory_scores = {}
+        dict_tb_territory_scores = {}
 
         #print("DBG - self.list_open_territories: "+str(self.list_open_territories))
         if self.list_open_territories[0] > 0:
             top_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[0])+"-top"
-            dict_territory_scores[top_name] = self.territory_scores[0]
+            dict_tb_territory_scores[top_name] = self.territory_scores[0]
         if self.list_open_territories[1] > 0:
             mid_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[1])+"-mid"
-            dict_territory_scores[mid_name] = self.territory_scores[1]
+            dict_tb_territory_scores[mid_name] = self.territory_scores[1]
         if self.list_open_territories[2] > 0:
             bot_name = self.page_round[0:3]+"-P"+str(self.list_open_territories[2])+"-bot"
-            dict_territory_scores[bot_name] = self.territory_scores[2]
+            dict_tb_territory_scores[bot_name] = self.territory_scores[2]
             
-        return dict_territory_scores
+        return dict_tb_territory_scores
 
     def get_last_track(self):
         return self.seconds_since_last_track
@@ -1209,24 +1225,27 @@ def urlopen(url):
     return urllib.request.urlopen(req, timeout=10)
 
 def parse_tb_platoons(guild_id, force_latest):
-    global parse_tb_platoons_run_once
-    global next_warstats_read
-    global tb_active_round
-    global tb_dict_platoons
-    global tb_open_territories
+    global dict_next_warstats_read
+    global dict_parse_tb_platoons_run_once
+    global dict_tb_active_round
+    global dict_tb_platoons
+    global dict_tb_open_territories
+
+    if not guild_id in dict_next_warstats_read:
+        init_globals(guild_id)
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read["tb_platoons"] and parse_tb_platoons_run_once:
-        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_platoons"))+" secs")
+    if time.time() < dict_next_warstats_read[guild_id]["tb_platoons"] and dict_parse_tb_platoons_run_once[guild_id]:
+        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_platoons", guild_id))+" secs")
     else:
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
             page = urlopen(warstats_tbs_url_guild)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tbs_url_guild)
-            return tb_active_round, tb_dict_platoons, tb_open_territories
+            return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], dict_tb_open_territories[guild_id]
         
-        parse_tb_platoons_run_once = True
+        dict_parse_tb_platoons_run_once[guild_id] = True
 
         tb_list_parser = TBSListParser()
         tb_list_parser.feed(page.read().decode('utf-8', 'ignore'))
@@ -1234,13 +1253,13 @@ def parse_tb_platoons(guild_id, force_latest):
         if tb_list_parser.get_battle_id(force_latest) == None:
             goutils.log2('INFO', 'no TB in progress')
 
-            tb_active_round = ""
-            tb_dict_platoons = {}
-            tb_open_territories = []
+            dict_tb_active_round[guild_id] = ""
+            dict_tb_platoons[guild_id] = {}
+            dict_tb_open_territories[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC', "tb_platoons")
+            set_next_warstats_read_long(18, 'UTC', "tb_platoons", guild_id)
 
-            return tb_active_round, tb_dict_platoons, tb_open_territories
+            return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], dict_tb_open_territories[guild_id]
         else:
             goutils.log2('INFO', "TB "+tb_list_parser.get_battle_id(force_latest)+" in progress")
         
@@ -1255,44 +1274,47 @@ def parse_tb_platoons(guild_id, force_latest):
 
             platoon_parser = TBSPhasePlatoonParser()
             platoon_parser.feed(page.read().decode('utf-8', 'ignore'))
-            tb_dict_platoons.update(platoon_parser.get_dict_platoons())
-            tb_active_round = platoon_parser.get_active_round()
+            dict_tb_platoons[guild_id].update(platoon_parser.get_dict_platoons())
+            dict_tb_active_round[guild_id] = platoon_parser.get_active_round()
     
-        if tb_active_round != "":
-            warstats_tb_resume_url=warstats_tb_resume_baseurl+tb_list_parser.get_battle_id(force_latest)+'/'+tb_active_round[3]
+        if dict_tb_active_round[guild_id] != "":
+            warstats_tb_resume_url=warstats_tb_resume_baseurl+tb_list_parser.get_battle_id(force_latest)+'/'+dict_tb_active_round[guild_id][3]
 
             page = urlopen(warstats_tb_resume_url)
             resume_parser = TBSPhaseResumeParser()
             #resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
             resume_parser.feed(page.read().decode('utf-8', 'ignore'))
     
-            tb_open_territories = resume_parser.get_open_territories()
+            dict_tb_open_territories[guild_id] = resume_parser.get_open_territories()
         else:
             goutils.log2('WAR', "Erreur de lecture, renvoie des valeurs précédentes")
 
-        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_platoons")
+        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_platoons", guild_id)
 
-    return tb_active_round, tb_dict_platoons, tb_open_territories
+    return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], dict_tb_open_territories[guild_id]
 
 def parse_tb_player_scores(guild_id, tb_alias, force_latest):
-    global parse_tb_player_scores_run_once
-    global next_warstats_read
-    global tb_active_round
-    global tb_dict_player_scores
-    global tb_open_territories
+    global dict_next_warstats_read
+    global dict_parse_tb_player_scores_run_once
+    global dict_tb_active_round
+    global dict_tb_player_scores
+    global dict_tb_open_territories
+
+    if not guild_id in dict_next_warstats_read:
+        init_globals(guild_id)
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read["tb_player_scores"] and parse_tb_platoons_run_once:
-        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_player_scores"))+" secs")
+    if time.time() < dict_next_warstats_read[guild_id]["tb_player_scores"] and dict_parse_tb_platoons_run_once[guild_id]:
+        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_player_scores", guild_id))+" secs")
     else:
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
             page = urlopen(warstats_tbs_url_guild)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tbs_url_guild)
-            return tb_active_round, tb_dict_player_scores, tb_open_territories
+            return dict_tb_active_round[guild_id], dict_tb_player_scores[guild_id], dict_tb_open_territories[guild_id]
         
-        parse_tb_player_scores_run_once = True
+        dict_parse_tb_player_scores_run_once[guild_id] = True
 
         tb_list_parser = TBSListParser()
         tb_list_parser.set_tb_alias(tb_alias)
@@ -1301,13 +1323,13 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
         if tb_list_parser.get_battle_id(force_latest) == None:
             goutils.log2('INFO', 'no TB '+tb_alias+' found')
 
-            tb_active_round = ""
-            tb_dict_player_scores = {}
-            tb_open_territories = []
+            dict_tb_active_round[guild_id] = ""
+            dict_tb_player_scores[guild_id] = {}
+            dict_tb_open_territories[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC', "tb_player_scores")
+            set_next_warstats_read_long(18, 'UTC', "tb_player_scores", guild_id)
 
-            return tb_active_round, tb_dict_player_scores, tb_open_territories
+            return dict_tb_active_round[guild_id], dict_tb_player_scores[guild_id], dict_tb_open_territories[guild_id]
         else:
             goutils.log2('INFO', "TB "+tb_list_parser.get_battle_id(force_latest)+" in progress")
         
@@ -1323,39 +1345,42 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
             resume_parser = TBSPhaseResumeParser()
             resume_parser.feed(page.read().decode('utf-8', 'ignore'))
             phase_player_scores = resume_parser.get_player_scores()
-            for player in tb_dict_player_scores:
+            for player in dict_tb_player_scores[guild_id]:
                 if player in phase_player_scores:
-                    tb_dict_player_scores[player].update(phase_player_scores[player])
+                    dict_tb_player_scores[guild_id][player].update(phase_player_scores[player])
             for player in phase_player_scores:
-                if not player in tb_dict_player_scores:
-                    tb_dict_player_scores[player] = dict(phase_player_scores[player])
-            tb_active_round = resume_parser.get_active_round()
+                if not player in dict_tb_player_scores[guild_id]:
+                    dict_tb_player_scores[guild_id][player] = dict(phase_player_scores[player])
+            dict_tb_active_round[guild_id] = resume_parser.get_active_round()
 
-            if phase == tb_active_round:
-                tb_open_territories = resume_parser.get_open_territories()
+            if phase == dict_tb_active_round[guild_id]:
+                dict_tb_open_territories[guild_id] = resume_parser.get_open_territories()
     
-        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_player_scores")
+        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_player_scores", guild_id)
 
-    return tb_active_round, tb_dict_player_scores, tb_open_territories
+    return dict_tb_active_round[guild_id], dict_tb_player_scores[guild_id], dict_tb_open_territories[guild_id]
 
 def parse_tb_guild_scores(guild_id, force_latest):
-    global parse_tb_guild_scores_run_once
-    global next_warstats_read
-    global tb_active_round
-    global territory_scores
+    global dict_next_warstats_read
+    global dict_parse_tb_guild_scores_run_once
+    global dict_tb_active_round
+    global dict_tb_territory_scores
+
+    if not guild_id in dict_next_warstats_read:
+        init_globals(guild_id)
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read["tb_scores"] and parse_tb_guild_scores_run_once:
-        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_scores"))+" secs")
+    if time.time() < dict_next_warstats_read[guild_id]["tb_territory_scores"] and dict_parse_tb_guild_scores_run_once[guild_id]:
+        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tb_territory_scores", guild_id))+" secs")
     else:
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
             page = urlopen(warstats_tbs_url_guild)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('WAR', 'error while opening '+warstats_tbs_url_guild)
-            return territory_scores, tb_active_round
+            return dict_tb_territory_scores[guild_id], dict_tb_active_round[guild_id]
         
-        parse_tb_guild_scores_run_once = True
+        dict_parse_tb_guild_scores_run_once[guild_id] = True
 
         tb_list_parser = TBSListParser()
         tb_list_parser.feed(page.read().decode('utf-8', 'ignore'))
@@ -1363,12 +1388,12 @@ def parse_tb_guild_scores(guild_id, force_latest):
         if tb_list_parser.get_battle_id(force_latest) == None:
             goutils.log2('INFO', 'no TB in progress')
 
-            tb_active_round = ""
-            territory_scores = {}
+            dict_tb_active_round[guild_id] = ""
+            dict_tb_territory_scores[guild_id] = {}
 
-            set_next_warstats_read_long(18, 'UTC', "tb_scores")
+            set_next_warstats_read_long(18, 'UTC', "tb_territory_scores", guild_id)
 
-            return territory_scores, tb_active_round
+            return dict_tb_territory_scores[guild_id], dict_tb_active_round[guild_id]
         else:
             goutils.log2('INFO', "TB "+tb_list_parser.get_battle_id(force_latest)+" in progress")
     
@@ -1377,34 +1402,37 @@ def parse_tb_guild_scores(guild_id, force_latest):
             page = urlopen(warstats_tb_resume_url)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2("ERR", "error while opening "+warstats_tb_resume_url)
-            return territory_scores, tb_active_round
+            return dict_tb_territory_scores[guild_id], dict_tb_active_round[guild_id]
 
         resume_parser = TBSPhaseResumeParser()
         # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
         resume_parser.feed(page.read().decode('utf-8', 'ignore'))
-        tb_active_round = resume_parser.get_active_round()
+        dict_tb_active_round[guild_id] = resume_parser.get_active_round()
     
-        goutils.log2('INFO', "TB name = "+tb_active_round)
-        territory_scores = resume_parser.get_territory_scores()
+        goutils.log2('INFO', "TB name = "+dict_tb_active_round[guild_id])
+        dict_tb_territory_scores[guild_id] = resume_parser.get_territory_scores()
 
-        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_scores")
+        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_territory_scores", guild_id)
 
-    return territory_scores, tb_active_round
+    return dict_tb_territory_scores[guild_id], dict_tb_active_round[guild_id]
 
 def parse_tw_teams(guild_id):
-    global next_warstats_read
-    global opponent_teams
+    global dict_next_warstats_read
+    global dict_opponent_teams
+
+    if not guild_id in dict_next_warstats_read:
+        init_globals(guild_id)
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read["tw_teams"]:
-        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tw_teams"))+" secs")
+    if time.time() < dict_next_warstats_read[guild_id]["tw_teams"]:
+        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tw_teams", guild_id))+" secs")
     else:
         warstats_tws_url_guild = warstats_tws_url + str(guild_id)
         try:
             page = urlopen(warstats_tws_url_guild)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tws_url_guild)
-            return opponent_teams
+            return dict_opponent_teams[guild_id]
         
         tw_list_parser = TWSListParser()
         tw_list_parser.feed(page.read().decode('utf-8', 'ignore'))
@@ -1412,11 +1440,11 @@ def parse_tw_teams(guild_id):
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
             goutils.log2('INFO', "no TW in progress")
-            opponent_teams = []
+            dict_opponent_teams[guild_id] = []
 
-            set_next_warstats_read_long(19, 'UTC', "tw_teams")
+            set_next_warstats_read_long(19, 'UTC', "tw_teams", guild_id)
 
-            return opponent_teams
+            return dict_opponent_teams[guild_id]
     
         goutils.log2('INFO', "Current TW is "+war_id)
         warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
@@ -1424,32 +1452,35 @@ def parse_tw_teams(guild_id):
             page = urlopen(warstats_opp_squad_url)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_opp_squad_url)
-            return opponent_teams
+            return dict_opponent_teams[guild_id]
 
         opp_squad_parser = TWSOpponentSquadParser()
         opp_squad_parser.feed(page.read().decode('utf-8', 'ignore'))
 
-        opponent_teams = opp_squad_parser.get_opp_teams()
+        dict_opponent_teams[guild_id] = opp_squad_parser.get_opp_teams()
 
-        set_next_warstats_read_short(opp_squad_parser.get_last_track(), "tw_teams")
+        set_next_warstats_read_short(opp_squad_parser.get_last_track(), "tw_teams", guild_id)
 
-    return opponent_teams
+    return dict_opponent_teams[guild_id]
 
 def parse_raid_scores(guild_id, raid_name):
-    global next_warstats_read
-    global raid_player_scores
-    global raid_phase
+    global dict_next_warstats_read
+    global dict_raid_player_scores
+    global dict_raid_phase
+
+    if not guild_id in dict_next_warstats_read:
+        init_globals(guild_id)
 
     #First, check there is value to re-parse the page
-    if time.time() < next_warstats_read["raid_scores"]:
-        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("raid_scores"))+" secs")
+    if time.time() < dict_next_warstats_read[guild_id]["raid_scores"]:
+        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("raid_scores", guild_id))+" secs")
     else:
         warstats_raids_url_guild = warstats_raids_url + str(guild_id)
         try:
             page = urlopen(warstats_raids_url_guild)
         except (urllib.error.HTTPError, urllib.error.URLError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_raids_url_guild)
-            return raid_phase[raid_name], raid_player_scores[raid_name]
+            return dict_raid_phase[guild_id][raid_name], dict_raid_player_scores[guild_id][raid_name]
         
         raid_list_parser = RaidListParser()
         raid_list_parser.set_raid_name(raid_name)
@@ -1458,8 +1489,8 @@ def parse_raid_scores(guild_id, raid_name):
         [raid_id, raid_in_progress] = raid_list_parser.get_raid_id()
         if raid_id == 0:
             goutils.log2('INFO', raid_name+" raid not found")
-            raid_player_scores[raid_name] = {}
-            raid_phase[raid_name] = 0
+            dict_raid_player_scores[guild_id][raid_name] = {}
+            dict_raid_phase[guild_id][raid_name] = 0
         else:
             if raid_in_progress:
                 goutils.log2('INFO', "Current "+raid_name+" raid is "+raid_id)
@@ -1471,27 +1502,27 @@ def parse_raid_scores(guild_id, raid_name):
                 page = urlopen(warstats_raid_resume_url)
             except (urllib.error.HTTPError, urllib.error.URLError) as e:
                 goutils.log2('ERR', 'error while opening '+warstats_raid_resume_url)
-                return raid_phase[raid_name], raid_player_scores[raid_name]
+                return dict_raid_phase[guild_id][raid_name], dict_raid_player_scores[guild_id][raid_name]
 
             raid_resume_parser = RaidResumeParser()
 
             raid_resume_parser.feed(page.read().decode('utf-8', 'ignore'))
 
-            raid_player_scores[raid_name] = raid_resume_parser.get_player_scores()
-            raid_phase[raid_name] = raid_resume_parser.get_raid_phase()
-            if raid_phase[raid_name] == 5:
-                total_score = sum(raid_player_scores[raid_name].values())
+            dict_raid_player_scores[guild_id][raid_name] = raid_resume_parser.get_player_scores()
+            dict_raid_phase[guild_id][raid_name] = raid_resume_parser.get_raid_phase()
+            if dict_raid_phase[guild_id][raid_name] == 5:
+                total_score = sum(dict_raid_player_scores[guild_id][raid_name].values())
                 if total_score >= sum(data.dict_raid_tiers[raid_name]):
-                    raid_phase[raid_name] = 5
+                    dict_raid_phase[guild_id][raid_name] = 5
                 elif total_score >= sum(data.dict_raid_tiers[raid_name][:3]):
-                    raid_phase[raid_name] = 4
+                    dict_raid_phase[guild_id][raid_name] = 4
                 elif total_score >= sum(data.dict_raid_tiers[raid_name][:2]):
-                    raid_phase[raid_name] = 3
+                    dict_raid_phase[guild_id][raid_name] = 3
                 elif total_score >= sum(data.dict_raid_tiers[raid_name][:1]):
-                    raid_phase[raid_name] = 2
+                    dict_raid_phase[guild_id][raid_name] = 2
                 else:
-                    raid_phase[raid_name] = 1
+                    dict_raid_phase[guild_id][raid_name] = 1
 
-        set_next_warstats_read_short(raid_list_parser.get_last_track(), "raid_scores")
+        set_next_warstats_read_short(raid_list_parser.get_last_track(), "raid_scores", guild_id)
 
-    return raid_phase[raid_name], raid_player_scores[raid_name]
+    return dict_raid_phase[guild_id][raid_name], dict_raid_player_scores[guild_id][raid_name]

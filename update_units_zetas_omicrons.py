@@ -88,7 +88,7 @@ for unit in unitsList_obtainable:
     
     #list_lines.append(line)
 
-f = open('DATA'+os.path.sep+'unit_zeta_list.json', 'w')
+f = open('DATA'+os.path.sep+'unit_capa_list.json', 'w')
 f.write(json.dumps(dict_unit_abilities, indent=4, sort_keys=True))
 f.close()
         

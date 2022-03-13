@@ -110,7 +110,7 @@ def split_txt(txt, max_size):
 
     return ret_split_txt
    
-def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
+def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_characters_unlocked):
     dict_players={}
 
     cur_playername = ''
@@ -142,7 +142,8 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
                     "relic_currentTier": line_relic_currentTier,
                     "gp": line_gp,
                     "speed": line_speed,
-                    "zetas": {}}
+                    "zetas": {},
+                    "omicrons": {}}
             cur_defId = line_defId
             
     cur_playername = ''
@@ -163,12 +164,34 @@ def create_dict_teams(player_data, player_zeta_data, gv_characters_unlocked):
             cur_defId = line_defId
 
         line_zeta = line[3]
-        if cur_zeta != line_zeta:
-            line_level = line[4]
-            dict_players[line_playername][line_teamname]\
-                [line_defId]["zetas"][line_zeta]=line_level
+        line_level = line[4]
+        is_zeta_active = (line_level>=8)
+        dict_players[line_playername][line_teamname]\
+            [line_defId]["zetas"][line_zeta]=is_zeta_active
 
-            cur_zeta = line_zeta
+    cur_playername = ''
+    for line in player_omicron_data:
+        line_playername = line[0]
+        if cur_playername != line_playername:
+            cur_teamname = ''
+            cur_playername = line_playername
+        
+        line_teamname = line[1]
+        if cur_teamname != line_teamname:
+            cur_defId = ''
+            cur_teamname = line_teamname
+        
+        line_defId = line[2]
+        if cur_defId != line_defId:
+            cur_omicron = ''
+            cur_defId = line_defId
+
+        line_omicron = line[3]
+        line_level = line[4]
+        line_omicron_tier = line[5]
+        is_omicron_active = (line_level >= line_omicron_tier) and (line_omicron_tier != -1)
+        dict_players[line_playername][line_teamname]\
+            [line_defId]["omicrons"][line_omicron]=is_omicron_active
 
     cur_playername = ''
     for line in gv_characters_unlocked:
@@ -359,64 +382,61 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
 
     return dict_players
     
-def get_zeta_from_id(character_id, zeta_id):
-    dict_zetas = data.get('unit_zeta_list.json')
-    if not character_id in dict_zetas:
-        log("ERR", "get_zeta_from_id", "unknown character id "+character_id)
-        return zeta_id
-    if not zeta_id in dict_zetas[character_id]:
-        log("ERR", "get_zeta_from_id", "unknown zeta id "+zeta_id)
-        return zeta_id
+def get_capa_from_id(character_id, capa_id):
+    dict_capas = data.get('unit_capa_list.json')
+    if not character_id in dict_capas:
+        log2("ERR", "unknown character id "+character_id)
+        return capa_id
+    if not capa_id in dict_capas[character_id]:
+        log2("ERR", "unknown capa id "+capa_id)
+        return capa_id
 
-    return dict_zetas[character_id][zeta_id][1]
+    return dict_capas[character_id][capa_id][1]
     
-def get_zeta_from_shorts(character_id, zeta_shorts):
-    dict_zetas = data.get('unit_zeta_list.json')
-    req_zeta_ids = []
-    for zeta in zeta_shorts:
-        zeta_id = get_zeta_id_from_short(character_id, zeta)
-        if zeta_id == '':
+def get_capa_from_shorts(character_id, capa_shorts):
+    dict_capas = data.get('unit_capa_list.json')
+    req_capa_ids = []
+    for capa in capa_shorts:
+        capa_id = get_capa_id_from_short(character_id, capa)
+        if capa_id == '':
             continue
-        if zeta_id in dict_zetas[character_id]:
-            if dict_zetas[character_id][zeta_id][1]:
-                req_zeta_ids.append([zeta_id, dict_zetas[character_id][zeta_id][0]])
-            else:
-                log2("WAR", zeta+" is not a zeta for "+character_id)
+        if capa_id in dict_capas[character_id]:
+            req_capa_ids.append([capa_id, dict_capas[character_id][capa_id][0]])
         else:
-            log2("WAR", "cannot find zeta "+zeta+" for "+character_id)
+            log2("WAR", "cannot find capa "+capa+" for "+character_id)
     
-    return req_zeta_ids
+    return req_capa_ids
 
-def get_zeta_id_from_short(character_id, zeta_short):
-    dict_zetas = data.get('unit_zeta_list.json')
+def get_capa_id_from_short(character_id, capa_short):
+    dict_capas = data.get('unit_capa_list.json')
 
-    zeta_standard = zeta_short.upper().replace(' ', '')
-    if zeta_standard == '':
+    capa_standard = capa_short.upper().replace(' ', '')
+    if capa_standard == '':
         return ''
-    elif zeta_standard[0] == 'B':
-        zeta_id = 'B'
-    elif zeta_standard[0] == 'S':
-        zeta_id = 'S'
-        if zeta_standard[-1] in '0123456789':
-            zeta_id += zeta_standard[-1]
+    elif capa_standard[0] == 'B':
+        capa_id = 'B'
+    elif capa_standard[0] == 'S':
+        capa_id = 'S'
+        if capa_standard[-1] in '0123456789':
+            capa_id += capa_standard[-1]
         else:
-            zeta_id += '1'
-    elif zeta_standard[0] == 'C' or zeta_standard[0] == 'L':
-        zeta_id = 'L'
-    elif zeta_standard[0] == 'U':
-        zeta_id = 'U'
-        if zeta_standard[-1] in '0123456789':
-            zeta_id += zeta_standard[-1]
+            capa_id += '1'
+    elif capa_standard[0] == 'C' or capa_standard[0] == 'L':
+        capa_id = 'L'
+    elif capa_standard[0] == 'U':
+        capa_id = 'U'
+        if capa_standard[-1] in '0123456789':
+            capa_id += capa_standard[-1]
         else:
-            zeta_id += '1'
+            capa_id += '1'
 
         # Manage the galactic legends
-        if (zeta_id not in dict_zetas[character_id] or \
-            dict_zetas[character_id][zeta_id][0] == 'Placeholder') and \
-            'GL' in dict_zetas[character_id]:
-            zeta_id = 'GL'
+        if (capa_id not in dict_capas[character_id] or \
+            dict_capas[character_id][capa_id][0] == 'Placeholder') and \
+            'GL' in dict_capas[character_id]:
+            capa_id = 'GL'
     
-    return zeta_id
+    return capa_id
 
 ################################################
 # function: log
@@ -440,7 +460,8 @@ def log2(level, txt):
     dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
     module_name = inspect.stack()[1][1].split("/")[-1][:-3]
     fct = module_name+"."+inspect.stack()[1][3]
-    log_string = dt_string+":"+level+":"+fct+":"+str(txt)
+    code_line = inspect.stack()[1][2]
+    log_string = dt_string+":"+level+":"+fct+"["+str(code_line)+"]:"+str(txt)
 
     if level=='DBG':
         if config.LOG_LEVEL=='DBG':
@@ -512,7 +533,7 @@ def extended_gear_to_txt(extended_gear):
         return str(extended_gear)
     
 def detect_delta_roster_element(allyCode, char1, char2):
-    dict_zetas = data.get('unit_zeta_list.json')
+    dict_capas = data.get('unit_capa_list.json')
     defId = char1['defId']
 
     #RARITY
@@ -542,31 +563,31 @@ def detect_delta_roster_element(allyCode, char1, char2):
     for skill2 in char2['skills']:
         skill_id = skill2['id']
         skill2_isZeta = skill2['isZeta'] and skill2['tier']>=8
-        if defId in dict_zetas:
-            skill2_isOmicron = dict_zetas[defId][skill_id][3]!="" \
-                               and skill2['tier'] == dict_zetas[defId][skill_id][4]
+        if defId in dict_capas:
+            skill2_isOmicron = dict_capas[defId][skill_id][3]!="" \
+                               and skill2['tier'] == dict_capas[defId][skill_id][4]
         else:
-            log2('ERR', defId + " not found in dict_zetas")
+            log2('ERR', defId + " not found in dict_capas")
             skill2_isOmicron = False
 
         skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
         if len(skill1_matchID)>0:
             skill1 = skill1_matchID[0]
             skill1_isZeta = skill1['isZeta'] and skill1['tier']>=8
-            if defId in dict_zetas:
-                skill1_isOmicron = dict_zetas[defId][skill_id][3]!="" \
-                                   and skill1['tier'] == dict_zetas[defId][skill_id][4]
+            if defId in dict_capas:
+                skill1_isOmicron = dict_capas[defId][skill_id][3]!="" \
+                                   and skill1['tier'] == dict_capas[defId][skill_id][4]
             else:
                 skill1_isOmicron = False
         else:
             skill1 = None
         if skill2_isZeta and (skill1 == None or not skill1_isZeta):
-            evo_txt = "new zeta "+get_zeta_from_id(defId, skill_id)
+            evo_txt = "new zeta "+get_capa_from_id(defId, skill_id)
             log("INFO", "delta_roster_element", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
-            evo_txt = "new omicron "+get_zeta_from_id(defId, skill_id)
-            evo_txt += " for " + dict_zetas[defId][skill_id][3]
+            evo_txt = "new omicron "+get_capa_from_id(defId, skill_id)
+            evo_txt += " for " + dict_capas[defId][skill_id][3]
             log("INFO", "delta_roster_element", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
@@ -608,7 +629,7 @@ def get_characters_from_alias(list_alias):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_unitAlias = connect_gsheets.load_config_units(False)
     dict_tagAlias = data.get("tagAlias_dict.json")
-    dict_zetas = data.get('unit_zeta_list.json')
+    dict_capas = data.get('unit_capa_list.json')
 
     txt_not_found_characters = ''
     dict_id_name = {}
@@ -616,10 +637,10 @@ def get_characters_from_alias(list_alias):
     for character_alias in list_alias:
         if character_alias.startswith("tag:omicron"):
             dict_id_name[character_alias] = []
-            for char_id in dict_zetas:
+            for char_id in dict_capas:
                 char_with_omicron = False
-                for skill in dict_zetas[char_id]:
-                    if dict_zetas[char_id][skill][4] >= 0:
+                for skill in dict_capas[char_id]:
+                    if dict_capas[char_id][skill][4] >= 0:
                         char_with_omicron = True
                 if char_with_omicron:
                     list_ids.append(char_id)
