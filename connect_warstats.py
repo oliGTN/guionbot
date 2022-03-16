@@ -184,7 +184,7 @@ def set_next_warstats_read_short(seconds_since_last_track, counter_name, guild_i
     next_warstats_read_txt = datetime.datetime.fromtimestamp(dict_next_warstats_read[guild_id][counter_name]).strftime('%Y-%m-%d %H:%M:%S')
     goutils.log2("DBG", next_warstats_read_txt)
     
-def set_next_warstats_read_long(time_hour, tz_name, counter_name, guild_id):
+def set_next_warstats_read_long(time_hour, tz_name, seconds_since_last_track, counter_name, guild_id):
     global dict_next_warstats_read
 
     next_time_tz = tz.gettz(tz_name)
@@ -197,14 +197,18 @@ def set_next_warstats_read_long(time_hour, tz_name, counter_name, guild_id):
     bot_tz = tz.tzlocal()
     bot_now = datetime.datetime.now().replace(tzinfo=bot_tz)
 
-    while next_time < bot_now:
-        goutils.log2('DBG', "next_time="+str(next_time)+" < bot_now="+str(bot_now))
-        next_time = next_time + datetime.timedelta(days=1)
-    next_time_secs = datetime.datetime.timestamp(next_time)
+    #if the expected time is less than one hour in the past, then wait a short time
+    if (bot_now - next_time).seconds > 0 and (bot_now - next_time).seconds < 3600:
+        set_next_warstats_read_short(seconds_since_last_track, counter_name, guild_id)
+    else:
+        while next_time < bot_now:
+            goutils.log2('DBG', "next_time="+str(next_time)+" < bot_now="+str(bot_now))
+            next_time = next_time + datetime.timedelta(days=1)
+        next_time_secs = datetime.datetime.timestamp(next_time)
 
-    dict_next_warstats_read[guild_id][counter_name] = next_time_secs
-    next_warstats_read_txt = datetime.datetime.fromtimestamp(dict_next_warstats_read[guild_id][counter_name]).strftime('%Y-%m-%d %H:%M:%S')
-    goutils.log2("DBG", next_warstats_read_txt)
+        dict_next_warstats_read[guild_id][counter_name] = next_time_secs
+        next_warstats_read_txt = datetime.datetime.fromtimestamp(dict_next_warstats_read[guild_id][counter_name]).strftime('%Y-%m-%d %H:%M:%S')
+        goutils.log2("DBG", next_warstats_read_txt)
     
 def get_next_warstats_read(counter_name, guild_id):
     time_to_wait = dict_next_warstats_read[guild_id][counter_name] - int(time.time())
@@ -1257,7 +1261,9 @@ def parse_tb_platoons(guild_id, force_latest):
             dict_tb_platoons[guild_id] = {}
             dict_tb_open_territories[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC', "tb_platoons", guild_id)
+            set_next_warstats_read_long(18, 'UTC',
+                                        tb_list_parser.get_last_track(),
+                                        "tb_platoons", guild_id)
 
             return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], dict_tb_open_territories[guild_id]
         else:
@@ -1327,7 +1333,9 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
             dict_tb_player_scores[guild_id] = {}
             dict_tb_open_territories[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC', "tb_player_scores", guild_id)
+            set_next_warstats_read_long(18, 'UTC',
+                                        tb_list_pasrer.get_last_track(),
+                                        "tb_player_scores", guild_id)
 
             return dict_tb_active_round[guild_id], dict_tb_player_scores[guild_id], dict_tb_open_territories[guild_id]
         else:
@@ -1391,7 +1399,9 @@ def parse_tb_guild_scores(guild_id, force_latest):
             dict_tb_active_round[guild_id] = ""
             dict_tb_territory_scores[guild_id] = {}
 
-            set_next_warstats_read_long(18, 'UTC', "tb_territory_scores", guild_id)
+            set_next_warstats_read_long(18, 'UTC',
+                                        tb_list_parser.get_last_track(),
+                                        "tb_territory_scores", guild_id)
 
             return dict_tb_territory_scores[guild_id], dict_tb_active_round[guild_id]
         else:
@@ -1442,7 +1452,9 @@ def parse_tw_teams(guild_id):
             goutils.log2('INFO', "no TW in progress")
             dict_opponent_teams[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC', "tw_teams", guild_id)
+            set_next_warstats_read_long(18, 'UTC',
+                                        tw_list_parser.get_last_track(),
+                                        "tw_teams", guild_id)
 
             return dict_opponent_teams[guild_id]
     
