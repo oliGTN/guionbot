@@ -130,10 +130,14 @@ def set_id_lastseen(event_name, guild_name, player_id):
     global dict_member_lastseen
 
     if guild_name in dict_member_lastseen:
-        if id in dict_member_lastseen[guild_name]:
-            dict_member_lastseen[guild_name][id][1]=datetime.datetime.now(guild_timezone)
-            alias = dict_member_lastseen[guild_name][id][0]
-            goutils.log2("DBG", event_name+": guild="+guild_name+" user="+str(id)+" ("+alias+")")
+        if player_id in dict_member_lastseen[guild_name]:
+            dict_member_lastseen[guild_name][player_id][1]=datetime.datetime.now(guild_timezone)
+            alias = dict_member_lastseen[guild_name][player_id][0]
+            goutils.log2("DBG", event_name+": guild="+guild_name+" user="+str(player_id)+" ("+alias+")")
+        else:
+            goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+guild_name)
+    else:
+        goutils.log2("WAR", "unknown guild="+guild_name)
 
 ##############################################################
 # Function: bot_loop_60
@@ -249,14 +253,18 @@ async def bot_loop_5minutes():
                 if len(list_tw_alerts) > 0:
                     [channel_id, list_messages] = list_tw_alerts
                     for msg in list_messages:
+                        goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg)
                         if     (not guild.name in dict_tw_alerts_previously_done) \
                             or (not msg in dict_tw_alerts_previously_done[guild.name][1]):
     
                             if not first_bot_loop_5minutes:
-                                await send_alert_to_admins(guild.name, "**" + guildName + "**: "+msg)
+                                await send_alert_to_admins(guild.name, msg)
                                 tw_bot_channel = bot.get_channel(channel_id)
                                 await tw_bot_channel.send(msg)
-                        goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg)
+                                goutils.log2("DBG", "["+guild.name+"] TW alert sent to admins " \
+                                            +"and channel "+str(channel_id))
+                            else:
+                                goutils.log2("DBG", "["+guild.name+"] TW alert not sent")
 
                 dict_tw_alerts_previously_done[guild.name] = list_tw_alerts
 
