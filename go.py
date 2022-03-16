@@ -2597,7 +2597,7 @@ def get_tw_alerts(server_name):
     list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
     if len(list_opponent_squads) == 0:
         #TW not started
-        return []
+        return list_tw_alerts
 
     list_opponent_players = [x[1] for x in list_opponent_squads]
     longest_opp_player_name = max(list_opponent_players, key=len)

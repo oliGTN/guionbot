@@ -74,9 +74,12 @@ def update_guild_teams(guild_name, dict_team):
         cursor = mysql_db.cursor(buffered=True)
 
         guild_teams_txt = ""
-        # "JKR/Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important;1|GENERALKENOBI...\DR/Requis..."
+        # "JKR;None/Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important;1|GENERALKENOBI...\DR/Requis..."
         
         for team_name in dict_team:
+            team_rarity = dict_team[team_name]["rarity"]
+            if team_rarity == '':
+                team_rarity = 0
             team = dict_team[team_name]["categories"]
             
             subteams_txt = ""
@@ -127,8 +130,9 @@ def update_guild_teams(guild_name, dict_team):
             # remove last "/"
             subteams_txt = subteams_txt[:-1]
             
-            guild_teams_txt += team_name + "/" + \
-                               subteams_txt + "\\"
+            guild_teams_txt += team_name + ";" \
+                             + str(team_rarity) + "/" \
+                             + subteams_txt + "\\"
        
         # remove last "\"
         subteams_txt = subteams_txt[:-1]
