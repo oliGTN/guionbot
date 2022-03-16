@@ -1442,7 +1442,7 @@ def parse_tw_teams(guild_id):
             goutils.log2('INFO', "no TW in progress")
             dict_opponent_teams[guild_id] = []
 
-            set_next_warstats_read_long(19, 'UTC', "tw_teams", guild_id)
+            set_next_warstats_read_long(18, 'UTC', "tw_teams", guild_id)
 
             return dict_opponent_teams[guild_id]
     
