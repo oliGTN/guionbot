@@ -2646,7 +2646,12 @@ def get_tw_alerts(server_name):
                     for toon in squad[2]:
                         list_id, dict_id, txt = goutils.get_characters_from_alias([toon])
                         toon_id = list_id[0]
-                        filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
+
+                        if omicron_table == None:
+                            filtered_omicron_table = []
+                        else:
+                            filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
+
                         if len(filtered_omicron_table) == 1:
                             msg += "\n    - "+opp_name+": omicron sur "+toon
                             if filtered_omicron_table[0][2] == 'L' and not leader_toon:

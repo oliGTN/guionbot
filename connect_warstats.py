@@ -1281,7 +1281,7 @@ def parse_tb_platoons(guild_id, force_latest):
         tb_list_parser.feed(page.read().decode('utf-8', 'ignore'))
     
         if tb_list_parser.get_battle_id(force_latest) == None:
-            goutils.log2('INFO', 'no TB in progress')
+            goutils.log2('INFO', "["+str(guild_id)+"] no TB in progress")
 
             dict_tb_active_round[guild_id] = ""
             dict_tb_platoons[guild_id] = {}
@@ -1475,7 +1475,7 @@ def parse_tw_teams(guild_id):
     
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
-            goutils.log2('INFO', "no TW in progress")
+            goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
             dict_opponent_teams[guild_id] = []
 
             set_next_warstats_read_long(18, 'UTC',
