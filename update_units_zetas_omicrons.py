@@ -57,34 +57,38 @@ for unit in unitsList_obtainable:
         else:
             list_abilities = unit[ref_name]
 
+        id_ability = 1
         for ability in list_abilities:
-            id_ability = 1
-            if ability != None:
-                if ability['abilityId'] == sec_ref:
-                    capa_short_txt = sec_short
+            if ability == None:
+                continue
+            if ability['abilityId'].startswith('DO_NOT_'):
+                continue
+
+            if ability['abilityId'] == sec_ref:
+                capa_short_txt = sec_short
+            else:
+                if isIterable:
+                    capa_short_txt = capa_short + str(id_ability)
                 else:
-                    if isIterable:
-                        capa_short_txt = capa_short + str(id_ability)
-                    else:
-                        capa_short_txt = capa_short
+                    capa_short_txt = capa_short
 
-                dict_unit_abilities[unit['baseId']][capa_short_txt] = dict_abilities[ability['abilityId']]
-                skill_name = dict_abilities[ability['abilityId']][0]
-                skill_id = dict_abilities[ability['abilityId']][2]
-                skill_isZeta = dict_abilities[ability['abilityId']][1]
-                skill_omicron_type = dict_abilities[ability['abilityId']][3]
-                skill_omicron_tier = dict_abilities[ability['abilityId']][4]
+            dict_unit_abilities[unit['baseId']][capa_short_txt] = dict_abilities[ability['abilityId']]
+            skill_name = dict_abilities[ability['abilityId']][0]
+            skill_id = dict_abilities[ability['abilityId']][2]
+            skill_isZeta = dict_abilities[ability['abilityId']][1]
+            skill_omicron_type = dict_abilities[ability['abilityId']][3]
+            skill_omicron_tier = dict_abilities[ability['abilityId']][4]
 
-                if ability['abilityId'] == sec_ref:
-                    capa_type_txt = sec_type
+            if ability['abilityId'] == sec_ref:
+                capa_type_txt = sec_type
+            else:
+                if isIterable:
+                    capa_type_txt = capa_type + " " + str(id_ability)
                 else:
-                    if isIterable:
-                        capa_type_txt = capa_type + " " + str(id_ability)
-                    else:
-                        capa_type_txt = capa_type
+                    capa_type_txt = capa_type
 
-                dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, capa_type_txt, skill_isZeta, skill_omicron_type, skill_omicron_tier]
-                id_ability += 1
+            dict_unit_abilities[unit['baseId']][skill_id] = [skill_name, capa_type_txt, skill_isZeta, skill_omicron_type, skill_omicron_tier]
+            id_ability += 1
     
     #list_lines.append(line)
 
