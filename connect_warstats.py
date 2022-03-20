@@ -785,6 +785,8 @@ class TWSListParser(HTMLParser):
         self.warstats_war_id=''
         self.start_time = None
         self.warstats_war_in_progress=False
+        self.seconds_since_last_track = 0
+
         self.state_parser=0
         #0: en recherche de h2
         #1: en recherche de data=Territory Wars
@@ -792,6 +794,11 @@ class TWSListParser(HTMLParser):
         #3: en recherche de a href
         #4: en recherche de data (date)
         #5: fin
+
+        self.state_parser2=0
+        #0: en recherche de <span id="track-timer"
+        #1: en recherche de script
+        #2: en recherche de data
         
     def handle_starttag(self, tag, attrs):
         if self.state_parser==0:
@@ -814,6 +821,17 @@ class TWSListParser(HTMLParser):
                         #print(value.split('/'))
                         self.warstats_war_id=value.split('/')[3]
                         self.state_parser=4
+
+        #PARSER 2 pour le timer du tracker
+        if self.state_parser2==0:
+            if tag=='span':
+                for name, value in attrs:
+                    if name=='id' and value=='track-timer':
+                        self.state_parser2=1
+
+        elif self.state_parser2==1:
+            if tag=='script':
+                self.state_parser2=2
 
     def handle_data(self, data):
         if self.state_parser==1:
@@ -842,6 +860,14 @@ class TWSListParser(HTMLParser):
                 self.warstats_war_in_progress=True
 
             self.state_parser=5
+                
+        #PARSER 2 for TIME TRACK
+        if self.state_parser2==2:
+            #print(data)
+            ret_re = re.search('{seconds: (.*?)}', data)
+            timer_seconds_txt = ret_re.group(1)
+            self.seconds_since_last_track = int(timer_seconds_txt)
+            self.state_parser2=0
                 
     def get_war_id(self):
         return [self.warstats_war_id, self.warstats_war_in_progress]
