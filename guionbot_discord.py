@@ -2509,6 +2509,57 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
+    ##############################################################
+    # Command: cpg
+    # Parameters: joueur, liste de persos
+    # Purpose: compte les persos listés groupés par étoiles et gear
+    # Display: un tableau
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='cpg', help="Compte les GLs d'une Guilde")
+    async def info(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = args[0]
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        # get the DB information
+        query = "SELECT defId AS `Perso`, " \
+              + "CASE WHEN gear=1 THEN CONCAT(rarity, '*') " \
+              + "     WHEN gear<=12 THEN CONCAT(rarity, '*G', gear) " \
+              + "     ELSE CONCAT(rarity, '*R', relic_currentTier-2) " \
+              + "END AS `gear`, " \
+              + "count(*) AS `Nombre` " \
+              + "FROM players " \
+              + "JOIN roster ON players.allyCode = roster.allyCode " \
+              + "WHERE defId IN ('CAPITALEXECUTOR', " \
+              + "                'GLREY', " \
+              + "                'SUPREMELEADERKYLOREN', " \
+              + "                'GRANDMASTERLUKE', " \
+              + "                'SITHETERNALEMPEROR', " \
+              + "                'JEDIMASTERKENOBI', " \
+              + "                'LORDVADER') " \
+              + "AND guildName=(SELECT guildName FROM players WHERE allyCode='"+str(allyCode)+"') " \
+              + "GROUP BY defId, gear"
+        goutils.log2("DBG", query)
+        output = connect_mysql.text_query(query)
+        if len(output) >0:
+            output_txt=''
+            for row in output:
+                output_txt+=str(row)+'\n'
+            goutils.log2('INFO', output_txt)
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+        else:
+            await ctx.send('*aucun perso trouvé dans cette guilde*')
+
+        await ctx.message.add_reaction(emoji_check)
+
 
 
 ##############################################################
