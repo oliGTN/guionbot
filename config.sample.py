@@ -18,10 +18,6 @@ MASTER_GUILD_ALLYCODE=""
 # Timezone for the guild
 GUILD_TIMEZONE=""
 
-# Guild ID in warstats (number include in the URL for your guild)
-# eg: https://goh.warstats.net/g/<guild ID>/<guild name>
-WARSTATS_GUILD_ID=""
-
 =======
 # DEBUG LEVEL for logs ("DBG" or empty)
 LOG_LEVEL=""

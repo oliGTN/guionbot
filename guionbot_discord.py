@@ -301,9 +301,18 @@ async def bot_loop_5minutes():
                     await send_alert_to_admins(guild.name, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
             try:
+                #get guild_id from DB
+                query = "SELECT warstats_id FROM guilds WHERE name='"+guild.name.replace("'", "''")+"'"
+                goutils.log2("DBG", query)
+                guild_id = connect_mysql.get_value(query)
+
+                if guild_id == 0:
+                    goutils.log2("ERR", "warstats_id=0 for guild "+guild.name)
+                    raise Exception("unknown guild id")
+
                 #Lecture du statut des pelotons sur warstats
                 tbs_round, dict_platoons_done, \
-                    list_open_territories = connect_warstats.parse_tb_platoons(4090, False)
+                    list_open_territories = connect_warstats.parse_tb_platoons(guild_id, False)
                 if tbs_round == '':
                     goutils.log2("DBG", "["+guild.name+"] No TB in progress")
                     dict_platoons_previously_done = {}
