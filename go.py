@@ -157,7 +157,7 @@ def load_player(txt_allyCode, force_update, no_db):
             prev_dict_player = None
 
     if (not recent_player or force_update==1) and not (force_update==-1 and prev_dict_player != None):
-        goutils.log2("INFO", 'requesting API data for ' + txt_allyCode + '...')
+        goutils.log2("INFO", 'Requesting API data for player ' + txt_allyCode + '...')
         if client != None:
             player_data = client.get_data('player', [txt_allyCode], 'FRE_FR')
         else:
@@ -223,7 +223,7 @@ def load_player(txt_allyCode, force_update, no_db):
 
 def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
-    goutils.log2('INFO', 'Requesting guild data for allyCode ' + txt_allyCode)
+    goutils.log2('INFO', 'Requesting API data for guild of ' + txt_allyCode)
 
     query = "SELECT id FROM guilds "
     query+= "JOIN players ON players.guildName = guilds.name "
