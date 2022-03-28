@@ -1401,7 +1401,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         else:
             err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
                                                     go.find_best_teams_for_raid,
-                                                    allyCode, raid_name, True)
+                                                    allyCode, ctx.guild.name, raid_name, True)
             if err !=0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -2505,7 +2505,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
                                                     go.find_best_teams_for_raid,
-                                                    allyCode, raid_name, False)
+                                                    allyCode, ctx.guild.name, raid_name, False)
             if err !=0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
