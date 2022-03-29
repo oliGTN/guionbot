@@ -2553,7 +2553,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
               + "                'GLREY', " \
               + "                'SUPREMELEADERKYLOREN', " \
               + "                'GRANDMASTERLUKE', " \
-              + "                'SITHETERNALEMPEROR', " \
+              + "                'SITHPALPATINE', " \
               + "                'JEDIMASTERKENOBI', " \
               + "                'LORDVADER') " \
               + "AND guildName=(SELECT guildName FROM players WHERE allyCode='"+str(allyCode)+"') " \
