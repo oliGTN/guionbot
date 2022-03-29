@@ -335,9 +335,6 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     guild_loading_status = parallel_work.get_guild_loading_status(guildName)
                     sys.stdout.flush()
             else:
-                #First request to load this guild
-                parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
-
                 #Ensure only one guild loading at a time
                 #while len(dict_loading_guilds) > 1:
                 list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
@@ -347,6 +344,9 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     time.sleep(30)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
                     sys.stdout.flush()
+
+                #Request to load this guild
+                parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
 
                 #Create guild in DB only if the players are loaded
                 query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
