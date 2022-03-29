@@ -148,7 +148,7 @@ def load_config_teams(guild_name, force_load):
                             dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
                             if character_id in dict_teams[team]["categories"][index_categorie][2]:
                                 goutis.log2('WAR', "twice the same character in that team: "+ character_id)
-                            print(dict_perso)
+                            
                             dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
                                                                                 dict_perso['* min'],
                                                                                 dict_perso['G min'],
