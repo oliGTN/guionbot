@@ -947,7 +947,7 @@ async def on_message(message):
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
         command_name = lower_msg.split(" ")[0].split(".")[1]
-        goutils.log("INFO", "guionbot_discord.on_message", "Command "+command_name+" launched by "+message.author.display_name)
+        goutils.log("INFO", "guionbot_discord.on_message", "Command "+message+" launched by "+message.author.display_name)
 
     try:
         await bot.process_commands(message)
