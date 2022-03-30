@@ -2513,7 +2513,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 output_txt = ""
                 for pname in dict_best_teams:
                     lbts = dict_best_teams[pname]
-                    output_txt += "**" + pname + "**: " + str(lbts[0]) + "\n"
+                    txt_teams = str(lbts[0])
+                    if txt_teams == "":
+                        txt_teams = "*Aucune des teams recommandées*"
+                    output_txt += "**" + pname + "**: " + txt_teams + "\n"
 
                 for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                     await ctx.send(txt)
