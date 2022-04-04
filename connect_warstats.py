@@ -855,8 +855,8 @@ class TWSListParser(HTMLParser):
             bot_tz = tz.tzlocal()
             bot_now = datetime.datetime.now().replace(tzinfo=bot_tz)
             delta_days = (bot_now - self.start_time)
-            goutils.log2("DBG", "days since start of TW: "+str(delta_days.days))
-            if delta_days.days >= 2 and delta_days.days < 3:
+            goutils.log2("DBG", "days since start of TW: "+str(delta_days))
+            if delta_days.days >= 1 and delta_days.days < 3:
                 self.warstats_war_in_progress=True
 
             self.state_parser=5
