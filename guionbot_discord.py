@@ -170,7 +170,7 @@ async def bot_loop_60():
                                 
                         list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
-                goutils.log2("DBG", "guildname="+guild.name+", dict_last_seen="+str(dict_member_lastseen[guild.name]))
+                #goutils.log2("DBG", "guildname="+guild.name+", dict_last_seen="+str(dict_member_lastseen[guild.name]))
                 connect_gsheets.update_online_dates(guild.name, dict_member_lastseen[guild.name])
 
         except Exception as e:
