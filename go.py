@@ -2607,7 +2607,12 @@ def get_tw_alerts(server_name):
     query = "SELECT players.name, defId, roster_skills.name from roster\n"
     query+= "JOIN roster_skills ON roster_id=roster.id\n"
     query+= "JOIN players ON players.allyCode=roster.allyCode\n"
-    query+= "WHERE guildName=(SELECT guildName FROM players WHERE name='"+longest_opp_player_name+"')\n"
+    query+= "WHERE guildName=(\n"
+    query+= "    SELECT guildName FROM players\n"
+    query+= "    WHERE name='"+longest_opp_player_name+"'\n"
+    query+= "    ORDER BY lastUpdated DESC\n"
+    query+= "    LIMIT 1\n"
+    query+= ")\n"
     query+= "AND omicron_tier=roster_skills.level\n"
     query+= "AND omicron_type='TW'"
     goutils.log2("DBG", query)
@@ -2755,7 +2760,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
     goutils.log2('DBG', str(len(list_scoring_teams))+" list to permute...")
     max_permutable_teams = 9
     if len(list_scoring_teams)>max_permutable_teams:
-        goutils.log2('DBG', str(len(list_scoring_teams))+"reducing to "+str(max_permutable_teams)+" best")
+        goutils.log2('DBG', str(len(list_scoring_teams))+" reducing to "+str(max_permutable_teams)+" best")
         list_scoring_teams = sorted(list_scoring_teams, key=lambda x: -x[2])[:max_permutable_teams]
         goutils.log2('INFO', "List of "+str(max_permutable_teams)+" best teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
 
