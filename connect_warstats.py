@@ -1287,7 +1287,7 @@ def parse_tb_platoons(guild_id, force_latest):
             dict_tb_platoons[guild_id] = {}
             dict_tb_open_territories[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC',
+            set_next_warstats_read_long(10, 'PST8PDT',
                                         tb_list_parser.get_last_track(),
                                         "tb_platoons", guild_id)
 
@@ -1359,7 +1359,7 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
             dict_tb_player_scores[guild_id] = {}
             dict_tb_open_territories[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC',
+            set_next_warstats_read_long(10, 'PST8PDT',
                                         tb_list_pasrer.get_last_track(),
                                         "tb_player_scores", guild_id)
 
@@ -1425,7 +1425,7 @@ def parse_tb_guild_scores(guild_id, force_latest):
             dict_tb_active_round[guild_id] = ""
             dict_tb_territory_scores[guild_id] = {}
 
-            set_next_warstats_read_long(18, 'UTC',
+            set_next_warstats_read_long(10, 'PST8PDT',
                                         tb_list_parser.get_last_track(),
                                         "tb_territory_scores", guild_id)
 
@@ -1478,7 +1478,7 @@ def parse_tw_teams(guild_id):
             goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
             dict_opponent_teams[guild_id] = []
 
-            set_next_warstats_read_long(18, 'UTC',
+            set_next_warstats_read_long(10, 'PST8PDT',
                                         tw_list_parser.get_last_track(),
                                         "tw_teams", guild_id)
 
