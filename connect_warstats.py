@@ -1,4 +1,4 @@
-import urllib.request
+import requests
 import string
 import random
 import re
@@ -11,6 +11,9 @@ from dateutil import tz
 import config
 import goutils
 import data
+import connect_mysql
+
+warstats_login_url='https://goh.warstats.net/users/login?redirect=%2F'
 
 # URLs for TB
 warstats_tbs_url='https://goh.warstats.net/guilds/tbs/'
@@ -139,6 +142,8 @@ dict_opponent_teams = {}
 dict_raid_player_scores = {} #{raid name:{player name:score}}
 dict_raid_phase = {} #{raid name:phase}
 
+dict_sessions = {} #{guild: session}
+
 #Dictionary to transform txt date into number
 dict_months = {'Jan.':1,
                'Feb.':2,
@@ -175,6 +180,31 @@ def init_globals(guild_id):
     dict_next_warstats_read[guild_id]["tb_player_scores"] = time.time()
     dict_next_warstats_read[guild_id]["tw_teams"] = time.time()
     dict_next_warstats_read[guild_id]["raid_scores"] = time.time()
+
+    dict_sessions[guild_id] = open_new_warstats_session(guild_id)
+
+def open_new_warstats_session(guild_id):
+    session = requests.Session()
+
+    query = 'SELECT warstats_user, warstats_pass FROM guilds WHERE warstats_id='+str(guild_id)
+    goutils.log2('DBG', query)
+    (user, password) = connect_mysql.get_line(query)
+    if user != '':
+        logincontent = session.get(warstats_login_url).content.decode()
+        pos_token = logincontent.find("_Token[fields]")
+        start_token = pos_token + 42
+        end_token = pos_token + 85
+        token = logincontent[start_token:end_token]
+
+        data = {'_method': 'POST',
+                'email': user,
+                'password': password,
+                '_Token[fields]': token,
+                'Token[unlocked]': ''}
+
+        session.post(warstats_login_url, json=data)
+
+    return session
     
 def set_next_warstats_read_short(seconds_since_last_track, counter_name, guild_id):
     global dict_next_warstats_read
@@ -1240,20 +1270,10 @@ class RaidResumeParser(HTMLParser):
     def get_last_track(self):
         return self.seconds_since_last_track
                 
-
-###############################################################
-# Function: fresh_urlopen
-# Description: create a url with a random and fake argument
-#              and require a max-age parameter in header
-#              to force the server sending fresh data
-# Input: url (string)
-# Output: same as urllib.request.urlopen
-###############################################################
-def urlopen(url):
-    req = urllib.request.Request(url)
-    goutils.log2("INFO", url)
-    return urllib.request.urlopen(req, timeout=10)
-
+def urlopen(guild_id, url):
+    goutils.log2("INFO", "urlopen[guild:"+str(guild_id)+"]: "+url)
+    return dict_sessions[guild_id].get(url)
+    
 def parse_tb_platoons(guild_id, force_latest):
     global dict_next_warstats_read
     global dict_parse_tb_platoons_run_once
@@ -1270,15 +1290,15 @@ def parse_tb_platoons(guild_id, force_latest):
     else:
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
-            page = urlopen(warstats_tbs_url_guild)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            page = urlopen(guild_id, warstats_tbs_url_guild)
+        except (requests.exceptions.ConnectionError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tbs_url_guild)
             return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], dict_tb_open_territories[guild_id]
         
         dict_parse_tb_platoons_run_once[guild_id] = True
 
         tb_list_parser = TBSListParser()
-        tb_list_parser.feed(page.read().decode('utf-8', 'ignore'))
+        tb_list_parser.feed(page.content.decode('utf-8', 'ignore'))
     
         if tb_list_parser.get_battle_id(force_latest) == None:
             goutils.log2('INFO', "["+str(guild_id)+"] no TB in progress")
@@ -1299,23 +1319,23 @@ def parse_tb_platoons(guild_id, force_latest):
     
         for phase in range(1,7):
             try:
-                page = urlopen(warstats_platoon_url+'/'+str(phase))
-            except (urllib.error.HTTPError, urllib.error.URLError) as e:
+                page = urlopen(guild_id, warstats_platoon_url+'/'+str(phase))
+            except (requests.exceptions.ConnectionError) as e:
                 goutils.log2('WAR', 'page introuvable '+warstats_platoon_url+'/'+str(phase))
                 continue
 
             platoon_parser = TBSPhasePlatoonParser()
-            platoon_parser.feed(page.read().decode('utf-8', 'ignore'))
+            platoon_parser.feed(page.content.decode('utf-8', 'ignore'))
             dict_tb_platoons[guild_id].update(platoon_parser.get_dict_platoons())
             dict_tb_active_round[guild_id] = platoon_parser.get_active_round()
     
         if dict_tb_active_round[guild_id] != "":
             warstats_tb_resume_url=warstats_tb_resume_baseurl+tb_list_parser.get_battle_id(force_latest)+'/'+dict_tb_active_round[guild_id][3]
 
-            page = urlopen(warstats_tb_resume_url)
+            page = urlopen(guild_id, warstats_tb_resume_url)
             resume_parser = TBSPhaseResumeParser()
             #resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
-            resume_parser.feed(page.read().decode('utf-8', 'ignore'))
+            resume_parser.feed(page.content.decode('utf-8', 'ignore'))
     
             dict_tb_open_territories[guild_id] = resume_parser.get_open_territories()
         else:
@@ -1341,8 +1361,8 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
     else:
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
-            page = urlopen(warstats_tbs_url_guild)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            page = urlopen(guild_id, warstats_tbs_url_guild)
+        except (requests.exceptions.ConnectionError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tbs_url_guild)
             return dict_tb_active_round[guild_id], dict_tb_player_scores[guild_id], dict_tb_open_territories[guild_id]
         
@@ -1350,7 +1370,7 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
 
         tb_list_parser = TBSListParser()
         tb_list_parser.set_tb_alias(tb_alias)
-        tb_list_parser.feed(page.read().decode('utf-8', 'ignore'))
+        tb_list_parser.feed(page.content.decode('utf-8', 'ignore'))
     
         if tb_list_parser.get_battle_id(force_latest) == None:
             goutils.log2('INFO', 'no TB '+tb_alias+' found')
@@ -1371,13 +1391,13 @@ def parse_tb_player_scores(guild_id, tb_alias, force_latest):
     
         for phase in range(1,7):
             try:
-                page = urlopen(warstats_tb_resume_url+'/'+str(phase))
-            except (urllib.error.HTTPError, urllib.error.URLError) as e:
+                page = urlopen(guild_id, warstats_tb_resume_url+'/'+str(phase))
+            except (requests.exceptions.ConnectionError) as e:
                 goutils.log2('WAR', 'page introuvable '+warstats_tb_resume_url+'/'+str(phase))
                 continue
 
             resume_parser = TBSPhaseResumeParser()
-            resume_parser.feed(page.read().decode('utf-8', 'ignore'))
+            resume_parser.feed(page.content.decode('utf-8', 'ignore'))
             phase_player_scores = resume_parser.get_player_scores()
             for player in dict_tb_player_scores[guild_id]:
                 if player in phase_player_scores:
@@ -1409,15 +1429,15 @@ def parse_tb_guild_scores(guild_id, force_latest):
     else:
         warstats_tbs_url_guild = warstats_tbs_url + str(guild_id)
         try:
-            page = urlopen(warstats_tbs_url_guild)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            page = urlopen(guild_id, warstats_tbs_url_guild)
+        except (requests.exceptions.ConnectionError) as e:
             goutils.log2('WAR', 'error while opening '+warstats_tbs_url_guild)
             return dict_tb_territory_scores[guild_id], dict_tb_active_round[guild_id]
         
         dict_parse_tb_guild_scores_run_once[guild_id] = True
 
         tb_list_parser = TBSListParser()
-        tb_list_parser.feed(page.read().decode('utf-8', 'ignore'))
+        tb_list_parser.feed(page.content.decode('utf-8', 'ignore'))
         
         if tb_list_parser.get_battle_id(force_latest) == None:
             goutils.log2('INFO', 'no TB in progress')
@@ -1435,14 +1455,14 @@ def parse_tb_guild_scores(guild_id, force_latest):
     
         warstats_tb_resume_url=warstats_tb_resume_baseurl+tb_list_parser.get_battle_id(force_latest)
         try:
-            page = urlopen(warstats_tb_resume_url)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            page = urlopen(guild_id, warstats_tb_resume_url)
+        except (requests.exceptions.ConnectionError) as e:
             goutils.log2("ERR", "error while opening "+warstats_tb_resume_url)
             return dict_tb_territory_scores[guild_id], dict_tb_active_round[guild_id]
 
         resume_parser = TBSPhaseResumeParser()
         # resume_parser.set_active_round(int(platoon_parser.get_active_round()[3]))
-        resume_parser.feed(page.read().decode('utf-8', 'ignore'))
+        resume_parser.feed(page.content.decode('utf-8', 'ignore'))
         dict_tb_active_round[guild_id] = resume_parser.get_active_round()
     
         goutils.log2('INFO', "TB name = "+dict_tb_active_round[guild_id])
@@ -1465,13 +1485,13 @@ def parse_tw_teams(guild_id):
     else:
         warstats_tws_url_guild = warstats_tws_url + str(guild_id)
         try:
-            page = urlopen(warstats_tws_url_guild)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            page = urlopen(guild_id, warstats_tws_url_guild)
+        except (requests.exceptions.ConnectionError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tws_url_guild)
             return dict_opponent_teams[guild_id]
         
         tw_list_parser = TWSListParser()
-        tw_list_parser.feed(page.read().decode('utf-8', 'ignore'))
+        tw_list_parser.feed(page.content.decode('utf-8', 'ignore'))
     
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
@@ -1487,13 +1507,13 @@ def parse_tw_teams(guild_id):
         goutils.log2('INFO', "Current TW is "+war_id)
         warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
         try:
-            page = urlopen(warstats_opp_squad_url)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            page = urlopen(guild_id, warstats_opp_squad_url)
+        except (requests.exceptions.ConnectionError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_opp_squad_url)
             return dict_opponent_teams[guild_id]
 
         opp_squad_parser = TWSOpponentSquadParser()
-        opp_squad_parser.feed(page.read().decode('utf-8', 'ignore'))
+        opp_squad_parser.feed(page.content.decode('utf-8', 'ignore'))
 
         dict_opponent_teams[guild_id] = opp_squad_parser.get_opp_teams()
 
@@ -1515,14 +1535,14 @@ def parse_raid_scores(guild_id, raid_name):
     else:
         warstats_raids_url_guild = warstats_raids_url + str(guild_id)
         try:
-            page = urlopen(warstats_raids_url_guild)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
+            page = urlopen(guild_id, warstats_raids_url_guild)
+        except (requests.exceptions.ConnectionError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_raids_url_guild)
             return dict_raid_phase[guild_id][raid_name], dict_raid_player_scores[guild_id][raid_name]
         
         raid_list_parser = RaidListParser()
         raid_list_parser.set_raid_name(raid_name)
-        raid_list_parser.feed(page.read().decode('utf-8', 'ignore'))
+        raid_list_parser.feed(page.content.decode('utf-8', 'ignore'))
     
         [raid_id, raid_in_progress] = raid_list_parser.get_raid_id()
         if raid_id == 0:
@@ -1537,14 +1557,14 @@ def parse_raid_scores(guild_id, raid_name):
     
             warstats_raid_resume_url=warstats_raid_resume_baseurl+raid_id
             try:
-                page = urlopen(warstats_raid_resume_url)
-            except (urllib.error.HTTPError, urllib.error.URLError) as e:
+                page = urlopen(guild_id, warstats_raid_resume_url)
+            except (requests.exceptions.ConnectionError) as e:
                 goutils.log2('ERR', 'error while opening '+warstats_raid_resume_url)
                 return dict_raid_phase[guild_id][raid_name], dict_raid_player_scores[guild_id][raid_name]
 
             raid_resume_parser = RaidResumeParser()
 
-            raid_resume_parser.feed(page.read().decode('utf-8', 'ignore'))
+            raid_resume_parser.feed(page.content.decode('utf-8', 'ignore'))
 
             dict_raid_player_scores[guild_id][raid_name] = raid_resume_parser.get_player_scores()
             dict_raid_phase[guild_id][raid_name] = raid_resume_parser.get_raid_phase()
