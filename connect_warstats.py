@@ -1338,10 +1338,12 @@ def parse_tb_platoons(guild_id, force_latest):
             resume_parser.feed(page.content.decode('utf-8', 'ignore'))
     
             dict_tb_open_territories[guild_id] = resume_parser.get_open_territories()
+            set_next_warstats_read_short(resume_parser.get_last_track(), "tb_platoons", guild_id)
         else:
             goutils.log2('WAR', "Erreur de lecture, renvoie des valeurs précédentes")
+            #REQUEST THE READING RIGHT AWAY
+            set_next_warstats_read_short(WARSTATS_REFRESH_SECS+WARSTATS_REFRESH_TIME, "tb_platoons", guild_id)
 
-        set_next_warstats_read_short(resume_parser.get_last_track(), "tb_platoons", guild_id)
 
     return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], dict_tb_open_territories[guild_id]
 
