@@ -1327,7 +1327,9 @@ def parse_tb_platoons(guild_id, force_latest):
             platoon_parser = TBSPhasePlatoonParser()
             platoon_parser.feed(page.content.decode('utf-8', 'ignore'))
             dict_tb_platoons[guild_id].update(platoon_parser.get_dict_platoons())
-            dict_tb_active_round[guild_id] = platoon_parser.get_active_round()
+            phase_active_round = platoon_parser.get_active_round()
+            if phase_active_round != "":
+                dict_tb_active_round[guild_id] = platoon_parser.get_active_round()
     
         if dict_tb_active_round[guild_id] != "":
             warstats_tb_resume_url=warstats_tb_resume_baseurl+tb_list_parser.get_battle_id(force_latest)+'/'+dict_tb_active_round[guild_id][3]
