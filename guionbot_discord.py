@@ -991,8 +991,9 @@ async def on_command_error(ctx, error):
 ##############################################################
 @bot.event
 async def on_typing(channel, user, when):
-    guild_name = channel.guild.name
-    set_id_lastseen("on_typing", guild_name, user.id)
+    if isinstance(channel, GroupChannel):
+        guild_name = channel.guild.name
+        set_id_lastseen("on_typing", guild_name, user.id)
 
 @bot.event
 async def on_message_delete(message):
