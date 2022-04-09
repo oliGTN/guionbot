@@ -708,7 +708,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     for platoon_name in dict_platoons_allocation:
                                         if platoon_name.startswith(tbs_name + "X-"+territory_position):
                                             keys_to_rename.append(platoon_name)
-                                        if platoon_name.startswith(tbs_name + "X-xxx"):
+                                        if platoon_name.startswith(tbs_name + "X-PLATOON"):
                                             keys_to_rename.append(platoon_name)
                                     for key in keys_to_rename:
                                         new_key = territory_name_position+key[-2:]
@@ -991,9 +991,8 @@ async def on_command_error(ctx, error):
 ##############################################################
 @bot.event
 async def on_typing(channel, user, when):
-    if isinstance(channel, GroupChannel):
-        guild_name = channel.guild.name
-        set_id_lastseen("on_typing", guild_name, user.id)
+    guild_name = channel.guild.name
+    set_id_lastseen("on_typing", guild_name, user.id)
 
 @bot.event
 async def on_message_delete(message):
@@ -1529,7 +1528,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         #Lecture du statut des pelotons sur warstats
         tbs_round, dict_platoons_done, \
             list_open_territories = connect_warstats.parse_tb_platoons(warstats_id, False)
-        goutils.log("DBG", "guionbot_discord.vdp", "Current state of platoon filling: "+str(dict_platoons_done))
+        goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
@@ -1538,10 +1537,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send('Aucune BT en cours')
             await ctx.message.add_reaction(emoji_error)
         else:
-            goutils.log("INFO", "guionbot_discord.vdp", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
+            goutils.log2("INFO", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
 
             dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
-            goutils.log("DBG", "guionbot_discord.vdp", "Platoon allocation: "+str(dict_platoons_allocation))
+            goutils.log2("DBG", "Platoon allocation: "+str(dict_platoons_allocation))
             
             #Comparaison des dictionnaires
             #Recherche des persos non-affectés
@@ -1787,6 +1786,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
+            print(dict_platoons_previously_done[ctx.guild.name])
             if len(teams) == 0:
                 teams = ["all"]
 
