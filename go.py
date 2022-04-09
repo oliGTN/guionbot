@@ -151,8 +151,13 @@ def load_player(txt_allyCode, force_update, no_db):
         json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
         goutils.log2("INFO", 'reading file ' + json_file + '...')
         if os.path.isfile(json_file):
-            prev_dict_player = json.load(open(json_file, 'r'))
-            prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+            if os.path.getsize(json_file) == 0:
+                #empty file, delete it
+                os.remove(json_file)
+                prev_dict_player = None
+            else:
+                prev_dict_player = json.load(open(json_file, 'r'))
+                prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
         else:
             prev_dict_player = None
 
