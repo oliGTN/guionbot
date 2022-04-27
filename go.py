@@ -2586,8 +2586,8 @@ def print_tb_progress(txt_allyCode, server_name, tb_alias, use_mentions):
 ############################################
 # get_tw_alerts
 # IN - server_name (equivalent to guild name)
-# OUT - list_tw_alerts [twChannel_id, [alert_territory1,
-#                                      alert_territory2...]]
+# OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
+#                                      territory2: alert_territory2...}]
 ############################################
 def get_tw_alerts(server_name):
     dict_unitsList = data.get("unitsList_dict.json")
@@ -2603,7 +2603,7 @@ def get_tw_alerts(server_name):
     if twChannel_id == 0 or warstats_id == 0:
         return []
 
-    list_tw_alerts = [twChannel_id, []]
+    list_tw_alerts = [twChannel_id, {}]
 
     list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
     if len(list_opponent_squads) == 0:
@@ -2675,7 +2675,7 @@ def get_tw_alerts(server_name):
                         leader_toon = False
 
 
-        list_tw_alerts[1].append(msg)
+        list_tw_alerts[1][territory] = msg
 
     return list_tw_alerts
 

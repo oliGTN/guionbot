@@ -248,25 +248,39 @@ async def bot_loop_5minutes():
         dict_tw_alerts = {}
         for guild in bot.guilds:
             try:
+                if not guild.name in dict_tw_alerts_previously_done:
+                    dict_tw_alerts_previously_done[guild.name] = [0, {}]
+
                 #CHECK ALERTS FOR TERRITORY WAR
                 list_tw_alerts = go.get_tw_alerts(guild.name)
                 if len(list_tw_alerts) > 0:
-                    [channel_id, list_messages] = list_tw_alerts
-                    for msg in list_messages:
-                        goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg)
-                        if     (not guild.name in dict_tw_alerts_previously_done) \
-                            or (not msg in dict_tw_alerts_previously_done[guild.name][1]):
-    
+                    [channel_id, dict_messages] = list_tw_alerts
+                    tw_bot_channel = bot.get_channel(channel_id)
+
+                    for territory in dict_messages:
+                        msg_txt = dict_messages[territory]
+                        goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg_txt)
+
+                        if not territory in dict_tw_alerts_previously_done[guild.name][1]:
                             if not first_bot_loop_5minutes:
-                                await send_alert_to_admins(guild.name, msg)
-                                tw_bot_channel = bot.get_channel(channel_id)
-                                await tw_bot_channel.send(msg)
-                                goutils.log2("DBG", "["+guild.name+"] TW alert sent to admins " \
+                                await send_alert_to_admins(guild.name, msg_txt)
+                                new_msg = await tw_bot_channel.send(msg_txt)
+                                dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, new_msg.id]
+
+                                goutils.log2("DBG", "["+guild.name+"] New TW alert sent to admins " \
                                             +"and channel "+str(channel_id))
                             else:
-                                goutils.log2("DBG", "["+guild.name+"] TW alert not sent")
-
-                dict_tw_alerts_previously_done[guild.name] = list_tw_alerts
+                                goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
+                        else:
+                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.name][1][territory]
+                            if old_msg_txt != msg_txt:
+                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                                await old_msg.edit(content=msg_txt)
+                                dict_tw_alerts_previously_done[guild.name][1][territory][0] = msg_txt
+                                goutils.log2("DBG", "["+guild.name+"] Modified TW alert not sent to admins " \
+                                            +"but edited in channel "+str(channel_id))
+                else:
+                    goutils.log2("WAR", "["+guild.name+"] TW alerts could not be detected")
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))
