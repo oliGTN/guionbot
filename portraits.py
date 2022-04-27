@@ -255,9 +255,10 @@ def get_image_from_character(character_id, dict_player):
                 for skill in character["skills"]:
                     skill_id = skill['id']
                     skill_tier = skill['tier']
-                    if dict_capas[character_id][skill_id][3]!="" \
-                            and skill_tier == dict_capas[character_id][skill_id][4]:
-                        omicrons += 1
+                    if skill_id in dict_capas[character_id]:
+                        if dict_capas[character_id][skill_id][3]!="" \
+                                and skill_tier == dict_capas[character_id][skill_id][4]:
+                            omicrons += 1
             if omicrons>0:
                 omicron_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_omicron.png')
                 omicron_frame_img = omicron_frame_img.resize((60,60))
