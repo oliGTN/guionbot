@@ -564,8 +564,12 @@ def detect_delta_roster_element(allyCode, char1, char2):
         skill_id = skill2['id']
         skill2_isZeta = skill2['isZeta'] and skill2['tier']>=8
         if defId in dict_capas:
-            skill2_isOmicron = dict_capas[defId][skill_id][3]!="" \
-                               and skill2['tier'] == dict_capas[defId][skill_id][4]
+            if skill_id in dict_capas[defId]:
+                skill2_isOmicron = dict_capas[defId][skill_id][3]!="" \
+                                and skill2['tier'] == dict_capas[defId][skill_id][4]
+            else:
+                log2('ERR', skill_id + " not found in dict_capas")
+                skill2_isOmicron = False
         else:
             log2('ERR', defId + " not found in dict_capas")
             skill2_isOmicron = False
@@ -575,8 +579,11 @@ def detect_delta_roster_element(allyCode, char1, char2):
             skill1 = skill1_matchID[0]
             skill1_isZeta = skill1['isZeta'] and skill1['tier']>=8
             if defId in dict_capas:
-                skill1_isOmicron = dict_capas[defId][skill_id][3]!="" \
-                                   and skill1['tier'] == dict_capas[defId][skill_id][4]
+                if skill_id in dict_capas[defId]:
+                    skill1_isOmicron = dict_capas[defId][skill_id][3]!="" \
+                                    and skill1['tier'] == dict_capas[defId][skill_id][4]
+                else:
+                    skill1_isOmicron = False
             else:
                 skill1_isOmicron = False
         else:

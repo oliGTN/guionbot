@@ -248,25 +248,39 @@ async def bot_loop_5minutes():
         dict_tw_alerts = {}
         for guild in bot.guilds:
             try:
+                if not guild.name in dict_tw_alerts_previously_done:
+                    dict_tw_alerts_previously_done[guild.name] = [0, {}]
+
                 #CHECK ALERTS FOR TERRITORY WAR
                 list_tw_alerts = go.get_tw_alerts(guild.name)
                 if len(list_tw_alerts) > 0:
-                    [channel_id, list_messages] = list_tw_alerts
-                    for msg in list_messages:
-                        goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg)
-                        if     (not guild.name in dict_tw_alerts_previously_done) \
-                            or (not msg in dict_tw_alerts_previously_done[guild.name][1]):
-    
+                    [channel_id, dict_messages] = list_tw_alerts
+                    tw_bot_channel = bot.get_channel(channel_id)
+
+                    for territory in dict_messages:
+                        msg_txt = dict_messages[territory]
+                        goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg_txt)
+
+                        if not territory in dict_tw_alerts_previously_done[guild.name][1]:
                             if not first_bot_loop_5minutes:
-                                await send_alert_to_admins(guild.name, msg)
-                                tw_bot_channel = bot.get_channel(channel_id)
-                                await tw_bot_channel.send(msg)
-                                goutils.log2("DBG", "["+guild.name+"] TW alert sent to admins " \
+                                await send_alert_to_admins(guild.name, msg_txt)
+                                new_msg = await tw_bot_channel.send(msg_txt)
+                                dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, new_msg.id]
+
+                                goutils.log2("DBG", "["+guild.name+"] New TW alert sent to admins " \
                                             +"and channel "+str(channel_id))
                             else:
-                                goutils.log2("DBG", "["+guild.name+"] TW alert not sent")
-
-                dict_tw_alerts_previously_done[guild.name] = list_tw_alerts
+                                goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
+                        else:
+                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.name][1][territory]
+                            if old_msg_txt != msg_txt:
+                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                                await old_msg.edit(content=msg_txt)
+                                dict_tw_alerts_previously_done[guild.name][1][territory][0] = msg_txt
+                                goutils.log2("DBG", "["+guild.name+"] Modified TW alert not sent to admins " \
+                                            +"but edited in channel "+str(channel_id))
+                else:
+                    goutils.log2("WAR", "["+guild.name+"] TW alerts could not be detected")
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))
@@ -521,35 +535,14 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     eb_missions_full = []
     eb_missions_tmp = []
     
-    eb_sort_character=False
-    eb_sort_territory = False
-    eb_sort_player = False
-    
     tbs_name = tbs_round[0:3]
     
-    allocation_without_overview = False
     async for message in tb_channel.history(limit=500):
         if str(message.author).startswith("EchoStation#") \
         or str(message.author).startswith("Echobase#"):
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
-
-            # when the message has reactions, detect the sorting rule of the EB messages
-            if len(message.reactions)>0:
-                eb_sort_character=True
-                eb_sort_territory = True
-                eb_sort_player = True
-                for reaction in message.reactions:
-                    if reaction.emoji == "\N{WORLD MAP}":
-                        eb_sort_territory = False
-                    elif reaction.emoji == "\N{BUSTS IN SILHOUETTE}":
-                        eb_sort_character = False
-                    elif reaction.emoji == "\N{MOBILE PHONE}":
-                        eb_sort_player = False
-                
-                if allocation_without_overview:
-                    goutils.log("ERR", "get_eb_allocation", "some platoons have been defined but no Overview detected!")
 
             if message.content.startswith('```prolog'):
                 #EB message by territory
@@ -581,8 +574,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
                     
-                allocation_without_overview = True
-    
             elif message.content.startswith('Common units:'):
                 #EB message by unit / Common units
                 for embed in message.embeds:
@@ -614,8 +605,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[platoon_name][
                                             char_name].append(player_name)
 
-                allocation_without_overview = True 
-                
             elif message.content.startswith('Rare Units:'):
                 #EB message by unit / Rare unis
                 for embed in message.embeds:
@@ -650,7 +639,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[platoon_name][
                                             char_name].append(player_name)
 
-                allocation_without_overview = True            
             elif message.content.startswith("<@"):
                 #EB message by player
                 for embed in message.embeds:
@@ -680,8 +668,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             char_name] = []
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
-
-                allocation_without_overview = True
 
             elif message.content.startswith(":information_source: **Overview**"):
                 #Overview of the EB posts. Gives the territory names
@@ -719,13 +705,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                             else:
                                 goutils.log("WAR", "get_eb_allocation", 'Mission \"'+territory_name+'\" inconnue')
 
-                #Also reset parsing status as it is the top (so the end) of the allocation
-                allocation_without_overview = False
-                eb_sort_character=False
-                eb_sort_territory = False
-                eb_sort_player = False
-
-                
     return dict_platoons_allocation
 
 
