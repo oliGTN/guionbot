@@ -521,35 +521,14 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     eb_missions_full = []
     eb_missions_tmp = []
     
-    eb_sort_character=False
-    eb_sort_territory = False
-    eb_sort_player = False
-    
     tbs_name = tbs_round[0:3]
     
-    allocation_without_overview = False
     async for message in tb_channel.history(limit=500):
         if str(message.author).startswith("EchoStation#") \
         or str(message.author).startswith("Echobase#"):
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
-
-            # when the message has reactions, detect the sorting rule of the EB messages
-            if len(message.reactions)>0:
-                eb_sort_character=True
-                eb_sort_territory = True
-                eb_sort_player = True
-                for reaction in message.reactions:
-                    if reaction.emoji == "\N{WORLD MAP}":
-                        eb_sort_territory = False
-                    elif reaction.emoji == "\N{BUSTS IN SILHOUETTE}":
-                        eb_sort_character = False
-                    elif reaction.emoji == "\N{MOBILE PHONE}":
-                        eb_sort_player = False
-                
-                if allocation_without_overview:
-                    goutils.log("ERR", "get_eb_allocation", "some platoons have been defined but no Overview detected!")
 
             if message.content.startswith('```prolog'):
                 #EB message by territory
@@ -581,8 +560,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
                     
-                allocation_without_overview = True
-    
             elif message.content.startswith('Common units:'):
                 #EB message by unit / Common units
                 for embed in message.embeds:
@@ -614,8 +591,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[platoon_name][
                                             char_name].append(player_name)
 
-                allocation_without_overview = True 
-                
             elif message.content.startswith('Rare Units:'):
                 #EB message by unit / Rare unis
                 for embed in message.embeds:
@@ -650,7 +625,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[platoon_name][
                                             char_name].append(player_name)
 
-                allocation_without_overview = True            
             elif message.content.startswith("<@"):
                 #EB message by player
                 for embed in message.embeds:
@@ -680,8 +654,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             char_name] = []
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
-
-                allocation_without_overview = True
 
             elif message.content.startswith(":information_source: **Overview**"):
                 #Overview of the EB posts. Gives the territory names
@@ -719,13 +691,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                             else:
                                 goutils.log("WAR", "get_eb_allocation", 'Mission \"'+territory_name+'\" inconnue')
 
-                #Also reset parsing status as it is the top (so the end) of the allocation
-                allocation_without_overview = False
-                eb_sort_character=False
-                eb_sort_territory = False
-                eb_sort_player = False
-
-                
     return dict_platoons_allocation
 
 
