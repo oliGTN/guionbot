@@ -561,39 +561,42 @@ def detect_delta_roster_element(allyCode, char1, char2):
 
     #ZETAS
     for skill2 in char2['skills']:
-        skill_name = skill2['nameKey']
         skill_id = skill2['id']
-        if skill_name != "":
-            skill2_isZeta = skill2['isZeta'] and skill2['tier']>=8
-            if defId in dict_capas:
+        skill2_isZeta = skill2['isZeta'] and skill2['tier']>=8
+        if defId in dict_capas:
+            if skill_id in dict_capas[defId]:
                 skill2_isOmicron = dict_capas[defId][skill_id][3]!="" \
                                 and skill2['tier'] == dict_capas[defId][skill_id][4]
             else:
-                log2('ERR', defId + " not found in dict_capas")
+                log2('ERR', skill_id + " not found in dict_capas")
                 skill2_isOmicron = False
+        else:
+            log2('ERR', defId + " not found in dict_capas")
+            skill2_isOmicron = False
 
-            skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
-            if len(skill1_matchID)>0:
-                skill1 = skill1_matchID[0]
-                skill1_isZeta = skill1['isZeta'] and skill1['tier']>=8
-                if defId in dict_capas:
+        skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
+        if len(skill1_matchID)>0:
+            skill1 = skill1_matchID[0]
+            skill1_isZeta = skill1['isZeta'] and skill1['tier']>=8
+            if defId in dict_capas:
+                if skill_id in dict_capas[defId]:
                     skill1_isOmicron = dict_capas[defId][skill_id][3]!="" \
                                     and skill1['tier'] == dict_capas[defId][skill_id][4]
                 else:
                     skill1_isOmicron = False
             else:
-                skill1 = None
-            if skill2_isZeta and (skill1 == None or not skill1_isZeta):
-                evo_txt = "new zeta "+get_capa_from_id(defId, skill_id)
-                log("INFO", "delta_roster_element", defId+": "+evo_txt)
-                connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
-            if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
-                evo_txt = "new omicron "+get_capa_from_id(defId, skill_id)
-                evo_txt += " for " + dict_capas[defId][skill_id][3]
-                log("INFO", "delta_roster_element", defId+": "+evo_txt)
-                connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+                skill1_isOmicron = False
         else:
-            log2("DBG", "Ignore skill "+skill_id+" because the name is empty")
+            skill1 = None
+        if skill2_isZeta and (skill1 == None or not skill1_isZeta):
+            evo_txt = "new zeta "+get_capa_from_id(defId, skill_id)
+            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+        if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
+            evo_txt = "new omicron "+get_capa_from_id(defId, skill_id)
+            evo_txt += " for " + dict_capas[defId][skill_id][3]
+            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
 def roster_from_list_to_dict(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
