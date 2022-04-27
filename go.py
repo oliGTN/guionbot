@@ -2583,6 +2583,12 @@ def print_tb_progress(txt_allyCode, server_name, tb_alias, use_mentions):
 
     return 0, "", ret_print_tb_progress
 
+############################################
+# get_tw_alerts
+# IN - server_name (equivalent to guild name)
+# OUT - list_tw_alerts [twChannel_id, [alert_territory1,
+#                                      alert_territory2...]]
+############################################
 def get_tw_alerts(server_name):
     dict_unitsList = data.get("unitsList_dict.json")
 
