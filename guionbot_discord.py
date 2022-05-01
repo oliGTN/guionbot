@@ -263,7 +263,7 @@ async def bot_loop_5minutes():
 
                         if not territory in dict_tw_alerts_previously_done[guild.name][1]:
                             if not first_bot_loop_5minutes:
-                                await send_alert_to_admins(guild.name, msg_txt)
+                                await send_alert_to_admins(guild.name, territory+" is open")
                                 new_msg = await tw_bot_channel.send(msg_txt)
                                 dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, new_msg.id]
 
