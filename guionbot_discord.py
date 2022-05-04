@@ -257,6 +257,10 @@ async def bot_loop_5minutes():
                     [channel_id, dict_messages] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
 
+                    if len(dict_messages) == 0:
+                        #No TW started, reset prev_alerts per territory
+                        dict_tw_alerts_previously_done[guild.name][1] = {}
+
                     for territory in dict_messages:
                         msg_txt = dict_messages[territory]
                         goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg_txt)
