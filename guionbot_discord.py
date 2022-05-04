@@ -274,15 +274,24 @@ async def bot_loop_5minutes():
                                 goutils.log2("DBG", "["+guild.name+"] New TW alert sent to admins " \
                                             +"and channel "+str(channel_id))
                             else:
+                                dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, 0]
                                 goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
                         else:
                             [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.name][1][territory]
                             if old_msg_txt != msg_txt:
-                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
-                                await old_msg.edit(content=msg_txt)
-                                dict_tw_alerts_previously_done[guild.name][1][territory][0] = msg_txt
-                                goutils.log2("DBG", "["+guild.name+"] Modified TW alert not sent to admins " \
-                                            +"but edited in channel "+str(channel_id))
+                                await send_alert_to_admins(guild.name, territory+" is modified")
+                                if old_msg_id != 0:
+                                    old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                                    await old_msg.edit(content=msg_txt)
+                                    dict_tw_alerts_previously_done[guild.name][1][territory][0] = msg_txt
+                                else:
+                                    #TW alert detected but not sent because during the first bot loop
+                                    # because it is modified, it is now sent
+                                    new_msg = await tw_bot_channel.send(msg_txt)
+                                    dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, new_msg.id]
+
+                                goutils.log2("DBG", "["+guild.name+"] Modified TW alert sent to admins " \
+                                            +"and channel "+str(channel_id))
                 else:
                     goutils.log2("WAR", "["+guild.name+"] TW alerts could not be detected")
 
