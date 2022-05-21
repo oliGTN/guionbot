@@ -878,7 +878,10 @@ async def on_reaction_add(reaction, user):
         return
 
     message = reaction.message
-    guild_name = message.channel.guild.name
+    if isinstance(message.channel, GroupChannel):
+        guild_name = message.channel.guild.name
+    else:
+        guild_name = "DM"
     author = message.author
     emoji = reaction.emoji
     goutils.log2("DBG", "guild_name: "+guild_name)
@@ -1611,6 +1614,46 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
             await ctx.message.add_reaction(emoji_check)
         
+    ##############################################################
+    # Command: tpg
+    # Parameters: alias of the character to find
+    # Purpose: Tag all players in the guild which own the selected character
+    # Display: One line with all discord tags
+    ##############################################################
+    @commands.check(is_officer)
+    @commands.command(name='tpg',
+                 brief="Tag les possesseurs d'un Perso dans la Guilde",
+                 help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
+                      "Exemple : go.tbg me SEE\n"\
+                      "Exemple : go.tbg me SEE:G13")
+    async def tpg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 2:
+            allyCode = args[0]
+            character_alias = args[1]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, errtxt, ret_cmd = go.tag_players_with_character(allyCode, character_alias)
+            if err != 0:
+                await ctx.send(errtxt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                await ctx.send("Possesseurs de "+character_alias+" :\n" \
+                               +' / '.join(ret_cmd))
+                await ctx.message.add_reaction(emoji_check)
+
 ##############################################################
 # Class: MemberCog
 # Description: contains all member commands
