@@ -201,6 +201,7 @@ def load_config_players(guild_name, force_load):
             #Fill dict_players_by_IG
             #needs to transform into str as json only uses str as keys
             discord_id=str(ligne['Discord ID'])
+            goutils.log2("DBG", "discord_id "+discord_id)
             if discord_id!='':
                 if liste_discord_id.count(discord_id)>1:
                     #cas des comptes discord avec plusieurs comptes IG
@@ -217,6 +218,7 @@ def load_config_players(guild_name, force_load):
         # store json file
         fjson = open(json_file, 'w')
         fjson.write(json.dumps([dict_players_by_IG, dict_players_by_ID], sort_keys=True, indent=4))
+        goutils.log2("INFO", "Write file "+json_file)
         fjson.close()
     else:
         [dict_players_by_IG, dict_players_by_ID] = json.load(open(json_file, "r"))

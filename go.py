@@ -2901,3 +2901,154 @@ def find_best_teams_for_raid(txt_allyCode, server_name, raid_name, compute_guild
 
     return 0, "", dict_best_teams
 
+################################################################
+# tag_players_with_character
+# IN: txt_allyCode (to identify the guild)
+# IN: character ("SEE" or "SEE:7:G8" or "SEE:R5")
+# OUT: err_code, err_txt, list_discord_ids
+################################################################
+def tag_players_with_character(txt_allyCode, character):
+    err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+    if err_code != 0:
+        return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
+
+    opposite_search = (character[0]=="-")
+
+    tab_virtual_character = character.split(':')
+    if len(tab_virtual_character) == 3:
+        char_alias = tab_virtual_character[0]
+        simple_search = False
+        
+        if not tab_virtual_character[1] in "1234567":
+            return 1, "ERR: la syntaxe "+character+" est incorrecte pour les étoiles", None
+        char_rarity = int(tab_virtual_character[1])
+
+        if tab_virtual_character[2][0] in "gG":
+            if tab_virtual_character[2][1:].isnumeric():
+                char_gear = int(tab_virtual_character[2][1:])
+                char_relic = -2
+                if (char_gear<1) or (char_gear>13):
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+            else:
+                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+        elif tab_virtual_character[2][0] in "rR":
+            if tab_virtual_character[2][1:].isnumeric():
+                char_relic = int(tab_virtual_character[2][1:])
+                char_gear = 13
+                if (char_relic<0) or (char_relic>8):
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+            else:
+                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+        else:
+            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+        
+    elif len(tab_virtual_character) == 2:
+        char_alias = tab_virtual_character[0]
+        simple_search = False
+
+        if tab_virtual_character[1][0] in "gG":
+            char_rarity = 0
+            if tab_virtual_character[1][1:].isnumeric():
+                char_gear = int(tab_virtual_character[1][1:])
+                char_relic = -2
+                if (char_gear<1) or (char_gear>13):
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+            else:
+                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+        elif tab_virtual_character[1][0] in "rR":
+            char_rarity = 0
+            if tab_virtual_character[1][1:].isnumeric():
+                char_relic = int(tab_virtual_character[1][1:])
+                char_gear = 13
+                if (char_relic<0) or (char_relic>8):
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+            else:
+                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+        elif tab_virtual_character[1] in "1234567":
+            char_gear = 0
+            char_relic = -2
+            char_rarity = int(tab_virtual_character[1])
+
+        else:
+            return 1, "ERR: la syntaxe "+character+" est incorrecte", None
+            
+    elif len(tab_virtual_character) == 1:
+        #regular character, not virtual
+        char_alias = tab_virtual_character[0]
+        simple_search = True
+        char_rarity = 0
+        char_gear = 0
+        char_relic = -2
+        pass
+    else:
+        return 1, "ERR: la syntaxe "+character+" est incorrecte", None
+
+    #Get character_id
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+    character_id = list_character_ids[0]
+
+    if opposite_search and simple_search:
+        intro_txt = "Ceux qui n'ont pas "+character_id
+        query = "SELECT guildName, name FROM players " \
+              + "WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "AND NOT allyCode IN (" \
+              + "   SELECT players.allyCode FROM players " \
+              + "   JOIN roster ON roster.allyCode = players.allyCode " \
+              + "   WHERE guildName=(" \
+              + "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "      AND defId = '"+character_id+"')"
+    else:
+        query = "SELECT guildName, name FROM players " \
+              + "JOIN roster ON roster.allyCode = players.allyCode " \
+              + "WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "AND defId = '"+character_id+"' "
+
+        if opposite_search:
+            intro_txt = "Ceux qui ont "+character_id+ " mais pas "+character_id
+            if char_rarity>0:
+                intro_txt += ":"+str(char_rarity)+"*"
+            if char_relic>-2:
+                intro_txt += ":R"+str(char_relic)
+            elif char_gear>0:
+                intro_txt += ":G"+str(char_gear)
+            query +="AND (rarity < "+str(char_rarity)+" "\
+                  + "OR gear < "+str(char_gear)+" "\
+                  + "OR relic_currentTier < "+str(char_relic+2)+") "
+        else:
+            intro_txt = "Ceux qui ont "+character_id
+            if char_rarity>0:
+                intro_txt += ":"+str(char_rarity)+"*"
+            if char_relic>-2:
+                intro_txt += ":R"+str(char_relic)
+            elif char_gear>0:
+                intro_txt += ":G"+str(char_gear)
+
+            query +="AND rarity >= "+str(char_rarity)+" "\
+                  + "AND gear >= "+str(char_gear)+" "\
+                  + "AND relic_currentTier >= "+str(char_relic+2)
+
+    goutils.log2('DBG', query)
+    allyCodes_in_DB = connect_mysql.get_table(query)
+
+    guildName = allyCodes_in_DB[0][0]
+    dict_players = connect_gsheets.load_config_players(guildName, False)[0]
+
+    list_discord_ids = [intro_txt]
+    for [guildName, player_name] in allyCodes_in_DB:
+        if player_name == "":
+            continue
+
+        goutils.log2('DBG', 'player_name: '+player_name)
+
+        if player_name in dict_players:
+            player_mention = dict_players[player_name][1]
+        else:
+            player_mention = player_name
+
+        list_discord_ids.append(player_mention)
+
+    return 0, "", list_discord_ids
