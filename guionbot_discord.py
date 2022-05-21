@@ -1650,8 +1650,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
             else:
-                await ctx.send("Possesseurs de "+character_alias+" :\n" \
-                               +' / '.join(ret_cmd))
+                intro_txt = ret_cmd[0]
+                await ctx.send(intro_txt +" :\n" +' / '.join(ret_cmd[1:]))
                 await ctx.message.add_reaction(emoji_check)
 
 ##############################################################

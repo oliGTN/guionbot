@@ -2912,9 +2912,12 @@ def tag_players_with_character(txt_allyCode, character):
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
+    opposite_search = (character[0]=="-")
+
     tab_virtual_character = character.split(':')
     if len(tab_virtual_character) == 3:
         char_alias = tab_virtual_character[0]
+        simple_search = False
         
         if not tab_virtual_character[1] in "1234567":
             return 1, "ERR: la syntaxe "+character+" est incorrecte pour les étoiles", None
@@ -2941,6 +2944,7 @@ def tag_players_with_character(txt_allyCode, character):
         
     elif len(tab_virtual_character) == 2:
         char_alias = tab_virtual_character[0]
+        simple_search = False
 
         if tab_virtual_character[1][0] in "gG":
             char_rarity = 0
@@ -2971,6 +2975,7 @@ def tag_players_with_character(txt_allyCode, character):
     elif len(tab_virtual_character) == 1:
         #regular character, not virtual
         char_alias = tab_virtual_character[0]
+        simple_search = True
         char_rarity = 0
         char_gear = 0
         char_relic = -2
@@ -2984,14 +2989,47 @@ def tag_players_with_character(txt_allyCode, character):
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
     character_id = list_character_ids[0]
 
-    query = "SELECT guildName, name FROM players " \
-          + "JOIN roster ON roster.allyCode = players.allyCode " \
-          + "WHERE guildName=(" \
-          + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
-          + "AND defId = '"+character_id+"' "\
-          + "AND rarity >= "+str(char_rarity)+" "\
-          + "AND gear >= "+str(char_gear)+" "\
-          + "AND relic_currentTier >= "+str(char_relic+2)
+    if opposite_search and simple_search:
+        intro_txt = "Ceux qui n'ont pas "+character_id
+        query = "SELECT guildName, name FROM players " \
+              + "WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "AND NOT allyCode IN (" \
+              + "   SELECT players.allyCode FROM players " \
+              + "   JOIN roster ON roster.allyCode = players.allyCode " \
+              + "   WHERE guildName=(" \
+              + "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "      AND defId = '"+character_id+"')"
+    else:
+        query = "SELECT guildName, name FROM players " \
+              + "JOIN roster ON roster.allyCode = players.allyCode " \
+              + "WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "AND defId = '"+character_id+"' "
+
+        if opposite_search:
+            intro_txt = "Ceux qui ont "+character_id+ " mais pas "+character_id
+            if char_rarity>0:
+                intro_txt += ":"+str(char_rarity)+"*"
+            if char_relic>-2:
+                intro_txt += ":R"+str(char_relic)
+            elif char_gear>0:
+                intro_txt += ":G"+str(char_gear)
+            query +="AND (rarity < "+str(char_rarity)+" "\
+                  + "OR gear < "+str(char_gear)+" "\
+                  + "OR relic_currentTier < "+str(char_relic+2)+") "
+        else:
+            intro_txt = "Ceux qui ont "+character_id
+            if char_rarity>0:
+                intro_txt += ":"+str(char_rarity)+"*"
+            if char_relic>-2:
+                intro_txt += ":R"+str(char_relic)
+            elif char_gear>0:
+                intro_txt += ":G"+str(char_gear)
+
+            query +="AND rarity >= "+str(char_rarity)+" "\
+                  + "AND gear >= "+str(char_gear)+" "\
+                  + "AND relic_currentTier >= "+str(char_relic+2)
 
     goutils.log2('DBG', query)
     allyCodes_in_DB = connect_mysql.get_table(query)
@@ -2999,7 +3037,7 @@ def tag_players_with_character(txt_allyCode, character):
     guildName = allyCodes_in_DB[0][0]
     dict_players = connect_gsheets.load_config_players(guildName, False)[0]
 
-    list_discord_ids = []
+    list_discord_ids = [intro_txt]
     for [guildName, player_name] in allyCodes_in_DB:
         if player_name == "":
             continue
