@@ -619,6 +619,20 @@ def update_player(dict_player):
             goutils.log2("DBG", query)
             cursor.execute(query)
                 
+        #Compute ModQ from DB data
+        query = "SELECT round(count(mods.id)/(char_gp/100000),2) " \
+              + "FROM mods " \
+              + "JOIN roster ON mods.roster_id = roster.id " \
+              + "JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE roster.allyCode="+str(p_allyCode)+" " \
+              + "AND ( " \
+              + "(sec1_stat=5 AND sec1_value>=15) OR " \
+              + "(sec2_stat=5 AND sec2_value>=15) OR " \
+              + "(sec3_stat=5 AND sec3_value>=15) OR " \
+              + "(sec4_stat=5 AND sec4_value>=15)) "
+        goutils.log2("DBG", query)
+        p_modq = get_value(query)
+
         #Manage GP history
         # Define delta minutes versus po time
         time_now = datetime.datetime.now()
@@ -631,7 +645,7 @@ def update_player(dict_player):
 
         query = "INSERT IGNORE INTO gp_history(date, allyCode) "\
                +"VALUES(CURDATE(), "+str(p_allyCode)+")"
-        goutils.log("DBG", "update_player", query)
+        goutils.log2("DBG", query)
         cursor.execute(query)
 
         query = "UPDATE gp_history "\
@@ -642,7 +656,8 @@ def update_player(dict_player):
                +"    arena_ship_po_delta_minutes = "+ str(delta_time_po_ship) + ", "\
                +"    grand_arena_rank = '"+ p_grand_arena_rank + "',"\
                +"    char_gp = "+str(p_char_gp)+", "\
-               +"    ship_gp = "+str(p_ship_gp)+" "\
+               +"    ship_gp = "+str(p_ship_gp)+", "\
+               +"    modq = "+str(p_modq)+" "\
                +"WHERE date = CURDATE() "\
                +"AND allyCode = "+str(p_allyCode)
         goutils.log("DBG", "update_player", query)
