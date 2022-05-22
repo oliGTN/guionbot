@@ -122,11 +122,11 @@ def refresh_cache():
     return 1
 
 ##################################
-# Function: refresh_cache
-# inputs: txt_allYCode (string)
-#         int force_update (0: default, 1: force update, -1, do not update unless there is no XML)
+# Function: load_player
+# inputs: txt_allyCode (string)
+#         int force_update (0: default, 1: force update, -1: do not update unless there is no XML)
 #         bool no_db: do not put player in DB
-# return: erro_code, err_text
+# return: err_code, err_text
 ##################################
 def load_player(txt_allyCode, force_update, no_db):
     goutils.log2("DBG", "START")
@@ -152,16 +152,19 @@ def load_player(txt_allyCode, force_update, no_db):
         goutils.log2("INFO", 'reading file ' + json_file + '...')
         if os.path.isfile(json_file):
             if os.path.getsize(json_file) == 0:
+                goutils.log2("DBG", "... empty file, delete it")
                 #empty file, delete it
                 os.remove(json_file)
                 prev_dict_player = None
             else:
+                goutils.log2("DBG", "... correct file")
                 prev_dict_player = json.load(open(json_file, 'r'))
                 prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
         else:
+            goutils.log2("DBG", "... the file does not exist")
             prev_dict_player = None
 
-    if (not recent_player or force_update==1) and not (force_update==-1 and prev_dict_player != None):
+    if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting API data for player ' + txt_allyCode + '...')
         if client != None:
             player_data = client.get_data('player', [txt_allyCode], 'FRE_FR')
@@ -220,7 +223,7 @@ def load_player(txt_allyCode, force_update, no_db):
             return 1, 'ERR: allyCode '+txt_allyCode+' not found', None
 
     else:
-        goutils.log2('INFO', player_name + ' OK')
+        goutils.log2('INFO', player_name + ' loaded from existing XML OK')
         dict_player = prev_dict_player
     
     sys.stdout.flush()
