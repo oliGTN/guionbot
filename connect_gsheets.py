@@ -307,11 +307,11 @@ def load_config_units(force_load):
             id=ligne['ID']
 
         #Full Name from file is not used as alias, because it is already read from json file
-        #if full_name.lower() in dict_units:
+            if not full_name.lower() in dict_units:
             #if dict_units[full_name.lower()][0] != full_name:
                 #print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
         #else:
-            #dict_units[full_name.lower()]=[full_name, id]
+                dict_units[full_name.lower()]=[full_name, id]
 
         # Char ID cannot be used as alias because of Rey
         # "rey" is the nameKey of GLREY, and "REY" is the ID of scavenger rey
