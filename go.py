@@ -3062,3 +3062,42 @@ def tag_players_with_character(txt_allyCode, character):
         list_discord_ids.append(player_mention)
 
     return 0, "", list_discord_ids
+
+def get_gv_graph(txt_allyCode, character_alias):
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+    character_id = list_character_ids[0]
+
+    query = "SELECT date, progress, source FROM gv_history " \
+          + "WHERE allyCode="+txt_allyCode+" " \
+          + "AND defId='"+character_id+"' "
+    goutils.log2("DBG", query)
+    ret_db = connect_mysql.get_table(query)
+    print(ret_db)
+
+    d_jbot = []
+    d_gobot = []
+    v_jbot = []
+    v_gobot = []
+    for line in ret_db:
+        if line[2] == 'j.bot':
+            d_jbot.append(line[0])
+            v_jbot.append(line[1])
+        else: #go.bot
+            d_gobot.append(line[0])
+            v_gobot.append(line[1])
+
+    fig, ax = plt.subplots()
+    ax.plot(d_jbot, v_jbot, color='r', label='j.bot')
+    ax.plot(d_gobot, v_gobot, color='g', label='go.bot')
+    title = "Progès GV de "+character_id+" pour "+txt_allyCode
+    fig.suptitle(title)
+
+    fig.canvas.draw()
+    fig_size = fig.canvas.get_width_height()
+    fig_bytes = fig.canvas.tostring_rgb()
+    image = Image.frombytes('RGB', fig_size, fig_bytes)
+
+    return 0, "", image
+
