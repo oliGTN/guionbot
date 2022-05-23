@@ -2084,6 +2084,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
+
     ##############################################################
     # Command: gdp
     # Parameters: code allié (string) ou "me"
@@ -2125,6 +2126,42 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.remove_reaction(emoji_hourglass, bot.user)
+                await ctx.message.add_reaction(emoji_check)
+                
+    ##############################################################
+    # Command: ggv
+    # Parameters: code allié (string) ou "me"
+    #             nom du perso
+    # Purpose: graph de progrès de GV du perso
+    # Display: graph
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='ggv',
+                 brief="Graphique de GV d'un perso",
+                 help="Graphique de GV d'un perso\n\n"\
+                      "Exemple: go.ggv me SEE\n"\
+                      "Exemple: go.ggv 123456789 JMK")
+    async def ggv(self, ctx, allyCode, character_alias):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            e, err_txt, image = await bot.loop.run_in_executor(None,
+                go.get_gv_graph, allyCode, character_alias)
+            if e != 0:
+                await ctx.send(err_txt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = "",
+                           file=File(fp=image_binary, filename='image.png'))
+
                 await ctx.message.add_reaction(emoji_check)
                 
 
