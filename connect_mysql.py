@@ -665,7 +665,78 @@ def update_player(dict_player):
 
         mysql_db.commit()
     except Error as error:
-        goutils.log("ERR", "update_player", error)
+        goutils.log2("ERR", error)
+        return -1
+        
+    finally:
+        cursor.close()
+    
+    return 0
+
+#####################################################################
+# update_gv_history
+# IN: txt_alllyCOde - allyCode of the player
+# IN: character - character_id or character name
+#IN: is_ID - Trus if character_id, False if character name
+#IN: progress - value of progress between 0 and 100
+#IN: completed - True if the GV is completed (even if not 100%)
+#IN: source - name of the bot which has computed the progress
+#OUT: 0 if no error
+#####################################################################
+def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, completed, source):
+    try:
+        mysql_db = db_connect()
+        cursor = mysql_db.cursor()
+
+        if txt_allyCode == '':
+            query = "SELECT allyCode FROM players WHERE name = '"+player_name+"'"
+            goutils.log2("DBG", query)
+            list_players = get_column(query)
+            if len(list_players) != 1:
+                return -1
+            txt_allyCode = str(list_players[0])
+            goutils.log2("DBG", "allyCode="+txt_allyCode)
+
+        if is_ID:
+            character_id = character
+        else:
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character])
+            character_id = list_character_ids[0]
+        goutils.log2("DBG", "character_id="+character_id)
+
+        #Look if the GV already has a date for completed
+        if completed:
+            query = "SELECT COUNT(*) FROM gv_history " \
+                  + "WHERE allyCode="+txt_allyCode+" " \
+                  + "AND defId='"+character_id+"' " \
+                  + "AND complete=1 " \
+                  + "AND source='"+source+"'"
+            goutils.log2("DBG", query)
+            count_completed = get_value(query)
+            already_complete = (count_completed >= 1)
+        else:
+            already_complete = False
+
+        if not already_complete:
+            query = "INSERT IGNORE INTO gv_history(date, allyCode, defId, source) "\
+                   +"VALUES(CURDATE(), '"+txt_allyCode+"', '"+character_id+"', '"+source+"')"
+            goutils.log2("DBG", query)
+            cursor.execute(query)
+
+            query = "UPDATE gv_history "\
+                   +"SET progress = "+str(progress)+", "\
+                   +"complete = "+str(int(completed))+" "\
+                   +"WHERE date = CURDATE() "\
+                   +"AND allyCode = '"+txt_allyCode+"' " \
+                   +"AND defId = '"+character_id+"' " \
+                   +"AND source = '"+source+"' "
+            goutils.log2("DBG", query)
+            cursor.execute(query)
+
+            mysql_db.commit()
+
+    except Error as error:
+        goutils.log2("ERR", error)
         return -1
         
     finally:

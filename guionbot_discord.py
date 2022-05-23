@@ -947,11 +947,38 @@ async def on_message(message):
     try:
         await bot.process_commands(message)
     except Exception as e:
-        goutils.log("ERR", "guionbot_discord.on_message", sys.exc_info()[0])
-        goutils.log("ERR", "guionbot_discord.on_message", e)
-        goutils.log("ERR", "guionbot_discord.on_message", traceback.format_exc())
+        goutils.log2("ERR", sys.exc_info()[0])
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
         if not bot_test_mode:
             await send_alert_to_admins(guild_name, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
+
+    #Read messages from Juke's bot
+    if message.author.id == 629346604075450399:
+        for embed in message.embeds:
+            dict_embed = embed.to_dict()
+
+            if 'title' in dict_embed:
+                embed = dict_embed['title']
+                if embed.endswith("'s unit status"):
+                    pos_name = embed.index("'s unit status")
+                    player_name = embed[:pos_name]
+
+            if 'description' in dict_embed:
+                embed = dict_embed['description']
+                for line in embed.split('\n'):
+                    if "%` for " in line:
+                        unlocked = line.startswith(":white_check_mark:")
+                        if line.endswith(":star:"):
+                            line = line[:-8]
+                        line_tab = line.split("`")
+                        progress_txt = line_tab[1]
+                        progress = int(progress_txt[:-1])
+                        pos_name = line.index("%` for ") + 7
+                        character_name = line[pos_name:]
+
+                        connect_mysql.update_gv_history("", player_name, character_name, False,
+                                                        progress, unlocked, "j.bot")
 
 ##############################################################
 # Event: on_error_command

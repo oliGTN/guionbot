@@ -800,11 +800,11 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
     query += "GROUP BY players.name, guild_teams.name, guild_team_roster.unit_id, \
             rarity, gear, relic_currentTier, gp \
             ORDER BY players.name, guild_teams.name"
-    goutils.log("DBG", "go.get_team_progress", query)
+    goutils.log2("DBG", query)
     
     # print(query)
     player_data = connect_mysql.get_table(query)
-    goutils.log("DBG", "go.get_team_progress", player_data)
+    goutils.log2("DBG", player_data)
     
     if not gv_mode:
         # Need the zetas to compute the progress of a regular team
@@ -853,7 +853,7 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         player_omicron_data = []
         
         #There is a need to check if the target character is locked or unlocked
-        goutils.log("INFO", "go.get_team_progress", "Get GV characters data from DB...")
+        goutils.log2("INFO", "Get GV characters data from DB...")
         query = "SELECT players.name, defId, rarity \
                 FROM roster \
                 JOIN players ON players.allyCode = roster.allyCode \n"
@@ -863,25 +863,25 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND defId IN (SELECT SUBSTRING_INDEX(name, '-GV', 1) FROM guild_teams WHERE name LIKE '%-GV')"
-        goutils.log("DBG", "go.get_team_progress", query)
+        goutils.log2("DBG", query)
         
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
-        goutils.log("DBG", "go.get_team_progress", gv_characters_unlocked)
+        goutils.log2("DBG", gv_characters_unlocked)
         
     if player_data != None:
-        goutils.log("INFO", "go.get_team_progress", "Recreate dict_teams...")
+        goutils.log2("INFO", "Recreate dict_teams...")
         dict_teams = goutils.create_dict_teams(player_data,
                                                player_zeta_data,
                                                player_omicron_data,
                                                gv_characters_unlocked)
-        goutils.log("INFO", "go.get_team_progress", "Recreation of dict_teams is OK")
+        goutils.log2("INFO", "Recreation of dict_teams is OK")
     else:
         query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
-        goutils.log("DBG", "go.get_team_progress", query)
+        goutils.log2("DBG", query)
         player_name = connect_mysql.get_value(query)
         dict_teams = {player_name: {}}
-        goutils.log("WAR", "go.get_team_progress", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
+        goutils.log2("WAR", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
     
     # Compute teams for this player
     if gv_mode:
@@ -951,7 +951,7 @@ def print_vtg(list_team_names, txt_allyCode, server_name):
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
                                               server_name, True, False)
     if type(ret_get_team_progress) == str:
-        goutils.log("ERR", "go.print_vtg", "get_team_progress has returned an error: "+ret_print_vtx)
+        goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
         return 1,  ret_get_team_progress
     else:
         ret_print_vtx = "Vérification des Teams de la Guilde **"+guild_name+"**\n\n"
@@ -1008,7 +1008,7 @@ def print_vtj(list_team_names, txt_allyCode, server_name):
     player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
                                               server_name, False, False)
     if type(ret_get_team_progress) == str:
-        goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+ret_get_team_progress)
+        goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
     else:
         ret_print_vtx = "Vérification des Teams du Joueur **"+player_name+"**\n\n"
@@ -1017,7 +1017,7 @@ def print_vtj(list_team_names, txt_allyCode, server_name):
             value_iterator = iter(values_view)
             first_team = next(value_iterator)
             if type(first_team) == str:
-                goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+first_team)
+                goutils.log2("ERR", "get_team_progress has returned an error: "+first_team)
                 return 1,  first_team, None
             player_name = first_team[0][1][4]
             ret_print_vtx += "**Joueur : " + player_name + "**\n"
@@ -1063,29 +1063,35 @@ def print_gvj(list_team_names, txt_allyCode):
     if len(ret_get_team_progress) == 1:
         #one team only, one player
         team = list(ret_get_team_progress.keys())[0]
+        character_id = team[:-3]
         ret_team = ret_get_team_progress[team]
         if type(ret_team) == str:
             #error
             ret_print_gvj += ret_team
         else:
             for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
-                ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+team[:-3]+"\n"
+                ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+character_id+"\n"
                 ret_print_gvj += "(Les persos avec -- ne sont pas pris en compte pour le score)\n"
                 ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))+"%"
+                connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+                                                int(player_score), unlocked, "go.bot")
 
     else:
         #Several tams
         player_name = ''
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
+            character_id = team[:-3]
             if type(ret_team) == str:
                 #error
                 ret_print_gvj += ret_team
             else:
                 for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
-                    new_line = team[:-3] + " - "+ player_name + ": " + \
+                    new_line = character_id + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
+                    connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+                                                    int(player_score), player_unlocked, "go.bot")
                                             
         #Teams are sorted with the best progress on top
         list_lines = sorted(list_lines, key=lambda x: -x[0])
@@ -1118,16 +1124,17 @@ def print_gvg(list_team_names, txt_allyCode):
     list_lines = []
     for team in ret_get_team_progress:
         ret_team = ret_get_team_progress[team]
+        character_id = team[:-3]
         if type(ret_team) == str:
             #error
             ret_print_gvg += ret_team + "\n"
         else:
             for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 if not player_unlocked:
-                    new_line = team[:-3] + " - "+ player_name + ": " + \
+                    new_line = character_id + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
-                    
+
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
     ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
@@ -1525,7 +1532,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                                     
         character_id = list_character_ids[0]
         db_stat_data_char = []
-        goutils.log("INFO", "go.print_character_stats", "Get guild_data from DB...")
+        goutils.log2("INFO", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
                +"roster.combatType, rarity, gear, relic_currentTier, "\
                +"stat1, "\
@@ -1799,7 +1806,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player):
         e, t, dict_player = load_player(txt_allyCode, -int(not(refresh_player)), False)
         if e != 0:
             #error wile loading guild data
-            goutils.log("WAR", "go.get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
+            goutils.log2("WAR", "joueur non trouvé pour code allié " + txt_allyCode)
             err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
             dict_player = {"allyCode": txt_allyCode}
 
@@ -1860,7 +1867,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
     if len(list_opponent_squads) == 0:
-        goutils.log("ERR", "go.get_tw_battle_image", "aucune phase d'attaque en cours en GT")
+        goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
         return 1, err_txt, None
 
@@ -1897,10 +1904,10 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         #print(closest_names)
         if len(closest_names)<1:
             err_txt += 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n'
-            goutils.log("ERR", "go.get_tw_battle_image", player_name+' ne fait pas partie des joueurs connus')
+            goutils.log2("ERR", player_name+' ne fait pas partie des joueurs connus')
             opp_squad[1]=''
         else:
-            goutils.log("INFO", "go.get_tw_battle_image", "cmd launched with name that looks like "+closest_names[0])
+            goutils.log2("INFO", "cmd launched with name that looks like "+closest_names[0])
             for r in results:
                 if r[0] == closest_names[0]:
                     opp_squad[1] = str(r[1])
@@ -1940,7 +1947,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     if len(closest_names)<1:
         return 1, 'ERR: '+stat_name+' ne fait pas partie des stats connues '+str(list(dict_stat_names.keys())), None
 
-    goutils.log("INFO", "go.get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
+    goutils.log2("INFO", "cmd launched with stat name that looks like "+closest_names[0])
     stat_name = closest_names[0]
     stat_id = dict_stat_names[stat_name][0]
     stat_isPercent = dict_stat_names[stat_name][1]
@@ -1949,7 +1956,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     #Get data from DB
     db_stat_data_char = []
-    goutils.log("INFO", "go.get_stat_char", "Get player data from DB...")
+    goutils.log2("INFO", "Get player data from DB...")
     query = "SELECT allyCode, gear,"\
            +stat_string+","\
            +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
@@ -1957,7 +1964,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
            +"where defId = '"+character_id+"' "\
            +"AND not "+stat_string+"=0 "\
            +"AND (gear = 13 or allyCode = "+txt_allyCode+")"
-    goutils.log("DBG", "go.get_stat_graph", query)
+    goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
     if stat_isPercent:
@@ -1973,7 +1980,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         else:
             player_value = int(player_values[0])
     else:
-        goutils.log("WAR", "go.get_stat_graph", "Character "+character_alias+" is locked for "+txt_allyCode)
+        goutils.log2("WAR", "Character "+character_alias+" is locked for "+txt_allyCode)
         err_txt +="WAR: Le perso "+character_alias+" n'est pas débloqué pour "+txt_allyCode
         player_value = None
 
