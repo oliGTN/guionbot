@@ -2166,6 +2166,40 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 
 
     ##############################################################
+    # Command: gmj
+    # Parameters: code allié (string) ou "me"
+    # Purpose: graph de progrès de modq du joueur
+    # Display: graph
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='gmj',
+                 brief="Graphique de Modq d'un Joueur",
+                 help="Graphique de Modq d'un Joueur\n\n"\
+                      "Exemple: go.gmj me")
+    async def gmj(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            e, err_txt, image = await bot.loop.run_in_executor(None, go.get_modq_graph, allyCode)
+            if e != 0:
+                await ctx.send(err_txt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = "",
+                           file=File(fp=image_binary, filename='image.png'))
+
+                await ctx.message.add_reaction(emoji_check)
+                
+
+    ##############################################################
     # Command: ppj
     # Parameters: code allié (string) ou "me" / nom approximatif des perso
     # Purpose: afficher une image des portraits choisis
