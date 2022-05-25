@@ -14,6 +14,7 @@ import json
 import matplotlib
 matplotlib.use('Agg') #Preventin GTK erros at startup
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from PIL import Image
 from collections import Counter
 import inspect
@@ -3069,12 +3070,13 @@ def get_gv_graph(txt_allyCode, character_alias):
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
     character_id = list_character_ids[0]
 
-    query = "SELECT date, progress, source FROM gv_history " \
-          + "WHERE allyCode="+txt_allyCode+" " \
-          + "AND defId='"+character_id+"' "
+    query = "SELECT date, progress, source, name FROM gv_history " \
+          + "JOIN players ON players.allyCode = gv_history.allyCode " \
+          + "WHERE gv_history.allyCode="+txt_allyCode+" " \
+          + "AND defId='"+character_id+"' " \
+          + "ORDER BY date DESC LIMIT 30"
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
-    print(ret_db)
 
     d_jbot = []
     d_gobot = []
@@ -3087,11 +3089,53 @@ def get_gv_graph(txt_allyCode, character_alias):
         else: #go.bot
             d_gobot.append(line[0])
             v_gobot.append(line[1])
+        player_name = line[3]
 
+    #create plot
     fig, ax = plt.subplots()
+    #add series
     ax.plot(d_jbot, v_jbot, color='r', label='j.bot')
     ax.plot(d_gobot, v_gobot, color='g', label='go.bot')
-    title = "Progès GV de "+character_id+" pour "+txt_allyCode
+    #format dates on X axis
+    date_format = mdates.DateFormatter("%d-%m")
+    ax.xaxis.set_major_formatter(date_format)
+    #add title
+    title = "Progès GV de "+character_id+" pour "+player_name
+    fig.suptitle(title)
+    #add legend
+    ax.legend(loc="upper left")
+
+    fig.canvas.draw()
+    fig_size = fig.canvas.get_width_height()
+    fig_bytes = fig.canvas.tostring_rgb()
+    image = Image.frombytes('RGB', fig_size, fig_bytes)
+
+    return 0, "", image
+
+def get_modq_graph(txt_allyCode):
+    query = "SELECT date, modq, name FROM gp_history " \
+          + "JOIN players ON players.allyCode = gp_history.allyCode " \
+          + "WHERE gp_history.allyCode="+txt_allyCode+" " \
+          + "ORDER BY date DESC LIMIT 30"
+    goutils.log2("DBG", query)
+    ret_db = connect_mysql.get_table(query)
+
+    d_modq = []
+    v_modq = []
+    for line in ret_db:
+        d_modq.append(line[0])
+        v_modq.append(line[1])
+        player_name = line[2]
+
+    #create plot
+    fig, ax = plt.subplots()
+    #add series
+    ax.plot(d_modq, v_modq, label='modq')
+    #format dates on X axis
+    date_format = mdates.DateFormatter("%d-%m")
+    ax.xaxis.set_major_formatter(date_format)
+    #add title
+    title = "Progès MODQ de "+player_name
     fig.suptitle(title)
 
     fig.canvas.draw()
