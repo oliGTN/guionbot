@@ -1135,6 +1135,9 @@ def print_gvg(list_team_names, txt_allyCode):
                     new_line = character_id + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
+                    if not player_unlocked and player_score>80:
+                        connect_mysql.update_gv_history("", player_name, character_id, True,
+                                                        int(player_score), player_unlocked, "go.bot")
 
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
@@ -3074,28 +3077,39 @@ def get_gv_graph(txt_allyCode, character_alias):
           + "JOIN players ON players.allyCode = gv_history.allyCode " \
           + "WHERE gv_history.allyCode="+txt_allyCode+" " \
           + "AND defId='"+character_id+"' " \
-          + "ORDER BY date DESC LIMIT 30"
+          + "AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
+          + "ORDER BY date DESC"
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
+    if ret_db == None:
+        return 1, "WAR: aucun progrès connu de "+character_id+" pour "+player_name+" dans les 30 derniers jours"
 
     d_jbot = []
     d_gobot = []
     v_jbot = []
     v_gobot = []
+    min_date = None
+    max_date = None
     for line in ret_db:
+        if min_date==None or line[0]<min_date:
+            min_date = line[0]
+        if max_date==None or line[0]>max_date:
+            max_date = line[0]
+
         if line[2] == 'j.bot':
             d_jbot.append(line[0])
             v_jbot.append(line[1])
         else: #go.bot
             d_gobot.append(line[0])
             v_gobot.append(line[1])
+
         player_name = line[3]
 
     #create plot
     fig, ax = plt.subplots()
     #add series
-    ax.plot(d_jbot, v_jbot, color='r', label='j.bot')
-    ax.plot(d_gobot, v_gobot, color='g', label='go.bot')
+    ax.plot(d_jbot, v_jbot, color='r', label='j.bot', marker=".")
+    ax.plot(d_gobot, v_gobot, color='g', label='go.bot', marker=".")
     #format dates on X axis
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
@@ -3104,6 +3118,11 @@ def get_gv_graph(txt_allyCode, character_alias):
     fig.suptitle(title)
     #add legend
     ax.legend(loc="upper left")
+    #set min/max on X axis
+    if min_date == max_date:
+        ax.set_xlim([min_date-datetime.timedelta(days=1), 
+                     max_date+datetime.timedelta(days=1)])
+                
 
     fig.canvas.draw()
     fig_size = fig.canvas.get_width_height()
@@ -3116,15 +3135,26 @@ def get_modq_graph(txt_allyCode):
     query = "SELECT date, modq, name FROM gp_history " \
           + "JOIN players ON players.allyCode = gp_history.allyCode " \
           + "WHERE gp_history.allyCode="+txt_allyCode+" " \
-          + "ORDER BY date DESC LIMIT 30"
+          + "AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
+          + "ORDER BY date DESC"
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
+    if ret_db == None:
+        return 1, "WAR: aucun modq connu de "+character_id+" pour "+player_name+" dans les 30 derniers jours"
 
     d_modq = []
     v_modq = []
+    min_date = None
+    max_date = None
     for line in ret_db:
+        if min_date==None or line[0]<min_date:
+            min_date = line[0]
+        if max_date==None or line[0]>max_date:
+            max_date = line[0]
+
         d_modq.append(line[0])
         v_modq.append(line[1])
+
         player_name = line[2]
 
     #create plot
@@ -3137,6 +3167,10 @@ def get_modq_graph(txt_allyCode):
     #add title
     title = "Progès MODQ de "+player_name
     fig.suptitle(title)
+    #set min/max on X axis
+    if min_date == max_date:
+        ax.set_xlim([min_date-datetime.timedelta(days=1), 
+                     max_date+datetime.timedelta(days=1)])
 
     fig.canvas.draw()
     fig_size = fig.canvas.get_width_height()
