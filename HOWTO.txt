@@ -1,0 +1,4 @@
+# ajouter un perso au guide de voyage
+- ajouter ID et Name dans unitsList_dict.json
+- ajouter ID et Name dans GuiOnBot.doc / units
+- ajouter ID-GV et requis dans GuiOnBot.doc/teams
