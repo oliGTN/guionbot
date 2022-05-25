@@ -3082,7 +3082,7 @@ def get_gv_graph(txt_allyCode, character_alias):
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
     if ret_db == None:
-        return 1, "WAR: aucun progrès connu de "+character_id+" pour "+player_name+" dans les 30 derniers jours"
+        return 1, "WAR: aucun progrès connu de "+character_id+" pour "+txt_allyCode+" dans les 30 derniers jours", None
 
     d_jbot = []
     d_gobot = []
@@ -3140,7 +3140,7 @@ def get_modq_graph(txt_allyCode):
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
     if ret_db == None:
-        return 1, "WAR: aucun modq connu de "+character_id+" pour "+player_name+" dans les 30 derniers jours"
+        return 1, "WAR: aucun modq connu de "+character_id+" pour "+txt_allyCode+" dans les 30 derniers jours", None
 
     d_modq = []
     v_modq = []
