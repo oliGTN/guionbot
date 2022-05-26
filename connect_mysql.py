@@ -620,7 +620,7 @@ def update_player(dict_player):
             cursor.execute(query)
                 
         #Compute ModQ from DB data
-        query = "SELECT round(count(mods.id)/(char_gp/100000),2) " \
+        query = "SELECT count(mods.id)/(char_gp/100000) " \
               + "FROM mods " \
               + "JOIN roster ON mods.roster_id = roster.id " \
               + "JOIN players ON players.allyCode = roster.allyCode " \
