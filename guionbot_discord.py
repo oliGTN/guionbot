@@ -1848,7 +1848,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            print(dict_platoons_previously_done[ctx.guild.name])
+            #print(dict_platoons_previously_done[ctx.guild.name])
             if len(teams) == 0:
                 teams = ["all"]
 
@@ -1886,7 +1886,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvj 192126111 all\n"\
                       "Exemple: go.gvj me SEE\n"\
                       "Exemple: go.gvj me thrawn JKL")
-    async def gvj(self, ctx, allyCode, *teams):
+    async def gvj(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode = manage_me(ctx, allyCode)
@@ -1895,10 +1895,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            if len(teams) == 0:
-                teams = ["all"]
+            if len(characters) == 0:
+                characters = ["all"]
                 
-            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, teams, allyCode)
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_gvj, characters, allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -1924,7 +1924,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvg me SEE\n"\
                       "Exemple: go.gvg me thrawn JKL\n"\
                       "La commande n'affiche que les 40 premiers.")
-    async def gvg(self, ctx, allyCode, *teams):
+    async def gvg(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode = manage_me(ctx, allyCode)
@@ -1933,10 +1933,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            if len(teams) == 0:
-                teams = ["all"]
+            if len(characters) == 0:
+                characters = ["all"]
 
-            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, teams, allyCode)
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_gvg, characters, allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2141,7 +2141,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Graphique de GV d'un perso\n\n"\
                       "Exemple: go.ggv me SEE\n"\
                       "Exemple: go.ggv 123456789 JMK")
-    async def ggv(self, ctx, allyCode, character_alias):
+    async def ggv(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode = manage_me(ctx, allyCode)
@@ -2149,21 +2149,40 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
-        else:
-            e, err_txt, image = await bot.loop.run_in_executor(None,
-                go.get_gv_graph, allyCode, character_alias)
-            if e != 0:
-                await ctx.send(err_txt)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                with BytesIO() as image_binary:
-                    image.save(image_binary, 'PNG')
-                    image_binary.seek(0)
-                    await ctx.send(content = "",
-                           file=File(fp=image_binary, filename='image.png'))
+            return
 
-                await ctx.message.add_reaction(emoji_check)
-                
+        if len(characters) == 0:
+            characters = ["all"]
+
+        #First run a GVJ to ensure at least on result
+        err_code, ret_cmd = await bot.loop.run_in_executor(None,
+                                                           go.print_gvj,
+                                                           characters,
+                                                           allyCode)
+        if err_code != 0:
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+            return
+        
+        #Seoncd, display the graph
+        err_code, err_txt, image = await bot.loop.run_in_executor(None,
+                                                                  go.get_gv_graph,
+                                                                  allyCode,
+                                                                  characters)
+        if err_code != 0:
+            await ctx.send(err_txt)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        #Display the output image
+        with BytesIO() as image_binary:
+            image.save(image_binary, 'PNG')
+            image_binary.seek(0)
+            await ctx.send(content = "",
+                   file=File(fp=image_binary, filename='image.png'))
+
+        await ctx.message.add_reaction(emoji_check)
+        
 
     ##############################################################
     # Command: gmj

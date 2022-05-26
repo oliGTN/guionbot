@@ -20,6 +20,7 @@ from collections import Counter
 import inspect
 from texttable import Texttable
 import itertools
+import numpy as np
 
 import connect_gsheets
 import connect_mysql
@@ -2766,7 +2767,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
                     dict_scoring_teams_by_required_toons[key_required_toons] = list_toons
 
             if '[]' in dict_scoring_teams_by_required_toons:
-                print(dict_teams[scoring_team_name])
+                #print(dict_teams[scoring_team_name])
                 list_scoring_teams.append([scoring_team_name,
                                            dict_scoring_teams_by_required_toons['[]'],
                                            dict_team_score[scoring_team_name][1]])
@@ -3067,63 +3068,104 @@ def tag_players_with_character(txt_allyCode, character):
 
     return 0, "", list_discord_ids
 
-def get_gv_graph(txt_allyCode, character_alias):
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
-    if txt != '':
-        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
-    character_id = list_character_ids[0]
+#######################################################
+# get_gv_graph
+# IN txt_allyCode: identifier of the player
+# IN characters: list of GV characters
+# OUT: image of the graph
+#######################################################
+def get_gv_graph(txt_allyCode, characters):
+    if not "all" in characters:
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+        if txt != '':
+            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+        character_ids_txt = str(tuple(list_character_ids)).replace(',)', ')')
+    else:
+        character_ids_txt = "tout le guide"
 
-    query = "SELECT date, progress, source, name FROM gv_history " \
+    query = "SELECT date, defId, progress, source, name FROM gv_history " \
           + "JOIN players ON players.allyCode = gv_history.allyCode " \
-          + "WHERE gv_history.allyCode="+txt_allyCode+" " \
-          + "AND defId='"+character_id+"' " \
-          + "AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
+          + "WHERE gv_history.allyCode="+txt_allyCode+" "
+    if not "all" in characters:
+          query += "AND defId IN "+character_ids_txt+" "
+    query +="AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
           + "ORDER BY date DESC"
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
     if ret_db == None:
-        return 1, "WAR: aucun progrès connu de "+character_id+" pour "+txt_allyCode+" dans les 30 derniers jours", None
+        return 1, "WAR: aucun progrès connu de "+character_ids_txt+" pour "+txt_allyCode+" dans les 30 derniers jours", None
 
-    d_jbot = []
-    d_gobot = []
-    v_jbot = []
-    v_gobot = []
     min_date = None
     max_date = None
-    for line in ret_db:
-        if min_date==None or line[0]<min_date:
-            min_date = line[0]
-        if max_date==None or line[0]>max_date:
-            max_date = line[0]
+    dict_dates={}
+    dict_values={}
 
-        if line[2] == 'j.bot':
-            d_jbot.append(line[0])
-            v_jbot.append(line[1])
-        else: #go.bot
-            d_gobot.append(line[0])
-            v_gobot.append(line[1])
+    if len(characters) == 1 and characters[0]!="all":
+        #display the one character progress, with both j.bot and go.bot
+        for line in ret_db:
+            if min_date==None or line[0]<min_date:
+                min_date = line[0]
+            if max_date==None or line[0]>max_date:
+                max_date = line[0]
 
-        player_name = line[3]
+            if not line[3] in dict_dates:
+                dict_dates[line[3]] = []
+                dict_values[line[3]] = []
+            dict_dates[line[3]].append(line[0])
+            dict_values[line[3]].append(line[2])
+
+            player_name = line[4]
+
+    else: #more than one character, all characters displayed only with go.bot
+        for line in ret_db:
+            if line[3] == "go.bot":
+                if min_date==None or line[0]<min_date:
+                    min_date = line[0]
+                if max_date==None or line[0]>max_date:
+                    max_date = line[0]
+
+                if not line[1] in dict_dates:
+                    dict_dates[line[1]] = []
+                    dict_values[line[1]] = []
+                dict_dates[line[1]].append(line[0])
+                dict_values[line[1]].append(line[2])
+
+                player_name = line[4]
 
     #create plot
     fig, ax = plt.subplots()
+    #set colormap
+    # Have a look at the colormaps here and decide which one you'd like:
+    # http://matplotlib.org/1.2.1/examples/pylab_examples/show_colormaps.html
+    colormap = plt.cm.gist_ncar
+    plt.gca().set_prop_cycle(plt.cycler('color', plt.cm.jet(np.linspace(0, 1, len(dict_dates)))))
+
     #add series
-    ax.plot(d_jbot, v_jbot, color='r', label='j.bot', marker=".")
-    ax.plot(d_gobot, v_gobot, color='g', label='go.bot', marker=".")
+    for key in dict_dates:
+        ax.plot(dict_dates[key], dict_values[key], label=key, marker=".")
     #format dates on X axis
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
     #add title
-    title = "Progès GV de "+character_id+" pour "+player_name
+    if len(characters)==1:
+        title = "Progès GV de "+character_ids_txt+" pour "+player_name
+    else:
+        title = "Progès GV pour "+player_name
     fig.suptitle(title)
-    #add legend
-    ax.legend(loc="upper left")
+
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+    # Put a legend to the right of the current axis
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
     #set min/max on X axis
     if min_date == max_date:
         ax.set_xlim([min_date-datetime.timedelta(days=1), 
                      max_date+datetime.timedelta(days=1)])
                 
-
+    #Render the image
     fig.canvas.draw()
     fig_size = fig.canvas.get_width_height()
     fig_bytes = fig.canvas.tostring_rgb()
