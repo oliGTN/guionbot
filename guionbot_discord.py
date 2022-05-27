@@ -773,7 +773,16 @@ def manage_me(ctx, alias):
             ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
         else:
             ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
-    elif not alias.isnumeric():
+
+    elif re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", alias) != None:
+        # 123-456-789 >> allyCode
+        ret_allyCode_txt = alias.replace("-", "")
+
+    elif alias.isnumeric():
+        # number >> allyCode
+        ret_allyCode_txt = alias
+
+    else:
         # Look for the name among known player names
         results = connect_mysql.get_table("SELECT name, allyCode FROM players")
         list_names = [x[0] for x in results]
@@ -829,9 +838,6 @@ def manage_me(ctx, alias):
                 goutils.log("ERR", "guionbot_discord.manage_me", alias + " ne fait pas partie des joueurs enregistrés")
                 ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
-    else:
-        # number >> allyCode
-        ret_allyCode_txt = alias
     
     return ret_allyCode_txt
 
