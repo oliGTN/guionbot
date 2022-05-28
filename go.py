@@ -2930,74 +2930,47 @@ def tag_players_with_character(txt_allyCode, character):
     opposite_search = (character[0]=="-")
 
     tab_virtual_character = character.split(':')
-    if len(tab_virtual_character) == 3:
-        char_alias = tab_virtual_character[0]
-        simple_search = False
-        
-        if not tab_virtual_character[1] in "1234567":
-            return 1, "ERR: la syntaxe "+character+" est incorrecte pour les étoiles", None
-        char_rarity = int(tab_virtual_character[1])
 
-        if tab_virtual_character[2][0] in "gG":
-            if tab_virtual_character[2][1:].isnumeric():
-                char_gear = int(tab_virtual_character[2][1:])
-                char_relic = -2
-                if (char_gear<1) or (char_gear>13):
-                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-            else:
-                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-        elif tab_virtual_character[2][0] in "rR":
-            if tab_virtual_character[2][1:].isnumeric():
-                char_relic = int(tab_virtual_character[2][1:])
-                char_gear = 13
-                if (char_relic<0) or (char_relic>8):
-                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-            else:
-                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-        else:
-            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-        
-    elif len(tab_virtual_character) == 2:
-        char_alias = tab_virtual_character[0]
-        simple_search = False
+    char_rarity = 0
+    char_gear = 0
+    char_relic = -2
+    char_omicron = False
 
-        if tab_virtual_character[1][0] in "gG":
-            char_rarity = 0
-            if tab_virtual_character[1][1:].isnumeric():
-                char_gear = int(tab_virtual_character[1][1:])
-                char_relic = -2
-                if (char_gear<1) or (char_gear>13):
-                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-            else:
-                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-        elif tab_virtual_character[1][0] in "rR":
-            char_rarity = 0
-            if tab_virtual_character[1][1:].isnumeric():
-                char_relic = int(tab_virtual_character[1][1:])
-                char_gear = 13
-                if (char_relic<0) or (char_relic>8):
-                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-            else:
-                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-        elif tab_virtual_character[1] in "1234567":
-            char_gear = 0
-            char_relic = -2
-            char_rarity = int(tab_virtual_character[1])
-
-        else:
-            return 1, "ERR: la syntaxe "+character+" est incorrecte", None
-            
-    elif len(tab_virtual_character) == 1:
+    if len(tab_virtual_character) == 1:
         #regular character, not virtual
         char_alias = tab_virtual_character[0]
         simple_search = True
-        char_rarity = 0
-        char_gear = 0
-        char_relic = -2
-        pass
     else:
-        return 1, "ERR: la syntaxe "+character+" est incorrecte", None
+        char_alias = tab_virtual_character[0]
+        simple_search = False
 
+        for character_option in tab_virtual_character[1:]:
+            if len(character_option)==1 and character_option in "1234567":
+                char_rarity = int(character_option)
+
+            elif character_option[0] in "gG":
+                if character_option[1:].isnumeric():
+                    char_gear = int(character_option[1:])
+                    char_relic = -2
+                    if (char_gear<1) or (char_gear>13):
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+                else:
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+
+            elif character_option[0] in "rR":
+                if character_option[1:].isnumeric():
+                    char_relic = int(character_option[1:])
+                    char_gear = 13
+                    if (char_relic<0) or (char_relic>8):
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+                else:
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+
+            elif character_option == "omicron":
+                char_omicron = True
+            else:
+                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+            
     #Get character_id
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
     if txt != '':
@@ -3016,9 +2989,13 @@ def tag_players_with_character(txt_allyCode, character):
               + "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
               + "      AND defId = '"+character_id+"')"
     else:
-        query = "SELECT guildName, name FROM players " \
-              + "JOIN roster ON roster.allyCode = players.allyCode " \
-              + "WHERE guildName=(" \
+        query = "SELECT guildName, players.name FROM players " \
+              + "JOIN roster ON roster.allyCode = players.allyCode "
+
+        if char_omicron:
+            query+= "JOIN roster_skills ON roster_id = roster.id "
+
+        query+= "WHERE guildName=(" \
               + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
               + "AND defId = '"+character_id+"' "
 
@@ -3030,9 +3007,18 @@ def tag_players_with_character(txt_allyCode, character):
                 intro_txt += ":R"+str(char_relic)
             elif char_gear>0:
                 intro_txt += ":G"+str(char_gear)
+            if char_omicron:
+                intro_txt += ":omicron"
+
             query +="AND (rarity < "+str(char_rarity)+" "\
                   + "OR gear < "+str(char_gear)+" "\
-                  + "OR relic_currentTier < "+str(char_relic+2)+") "
+                  + "OR relic_currentTier < "+str(char_relic+2)+" "
+
+            if char_omicron:
+                query += "OR (roster_skills.omicron_tier>0 AND roster_skills.level<roster_skills.omicron_tier) "
+
+            query += ") GROUP BY guildName, players.name"
+
         else:
             intro_txt = "Ceux qui ont "+character_id
             if char_rarity>0:
@@ -3041,10 +3027,17 @@ def tag_players_with_character(txt_allyCode, character):
                 intro_txt += ":R"+str(char_relic)
             elif char_gear>0:
                 intro_txt += ":G"+str(char_gear)
+            if char_omicron:
+                intro_txt += ":omicron"
 
             query +="AND rarity >= "+str(char_rarity)+" "\
                   + "AND gear >= "+str(char_gear)+" "\
-                  + "AND relic_currentTier >= "+str(char_relic+2)
+                  + "AND relic_currentTier >= "+str(char_relic+2)+" "
+
+            if char_omicron:
+                query += "AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
+
+            query += "GROUP BY guildName, players.name "
 
     goutils.log2('DBG', query)
     allyCodes_in_DB = connect_mysql.get_table(query)
