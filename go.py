@@ -1076,7 +1076,7 @@ def print_gvj(list_team_names, txt_allyCode):
                 ret_print_gvj += "(Les persos avec -- ne sont pas pris en compte pour le score)\n"
                 ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))+"%"
                 connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
-                                                int(player_score), unlocked, "go.bot")
+                                                player_score, unlocked, "go.bot")
 
     else:
         #Several tams
@@ -1093,7 +1093,7 @@ def print_gvj(list_team_names, txt_allyCode):
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
                     connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
-                                                    int(player_score), player_unlocked, "go.bot")
+                                                    player_score, player_unlocked, "go.bot")
                                             
         #Teams are sorted with the best progress on top
         list_lines = sorted(list_lines, key=lambda x: -x[0])
@@ -1138,7 +1138,7 @@ def print_gvg(list_team_names, txt_allyCode):
                     list_lines.append([player_score, new_line, player_unlocked])
                     if not player_unlocked and player_score>80:
                         connect_mysql.update_gv_history("", player_name, character_id, True,
-                                                        int(player_score), player_unlocked, "go.bot")
+                                                        player_score, player_unlocked, "go.bot")
 
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
