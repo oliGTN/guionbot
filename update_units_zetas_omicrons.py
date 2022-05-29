@@ -27,6 +27,8 @@ for ability in abilityList:
                 omicron_type = "GA"
             elif "en grandes ar\u00e8nes" in upgradeKey_lastTier.lower():
                 omicron_type = "GA"
+            elif "en conqu\u00eate" in upgradeKey_lastTier.lower():
+                omicron_type = "CQ"
             else:
                 print("Unknown omicron type for "+ability['id'])
                 omicron_type="??"

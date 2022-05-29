@@ -14,11 +14,13 @@ import json
 import matplotlib
 matplotlib.use('Agg') #Preventin GTK erros at startup
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from PIL import Image
 from collections import Counter
 import inspect
 from texttable import Texttable
 import itertools
+import numpy as np
 
 import connect_gsheets
 import connect_mysql
@@ -122,11 +124,11 @@ def refresh_cache():
     return 1
 
 ##################################
-# Function: refresh_cache
-# inputs: txt_allYCode (string)
-#         int force_update (0: default, 1: force update, -1, do not update unless there is no XML)
+# Function: load_player
+# inputs: txt_allyCode (string)
+#         int force_update (0: default, 1: force update, -1: do not update unless there is no XML)
 #         bool no_db: do not put player in DB
-# return: erro_code, err_text
+# return: err_code, err_text
 ##################################
 def load_player(txt_allyCode, force_update, no_db):
     goutils.log2("DBG", "START")
@@ -152,16 +154,19 @@ def load_player(txt_allyCode, force_update, no_db):
         goutils.log2("INFO", 'reading file ' + json_file + '...')
         if os.path.isfile(json_file):
             if os.path.getsize(json_file) == 0:
+                goutils.log2("DBG", "... empty file, delete it")
                 #empty file, delete it
                 os.remove(json_file)
                 prev_dict_player = None
             else:
+                goutils.log2("DBG", "... correct file")
                 prev_dict_player = json.load(open(json_file, 'r'))
                 prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
         else:
+            goutils.log2("DBG", "... the file does not exist")
             prev_dict_player = None
 
-    if (not recent_player or force_update==1) and not (force_update==-1 and prev_dict_player != None):
+    if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting API data for player ' + txt_allyCode + '...')
         if client != None:
             player_data = client.get_data('player', [txt_allyCode], 'FRE_FR')
@@ -220,7 +225,7 @@ def load_player(txt_allyCode, force_update, no_db):
             return 1, 'ERR: allyCode '+txt_allyCode+' not found', None
 
     else:
-        goutils.log2('INFO', player_name + ' OK')
+        goutils.log2('INFO', player_name + ' loaded from existing XML OK')
         dict_player = prev_dict_player
     
     sys.stdout.flush()
@@ -797,11 +802,11 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
     query += "GROUP BY players.name, guild_teams.name, guild_team_roster.unit_id, \
             rarity, gear, relic_currentTier, gp \
             ORDER BY players.name, guild_teams.name"
-    goutils.log("DBG", "go.get_team_progress", query)
+    goutils.log2("DBG", query)
     
     # print(query)
     player_data = connect_mysql.get_table(query)
-    goutils.log("DBG", "go.get_team_progress", player_data)
+    goutils.log2("DBG", player_data)
     
     if not gv_mode:
         # Need the zetas to compute the progress of a regular team
@@ -850,7 +855,7 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         player_omicron_data = []
         
         #There is a need to check if the target character is locked or unlocked
-        goutils.log("INFO", "go.get_team_progress", "Get GV characters data from DB...")
+        goutils.log2("INFO", "Get GV characters data from DB...")
         query = "SELECT players.name, defId, rarity \
                 FROM roster \
                 JOIN players ON players.allyCode = roster.allyCode \n"
@@ -860,25 +865,25 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
             query += "WHERE players.guildName = \
                     (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND defId IN (SELECT SUBSTRING_INDEX(name, '-GV', 1) FROM guild_teams WHERE name LIKE '%-GV')"
-        goutils.log("DBG", "go.get_team_progress", query)
+        goutils.log2("DBG", query)
         
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
-        goutils.log("DBG", "go.get_team_progress", gv_characters_unlocked)
+        goutils.log2("DBG", gv_characters_unlocked)
         
     if player_data != None:
-        goutils.log("INFO", "go.get_team_progress", "Recreate dict_teams...")
+        goutils.log2("INFO", "Recreate dict_teams...")
         dict_teams = goutils.create_dict_teams(player_data,
                                                player_zeta_data,
                                                player_omicron_data,
                                                gv_characters_unlocked)
-        goutils.log("INFO", "go.get_team_progress", "Recreation of dict_teams is OK")
+        goutils.log2("INFO", "Recreation of dict_teams is OK")
     else:
         query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
-        goutils.log("DBG", "go.get_team_progress", query)
+        goutils.log2("DBG", query)
         player_name = connect_mysql.get_value(query)
         dict_teams = {player_name: {}}
-        goutils.log("WAR", "go.get_team_progress", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
+        goutils.log2("WAR", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
     
     # Compute teams for this player
     if gv_mode:
@@ -948,7 +953,7 @@ def print_vtg(list_team_names, txt_allyCode, server_name):
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
                                               server_name, True, False)
     if type(ret_get_team_progress) == str:
-        goutils.log("ERR", "go.print_vtg", "get_team_progress has returned an error: "+ret_print_vtx)
+        goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
         return 1,  ret_get_team_progress
     else:
         ret_print_vtx = "Vérification des Teams de la Guilde **"+guild_name+"**\n\n"
@@ -1005,7 +1010,7 @@ def print_vtj(list_team_names, txt_allyCode, server_name):
     player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
                                               server_name, False, False)
     if type(ret_get_team_progress) == str:
-        goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+ret_get_team_progress)
+        goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
     else:
         ret_print_vtx = "Vérification des Teams du Joueur **"+player_name+"**\n\n"
@@ -1014,7 +1019,7 @@ def print_vtj(list_team_names, txt_allyCode, server_name):
             value_iterator = iter(values_view)
             first_team = next(value_iterator)
             if type(first_team) == str:
-                goutils.log("ERR", "go.print_vtj", "get_team_progress has returned an error: "+first_team)
+                goutils.log2("ERR", "get_team_progress has returned an error: "+first_team)
                 return 1,  first_team, None
             player_name = first_team[0][1][4]
             ret_print_vtx += "**Joueur : " + player_name + "**\n"
@@ -1060,29 +1065,35 @@ def print_gvj(list_team_names, txt_allyCode):
     if len(ret_get_team_progress) == 1:
         #one team only, one player
         team = list(ret_get_team_progress.keys())[0]
+        character_id = team[:-3]
         ret_team = ret_get_team_progress[team]
         if type(ret_team) == str:
             #error
             ret_print_gvj += ret_team
         else:
             for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
-                ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+team[:-3]+"\n"
+                ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+character_id+"\n"
                 ret_print_gvj += "(Les persos avec -- ne sont pas pris en compte pour le score)\n"
                 ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))+"%"
+                connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+                                                int(player_score), unlocked, "go.bot")
 
     else:
         #Several tams
         player_name = ''
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
+            character_id = team[:-3]
             if type(ret_team) == str:
                 #error
                 ret_print_gvj += ret_team
             else:
                 for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
-                    new_line = team[:-3] + " - "+ player_name + ": " + \
+                    new_line = character_id + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
+                    connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+                                                    int(player_score), player_unlocked, "go.bot")
                                             
         #Teams are sorted with the best progress on top
         list_lines = sorted(list_lines, key=lambda x: -x[0])
@@ -1115,16 +1126,20 @@ def print_gvg(list_team_names, txt_allyCode):
     list_lines = []
     for team in ret_get_team_progress:
         ret_team = ret_get_team_progress[team]
+        character_id = team[:-3]
         if type(ret_team) == str:
             #error
             ret_print_gvg += ret_team + "\n"
         else:
             for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 if not player_unlocked:
-                    new_line = team[:-3] + " - "+ player_name + ": " + \
+                    new_line = character_id + " - "+ player_name + ": " + \
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
-                    
+                    if not player_unlocked and player_score>80:
+                        connect_mysql.update_gv_history("", player_name, character_id, True,
+                                                        int(player_score), player_unlocked, "go.bot")
+
     list_lines = sorted(list_lines, key=lambda x: -x[0])
     ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
     ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
@@ -1522,7 +1537,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                                     
         character_id = list_character_ids[0]
         db_stat_data_char = []
-        goutils.log("INFO", "go.print_character_stats", "Get guild_data from DB...")
+        goutils.log2("INFO", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
                +"roster.combatType, rarity, gear, relic_currentTier, "\
                +"stat1, "\
@@ -1796,7 +1811,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player):
         e, t, dict_player = load_player(txt_allyCode, -int(not(refresh_player)), False)
         if e != 0:
             #error wile loading guild data
-            goutils.log("WAR", "go.get_character_image", "joueur non trouvé pour code allié " + txt_allyCode)
+            goutils.log2("WAR", "joueur non trouvé pour code allié " + txt_allyCode)
             err_txt += 'WAR: joueur non trouvé pour code allié ' + txt_allyCode+'\n'
             dict_player = {"allyCode": txt_allyCode}
 
@@ -1857,7 +1872,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
     if len(list_opponent_squads) == 0:
-        goutils.log("ERR", "go.get_tw_battle_image", "aucune phase d'attaque en cours en GT")
+        goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
         return 1, err_txt, None
 
@@ -1894,10 +1909,10 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         #print(closest_names)
         if len(closest_names)<1:
             err_txt += 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n'
-            goutils.log("ERR", "go.get_tw_battle_image", player_name+' ne fait pas partie des joueurs connus')
+            goutils.log2("ERR", player_name+' ne fait pas partie des joueurs connus')
             opp_squad[1]=''
         else:
-            goutils.log("INFO", "go.get_tw_battle_image", "cmd launched with name that looks like "+closest_names[0])
+            goutils.log2("INFO", "cmd launched with name that looks like "+closest_names[0])
             for r in results:
                 if r[0] == closest_names[0]:
                     opp_squad[1] = str(r[1])
@@ -1937,7 +1952,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     if len(closest_names)<1:
         return 1, 'ERR: '+stat_name+' ne fait pas partie des stats connues '+str(list(dict_stat_names.keys())), None
 
-    goutils.log("INFO", "go.get_stat_graph", "cmd launched with stat name that looks like "+closest_names[0])
+    goutils.log2("INFO", "cmd launched with stat name that looks like "+closest_names[0])
     stat_name = closest_names[0]
     stat_id = dict_stat_names[stat_name][0]
     stat_isPercent = dict_stat_names[stat_name][1]
@@ -1946,7 +1961,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     #Get data from DB
     db_stat_data_char = []
-    goutils.log("INFO", "go.get_stat_char", "Get player data from DB...")
+    goutils.log2("INFO", "Get player data from DB...")
     query = "SELECT allyCode, gear,"\
            +stat_string+","\
            +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
@@ -1954,7 +1969,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
            +"where defId = '"+character_id+"' "\
            +"AND not "+stat_string+"=0 "\
            +"AND (gear = 13 or allyCode = "+txt_allyCode+")"
-    goutils.log("DBG", "go.get_stat_graph", query)
+    goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
     if stat_isPercent:
@@ -1970,7 +1985,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         else:
             player_value = int(player_values[0])
     else:
-        goutils.log("WAR", "go.get_stat_graph", "Character "+character_alias+" is locked for "+txt_allyCode)
+        goutils.log2("WAR", "Character "+character_alias+" is locked for "+txt_allyCode)
         err_txt +="WAR: Le perso "+character_alias+" n'est pas débloqué pour "+txt_allyCode
         player_value = None
 
@@ -2752,7 +2767,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
                     dict_scoring_teams_by_required_toons[key_required_toons] = list_toons
 
             if '[]' in dict_scoring_teams_by_required_toons:
-                print(dict_teams[scoring_team_name])
+                #print(dict_teams[scoring_team_name])
                 list_scoring_teams.append([scoring_team_name,
                                            dict_scoring_teams_by_required_toons['[]'],
                                            dict_team_score[scoring_team_name][1]])
@@ -2900,4 +2915,302 @@ def find_best_teams_for_raid(txt_allyCode, server_name, raid_name, compute_guild
         dict_best_teams[pname] = lbts
 
     return 0, "", dict_best_teams
+
+################################################################
+# tag_players_with_character
+# IN: txt_allyCode (to identify the guild)
+# IN: character ("SEE" or "SEE:7:G8" or "SEE:R5")
+# OUT: err_code, err_txt, list_discord_ids
+################################################################
+def tag_players_with_character(txt_allyCode, character):
+    err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+    if err_code != 0:
+        return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
+
+    opposite_search = (character[0]=="-")
+
+    tab_virtual_character = character.split(':')
+
+    char_rarity = 0
+    char_gear = 0
+    char_relic = -2
+    char_omicron = False
+
+    if len(tab_virtual_character) == 1:
+        #regular character, not virtual
+        char_alias = tab_virtual_character[0]
+        simple_search = True
+    else:
+        char_alias = tab_virtual_character[0]
+        simple_search = False
+
+        for character_option in tab_virtual_character[1:]:
+            if len(character_option)==1 and character_option in "1234567":
+                char_rarity = int(character_option)
+
+            elif character_option[0] in "gG":
+                if character_option[1:].isnumeric():
+                    char_gear = int(character_option[1:])
+                    char_relic = -2
+                    if (char_gear<1) or (char_gear>13):
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+                else:
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+
+            elif character_option[0] in "rR":
+                if character_option[1:].isnumeric():
+                    char_relic = int(character_option[1:])
+                    char_gear = 13
+                    if (char_relic<0) or (char_relic>8):
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+                else:
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+
+            elif character_option == "omicron":
+                char_omicron = True
+            else:
+                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+            
+    #Get character_id
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+    character_id = list_character_ids[0]
+
+    if opposite_search and simple_search:
+        intro_txt = "Ceux qui n'ont pas "+character_id
+        query = "SELECT guildName, name FROM players " \
+              + "WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "AND NOT allyCode IN (" \
+              + "   SELECT players.allyCode FROM players " \
+              + "   JOIN roster ON roster.allyCode = players.allyCode " \
+              + "   WHERE guildName=(" \
+              + "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "      AND defId = '"+character_id+"')"
+    else:
+        query = "SELECT guildName, players.name FROM players " \
+              + "JOIN roster ON roster.allyCode = players.allyCode "
+
+        if char_omicron:
+            query+= "JOIN roster_skills ON roster_id = roster.id "
+
+        query+= "WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+              + "AND defId = '"+character_id+"' "
+
+        if opposite_search:
+            intro_txt = "Ceux qui ont "+character_id+ " mais pas "+character_id
+            if char_rarity>0:
+                intro_txt += ":"+str(char_rarity)+"*"
+            if char_relic>-2:
+                intro_txt += ":R"+str(char_relic)
+            elif char_gear>0:
+                intro_txt += ":G"+str(char_gear)
+            if char_omicron:
+                intro_txt += ":omicron"
+
+            query +="AND (rarity < "+str(char_rarity)+" "\
+                  + "OR gear < "+str(char_gear)+" "\
+                  + "OR relic_currentTier < "+str(char_relic+2)+" "
+
+            if char_omicron:
+                query += "OR (roster_skills.omicron_tier>0 AND roster_skills.level<roster_skills.omicron_tier) "
+
+            query += ") GROUP BY guildName, players.name"
+
+        else:
+            intro_txt = "Ceux qui ont "+character_id
+            if char_rarity>0:
+                intro_txt += ":"+str(char_rarity)+"*"
+            if char_relic>-2:
+                intro_txt += ":R"+str(char_relic)
+            elif char_gear>0:
+                intro_txt += ":G"+str(char_gear)
+            if char_omicron:
+                intro_txt += ":omicron"
+
+            query +="AND rarity >= "+str(char_rarity)+" "\
+                  + "AND gear >= "+str(char_gear)+" "\
+                  + "AND relic_currentTier >= "+str(char_relic+2)+" "
+
+            if char_omicron:
+                query += "AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
+
+            query += "GROUP BY guildName, players.name "
+
+    goutils.log2('DBG', query)
+    allyCodes_in_DB = connect_mysql.get_table(query)
+
+    guildName = allyCodes_in_DB[0][0]
+    dict_players = connect_gsheets.load_config_players(guildName, False)[0]
+
+    list_discord_ids = [intro_txt]
+    for [guildName, player_name] in allyCodes_in_DB:
+        if player_name == "":
+            continue
+
+        goutils.log2('DBG', 'player_name: '+player_name)
+
+        if player_name in dict_players:
+            player_mention = dict_players[player_name][1]
+        else:
+            player_mention = player_name
+
+        list_discord_ids.append(player_mention)
+
+    return 0, "", list_discord_ids
+
+#######################################################
+# get_gv_graph
+# IN txt_allyCode: identifier of the player
+# IN characters: list of GV characters
+# OUT: image of the graph
+#######################################################
+def get_gv_graph(txt_allyCode, characters):
+    if not "all" in characters:
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+        if txt != '':
+            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+        character_ids_txt = str(tuple(list_character_ids)).replace(',)', ')')
+    else:
+        character_ids_txt = "tout le guide"
+
+    query = "SELECT date, defId, progress, source, name FROM gv_history " \
+          + "JOIN players ON players.allyCode = gv_history.allyCode " \
+          + "WHERE gv_history.allyCode="+txt_allyCode+" "
+    if not "all" in characters:
+          query += "AND defId IN "+character_ids_txt+" "
+    query +="AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
+          + "ORDER BY date DESC"
+    goutils.log2("DBG", query)
+    ret_db = connect_mysql.get_table(query)
+    if ret_db == None:
+        return 1, "WAR: aucun progrès connu de "+character_ids_txt+" pour "+txt_allyCode+" dans les 30 derniers jours", None
+
+    min_date = None
+    max_date = None
+    dict_dates={}
+    dict_values={}
+
+    if len(characters) == 1 and characters[0]!="all":
+        #display the one character progress, with both j.bot and go.bot
+        for line in ret_db:
+            if min_date==None or line[0]<min_date:
+                min_date = line[0]
+            if max_date==None or line[0]>max_date:
+                max_date = line[0]
+
+            if not line[3] in dict_dates:
+                dict_dates[line[3]] = []
+                dict_values[line[3]] = []
+            dict_dates[line[3]].append(line[0])
+            dict_values[line[3]].append(line[2])
+
+            player_name = line[4]
+
+    else: #more than one character, all characters displayed only with go.bot
+        for line in ret_db:
+            if line[3] == "go.bot":
+                if min_date==None or line[0]<min_date:
+                    min_date = line[0]
+                if max_date==None or line[0]>max_date:
+                    max_date = line[0]
+
+                if not line[1] in dict_dates:
+                    dict_dates[line[1]] = []
+                    dict_values[line[1]] = []
+                dict_dates[line[1]].append(line[0])
+                dict_values[line[1]].append(line[2])
+
+                player_name = line[4]
+
+    #create plot
+    fig, ax = plt.subplots()
+    #set colormap
+    # Have a look at the colormaps here and decide which one you'd like:
+    # http://matplotlib.org/1.2.1/examples/pylab_examples/show_colormaps.html
+    colormap = plt.cm.gist_ncar
+    plt.gca().set_prop_cycle(plt.cycler('color', plt.cm.jet(np.linspace(0, 1, len(dict_dates)))))
+
+    #add series
+    for key in dict_dates:
+        ax.plot(dict_dates[key], dict_values[key], label=key, marker=".")
+    #format dates on X axis
+    date_format = mdates.DateFormatter("%d-%m")
+    ax.xaxis.set_major_formatter(date_format)
+    #add title
+    if len(characters)==1:
+        title = "Progès GV de "+character_ids_txt+" pour "+player_name
+    else:
+        title = "Progès GV pour "+player_name
+    fig.suptitle(title)
+
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+    # Put a legend to the right of the current axis
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    #set min/max on X axis
+    if min_date == max_date:
+        ax.set_xlim([min_date-datetime.timedelta(days=1), 
+                     max_date+datetime.timedelta(days=1)])
+                
+    #Render the image
+    fig.canvas.draw()
+    fig_size = fig.canvas.get_width_height()
+    fig_bytes = fig.canvas.tostring_rgb()
+    image = Image.frombytes('RGB', fig_size, fig_bytes)
+
+    return 0, "", image
+
+def get_modq_graph(txt_allyCode):
+    query = "SELECT date, modq, name FROM gp_history " \
+          + "JOIN players ON players.allyCode = gp_history.allyCode " \
+          + "WHERE gp_history.allyCode="+txt_allyCode+" " \
+          + "AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
+          + "ORDER BY date DESC"
+    goutils.log2("DBG", query)
+    ret_db = connect_mysql.get_table(query)
+    if ret_db == None:
+        return 1, "WAR: aucun modq connu de "+character_id+" pour "+txt_allyCode+" dans les 30 derniers jours", None
+
+    d_modq = []
+    v_modq = []
+    min_date = None
+    max_date = None
+    for line in ret_db:
+        if min_date==None or line[0]<min_date:
+            min_date = line[0]
+        if max_date==None or line[0]>max_date:
+            max_date = line[0]
+
+        d_modq.append(line[0])
+        v_modq.append(line[1])
+
+        player_name = line[2]
+
+    #create plot
+    fig, ax = plt.subplots()
+    #add series
+    ax.plot(d_modq, v_modq, label='modq')
+    #format dates on X axis
+    date_format = mdates.DateFormatter("%d-%m")
+    ax.xaxis.set_major_formatter(date_format)
+    #add title
+    title = "Progès MODQ de "+player_name
+    fig.suptitle(title)
+    #set min/max on X axis
+    if min_date == max_date:
+        ax.set_xlim([min_date-datetime.timedelta(days=1), 
+                     max_date+datetime.timedelta(days=1)])
+
+    fig.canvas.draw()
+    fig_size = fig.canvas.get_width_height()
+    fig_bytes = fig.canvas.tostring_rgb()
+    image = Image.frombytes('RGB', fig_size, fig_bytes)
+
+    return 0, "", image
 
