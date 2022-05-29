@@ -1870,7 +1870,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini\n", None
 
-    list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
+    list_opponent_squads = connect_warstats.parse_tw_opponent_teams(warstats_id)
     if len(list_opponent_squads) == 0:
         goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
@@ -2620,7 +2620,7 @@ def get_tw_alerts(server_name):
 
     list_tw_alerts = [twChannel_id, {}]
 
-    list_opponent_squads = connect_warstats.parse_tw_teams(warstats_id)
+    list_opponent_squads = connect_warstats.parse_tw_opponent_teams(warstats_id)
     if len(list_opponent_squads) == 0:
         #TW not started
         return list_tw_alerts
