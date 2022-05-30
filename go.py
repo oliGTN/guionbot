@@ -2691,8 +2691,36 @@ def get_tw_alerts(server_name):
 
     [list_deffense_squads, list_def_territories] = connect_warstats.parse_tw_defense_teams(warstats_id)
     if len(list_def_territories) > 0:
-        list_lost_territories = [t for t in list_def_territories if t[1]==t[3]]
+        #Alert for defense fully set
+        list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
+        for territory in list_lost_territories:
+            territory_name = territory[0]
 
+            n_territory = int(territory_name[1])
+            if territory_name[0] == "T" and int(territory_name[1]) > 2:
+                n_territory -= 2
+
+            if n_territory == 1:
+                msg = "**DEFENSE** - __Le 1er territoire "
+            else:
+                msg = "**DEFENSE** - __Le "+str(n_territory)+"e territoire "
+
+            if territory_name[0] == "T" and int(territory_name[1]) < 3:
+                msg += "du haut__"
+            elif territory_name[0] == "T":
+                msg += "du milieu__"
+            elif territory_name[0] == "F":
+                msg += "des vaisseaux__"
+            else:
+                msg += "du bas__"
+
+            nb_fails = territory[4]
+            msg += " ("+territory_name+") est rempli."
+
+            list_tw_alerts[1]["Placement:"+territory_name] = msg
+
+        #Alert for defense lost
+        list_lost_territories = [t for t in list_def_territories if t[1]==t[3]]
         for territory in list_lost_territories:
             territory_name = territory[0]
 
