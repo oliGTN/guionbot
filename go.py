@@ -2693,7 +2693,7 @@ def get_tw_alerts(server_name):
     if len(list_def_territories) > 0:
         #Alert for defense fully set
         list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
-        for territory in list_lost_territories:
+        for territory in list_full_territories:
             territory_name = territory[0]
 
             n_territory = int(territory_name[1])
