@@ -167,7 +167,7 @@ def add_horizontal(img1, img2):
 
     return image
     
-def get_image_from_character(character_id, dict_player):
+def get_image_from_character(character_id, dict_player, game_mode):
     dict_unitsList = data.get("unitsList_dict.json")
 
     portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
@@ -199,7 +199,7 @@ def get_image_from_character(character_id, dict_player):
         if character_id in dict_unitsList:
             forceAlignment = dict_unitsList[character_id]["forceAlignment"]
         else:
-            goutils.log("WAR", "portraits.get_image_from_character", "unkonwn forceAlignment for "+character_id)
+            goutils.log2("WAR", "unkonwn forceAlignment for "+character_id)
             forceAlignment = 1
 
         if combatType == 1:
@@ -261,7 +261,8 @@ def get_image_from_character(character_id, dict_player):
                     if skill_id in dict_capas[character_id]:
                         if dict_capas[character_id][skill_id][3]!="" \
                                 and skill_tier == dict_capas[character_id][skill_id][4]:
-                            omicrons += 1
+                            if game_mode=="" or (dict_capas[character_id][skill_id][3]==game_mode):
+                                omicrons += 1
             if omicrons>0:
                 omicron_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_omicron.png')
                 omicron_frame_img = omicron_frame_img.resize((60,60))
@@ -278,7 +279,7 @@ def get_image_from_character(character_id, dict_player):
             #CREW
             for crew_element in character["crew"]:
                 crew_id = crew_element["unitId"]
-                crew_image = get_image_from_character(crew_id, dict_player)
+                crew_image = get_image_from_character(crew_id, dict_player, game_mode)
                 portrait_image = add_vertical(portrait_image, crew_image)
     else:
         #character is invalid, display it in reduce
@@ -292,7 +293,7 @@ def get_image_from_character(character_id, dict_player):
 # list_ids_allyCode: [toon1_ID, toon2_ID, ...], dict_player, 
 # tw_territory: 'T1', 'T2', 'F1', ...
 #################################################
-def get_image_from_team(list_character_ids, dict_player, tw_territory):
+def get_image_from_team(list_character_ids, dict_player, tw_territory, game_mode):
     list_portrait_images = []
     player_name = dict_player["name"]
 
@@ -300,7 +301,7 @@ def get_image_from_team(list_character_ids, dict_player, tw_territory):
     for character_id in list_character_ids:
         if character_id in dict_player["roster"]:
             total_gp += dict_player["roster"][character_id]["gp"]
-        character_img = get_image_from_character(character_id, dict_player)
+        character_img = get_image_from_character(character_id, dict_player, game_mode)
         list_portrait_images.append(character_img)
 
     if tw_territory != '':
