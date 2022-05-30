@@ -267,8 +267,14 @@ async def bot_loop_5minutes():
 
                         if not territory in dict_tw_alerts_previously_done[guild.name][1]:
                             if not first_bot_loop_5minutes:
-                                await send_alert_to_admins(guild.name, territory+" is open")
+                                #Short message to admins
+                                if territory.startswith('Home:'):
+                                    await send_alert_to_admins(guild.name, territory+" is lost")
+                                else:
+                                    await send_alert_to_admins(guild.name, territory+" is open")
+
                                 if not bot_test_mode:
+                                    #Full message to TW guild channel
                                     new_msg = await tw_bot_channel.send(msg_txt)
                                     dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, new_msg.id]
 
@@ -280,8 +286,12 @@ async def bot_loop_5minutes():
                         else:
                             [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.name][1][territory]
                             if old_msg_txt != msg_txt:
+                                #Short message to admins
                                 await send_alert_to_admins(guild.name, territory+" is modified")
+
+
                                 if not bot_test_mode:
+                                    #Full message modified in TW guild channel
                                     if old_msg_id != 0:
                                         old_msg = await tw_bot_channel.fetch_message(old_msg_id)
                                         await old_msg.edit(content=msg_txt)
