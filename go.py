@@ -1870,7 +1870,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini\n", None
 
-    list_opponent_squads = connect_warstats.parse_tw_opponent_teams(warstats_id)
+    [list_opponent_squads, list_opp_territories] = connect_warstats.parse_tw_opponent_teams(warstats_id)
     if len(list_opponent_squads) == 0:
         goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
         err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
@@ -2620,77 +2620,103 @@ def get_tw_alerts(server_name):
 
     list_tw_alerts = [twChannel_id, {}]
 
-    list_opponent_squads = connect_warstats.parse_tw_opponent_teams(warstats_id)
-    if len(list_opponent_squads) == 0:
-        #TW not started
-        return list_tw_alerts
+    [list_opponent_squads, list_opp_territories] = connect_warstats.parse_tw_opponent_teams(warstats_id)
+    if len(list_opponent_squads) > 0:
+        list_opponent_players = [x[1] for x in list_opponent_squads]
+        longest_opp_player_name = max(list_opponent_players, key=len)
+        longest_opp_player_name = longest_opp_player_name.replace("'", "''")
+        list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
-    list_opponent_players = [x[1] for x in list_opponent_squads]
-    longest_opp_player_name = max(list_opponent_players, key=len)
-    longest_opp_player_name = longest_opp_player_name.replace("'", "''")
-    list_open_tw_territories = set([x[0] for x in list_opponent_squads])
+        query = "SELECT players.name, defId, roster_skills.name from roster\n"
+        query+= "JOIN roster_skills ON roster_id=roster.id\n"
+        query+= "JOIN players ON players.allyCode=roster.allyCode\n"
+        query+= "WHERE guildName=(\n"
+        query+= "    SELECT guildName FROM players\n"
+        query+= "    WHERE name='"+longest_opp_player_name+"'\n"
+        query+= "    ORDER BY lastUpdated DESC\n"
+        query+= "    LIMIT 1\n"
+        query+= ")\n"
+        query+= "AND omicron_tier=roster_skills.level\n"
+        query+= "AND omicron_type='TW'"
+        goutils.log2("DBG", query)
+        omicron_table = connect_mysql.get_table(query)
+        goutils.log2("DBG", omicron_table)
 
-    query = "SELECT players.name, defId, roster_skills.name from roster\n"
-    query+= "JOIN roster_skills ON roster_id=roster.id\n"
-    query+= "JOIN players ON players.allyCode=roster.allyCode\n"
-    query+= "WHERE guildName=(\n"
-    query+= "    SELECT guildName FROM players\n"
-    query+= "    WHERE name='"+longest_opp_player_name+"'\n"
-    query+= "    ORDER BY lastUpdated DESC\n"
-    query+= "    LIMIT 1\n"
-    query+= ")\n"
-    query+= "AND omicron_tier=roster_skills.level\n"
-    query+= "AND omicron_type='TW'"
-    goutils.log2("DBG", query)
-    omicron_table = connect_mysql.get_table(query)
-    goutils.log2("DBG", omicron_table)
+        for territory in list_open_tw_territories:
+            list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
+            counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
 
-    for territory in list_open_tw_territories:
-        list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
-        counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
+            n_territory = int(territory[1])
+            if territory[0] == "T" and int(territory[1]) > 2:
+                n_territory -= 2
 
-        n_territory = int(territory[1])
-        if territory[0] == "T" and int(territory[1]) > 2:
-            n_territory -= 2
+            if n_territory == 1:
+                msg = "__Le 1er territoire "
+            else:
+                msg = "__Le "+str(n_territory)+"e territoire "
 
-        if n_territory == 1:
-            msg = "__Le 1er territoire "
-        else:
-            msg = "__Le "+str(n_territory)+"e territoire "
+            if territory[0] == "T" and int(territory[1]) < 3:
+                msg += "du haut__"
+            elif territory[0] == "T":
+                msg += "du milieu__"
+            elif territory[0] == "F":
+                msg += "des vaisseaux__"
+            else:
+                msg += "du bas__"
 
-        if territory[0] == "T" and int(territory[1]) < 3:
-            msg += "du haut__"
-        elif territory[0] == "T":
-            msg += "du milieu__"
-        elif territory[0] == "F":
-            msg += "des vaisseaux__"
-        else:
-            msg += "du bas__"
+            msg += " ("+territory+") est ouvert. Avec ces adversaires :"
+            for leader in counter_leaders:
+                msg += "\n - "+leader+": "+str(counter_leaders[leader])
+                for squad in list_opp_squads_terr:
+                    opp_name = squad[1]
+                    if squad[2][0] == leader:
+                        leader_toon = True
+                        for toon in squad[2]:
+                            list_id, dict_id, txt = goutils.get_characters_from_alias([toon])
+                            toon_id = list_id[0]
 
-        msg += " ("+territory+") est ouvert. Avec ces adversaires :"
-        for leader in counter_leaders:
-            msg += "\n - "+leader+": "+str(counter_leaders[leader])
-            for squad in list_opp_squads_terr:
-                opp_name = squad[1]
-                if squad[2][0] == leader:
-                    leader_toon = True
-                    for toon in squad[2]:
-                        list_id, dict_id, txt = goutils.get_characters_from_alias([toon])
-                        toon_id = list_id[0]
+                            if omicron_table == None:
+                                filtered_omicron_table = []
+                            else:
+                                filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
 
-                        if omicron_table == None:
-                            filtered_omicron_table = []
-                        else:
-                            filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
+                            if len(filtered_omicron_table) == 1:
+                                msg += "\n    - "+opp_name+": omicron sur "+toon
+                                if filtered_omicron_table[0][2] == 'L' and not leader_toon:
+                                    msg += "... qui n'est pas posé en chef \N{THINKING FACE}"
+                            leader_toon = False
 
-                        if len(filtered_omicron_table) == 1:
-                            msg += "\n    - "+opp_name+": omicron sur "+toon
-                            if filtered_omicron_table[0][2] == 'L' and not leader_toon:
-                                msg += "... qui n'est pas posé en chef \N{THINKING FACE}"
-                        leader_toon = False
+            list_tw_alerts[1][territory] = msg
 
+    [list_deffense_squads, list_def_territories] = connect_warstats.parse_tw_defense_teams(warstats_id)
+    if len(list_def_territories) > 0:
+        list_lost_territories = [t for t in list_def_territories if t[1]==t[3]]
 
-        list_tw_alerts[1][territory] = msg
+        for territory in list_lost_territories:
+            territory_name = territory[0]
+
+            n_territory = int(territory_name[1])
+            if territory_name[0] == "T" and int(territory_name[1]) > 2:
+                n_territory -= 2
+
+            if n_territory == 1:
+                msg = "**DEFENSE** - __Le 1er territoire "
+            else:
+                msg = "**DEFENSE** - __Le "+str(n_territory)+"e territoire "
+
+            if territory_name[0] == "T" and int(territory_name[1]) < 3:
+                msg += "du haut__"
+            elif territory_name[0] == "T":
+                msg += "du milieu__"
+            elif territory_name[0] == "F":
+                msg += "des vaisseaux__"
+            else:
+                msg += "du bas__"
+
+            nb_fails = territory[4]
+            msg += " ("+territory_name+") est tombé avec "+str(nb_fails)+" fails."
+
+            list_tw_alerts[1]["Home:"+territory_name] = msg
 
     return list_tw_alerts
 

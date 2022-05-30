@@ -171,8 +171,8 @@ def init_globals(guild_id):
     dict_parse_tb_player_scores_run_once[guild_id] = False
     dict_parse_tb_platoons_run_once[guild_id] = False
 
-    dict_tw_opponent_teams[guild_id] = []
-    dict_tw_defense_teams[guild_id] = []
+    dict_tw_opponent_teams[guild_id] = [[], []]
+    dict_tw_defense_teams[guild_id] = [[], []]
 
     dict_raid_player_scores[guild_id] = {}
     dict_raid_phase[guild_id] = {}
@@ -914,20 +914,22 @@ class TWSSquadParser(HTMLParser):
         HTMLParser.__init__(self)
         self.seconds_since_last_track = 0
         self.territory_name = ""
-        self.territory_progress = 0
+        self.curteam_victory = True
         self.player_name = ""
-        self.list_teams = [] # [['T1', 'Karcot', ['Genaral Skywoalker', 'CT-555 Fives, ...]],
-                                 #  ['T1', 'E80', [...]]]
+        self.list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...]],
+                             #  ['T1', 'E80', [...]]]
+        self.list_territories = [] # [['T1', <size>, <filled>, <victories>, <fails>], ...],
+
         self.state_parser=-3
         #-3: en recherche de <h2>
         #-2: en recherche de <h2>
-        #-1: en recherche de data
-        #0: en recherche de <div class="frame tw-logs"> OU data = "Home - X/Y"
+        #-1: en recherche de data #Territory name
+        #0: en recherche de <div class="frame tw-logs"> OU data = "Home|Opponent - X/Y"
         #1: en recherche de <td>
-        #2: en recherche de data
-        #3: en recherche de <td>
-        #4: en recherche de <div	class="char-detail..."> OU de <td> OU de <h2>
-        #5: en recherche de <td> >> goto state 1
+        #2: en recherche de data [Player name] (next)
+        #3: en recherche de <td> (next)
+        #4: en recherche de <div class="char-detail..."> (stay) OU h2 (goto -1) OU <td> (next)
+        #5: en recherche de h2 (goto -1) OU <i class="fas fa-2x..."> (goto 2)
         
         self.state_parser2=0
         #0: en recherche de <span id="track-timer"
@@ -995,9 +997,15 @@ class TWSSquadParser(HTMLParser):
                 #print("state_parser=-1")
                 self.state_parser=-1
 
-            elif tag=='td':
+            elif tag=='i':
                 #print(attrs)
                 #print("state_parser=2")
+                for name, value in attrs:
+                    if name=='class' and value=='fas fa-2x fa-skull-crossbones red-text':
+                        self.curteam_victory = False
+                        self.list_territories[-1][3] += 1
+
+            elif tag=='td':
                 self.state_parser=2
 
         #PARSER 2 pour le timer du tracker
@@ -1017,22 +1025,34 @@ class TWSSquadParser(HTMLParser):
             if data!='':
                 #print("Territory: "+data)
                 self.territory_name = dict_tw_territory_names[data]
+                self.list_territories.append([self.territory_name, 0, 0, 0, 0])
                 #print("Territory: "+self.territory_name)
                 #print("state_parser=0")
                 self.state_parser=0
 
         elif self.state_parser==0:
-            if re.match("Home - [0-9]+\\/[0-9]+", data) != None:
-                progress_txt = data[7:]
-                self.territory_progress = eval(progress_txt)
+            ret_re = re.search("(Home|Opponent) - ([0-9]+)\\/([0-9]+)", data)
+            if ret_re != None:
+                self.territory_size = int(ret_re.group(3))
+                self.list_territories[-1][1] = self.territory_size
+                self.territory_filled = int(ret_re.group(2))
+                self.list_territories[-1][2] = self.territory_filled
 
         elif self.state_parser==2:
             if data!='':
                 #print("Player: "+data)
                 self.player_name = data
                 self.list_teams.append([self.territory_name, self.player_name, []])
+                self.curteam_victory = True
                 #print("state_parser=3")
                 self.state_parser=3
+
+        elif self.state_parser==5:
+            ret_re = re.search("([0-9]+) fight(s)?", data)
+            if ret_re != None:
+                if not self.curteam_victory:
+                    fight_count = int(ret_re.group(1))
+                    self.list_territories[-1][4] += (fight_count-1)
 
         #PARSER 2 for TIME TRACK
         if self.state_parser2==2:
@@ -1044,6 +1064,9 @@ class TWSSquadParser(HTMLParser):
                 
     def get_teams(self):
         return self.list_teams
+                
+    def get_territories(self):
+        return self.list_territories
                 
     def get_last_track(self):
         return self.seconds_since_last_track
@@ -1510,7 +1533,7 @@ def parse_tw_opponent_teams(guild_id):
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
             goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
-            dict_tw_opponent_teams[guild_id] = []
+            dict_tw_opponent_teams[guild_id] = [[], []]
 
             set_next_warstats_read_long(10, 'PST8PDT',
                                         tw_list_parser.get_last_track(),
@@ -1529,7 +1552,8 @@ def parse_tw_opponent_teams(guild_id):
         opp_squad_parser = TWSSquadParser()
         opp_squad_parser.feed(page.content.decode('utf-8', 'ignore'))
 
-        dict_tw_opponent_teams[guild_id] = opp_squad_parser.get_teams()
+        dict_tw_opponent_teams[guild_id] = [opp_squad_parser.get_teams(),
+                                            opp_squad_parser.get_territories()]
 
         set_next_warstats_read_short(opp_squad_parser.get_last_track(), "tw_opponent_teams", guild_id)
 
@@ -1559,7 +1583,7 @@ def parse_tw_defense_teams(guild_id):
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
             goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
-            dict_tw_defense_teams[guild_id] = []
+            dict_tw_defense_teams[guild_id] = [[], []]
 
             set_next_warstats_read_long(10, 'PST8PDT',
                                         tw_list_parser.get_last_track(),
@@ -1578,7 +1602,8 @@ def parse_tw_defense_teams(guild_id):
         def_squad_parser = TWSSquadParser()
         def_squad_parser.feed(page.content.decode('utf-8', 'ignore'))
 
-        dict_tw_defense_teams[guild_id] = def_squad_parser.get_teams()
+        dict_tw_defense_teams[guild_id] = [def_squad_parser.get_teams(),
+                                           def_squad_parser.get_territories()]
 
         set_next_warstats_read_short(def_squad_parser.get_last_track(), "tw_defense_teams", guild_id)
 
