@@ -1046,7 +1046,7 @@ def print_vtj(list_team_names, txt_allyCode, server_name):
                     ret_print_vtx += " " + team + ": " + str(round(score, 1)) + "%\n"
 
                     list_char_allycodes = [[list_char, txt_allyCode, ""]]
-                    e, t, images = get_character_image(list_char_allycodes, True, True)
+                    e, t, images = get_character_image(list_char_allycodes, True, True, '')
 
     #In case of several teams, don't display images
     if len(ret_get_team_progress) > 1:
@@ -1789,9 +1789,10 @@ def get_tb_alerts(server_name, force_latest):
 # IN: list_characters_allyCode: [[[id1, id2, ...], allyCode, tw territory], ...]
 # IN: is_ID: True if list_character_alyCode contains chartacter IDs (False if names)
 # IN: refresh_player: False to revent refreshing player via API
+# IN: game_mode: 'TW', 'TB', ... or '' for undefined
 # return: err_code, err_txt, image
 #################################
-def get_character_image(list_characters_allyCode, is_ID, refresh_player):
+def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mode):
     err_code = 0
     err_txt = ''
 
@@ -1835,7 +1836,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player):
     #Return a list of images
     list_images = []
     for [ids, dict_player, tw_terr] in list_ids_dictplayer:
-        image = portraits.get_image_from_team(ids, dict_player, tw_terr)
+        image = portraits.get_image_from_team(ids, dict_player, tw_terr, game_mode)
         list_images.append(image)
     
     return err_code, err_txt, list_images
@@ -1925,7 +1926,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
             list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
-    e, t, images = get_character_image(list_char_allycodes, True, False)
+    e, t, images = get_character_image(list_char_allycodes, True, False, 'TW')
     err_txt += t
     if e != 0:
         return 1, err_txt, None
