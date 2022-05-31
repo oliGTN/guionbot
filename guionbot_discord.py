@@ -1017,7 +1017,7 @@ async def on_command_error(ctx, error):
         await ctx.message.add_reaction(emoji_error)
     elif isinstance(error, commands.CheckFailure):
         if not bot_test_mode:
-            await ctx.send("ERR: erreur interdite")
+            await ctx.send("ERR: commande interdite")
             await ctx.message.add_reaction(emoji_error)
     else:
         await ctx.send("ERR: erreur inconnue")
@@ -2259,7 +2259,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             if len(characters) > 0:
                 e, ret_cmd, images = await bot.loop.run_in_executor(None,
-                    go.get_character_image, [[list(characters), allyCode, '']], False, True)
+                    go.get_character_image, [[list(characters), allyCode, '']], False, True, '')
                     
                 if e == 0:
                     for image in images:
