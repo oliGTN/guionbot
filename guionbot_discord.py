@@ -270,6 +270,8 @@ async def bot_loop_5minutes():
                                 #Short message to admins
                                 if territory.startswith('Home:'):
                                     await send_alert_to_admins(guild.name, territory+" is lost")
+                                elif territory.startswith('Placement:'):
+                                    await send_alert_to_admins(guild.name, territory+" is filled")
                                 else:
                                     await send_alert_to_admins(guild.name, territory+" is open")
 
