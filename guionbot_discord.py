@@ -962,7 +962,7 @@ async def on_message(message):
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
         command_name = lower_msg.split(" ")[0].split(".")[1]
-        goutils.log("INFO", "guionbot_discord.on_message", "Command "+message.content+" launched by "+message.author.display_name)
+        goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name)
 
     try:
         await bot.process_commands(message)
@@ -974,7 +974,7 @@ async def on_message(message):
             await send_alert_to_admins(guild_name, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
     #Read messages from Juke's bot
-    if message.author.id == 629346604075450399:
+    if message.author.id == config.JBOT_DISCORD_ID:
         for embed in message.embeds:
             dict_embed = embed.to_dict()
 
@@ -2706,6 +2706,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.check(command_allowed)
     @commands.command(name='cpg', help="Compte les GLs d'une Guilde")
     async def info(self, ctx, *args):
+        print('AAAAAAA')
         await ctx.message.add_reaction(emoji_thumb)
 
         if len(args) != 1:
