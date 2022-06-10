@@ -832,16 +832,16 @@ def manage_me(ctx, alias):
 
         if select_db_name:
             if closest_name_db_score == 0:
-                goutils.log("WAR", "guionbot_discord.manage_me", alias +" not found in DB and in discord")
+                goutils.log2("WAR", alias +" not found in DB and in discord")
                 ret_allyCode_txt = "ERR: "+alias+" n'a pas été trouvé"
             else:
-                goutils.log("INFO", "guionbot_discord.manage_me", alias +" looks like the DB name "+closest_name_db)
+                goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
                 for r in results:
                     if r[0] == closest_name_db:
                         ret_allyCode_txt = str(r[1])
 
         else:
-            goutils.log("INFO", "guionbot_discord.manage_me", alias + " looks like the discord name "+closest_name_discord)
+            goutils.log2("INFO", alias + " looks like the discord name "+closest_name_discord)
 
             discord_id = [str(x[0]) for x in guild_members_clean \
                             if x[1] == closest_name_discord][0]
@@ -849,7 +849,7 @@ def manage_me(ctx, alias):
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
             else:
-                goutils.log("ERR", "guionbot_discord.manage_me", alias + " ne fait pas partie des joueurs enregistrés")
+                goutils.log2("ERR", alias + " ne fait pas partie des joueurs enregistrés")
                 ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
     
@@ -2707,6 +2707,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='cpg', help="Compte les GLs d'une Guilde")
     async def info(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) != 1:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help cpg")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         allyCode = args[0]
         allyCode = manage_me(ctx, allyCode)
