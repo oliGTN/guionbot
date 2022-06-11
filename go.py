@@ -3330,7 +3330,6 @@ def get_tw_defense_toons(server_name):
         player = squad[1]
         for alias in squad[2]:
             char_id = dict_id_name[alias][0][0]
-            print(char_id)
             if not char_id in dict_def_toon_player:
                 dict_def_toon_player[char_id] = []
 

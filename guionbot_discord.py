@@ -1893,7 +1893,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 teams = ["all"]
 
             err, txt, images = await bot.loop.run_in_executor(None, go.print_vtj,
-                                                    teams, allyCode, ctx.guild.name)
+                                                    teams, allyCode, ctx.guild.name, tw_mode)
             if err != 0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
