@@ -1912,6 +1912,56 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
+    @commands.check(command_allowed)
+    @commands.command(name='pfj',
+                 brief="Donne le progrès de farming perso chez un joueur",
+                 help="Donne le progrès de farming perso chez un joueur\n\n"\
+                      "Exemple: go.pfj 192126111\n"\
+                      "Exemple: go.pfj me")
+    async def pfj(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_pfj, allyCode, ctx.guild.name)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+            else:
+                await ctx.send(ret_cmd)
+
+    @commands.check(command_allowed)
+    @commands.command(name='pfg',
+                 brief="Donne le progrès de farming perso dans la guilde",
+                 help="Donne le progrès de farming perso dans la guilde\n\n"\
+                      "Exemple: go.pjg 192126111\n"\
+                      "Exemple: go.pjg me")
+    async def pfg(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_pfg, allyCode, ctx.guild.name)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+            else:
+                await ctx.send(ret_cmd)
+
     ##############################################################
     # Command: gvj
     # Parameters: code allié (string), une liste de persos séparées par des espaces ou "all"
@@ -1921,8 +1971,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.check(command_allowed)
     @commands.command(name='gvj',
-                 brief="Donne le progrès dans le guide de voyage pour une perso chez un joueur",
-                 help="Donne le progrès dans le guide de voyage pour une perso chez un un joueur\n\n"\
+                 brief="Donne le progrès dans le guide de voyage pour un perso chez un joueur",
+                 help="Donne le progrès dans le guide de voyage pour un perso chez un joueur\n\n"\
                       "Exemple: go.gvj 192126111 all\n"\
                       "Exemple: go.gvj me SEE\n"\
                       "Exemple: go.gvj me thrawn JKL")
@@ -2180,6 +2230,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Graphique de GV d'un perso",
                  help="Graphique de GV d'un perso\n\n"\
                       "Exemple: go.ggv me SEE\n"\
+                      "Exemple: go.ggv me FARM\n"\
                       "Exemple: go.ggv 123456789 JMK")
     async def ggv(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
@@ -2195,7 +2246,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             characters = ["all"]
 
         #First run a GVJ to ensure at least on result
-        err_code, ret_cmd = await bot.loop.run_in_executor(None,
+        if "FARM" in characters:
+            characters = ["FARM"]
+            err_code, ret_cmd = await bot.loop.run_in_executor(None,
+                                                           go.print_pfj,
+                                                           allyCode,
+                                                           ctx.guild.name)
+        else:
+            err_code, ret_cmd = await bot.loop.run_in_executor(None,
                                                            go.print_gvj,
                                                            characters,
                                                            allyCode)

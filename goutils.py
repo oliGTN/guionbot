@@ -116,24 +116,25 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
     cur_playername = ''
     for line in player_data:
         line_playername = line[0]
+        line_allyCode = line[1]
         if cur_playername != line_playername:
-            dict_players[line_playername]={}
+            dict_players[line_playername]=[line_allyCode, {}]
             cur_teamname = ''
             cur_playername = line_playername
         
-        line_teamname = line[1]
+        line_teamname = line[2]
         if cur_teamname != line_teamname:
-            dict_players[line_playername][line_teamname]={}
+            dict_players[line_playername][1][line_teamname]={}
             cur_defId = ''
             cur_teamname = line_teamname
         
-        line_defId = line[2]
+        line_defId = line[3]
         if cur_defId != line_defId:
-            line_rarity = line[3]
-            line_gear = line[4]
-            line_relic_currentTier = line[5]
-            line_gp = line[6]
-            line_speed = int(line[7])
+            line_rarity = line[4]
+            line_gear = line[5]
+            line_relic_currentTier = line[6]
+            line_gp = line[7]
+            line_speed = int(line[8])
             line_character={ \
                 "rarity": line_rarity,
                 "gear": line_gear,
@@ -146,9 +147,9 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
                 "omicrons": {}}
             if line_defId in dict_tw_def:
                 if not line_playername in dict_tw_def[line_defId]:
-                    dict_players[line_playername][line_teamname][line_defId]=line_character
+                    dict_players[line_playername][1][line_teamname][line_defId]=line_character
             else:
-                dict_players[line_playername][line_teamname][line_defId]=line_character
+                dict_players[line_playername][1][line_teamname][line_defId]=line_character
 
             cur_defId = line_defId
             
@@ -172,9 +173,11 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
         line_zeta = line[3]
         line_level = line[4]
         is_zeta_active = (line_level>=8)
-        if line_defId in dict_players[line_playername][line_teamname]:
-            dict_players[line_playername][line_teamname]\
-                [line_defId]["zetas"][line_zeta]=is_zeta_active
+        if line_playername in dict_players:
+            if line_teamname in dict_players[line_playername][1]:
+                if line_defId in dict_players[line_playername][1][line_teamname]:
+                    dict_players[line_playername][1][line_teamname]\
+                        [line_defId]["zetas"][line_zeta]=is_zeta_active
 
     cur_playername = ''
     for line in player_omicron_data:
@@ -197,22 +200,25 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
         line_level = line[4]
         line_omicron_tier = line[5]
         is_omicron_active = (line_level >= line_omicron_tier) and (line_omicron_tier != -1)
-        if line_defId in dict_players[line_playername][line_teamname]:
-            dict_players[line_playername][line_teamname]\
-                [line_defId]["omicrons"][line_omicron]=is_omicron_active
+        if line_playername in dict_players:
+            if line_teamname in dict_players[line_playername][1]:
+                if line_defId in dict_players[line_playername][1][line_teamname]:
+                    dict_players[line_playername][1][line_teamname]\
+                        [line_defId]["omicrons"][line_omicron]=is_omicron_active
 
     cur_playername = ''
     for line in gv_characters_unlocked:
         line_playername = line[0]
-        line_defId = line[1]
-        line_rarity = line[2]
+        line_alyCode = line[1]
+        line_defId = line[2]
+        line_rarity = line[3]
         line_teamname = line_defId + "-GV"
         if not line_playername in dict_players:
-            dict_players[line_playername] = {}
-        if not line_teamname in dict_players[line_playername]:
-            dict_players[line_playername][line_teamname] = {}
-        if not line_defId in dict_players[line_playername][line_teamname]:
-            dict_players[line_playername][line_teamname][line_defId]={ \
+            dict_players[line_playername] = [line_allyCode, {}]
+        if not line_teamname in dict_players[line_playername][1]:
+            dict_players[line_playername][1][line_teamname] = {}
+        if not line_defId in dict_players[line_playername][1][line_teamname]:
+            dict_players[line_playername][1][line_teamname][line_defId]={ \
                                                 "rarity": line_rarity}
 
     return dict_players
