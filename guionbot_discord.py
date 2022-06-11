@@ -1676,8 +1676,14 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def tpg(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
+        #Check arguments
+        args = list(args)
+        if "-TW" in args:
+            tw_mode = True
+            args.remove("-TW")
+        else:
+            tw_mode = False
+
         if len(args) == 2:
             allyCode = args[0]
             character_alias = args[1]
@@ -1692,7 +1698,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.tag_players_with_character(allyCode, character_alias)
+            err, errtxt, ret_cmd = go.tag_players_with_character(allyCode, character_alias,
+                                                                 ctx.guild.name, tw_mode)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1830,11 +1837,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
+            teams = list(teams)
+            if "-TW" in teams:
+                tw_mode = True
+                teams.remove("-TW")
+            else:
+                tw_mode = False
+
             if len(teams) == 0:
                 teams = ["all"]
 
             err, ret_cmd = await bot.loop.run_in_executor(None, go.print_vtg,
-                                                    teams, allyCode, ctx.guild.name)
+                                                    teams, allyCode, ctx.guild.name, tw_mode)
             if err == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
@@ -1868,7 +1882,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            #print(dict_platoons_previously_done[ctx.guild.name])
+            teams = list(teams)
+            if "-TW" in teams:
+                tw_mode = True
+                teams.remove("-TW")
+            else:
+                tw_mode = False
+
             if len(teams) == 0:
                 teams = ["all"]
 
@@ -2706,7 +2726,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.check(command_allowed)
     @commands.command(name='cpg', help="Compte les GLs d'une Guilde")
     async def info(self, ctx, *args):
-        print('AAAAAAA')
         await ctx.message.add_reaction(emoji_thumb)
 
         if len(args) != 1:
