@@ -1535,7 +1535,7 @@ def parse_tw_opponent_teams(guild_id):
             goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
             dict_tw_opponent_teams[guild_id] = [[], []]
 
-            set_next_warstats_read_long(10, 'PST8PDT',
+            set_next_warstats_read_long(11, 'PST8PDT',
                                         tw_list_parser.get_last_track(),
                                         "tw_opponent_teams", guild_id)
 
@@ -1585,7 +1585,7 @@ def parse_tw_defense_teams(guild_id):
             goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
             dict_tw_defense_teams[guild_id] = [[], []]
 
-            set_next_warstats_read_long(10, 'PST8PDT',
+            set_next_warstats_read_long(11, 'PST8PDT',
                                         tw_list_parser.get_last_track(),
                                         "tw_defense_teams", guild_id)
 
