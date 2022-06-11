@@ -285,7 +285,9 @@ async def bot_loop_5minutes():
                             else:
                                 dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, 0]
                                 goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
-                        else:
+                        elif not territory.startswith('Placement:'):
+                            #Placement alerts are only sent once, never modified
+
                             [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.name][1][territory]
                             if old_msg_txt != msg_txt:
                                 #Short message to admins
