@@ -743,7 +743,7 @@ def get_team_header(team_name, objectifs):
 
     return entete
 
-def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild, gv_mode):
+def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild, gv_mode, dict_tw_def):
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive+
@@ -876,7 +876,8 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         dict_teams = goutils.create_dict_teams(player_data,
                                                player_zeta_data,
                                                player_omicron_data,
-                                               gv_characters_unlocked)
+                                               gv_characters_unlocked,
+                                               dict_tw_def)
         goutils.log2("INFO", "Recreation of dict_teams is OK")
     else:
         query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
@@ -948,10 +949,18 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
 
     return collection_name, ret_get_team_progress
 
-def print_vtg(list_team_names, txt_allyCode, server_name):
+def print_vtg(list_team_names, txt_allyCode, server_name, tw_mode):
+
+    #Manage -TW option
+    if tw_mode:
+        ec, et, dict_def_toon_player = get_tw_defense_toons(server_name)
+        if ec != 0:
+            return ec, et, None
+    else:
+        dict_def_toon_player = {}
 
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
-                                              server_name, True, False)
+                                              server_name, True, False, dict_def_toon_player)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
         return 1,  ret_get_team_progress
@@ -1006,9 +1015,17 @@ def print_vtg(list_team_names, txt_allyCode, server_name):
                 
     return 0, ret_print_vtx
 
-def print_vtj(list_team_names, txt_allyCode, server_name):
+def print_vtj(list_team_names, txt_allyCode, server_name, tw_mode):
+    #Manage -TW option
+    if tw_mode:
+        ec, et, dict_def_toon_player = get_tw_defense_toons(server_name)
+        if ec != 0:
+            return ec, et, None
+    else:
+        dict_def_toon_player = {}
+
     player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
-                                              server_name, False, False)
+                                              server_name, False, False, dict_def_toon_player)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
@@ -1057,7 +1074,7 @@ def print_vtj(list_team_names, txt_allyCode, server_name):
 def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
     
-    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, False, True)
+    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, False, True, {})
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
     
@@ -1118,7 +1135,7 @@ def print_gvj(list_team_names, txt_allyCode):
 def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
     
-    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, True, True)
+    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, True, True, {})
     
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -1176,7 +1193,7 @@ def assign_gt(allyCode, server_name):
     #print(liste_team_names)
 
     #Calcule des meilleurs joueurs pour chaque team
-    dict_teams = guild_name, get_team_progress(liste_team_names, allyCode, server_name, True, True)
+    dict_teams = guild_name, get_team_progress(liste_team_names, allyCode, server_name, True, True, {})
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1247,7 +1264,7 @@ def guild_counter_score(txt_allyCode, server_name):
     list_counter_teams = connect_gsheets.load_config_counter(server_name)
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
                                       for x in list_counter_teams])
-    guild_name, dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, server_name, True, True)
+    guild_name, dict_needed_teams = get_team_progress(list_needed_teams, txt_allyCode, server_name, True, True, {})
     # for k in dict_needed_teams.keys():
     # dict_needed_teams[k]=list(dict_needed_teams[k])
     # dict_needed_teams[k][0]=[]
@@ -2391,7 +2408,7 @@ def print_tb_progress(txt_allyCode, server_name, tb_alias, use_mentions):
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: ID de guilde warstats non défini", ""
 
-    guild_name, dict_teams = get_team_progress(tb_team_names, txt_allyCode, server_name, True, False)
+    guild_name, dict_teams = get_team_progress(tb_team_names, txt_allyCode, server_name, True, False, {})
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -2689,7 +2706,7 @@ def get_tw_alerts(server_name):
 
             list_tw_alerts[1][territory] = msg
 
-    [list_deffense_squads, list_def_territories] = connect_warstats.parse_tw_defense_teams(warstats_id)
+    [list_defense_squads, list_def_territories] = connect_warstats.parse_tw_defense_teams(warstats_id)
     if len(list_def_territories) > 0:
         #Alert for defense fully set
         list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
@@ -2977,14 +2994,18 @@ def find_best_teams_for_raid(txt_allyCode, server_name, raid_name, compute_guild
 # tag_players_with_character
 # IN: txt_allyCode (to identify the guild)
 # IN: character ("SEE" or "SEE:7:G8" or "SEE:R5")
+# IN: server_name (discord server name)
+# IN: tw_mode (True if the bot shall count defense-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-def tag_players_with_character(txt_allyCode, character):
+def tag_players_with_character(txt_allyCode, character, server_name, tw_mode):
     err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     opposite_search = (character[0]=="-")
+    if opposite_search and tw_mode:
+        return 1, "ERR: impossible de chercher un perso non présent (avec le '-') avec l'option -TW", None
 
     tab_virtual_character = character.split(':')
 
@@ -3087,6 +3108,9 @@ def tag_players_with_character(txt_allyCode, character):
             if char_omicron:
                 intro_txt += ":omicron"
 
+            if tw_mode:
+                intro_txt += " et qui ne l'ont pas mis en défense de TW"
+
             query +="AND rarity >= "+str(char_rarity)+" "\
                   + "AND gear >= "+str(char_gear)+" "\
                   + "AND relic_currentTier >= "+str(char_relic+2)+" "
@@ -3102,6 +3126,15 @@ def tag_players_with_character(txt_allyCode, character):
     guildName = allyCodes_in_DB[0][0]
     dict_players = connect_gsheets.load_config_players(guildName, False)[0]
 
+    #Manage -TW option
+    if tw_mode:
+        ec, et, dict_def_toon_player = get_tw_defense_toons(server_name)
+        if ec != 0:
+            return ec, et, None
+    else:
+        dict_def_toon_player = {}
+
+    #Build the list of tags
     list_discord_ids = [intro_txt]
     for [guildName, player_name] in allyCodes_in_DB:
         if player_name == "":
@@ -3109,12 +3142,15 @@ def tag_players_with_character(txt_allyCode, character):
 
         goutils.log2('DBG', 'player_name: '+player_name)
 
-        if player_name in dict_players:
-            player_mention = dict_players[player_name][1]
+        if player_name in dict_def_toon_player[character_id]:
+            goutils.log2('DBG', "toon used in TW defense, no tag")
         else:
-            player_mention = player_name
+            if player_name in dict_players:
+                player_mention = dict_players[player_name][1]
+            else:
+                player_mention = player_name
 
-        list_discord_ids.append(player_mention)
+            list_discord_ids.append(player_mention)
 
     return 0, "", list_discord_ids
 
@@ -3271,3 +3307,33 @@ def get_modq_graph(txt_allyCode):
 
     return 0, "", image
 
+def get_tw_defense_toons(server_name):
+    query = "SELECT name, twChanOut_id, warstats_id FROM guilds "
+    query+= "WHERE name='"+server_name.replace("'", "''")+"'"
+    goutils.log2('DBG', query)
+    db_data = connect_mysql.get_line(query)
+
+    guildName = db_data[0]
+    twChannel_id = db_data[1]
+    warstats_id = db_data[2]
+    if warstats_id == 0:
+        return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + server_name, None
+
+    [list_defense_squads, list_def_territories] = connect_warstats.parse_tw_defense_teams(warstats_id)
+    list_defense_characters = set([j for i in [x[2] for x in list_defense_squads] for j in i])
+    list_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_defense_characters)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+
+    dict_def_toon_player = {}
+    for squad in list_defense_squads:
+        player = squad[1]
+        for alias in squad[2]:
+            char_id = dict_id_name[alias][0][0]
+            print(char_id)
+            if not char_id in dict_def_toon_player:
+                dict_def_toon_player[char_id] = []
+
+            dict_def_toon_player[char_id].append(player)
+
+    return 0, "", dict_def_toon_player
