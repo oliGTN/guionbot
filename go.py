@@ -2714,8 +2714,10 @@ def get_tw_alerts(server_name):
             else:
                 msg += "du bas__"
 
-            nb_fails = territory[4]
-            msg += " ("+territory_name+") est rempli."
+            nb_full = len(list_full_territories)
+            msg += " ("+territory_name+") est rempli ("+str(nb_full)+"/10)."
+            if nb_full==10:
+                msg = '\N{WHITE HEAVY CHECK MARK}'+msg
 
             list_tw_alerts[1]["Placement:"+territory_name] = msg
 
