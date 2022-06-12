@@ -725,13 +725,14 @@ def get_characters_from_alias(list_alias):
 def print_tw_best_teams(list_teams, intro_txt):
     output_txt = ""
 
-    for [beaten, label] in [[False, "invaincue"], [True, "vaincue"]]:
-        filtered_teams = [x for x in ret[0] if x[3]==beaten]
-        max_fights = max(filtered_teams, key=lambda x: x[4])[4]
-        best_teams = [x for x in filtered_teams if x[4]==max_fights]
-        output_txt += intro_txt+" "+label+" après "+str(max_fights)+" combats :\n"
-        for t in best_teams:
-            output_txt += t[1] + ": " + str(t[2]) + "\n"
+    for [terr_prefixes, label_terr] in [["TB", "terrestre"], ["F", "vaisseaux"]]:
+        for [beaten, label] in [[False, "invaincue"], [True, "vaincue"]]:
+            filtered_teams = [x for x in list_teams if (x[0][0] in terr_prefixes and x[3]==beaten)]
+            max_fights = max(filtered_teams, key=lambda x: x[4])[4]
+            best_teams = [x for x in filtered_teams if x[4]==max_fights]
+            output_txt += intro_txt+" "+label_terr+" "+label+" après "+str(max_fights)+" combats :\n"
+            for t in best_teams:
+                output_txt += t[1] + ": " + str(t[2]) + "\n"
 
     return output_txt
 
