@@ -1043,7 +1043,12 @@ async def on_message_delete(message):
 
 @bot.event
 async def on_message_edit(before, after):
-    goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+before.channel.name+"\n" +\
+    if isinstance(before.channel, GroupChannel):
+        channel_name = before.channel.name
+    else:
+        channel_name = "DM"
+
+    goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                          "BEFORE:\n" + before.content + "\n" +\
                          "AFTER:\n" + after.content)
     guild_name = before.channel.guild.name
@@ -1066,7 +1071,11 @@ async def on_member_update(before, after):
 
 @bot.event
 async def on_user_update(before, after):
-    guild_name = before.guild.name
+    if isinstance(before.channel, GroupChannel):
+        guild_name = before.channel.guild.name
+    else:
+        guild_name = "DM"
+
     set_id_lastseen("on_user_update", guild_name, before.id)
 
 @bot.event
