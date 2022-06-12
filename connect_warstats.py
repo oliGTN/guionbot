@@ -914,9 +914,8 @@ class TWSSquadParser(HTMLParser):
         HTMLParser.__init__(self)
         self.seconds_since_last_track = 0
         self.territory_name = ""
-        self.curteam_victory = True
         self.player_name = ""
-        self.list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...]],
+        self.list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...], <beaten>, <fights>],
                              #  ['T1', 'E80', [...]]]
         self.list_territories = [] # [['T1', <size>, <filled>, <victories>, <fails>], ...],
 
@@ -1002,7 +1001,7 @@ class TWSSquadParser(HTMLParser):
                 #print("state_parser=2")
                 for name, value in attrs:
                     if name=='class' and value=='fas fa-2x fa-skull-crossbones red-text':
-                        self.curteam_victory = False
+                        self.list_teams[-1][3] = True
                         self.list_territories[-1][3] += 1
 
             elif tag=='td':
@@ -1042,16 +1041,16 @@ class TWSSquadParser(HTMLParser):
             if data!='':
                 #print("Player: "+data)
                 self.player_name = data
-                self.list_teams.append([self.territory_name, self.player_name, []])
-                self.curteam_victory = True
+                self.list_teams.append([self.territory_name, self.player_name, [], False, 0])
                 #print("state_parser=3")
                 self.state_parser=3
 
         elif self.state_parser==5:
             ret_re = re.search("([0-9]+) fight(s)?", data)
             if ret_re != None:
-                if not self.curteam_victory:
-                    fight_count = int(ret_re.group(1))
+                fight_count = int(ret_re.group(1))
+                self.list_teams[-1][4] = fight_count
+                if self.list_teams[-1][3]:
                     self.list_territories[-1][4] += (fight_count-1)
 
         #PARSER 2 for TIME TRACK
@@ -1532,7 +1531,14 @@ def parse_tw_opponent_teams(guild_id):
     
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
-            goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
+            #When first detecting end of TW, drop TW data into the logs
+            if len(dict_tw_opponent_teams[guild_id][0]) == 0:
+                goutils.log2('INFO', "["+str(guild_id)+"] end of TW")
+                goutils.log2('INFO', "["+str(guild_id)+"] Opponent teams" + str(dict_tw_opponent_teams[guild_id]))
+                goutils.log2('INFO', "["+str(guild_id)+"] " + goutils.print_tw_best_teams(dict_tw_opponent_teams[guild_id][0], "Meilleure défense adverse"))
+            else:
+                goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
+
             dict_tw_opponent_teams[guild_id] = [[], []]
 
             set_next_warstats_read_long(11, 'PST8PDT',
@@ -1582,7 +1588,14 @@ def parse_tw_defense_teams(guild_id):
     
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
-            goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
+            #When first detecting end of TW, drop TW data into the logs
+            if len(dict_tw_opponent_teams[guild_id][0]) == 0:
+                goutils.log2('INFO', "["+str(guild_id)+"] end of TW")
+                goutils.log2('INFO', "["+str(guild_id)+"] Defense teams" + str(dict_tw_defense_teams[guild_id]))
+                goutils.log2('INFO', "["+str(guild_id)+"] " + goutils.print_tw_best_teams(dict_tw_defense_teams[guild_id][0], "Notre meilleure défense"))
+            else:
+                goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
+
             dict_tw_defense_teams[guild_id] = [[], []]
 
             set_next_warstats_read_long(11, 'PST8PDT',
