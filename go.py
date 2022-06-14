@@ -747,8 +747,15 @@ def get_team_header(team_name, objectifs):
 def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild, gv_mode, dict_tw_def):
     ret_get_team_progress = {}
 
-    #Recuperation des dernieres donnees sur gdrive+
-    liste_team_gt, dict_team_gt = connect_gsheets.load_config_teams(server_name, False)
+    #Recuperation des dernieres donnees sur gdrive
+    list_team_bot, dict_team_bot = connect_gsheets.load_config_teams(BOT_GFILE, False)
+    if server_name != BOT_GFILE:
+        list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(server_name, False)
+        list_team_gt = list_team_guild + list_team_bot
+        dict_team_gt = {**dict_team_guild , **dict_team_bot}
+    else:
+        list_team_gt = list_team_bot
+        dict_team_gt = dict_team_bot
     
     if not compute_guild:
         #only one player, potentially several teams
@@ -787,7 +794,8 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
            +"stat5 as speed "\
            +"FROM players "
     if gv_mode==2:
-        query += "JOIN guild_teams ON guild_teams.name=CONCAT(allyCode, '-FARM') "
+        query += "JOIN guild_teams ON (guild_teams.name=CONCAT(allyCode, '-FARM') "
+        query += "                 OR  guild_teams.name LIKE '%-GV') "
     else:
         query += "JOIN guild_teams "
     query +="JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id "\
@@ -852,13 +860,13 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         if player_omicron_data == None:
             player_omicron_data = []
         
-        gv_characters_unlocked = []
     
     else:
         #In gv_mode, there is no requirement for zetas
         player_zeta_data = []
         player_omicron_data = []
         
+    if gv_mode > 0:
         #There is a need to check if the target character is locked or unlocked
         goutils.log2("INFO", "Get GV characters data from DB...")
         query = "SELECT players.name, players.allyCode, defId, rarity \
@@ -875,6 +883,8 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         #print(query)
         gv_characters_unlocked = connect_mysql.get_table(query)        
         goutils.log2("DBG", gv_characters_unlocked)
+    else:
+        gv_characters_unlocked = []
         
     if player_data != None:
         goutils.log2("INFO", "Recreate dict_teams...")
@@ -893,27 +903,27 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
     
     # Compute teams for this player
     if gv_mode==0:
-        filtered_liste_team_gt = [x for x in 
-                filter(lambda f:f[-3:]!="-GV" and f[-5:]!="-FARM", liste_team_gt)]
+        filtered_list_team_gt = [x for x in 
+                filter(lambda f:f[-3:]!="-GV" and f[-5:]!="-FARM", list_team_gt)]
     elif gv_mode==1:
-        filtered_liste_team_gt = [x for x in 
-                                filter(lambda f:f[-3:]=="-GV", liste_team_gt)]
+        filtered_list_team_gt = [x for x in 
+                                filter(lambda f:f[-3:]=="-GV", list_team_gt)]
     else:
-        filtered_liste_team_gt = [x for x in 
-                                filter(lambda f:f[-5:]=="-FARM", liste_team_gt)]
+        filtered_list_team_gt = [x for x in 
+                                filter(lambda f:f[-5:]=="-FARM", list_team_gt)]
 
     if 'all' in list_team_names or gv_mode==2:
-        list_team_names = filtered_liste_team_gt
+        list_team_names = filtered_list_team_gt
     
     for team_name in list_team_names:
         if not (team_name in dict_team_gt) and not ('all' in list_team_names):
             if gv_mode==1:
                 ret_get_team_progress[team_name] = \
                         'ERREUR: Guide de Voyage inconnu pour ' + \
-                        team_name + '. Liste=' + str(filtered_liste_team_gt)
+                        team_name + '. Liste=' + str(filtered_list_team_gt)
             else:
                 ret_get_team_progress[team_name] = 'ERREUR: team ' + \
-                        team_name + ' inconnue. Liste=' + str(filtered_liste_team_gt)
+                        team_name + ' inconnue. Liste=' + str(filtered_list_team_gt)
         else:
             ret_team = []
             objectifs = dict_team_gt[team_name]["categories"]
@@ -1095,6 +1105,9 @@ def print_pfj(txt_allyCode, server_name):
     
     list_lines = []
 
+    if not team in ret_get_team_progress:
+        return 1, "Team "+team+" not defined"
+    
     ret_team = ret_get_team_progress[team]
     print(ret_get_team_progress)
     if type(ret_team) == str:
@@ -1259,17 +1272,17 @@ def assign_gt(allyCode, server_name):
 
     dict_players = connect_gsheets.load_config_players(server_name, False)[0]
 
-    liste_territoires = connect_gsheets.load_config_gt(server_name)
+    list_territoires = connect_gsheets.load_config_gt(server_name)
         # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
-    liste_team_names = []
-    for territoire in liste_territoires:
+    list_team_names = []
+    for territoire in list_territoires:
         for team in territoire[1]:
-            liste_team_names.append(team[0])
-    liste_team_names = [x for x in set(liste_team_names)]
-    #print(liste_team_names)
+            list_team_names.append(team[0])
+    list_team_names = [x for x in set(list_team_names)]
+    #print(list_team_names)
 
     #Calcule des meilleurs joueurs pour chaque team
-    dict_teams = guild_name, get_team_progress(liste_team_names, allyCode, server_name, True, 0, {})
+    dict_teams = guild_name, get_team_progress(list_team_names, allyCode, server_name, True, 0, {})
     if type(dict_teams) == str:
         return dict_teams
     else:
@@ -1278,7 +1291,7 @@ def assign_gt(allyCode, server_name):
             #on ne garde que le txt, qu'on splite en lignes avec séparateur
             dict_teams[team] = dict_teams[team][0].split('\n')
 
-    for priorite in liste_territoires:
+    for priorite in list_territoires:
         nom_territoire = priorite[0]
         for team in priorite[1]:
             tab_lignes_team = dict_teams[team[0]]
@@ -2123,7 +2136,7 @@ def print_erx(txt_allyCode, days, compute_guild):
     dict_categoryList = data.get("categoryList_dict.json")
 
     #Recuperation des dernieres donnees sur gdrive
-    liste_teams, dict_teams = connect_gsheets.load_config_teams("GuiOnBot config", False)
+    list_teams, dict_teams = connect_gsheets.load_config_teams("GuiOnBot config", False)
 
     if not compute_guild:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
