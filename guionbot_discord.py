@@ -2595,7 +2595,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode_attack)
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
             return
 
