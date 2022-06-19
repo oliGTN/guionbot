@@ -858,6 +858,53 @@ def manage_me(ctx, alias):
     return ret_allyCode_txt
 
 ##############################################################
+# Function: read_gsheets
+# IN: guild_name (= discord server name)
+# Purpose: affecte le code allié de l'auteur si "me"
+# OUT: err_code (0 = OK), err_txt
+##############################################################
+def read_gsheets(guild_name):
+    err_code = 0
+    err_txt = ""
+
+    d = connect_gsheets.load_config_units(True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les UNITS\n"
+        err_code = 1
+
+    l, d = connect_gsheets.load_config_teams("GuiOnBot config", True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
+        err_code = 1
+
+    l, d = connect_gsheets.load_config_teams(ctx.guild.name, True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
+        err_code = 1
+
+    d = connect_gsheets.load_config_raids(ctx.guild.name, True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les RAIDS\n"
+        err_code = 1
+
+    [ts, dt, m] = connect_gsheets.get_tb_triggers(ctx.guild.name, True)
+    if ts == None:
+        err_txt += "ERR: erreur en mettant à jour la BT\n"
+        err_code = 1
+
+    l = connect_gsheets.load_tb_teams(ctx.guild.name, True)
+    if l == None:
+        err_txt += "ERR: erreur en mettant à jour les BT teams\n"
+        err_code = 1
+
+    [d1, d2] = connect_gsheets.load_config_players(ctx.guild.name, True)
+    if d1 == None:
+        err_txt += "ERR: erreur en mettant à jour les PLAYERS\n"
+        err_code = 1
+
+    return err_code, err_txt
+
+##############################################################
 #                                                            #
 #                  EVENEMENTS                                #
 #                                                            #
@@ -1318,44 +1365,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                              help="Lit les dernières infos du google sheet")
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
-        is_error = False
+        err_code, err_txt = read_gsheets(ctx.guild.name)
 
-        d = connect_gsheets.load_config_units(True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les UNITS")
-            is_error = True
-
-        l, d = connect_gsheets.load_config_teams("GuiOnBot config", True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les TEAMS GV")
-            is_error = True
-
-        l, d = connect_gsheets.load_config_teams(ctx.guild.name, True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les TEAMS")
-            is_error = True
-
-        d = connect_gsheets.load_config_raids(ctx.guild.name, True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les RAIDS")
-            is_error = True
-
-        [ts, dt, m] = connect_gsheets.get_tb_triggers(ctx.guild.name, True)
-        if ts == None:
-            await ctx.send("ERR: erreur en mettant à jour la BT")
-            is_error = True
-
-        l = connect_gsheets.load_tb_teams(ctx.guild.name, True)
-        if l == None:
-            await ctx.send("ERR: erreur en mettant à jour les BT teams")
-            is_error = True
-
-        [d1, d2] = connect_gsheets.load_config_players(ctx.guild.name, True)
-        if d1 == None:
-            await ctx.send("ERR: erreur en mettant à jour les PLAYERS")
-            is_error = True
-
-        if is_error:
+        if err_code == 1:
+            await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
         else:
             await ctx.message.add_reaction(emoji_check)
