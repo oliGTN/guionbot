@@ -357,8 +357,8 @@ async def bot_loop_5minutes():
                     dict_platoons_previously_done[guild.name] = {}
 
                 #Lecture du statut des pelotons sur warstats
-                tbs_round, dict_platoons_done, \
-                    list_open_territories = connect_warstats.parse_tb_platoons(guild_id, False)
+                tbs_round, dict_platoons_done, list_open_territories, \
+                    sec_last_track = connect_warstats.parse_tb_platoons(guild_id, False)
                 if tbs_round == '':
                     goutils.log2("DBG", "["+guild.name+"] No TB in progress")
                     dict_platoons_previously_done[guild.name] = {}
@@ -1592,15 +1592,15 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             return
 
         #Lecture du statut des pelotons sur warstats
-        tbs_round, dict_platoons_done, \
-            list_open_territories = connect_warstats.parse_tb_platoons(warstats_id, False)
+        tbs_round, dict_platoons_done, list_open_territories, \
+            secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
         goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
 
         if tbs_round == '':
-            await ctx.send('Aucune BT en cours')
+            await ctx.send("Aucune BT en cours (dernier update warstats: "+int(secs_track)+" secs")
             await ctx.message.add_reaction(emoji_error)
         else:
             goutils.log2("INFO", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
@@ -1678,7 +1678,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 for txt in sorted(set(list_err)):
                     full_txt += txt + '\n'
             else:
-                full_txt += 'Aucune erreur de peloton\n'
+                full_txt = "Aucune erreur de peloton\n"
+
+            full_txt += "(dernier update warstats: "+int(secs_track)+" secs)")
 
             for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
