@@ -1680,7 +1680,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             else:
                 full_txt = "Aucune erreur de peloton\n"
 
-            full_txt += "(dernier update warstats: "+int(secs_track)+" secs)")
+            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ " s"
+            full_txt += "(dernier update warstats : "+secs_track_txt+")"
 
             for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
@@ -1697,6 +1698,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.command(name='tpg',
                  brief="Tag les possesseurs d'un Perso dans la Guilde",
                  help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
+                      "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
                       "Exemple : go.tbg me SEE\n"\
                       "Exemple : go.tbg me SEE:G13")
     async def tpg(self, ctx, *args):
@@ -1850,6 +1852,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='vtg',
                       brief="Vérifie la dispo d'une team dans la guilde",
                       help="Vérifie la dispo d'une team dans la guilde\n\n"\
+                           "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
                            "Exemple: go.vtg 192126111 all\n"\
                            "Exemple: go.vtg 192126111 NS\n"\
                            "Exemple: go.vtg 192126111 PADME NS DR\n"\
@@ -1896,6 +1899,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='vtj',
                  brief="Vérifie la dispo d'une ou plusieurs teams chez un joueur",
                  help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
+                      "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
                       "Exemple: go.vtj 192126111 all\n"\
                       "Exemple: go.vtj 192126111 NS\n"\
                       "Exemple: go.vtj 192126111 PADME NS DR\n"\

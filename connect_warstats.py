@@ -1348,7 +1348,7 @@ def parse_tb_platoons(guild_id, force_latest):
                                         tb_list_parser.get_last_track(),
                                         "tb_platoons", guild_id)
 
-            return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id],
+            return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], \
                    dict_tb_open_territories[guild_id], dict_last_warstats_read[guild_id]
         else:
             goutils.log2('INFO', "TB "+tb_list_parser.get_battle_id(force_latest)+" in progress")
@@ -1385,7 +1385,7 @@ def parse_tb_platoons(guild_id, force_latest):
             set_next_warstats_read_short(WARSTATS_REFRESH_SECS+WARSTATS_REFRESH_TIME, "tb_platoons", guild_id)
 
 
-    return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id],
+    return dict_tb_active_round[guild_id], dict_tb_platoons[guild_id], \
            dict_tb_open_territories[guild_id], dict_last_warstats_read[guild_id]
 
 def parse_tb_player_scores(guild_id, tb_alias, force_latest):
@@ -1573,6 +1573,7 @@ def parse_tw_opponent_teams(guild_id):
     return dict_tw_opponent_teams[guild_id]
 
 def parse_tw_defense_teams(guild_id):
+    global dict_last_warstats_read
     global dict_next_warstats_read
     global dict_tw_defense_teams
 
@@ -1588,10 +1589,11 @@ def parse_tw_defense_teams(guild_id):
             page = urlopen(guild_id, warstats_tws_url_guild)
         except (requests.exceptions.ConnectionError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_tws_url_guild)
-            return dict_tw_defense_teams[guild_id]
+            return dict_tw_defense_teams[guild_id], -1
         
         tw_list_parser = TWSListParser()
         tw_list_parser.feed(page.content.decode('utf-8', 'ignore'))
+        dict_last_warstats_read[guild_id] = tw_list_parser.get_last_track()
     
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
         if not war_in_progress:
@@ -1609,7 +1611,7 @@ def parse_tw_defense_teams(guild_id):
                                         tw_list_parser.get_last_track(),
                                         "tw_defense_teams", guild_id)
 
-            return dict_tw_defense_teams[guild_id]
+            return dict_tw_defense_teams[guild_id], dict_last_warstats_read[guild_id]
     
         goutils.log2('INFO', "Current TW is "+war_id)
         warstats_def_squad_url=warstats_def_squad_baseurl+war_id
@@ -1617,7 +1619,7 @@ def parse_tw_defense_teams(guild_id):
             page = urlopen(guild_id, warstats_def_squad_url)
         except (requests.exceptions.ConnectionError) as e:
             goutils.log2('ERR', 'error while opening '+warstats_def_squad_url)
-            return dict_tw_defense_teams[guild_id]
+            return dict_tw_defense_teams[guild_id], -1
 
         def_squad_parser = TWSSquadParser()
         def_squad_parser.feed(page.content.decode('utf-8', 'ignore'))
@@ -1627,7 +1629,7 @@ def parse_tw_defense_teams(guild_id):
 
         set_next_warstats_read_short(def_squad_parser.get_last_track(), "tw_defense_teams", guild_id)
 
-    return dict_tw_defense_teams[guild_id]
+    return dict_tw_defense_teams[guild_id], dict_last_warstats_read[guild_id]
 
 def parse_raid_scores(guild_id, raid_name):
     global dict_next_warstats_read
