@@ -1769,10 +1769,12 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
 
     return ret_print_character_stats
 
-def get_distribution_graph(values, bins, title, highlight_value):
+def get_distribution_graph(values, bins, title, x_title, y_title, highlight_value):
     fig, ax = plt.subplots()
     ax.hist(values, bins=bins)
     fig.suptitle(title)
+    ax.set_xlabel(x_title)
+    ax.set_ylabel(y_title)
 
     if highlight_value != None:
         min_x = plt.xlim()[0]
@@ -1805,7 +1807,7 @@ def get_gp_distribution(txt_allyCode):
     graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
-    image = get_distribution_graph(guild_stats, 20, graph_title, None)
+    image = get_distribution_graph(guild_stats, 20, graph_title, "PG du joueur", "nombre de joueurs", None)
     logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
     image.paste(logo_img, (10,10), logo_img)
     
@@ -2098,7 +2100,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     title = stat_frName + " de " + character_name + " (" + str(player_value) + ")\n"
     title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " relic connus"
-    image = get_distribution_graph(stat_g13_values, 50, title, player_value)
+    image = get_distribution_graph(stat_g13_values, 50, title, "valeur de la stat", "nombre de persos", player_value)
     
     return 0, err_txt, image
 
