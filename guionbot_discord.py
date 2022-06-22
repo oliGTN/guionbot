@@ -1733,7 +1733,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_error)
             else:
                 intro_txt = ret_cmd[0]
-                await ctx.send(intro_txt +" :\n" +' / '.join(ret_cmd[1:]))
+                if len(ret_cmd) > 1:
+                    await ctx.send(intro_txt +" :\n" +' / '.join(ret_cmd[1:]))
+                else:
+                    await ctx.send(intro_txt +" : aucun joueur"
+
                 await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
