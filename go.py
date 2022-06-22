@@ -2753,21 +2753,6 @@ def get_tw_alerts(server_name):
         longest_opp_player_name = longest_opp_player_name.replace("'", "''")
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
-        query = "SELECT players.name, defId, roster_skills.name from roster\n"
-        query+= "JOIN roster_skills ON roster_id=roster.id\n"
-        query+= "JOIN players ON players.allyCode=roster.allyCode\n"
-        query+= "WHERE guildName=(\n"
-        query+= "    SELECT guildName FROM players\n"
-        query+= "    WHERE name='"+longest_opp_player_name+"'\n"
-        query+= "    ORDER BY lastUpdated DESC\n"
-        query+= "    LIMIT 1\n"
-        query+= ")\n"
-        query+= "AND omicron_tier=roster_skills.level\n"
-        query+= "AND omicron_type='TW'"
-        goutils.log2("DBG", query)
-        omicron_table = connect_mysql.get_table(query)
-        goutils.log2("DBG", omicron_table)
-
         for territory in list_open_tw_territories:
             list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
             counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
@@ -2793,24 +2778,6 @@ def get_tw_alerts(server_name):
             msg += " ("+territory+") est ouvert. Avec ces adversaires :"
             for leader in counter_leaders:
                 msg += "\n - "+leader+": "+str(counter_leaders[leader])
-                for squad in list_opp_squads_terr:
-                    opp_name = squad[1]
-                    if squad[2][0] == leader:
-                        leader_toon = True
-                        for toon in squad[2]:
-                            list_id, dict_id, txt = goutils.get_characters_from_alias([toon])
-                            toon_id = list_id[0]
-
-                            if omicron_table == None:
-                                filtered_omicron_table = []
-                            else:
-                                filtered_omicron_table = list(filter(lambda x: x[:2]==(opp_name, toon_id), omicron_table))
-
-                            if len(filtered_omicron_table) == 1:
-                                msg += "\n    - "+opp_name+": omicron sur "+toon
-                                if filtered_omicron_table[0][2] == 'L' and not leader_toon:
-                                    msg += "... qui n'est pas posé en chef \N{THINKING FACE}"
-                            leader_toon = False
 
             list_tw_alerts[1][territory] = msg
 
