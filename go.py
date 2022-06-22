@@ -976,10 +976,11 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
 def print_vtg(list_team_names, txt_allyCode, server_name, tw_mode):
 
     #Manage -TW option
+    secs_track = -1
     if tw_mode:
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_name)
+        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_name)
         if ec != 0:
-            return ec, et, None
+            return ec, et
     else:
         dict_def_toon_player = {}
 
@@ -987,9 +988,13 @@ def print_vtg(list_team_names, txt_allyCode, server_name, tw_mode):
                                               server_name, True, 0, dict_def_toon_player)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
-        return 1,  ret_get_team_progress
+        return 1, ret_get_team_progress
     else:
-        ret_print_vtx = "Vérification des Teams de la Guilde **"+guild_name+"**\n\n"
+        ret_print_vtx = "Vérification des Teams de la Guilde **"+guild_name+"**\n"
+        if tw_mode:
+            ret_print_vtx += "(les toons posés en défense de GT sont considérés indisponibles)\n"
+        ret_print_vtx += "\n"
+
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
             if type(ret_team) == str:
@@ -1036,13 +1041,17 @@ def print_vtg(list_team_names, txt_allyCode, server_name, tw_mode):
                                + " + " + str(total_amber) + " \N{CONFUSED FACE}"
 
             ret_print_vtx += "\n\n"
+
+        if tw_mode:
+            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
+            ret_print_vtx += "(dernier update warstats: "+secs_track_txt+")"
                 
     return 0, ret_print_vtx
 
 def print_vtj(list_team_names, txt_allyCode, server_name, tw_mode):
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_name)
+        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_name)
         if ec != 0:
             return ec, et, None
     else:
@@ -1054,7 +1063,11 @@ def print_vtj(list_team_names, txt_allyCode, server_name, tw_mode):
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
     else:
-        ret_print_vtx = "Vérification des Teams du Joueur **"+player_name+"**\n\n"
+        ret_print_vtx = "Vérification des Teams du Joueur **"+player_name+"**\n"
+        if tw_mode:
+            ret_print_vtx += "(les toons posés en défense de GT sont considérés indisponibles)\n"
+        ret_print_vtx += "\n"
+
         if len(ret_get_team_progress) > 0:
             values_view = ret_get_team_progress.values()
             value_iterator = iter(values_view)
@@ -1088,6 +1101,10 @@ def print_vtj(list_team_names, txt_allyCode, server_name, tw_mode):
 
                     list_char_allycodes = [[list_char, txt_allyCode, ""]]
                     e, t, images = get_character_image(list_char_allycodes, True, True, '')
+
+        if tw_mode:
+            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
+            ret_print_vtx += "(dernier update warstats: "+secs_track_txt+")"
 
     #In case of several teams, don't display images
     if len(ret_get_team_progress) > 1:
@@ -2797,7 +2814,7 @@ def get_tw_alerts(server_name):
 
             list_tw_alerts[1][territory] = msg
 
-    [list_defense_squads, list_def_territories] = connect_warstats.parse_tw_defense_teams(warstats_id)
+    [list_defense_squads, list_def_territories], secs_track = connect_warstats.parse_tw_defense_teams(warstats_id)
     if len(list_def_territories) > 0:
         #Alert for defense fully set
         list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
@@ -3413,11 +3430,11 @@ def get_tw_defense_toons(server_name):
     if warstats_id == 0:
         return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + server_name, None
 
-    [list_defense_squads, list_def_territories] = connect_warstats.parse_tw_defense_teams(warstats_id)
+    [list_defense_squads, list_def_territories], secs_track = connect_warstats.parse_tw_defense_teams(warstats_id)
     list_defense_characters = set([j for i in [x[2] for x in list_defense_squads] for j in i])
     list_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_defense_characters)
     if txt != '':
-        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None, -1
 
     dict_def_toon_player = {}
     for squad in list_defense_squads:
@@ -3429,4 +3446,4 @@ def get_tw_defense_toons(server_name):
 
             dict_def_toon_player[char_id].append(player)
 
-    return 0, "", dict_def_toon_player
+    return 0, "", dict_def_toon_player, secs_track
