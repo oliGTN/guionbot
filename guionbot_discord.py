@@ -877,27 +877,27 @@ def read_gsheets(guild_name):
         err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
         err_code = 1
 
-    l, d = connect_gsheets.load_config_teams(ctx.guild.name, True)
+    l, d = connect_gsheets.load_config_teams(guild_name, True)
     if d == None:
         err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
         err_code = 1
 
-    d = connect_gsheets.load_config_raids(ctx.guild.name, True)
+    d = connect_gsheets.load_config_raids(guild_name, True)
     if d == None:
         err_txt += "ERR: erreur en mettant à jour les RAIDS\n"
         err_code = 1
 
-    [ts, dt, m] = connect_gsheets.get_tb_triggers(ctx.guild.name, True)
+    [ts, dt, m] = connect_gsheets.get_tb_triggers(guild_name, True)
     if ts == None:
         err_txt += "ERR: erreur en mettant à jour la BT\n"
         err_code = 1
 
-    l = connect_gsheets.load_tb_teams(ctx.guild.name, True)
+    l = connect_gsheets.load_tb_teams(guild_name, True)
     if l == None:
         err_txt += "ERR: erreur en mettant à jour les BT teams\n"
         err_code = 1
 
-    [d1, d2] = connect_gsheets.load_config_players(ctx.guild.name, True)
+    [d1, d2] = connect_gsheets.load_config_players(guild_name, True)
     if d1 == None:
         err_txt += "ERR: erreur en mettant à jour les PLAYERS\n"
         err_code = 1
