@@ -12,9 +12,24 @@ unitsList_dict = {}
 unitsList_obtainable = [x for x in list(filter(lambda f:f['rarity']==7 and f['obtainable'] and f['obtainableTime']==0, unitsList))]
 for unit in unitsList_obtainable:
     #if (not ':' in unit['id']):
-        if unit['baseId'] in unitsList_dict:
-            print('WAR: double definition of '+unit['baseId'])
-        unitsList_dict[unit['baseId']] = unit
+        unit_id = unit['baseId']
+        if unit_id in unitsList_dict:
+            #could be if ship has been detected before
+            unitsList_dict[unit_id] = {**unitsList_dict[unit_id], **unit}
+        else:
+            unitsList_dict[unit_id] = unit
+            if unit['combatType'] != 2:
+                unitsList_dict[unit_id]['ships'] = []
+
+        #attach ships to crew
+        if unit['combatType'] == 2:
+            for pilot in unit['crewList']:
+                pilot_id = pilot['unitId']
+                if pilot_id in unitsList_dict:
+                    unitsList_dict[pilot_id]['ships'].append(unit_id)
+                else:
+                    unitsList_dict[pilot_id] = {'ships': [unit_id]}
+
 
 fnew = open('DATA'+os.path.sep+'unitsList_dict.json', 'w')
 fnew.write(json.dumps(unitsList_dict, sort_keys=True, indent=4))

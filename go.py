@@ -2241,8 +2241,14 @@ def print_erx(txt_allyCode, days, compute_guild):
                         unit_categories = dict_unitsList[unit_id]["categoryIdList"]
                     else:
                         unit_categories = []
+
+                    if "ships" in dict_unitsList[unit_id]:
+                        unit_ships = dict_unitsList[unit_id]["ships"]
+                    else:
+                        unit_ships = []
                 else:
                     unit_categories = []
+                    unit_ships = []
 
                 for category in unit_categories:
                     if category in dict_categoryList:
@@ -2251,6 +2257,12 @@ def print_erx(txt_allyCode, days, compute_guild):
                             stats_categories[category][1] += 1
                         else:
                             stats_categories[category] = [category_name, 1]
+
+                for ship_id in unit_ships:
+                    if ship_id in stats_units:
+                        stats_units[ship_id][1] += 1
+                    else:
+                        stats_units[ship_id] = [unit_name, 1]
 
                 for char_gv_id in dict_teams_gv:
                     if player_name in dict_gv_done:
@@ -2265,6 +2277,13 @@ def print_erx(txt_allyCode, days, compute_guild):
                             stats_gv[char_gv_id][1] += 1
                         else:
                             stats_gv[char_gv_id] = [char_gv_name, 1]
+
+                    for ship_id in unit_ships:
+                        if ship_id in dict_teams_gv[char_gv_id]:
+                            if char_gv_id in stats_gv:
+                                stats_gv[char_gv_id][1] += 1
+                            else:
+                                stats_gv[char_gv_id] = [char_gv_name, 1]
 
 
         goutils.log2("DBG", "stats_units: "+str(stats_units))
