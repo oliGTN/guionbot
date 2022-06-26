@@ -2297,7 +2297,7 @@ def print_erx(txt_allyCode, days, compute_guild):
             
         ret_cmd = "**Evolutions du roster de "+evo_item_name+" durant les "+str(days)+" derniers jours "\
                 + "(du "+str(oldest)+" au "+str(latest)+")**\n"
-        ret_cmd += "1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso\n"
+        ret_cmd += "1 évolution =  1 step de niveau (peut regrouper plusieurs steps si faits ensemble), de gear, de relic, 1 zeta en plus, déblocage du perso, monter le pilote d'un vaisseau\n"
         if "alignment_light" in stats_categories:
             lightside = stats_categories["alignment_light"][1]
         else:
