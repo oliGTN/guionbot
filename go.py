@@ -3203,9 +3203,12 @@ def tag_players_with_character(txt_allyCode, character, server_name, tw_mode):
 
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_name)
+        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_name)
         if ec != 0:
             return ec, et, None
+
+        secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
+        intro_txt += " (dernier update warstats: "+secs_track_txt+")"
     else:
         dict_def_toon_player = {}
 
@@ -3395,7 +3398,7 @@ def get_tw_defense_toons(server_name):
     twChannel_id = db_data[1]
     warstats_id = db_data[2]
     if warstats_id == 0:
-        return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + server_name, None
+        return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + server_name, None, -1
 
     [list_defense_squads, list_def_territories], secs_track = connect_warstats.parse_tw_defense_teams(warstats_id)
     list_defense_characters = set([j for i in [x[2] for x in list_defense_squads] for j in i])
