@@ -20,6 +20,7 @@ if [ "$DIFF_RES" != "" ] || [ "$1" == "force" ]; then
 	python get_data.py categoryList ENG_US
 	python get_data.py abilityList
 	python get_data.py skillList
+	ls -ltr DATA/
 fi
 
 rm CACHE/version
