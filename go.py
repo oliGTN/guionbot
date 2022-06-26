@@ -2253,6 +2253,9 @@ def print_erx(txt_allyCode, days, compute_guild):
                     if player_name in dict_gv_done:
                         if char_gv_id in dict_gv_done[player_name]:
                             continue
+                    if not char_gv_id = dict_unitsList:
+                        return 1, "ERR: "+char_gv_id+" is defined in the GV but not in the unitsList"
+
                     char_gv_name = dict_unitsList[char_gv_id]["nameKey"]
                     if unit_id in dict_teams_gv[char_gv_id]:
                         if char_gv_id in stats_gv:
@@ -3203,9 +3206,12 @@ def tag_players_with_character(txt_allyCode, character, server_name, tw_mode):
 
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_name)
+        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_name)
         if ec != 0:
             return ec, et, None
+
+        secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
+        intro_txt += " (dernier update warstats: "+secs_track_txt+")"
     else:
         dict_def_toon_player = {}
 
@@ -3395,7 +3401,7 @@ def get_tw_defense_toons(server_name):
     twChannel_id = db_data[1]
     warstats_id = db_data[2]
     if warstats_id == 0:
-        return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + server_name, None
+        return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + server_name, None, -1
 
     [list_defense_squads, list_def_territories], secs_track = connect_warstats.parse_tw_defense_teams(warstats_id)
     list_defense_characters = set([j for i in [x[2] for x in list_defense_squads] for j in i])
