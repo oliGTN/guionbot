@@ -2237,7 +2237,10 @@ def print_erx(txt_allyCode, days, compute_guild):
                     stats_units[unit_id] = [unit_name, 1]
 
                 if unit_id in dict_unitsList:
-                    unit_categories = dict_unitsList[unit_id]["categoryIdList"]
+                    if "categoryIdList" in dict_unitsList[unit_id]:
+                        unit_categories = dict_unitsList[unit_id]["categoryIdList"]
+                    else:
+                        unit_categories = []
                 else:
                     unit_categories = []
 
@@ -2253,7 +2256,7 @@ def print_erx(txt_allyCode, days, compute_guild):
                     if player_name in dict_gv_done:
                         if char_gv_id in dict_gv_done[player_name]:
                             continue
-                    if not char_gv_id = dict_unitsList:
+                    if not char_gv_id in dict_unitsList:
                         return 1, "ERR: "+char_gv_id+" is defined in the GV but not in the unitsList"
 
                     char_gv_name = dict_unitsList[char_gv_id]["nameKey"]
