@@ -2237,7 +2237,10 @@ def print_erx(txt_allyCode, days, compute_guild):
                     stats_units[unit_id] = [unit_name, 1]
 
                 if unit_id in dict_unitsList:
-                    unit_categories = dict_unitsList[unit_id]["categoryIdList"]
+                    if "categoryIdList" in dict_unitsList[unit_id]:
+                        unit_categories = dict_unitsList[unit_id]["categoryIdList"]
+                    else:
+                        unit_categories = []
                 else:
                     unit_categories = []
 
