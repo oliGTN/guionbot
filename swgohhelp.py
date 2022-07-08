@@ -53,7 +53,11 @@ class SWGOHhelp():
         if 'Authorization' in token:
             head = {'Method': 'POST','Content-Type': 'application/json','Authorization': token['Authorization']}
             if data_type == 'data':
-                payload = {'collection': str(spec), 'language': language}
+                if spec == "unitsList":
+                    match_opts = {'rarity':7, 'obtainable':True, 'obtainableTime':0}
+                else:
+                    match_opts = {}
+                payload = {'collection': spec, 'language': language, 'match': match_opts}
             else:
                 payload = {'allycode': spec, 'language': language}
             data_url = self.urlBase+self.data_type[data_type]
