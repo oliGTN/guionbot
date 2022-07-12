@@ -734,10 +734,15 @@ def print_tw_best_teams(list_teams, intro_txt):
             log2('INFO', "filtered_teams="+str(filtered_teams))
             if len(filtered_teams) > 0:
                 max_fights = max(filtered_teams, key=lambda x: x[4])[4]
-                best_teams = [x for x in filtered_teams if x[4]==max_fights]
-                output_txt += intro_txt+" "+label_terr+" "+label+" après "+str(max_fights)+" combats :\n"
-                for t in best_teams:
-                    output_txt += t[1] + ": " + str(t[2]) + "\n"
+                log2('INFO', "max_fights="+str(max_fights))
+                if (max_fights + int(not(beaten))) > 1:
+                    best_teams = [x for x in filtered_teams if x[4]==max_fights]
+                    log2('INFO', "best_teams="+str(best_teams))
+                    output_txt += intro_txt+" "+label_terr+" "+label+" après "+str(max_fights)+" combats :\n"
+                    for t in best_teams:
+                        output_txt += t[1] + ": " + str(t[2]) + "\n"
+                else:
+                    output_txt += intro_txt+" "+label_terr+" "+label+" : rien de particulier à signaler"
 
     return output_txt
 
