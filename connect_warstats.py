@@ -24,6 +24,7 @@ warstats_tb_resume_baseurl='https://goh.warstats.net/territory-battles/view/'
 warstats_tws_url='https://goh.warstats.net/guilds/tws/'
 warstats_opp_squad_baseurl='https://goh.warstats.net/territory-wars/squads/opponent/'
 warstats_def_squad_baseurl='https://goh.warstats.net/territory-wars/squads/home/'
+warstats_stats_baseurl='https://goh.warstats.net/territory-wars/stats/'
 
 # URLs for RAIDS
 warstats_raids_url='https://goh.warstats.net/guilds/raids/'
@@ -141,6 +142,7 @@ dict_tb_player_scores = {}
 
 dict_tw_opponent_teams = {}
 dict_tw_defense_teams = {}
+dict_tw_stats = {}
 
 dict_raid_player_scores = {} #{raid name:{player name:score}}
 dict_raid_phase = {} #{raid name:phase}
@@ -174,6 +176,7 @@ def init_globals(guild_id):
 
     dict_tw_opponent_teams[guild_id] = [[], []]
     dict_tw_defense_teams[guild_id] = [[], []]
+    dict_tw_stats[guild_id] = []
 
     dict_raid_player_scores[guild_id] = {}
     dict_raid_phase[guild_id] = {}
@@ -185,6 +188,7 @@ def init_globals(guild_id):
     dict_next_warstats_read[guild_id]["tb_player_scores"] = time.time()
     dict_next_warstats_read[guild_id]["tw_opponent_teams"] = time.time()
     dict_next_warstats_read[guild_id]["tw_defense_teams"] = time.time()
+    dict_next_warstats_read[guild_id]["tw_stats"] = time.time()
     dict_next_warstats_read[guild_id]["raid_scores"] = time.time()
 
     dict_sessions[guild_id] = open_new_warstats_session(guild_id)
@@ -1072,6 +1076,106 @@ class TWSSquadParser(HTMLParser):
     def get_last_track(self):
         return self.seconds_since_last_track
 
+class TWSStatsParser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.seconds_since_last_track = -1
+        self_player = []
+        self.list_active_players = [] # [['Karcot', '', '1', ...], ['Eros92', ...], ...]
+
+        self.state_parser=0
+        #0: en recherche de <div class="card card-table">
+        #1: en recherche de <tbody>
+        #2: en recherche de <a> (goto 3) OU </tbody> (goto 6)
+        #3: en recherche de data
+        #4: en recherche de <td> (goto 5) OU </tr> (goto 2)
+        #5: en recherche de data
+        #6: FIN
+        
+        self.state_parser2=0
+        #0: en recherche de <span id="track-timer"
+        #1: en recherche de script
+        #2: en recherche de data
+        
+    def handle_starttag(self, tag, attrs):
+        if self.state_parser==0:
+            if tag=='div':
+                #print('DBG: div - '+str(attrs))
+                for name, value in attrs:
+                    if name=='class' and value=='card card-table':
+                        #print("state_parser=1")
+                        self.state_parser=1
+
+        elif self.state_parser==1:
+            if tag=='tbody':
+                #print(attrs)
+                #print("state_parser=2")
+                self.state_parser=2
+
+        elif self.state_parser==2:
+            if tag=='a':
+                #print(attrs)
+                #print("state_parser=3")
+                self.state_parser=3
+
+        elif self.state_parser==4:
+            if tag=='td':
+                #print(attrs)
+                #print("state_parser=5")
+                self.state_parser=5
+
+        #PARSER 2 pour le timer du tracker
+        if self.state_parser2==0:
+            if tag=='span':
+                for name, value in attrs:
+                    if name=='id' and value=='track-timer':
+                        self.state_parser2=1
+                        
+        elif self.state_parser2==1:
+            if tag=='script':
+                self.state_parser2=2
+                        
+    def handle_endtag(self, tag):
+        if self.state_parser == 4:
+            if tag=='tr':
+                #print(self.player)
+                if self.player[1] != '-':
+                    self.list_active_players.append(self.player)
+                self.state_parser=2
+
+        if self.state_parser == 2:
+            if tag=='tbody':
+                self.state_parser=6
+
+    def handle_data(self, data):
+        data = data.strip(" \t\n")
+        if self.state_parser==3:
+            if data!='':
+                #print("Player: "+data)
+                self.player = [data]
+                #print("state_parser=4")
+                self.state_parser=4
+
+        elif self.state_parser==5:
+            #print("Player data: ["+data+"]")
+            self.player.append(data)
+            #print("state_parser=4")
+            self.state_parser=4
+
+        #PARSER 2 for TIME TRACK
+        if self.state_parser2==2:
+            #print(data)
+            ret_re = re.search('{seconds: (.*?)}', data)
+            timer_seconds_txt = ret_re.group(1)
+            self.seconds_since_last_track = int(timer_seconds_txt)
+            self.state_parser2=0
+                
+    def get_active_players(self):
+        return self.list_active_players
+                
+    def get_last_track(self):
+        return self.seconds_since_last_track
+
 class RaidListParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
@@ -1630,6 +1734,58 @@ def parse_tw_defense_teams(guild_id):
         set_next_warstats_read_short(def_squad_parser.get_last_track(), "tw_defense_teams", guild_id)
 
     return dict_tw_defense_teams[guild_id], dict_last_warstats_read[guild_id]
+
+def parse_tw_stats(guild_id):
+    global dict_last_warstats_read
+    global dict_next_warstats_read
+    global dict_tw_stats
+
+    if not guild_id in dict_next_warstats_read:
+        init_globals(guild_id)
+
+    #First, check there is value to re-parse the page
+    if time.time() < dict_next_warstats_read[guild_id]["tw_stats"]:
+        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tw_stats", guild_id))+" secs")
+    else:
+        warstats_tws_url_guild = warstats_tws_url + str(guild_id)
+        try:
+            page = urlopen(guild_id, warstats_tws_url_guild)
+        except (requests.exceptions.ConnectionError) as e:
+            goutils.log2('ERR', 'error while opening '+warstats_tws_url_guild)
+            return dict_tw_defense_teams[guild_id], -1
+        
+        tw_list_parser = TWSListParser()
+        tw_list_parser.feed(page.content.decode('utf-8', 'ignore'))
+        dict_last_warstats_read[guild_id] = tw_list_parser.get_last_track()
+    
+        [war_id, war_in_progress] = tw_list_parser.get_war_id()
+        if not war_in_progress:
+            goutils.log2('INFO', "["+str(guild_id)+"] no TW in progress")
+
+            dict_tw_stats[guild_id] = []
+
+            set_next_warstats_read_long(11, 'PST8PDT',
+                                        tw_list_parser.get_last_track(),
+                                        "tw_stats", guild_id)
+
+            return dict_tw_stats[guild_id], dict_last_warstats_read[guild_id]
+    
+        goutils.log2('INFO', "Current TW is "+war_id)
+        warstats_stats_url=warstats_stats_baseurl+war_id
+        try:
+            page = urlopen(guild_id, warstats_stats_url)
+        except (requests.exceptions.ConnectionError) as e:
+            goutils.log2('ERR', 'error while opening '+warstats_stats_url)
+            return dict_tw_stats[guild_id], -1
+
+        stats_parser = TWSStatsParser()
+        stats_parser.feed(page.content.decode('utf-8', 'ignore'))
+
+        dict_tw_stats[guild_id] = stats_parser.get_active_players()
+
+        set_next_warstats_read_short(stats_parser.get_last_track(), "tw_stats", guild_id)
+
+    return dict_tw_stats[guild_id], dict_last_warstats_read[guild_id]
 
 def parse_raid_scores(guild_id, raid_name):
     global dict_next_warstats_read
