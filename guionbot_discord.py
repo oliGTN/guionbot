@@ -1117,6 +1117,8 @@ async def on_member_join(member):
 async def on_member_update(before, after):
     guild_name = before.guild.name
     set_id_lastseen("on_member_update", guild_name, before.id)
+    if before.display_name != after.display_name:
+        goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 @bot.event
 async def on_user_update(before, after):
