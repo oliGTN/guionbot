@@ -263,7 +263,7 @@ async def bot_loop_5minutes():
 
                     for territory in dict_messages:
                         msg_txt = dict_messages[territory]
-                        goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg_txt)
+                        goutils.log2("INFO", "["+guild.name+"] TW alert: "+msg_txt)
 
                         if not territory in dict_tw_alerts_previously_done[guild.name][1]:
                             if not first_bot_loop_5minutes:
@@ -357,8 +357,8 @@ async def bot_loop_5minutes():
                     dict_platoons_previously_done[guild.name] = {}
 
                 #Lecture du statut des pelotons sur warstats
-                tbs_round, dict_platoons_done, \
-                    list_open_territories = connect_warstats.parse_tb_platoons(guild_id, False)
+                tbs_round, dict_platoons_done, list_open_territories, \
+                    sec_last_track = connect_warstats.parse_tb_platoons(guild_id, False)
                 if tbs_round == '':
                     goutils.log2("DBG", "["+guild.name+"] No TB in progress")
                     dict_platoons_previously_done[guild.name] = {}
@@ -858,6 +858,53 @@ def manage_me(ctx, alias):
     return ret_allyCode_txt
 
 ##############################################################
+# Function: read_gsheets
+# IN: guild_name (= discord server name)
+# Purpose: affecte le code allié de l'auteur si "me"
+# OUT: err_code (0 = OK), err_txt
+##############################################################
+def read_gsheets(guild_name):
+    err_code = 0
+    err_txt = ""
+
+    d = connect_gsheets.load_config_units(True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les UNITS\n"
+        err_code = 1
+
+    l, d = connect_gsheets.load_config_teams("GuiOnBot config", True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
+        err_code = 1
+
+    l, d = connect_gsheets.load_config_teams(guild_name, True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
+        err_code = 1
+
+    d = connect_gsheets.load_config_raids(guild_name, True)
+    if d == None:
+        err_txt += "ERR: erreur en mettant à jour les RAIDS\n"
+        err_code = 1
+
+    [ts, dt, m] = connect_gsheets.get_tb_triggers(guild_name, True)
+    if ts == None:
+        err_txt += "ERR: erreur en mettant à jour la BT\n"
+        err_code = 1
+
+    l = connect_gsheets.load_tb_teams(guild_name, True)
+    if l == None:
+        err_txt += "ERR: erreur en mettant à jour les BT teams\n"
+        err_code = 1
+
+    [d1, d2] = connect_gsheets.load_config_players(guild_name, True)
+    if d1 == None:
+        err_txt += "ERR: erreur en mettant à jour les PLAYERS\n"
+        err_code = 1
+
+    return err_code, err_txt
+
+##############################################################
 #                                                            #
 #                  EVENEMENTS                                #
 #                                                            #
@@ -1320,44 +1367,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                              help="Lit les dernières infos du google sheet")
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
-        is_error = False
+        err_code, err_txt = read_gsheets(ctx.guild.name)
 
-        d = connect_gsheets.load_config_units(True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les UNITS")
-            is_error = True
-
-        l, d = connect_gsheets.load_config_teams("GuiOnBot config", True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les TEAMS GV")
-            is_error = True
-
-        l, d = connect_gsheets.load_config_teams(ctx.guild.name, True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les TEAMS")
-            is_error = True
-
-        d = connect_gsheets.load_config_raids(ctx.guild.name, True)
-        if d == None:
-            await ctx.send("ERR: erreur en mettant à jour les RAIDS")
-            is_error = True
-
-        [ts, dt, m] = connect_gsheets.get_tb_triggers(ctx.guild.name, True)
-        if ts == None:
-            await ctx.send("ERR: erreur en mettant à jour la BT")
-            is_error = True
-
-        l = connect_gsheets.load_tb_teams(ctx.guild.name, True)
-        if l == None:
-            await ctx.send("ERR: erreur en mettant à jour les BT teams")
-            is_error = True
-
-        [d1, d2] = connect_gsheets.load_config_players(ctx.guild.name, True)
-        if d1 == None:
-            await ctx.send("ERR: erreur en mettant à jour les PLAYERS")
-            is_error = True
-
-        if is_error:
+        if err_code == 1:
+            await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
         else:
             await ctx.message.add_reaction(emoji_check)
@@ -1581,15 +1594,15 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             return
 
         #Lecture du statut des pelotons sur warstats
-        tbs_round, dict_platoons_done, \
-            list_open_territories = connect_warstats.parse_tb_platoons(warstats_id, False)
+        tbs_round, dict_platoons_done, list_open_territories, \
+            secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
         goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
 
         if tbs_round == '':
-            await ctx.send('Aucune BT en cours')
+            await ctx.send("Aucune BT en cours (dernier update warstats: "+int(secs_track)+" secs")
             await ctx.message.add_reaction(emoji_error)
         else:
             goutils.log2("INFO", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
@@ -1667,7 +1680,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 for txt in sorted(set(list_err)):
                     full_txt += txt + '\n'
             else:
-                full_txt += 'Aucune erreur de peloton\n'
+                full_txt = "Aucune erreur de peloton\n"
+
+            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ " s"
+            full_txt += "(dernier update warstats : "+secs_track_txt+")"
 
             for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
@@ -1684,6 +1700,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.command(name='tpg',
                  brief="Tag les possesseurs d'un Perso dans la Guilde",
                  help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
+                      "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
                       "Exemple : go.tbg me SEE\n"\
                       "Exemple : go.tbg me SEE:G13")
     async def tpg(self, ctx, *args):
@@ -1718,7 +1735,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_error)
             else:
                 intro_txt = ret_cmd[0]
-                await ctx.send(intro_txt +" :\n" +' / '.join(ret_cmd[1:]))
+                if len(ret_cmd) > 1:
+                    await ctx.send(intro_txt +" :\n" +' / '.join(ret_cmd[1:]))
+                else:
+                    await ctx.send(intro_txt +" : aucun joueur")
+
                 await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
@@ -1837,6 +1858,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='vtg',
                       brief="Vérifie la dispo d'une team dans la guilde",
                       help="Vérifie la dispo d'une team dans la guilde\n\n"\
+                           "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
                            "Exemple: go.vtg 192126111 all\n"\
                            "Exemple: go.vtg 192126111 NS\n"\
                            "Exemple: go.vtg 192126111 PADME NS DR\n"\
@@ -1883,6 +1905,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='vtj',
                  brief="Vérifie la dispo d'une ou plusieurs teams chez un joueur",
                  help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
+                      "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
                       "Exemple: go.vtj 192126111 all\n"\
                       "Exemple: go.vtj 192126111 NS\n"\
                       "Exemple: go.vtj 192126111 PADME NS DR\n"\
@@ -2497,7 +2520,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode_attack)
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
             return
 
@@ -2597,7 +2620,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode_attack)
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
             return
 
@@ -2634,7 +2657,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode_attack)
+            await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
             return
 

@@ -22,12 +22,6 @@ class SWGOHhelp():
         
         self.urlBase = 'https://api.swgoh.help'
         self.signin = '/auth/signin'
-        self.data_type = {'guild':'/swgoh/guild/',
-                          'player':'/swgoh/player/',
-                          'data':'/swgoh/data/',
-                          'units':'/swgoh/units',
-                          'battles':'/swgoh/battles'}
-
         
     def get_token(self):
         if (time.time() >= self.token_expires) or (not 'Authorization' in self.token):
@@ -52,11 +46,20 @@ class SWGOHhelp():
         # print("DBG - token: "+str(token))
         if 'Authorization' in token:
             head = {'Method': 'POST','Content-Type': 'application/json','Authorization': token['Authorization']}
-            if data_type == 'data':
-                payload = {'collection': str(spec), 'language': language}
+
+            if spec in ["zetas", "squads"]:
+                data_type = spec
+                payload = {}
+            elif data_type == 'data':
+                if spec == "unitsList":
+                    match_opts = {'rarity':7, 'obtainable':True, 'obtainableTime':0}
+                else:
+                    match_opts = {}
+                payload = {'collection': spec, 'language': language, 'match': match_opts}
             else:
                 payload = {'allycode': spec, 'language': language}
-            data_url = self.urlBase+self.data_type[data_type]
+            data_url = self.urlBase+"/swgoh/"+data_type
+            print("data_url: "+str(data_url))
             try:
                 r = requests.request('POST',data_url, headers=head, data = dumps(payload))
                 if r.status_code != 200:

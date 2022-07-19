@@ -19,6 +19,8 @@ for ability in abilityList:
                 omicron_type = "TW"
             elif "dans les guerres de territoire" in upgradeKey_lastTier.lower():
                 omicron_type = "TW"
+            elif "pendant les guerres de territoire" in upgradeKey_lastTier.lower():
+                omicron_type = "TW"
             elif "pendant une bataille de territoire" in upgradeKey_lastTier.lower():
                 omicron_type = "TB"
             elif "dans les batailles de territoire" in upgradeKey_lastTier.lower():

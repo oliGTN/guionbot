@@ -213,7 +213,13 @@ def load_config_players(guild_name, force_load):
             
             #Fill dict_players_by_ID
             if discord_id!='':
-                dict_players_by_ID[discord_id] = [ligne['Allycode'], ligne['Officier']!='']
+                if discord_id in dict_players_by_ID:
+                    is_already_officer = dict_players_by_ID[discord_id][1]
+                else:
+                    is_already_officer = False
+
+                is_officer = is_already_officer or (ligne['Officier']!='')
+                dict_players_by_ID[discord_id] = [ligne['Allycode'], is_officer]
 
         # store json file
         fjson = open(json_file, 'w')
