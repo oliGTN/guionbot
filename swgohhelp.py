@@ -59,7 +59,7 @@ class SWGOHhelp():
             else:
                 payload = {'allycode': spec, 'language': language}
             data_url = self.urlBase+"/swgoh/"+data_type
-            print("data_url: "+str(data_url))
+            #print("data_url: "+str(data_url))
             try:
                 r = requests.request('POST',data_url, headers=head, data = dumps(payload))
                 if r.status_code != 200:
