@@ -12,3 +12,6 @@ def get(filename):
         new_data = json.load(open("DATA"+os.path.sep+filename, "r"))
         dict_data[filename] = new_data
         return new_data
+
+def reset_data():
+    dict_data={}

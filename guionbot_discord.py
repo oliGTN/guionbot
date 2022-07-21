@@ -23,6 +23,7 @@ import connect_gsheets
 import connect_warstats
 import connect_mysql
 import portraits
+import data
 
 TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
@@ -1359,7 +1360,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     # Command: lgs
     # Parameters: None
-    # Purpose: Update cache files from google sheet
+    # Purpose: Update cache files from google sheet, and JSON files from API
     # Display: None
     ##############################################################
     @commands.check(is_officer)
@@ -1367,6 +1368,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                              help="Lit les dernières infos du google sheet")
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
+        data.reset_data()
         err_code, err_txt = read_gsheets(ctx.guild.name)
 
         if err_code == 1:
