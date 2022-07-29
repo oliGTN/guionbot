@@ -552,14 +552,14 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                                     color_emoji = None
 
                                 if event[1] == 1:
-                                    speed_emoji = "\N{DIGIT ONE}"
+                                    speed_emoji = "x1"
                                 elif event[1] == 2:
-                                    speed_emoji = "\N{DIGIT TWO}"
+                                    speed_emoji = "x2"
                                 else:
                                     speed_emoji = None
 
                                 if color_emoji!=None and speed_emoji!=None:
-                                    character_display += " > "+color_emoji+speed_emoji
+                                    character_display += " > farming en "+color_emoji+speed_emoji
 
                     elif player_gear < req_gear_reco:
                         character_display += "\N{CONFUSED FACE} "+\
