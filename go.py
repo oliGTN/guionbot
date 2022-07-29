@@ -319,10 +319,17 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     if load_players:
         if lastUpdated != None:
             delta_lastUpdated = datetime.datetime.now() - lastUpdated
+            if cmd_request:
+                #if guild info used for a command, do not refresh unless more tan a day
+                need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 86400
+            else:
+                #if guild info refreshed regularly, do if more than one hour
+                need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
+        else:
+            need_refresh_due_to_time = False
 
         need_to_add_players = (len(allyCodes_to_add) > 0)
         goutils.log2("DBG", "need_to_add_players="+str(need_to_add_players))
-        need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
         goutils.log2("DBG", "need_refresh_due_to_time="+str(need_refresh_due_to_time))
 
         if is_new_guild or need_refresh_due_to_time or need_to_add_players:
