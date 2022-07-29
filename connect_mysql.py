@@ -266,7 +266,7 @@ def get_value(query):
         goutils.log("ERR", "connect_mysql.get_value", error)
         
     finally:
-        if cursor != None
+        if cursor != None:
             cursor.close()
     
     if len(tuples[0]) > 0:
