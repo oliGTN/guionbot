@@ -407,6 +407,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     return 0, "", dict_guild
 
 def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
+    dict_unitsList = data.get("unitsList_dict.json")
     line = ''
 
     #manage team_name in a path for recursing requests
@@ -534,6 +535,32 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                                             str(player_rarity) + "/" +\
                                             str(req_rarity_reco) +\
                                             "\N{WHITE MEDIUM STAR}"
+
+                        #Add farming info
+                        list_farming = []
+                        for event in dict_unitsList[character_id]['farmingInfo']:
+                            if event[0].startswith('C01'):
+                                if event[0][3:] == 'L':
+                                    color_emoji = "\N{Large Yellow Circle}"
+                                elif event[0][3:] == 'D':
+                                    color_emoji = "\N{Large Red Circle}"
+                                elif event[0][3:] == 'H':
+                                    color_emoji = "\N{LARGE RED CIRCLE}"
+                                elif event[0][3:] == 'SP':
+                                    color_emoji = "\N{LARGE BLUE CIRCLE}"
+                                else:
+                                    color_emoji = None
+
+                                if event[1] == 1:
+                                    speed_emoji = "\N{DIGIT ONE}"
+                                elif event[1] == 2:
+                                    speed_emoji = "\N{DIGIT TWO}"
+                                else:
+                                    speed_emoji = None
+
+                                if color_emoji!=None and speed_emoji!=None:
+                                    character_display += " > "+color_emoji+speed_emoji
+
                     elif player_gear < req_gear_reco:
                         character_display += "\N{CONFUSED FACE} "+\
                                             character_name + \
@@ -580,6 +607,31 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                         character_display = "\N{CROSS MARK} "+\
                                             character_name + \
                                             " n'est pas débloqué - 0%"
+
+                        #Add farming info
+                        for event in dict_unitsList[character_id]['farmingInfo']:
+                            if event[0].startswith('C01'):
+                                if event[0][3:] == 'L':
+                                    color_emoji = "\N{Large Yellow Circle}"
+                                elif event[0][3:] == 'D':
+                                    color_emoji = "\N{Large Red Circle}"
+                                elif event[0][3:] == 'H':
+                                    color_emoji = "\N{LARGE RED CIRCLE}"
+                                elif event[0][3:] == 'SP':
+                                    color_emoji = "\N{LARGE BLUE CIRCLE}"
+                                else:
+                                    color_emoji = None
+
+                                if event[1] == 1:
+                                    speed_emoji = "x1"
+                                elif event[1] == 2:
+                                    speed_emoji = "x2"
+                                else:
+                                    speed_emoji = None
+
+                                if color_emoji!=None and speed_emoji!=None:
+                                    character_display += " > farming en "+color_emoji+speed_emoji
+
                         nogo = True
                         weight = 1
                 else:

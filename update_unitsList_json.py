@@ -5,12 +5,17 @@ import os
 #####################################
 # This script adapts the official file from SWGOH.HELP API
 # It transfoms the initial list into a dictionary, with the unit_id as key
+# Then it add farming information
 #####################################
-unitsList = json.load(open('DATA'+os.path.sep+'unitsList.json', 'r'))
+#First transform materialList into dict
+materialList = json.load(open('DATA'+os.path.sep+'materialList.json', 'r'))
+materialList_dict = {}
+for material in materialList:
+    materialList_dict[material["id"]] = material
 
+unitsList = json.load(open('DATA'+os.path.sep+'unitsList.json', 'r'))
 unitsList_dict = {}
-unitsList_obtainable = [x for x in list(filter(lambda f:f['rarity']==7 and f['obtainable'] and f['obtainableTime']==0, unitsList))]
-for unit in unitsList_obtainable:
+for unit in unitsList:
     #if (not ':' in unit['id']):
         unit_id = unit['baseId']
         if unit_id in unitsList_dict:
@@ -30,6 +35,28 @@ for unit in unitsList_obtainable:
                 else:
                     unitsList_dict[pilot_id] = {'ships': [unit_id]}
 
+        #add farming info
+        if not "farmingInfo" in unitsList_dict[unit_id]:
+            unitsList_dict[unit_id]['farmingInfo'] = []
+        shard_name = 'unitshard_'+unit_id
+        if shard_name in materialList_dict:
+            farmingSpeed = 3 - int(materialList_dict[shard_name]['sellValue']['quantity']/15)
+            if 'lookupMissionList' in materialList_dict[shard_name]:
+                for event in materialList_dict[shard_name]['lookupMissionList']:
+                    if not event['missionIdentifier']['campaignMapId'] == 'MARQUEE':
+                        farmingLocation = event['missionIdentifier']['campaignId']
+                        if not [farmingLocation, farmingSpeed] in unitsList_dict[unit_id]["farmingInfo"]:
+                            unitsList_dict[unit_id]["farmingInfo"].append([farmingLocation, farmingSpeed])
+
+            else:
+                print('lookupMissionList not found for '+shard_name)
+
+unitsList_custom = json.load(open('DATA'+os.path.sep+'unitsList_custom.json', 'r'))
+for unit_id in unitsList_custom:
+    if unit_id in unitsList_dict:
+        print(unit_id + ' in custom is alreday in basic unitsList')
+    else:
+        unitsList_dict[unit_id] = unitsList_custom[unit_id]
 
 fnew = open('DATA'+os.path.sep+'unitsList_dict.json', 'w')
 fnew.write(json.dumps(unitsList_dict, sort_keys=True, indent=4))
@@ -38,19 +65,18 @@ fnew.close()
 ############################################
 # It also creates a dictionary of aliases from nameKeys
 ############################################
-unitsList_FRE_FR_obtainable = unitsList_obtainable
+unitsList_FRE_FR = unitsList
 unitsList_ENG_US = json.load(open('DATA'+os.path.sep+'unitsList_ENG_US.json', 'r'))
-unitsList_ENG_US_obtainable = [x for x in list(filter(lambda f:f['rarity']==7 and f['obtainable'] and f['obtainableTime']==0, unitsList_ENG_US))]
 #priority_names=["LEGENDARY", "S3", "GLREY", "HOTHREBELSOLDIER", "IMPERIALPROBEDROID", "AURRA_SING", "AMILYNHOLDO", "VULTUREDROID", "GRIEVOUS", "B1BATTLEDROIDV2", "THEMANDALORIAN", "VADER", "OBJ_CRATE_01", "SCOOTTROOPER"]
 priority_names=["CT210408"]
 
-if len(unitsList_FRE_FR_obtainable) != len(unitsList_ENG_US_obtainable):
-    print("Listes FRE_FR et ENG_US differentes ("+str(len(unitsList_FRE_FR_obtainable))+ " vs "+str(len(unitsList_ENG_US_obtainable))+")")
-    print(set(unitsList_FRE_FR_obtainable).difference(set(unitsList_ENG_US_obtainable)))
+if len(unitsList_FRE_FR) != len(unitsList_ENG_US):
+    print("Listes FRE_FR et ENG_US differentes ("+str(len(unitsList_FRE_FR))+ " vs "+str(len(unitsList_ENG_US))+")")
+    print(set(unitsList_FRE_FR).difference(set(unitsList_ENG_US)))
     sys.exit(1)
 
 unitsAlias_dict = {}
-for unitsList in [unitsList_FRE_FR_obtainable, unitsList_ENG_US_obtainable]:
+for unitsList in [unitsList_FRE_FR, unitsList_ENG_US]:
     for unit in unitsList:
         names = [unit['nameKey']]
         if '"' in unit['nameKey']:
@@ -109,7 +135,7 @@ for x in categoryList_ENG_US:
             dict_tags_by_id[tag_id] = [tag_name]
                 
 dict_categories_by_name = {}
-for x in unitsList_FRE_FR_obtainable:
+for x in unitsList_FRE_FR:
     for tag in x["categoryIdList"]:
         if tag in dict_tags_by_id:
             for tag_name in dict_tags_by_id[tag]:

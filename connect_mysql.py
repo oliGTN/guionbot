@@ -69,6 +69,7 @@ def update_guild_teams(guild_name, dict_team):
 #                 ]
 #             }
 #         }
+    cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
@@ -149,11 +150,12 @@ def update_guild_teams(guild_name, dict_team):
         goutils.log2("ERR", error)
         
     finally:
-        cursor.close()
-        # db.close()
+        if cursor != None:
+            cursor.close()
 
 def text_query(query):
     rows = []
+    cursor = None
 
     try:
         mysql_db = db_connect()
@@ -205,12 +207,14 @@ def text_query(query):
         rows=[error]
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
     
     return rows
         
         
 def simple_execute(query):
+    cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
@@ -222,11 +226,13 @@ def simple_execute(query):
         goutils.log("ERR", "connect_mysql.simple_execute", error)
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
 
 def simple_callproc(proc_name, args):
     rows = []
     tuples = []
+    cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
@@ -239,10 +245,12 @@ def simple_callproc(proc_name, args):
         goutils.log("ERR", "connect_mysql.simple_callproc", error)
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
 
 def get_value(query):
     tuples = []
+    cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
@@ -258,7 +266,8 @@ def get_value(query):
         goutils.log("ERR", "connect_mysql.get_value", error)
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
     
     if len(tuples[0]) > 0:
         return tuples[0][0][0]
@@ -267,6 +276,7 @@ def get_value(query):
         
 def get_column(query):
     tuples = []
+    cursor = None
     try:
         mysql_db = db_connect()
         #print("DBG: mysql_db="+str(mysql_db))
@@ -284,12 +294,14 @@ def get_column(query):
         goutils.log("ERR", "connect_mysql.get_column", error)
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
 
     return [x[0] for x in tuples[0]]
     
 def get_line(query):
     tuples = []
+    cursor = None
     #print("get_line("+query+")")
     try:
         mysql_db = db_connect()
@@ -308,7 +320,8 @@ def get_line(query):
         goutils.log("ERR", "connect_mysql.get_line", error)
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
     
     if len(tuples[0]) == 0:
         return None
@@ -317,6 +330,7 @@ def get_line(query):
     
 def get_table(query):
     tuples = []
+    cursor = None
     try:
         #print("DBG: get_table db_connect")
         mysql_db = db_connect()
@@ -338,7 +352,8 @@ def get_table(query):
         goutils.log("ERR", "connect_mysql.get_table", error)
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
 
     #print("DBG: get_table return")
     if len(tuples[0]) == 0:
@@ -347,6 +362,7 @@ def get_table(query):
         return tuples[0]
 
 def insert_roster_evo(allyCode, defId, evo_txt):
+    cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
@@ -362,11 +378,13 @@ def insert_roster_evo(allyCode, defId, evo_txt):
         return -1
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
     
 def update_player(dict_player):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
+    cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
@@ -669,7 +687,8 @@ def update_player(dict_player):
         return -1
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
     
     return 0
 
@@ -684,6 +703,7 @@ def update_player(dict_player):
 #OUT: 0 if no error
 #####################################################################
 def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, completed, source):
+    cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
@@ -740,6 +760,7 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
         return -1
         
     finally:
-        cursor.close()
+        if cursor != None:
+            cursor.close()
     
     return 0
