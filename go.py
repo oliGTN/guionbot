@@ -1607,7 +1607,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                     elif tab_virtual_character[2][0] in "rR":
                         if tab_virtual_character[2][1:].isnumeric():
                             char_relic = int(tab_virtual_character[2][1:])
-                            if (char_relic<0) or (char_relic>8):
+                            if (char_relic<0) or (char_relic>9):
                                 return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
                             dict_virtual_characters[char_alias] = [char_rarity, 13, char_relic]
                         else:
@@ -1635,7 +1635,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                     elif tab_virtual_character[1][0] in "rR":
                         if tab_virtual_character[1][1:].isnumeric():
                             char_relic = int(tab_virtual_character[1][1:])
-                            if (char_relic<0) or (char_relic>8):
+                            if (char_relic<0) or (char_relic>9):
                                 return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
                             dict_virtual_characters[char_alias] = [None, 13, char_relic]
                         else:
@@ -3225,7 +3225,7 @@ def tag_players_with_character(txt_allyCode, character, server_name, tw_mode):
                 if character_option[1:].isnumeric():
                     char_relic = int(character_option[1:])
                     char_gear = 13
-                    if (char_relic<0) or (char_relic>8):
+                    if (char_relic<0) or (char_relic>9):
                         return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
                 else:
                     return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
