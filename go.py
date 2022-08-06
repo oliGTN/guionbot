@@ -454,7 +454,10 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
             i_character = character_obj[0]
             character_name = character_obj[7]
             if character_id in dict_player:
-                character_nogo = False
+                if dict_player[character_id]['reserved']:
+                    character_nogo = True
+                else:
+                    character_nogo = False
 
                 #Etoiles
                 req_rarity_min = character_obj[1]
@@ -706,7 +709,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
     #pourcentage sur la moyenne
     score = score / score100 * 100
 
-    goutils.log2("DBG", "list char_id = " + str(list_char_id))
+    goutils.log2("DBG", "list_char_id = " + str(list_char_id))
         
     unlocked = False
     if gv_mode:
@@ -1157,7 +1160,7 @@ def print_vtj(list_team_names, txt_allyCode, server_name, tw_mode):
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
 
-            #If onnly one team, display the detais
+            #If only one team, display the detais
             for [score, unlocked, txt, nogo, name, list_char] in ret_team[0]:
                 if score == 999999:
                     #Header of the team
@@ -1176,7 +1179,11 @@ def print_vtj(list_team_names, txt_allyCode, server_name, tw_mode):
                     ret_print_vtx += " " + team + ": " + str(round(score, 1)) + "%\n"
 
                     list_char_allycodes = [[list_char, txt_allyCode, ""]]
-                    e, t, images = get_character_image(list_char_allycodes, True, True, '')
+                    if tw_mode:
+                        image_mode = "TW"
+                    else:
+                        image_mode = ""
+                    e, t, images = get_character_image(list_char_allycodes, True, False, image_mode, server_name)
 
         if tw_mode:
             secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
@@ -1987,19 +1994,25 @@ def get_tb_alerts(server_name, force_latest):
     
 #################################
 # Function: get_character_image
-# IN: list_characters_allyCode: [[[id1, id2, ...], allyCode, tw territory], ...]
+# IN: list_characters_allyCode: [[[[id1, unavail], [id2, unavail], ...], allyCode, tw territory], ...]
 # IN: is_ID: True if list_character_alyCode contains chartacter IDs (False if names)
-# IN: refresh_player: False to revent refreshing player via API
+# IN: refresh_player: False to prevent refreshing player via API
 # IN: game_mode: 'TW', 'TB', ... or '' for undefined
 # return: err_code, err_txt, image
 #################################
-def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mode):
+def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mode, server_name):
     err_code = 0
     err_txt = ''
 
     #Get data for all players
     #print(list_characters_allyCode)
     list_allyCodes = list(set([x[1] for x in list_characters_allyCode]))
+
+    #Get reserved TW toons
+    if game_mode == "TW":
+        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_name)
+        if ec != 0:
+            return 1, et, None
     
     #transform aliases into IDs
     if not is_ID:
@@ -2011,6 +2024,16 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mo
     list_ids_dictplayer = []
     for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
         e, t, dict_player = load_player(txt_allyCode, -int(not(refresh_player)), False)
+
+        #Tag reserved characters
+        if game_mode == "TW":
+            player_name = dict_player['name']
+            for char_id in dict_player['roster']:
+                dict_player['roster'][char_id]['reserved'] = False
+                if char_id in dict_def_toon_player:
+                    if player_name in dict_def_toon_player[char_id]:
+                        dict_player['roster'][char_id]['reserved'] = True
+
         if e != 0:
             #error wile loading guild data
             goutils.log2("WAR", "joueur non trouvé pour code allié " + txt_allyCode)
@@ -2047,7 +2070,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mo
 # return: err_code, err_txt, list of images
 #################################
 def get_tw_battle_image(list_char_attack, allyCode_attack, \
-                        character_defense):
+                        character_defense, server_name):
     err_code = 0
     err_txt = ''
 
@@ -2127,7 +2150,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
             list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
-    e, t, images = get_character_image(list_char_allycodes, True, False, 'TW')
+    e, t, images = get_character_image(list_char_allycodes, True, False, 'TW', server_name)
     err_txt += t
     if e != 0:
         return 1, err_txt, None
