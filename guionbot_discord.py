@@ -1936,16 +1936,15 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
             else:
+                for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
+                    await ctx.send(sub_txt)
                 if images != None:
                     image = images[0]
                     with BytesIO() as image_binary:
                         image.save(image_binary, 'PNG')
                         image_binary.seek(0)
-                        await ctx.send(content = txt,
+                        await ctx.send(content = "",
                             file=File(fp=image_binary, filename='image.png'))
-                else:
-                    for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
-                        await ctx.send(sub_txt)
 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
