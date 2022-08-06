@@ -2376,7 +2376,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             if len(characters) > 0:
                 e, ret_cmd, images = await bot.loop.run_in_executor(None,
-                    go.get_character_image, [[list(characters), allyCode, '']], False, True, '')
+                    go.get_character_image, [[list(characters), allyCode, '']], False, True, '', ctx.guild.name)
                     
                 if e == 0:
                     for image in images:
