@@ -281,6 +281,12 @@ def get_image_from_character(character_id, dict_player, game_mode):
                 crew_id = crew_element["unitId"]
                 crew_image = get_image_from_character(crew_id, dict_player, game_mode)
                 portrait_image = add_vertical(portrait_image, crew_image)
+
+        #Orange frame if character unavail
+        if 'reserved' in character:
+            if character['reserved']:
+                orange_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'orange')
+                portrait_image = Image.blend(portrait_image, orange_img, 0.5)
     else:
         #character is invalid, display it in reduce
         red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
@@ -290,7 +296,8 @@ def get_image_from_character(character_id, dict_player, game_mode):
 
 #################################################
 # get_image_from_team
-# list_ids_allyCode: [toon1_ID, toon2_ID, ...], dict_player, 
+# list_character_ids: [toon1_ID, toon2_ID, ...], dict_player, 
+# dict_player: roster of the player
 # tw_territory: 'T1', 'T2', 'F1', ...
 #################################################
 def get_image_from_team(list_character_ids, dict_player, tw_territory, game_mode):
