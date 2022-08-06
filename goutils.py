@@ -144,12 +144,12 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
                 "gp": line_gp,
                 "speed": line_speed,
                 "zetas": {},
-                "omicrons": {}}
+                "omicrons": {},
+                "reserved": False}
+            dict_players[line_playername][1][line_teamname][line_defId]=line_character
             if line_defId in dict_tw_def:
-                if not line_playername in dict_tw_def[line_defId]:
-                    dict_players[line_playername][1][line_teamname][line_defId]=line_character
-            else:
-                dict_players[line_playername][1][line_teamname][line_defId]=line_character
+                if line_playername in dict_tw_def[line_defId]:
+                    dict_players[line_playername][1][line_teamname][line_defId]['reserved'] = True
 
             cur_defId = line_defId
             
