@@ -424,7 +424,7 @@ class TBSListParser(HTMLParser):
         self.tb_alias=''
         self.warstats_battle_id=''
         self.warstats_battle_in_progress=False
-        self_seconds_since_last_track = -1
+        self.seconds_since_last_track = -1
 
         self.state_parser=0
         #0: en recherche de h2
