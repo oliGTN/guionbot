@@ -18,6 +18,7 @@ unitsList_dict = {}
 for unit in unitsList:
     #if (not ':' in unit['id']):
         unit_id = unit['baseId']
+        unit_name = unit['nameKey']
         if unit_id in unitsList_dict:
             #could be if ship has been detected before
             unitsList_dict[unit_id] = {**unitsList_dict[unit_id], **unit}
@@ -31,9 +32,9 @@ for unit in unitsList:
             for pilot in unit['crewList']:
                 pilot_id = pilot['unitId']
                 if pilot_id in unitsList_dict:
-                    unitsList_dict[pilot_id]['ships'].append(unit_id)
+                    unitsList_dict[pilot_id]['ships'].append([unit_id, unit_name])
                 else:
-                    unitsList_dict[pilot_id] = {'ships': [unit_id]}
+                    unitsList_dict[pilot_id] = {'ships': [[unit_id, unit_name]]}
 
         #add farming info
         if not "farmingInfo" in unitsList_dict[unit_id]:

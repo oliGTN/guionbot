@@ -2357,11 +2357,11 @@ def print_erx(txt_allyCode, days, compute_guild):
                         else:
                             stats_categories[category] = [category_name, 1]
 
-                for ship_id in unit_ships:
+                for [ship_id, ship_name] in unit_ships:
                     if ship_id in stats_units:
                         stats_units[ship_id][1] += 1
                     else:
-                        stats_units[ship_id] = [unit_name, 1]
+                        stats_units[ship_id] = [ship_name, 1]
 
                 for char_gv_id in dict_teams_gv:
                     if player_name in dict_gv_done:
