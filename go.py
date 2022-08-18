@@ -3357,7 +3357,9 @@ def tag_players_with_character(txt_allyCode, character, server_name, tw_mode):
 
         goutils.log2('DBG', 'player_name: '+player_name)
 
-        if player_name in dict_def_toon_player[character_id]:
+        if character_id in dict_def_toon_player and \
+            player_name in dict_def_toon_player[character_id]:
+
             goutils.log2('DBG', "toon used in TW defense, no tag")
         else:
             if player_name in dict_players:
