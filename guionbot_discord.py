@@ -2449,9 +2449,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         # Computes images
         e, ret_cmd, images = await bot.loop.run_in_executor(None,
                     go.get_tw_battle_image, list_char_attack, allyCode_attack, \
-                                             character_defense)
-                    
-        if e == 0:
+                                             character_defense, ctx.guild.name)
+                        
+        if e == 0:      
             #regroup images into bigger ones containing several teams
             list_big_images = []
             cur_big_image = None
