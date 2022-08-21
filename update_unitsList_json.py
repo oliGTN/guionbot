@@ -13,7 +13,16 @@ materialList_dict = {}
 for material in materialList:
     materialList_dict[material["id"]] = material
 
-unitsList = json.load(open('DATA'+os.path.sep+'unitsList.json', 'r'))
+unitsList_FRE_FR = json.load(open('DATA'+os.path.sep+'unitsList.json', 'r'))
+unitsList_ENG_US = json.load(open('DATA'+os.path.sep+'unitsList_ENG_US.json', 'r'))
+
+#ADD custom units
+unitsList_custom = json.load(open('DATA'+os.path.sep+'unitsList_custom.json', 'r'))
+for unit in unitsList_custom:
+    unitsList_FRE_FR.append(unit)
+    unitsList_ENG_US.append(unit)
+
+unitsList = unitsList_FRE_FR
 unitsList_dict = {}
 for unit in unitsList:
     #if (not ':' in unit['id']):
@@ -28,7 +37,7 @@ for unit in unitsList:
                 unitsList_dict[unit_id]['ships'] = []
 
         #attach ships to crew
-        if unit['combatType'] == 2:
+        if unit['combatType'] == 2 and 'crewList' in unit:
             for pilot in unit['crewList']:
                 pilot_id = pilot['unitId']
                 if pilot_id in unitsList_dict:
@@ -52,13 +61,6 @@ for unit in unitsList:
             else:
                 print('lookupMissionList not found for '+shard_name)
 
-unitsList_custom = json.load(open('DATA'+os.path.sep+'unitsList_custom.json', 'r'))
-for unit_id in unitsList_custom:
-    if unit_id in unitsList_dict:
-        print(unit_id + ' in custom is alreday in basic unitsList')
-    else:
-        unitsList_dict[unit_id] = unitsList_custom[unit_id]
-
 fnew = open('DATA'+os.path.sep+'unitsList_dict.json', 'w')
 fnew.write(json.dumps(unitsList_dict, sort_keys=True, indent=4))
 fnew.close()
@@ -66,17 +68,17 @@ fnew.close()
 ############################################
 # It also creates a dictionary of aliases from nameKeys
 ############################################
-unitsList_FRE_FR = unitsList
-unitsList_ENG_US = json.load(open('DATA'+os.path.sep+'unitsList_ENG_US.json', 'r'))
-#priority_names=["LEGENDARY", "S3", "GLREY", "HOTHREBELSOLDIER", "IMPERIALPROBEDROID", "AURRA_SING", "AMILYNHOLDO", "VULTUREDROID", "GRIEVOUS", "B1BATTLEDROIDV2", "THEMANDALORIAN", "VADER", "OBJ_CRATE_01", "SCOOTTROOPER"]
-priority_names=["CT210408"]
 
-if len(unitsList_FRE_FR) != len(unitsList_ENG_US):
-    print("Listes FRE_FR et ENG_US differentes ("+str(len(unitsList_FRE_FR))+ " vs "+str(len(unitsList_ENG_US))+")")
-    print(set(unitsList_FRE_FR).difference(set(unitsList_ENG_US)))
+list_id_FRE_FR = sorted([x['baseId'] for x in unitsList_FRE_FR])
+list_id_ENG_US = sorted([x['baseId'] for x in unitsList_ENG_US])
+if list_id_FRE_FR != list_id_ENG_US:
+    print("Listes FRE_FR et ENG_US differentes")
+    print("Dans FRE_FR mais pas dans ENG_US: " + str(set(list_id_FRE_FR).difference(set(list_id_ENG_US))))
+    print("Dans ENG_US mais pas dans FRE_FR: " + str(set(list_id_ENG_US).difference(set(list_id_FRE_FR))))
     sys.exit(1)
 
 unitsAlias_dict = {}
+priority_names = ["CT210408"]
 for unitsList in [unitsList_FRE_FR, unitsList_ENG_US]:
     for unit in unitsList:
         names = [unit['nameKey']]
