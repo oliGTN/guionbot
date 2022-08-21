@@ -728,19 +728,22 @@ def print_tw_best_teams(list_teams, intro_txt):
     for [terr_prefixes, label_terr] in [["TB", "terrestre"], ["F", "vaisseaux"]]:
         log2('INFO', [terr_prefixes, label_terr])
         for [beaten, label] in [[False, "invaincue"], [True, "vaincue"]]:
-            log2('INFO', [beaten, label])
+            log2('DBG', [beaten, label])
             filtered_teams = [x for x in list_teams if (x[0][0] in terr_prefixes and x[3]==beaten)]
-            log2('INFO', "list_teams="+str(list_teams))
-            log2('INFO', "filtered_teams="+str(filtered_teams))
+            log2('DBG', "list_teams="+str(list_teams))
+            log2('DBG', "filtered_teams="+str(filtered_teams))
             if len(filtered_teams) > 0:
                 max_fights = max(filtered_teams, key=lambda x: x[4])[4]
-                log2('INFO', "max_fights="+str(max_fights))
+                log2('DBG', "max_fights="+str(max_fights))
                 if (max_fights + int(not(beaten))) > 1:
                     best_teams = [x for x in filtered_teams if x[4]==max_fights]
-                    log2('INFO', "best_teams="+str(best_teams))
+                    log2('DBG', "best_teams="+str(best_teams))
                     output_txt += intro_txt+" "+label_terr+" "+label+" après "+str(max_fights)+" combats :\n"
                     for t in best_teams:
-                        output_txt += t[1] + ": " + str(t[2]) + "\n"
+                        output_txt += t[1] + ": " + str(t[2]).replace("'", '"')\
+                                                             .replace(", ", " ")\
+                                                             .replace("]", "")\
+                                                             .replace("[", "") + "\n"
                 else:
                     output_txt += intro_txt+" "+label_terr+" "+label+" : rien de particulier à signaler"
 
