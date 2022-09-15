@@ -1641,10 +1641,28 @@ def parse_tw_opponent_teams(guild_id):
         tw_list_parser.feed(page.content.decode('utf-8', 'ignore'))
     
         [war_id, war_in_progress] = tw_list_parser.get_war_id()
-        if not war_in_progress:
+
+        #Read opponent teams if war in progress or just ended
+        if int(war_id) > 0 and (war_in_progress or len(dict_tw_opponent_teams[guild_id][0]) > 0):
+            warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
+            try:
+                page = urlopen(guild_id, warstats_opp_squad_url)
+            except (requests.exceptions.ConnectionError) as e:
+                goutils.log2('ERR', 'error while opening '+warstats_opp_squad_url)
+                return dict_tw_opponent_teams[guild_id]
+
+            opp_squad_parser = TWSSquadParser()
+            opp_squad_parser.feed(page.content.decode('utf-8', 'ignore'))
+
+            dict_tw_opponent_teams[guild_id] = [opp_squad_parser.get_teams(),
+                                                opp_squad_parser.get_territories()]
+
+        if war_in_progress:
+            goutils.log2('INFO', "Current TW is "+war_id)
+        else:
             #When first detecting end of TW, drop TW data into the logs
             if len(dict_tw_opponent_teams[guild_id][0]) > 0:
-                goutils.log2('INFO', "["+str(guild_id)+"] end of TW")
+                goutils.log2('INFO', "["+str(guild_id)+"] end of TW "+str(war_id))
                 goutils.log2('INFO', "["+str(guild_id)+"] Opponent teams" + str(dict_tw_opponent_teams[guild_id]))
                 goutils.log2('INFO', "["+str(guild_id)+"] " + goutils.print_tw_best_teams(dict_tw_opponent_teams[guild_id][0], "Meilleure défense adverse"))
             else:
@@ -1657,20 +1675,6 @@ def parse_tw_opponent_teams(guild_id):
                                         "tw_opponent_teams", guild_id)
 
             return dict_tw_opponent_teams[guild_id]
-    
-        goutils.log2('INFO', "Current TW is "+war_id)
-        warstats_opp_squad_url=warstats_opp_squad_baseurl+war_id
-        try:
-            page = urlopen(guild_id, warstats_opp_squad_url)
-        except (requests.exceptions.ConnectionError) as e:
-            goutils.log2('ERR', 'error while opening '+warstats_opp_squad_url)
-            return dict_tw_opponent_teams[guild_id]
-
-        opp_squad_parser = TWSSquadParser()
-        opp_squad_parser.feed(page.content.decode('utf-8', 'ignore'))
-
-        dict_tw_opponent_teams[guild_id] = [opp_squad_parser.get_teams(),
-                                            opp_squad_parser.get_territories()]
 
         set_next_warstats_read_short(opp_squad_parser.get_last_track(), "tw_opponent_teams", guild_id)
 
