@@ -1,8 +1,8 @@
--- MySQL dump 10.18  Distrib 10.3.27-MariaDB, for debian-linux-gnueabihf (armv8l)
+-- MySQL dump 10.19  Distrib 10.3.34-MariaDB, for debian-linux-gnueabihf (armv8l)
 --
 -- Host: localhost    Database: guionbotdb
 -- ------------------------------------------------------
--- Server version	10.3.27-MariaDB-0+deb10u1
+-- Server version	10.3.34-MariaDB-0+deb10u1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -125,7 +125,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2867 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=2992 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -150,7 +150,7 @@ CREATE TABLE `guild_team_roster` (
   `zetaList` varchar(255) DEFAULT NULL,
   `omicronList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13567 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=14336 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -165,7 +165,7 @@ CREATE TABLE `guild_team_roster_omicrons` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1432 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1447 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -180,7 +180,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1586 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1625 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -198,7 +198,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=419 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=441 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -275,6 +275,23 @@ CREATE TABLE `mods` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Temporary table structure for view `omicron_report`
+--
+
+DROP TABLE IF EXISTS `omicron_report`;
+/*!50001 DROP VIEW IF EXISTS `omicron_report`*/;
+SET @saved_cs_client     = @@character_set_client;
+SET character_set_client = utf8;
+/*!50001 CREATE TABLE `omicron_report` (
+  `PG` tinyint NOT NULL,
+  `defId` tinyint NOT NULL,
+  `N omicrons` tinyint NOT NULL,
+  `Joueurs` tinyint NOT NULL,
+  `%` tinyint NOT NULL
+) ENGINE=MyISAM */;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Table structure for table `players`
 --
 
@@ -295,6 +312,8 @@ CREATE TABLE `players` (
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
   `lastUpdateFromGame` timestamp NOT NULL DEFAULT current_timestamp(),
   `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
+  `shipShard_id` int(11) DEFAULT NULL,
+  `charShard_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`allyCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -337,7 +356,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=2935686 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3403037 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -348,11 +367,13 @@ DROP TABLE IF EXISTS `roster_evolutions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `roster_evolutions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `timestamp` timestamp NULL DEFAULT current_timestamp(),
   `allyCode` int(11) DEFAULT NULL,
   `defId` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
-  `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+  `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=243406 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -373,7 +394,21 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26331007 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=28218234 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `shards`
+--
+
+DROP TABLE IF EXISTS `shards`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `shards` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `type` varchar(4) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -403,7 +438,7 @@ CREATE TABLE `stat_list` (
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` FUNCTION `ARENA_RANK2INT`(p_arena_rank_txt text) RETURNS int(11)
+CREATE DEFINER=`root`@`localhost` FUNCTION `arena_rank2int`(p_arena_rank_txt text) RETURNS int(11)
 BEGIN
 
 RETURN
@@ -1029,6 +1064,25 @@ DELIMITER ;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `omicron_report`
+--
+
+/*!50001 DROP TABLE IF EXISTS `omicron_report`*/;
+/*!50001 DROP VIEW IF EXISTS `omicron_report`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_general_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `omicron_report` AS select round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG`,`guionbotdb`.`roster`.`defId` AS `defId`,count(0) AS `N omicrons`,`T`.`c_pg` AS `Joueurs`,100 * count(0) / `T`.`c_pg` AS `%` from (((`guionbotdb`.`players` join `guionbotdb`.`roster` on(`guionbotdb`.`roster`.`allyCode` = `guionbotdb`.`players`.`allyCode`)) join `guionbotdb`.`roster_skills` on(`guionbotdb`.`roster_skills`.`roster_id` = `guionbotdb`.`roster`.`id`)) join (select count(0) AS `c_pg`,round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG` from `guionbotdb`.`players` where to_days(curdate()) - to_days(`guionbotdb`.`players`.`lastUpdated`) < 100 group by round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2) `T` on(`T`.`PG` = round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2)) where `guionbotdb`.`roster_skills`.`omicron_tier` > 0 and `guionbotdb`.`roster_skills`.`level` >= `guionbotdb`.`roster_skills`.`omicron_tier` and to_days(curdate()) - to_days(`guionbotdb`.`players`.`lastUpdated`) < 100 group by `T`.`PG`,`guionbotdb`.`roster`.`defId` order by `guionbotdb`.`roster`.`defId`,round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2 */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1039,4 +1093,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-05-24  1:54:25
+-- Dump completed on 2022-09-22  1:15:42

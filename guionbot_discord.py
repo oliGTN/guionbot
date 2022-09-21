@@ -2075,6 +2075,43 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
 
     ##############################################################
+    # Command: gvs
+    # Parameters: code allié (string), perso ou ship
+    # Purpose: Progrès dans le guide de voyage pour un perso dans le shard
+    # Display: Une ligne par joueur, avec son score
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='gvs',
+                 brief="Donne le progrès dans le guide de voyage pour un perso dans le shard",
+                 help="Donne le progrès dans le guide de voyage pour un perso dans le shard\n\n"\
+                      "Exemple: go.gvs me Profundity\n"\
+                      "Exemple: go.gvg 123456789 Jabba")
+    async def gvs(self, ctx, allyCode, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            if len(characters) != 1:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help gvs")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_gvs, characters, allyCode)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
+
+    ##############################################################
     # Command: scg
     # Parameters: code allié (string) ou "me"
     # Purpose: Score de Counter de la Guilde
@@ -2868,6 +2905,100 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         await ctx.message.add_reaction(emoji_check)
 
+    ##############################################################
+    # Command: shard
+    # Parameters: player, sub-commands
+    # Purpose: manage members of player's shard
+    # Display: depending of the sub-command
+    ##############################################################
+    @commands.check(command_allowed)
+    @commands.command(name='shard', brief="Gère les shards du joueur",
+                 help="Gère les shards du joueur\n"\
+                      "Exemple : go.shard me char 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de persos"\
+                      "Exemple : go.shard me ship 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de vaisseaux"\
+                      "Exemple : go.shard me ship -123456789 > retire le joueur 123456789 de la liste des joueurs  de l'arène de vaisseaux"\
+                      "Exemple : go.shard me char > affiche la liste des joueurs connus de l'arène de persos")
+    async def shard(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) != 3 and len(args) != 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = args[0]
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        shard_type = args[1]
+        if shard_type != "char" and shard_type != "ship":
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        # get the DB information
+        query = "SELECT "+shard_type+"Shard_id " \
+              + "FROM players " \
+              + "WHERE allyCode='"+str(allyCode)+"'"
+        goutils.log2("DBG", query)
+        me_shard = connect_mysql.get_shard_from_player(allyCode, shard_type)
+
+        if len(args) == 2:
+            #list the content of the shard
+            output = connect_mysql.get_shard_list(me_shard, shard_type, True)
+            output_txt = ""
+            for row in output:
+                output_txt+=str(row)+'\n'
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+        else:
+            # add or remove player from shard
+            player_ac = args[2]
+            remove_player = False
+            force_merge = False
+
+            if player_ac[0] == "-":
+                remove_player = True
+                player_ac = player_ac[1:]
+            elif player_ac[0] == "+":
+                force_merge = True
+                player_ac = player_ac[1:]
+
+            player_ac = manage_me(ctx, player_ac)
+
+            if player_ac[0:3] == 'ERR':
+                await ctx.send(player_ac)
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            if remove_player:
+                await ctx.send("Suppression du shard pas encore implémentée, demander à l'admin")
+                await ctx.message.add_reaction(emoji_error)
+                return
+            else:
+                ec, et, ret = connect_mysql.add_player_to_shard(player_ac, me_shard, shard_type, force_merge)
+                if ec == 1:
+                    output_txt = "Voulez-vous vraiment fusionner ces 2 shards "+shard_type+ " ?\n"
+                    target_list = connect_mysql.get_shard_list(ret[0], shard_type, True)
+                    for row in target_list:
+                        output_txt+=str(row)+'\n'
+                    player_list = connect_mysql.get_shard_list(ret[1], shard_type, True)
+                    output_txt += "et\n"
+                    for row in player_list:
+                        output_txt+=str(row)+'\n'
+                    output_txt += ">> pour cela lancez la commande go.shard "+allyCode+" "+shard_type+ " +"+player_ac
+                else:
+                    output_txt = et
+
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send('`' + txt + '`')
+
+
+        await ctx.message.add_reaction(emoji_check)
 
 
 ##############################################################
