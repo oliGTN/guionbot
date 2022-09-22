@@ -854,6 +854,15 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
             goutils.log2("WAR", "cannot get guild data from SWGOH.HELP API. Using previous data.")
         collection_name = guild["name"]
     else:
+        player_shard = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
+        shard_list = connect_mysql.get_shard_list(player_shard, shard_type, False)
+        for line in shard_list:
+            player_ac = str(line[0])
+            e, t, d = load_player(player_ac, 0, False)
+            if e != 0:
+                #error wile loading guild data
+                return "", 'ERR: joueur non trouvé pour code allié ' + player_ac
+
         collection_name = "shard "+shard_type+" de "+txt_allyCode
 
     #Get player data

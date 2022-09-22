@@ -2980,6 +2980,15 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
                 return
             else:
+                #First ensure that the player exists in DB
+                e, t, player_now = await bot.loop.run_in_executor(
+                                                None, go.load_player,
+                                                player_ac, -1, False)
+                if e!=0:
+                    await ctx.send(t)
+                    await ctx.message.add_reaction(emoji_error)
+                    return
+
                 ec, et, ret = connect_mysql.add_player_to_shard(player_ac, me_shard, shard_type, force_merge)
                 if ec == 1:
                     output_txt = "Voulez-vous vraiment fusionner ces 2 shards "+shard_type+ " ?\n"

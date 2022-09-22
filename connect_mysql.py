@@ -813,11 +813,11 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
         goutils.log2("DBG", query)
         simple_execute(query)
 
-        return 0, "Joueur ajouté au shard", None
+        return 0, "Joueur "+txt_allyCode+" ajouté au shard", None
 
     elif player_existing_shard == target_shard:
         #Already in the good shard
-        return 0, "Joueur déjà dans le shard", None
+        return 0, "Joueur "+txt_allyCode+" déjà dans le shard", None
     else:
         #player already in another shard
         player_shard_size = len(get_shard_list(player_existing_shard, shard_type, False))
@@ -835,7 +835,7 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
             goutils.log2("DBG", query)
             simple_execute(query)
 
-            return 0, "Joueur ajouté au shard", None
+            return 0, "Joueur "+txt_allyCode+" ajouté au shard", None
 
         target_shard_size = len(get_shard_list(target_shard, shard_type, False))
         if target_shard_size == 1 or force_merge:
