@@ -99,7 +99,7 @@ def refresh_cache():
     #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
     #Need to keep KEEPDIR to prevent removal of the directory by GIT
     
-    # Get the allyCodes to be refreshed
+    # Get the guilds to be refreshed
     # the query gets one allyCode by guild in the DB
     query = "SELECT guilds.name, allyCode "\
            +"FROM guilds "\
@@ -118,10 +118,40 @@ def refresh_cache():
             e, t, d = load_guild(str(guild_allyCode), False, False)
             if e == 0 and d['name'] == guild_name:
                 e, t, d = load_guild(str(guild_allyCode), True, False)
-                return 0
-        
-    goutils.log('ERR', 'go.refresh_cache', "Unable to refresh guilds")
-    return 1
+                break
+            elif e == 0:
+                goutils.log2('WAR', "load_guild("+str(guild_allyCode)+") returned guild "+guild_name)
+            else:
+                goutils.log2('ERR', 1)
+                return 1
+    else:
+        goutils.log2('ERR', "Unable to refresh guilds")
+        return 1
+
+    # Get the shards to be refreshed
+    query = "SELECT id, type "\
+           +"FROM shards "\
+           +"ORDER BY lastUpdated"
+    goutils.log2('DBG', query)
+    ret_table = connect_mysql.get_table(query)
+    
+    if ret_table != None:
+        for line in ret_table:
+            shard_id = line[0]
+            shard_type = line[1]
+            goutils.log2('INFO', "refresh shard " + str(shard_id) + " " + shard_type)
+            e, t = load_shard(shard_id, shard_type, False)
+            if e == 0:
+                break
+            else:
+                goutils.log2('ERR', t)
+                return 1
+
+    else:
+        goutils.log2('ERR', "Unable to refresh shards")
+        return 1
+
+    return 0
 
 ##################################
 # Function: load_player
@@ -412,6 +442,101 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         connect_mysql.simple_execute(query)
 
     return 0, "", dict_guild
+
+def load_shard(shard_id, shard_type, cmd_request):
+    #Get API data for the guild
+    goutils.log2('INFO', 'Requesting API data for shard ' + str(shard_id))
+
+    guildName = "shard "+shard_type+" "+str(shard_id)
+
+    query = "SELECT lastUpdated FROM guilds "\
+           +"WHERE name = '"+guildName.replace("'", "''")+"'"
+    goutils.log2('DBG', query)
+    lastUpdated = connect_mysql.get_value(query)
+
+    query = "SELECT allyCode FROM players "
+    query+= "WHERE "+shard_type+"Shard_id = " + str(shard_id)
+    goutils.log2("DBG", 'query: '+query)
+    allyCodes_in_DB = connect_mysql.get_column(query)
+
+    if allyCodes_in_DB == None or len(allyCodes_in_DB) == 0:
+        goutils.log2("WAR", 'No player found for shard "+shard_type+" of ID '+str(shard_id))
+        return 1, "No player found for shard "+shard_type+" of ID "+str(shard_id)
+
+    if lastUpdated != None:
+        delta_lastUpdated = datetime.datetime.now() - lastUpdated
+        if cmd_request:
+            #if shard info used for a command, do not refresh unless more than a day
+            need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 86400
+        else:
+            #if guild info refreshed regularly, do if more than one hour
+            need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
+    else:
+        need_refresh_due_to_time = False
+
+    goutils.log2("DBG", "need_refresh_due_to_time="+str(need_refresh_due_to_time))
+
+    if need_refresh_due_to_time:
+        #The guild is not defined yet, add it
+        guild_loading_status = parallel_work.get_guild_loading_status(guildName)
+
+        list_allyCodes_to_update = allyCodes_in_DB
+        total_players = len(list_allyCodes_to_update)
+
+        if guild_loading_status != None:
+            #The guild is already being loaded
+            #while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
+            while guild_loading_status != None:
+                goutils.log2('INFO', "Guild "+guildName+" already loading ("\
+                        + guild_loading_status + "), waiting 30 seconds...")
+                time.sleep(30)
+                guild_loading_status = parallel_work.get_guild_loading_status(guildName)
+                sys.stdout.flush()
+        else:
+            #Ensure only one guild loading at a time
+            #while len(dict_loading_guilds) > 1:
+            list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
+            while len(list_other_guilds_loading_status) > 0:
+                goutils.log2('INFO', "Guild "+guildName+" loading "\
+                            +"will start after loading of "+str(list_other_guilds_loading_status))
+                time.sleep(30)
+                list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
+                sys.stdout.flush()
+
+            #Request to load this guild
+            parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
+
+            #add player data
+            i_player = 0
+            for allyCode in list_allyCodes_to_update:
+                i_player += 1
+                goutils.log2("INFO", "player #"+str(i_player))
+                
+                e, t, d = load_player(str(allyCode), 0, False)
+                parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
+
+            parallel_work.set_guild_loading_status(guildName, None)
+
+            #Update dates in DB
+            query = "UPDATE shards "\
+                   +"SET lastUpdated = CURRENT_TIMESTAMP "\
+                   +"WHERE id = "+str(shard_id)
+            goutils.log2('DBG', query)
+            connect_mysql.simple_execute(query)
+
+    else:
+        lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
+        goutils.log2('INFO', guildName+" last update is "+lastUpdated_txt)
+
+    #Update dates in DB
+    if cmd_request:
+        query = "UPDATE shards "\
+               +"SET lastRequested = CURRENT_TIMESTAMP "\
+               +"WHERE id = "+str(shard_id)
+        goutils.log2('DBG', query)
+        connect_mysql.simple_execute(query)
+
+    return 0, ""
 
 def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
     dict_unitsList = data.get("unitsList_dict.json")
@@ -861,13 +986,10 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         collection_name = guild["name"]
     else:
         player_shard = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
-        shard_list = connect_mysql.get_shard_list(player_shard, shard_type, False)
-        for line in shard_list:
-            player_ac = str(line[0])
-            e, t, d = load_player(player_ac, 0, False)
-            if e != 0:
-                #error wile loading guild data
-                return "", 'ERR: joueur non trouvé pour code allié ' + player_ac
+        err_code, err_txt = load_shard(player_shard, shard_type, True)
+        if err_code != 0:
+            goutils.log2("WAR", "cannot get shard data from SWGOH.HELP API. Using previous data.")
+            return "", err_txt
 
         collection_name = "shard "+shard_type+" de "+txt_allyCode
 
