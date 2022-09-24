@@ -33,6 +33,8 @@ for ability in abilityList:
                 omicron_type = "GA"
             elif "en conqu\u00eate" in upgradeKey_lastTier.lower():
                 omicron_type = "CQ"
+            elif "dans les raids" in upgradeKey_lastTier.lower():
+                omicron_type = "RD"
             else:
                 print("Unknown omicron type for "+ability['id'])
                 omicron_type="??"
