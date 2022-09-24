@@ -474,16 +474,22 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                 if req_gear_min == '':
                     req_gear_min = 1
                 elif type(req_gear_min) == str:
-                    req_relic_min=int(req_gear_min[-1])
-                    req_gear_min=13
+                    if req_gear_min[0] == 'G':
+                        req_gear_min=int(req_gear_min[1:])
+                    else: #assumed to be 'R'
+                        req_relic_min=int(req_gear_min[-1])
+                        req_gear_min=13
                     
                 req_gear_reco = character_obj[4]
                 req_relic_reco=0
                 if req_gear_reco == '':
                     req_gear_reco = 1
                 elif type(req_gear_reco) == str:
-                    req_relic_reco=int(req_gear_reco[-1])
-                    req_gear_reco=13
+                    if req_gear_reco[0] == 'G':
+                        req_gear_reco=int(req_gear_reco[1:])
+                    else: #assumed to be 'R'
+                        req_relic_reco=int(req_gear_reco[-1])
+                        req_gear_reco=13
 
                 player_gear = dict_player[character_id]['gear']
                 if player_gear < 13:
