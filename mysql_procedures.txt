@@ -1,8 +1,8 @@
--- MySQL dump 10.19  Distrib 10.3.34-MariaDB, for debian-linux-gnueabihf (armv8l)
+-- MariaDB dump 10.19  Distrib 10.5.15-MariaDB, for debian-linux-gnueabihf (armv8l)
 --
 -- Host: localhost    Database: guionbotdb
 -- ------------------------------------------------------
--- Server version	10.3.34-MariaDB-0+deb10u1
+-- Server version	10.5.15-MariaDB-0+deb11u1
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -356,7 +356,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=3403037 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3447154 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -373,7 +373,7 @@ CREATE TABLE `roster_evolutions` (
   `defId` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=243406 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=243618 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -394,7 +394,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=28218234 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=28388034 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -407,6 +407,7 @@ DROP TABLE IF EXISTS `shards`;
 CREATE TABLE `shards` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `type` varchar(4) NOT NULL,
+  `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -468,15 +469,15 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `clean_lost_links`()
 BEGIN
         
-	#SELECT * FROM roster WHERE allyCode NOT IN (SELECT allyCode FROM players);
+	
 	DELETE FROM roster WHERE allyCode NOT IN (SELECT allyCode FROM players);
 	OPTIMIZE TABLE roster;
 
-	#SELECT * FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
+	
 	DELETE FROM mods WHERE roster_id NOT IN (SELECT id FROM roster);
 	OPTIMIZE TABLE mods;
 
-	#SELECT * FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
+	
 	DELETE FROM roster_skills WHERE roster_id NOT IN (SELECT id FROM roster);
 	OPTIMIZE TABLE roster_skills;
 
@@ -625,40 +626,40 @@ DELIMITER ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `Pivot`(
-    IN tbl_name VARCHAR(99),       -- table name (or db.tbl)
-    IN base_cols VARCHAR(99),      -- column(s) on the left, separated by commas
-    IN pivot_col VARCHAR(64),      -- name of column to put across the top
-    IN tally_col VARCHAR(64),      -- name of column to SUM up
-    IN where_clause VARCHAR(99),   -- empty string or "WHERE ..."
-    IN order_by VARCHAR(99)        -- empty string or "ORDER BY ..."; usually the base_cols
+    IN tbl_name VARCHAR(99),       
+    IN base_cols VARCHAR(99),      
+    IN pivot_col VARCHAR(64),      
+    IN tally_col VARCHAR(64),      
+    IN where_clause VARCHAR(99),   
+    IN order_by VARCHAR(99)        
     )
     DETERMINISTIC
     SQL SECURITY INVOKER
 BEGIN
-    -- Find the distinct values
-    -- Build the SUM()s
+    
+    
     SET @subq = CONCAT('SELECT DISTINCT ', pivot_col, ' AS val ',
                     ' FROM ', tbl_name, ' ', where_clause, ' ORDER BY 1');
-    -- select @subq;
+    
 
     SET @cc1 = "CONCAT('SUM(IF(&p = ', &v, ', &t, 0)) AS ', &v)";
     SET @cc2 = REPLACE(@cc1, '&p', pivot_col);
     SET @cc3 = REPLACE(@cc2, '&t', tally_col);
-    -- select @cc2, @cc3;
+    
     SET @qval = CONCAT("'\"', val, '\"'");
-    -- select @qval;
+    
     SET @cc4 = REPLACE(@cc3, '&v', @qval);
-    -- select @cc4;
+    
 
-    SET SESSION group_concat_max_len = 10000;   -- just in case
+    SET SESSION group_concat_max_len = 10000;   
     SET @stmt = CONCAT(
             'SELECT  GROUP_CONCAT(', @cc4, ' SEPARATOR ",\n")  INTO @sums',
             ' FROM ( ', @subq, ' ) AS top');
      select @stmt;
     PREPARE _sql FROM @stmt;
-    EXECUTE _sql;                      -- Intermediate step: build SQL for columns
+    EXECUTE _sql;                      
     DEALLOCATE PREPARE _sql;
-    -- Construct the query and perform it
+    
     SET @stmt2 = CONCAT(
             'SELECT ',
                 base_cols, ',\n',
@@ -670,11 +671,11 @@ BEGIN
             '\n WITH ROLLUP',
             '\n', order_by
         );
-    select @stmt2;                    -- The statement that generates the result
+    select @stmt2;                    
     PREPARE _sql FROM @stmt2;
-    EXECUTE _sql;                     -- The resulting pivot table ouput
+    EXECUTE _sql;                     
     DEALLOCATE PREPARE _sql;
-    -- For debugging / tweaking, SELECT the various @variables after CALLing.
+    
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -1093,4 +1094,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-09-22  1:15:42
+-- Dump completed on 2022-10-02  0:38:32
