@@ -12,7 +12,8 @@ creds_json = json.loads(creds_envVar)
 gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
 drive = GoogleDrive(gauth)
 fid=config.GDRIVE_SQLBACKUP_ID
+fpath=config.SQLBACKUP_GZ
 f = drive.CreateFile({"title": "all_tables.gz", "parents": [{"kind": "drive#fileLink", "id": fid}]})
-f.SetContentFile('../SQLBACKUP/all_tables.gz')
+f.SetContentFile(fpath)
 f.Upload()
 
