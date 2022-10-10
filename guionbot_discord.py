@@ -950,6 +950,7 @@ async def on_reaction_add(reaction, user):
     message = reaction.message
     if isinstance(message.channel, GroupChannel):
         guild_name = message.channel.guild.name
+        set_id_lastseen("on_reaction_add", reaction.message.channel.guild.name, user.id)
     else:
         guild_name = "DM"
     author = message.author
@@ -960,7 +961,6 @@ async def on_reaction_add(reaction, user):
     goutils.log2("DBG", "emoji: "+str(emoji))
     goutils.log2("DBG", "user of the reaction: "+str(user))
 
-    set_id_lastseen("on_reaction_add", reaction.message.channel.guild.name, user.id)
     
     # Manage the thumb up to messages sent to admins
     if message.content in list_alerts_sent_to_admin \

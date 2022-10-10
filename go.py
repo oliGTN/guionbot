@@ -449,30 +449,27 @@ def load_shard(shard_id, shard_type, cmd_request):
 
     guildName = "shard "+shard_type+" "+str(shard_id)
 
-    query = "SELECT lastUpdated FROM guilds "\
-           +"WHERE name = '"+guildName.replace("'", "''")+"'"
+    query = "SELECT lastUpdated FROM shards "\
+           +"WHERE id = "+str(shard_id)
     goutils.log2('DBG', query)
     lastUpdated = connect_mysql.get_value(query)
 
     query = "SELECT allyCode FROM players "
     query+= "WHERE "+shard_type+"Shard_id = " + str(shard_id)
-    goutils.log2("DBG", 'query: '+query)
+    goutils.log2("DBG", query)
     allyCodes_in_DB = connect_mysql.get_column(query)
 
     if allyCodes_in_DB == None or len(allyCodes_in_DB) == 0:
         goutils.log2("WAR", 'No player found for shard "+shard_type+" of ID '+str(shard_id))
         return 1, "No player found for shard "+shard_type+" of ID "+str(shard_id)
 
-    if lastUpdated != None:
-        delta_lastUpdated = datetime.datetime.now() - lastUpdated
-        if cmd_request:
-            #if shard info used for a command, do not refresh unless more than a day
-            need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 86400
-        else:
-            #if guild info refreshed regularly, do if more than one hour
-            need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
+    delta_lastUpdated = datetime.datetime.now() - lastUpdated
+    if cmd_request:
+        #if shard info used for a command, do not refresh unless more than a day
+        need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 86400
     else:
-        need_refresh_due_to_time = False
+        #if guild info refreshed regularly, do if more than one hour
+        need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
 
     goutils.log2("DBG", "need_refresh_due_to_time="+str(need_refresh_due_to_time))
 
