@@ -14,9 +14,6 @@ SWGOHAPI_PASSWORD=""
 # mysql://username:password@hostname/database_name
 MYSQL_DATABASE_URL=""
 
-# Allycode of one member of the guild where the bot is installed
-MASTER_GUILD_ALLYCODE=""
-
 # Timezone for the guild
 GUILD_TIMEZONE="Europe/Paris"
 
