@@ -3,7 +3,9 @@
 # ======== COMON VARIABLES ===========
 # These Google API credentials come from https://console.developers.google.com/
 # Just think to repace all \ by \\
-GAPI_CREDS=''
+GAPI_CREDS='{"type": "service_account", "project_id": "", "private_key_id": "", "client_email": "", "client_id": "", "auth_uri": "https://accounts.google.com/o/oauth2/auth", "token_uri": "https://oauth2.googleapis.com/token", "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs", "client_x509_cert_url": ""}'
+GDRIVE_SQLBACKUP_ID=""
+SQLBACKUP_GZ=""
 
 # https://api.swgoh.help/profile
 SWGOHAPI_LOGIN=""
@@ -16,19 +18,19 @@ MYSQL_DATABASE_URL=""
 MASTER_GUILD_ALLYCODE=""
 
 # Timezone for the guild
-GUILD_TIMEZONE=""
+GUILD_TIMEZONE="Europe/Paris"
 
-=======
 # DEBUG LEVEL for logs ("DBG" or empty)
-LOG_LEVEL=""
+LOG_LEVEL="DBG"
 
 # ======== FOR DISCORD ONLY ===========
 # This token comes from https://discord.com/developers/ then settings / Bot / Token
 DISCORD_BOT_TOKEN=""
 
 # Channel ID to read EchoBot allocations, and EchoBot Discord name
-EB_CHANNEL=""
-EB_PROFILE=""
+EB_PROFILE="EchoStation#0000"
+
+JBOT_DISCORD_ID=
 
 # Discord IDs of bot administrators (allowed to launch speciel commands). Separator=<space>
 GO_ADMIN_IDS=""
