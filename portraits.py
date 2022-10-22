@@ -213,8 +213,10 @@ def get_image_from_character(character_id, dict_player, game_mode):
                 gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g13-frame-atlas.png')
                 if forceAlignment == 2:
                     gear_frame_img = gear_frame_img.crop((0, 0, 120, 112))
-                else:
+                elif forceAlignment == 3:
                     gear_frame_img = gear_frame_img.crop((0, 112, 120, 224))
+                else:
+                    gear_frame_img = gear_frame_img.crop((0, 224, 120, 336))
                 gear_frame_img = gear_frame_img.resize((148,148))
                 portrait_image.paste(gear_frame_img, (11, 1), gear_frame_img)
 
