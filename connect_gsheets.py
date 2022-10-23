@@ -301,16 +301,16 @@ def load_config_units(force_load):
             file = client.open("GuiOnBot config")
             feuille=file.worksheet("units")
 
-            list_dict_sheet=feuille.get_all_records()
+            list_dict_sheet=feuille.get_all_values()
         except:
             goutils.log2("ERR", "Cannot connect to Google API")
             return None
 
         dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
     
-        for ligne in list_dict_sheet:
-            full_name=ligne['Character/Ship']
-            id=ligne['ID']
+        for ligne in list_dict_sheet[1:]:
+            full_name=ligne[1]
+            id=ligne[2]
 
         #Full Name from file is not used as alias, because it is already read from json file
             if not full_name.lower() in dict_units:
@@ -327,7 +327,7 @@ def load_config_units(force_load):
         # else:
             # dict_units[id.lower()]=[full_name, id]
             
-            list_aliases = ligne['Aliases']
+            list_aliases = ligne[0]
             if type(list_aliases) != str:
                 list_aliases = str(list_aliases)
             if list_aliases != '':
