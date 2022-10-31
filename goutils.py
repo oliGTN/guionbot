@@ -726,7 +726,7 @@ def print_tw_best_teams(list_teams, intro_txt):
     output_txt = ""
 
     for [terr_prefixes, label_terr] in [["TB", "terrestre"], ["F", "vaisseaux"]]:
-        log2('INFO', [terr_prefixes, label_terr])
+        log2('DBG', [terr_prefixes, label_terr])
         for [beaten, label] in [[False, "invaincue"], [True, "vaincue"]]:
             log2('DBG', [beaten, label])
             filtered_teams = [x for x in list_teams if (x[0][0] in terr_prefixes and x[3]==beaten)]
