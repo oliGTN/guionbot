@@ -2472,6 +2472,28 @@ def print_erx(txt_allyCode, days, compute_guild):
     db_data_evo = connect_mysql.get_table(query)
 
     if not compute_guild:
+        query = "SELECT name, defId FROM roster " \
+              + "JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE players.allyCode = " + txt_allyCode + " " \
+              + "AND combatType=2"
+    else:
+        query = "SELECT name, defId FROM roster " \
+              + "JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+txt_allyCode+")) " \
+              + "AND combatType=2"
+
+    goutils.log2("DBG", query)
+    db_data_ships = connect_mysql.get_table(query)
+    dict_ships = {}
+    if db_data_ships != None:
+        for line in db_data_ships:
+            player_name=line[0]
+            char_id=line[1]
+            if not player_name in dict_ships:
+                dict_ships[player_name] = []
+            dict_ships[player_name].append(char_id)
+
+    if not compute_guild:
         query = "SELECT players.name, defId FROM roster " \
               + "JOIN players ON players.allyCode = roster.allyCode " \
               + "JOIN guild_teams ON (" \
@@ -2557,10 +2579,11 @@ def print_erx(txt_allyCode, days, compute_guild):
                             stats_categories[category] = [category_name, 1]
 
                 for [ship_id, ship_name] in unit_ships:
-                    if ship_id in stats_units:
-                        stats_units[ship_id][1] += 1
-                    else:
-                        stats_units[ship_id] = [ship_name, 1]
+                    if player_name in dict_ships and ship_id in dict_ships[player_name]:
+                        if ship_id in stats_units:
+                            stats_units[ship_id][1] += 1
+                        else:
+                            stats_units[ship_id] = [ship_name, 1]
 
                 for char_gv_id in dict_teams_gv:
                     if player_name in dict_gv_done:
