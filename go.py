@@ -2386,13 +2386,13 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     #Get data from DB
     db_stat_data_char = []
     goutils.log2("INFO", "Get player data from DB...")
-    query = "SELECT allyCode, gear,"\
+    query = "SELECT allyCode, gear,combatType,"\
            +stat_string+","\
            +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
            +"from roster "\
            +"where defId = '"+character_id+"' "\
            +"AND not "+stat_string+"=0 "\
-           +"AND (gear = 13 or allyCode = "+txt_allyCode+")"
+           +"AND (gear = 13 or allyCode = "+txt_allyCode+" or combatType=2)"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
@@ -2401,8 +2401,8 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     else:
         stat_divider = 100000000
 
-    stat_g13_values = [x[2]/stat_divider for x in db_data if x[1]==13]
-    player_values = [x[2]/stat_divider for x in db_data if x[3]==1]
+    stat_g13_values = [x[3]/stat_divider for x in db_data if (x[1]==13 or x[2]==2)]
+    player_values = [x[3]/stat_divider for x in db_data if x[4]==1]
     if len(player_values) > 0:
         if stat_isPercent:
             player_value = int(100*player_values[0])/100
