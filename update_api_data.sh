@@ -25,3 +25,7 @@ if [ "$DIFF_RES" != "" ] || [ "$1" == "force" ]; then
 fi
 
 rm CACHE/version
+
+#rebuild gameData.json
+cd ../swgoh-stat-calc/swgoh-stat-calc-dataBuilder
+node runDataBuilder.js
