@@ -793,7 +793,9 @@ def get_shard_from_player(txt_allyCode, shard_type):
         return existing_shard
 
 def get_shard_list(shard_id, shard_type, txt_mode):
-    query = "SELECT allyCode, name, guildName, arena_"+shard_type+"_rank " \
+    query = "SELECT allyCode, name, guildName, arena_"+shard_type+"_rank, " \
+          + "time('01-01-01 19:00:00' - interval poUTCOffsetMinutes minute \
+             -interval time(utc_time()-curtime()) hour_second) as 'PO_local' " \
           + "FROM players " \
           + "WHERE "+shard_type+"Shard_id="+str(shard_id)+" "\
           + "ORDER BY arena_"+shard_type+"_rank, name"
