@@ -350,8 +350,8 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         if lastUpdated != None:
             delta_lastUpdated = datetime.datetime.now() - lastUpdated
             if cmd_request:
-                #if guild info used for a command, do not refresh unless more tan a day
-                need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 86400
+                #if guild info used for a command, do not refresh unless more than 3 days (length of TW)
+                need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3*86400
             else:
                 #if guild info refreshed regularly, do if more than one hour
                 need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3600
