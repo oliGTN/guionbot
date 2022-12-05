@@ -767,12 +767,13 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
 
 def get_shard_from_player(txt_allyCode, shard_type):
     # test if the shard already exists
-    query = "SELECT "+shard_type+"Shard_id " \
+    query = "SELECT "+shard_type+"Shard_id, name, guildName " \
           + "FROM players " \
           + "WHERE allyCode='"+txt_allyCode+"'"
     goutils.log2("DBG", query)
-    existing_shard = get_value(query)
-    if existing_shard == None:
+    existingShard, name, guildName = get_line(query)
+    if existingShard == None:
+        # If the player has no shard, create one and allocate it to him or her
         query = "INSERT INTO shards(type) "\
                +"VALUES('"+shard_type+"')"
         goutils.log2("DBG", query)
@@ -788,9 +789,9 @@ def get_shard_from_player(txt_allyCode, shard_type):
         goutils.log2("DBG", query)
         simple_execute(query)
 
-        return new_shard
+        return new_shard, name, guildName
     else:
-        return existing_shard
+        return existingShard, name, guildName
 
 def get_shard_list(shard_id, shard_type, txt_mode):
     query = "SELECT allyCode, name, guildName, arena_"+shard_type+"_rank, " \
@@ -805,24 +806,16 @@ def get_shard_list(shard_id, shard_type, txt_mode):
         return get_table(query)
 
 def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
-    player_existing_shard = get_shard_from_player(txt_allyCode, shard_type)
-    if player_existing_shard == None:
-        # set the shard for this player
-        query = "UPDATE players "\
-               +"SET "+shard_type+"Shard_id="+str(target_shard)+" " \
-               +"WHERE allyCode="+txt_allyCode
-        goutils.log2("DBG", query)
-        simple_execute(query)
+    player_existing_shard, name, guildName = get_shard_from_player(txt_allyCode, shard_type)
 
-        return 0, "Joueur "+txt_allyCode+" ajouté au shard", None
-
-    elif player_existing_shard == target_shard:
+    if player_existing_shard == target_shard:
         #Already in the good shard
-        return 0, "Joueur "+txt_allyCode+" déjà dans le shard", None
+        return 0, "Joueur "+txt_allyCode+" ("+name+" @ "+guildName+") déjà dans le shard", None
     else:
         #player already in another shard
         player_shard_size = len(get_shard_list(player_existing_shard, shard_type, False))
         if player_shard_size == 1:
+            #The player is alone in its own shard
             # set the shard for this player
             query = "UPDATE players "\
                    +"SET "+shard_type+"Shard_id="+str(target_shard)+" " \
@@ -836,10 +829,11 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
             goutils.log2("DBG", query)
             simple_execute(query)
 
-            return 0, "Joueur "+txt_allyCode+" ajouté au shard", None
+            return 0, "Joueur "+txt_allyCode+" ("+name+" @ "+guildName+") ajouté au shard", None
 
         target_shard_size = len(get_shard_list(target_shard, shard_type, False))
         if target_shard_size == 1 or force_merge:
+            #If the requesting player (me) is alone in its shard
             # replace the target shard by the shard of the player
             query = "UPDATE players "\
                    +"SET "+shard_type+"Shard_id="+str(player_existing_shard)+" " \
@@ -853,7 +847,7 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
             goutils.log2("DBG", query)
             simple_execute(query)
 
-            return 0, "Joueur ajouté au shard", None
+            return 0, "Joueur "+txt_allyCode+" ("+name+" @ "+guildName+") ajouté au shard", None
 
         #target shard and shard from player are both filled with several players
         # need to merge them with confirmation from player

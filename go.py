@@ -329,7 +329,22 @@ def load_guild(txt_allyCode, load_players, cmd_request):
            +"WHERE name = '"+guildName.replace("'", "''")+"'"
     goutils.log2('DBG', query)
     lastUpdated = connect_mysql.get_value(query)
-    is_new_guild = (lastUpdated == None)
+
+    if lastUpdated == None:
+        is_new_guild = True
+
+        #Create guild in DB
+        query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
+        goutils.log2('DBG', query)
+        connect_mysql.simple_execute(query)
+
+        query = "INSERT INTO guild_evolutions(guild_id, description) "
+        query+= "VALUES('"+guild_id+"', 'creation of the guild')"
+        goutils.log2('DBG', query)
+        connect_mysql.simple_execute(query)
+    else:
+        is_new_guild = False
+
 
     query = "SELECT allyCode FROM players "\
            +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
@@ -340,11 +355,19 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     for ac in allyCodes_in_API:
         if not ac in allyCodes_in_DB:
             allyCodes_to_add.append(ac)
+            query = "INSERT INTO guild_evolutions(guild_id, allyCode, description) "
+            query+= "VALUES('"+guild_id+"', "+str(ac)+", 'added')"
+            goutils.log2('DBG', query)
+            connect_mysql.simple_execute(query)
 
     allyCodes_to_remove = []
     for ac in allyCodes_in_DB:
         if not ac in allyCodes_in_API:
             allyCodes_to_remove.append(ac)
+            query = "INSERT INTO guild_evolutions(guild_id, allyCode, description) "
+            query+= "VALUES('"+guild_id+"', "+str(ac)+", 'removed')"
+            goutils.log2('DBG', query)
+            connect_mysql.simple_execute(query)
 
     if load_players:
         if lastUpdated != None:
@@ -396,11 +419,6 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
                 #Request to load this guild
                 parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
-
-                #Create guild in DB only if the players are loaded
-                query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
-                goutils.log2('DBG', query)
-                connect_mysql.simple_execute(query)
 
                 #add player data
                 i_player = 0

@@ -2941,15 +2941,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         # get the DB information
-        query = "SELECT "+shard_type+"Shard_id " \
-              + "FROM players " \
-              + "WHERE allyCode='"+str(allyCode)+"'"
-        goutils.log2("DBG", query)
-        me_shard = connect_mysql.get_shard_from_player(allyCode, shard_type)
+        player_shard, n, gn = connect_mysql.get_shard_from_player(allyCode, shard_type)
 
         if len(args) == 2:
             #list the content of the shard
-            output = connect_mysql.get_shard_list(me_shard, shard_type, True)
+            output = connect_mysql.get_shard_list(player_shard, shard_type, True)
             output_txt = ""
             for row in output:
                 output_txt+=str(row)+'\n'
@@ -2957,21 +2953,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send('`' + txt + '`')
         else:
             # add or remove player from shard
-            player_ac = args[2]
+            shardmate_ac = args[2]
             remove_player = False
             force_merge = False
 
-            if player_ac[0] == "-":
+            if shardmate_ac[0] == "-":
                 remove_player = True
-                player_ac = player_ac[1:]
-            elif player_ac[0] == "+":
+                shardmate_ac = shardmate_ac[1:]
+            elif shardmate_ac[0] == "+":
                 force_merge = True
-                player_ac = player_ac[1:]
+                shardmate_ac = shardmate_ac[1:]
 
-            player_ac = manage_me(ctx, player_ac)
+            shardmate_ac = manage_me(ctx, shardmate_ac)
 
-            if player_ac[0:3] == 'ERR':
-                await ctx.send(player_ac)
+            if shardmate_ac[0:3] == 'ERR':
+                await ctx.send(shardmate_ac)
                 await ctx.message.add_reaction(emoji_error)
                 return
 
@@ -2983,15 +2979,15 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 #First ensure that the player exists in DB
                 e, t, player_now = await bot.loop.run_in_executor(
                                                 None, go.load_player,
-                                                player_ac, -1, False)
+                                                shardmate_ac, -1, False)
                 if e!=0:
                     await ctx.send(t)
                     await ctx.message.add_reaction(emoji_error)
                     return
 
-                ec, et, ret = connect_mysql.add_player_to_shard(player_ac, me_shard, shard_type, force_merge)
+                ec, et, ret = connect_mysql.add_player_to_shard(shardmate_ac, player_shard, shard_type, force_merge)
                 if ec == 1:
-                    output_txt = "Voulez-vous vraiment fusionner ces 2 shards "+shard_type+ " ?\n"
+                    await ctx.send("Voulez-vous vraiment fusionner ces 2 shards "+shard_type+ " ?")
                     target_list = connect_mysql.get_shard_list(ret[0], shard_type, True)
                     for row in target_list:
                         output_txt+=str(row)+'\n'
@@ -2999,13 +2995,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     output_txt += "et\n"
                     for row in player_list:
                         output_txt+=str(row)+'\n'
-                    output_txt += ">> pour cela lancez la commande go.shard "+allyCode+" "+shard_type+ " +"+player_ac
+                    output_txt += ">> pour cela lancez la commande go.shard "+allyCode+" "+shard_type+ " +"+shardmate_ac
+
+                    for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                        await ctx.send('`' + txt + '`')
                 else:
                     output_txt = et
-
-                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                    await ctx.send('`' + txt + '`')
-
+                    await ctx.send(et)
 
         await ctx.message.add_reaction(emoji_check)
 
