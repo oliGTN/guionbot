@@ -3689,6 +3689,64 @@ def get_gv_graph(txt_allyCode, characters):
     #add series
     for key in dict_dates:
         ax.plot(dict_dates[key], dict_values[key], label=key, marker=".")
+
+        if max(dict_values[key])<100:
+            #extrapolate values until 100%
+            epoch=datetime.date(1970, 1, 1)
+            today = datetime.datetime.now().date()
+
+            if len(dict_dates[key])>=3:
+                #remove the stable values at the beginning
+                for i in range(len(dict_dates[key])-1, 1, -1):
+                    if dict_values[key][i] == dict_values[key][i-1]:
+                        pass
+                    else:
+                        break
+                list_dates_progressing = dict_dates[key][:i+1]
+                list_values_progressing = dict_values[key][:i+1]
+            else:
+                list_dates_progressing = dict_dates[key]
+                list_values_progressing = dict_values[key]
+
+            #transfom datetime into an amount of days (from epoch)
+            date_days = [(x-epoch).days for x in list_dates_progressing]
+
+            #extrapolation to get value from day
+            fit = np.polyfit(date_days, list_values_progressing, 2)
+
+            #extrapolate the date when the value will reach 100
+            cur_date = max(list_dates_progressing)
+            cur_value = 0
+            while (cur_date-today).days<30 and cur_value<100:
+                cur_day = (cur_date-epoch).days
+                cur_value = fit[0]*cur_day*cur_day + fit[1]*cur_day + fit[2]
+                cur_date = cur_date+datetime.timedelta(1)
+
+            if cur_value < max(list_values_progressing):
+                #the extrapolation decreases, do not go further
+                date_end = max(list_dates_progressing)
+            else:
+                date_end = epoch+datetime.timedelta(cur_day)
+
+            #plot the extrapolation line, max 20 points
+            # first set the 20 points for the dates
+            list_dates_fit = [min(list_dates_progressing)]
+            scale_days = (date_end-min(list_dates_progressing)).days
+            for i in range(20):
+                next_date = list_dates_fit[0]+datetime.timedelta((i+1)*scale_days/20)
+                list_dates_fit.append(next_date)
+            list_days = [(x-epoch).days for x in list_dates_fit]
+
+            # then compute the values at these dates
+            list_values_fit = []
+            for d in list_days:
+                value_fit = fit[0]*d*d + fit[1]*d + fit[2]
+                list_values_fit.append(value_fit)
+
+            #plot a dashed line for the extrapolation
+            ax.plot(list_dates_fit, list_values_fit, linestyle="dashed")
+
+
     #format dates on X axis
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
