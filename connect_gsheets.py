@@ -622,3 +622,36 @@ def load_tb_teams(guild_name, force_load):
         tb_teams = json.load(open(json_file, "r"))
 
     return tb_teams
+
+##############################################################
+# Function: load_new_tb
+# Parameters: none
+# Purpose: lit les operations de la nouvelle BT
+# Output:  dict_zones= {zone_name: {defId: [count, relic_min], ...}}
+##############################################################
+def load_new_tb():
+    global client    
+    get_gapi_client()
+    file = client.open('NewTB_operations')
+    feuille=file.worksheet("long_format")
+
+    list_dict_sheet=feuille.get_all_records()
+    
+    dict_zones={}
+    dict_toons={}
+    for ligne in list_dict_sheet:
+        zone_name = 'ROTE'+str(ligne['phase'])+'-'+ligne['alignment']+'-'+str(ligne['operation'])
+        if not zone_name in dict_zones:
+            dict_zones[zone_name] = {}
+        baseId = ligne['baseId']
+        if not baseId in dict_zones[zone_name]:
+            dict_zones[zone_name][baseId] = [0, min(ligne['phase']+4, 9)]
+        dict_zones[zone_name][baseId][0] +=1
+
+        if not baseId in dict_toons:
+            dict_toons[baseId] = []
+        dict_toons[baseId].append(zone_name)
+
+    return dict_zones, dict_toons
+    
+##############################################################

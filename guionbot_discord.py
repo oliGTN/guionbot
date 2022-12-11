@@ -1693,6 +1693,63 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_check)
         
     ##############################################################
+    # Command: platoons
+    # Parameters: alias of the character to find
+    # Purpose: Tag all players in the guild which own the selected character
+    # Display: One line with all discord tags
+    ##############################################################
+    @commands.check(is_officer)
+    @commands.command(name='platoons',
+                 brief="Affecte les pelotons pour la BT",
+                 help="Affecte les pelotons pour la BT\n\n"\
+                      "Exemple : go.platoons me ROTE1-DS-6 ROTE1-Mix-2\n"\
+                      "Exemple : go.platoons me ROTE1-DS ROTE1-Mix\n"\
+                      "Exemple : go.platoons me ROTE1")
+    async def platoons(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        #Check arguments
+        args = list(args)
+
+        if len(args) >= 2:
+            allyCode = args[0]
+            list_zones = args[1:]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help platoons")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, errtxt, dict_players = go.allocate_platoons(allyCode, list_zones, ctx.guild.name)
+            if err != 0:
+                for txt in goutils.split_txt(errtxt, MAX_MSG_SIZE):
+                    await ctx.send(txt)
+                await ctx.send("CONSEIL: choisir parmi les ops possibles "+str(dict_players))
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
+                output_txt=""
+                for p in sorted(dict_players.keys()):
+                    if p in dict_players_by_IG[p]:
+                        p_name = dict_players_by_IG[p][1]
+                    else:
+                        p_name=p
+
+                    for x in dict_players[p]:
+                        output_txt += p_name+" doit poser "+x[1]+" en "+x[0] +"\n"
+
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send(txt)
+
+                await ctx.message.add_reaction(emoji_check)
+
+##############################################################
+    ##############################################################
     # Command: tpg
     # Parameters: alias of the character to find
     # Purpose: Tag all players in the guild which own the selected character

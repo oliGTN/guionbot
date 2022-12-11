@@ -3871,3 +3871,110 @@ def get_tw_active_players(server_name):
     list_active_player_names = [x[0] for x in list_active_players]
 
     return 0, "", list_active_player_names, secs_track
+
+def allocate_platoons(allyCode_txt, list_zones, guildName):
+    total_err_txt = ""
+    dict_zones, dict_tb_toons = connect_gsheets.load_new_tb()
+
+    list_ops=[]
+    for zone in list_zones:
+        for existing_zone in dict_zones.keys():
+            if existing_zone.startswith(zone):
+                list_ops.append(existing_zone)
+    list_ops=sorted(set(list_ops))
+    goutils.log2('DBG', list_ops)
+
+    dict_toons = {}
+    for ops in list_ops:
+        for toon in dict_zones[ops]:
+            if not toon in dict_toons:
+                dict_toons[toon] = [0, dict_zones[ops][toon][1]]
+            dict_toons[toon][0] += dict_zones[ops][toon][0]
+    dict_guild={}
+
+    dict_unitsList = data.get("unitsList_dict.json")
+    list_blocked_ops=[]
+    for defId in dict_toons:
+        count = dict_toons[defId][0]
+        min_relic = dict_toons[defId][1]
+        unit = dict_unitsList[defId]
+        if unit['combatType']==1:
+            #CHARACTER
+            query = "SELECT name, roster.allyCode, gp " \
+                  + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
+                  + "WHERE guildName='"+guildName.replace("'", "''")+"' " \
+                  + "AND defId='"+defId+"' AND (relic_currentTier-2)>="+str(min_relic)+" " \
+                  + "ORDER BY gp, rand() " \
+                  + "LIMIT "+ str(count)
+        else:
+            #SHIP
+            crew_list = [x['unitId'] for x in unit['crewList']]
+            crew_list=[]
+            if len(crew_list)==0:
+                #NO PILOT
+                query = "SELECT name, roster.allyCode, gp " \
+                      + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
+                      + "WHERE guildName='"+guildName.replace("'", "''")+"' " \
+                      + "AND defId='"+defId+"' AND rarity=7 " \
+                      + "ORDER BY gp, rand() " \
+                      + "LIMIT "+ str(count)
+            else:
+                query = "SELECT name, roster.allyCode, " \
+                      + "sum(CASE combatType " \
+                      + "        WHEN 1 THEN 0 " \
+                      + "        ELSE gp " \
+                      + "        END) as gp, " \
+                      + "min(CASE combatType " \
+                      + "        WHEN 1 THEN relic_currentTier-2 " \
+                      + "        ELSE 9 " \
+                      + "        END) as min_relic " \
+                      + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
+                      + "WHERE guildName='"+guildName.replace("'", "''")+"' " \
+                      + "AND defId IN "+str(tuple([defId]+crew_list))+" " \
+                      + "GROUP BY roster.allyCode " \
+                      + "HAVING min(rarity)=7 AND min_relic>=5 AND gp>0 " \
+                      + "ORDER BY gp, rand() " \
+                      + "LIMIT "+str(count)
+        #print(query)
+        ret_db = connect_mysql.get_table(query)
+        if ret_db==None:
+            size_db=0
+        else:
+            size_db=len(ret_db)
+        if size_db < count:
+            filtered_list_zones = [x for x in list_ops if x in dict_tb_toons[defId]]
+            err_txt = "Pas assez de "+defId+" relic "+str(min_relic)+" ("+str(size_db)+"/"+str(count)+") " \
+                    + "pour remplir "+str(filtered_list_zones)
+            goutils.log2("WAR", err_txt)
+            total_err_txt += err_txt+"\n"
+
+            if size_db==0 or len(filtered_list_zones)==1:
+                list_blocked_ops+=filtered_list_zones
+        else:
+            list_ac=[x[0] for x in ret_db]
+            dict_guild[defId]=list_ac
+
+    if len(total_err_txt) > 0:
+        list_blocked_ops=sorted(set(list_blocked_ops))
+        goutils.log2("INFO", list_blocked_ops)
+        list_possible_ops = [x for x in list_ops if not x in list_blocked_ops]
+        return 1, total_err_txt, list_possible_ops
+
+    #print(dict_guild)
+    dict_players={}
+    for zone in list_ops:
+        #print(zone)
+        for defId in dict_zones[zone]:
+            #print(defId)
+            list_players=dict_guild[defId]
+            player=list_players[0]
+            #print(player)
+            new_list_players=list_players[1:]
+            dict_guild[defId]=new_list_players
+            
+            if not player in dict_players:
+                dict_players[player]=[]
+            dict_players[player].append([zone, dict_unitsList[defId]['nameKey']])
+
+    return 0, "", dict_players
+
