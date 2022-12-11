@@ -3872,7 +3872,7 @@ def get_tw_active_players(server_name):
 
     return 0, "", list_active_player_names, secs_track
 
-def allocate_platoons(allyCode_txt, list_zones):
+def allocate_platoons(txt_allyCode, list_zones):
     total_err_txt = ""
     dict_zones, dict_tb_toons = connect_gsheets.load_new_tb()
 
