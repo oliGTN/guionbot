@@ -1725,7 +1725,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, dict_players = go.allocate_platoons(allyCode, list_zones, ctx.guild.name)
+            err, errtxt, dict_players = go.allocate_platoons(allyCode, list_zones)
             if err != 0:
                 for txt in goutils.split_txt(errtxt, MAX_MSG_SIZE):
                     await ctx.send(txt)

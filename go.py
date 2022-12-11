@@ -3872,7 +3872,7 @@ def get_tw_active_players(server_name):
 
     return 0, "", list_active_player_names, secs_track
 
-def allocate_platoons(allyCode_txt, list_zones, guildName):
+def allocate_platoons(allyCode_txt, list_zones):
     total_err_txt = ""
     dict_zones, dict_tb_toons = connect_gsheets.load_new_tb()
 
@@ -3902,7 +3902,8 @@ def allocate_platoons(allyCode_txt, list_zones, guildName):
             #CHARACTER
             query = "SELECT name, roster.allyCode, gp " \
                   + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
-                  + "WHERE guildName='"+guildName.replace("'", "''")+"' " \
+                  + "WHERE players.guildName = " \
+                  + "(SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \
                   + "AND defId='"+defId+"' AND (relic_currentTier-2)>="+str(min_relic)+" " \
                   + "ORDER BY gp, rand() " \
                   + "LIMIT "+ str(count)
@@ -3914,7 +3915,8 @@ def allocate_platoons(allyCode_txt, list_zones, guildName):
                 #NO PILOT
                 query = "SELECT name, roster.allyCode, gp " \
                       + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
-                      + "WHERE guildName='"+guildName.replace("'", "''")+"' " \
+                      + "WHERE players.guildName = " \
+                      + "(SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \
                       + "AND defId='"+defId+"' AND rarity=7 " \
                       + "ORDER BY gp, rand() " \
                       + "LIMIT "+ str(count)
@@ -3929,7 +3931,8 @@ def allocate_platoons(allyCode_txt, list_zones, guildName):
                       + "        ELSE 9 " \
                       + "        END) as min_relic " \
                       + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
-                      + "WHERE guildName='"+guildName.replace("'", "''")+"' " \
+                      + "WHERE players.guildName = " \
+                      + "(SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \
                       + "AND defId IN "+str(tuple([defId]+crew_list))+" " \
                       + "GROUP BY roster.allyCode " \
                       + "HAVING min(rarity)=7 AND min_relic>=5 AND gp>0 " \
