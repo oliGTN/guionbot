@@ -1735,7 +1735,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
                 output_txt=""
                 for p in sorted(dict_players.keys()):
-                    if p in dict_players_by_IG[p]:
+                    if p in dict_players_by_IG:
                         p_name = dict_players_by_IG[p][1]
                     else:
                         p_name=p
