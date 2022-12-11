@@ -1,2 +1,2 @@
-python update_unitsList_json.py
-python update_units_zetas_omicrons.py
+python SCRIPTS/update_unitsList_json.py
+python SCRIPTS/update_units_zetas_omicrons.py
