@@ -1726,10 +1726,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
         else:
             err, errtxt, dict_players = go.allocate_platoons(allyCode, list_zones)
-            if err != 0:
+            if err == 1:
                 for txt in goutils.split_txt(errtxt, MAX_MSG_SIZE):
                     await ctx.send(txt)
-                await ctx.send("CONSEIL: choisir parmi les ops possibles "+str(dict_players))
+                await ctx.send("CONSEIL: choisir parmi les ops possibles : "+" ".join(dict_players))
+                await ctx.message.add_reaction(emoji_error)
+            elif err == 2:
+                await ctx.send("ERR: "+errtxt)
                 await ctx.message.add_reaction(emoji_error)
             else:
                 dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
@@ -1748,7 +1751,61 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emoji_check)
 
-##############################################################
+    ##############################################################
+    # Command: srg
+    # Parameters: minimum relic level
+    # Purpose: display the PG for DS and LS characters above a minimum relic level
+    # Display: the total PG for DS, LS and total
+    ##############################################################
+    @commands.check(is_officer)
+    @commands.command(name='srg',
+                 brief="Synthèse de PG pour un niveau de Relic dans la Guilde",
+                 help="Synthèse de PG pour un niveau de Relic dans la Guilde\n\n"\
+                      "Exemple : go.srg me R5")
+    async def srg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        #Check arguments
+        args = list(args)
+
+        if len(args) == 2:
+            allyCode = args[0]
+            relic_min = args[1]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help srg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        if relic_min[0] != 'R' or not relic_min[1:].isnumeric():
+            await ctx.send("ERR: relic minimum incorect")
+            await ctx.message.add_reaction(emoji_error)
+            return
+        relic_min = relic_min[1:]
+
+        query = "SELECT guildName, " \
+              + "ROUND(sum(CASE WHEN forceAlignment<>3 THEN gp ELSE 0 END)/1000000,1) as 'PG DS/N', " \
+              + "ROUND(sum(CASE WHEN forceAlignment<>2 THEN gp ELSE 0 END)/1000000,1) as 'PG LS/N', " \
+              + "ROUND(sum(gp)/1000000,1) as 'PG' " \
+              + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+allyCode+"') " \
+              + "AND (relic_currentTier-2)>="+relic_min+" " \
+              + "group by guildName "
+        goutils.log2("DBG", query)
+        output = connect_mysql.text_query(query)
+        output_txt = ""
+        for row in output:
+            output_txt+=str(row)+'\n'
+        await ctx.send('`' + output_txt + '`')
+
+        await ctx.message.add_reaction(emoji_check)
+
     ##############################################################
     # Command: tpg
     # Parameters: alias of the character to find
