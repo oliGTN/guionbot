@@ -3878,9 +3878,14 @@ def allocate_platoons(txt_allyCode, list_zones):
 
     list_ops=[]
     for zone in list_zones:
+        match_count = 0
         for existing_zone in dict_zones.keys():
             if existing_zone.startswith(zone):
+                match_count+=1
                 list_ops.append(existing_zone)
+        if match_count==0:
+            return 2, "Impossible de reconnaître la zone "+zone, None
+
     list_ops=sorted(set(list_ops))
     goutils.log2('DBG', list_ops)
 
@@ -3939,6 +3944,7 @@ def allocate_platoons(txt_allyCode, list_zones):
                       + "ORDER BY gp, rand() " \
                       + "LIMIT "+str(count)
         #print(query)
+        goutils.log2("DBG", query)
         ret_db = connect_mysql.get_table(query)
         if ret_db==None:
             size_db=0
@@ -3948,6 +3954,9 @@ def allocate_platoons(txt_allyCode, list_zones):
             filtered_list_zones = [x for x in list_ops if x in dict_tb_toons[defId]]
             err_txt = "Pas assez de "+defId+" relic "+str(min_relic)+" ("+str(size_db)+"/"+str(count)+") " \
                     + "pour remplir "+str(filtered_list_zones)
+            ec, et, list = find_best_toons_in_guild(txt_allyCode, defId, "R9")
+            best_next_toons = list[size_db:count+1]
+            err_txt+=" > les plus proches sont "+str(best_next_toons)
             goutils.log2("WAR", err_txt)
             total_err_txt += err_txt+"\n"
 
@@ -3981,3 +3990,38 @@ def allocate_platoons(txt_allyCode, list_zones):
 
     return 0, "", dict_players
 
+#############################################################################
+# find_best_toons_in_guild
+# IN: txt_alllyCode: one allyCode in the guild
+# IN: character_id: defId of the toon
+# IN: max_gear: maximum gear or relic level ("G8" or "R5")
+# OUT: list [[playerName, rarity, gear/relic], ...]
+#############################################################################
+def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
+    if max_gear[0] == 'G':
+        max_gear_int=int(max_gear[1:])
+    elif max_gear[0] == 'R':
+        max_gear_int=13+int(max_gear[1:])
+    else:
+        return 1, "ERR: gear incorrect", None
+
+    query = "SELECT name, rarity, " \
+          + "CASE WHEN gear<13 THEN concat('G', gear) " \
+          + "ELSE CONCAT('R',relic_currentTier-2) " \
+          + "END as 'gear', " \
+          + "(rarity/7*0.5+(gear+relic_currentTier-2)/(13+9)*0.5) as progress " \
+          + "FROM roster JOIN players " \
+          + "ON players.allyCode = roster.allyCode " \
+          + "WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \
+          + "AND defId='"+character_id+"' " \
+          + "AND (gear+relic_currentTier-2)<"+str(max_gear_int)+" " \
+          + "ORDER BY progress desc "
+    goutils.log2("DBG", query)
+    ret_db = connect_mysql.get_table(query)
+    if ret_db==None:
+        ret_db=[]
+
+    #remove the 4th column (progress) from the table
+    ret_db = [[x[0], str(x[1])+"*", x[2]] for x in ret_db]
+
+    return 1, "", ret_db
