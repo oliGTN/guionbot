@@ -1729,7 +1729,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             if err == 1:
                 for txt in goutils.split_txt(errtxt, MAX_MSG_SIZE):
                     await ctx.send(txt)
-                await ctx.send("CONSEIL: choisir parmi les ops possibles : "+" ".join(dict_players))
+                if len(dict_players)==0:
+                    await ctx.send("Aucune ops possibles parmi ces zones")
+                else:
+                    await ctx.send("CONSEIL: choisir parmi les ops possibles : "+" ".join(dict_players))
                 await ctx.message.add_reaction(emoji_error)
             elif err == 2:
                 await ctx.send("ERR: "+errtxt)
