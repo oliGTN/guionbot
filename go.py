@@ -3952,10 +3952,10 @@ def allocate_platoons(txt_allyCode, list_zones):
             size_db=len(ret_db)
         if size_db < count:
             filtered_list_zones = [x for x in list_ops if x in dict_tb_toons[defId]]
-            err_txt = "Pas assez de "+defId+" relic "+str(min_relic)+" ("+str(size_db)+"/"+str(count)+") " \
+            err_txt = "Pas assez de **"+defId+"** relic "+str(min_relic)+" ("+str(size_db)+"/"+str(count)+") " \
                     + "pour remplir "+str(filtered_list_zones)
             ec, et, list = find_best_toons_in_guild(txt_allyCode, defId, "R9")
-            best_next_toons = list[size_db:count+1]
+            best_next_toons = [x[0]+" ("+str(x[1])+" étoiles "+x[2]+")" for x in list[size_db:count+1]]
             err_txt+=" > les plus proches sont "+str(best_next_toons)
             goutils.log2("WAR", err_txt)
             total_err_txt += err_txt+"\n"
@@ -4022,6 +4022,6 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
         ret_db=[]
 
     #remove the 4th column (progress) from the table
-    ret_db = [[x[0], str(x[1])+"*", x[2]] for x in ret_db]
+    ret_db = [[x[0], x[1], x[2]] for x in ret_db]
 
     return 1, "", ret_db
