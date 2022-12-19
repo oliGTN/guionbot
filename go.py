@@ -1367,7 +1367,7 @@ def print_fegv(txt_allyCode):
           + "WHERE gt.name LIKE '%-GV' " \
           + "AND (isnull(rarity) OR rarity<GVrarity) " \
           + ") " \
-          + "AND (isnull(rarity) OR rarity<GVrarity) "
+          + "AND (isnull(rarity) OR rarity<rarity_reco) "
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
     dict_unitsList = data.get("unitsList_dict.json")
