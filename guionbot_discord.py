@@ -2067,12 +2067,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_check)
 
     @commands.check(command_allowed)
-    @commands.command(name='pfj',
-                 brief="Donne le progrès de farming perso chez un joueur",
-                 help="Donne le progrès de farming perso chez un joueur\n\n"\
-                      "Exemple: go.pfj 192126111\n"\
-                      "Exemple: go.pfj me")
-    async def pfj(self, ctx, allyCode):
+    @commands.command(name='fegv',
+                 brief="Donne les Farming d'Eclats pour le Guide de Voyage",
+                 help="Donne les Farmings d'Eclats pour le Guide de Voyage\n\n"\
+                      "Exemple: go.fegv me")
+    async def fegv(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode = manage_me(ctx, allyCode)
@@ -2081,7 +2080,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_pfj, allyCode, ctx.guild.name)
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_fegv, allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2091,13 +2090,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             else:
                 await ctx.send(ret_cmd)
 
+    ##############################################################
     @commands.check(command_allowed)
-    @commands.command(name='pfg',
-                 brief="Donne le progrès de farming perso dans la guilde",
-                 help="Donne le progrès de farming perso dans la guilde\n\n"\
-                      "Exemple: go.pjg 192126111\n"\
-                      "Exemple: go.pjg me")
-    async def pfg(self, ctx, allyCode):
+    @commands.command(name='ftj',
+                 brief="Donne le progrès de farming d'une team chez un joueur",
+                 help="Donne le progrès de farming d'une team chez un joueur\n\n"\
+                      "Exemple: go.ftj me ROTE")
+    async def ftj(self, ctx, allyCode, team):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode = manage_me(ctx, allyCode)
@@ -2106,7 +2105,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_pfg, allyCode, ctx.guild.name)
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_ftj, allyCode, team, ctx.guild.name)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2437,13 +2436,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             characters = ["all"]
 
         #First run a GVJ to ensure at least on result
-        if "FARM" in characters:
-            characters = ["FARM"]
-            err_code, ret_cmd = await bot.loop.run_in_executor(None,
-                                                           go.print_pfj,
-                                                           allyCode,
-                                                           ctx.guild.name)
-        else:
             err_code, ret_cmd = await bot.loop.run_in_executor(None,
                                                            go.print_gvj,
                                                            characters,

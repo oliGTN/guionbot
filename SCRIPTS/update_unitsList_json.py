@@ -18,9 +18,13 @@ unitsList_ENG_US = json.load(open('DATA'+os.path.sep+'unitsList_ENG_US.json', 'r
 
 #ADD custom units
 unitsList_custom = json.load(open('DATA'+os.path.sep+'unitsList_custom.json', 'r'))
+known_units = [x['baseId'] for x in unitsList_FRE_FR]
 for unit in unitsList_custom:
-    unitsList_FRE_FR.append(unit)
-    unitsList_ENG_US.append(unit)
+    if unit['baseId'] in known_units:
+        print(unit['baseId']+ " est déjà connue > à enlever de custom")
+    else:
+        unitsList_FRE_FR.append(unit)
+        unitsList_ENG_US.append(unit)
 
 unitsList = unitsList_FRE_FR
 unitsList_dict = {}

@@ -693,7 +693,6 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                                             "\N{WHITE MEDIUM STAR}"
 
                         #Add farming info
-                        list_farming = []
                         for event in dict_unitsList[character_id]['farmingInfo']:
                             if event[0].startswith('C01'):
                                 if event[0][3:] == 'L':
@@ -736,6 +735,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                     character_progress_100 = int(character_progress*100)
                     character_display += " - " + str(character_progress_100) +"%"
 
+                print(tab_progress_player)
                 tab_progress_player[i_subobj][i_character - 1][0] = character_progress
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
@@ -848,7 +848,8 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
         for i_character in range(0, subobj_size):
             subobj_char_display = sorted_tab_progress[i_subobj][i_character][1]
             if i_character >= min_perso:
-                line += "-- " + subobj_char_display + "\n"
+                if team_name[-3:]=="-GV":
+                    line += "-- " + subobj_char_display + "\n"
             else:
                 line += subobj_char_display + "\n"
 
@@ -858,7 +859,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
     goutils.log2("DBG", "list_char_id = " + str(list_char_id))
         
     unlocked = False
-    if gv_mode:
+    if gv_mode and team_name[-3:]=="-GV":
         # in gv_mode, we check if the target character is fully unlocked
         # with the target max rarity
         target_character = team_name[:-3]
@@ -953,7 +954,7 @@ def get_team_header(team_name, objectifs):
 
     return entete
 
-#IN: gv_mode (0: VTJ, 1: GVJ, 2: PFJ)
+#IN: gv_mode (0: VTJ, 1: GVJ, 2: FTJ)
 def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild, exclusive_player_list, gv_mode, dict_tw_def):
     dict_unitsList = data.get("unitsList_dict.json")
     ret_get_team_progress = {}
@@ -1018,13 +1019,9 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
            +"relic_currentTier, "\
            +"gp, "\
            +"stat5 as speed "\
-           +"FROM players "
-    if gv_mode==2:
-        query += "JOIN guild_teams ON (guild_teams.name=CONCAT(allyCode, '-FARM') "
-        query += "                 OR  guild_teams.name LIKE '%-GV') "
-    else:
-        query += "JOIN guild_teams "
-    query +="JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id "\
+           +"FROM players " \
+           +"JOIN guild_teams " \
+           +"JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id "\
            +"JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id "\
            +"JOIN roster ON roster.defId = guild_team_roster.unit_id AND roster.allyCode = players.allyCode "
     if compute_guild==0:
@@ -1035,11 +1032,10 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
     else:
         query += "WHERE players."+shard_type+"Shard_id = \
                 (SELECT "+shard_type+"Shard_id FROM players WHERE allyCode='"+txt_allyCode+"')\n"
-    if gv_mode == 0:
-        query += "AND NOT guild_teams.name LIKE '%-GV'\n"
-        query += "AND NOT guild_teams.name LIKE '%-FARM'\n"
-    elif gv_mode == 1:
+    if gv_mode == 1:
         query += "AND guild_teams.name LIKE '%-GV'\n"
+    else:
+        query += "AND NOT guild_teams.name LIKE '%-GV'\n"
 
     if exclusive_player_list != None:
         query += "AND players.name IN "+str(tuple(exclusive_player_list)).replace(",)", ")")+"\n"
@@ -1053,7 +1049,7 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
     player_data = connect_mysql.get_table(query)
     goutils.log2("DBG", player_data)
     
-    if gv_mode!=1:
+    if gv_mode==0:
         # Need the zetas to compute the progress of a regular team
         goutils.log2("INFO", "Get zeta data from DB...")
         query = "SELECT players.name, \
@@ -1097,7 +1093,7 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         
     
     else:
-        #In gv_mode, there is no requirement for zetas
+        #In gv_mode=1 or 2 (farming), there is no requirement for zetas
         player_zeta_data = []
         player_omicron_data = []
         
@@ -1140,15 +1136,10 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
         goutils.log2("WAR", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
     
     # Compute teams for this player
-    if gv_mode==0:
-        filtered_list_team_gt = [x for x in 
-                filter(lambda f:f[-3:]!="-GV" and f[-5:]!="-FARM", list_team_gt)]
-    elif gv_mode==1:
-        filtered_list_team_gt = [x for x in 
-                                filter(lambda f:f[-3:]=="-GV", list_team_gt)]
+    if gv_mode==1:
+        filtered_list_team_gt = [x for x in filter(lambda f:f[-3:]=="-GV", list_team_gt)]
     else:
-        filtered_list_team_gt = [x for x in 
-                                filter(lambda f:f[-5:]=="-FARM", list_team_gt)]
+        filtered_list_team_gt = [x for x in filter(lambda f:f[-3:]!="-GV", list_team_gt)]
 
     if 'all' in list_team_names or gv_mode==2:
         list_team_names = filtered_list_team_gt
@@ -1181,9 +1172,6 @@ def get_team_progress(list_team_names, txt_allyCode, server_name, compute_guild,
             count_not_enough = 0
             for player_name in dict_teams:
                 player_allyCode = dict_teams[player_name][0]
-                if gv_mode == 2:
-                    if team_name != str(player_allyCode)+"-FARM":
-                        continue
 
                 #resultats par joueur
                 score, unlocked, line, nogo, list_char = get_team_line_from_player(team_name,
@@ -1366,78 +1354,93 @@ def print_vtj(list_team_names, txt_allyCode, server_name, tw_mode):
 
     return 0, ret_print_vtx, images
 
-def print_pfj(txt_allyCode, server_name):
-    ret_print_pfj = ""
-    
-    team = txt_allyCode+"-FARM"
+def print_fegv(txt_allyCode):
+    query = "SELECT gt.name, unit_id, rarity_reco, rarity FROM guild_teams as gt " \
+          + "JOIN guild_subteams as gst ON gst.team_id=gt.id " \
+          + "JOIN guild_team_roster as gtr ON gtr.subteam_id=gst.id " \
+          + "LEFT JOIN roster ON (unit_id=defId AND allyCode="+txt_allyCode+") " \
+          + "WHERE gt.name IN( " \
+          + "SELECT DISTINCT(gt.name) FROM guild_teams as gt " \
+          + "JOIN guild_subteams as gst ON gst.team_id=gt.id " \
+          + "JOIN guild_team_roster as gtr ON gtr.subteam_id=gst.id " \
+          + "LEFT JOIN roster ON (gt.name=CONCAT(defId, '-GV') AND allyCode="+txt_allyCode+") " \
+          + "WHERE gt.name LIKE '%-GV' " \
+          + "AND (isnull(rarity) OR rarity<GVrarity) " \
+          + ") " \
+          + "AND (isnull(rarity) OR rarity<GVrarity) "
+    goutils.log2("DBG", query)
+    ret_db = connect_mysql.get_table(query)
+    dict_unitsList = data.get("unitsList_dict.json")
+
+    ret_print_fegv = ""
+    for line in ret_db:
+        gv_target_id = line[0][:-3]
+        gv_target_name = dict_unitsList[gv_target_id]['nameKey']
+        character_id = line[1]
+        character_name = dict_unitsList[character_id]['nameKey']
+        character_display = "["+gv_target_name+"] "+character_name+" "+str(line[3])+"/"+str(line[2])+" étoiles"
+
+        for event in dict_unitsList[character_id]['farmingInfo']:
+            if event[0].startswith('C01'):
+                if event[0][3:] == 'L':
+                    color_emoji = "\N{Large Yellow Circle}"
+                elif event[0][3:] == 'D':
+                    color_emoji = "\N{Large Yellow Circle}"
+                elif event[0][3:] == 'H':
+                    color_emoji = "\N{LARGE RED CIRCLE}"
+                elif event[0][3:] == 'SP':
+                    color_emoji = "\N{LARGE BLUE CIRCLE}"
+                else:
+                    color_emoji = None
+
+                if event[1] == 1:
+                    speed_emoji = "x1"
+                elif event[1] == 2:
+                    speed_emoji = "x2"
+                else:
+                    speed_emoji = None
+
+                if color_emoji!=None and speed_emoji!=None:
+                    character_display += " > farming en "+color_emoji+speed_emoji
+        ret_print_fegv += character_display+"\n"
+
+    return 0, ret_print_fegv
+
+def print_ftj(txt_allyCode, team, server_name):
+    ret_print_ftj = ""
+
     player_name, ret_get_team_progress = get_team_progress([team], txt_allyCode, server_name, 0, None, 2, {})
+    print(team)
+    print(ret_get_team_progress)
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
-    
+
     list_lines = []
 
     if not team in ret_get_team_progress:
         return 1, "Team "+team+" not defined"
-    
+
     ret_team = ret_get_team_progress[team]
     print(ret_get_team_progress)
     if type(ret_team) == str:
         #error
-        ret_print_pfj += ret_team
+        ret_print_ftj += ret_team
     else:
         for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
-            ret_print_pfj += "Progrès de farm perso pour "+player_name+"\n"
-            ret_print_pfj += player_txt + "> Global: "+ str(int(player_score))+"%"
+            ret_print_ftj += "Progrès de farm de la team "+team+" pour "+player_name+"\n"
+            ret_print_ftj += player_txt + "> Global: "+ str(int(player_score))+"%"
             connect_mysql.update_gv_history(txt_allyCode, "", "FARM", True,
                                             player_score, unlocked, "go.bot")
 
-    return 0, ret_print_pfj
-
-def print_pfg(txt_allyCode, server_name):
-    ret_print_pfg = ""
-    
-    guild_name, ret_get_team_progress = get_team_progress([], txt_allyCode, server_name, 1, None, 2, {})
-    
-    if type(ret_get_team_progress) == str:
-        return 1, ret_get_team_progress
-
-    list_lines = []
-    for team in ret_get_team_progress:
-        ret_team = ret_get_team_progress[team]
-        if type(ret_team) == str:
-            #error
-            ret_print_pfg += ret_team + "\n"
-        else:
-            for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
-                if not player_unlocked:
-                    new_line = "FARM - "+ player_name + ": " + \
-                                    str(int(player_score)) + "%\n"
-                    list_lines.append([player_score, new_line, player_unlocked])
-                    if not player_unlocked and player_score>80:
-                        connect_mysql.update_gv_history("", player_name, "FARM", True,
-                                                        player_score, player_unlocked, "go.bot")
-
-    list_lines = sorted(list_lines, key=lambda x: -x[0])
-    ret_print_pfg += "Progrès de farm perso pour la guilde "+guild_name+"\n"
-    if len(list_lines) > 0:
-        for [score, txt, unlocked] in list_lines:
-            if score > 95:
-                ret_print_pfg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-            elif score > 80:
-                ret_print_pfg += "\N{CONFUSED FACE}"
-            else:
-                ret_print_pfg += "\N{UP-POINTING RED TRIANGLE}"
-            ret_print_pfg += txt
-        
-    return 0, ret_print_pfg
+    return 0, ret_print_ftj
 
 def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
-    
+
     player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {})
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
-    
+
     list_lines = []
     if len(ret_get_team_progress) == 1:
         #one team only, one player
@@ -1494,9 +1497,9 @@ def print_gvj(list_team_names, txt_allyCode):
                         
 def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
-    
+
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 1, None, 1, {})
-    
+
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
@@ -1540,9 +1543,9 @@ def print_gvg(list_team_names, txt_allyCode):
 
 def print_gvs(list_team_names, txt_allyCode):
     ret_print_gvs = ""
-    
+
     guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 2, None, 1, {})
-    
+
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
@@ -1661,11 +1664,11 @@ def score_of_counter_interest(team_name, counter_matrix):
 
 def guild_counter_score(txt_allyCode, server_name):
     ret_guild_counter_score = f"""
-*Rec = Niveau recommandé / Min = Niveau minimum*
-*w/o TW Def = Idem en enlevant les équipes placées en défense d'une TW*
-*L'intérêt absolu mesure le nombre de fois que l'équipe X intervient en tant qu'équipe de contre*
-{FORCE_CUT_PATTERN}
-"""
+    *Rec = Niveau recommandé / Min = Niveau minimum*
+    *w/o TW Def = Idem en enlevant les équipes placées en défense d'une TW*
+    *L'intérêt absolu mesure le nombre de fois que l'équipe X intervient en tant qu'équipe de contre*
+    {FORCE_CUT_PATTERN}
+    """
 
     list_counter_teams = connect_gsheets.load_config_counter(server_name)
     list_needed_teams = set().union(*[(lambda x: x[1])(x)
@@ -1708,10 +1711,10 @@ def guild_counter_score(txt_allyCode, server_name):
         (i['score'], i['rec_count'], i['min_count'], i['team_name']))
 
     ret_guild_counter_score += """
-\n**Nombre de joueurs ayant l'équipe X**
-```
-{0:15}: {1:3} ↗ {2:3} | {3:10} - {4:5}
-""".format("Equipe", "Rec", "Min", "w/o TW Def", "Intérêt absolu")
+    \n**Nombre de joueurs ayant l'équipe X**
+    ```
+    {0:15}: {1:3} ↗ {2:3} | {3:10} - {4:5}
+    """.format("Equipe", "Rec", "Min", "w/o TW Def", "Intérêt absolu")
 
     for line in result:
         if line["error"]:
@@ -1739,10 +1742,10 @@ def guild_counter_score(txt_allyCode, server_name):
     ret_guild_counter_score += f"```{FORCE_CUT_PATTERN}"
 
     ret_guild_counter_score += """
-\n**Capacité de contre par adversaire**
-```
-{0:15}: {1:3} ↗ {2:3} | {3:10} 🎯 {4:2}
-""".format("Equipe", "Rec", "Min", "w/o TW Def", "Besoin cible")
+    \n**Capacité de contre par adversaire**
+    ```
+    {0:15}: {1:3} ↗ {2:3} | {3:10} 🎯 {4:2}
+    """.format("Equipe", "Rec", "Min", "w/o TW Def", "Besoin cible")
     for cteam in sorted(list_counter_teams):
         green_counters = 0
         green_counters_wo_def = 0
@@ -1787,7 +1790,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                             ['protection', "Protec"],
                             ['potency', "Pouvoir"],
                             ['tenacity', "Ténacité"]]
-    
+
     #manage sorting options
     sort_option_id=0 # sort by name
     if len(options) == 1:

@@ -28,4 +28,4 @@ rm CACHE/version
 
 #rebuild gameData.json
 cd ../swgoh-stat-calc/swgoh-stat-calc-dataBuilder
-node runDataBuilder.js
+node runDataBuilder.js $(grep SWGOHAPI_LOGIN config.py|cut -f2 -d\") $(grep SWGOHAPI_PASSWORD config.py|cut -f2 -d\")
