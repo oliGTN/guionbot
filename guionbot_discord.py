@@ -2436,10 +2436,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             characters = ["all"]
 
         #First run a GVJ to ensure at least on result
-            err_code, ret_cmd = await bot.loop.run_in_executor(None,
-                                                           go.print_gvj,
-                                                           characters,
-                                                           allyCode)
+        err_code, ret_cmd = await bot.loop.run_in_executor(None,
+                                  go.print_gvj,
+                                  characters,
+                                  allyCode)
         if err_code != 0:
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
