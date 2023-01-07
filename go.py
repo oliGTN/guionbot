@@ -3691,7 +3691,11 @@ def get_gv_graph(txt_allyCode, characters):
 
     #add series
     for key in dict_dates:
-        ax.plot(dict_dates[key], dict_values[key], label=key, marker=".")
+        if key == 'j.bot':
+            marker = 'x'
+        else:
+            marker = '.'
+        ax.plot(dict_dates[key], dict_values[key], label=key, marker=marker)
 
         if max(dict_values[key])<100:
             #extrapolate values until 100%
