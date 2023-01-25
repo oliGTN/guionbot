@@ -1861,6 +1861,24 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emoji_check)
 
+    @commands.check(is_officer)
+    @commands.command(name='tbs',
+                 brief="TB status",
+                 help="TB status")
+    async def tbs(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name)
+        if err_code == 0:
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+
 ##############################################################
 # Class: MemberCog
 # Description: contains all member commands
