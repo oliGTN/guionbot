@@ -1,5 +1,7 @@
 import subprocess
+import os
 import json
+
 import goutils
 
 def get_tb_data(guildName):
@@ -17,6 +19,9 @@ def get_tb_data(guildName):
         process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
         print("getguild code="+str(process.returncode))
 
+    process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName])
+    print("getmapstats code="+str(process.returncode))
+
     process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
     print("getevents code="+str(process.returncode))
     if process.returncode != 0:
@@ -31,7 +36,24 @@ def get_tb_data(guildName):
             goutils.log2("ERR", "getevents code="+str(process.returncode))
             return 1, "getevents failed", None
 
-    guild_json = json.load(open("/home/pi/GuionBot/warstats/guild.json", "r"))
-    events_json = json.load(open("/home/pi/GuionBot/warstats/events.json", "r"))
+    guild_json = json.load(open("/home/pi/GuionBot/warstats/guild.json", "r"))["Guild"]
+    events_json = json.load(open("/home/pi/GuionBot/warstats/events.json", "r"))["Event"]
+    mapstats_json = json.load(open("/home/pi/GuionBot/warstats/mapstats.json", "r"))["CurrentStat"]
 
-    return 0, "", [guild_json, events_json]
+    fevents = "CACHE/"+guildName+"_events.json"
+    if os.path.exists(fevents):
+        f = open(fevents)
+        dict_events=json.load(f)
+        f.close()
+    else:
+        dict_events={}
+
+    for event in events_json:
+        event_id = event["Id"]
+        if not event_id in dict_events:
+            dict_events[event_id] = event
+    f=open(fevents, "w")
+    f.write(json.dumps(dict_events, indent=4))
+    f.close()
+
+    return 0, "", [guild_json, mapstats_json, dict_events]
