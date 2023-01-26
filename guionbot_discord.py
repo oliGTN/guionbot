@@ -22,6 +22,7 @@ import goutils
 import connect_gsheets
 import connect_warstats
 import connect_mysql
+import connect_rpc
 import portraits
 import data
 
@@ -203,6 +204,17 @@ async def bot_loop_10minutes():
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
             await bot.loop.run_in_executor(None, go.refresh_cache)
+
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
+
+        try:
+            for guild in bot.guilds:
+                await bot.loop.run_in_executor(None, connect_rpc.get_tb_data, guild.name)
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
