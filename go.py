@@ -4069,7 +4069,7 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase01_conflict03"]["Scores"] = [86275000, 120425000, 179740000]
     dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"] = {}
     dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"]["strike01"] = [4, 1155000]
-    dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"]["strike02"] = [4, 1501000]
+    dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"]["covert1"] = [4, 1501000]
     dict_tb["geonosis_republic_phase01_conflict03"]["Coverts"] = {}
 
     # PHASE 02
@@ -4089,7 +4089,7 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"] = {}
     dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["strike01"] = [4, 1377000]
     dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["strike02"] = [4, 1377000]
-    dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["strike03"] = [4, 1790000]
+    dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["covert01"] = [4, 1790000]
     dict_tb["geonosis_republic_phase02_conflict02"]["Coverts"] = {}
 
     dict_tb["geonosis_republic_phase02_conflict03"] = {}
@@ -4165,7 +4165,7 @@ def print_tb_status(guildName):
                     else:
                         dict_tb_players[playerName]["deployed"][1] += score
 
-    print(dict_tb_players)
+    #print(dict_tb_players)
 
     for mapstat in mapstats:
         if mapstat["MapStatId"] == "power_round_"+str(tb_round):
@@ -4184,7 +4184,7 @@ def print_tb_status(guildName):
                 while len(dict_tb_players[playerName]["fights"]) < attempts:
                     dict_tb_players[playerName]["fights"].append("?")
 
-    print(dict_tb_players)
+    #print(dict_tb_players)
 
 
 
