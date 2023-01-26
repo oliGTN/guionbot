@@ -11,19 +11,19 @@ def get_tb_data(guildName):
     bot_playerName = "Warstat"
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
-    print("getguild code="+str(process.returncode))
+    goutils.log2("DBG", "getguild code="+str(process.returncode))
     if process.returncode != 0:
         #Credential issue
         process = subprocess.run(["/home/pi/GuionBot/warstats/auth.sh", bot_playerName])
-        print("auth code="+str(process.returncode))
+        goutils.log2("DBG", "auth code="+str(process.returncode))
         process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
-        print("getguild code="+str(process.returncode))
+        goutils.log2("DBG", "getguild code="+str(process.returncode))
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName])
-    print("getmapstats code="+str(process.returncode))
+    goutils.log2("ERR", "getmapstats code="+str(process.returncode))
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
-    print("getevents code="+str(process.returncode))
+    goutils.log2("DBG", "getevents code="+str(process.returncode))
     if process.returncode != 0:
         #Credential issue
         process = subprocess.run(["/home/pi/GuionBot/warstats/createsession.sh", bot_playerName])
