@@ -1880,15 +1880,18 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name)
+        err_code, err_txt, data = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name)
         if err_code == 0:
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+            full_txt = ""
+            for player in data:
+                full_txt += "**"+player+"**: "+str(data[player])+"\n"
+            for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
         else:
-            await ctx.send(ret_cmd)
+            await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
 
 ##############################################################
