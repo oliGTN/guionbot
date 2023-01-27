@@ -4039,11 +4039,12 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
     #remove the 4th column (progress) from the table
     ret_db = [[x[0], x[1], x[2]] for x in ret_db]
 
-    return 1, "", ret_db
+    return 0, "", ret_db
 
 def print_tb_status(guildName):
     ret_print_tb_status = ""
     dict_tb={}
+    dict_tb["t04D"] = {"PhaseDuration": 129600000}
     # PHASE 01
     dict_tb["geonosis_republic_phase01_conflict01"] = {}
     dict_tb["geonosis_republic_phase01_conflict01"]["Name"] = "P1-Nord"
@@ -4102,10 +4103,29 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase02_conflict03"]["Coverts"] = {}
     dict_tb["geonosis_republic_phase02_conflict03"]["Coverts"]["covert01"] = [4, 1377000]
 
+    # PHASE 03
+    dict_tb["geonosis_republic_phase03_conflict01"] = {}
+    dict_tb["geonosis_republic_phase03_conflict01"]["Name"] = "P3-Nord"
+    dict_tb["geonosis_republic_phase03_conflict01"]["Type"] = "Ships"
+    dict_tb["geonosis_republic_phase03_conflict01"]["Scores"] = [91395000, 152325000, 217610000]
+    dict_tb["geonosis_republic_phase03_conflict01"]["Strikes"] = {}
+    dict_tb["geonosis_republic_phase03_conflict01"]["Strikes"]["strike01"] = [1, 1800000]
+    dict_tb["geonosis_republic_phase03_conflict01"]["Coverts"] = {}
+    dict_tb["geonosis_republic_phase03_conflict01"]["Coverts"]["covert01"] = [1]
+
+    dict_tb["geonosis_republic_phase03_conflict02"] = {}
+    dict_tb["geonosis_republic_phase03_conflict02"]["Name"] = "P3-Mid"
+    dict_tb["geonosis_republic_phase03_conflict02"]["Type"] = "Toons"
+    dict_tb["geonosis_republic_phase03_conflict02"]["Scores"] = [132310000, 257065000, 378035000]
+    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"] = {}
+    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["strike01"] = [4, 1627500]
+    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["strike02"] = [4, 1627500]
+    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["covert01"] = [4, 2115750]
+    dict_tb["geonosis_republic_phase03_conflict02"]["Coverts"] = {}
 
     ec, et, data = connect_rpc.get_tb_data(guildName)
     if ec!=0:
-        return 1, et, None
+        return 1, et
 
     dict_guild=data[0]
     mapstats=data[1]
@@ -4122,10 +4142,13 @@ def print_tb_status(guildName):
             ret_print_tb_status += "Selected TB = "+battleStatus["InstanceId"]+"\n"
             tb_ongoing=True
             tb_round = battleStatus["CurrentRound"]
+            tb_type = battleStatus["DefinitionId"]
+            tb_round_endTime = int(battleStatus["CurrentRoundEndTime"])
+            tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
             break
 
     if not tb_ongoing:
-        return 1, "No TB on-going", None
+        return 1, "No TB on-going"
 
     query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName+"'"
     list_playername_gp = connect_mysql.get_table(query)
@@ -4146,7 +4169,13 @@ def print_tb_status(guildName):
 
     for event_id in dict_events:
         event=dict_events[event_id]
+        event_time = int(event["Timestamp"])
+        if event_time < tb_round_startTime:
+            #event on same zone but bduring previous round
+            continue
+
         playerName = event["AuthorName"]
+        print(playerName)
 
         for event_data in event["Data"]:
             if "CONTRIBUTION" in event_data["Activity"]["Content"]["Details"]["Id"]:
@@ -4160,12 +4189,10 @@ def print_tb_status(guildName):
                 zone_name = event_data["Activity"]["Content"]["EventZone"]
                 if zone_name in list_open_zones:
                     score = event_data["Activity"]["Content"]["Points"]
-                    if dict_tb[zone_name]["Type"]:
+                    if dict_tb[zone_name]["Type"]=="Ships":
                         dict_tb_players[playerName]["deployed"][2] += score
                     else:
                         dict_tb_players[playerName]["deployed"][1] += score
-
-    #print(dict_tb_players)
 
     for mapstat in mapstats:
         if mapstat["MapStatId"] == "power_round_"+str(tb_round):
@@ -4184,8 +4211,39 @@ def print_tb_status(guildName):
                 while len(dict_tb_players[playerName]["fights"]) < attempts:
                     dict_tb_players[playerName]["fights"].append("?")
 
-    #print(dict_tb_players)
+    remaining_ship_deploy = 0
+    remaining_char_deploy = 0
+    for playerName in dict_tb_players:
+        playerData = dict_tb_players[playerName]
+        remaining_ship_deploy += playerData["ship_gp"] - playerData["deployed"][2]
+        remaining_char_deploy += playerData["char_gp"] - playerData["deployed"][1]
+        
+    print("remaining_ship_deploy="+str(remaining_ship_deploy))
+    print("remaining_char_deploy="+str(remaining_char_deploy))
 
+    total_players_guild = len(dict_tb_players)
+    dict_zones={}
+    for zone in battleStatus["StrikeZoneStatus"]:
+        if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
+            zone_name = "_".join(zone["ZoneStatus"]["ZoneId"].split("_")[:-1])
+            strike = zone["ZoneStatus"]["ZoneId"].split("_")[-1]
 
+            done_strikes = zone["PlayersParticipated"]
+            not_done_strikes = total_players_guild - done_strikes
+            remaining_fight = not_done_strikes * dict_tb[zone_name]["Strikes"][strike][1]
+            if not zone_name in dict_zones:
+                dict_zones[zone_name] = [0, 0, dict_tb[zone_name]["Name"]]
+            dict_zones[zone_name][0] += not_done_strikes
+            dict_zones[zone_name][1] += remaining_fight
 
-    return 0, "", dict_tb_players
+    #prepare txt
+    for player in sorted(dict_tb_players.keys(), key=lambda x: x.lower()):
+        ret_print_tb_status += "**"+player+"**: "+str(dict_tb_players[player])+"\n"
+    ret_print_tb_status += "----------------------------\n"
+    ret_print_tb_status += "Reste à déployer ships : "+str(remaining_ship_deploy)+"\n"
+    ret_print_tb_status += "Reste à déployer squads : "+str(remaining_char_deploy)+"\n"
+    ret_print_tb_status += "----------------------------\n"
+    for zone in sorted(dict_zones.keys(), key=lambda x: x[-1]):
+        ret_print_tb_status += "Reste à combattre en "+dict_tb[zone]["Name"]+": "+str(dict_zones[zone][:2])+"\n"
+
+    return 0, ret_print_tb_status
