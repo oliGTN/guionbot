@@ -1,3 +1,5 @@
+CURWD=$PWD
+
 #Get current API version
 cd CACHE
 if [ -f version ]; then
@@ -28,4 +30,4 @@ rm CACHE/version
 
 #rebuild gameData.json
 cd ../swgoh-stat-calc/swgoh-stat-calc-dataBuilder
-node runDataBuilder.js $(grep SWGOHAPI_LOGIN config.py|cut -f2 -d\") $(grep SWGOHAPI_PASSWORD config.py|cut -f2 -d\")
+node runDataBuilder.js $(grep SWGOHAPI_LOGIN $CURWD/config.py|cut -f2 -d\") $(grep SWGOHAPI_PASSWORD $CURWD/config.py|cut -f2 -d\")
