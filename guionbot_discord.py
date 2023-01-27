@@ -212,20 +212,30 @@ async def bot_loop_10minutes():
             if not bot_test_mode:
                 await send_alert_to_admins(None, "Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
+        # Wait X seconds before next loop
+        t_end = time.time()
+        waiting_time = max(0, 60*10 - (t_end - t_start))
+        await asyncio.sleep(waiting_time)
+
+async def bot_loop_60minutes():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        t_start = time.time()
+
         try:
             for guild in bot.guilds:
                 await bot.loop.run_in_executor(None, connect_rpc.get_tb_data, guild.name)
 
         except Exception as e:
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
+            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(None, "Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
+                await send_alert_to_admins(None, "Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
         # Wait X seconds before next loop
         t_end = time.time()
-        waiting_time = max(0, 60*10 - (t_end - t_start))
+        waiting_time = max(0, 60*60 - (t_end - t_start))
         await asyncio.sleep(waiting_time)
 
 def compute_platoon_progress(platoon_content):
@@ -1880,18 +1890,15 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        err_code, err_txt, data = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name)
+        err_code, ret_txt = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name)
         if err_code == 0:
-            full_txt = ""
-            for player in data:
-                full_txt += "**"+player+"**: "+str(data[player])+"\n"
-            for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
         else:
-            await ctx.send(err_txt)
+            await ctx.send(ret_txt)
             await ctx.message.add_reaction(emoji_error)
 
 ##############################################################
@@ -3167,6 +3174,7 @@ def main():
     goutils.log2("INFO", "Create tasks...")
     if not bot_noloop_mode:
         bot.loop.create_task(bot_loop_60())
+        bot.loop.create_task(bot_loop_60minutes())
         bot.loop.create_task(bot_loop_10minutes())
         bot.loop.create_task(bot_loop_5minutes())
         bot.loop.create_task(bot_loop_6hours())
