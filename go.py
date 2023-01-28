@@ -4041,13 +4041,13 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-def print_tb_status(guildName):
+def print_tb_status(guildName, targets_zone_stars):
     ret_print_tb_status = ""
     dict_tb={}
     dict_tb["t04D"] = {"PhaseDuration": 129600000}
     # PHASE 01
     dict_tb["geonosis_republic_phase01_conflict01"] = {}
-    dict_tb["geonosis_republic_phase01_conflict01"]["Name"] = "P1-Nord"
+    dict_tb["geonosis_republic_phase01_conflict01"]["Name"] = "GLS1-top"
     dict_tb["geonosis_republic_phase01_conflict01"]["Type"] = "Ships"
     dict_tb["geonosis_republic_phase01_conflict01"]["Scores"] = [42475000, 84950000, 141580000]
     dict_tb["geonosis_republic_phase01_conflict01"]["Strikes"] = {}
@@ -4055,8 +4055,8 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase01_conflict01"]["Coverts"] = {}
 
     dict_tb["geonosis_republic_phase01_conflict02"] = {}
-    dict_tb["geonosis_republic_phase01_conflict02"]["Name"] = "P1-Mid"
-    dict_tb["geonosis_republic_phase01_conflict02"]["Type"] = "Toons"
+    dict_tb["geonosis_republic_phase01_conflict02"]["Name"] = "GLS1-mid"
+    dict_tb["geonosis_republic_phase01_conflict02"]["Type"] = "Chars"
     dict_tb["geonosis_republic_phase01_conflict02"]["Scores"] = [110240000, 166640000, 256370000]
     dict_tb["geonosis_republic_phase01_conflict02"]["Strikes"] = {}
     dict_tb["geonosis_republic_phase01_conflict02"]["Strikes"]["strike01"] = [4, 1155000]
@@ -4065,8 +4065,8 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase01_conflict02"]["Coverts"]["covert01"] = [1]
 
     dict_tb["geonosis_republic_phase01_conflict03"] = {}
-    dict_tb["geonosis_republic_phase01_conflict03"]["Name"] = "P1-Sud"
-    dict_tb["geonosis_republic_phase01_conflict03"]["Type"] = "Toons"
+    dict_tb["geonosis_republic_phase01_conflict03"]["Name"] = "GLS1-bot"
+    dict_tb["geonosis_republic_phase01_conflict03"]["Type"] = "Chars"
     dict_tb["geonosis_republic_phase01_conflict03"]["Scores"] = [86275000, 120425000, 179740000]
     dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"] = {}
     dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"]["strike01"] = [4, 1155000]
@@ -4075,7 +4075,7 @@ def print_tb_status(guildName):
 
     # PHASE 02
     dict_tb["geonosis_republic_phase02_conflict01"] = {}
-    dict_tb["geonosis_republic_phase02_conflict01"]["Name"] = "P2-Nord"
+    dict_tb["geonosis_republic_phase02_conflict01"]["Name"] = "GLS2-top"
     dict_tb["geonosis_republic_phase02_conflict01"]["Type"] = "Ships"
     dict_tb["geonosis_republic_phase02_conflict01"]["Scores"] = [71075000, 133535000, 215380000]
     dict_tb["geonosis_republic_phase02_conflict01"]["Strikes"] = {}
@@ -4084,8 +4084,8 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase02_conflict01"]["Coverts"]["covert01"] = [1]
 
     dict_tb["geonosis_republic_phase02_conflict02"] = {}
-    dict_tb["geonosis_republic_phase02_conflict02"]["Name"] = "P2-Mid"
-    dict_tb["geonosis_republic_phase02_conflict02"]["Type"] = "Toons"
+    dict_tb["geonosis_republic_phase02_conflict02"]["Name"] = "GLS2-mid"
+    dict_tb["geonosis_republic_phase02_conflict02"]["Type"] = "Chars"
     dict_tb["geonosis_republic_phase02_conflict02"]["Scores"] = [96200000, 174235000, 260055000]
     dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"] = {}
     dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["strike01"] = [4, 1377000]
@@ -4094,8 +4094,8 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase02_conflict02"]["Coverts"] = {}
 
     dict_tb["geonosis_republic_phase02_conflict03"] = {}
-    dict_tb["geonosis_republic_phase02_conflict03"]["Name"] = "P2-Sud"
-    dict_tb["geonosis_republic_phase02_conflict03"]["Type"] = "Toons"
+    dict_tb["geonosis_republic_phase02_conflict03"]["Name"] = "GLS2-bot"
+    dict_tb["geonosis_republic_phase02_conflict03"]["Type"] = "Chars"
     dict_tb["geonosis_republic_phase02_conflict03"]["Scores"] = [121030000, 217235000, 310335000]
     dict_tb["geonosis_republic_phase02_conflict03"]["Strikes"] = {}
     dict_tb["geonosis_republic_phase02_conflict03"]["Strikes"]["strike01"] = [4, 1377000]
@@ -4105,7 +4105,7 @@ def print_tb_status(guildName):
 
     # PHASE 03
     dict_tb["geonosis_republic_phase03_conflict01"] = {}
-    dict_tb["geonosis_republic_phase03_conflict01"]["Name"] = "P3-Nord"
+    dict_tb["geonosis_republic_phase03_conflict01"]["Name"] = "GLS3-top"
     dict_tb["geonosis_republic_phase03_conflict01"]["Type"] = "Ships"
     dict_tb["geonosis_republic_phase03_conflict01"]["Scores"] = [91395000, 152325000, 217610000]
     dict_tb["geonosis_republic_phase03_conflict01"]["Strikes"] = {}
@@ -4114,14 +4114,53 @@ def print_tb_status(guildName):
     dict_tb["geonosis_republic_phase03_conflict01"]["Coverts"]["covert01"] = [1]
 
     dict_tb["geonosis_republic_phase03_conflict02"] = {}
-    dict_tb["geonosis_republic_phase03_conflict02"]["Name"] = "P3-Mid"
-    dict_tb["geonosis_republic_phase03_conflict02"]["Type"] = "Toons"
+    dict_tb["geonosis_republic_phase03_conflict02"]["Name"] = "GLS3-mid"
+    dict_tb["geonosis_republic_phase03_conflict02"]["Type"] = "Chars"
     dict_tb["geonosis_republic_phase03_conflict02"]["Scores"] = [132310000, 257065000, 378035000]
     dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"] = {}
     dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["strike01"] = [4, 1627500]
     dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["strike02"] = [4, 1627500]
     dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["covert01"] = [4, 2115750]
     dict_tb["geonosis_republic_phase03_conflict02"]["Coverts"] = {}
+
+    dict_tb["geonosis_republic_phase03_conflict03"] = {}
+    dict_tb["geonosis_republic_phase03_conflict03"]["Name"] = "GLS3-bot"
+    dict_tb["geonosis_republic_phase03_conflict03"]["Type"] = "Chars"
+    dict_tb["geonosis_republic_phase03_conflict03"]["Scores"] = [110615000, 165925000, 221230000]
+    dict_tb["geonosis_republic_phase03_conflict03"]["Strikes"] = {}
+    dict_tb["geonosis_republic_phase03_conflict03"]["Strikes"]["strike01"] = [4, 1627500]
+    dict_tb["geonosis_republic_phase03_conflict03"]["Coverts"] = {}
+    dict_tb["geonosis_republic_phase03_conflict03"]["Coverts"]["covert01"] = [4]
+
+    # PHASE 04
+    dict_tb["geonosis_republic_phase04_conflict01"] = {}
+    dict_tb["geonosis_republic_phase04_conflict01"]["Name"] = "GLS4-top"
+    dict_tb["geonosis_republic_phase04_conflict01"]["Type"] = "Ships"
+    dict_tb["geonosis_republic_phase04_conflict01"]["Scores"] = [122490000, 340255000, 453670000]
+    dict_tb["geonosis_republic_phase04_conflict01"]["Strikes"] = {}
+    dict_tb["geonosis_republic_phase04_conflict01"]["Strikes"]["strike01"] = [1, 2750000]
+    dict_tb["geonosis_republic_phase04_conflict01"]["Coverts"] = {}
+    dict_tb["geonosis_republic_phase04_conflict01"]["Coverts"]["covert01"] = [1]
+
+    dict_tb["geonosis_republic_phase04_conflict02"] = {}
+    dict_tb["geonosis_republic_phase04_conflict02"]["Name"] = "GLS3-mid"
+    dict_tb["geonosis_republic_phase04_conflict02"]["Type"] = "Chars"
+    dict_tb["geonosis_republic_phase04_conflict02"]["Scores"] = [152945000, 270930000, 436980000]
+    dict_tb["geonosis_republic_phase04_conflict02"]["Strikes"] = {}
+    dict_tb["geonosis_republic_phase04_conflict02"]["Strikes"]["strike01"] = [4, 1837500]
+    dict_tb["geonosis_republic_phase04_conflict02"]["Strikes"]["strike02"] = [4, 1837500]
+    dict_tb["geonosis_republic_phase04_conflict02"]["Coverts"] = {}
+    dict_tb["geonosis_republic_phase04_conflict02"]["Coverts"]["covert01"] = [4]
+
+    dict_tb["geonosis_republic_phase04_conflict03"] = {}
+    dict_tb["geonosis_republic_phase04_conflict03"]["Name"] = "GLS3-bot"
+    dict_tb["geonosis_republic_phase04_conflict03"]["Type"] = "Chars"
+    dict_tb["geonosis_republic_phase04_conflict03"]["Scores"] = [117510000, 268600000, 335750000]
+    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"] = {}
+    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["strike01"] = [4, 1837500]
+    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["strike02"] = [4, 1837500]
+    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["covert01"] = [4, 2388750]
+    dict_tb["geonosis_republic_phase04_conflict03"]["Coverts"] = {}
 
     ec, et, data = connect_rpc.get_tb_data(guildName)
     if ec!=0:
@@ -4154,18 +4193,26 @@ def print_tb_status(guildName):
     list_playername_gp = connect_mysql.get_table(query)
 
     dict_tb_players = {}
+    dict_strike_zones = {}
+    dict_open_zones = {}
+
     for playername_gp in list_playername_gp:
         dict_tb_players[playername_gp[0]] = {}
         dict_tb_players[playername_gp[0]]["char_gp"] = playername_gp[1]
         dict_tb_players[playername_gp[0]]["ship_gp"] = playername_gp[2]
-        dict_tb_players[playername_gp[0]]["deployed"] = [0, 0, 0]
-        dict_tb_players[playername_gp[0]]["fights"] = []
+        dict_tb_players[playername_gp[0]]["score"] = {"Total": 0,
+                                                      "Deployed": 0,
+                                                      "DeployedShips": 0,
+                                                      "DeployedChars": 0,
+                                                      "Platoons": 0,
+                                                      "Strikes": 0} 
+        dict_tb_players[playername_gp[0]]["Strikes"] = []
 
-    list_open_zones=[]
     for zone in battleStatus["ConflictZoneStatus"]:
         if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
             zone_name = zone["ZoneStatus"]["ZoneId"]
-            list_open_zones.append(zone_name)
+            zone_score = int(zone["ZoneStatus"]["Score"])
+            dict_open_zones[zone_name] = {"Score": zone_score}
 
     for event_id in dict_events:
         event=dict_events[event_id]
@@ -4175,32 +4222,52 @@ def print_tb_status(guildName):
             continue
 
         playerName = event["AuthorName"]
-        print(playerName)
 
         for event_data in event["Data"]:
-            if "CONTRIBUTION" in event_data["Activity"]["Content"]["Details"]["Id"]:
+            if "CONFLICT_CONTRIBUTION" in event_data["Activity"]["Content"]["Details"]["Id"]:
                 zone_name = event_data["Activity"]["Content"]["EventZone"]
-                if zone_name in list_open_zones:
-                    zone_id = event_data["Activity"]["Content"]["ZoneId"]
-                    fight_name="_".join(zone_id.split("_")[-2:])
-                    dict_tb_players[playerName]["fights"].append(fight_name)
+                strike_name = event_data["Activity"]["Content"]["ZoneId"]
+                if zone_name in dict_open_zones:
+                    score = event_data["Activity"]["Content"]["Points"]
+                    dict_tb_players[playerName]["score"]["Strikes"] += score
+
+                    if not strike_name in dict_strike_zones:
+                        dict_strike_zones[strike_name] = {"EventStrikes": 0, "EventStrikeScore": 0}
+                    dict_strike_zones[strike_name]["EventStrikes"] += 1
+                    dict_strike_zones[strike_name]["EventStrikeScore"] += score
+
+                    strike_shortname="_".join(strike_name.split("_")[-2:])
+                    dict_tb_players[playerName]["Strikes"].append(strike_shortname)
+
+            elif "RECON_CONTRIBUTION" in event_data["Activity"]["Content"]["Details"]["Id"]:
+                zone_name = event_data["Activity"]["Content"]["EventZone"]
+                if zone_name in dict_open_zones:
+                    score = event_data["Activity"]["Content"]["Points"]
+                    dict_tb_players[playerName]["score"]["Platoons"] += score
 
             elif "DEPLOY" in event_data["Activity"]["Content"]["Details"]["Id"]:
                 zone_name = event_data["Activity"]["Content"]["EventZone"]
-                if zone_name in list_open_zones:
+                if zone_name in dict_open_zones:
                     score = event_data["Activity"]["Content"]["Points"]
-                    if dict_tb[zone_name]["Type"]=="Ships":
-                        dict_tb_players[playerName]["deployed"][2] += score
+                    if dict_tb[zone_name]["Type"] == "Ships":
+                        dict_tb_players[playerName]["score"]["DeployedShips"] += score
                     else:
-                        dict_tb_players[playerName]["deployed"][1] += score
+                        dict_tb_players[playerName]["score"]["DeployedChars"] += score
 
     for mapstat in mapstats:
-        if mapstat["MapStatId"] == "power_round_"+str(tb_round):
+        if mapstat["MapStatId"] == "score_round_"+str(tb_round):
             for playerstat in mapstat["PlayerStat"]:
                 member_id = playerstat["MemberId"]
                 score = int(playerstat["score"])
                 playerName = dict_members_by_id[member_id]
-                dict_tb_players[playerName]["deployed"][0] = score
+                dict_tb_players[playerName]["score"]["Total"] = score
+
+        elif mapstat["MapStatId"] == "power_round_"+str(tb_round):
+            for playerstat in mapstat["PlayerStat"]:
+                member_id = playerstat["MemberId"]
+                score = int(playerstat["score"])
+                playerName = dict_members_by_id[member_id]
+                dict_tb_players[playerName]["score"]["Deployed"] = score
 
         elif mapstat["MapStatId"] == "strike_attempt_round_"+str(tb_round):
             for playerstat in mapstat["PlayerStat"]:
@@ -4208,42 +4275,136 @@ def print_tb_status(guildName):
                 playerName = dict_members_by_id[member_id]
                 attempts = int(playerstat["score"])
 
-                while len(dict_tb_players[playerName]["fights"]) < attempts:
-                    dict_tb_players[playerName]["fights"].append("?")
+                while len(dict_tb_players[playerName]["Strikes"]) < attempts:
+                    dict_tb_players[playerName]["Strikes"].append("?")
 
     remaining_ship_deploy = 0
     remaining_char_deploy = 0
     for playerName in dict_tb_players:
         playerData = dict_tb_players[playerName]
-        remaining_ship_deploy += playerData["ship_gp"] - playerData["deployed"][2]
-        remaining_char_deploy += playerData["char_gp"] - playerData["deployed"][1]
+        remaining_ship_deploy += playerData["ship_gp"] - playerData["score"]["DeployedShips"]
+        remaining_char_deploy += playerData["char_gp"] - playerData["score"]["DeployedChars"]
         
     print("remaining_ship_deploy="+str(remaining_ship_deploy))
     print("remaining_char_deploy="+str(remaining_char_deploy))
 
     total_players_guild = len(dict_tb_players)
-    dict_zones={}
     for zone in battleStatus["StrikeZoneStatus"]:
         if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
-            zone_name = "_".join(zone["ZoneStatus"]["ZoneId"].split("_")[:-1])
-            strike = zone["ZoneStatus"]["ZoneId"].split("_")[-1]
+            strike_name = zone["ZoneStatus"]["ZoneId"]
+            strike_shortname = strike_name.split("_")[-1]
+            zone_name = strike_name[:-len(strike_shortname)-1]
 
             done_strikes = zone["PlayersParticipated"]
+            score = int(zone["ZoneStatus"]["Score"])
             not_done_strikes = total_players_guild - done_strikes
-            remaining_fight = not_done_strikes * dict_tb[zone_name]["Strikes"][strike][1]
-            if not zone_name in dict_zones:
-                dict_zones[zone_name] = [0, 0, dict_tb[zone_name]["Name"]]
-            dict_zones[zone_name][0] += not_done_strikes
-            dict_zones[zone_name][1] += remaining_fight
+            remaining_fight = not_done_strikes * dict_tb[zone_name]["Strikes"][strike_shortname][1]
+            if not strike_name in dict_strike_zones:
+                dict_strike_zones[strike_name] = {}
 
-    #prepare txt
-    for player in sorted(dict_tb_players.keys(), key=lambda x: x.lower()):
-        ret_print_tb_status += "**"+player+"**: "+str(dict_tb_players[player])+"\n"
-    ret_print_tb_status += "----------------------------\n"
+            dict_strike_zones[strike_name]["Participation"] = done_strikes
+            dict_strike_zones[strike_name]["Score"] = score
+            dict_strike_zones[strike_name]["MaxPossibleStrikes"] = not_done_strikes
+            dict_strike_zones[strike_name]["MaxPossibleScore"] = remaining_fight
+            dict_strike_zones[strike_name]["EstimatedStrikes"] = 0
+            dict_strike_zones[strike_name]["EstimatedScore"] = 0
+
+    #count strike points, as the MapStat may have score over several days
+    for playerName in dict_tb_players:
+        pass
+
+    #count remaining players
+    remaining_to_play_ships = 0
+    remaining_to_play_chars = 0
+    for playerName in dict_tb_players:
+        ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
+        print(playerName+ " ratio ships: "+str(ratio_deploy_ships))
+        if ratio_deploy_ships < 0.99:
+            remaining_to_play_ships += 1
+
+        ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
+        print(playerName+ " ratio chars: "+str(ratio_deploy_chars))
+        if ratio_deploy_chars < 0.99:
+            remaining_to_play_chars += 1
+
+        print(dict_tb_players[playerName]["Strikes"])
+        for zone in dict_open_zones:
+            for strike in dict_tb[zone]["Strikes"]:
+                strike_shortname = "conflict0"+zone[-1]+"_"+strike
+                strike_name = zone+"_"+strike
+                print(strike_shortname)
+                if not strike_shortname in dict_tb_players[playerName]["Strikes"]:
+                    strike_fights = dict_strike_zones[strike_name]["Participation"]
+                    strike_score = dict_strike_zones[strike_name]["EventStrikeScore"]
+                    strike_average_score = strike_score / strike_fights
+
+                    if dict_tb[zone]["Type"]=="Ships" and ratio_deploy_ships<0.99:
+                        print("+1 ships")
+                        dict_strike_zones[strike_name]["EstimatedStrikes"] += 1
+                        dict_strike_zones[strike_name]["EstimatedScore"] += strike_average_score
+                        print(strike_name)
+                        print(dict_strike_zones[strike_name])
+                    elif dict_tb[zone]["Type"]=="Chars" and ratio_deploy_chars<0.99:
+                        print("+1 chars")
+                        dict_strike_zones[strike_name]["EstimatedStrikes"] += 1
+                        dict_strike_zones[strike_name]["EstimatedScore"] += strike_average_score
+                        print(strike_name)
+                        print(dict_strike_zones[strike_name])
+
     ret_print_tb_status += "Reste à déployer ships : "+str(remaining_ship_deploy)+"\n"
     ret_print_tb_status += "Reste à déployer squads : "+str(remaining_char_deploy)+"\n"
+
+    #zone stats
+    for target_zone_stars in targets_zone_stars.split(" "):
+        conflict = "conflict0" + target_zone_stars[0]
+        for zone_name in dict_open_zones:
+            if conflict in zone_name:
+                break
+
+        ret_print_tb_status+="---------------\n"
+        ret_print_tb_status+=dict_tb[zone_name]["Name"]+"\n"
+        current_score = dict_open_zones[zone_name]["Score"]
+        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"\n"
+
+        estimated_strike_score = 0
+        for strike in dict_tb[zone_name]["Strikes"]:
+            strike_name = zone_name + "_" + strike
+            estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
+        score_with_estimated_strikes = current_score + estimated_strike_score
+        ret_print_tb_status+="Adding average fights: "+str(round(score_with_estimated_strikes/1000000, 1))+"\n"
+
+        target_stars = int(target_zone_stars[2])
+        target_star_score = dict_tb[zone_name]["Scores"][target_stars-1]
+        if dict_tb[zone_name]["Type"] == "Ships":
+            deploy_consumption = max(0, min(remaining_ship_deploy, target_star_score - score_with_estimated_strikes))
+            remaining_ship_deploy -= deploy_consumption
+        else:
+            deploy_consumption = max(0, min(remaining_char_deploy, target_star_score - score_with_estimated_strikes))
+            remaining_char_deploy -= deploy_consumption
+
+        score_with_estimations = score_with_estimated_strikes + deploy_consumption
+        ret_print_tb_status+="And deploying: "+str(round(score_with_estimations/1000000, 1))+"\n"
+
+        star_for_score=0
+        for star_score in dict_tb[zone_name]["Scores"]:
+            if score_with_estimations >= star_score:
+                star_for_score += 1
+        ret_print_tb_status+="Zone result: "+str(star_for_score)+" stars\n"
+
+
+
+    #prepare txt
+    #for player in sorted(dict_tb_players.keys(), key=lambda x: x.lower()):
+    #    ret_print_tb_status += "**"+player+"**: "+str(dict_tb_players[player])+"\n"
     ret_print_tb_status += "----------------------------\n"
-    for zone in sorted(dict_zones.keys(), key=lambda x: x[-1]):
-        ret_print_tb_status += "Reste à combattre en "+dict_tb[zone]["Name"]+": "+str(dict_zones[zone][:2])+"\n"
+    ret_print_tb_status += "Unused deployment ships : "+str(round(remaining_ship_deploy/1000000, 1))+"\n"
+    ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy)/1000000, 1)+"\n"
+    ret_print_tb_status += "----------------------------\n"
+    #for zone in sorted(dict_strike_zones.keys(), key=lambda x: [-int(x[-10]), x[8], -int(x[-1])], reverse=True):
+    #    ret_print_tb_status += zone + ": " +str(dict_strike_zones[zone])+"\n"
+
+    #Zone stats
+
+
 
     return 0, ret_print_tb_status
