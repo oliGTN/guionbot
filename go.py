@@ -4398,7 +4398,7 @@ def print_tb_status(guildName, targets_zone_stars):
     #    ret_print_tb_status += "**"+player+"**: "+str(dict_tb_players[player])+"\n"
     ret_print_tb_status += "----------------------------\n"
     ret_print_tb_status += "Unused deployment ships : "+str(round(remaining_ship_deploy/1000000, 1))+"\n"
-    ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy)/1000000, 1)+"\n"
+    ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy/1000000, 1))+"\n"
     ret_print_tb_status += "----------------------------\n"
     #for zone in sorted(dict_strike_zones.keys(), key=lambda x: [-int(x[-10]), x[8], -int(x[-1])], reverse=True):
     #    ret_print_tb_status += zone + ": " +str(dict_strike_zones[zone])+"\n"
