@@ -1,8 +1,10 @@
 import subprocess
 import os
 import json
+import re
 
 import goutils
+import data
 
 def get_tb_data(guildName):
     if not guildName=="Kangoo Legends":
@@ -57,3 +59,68 @@ def get_tb_data(guildName):
     f.close()
 
     return 0, "", [guild_json, mapstats_json, dict_events]
+
+def parse_tb_platoons(guildName):
+    active_round = "" # GLS4"
+    dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
+    list_open_territories = [0, 0, 0] # [4, 3, 3]
+
+    dict_tb = {}
+    dict_tb["t04D"] = "GLS"
+    dict_tb["geonosis_republic_phase01_conflict01_recon01"] = "GLS1-top"
+    dict_tb["geonosis_republic_phase01_conflict02_recon01"] = "GLS1-mid"
+    dict_tb["geonosis_republic_phase01_conflict03_recon01"] = "GLS1-bot"
+    dict_tb["geonosis_republic_phase02_conflict01_recon01"] = "GLS2-top"
+    dict_tb["geonosis_republic_phase02_conflict02_recon01"] = "GLS2-mid"
+    dict_tb["geonosis_republic_phase02_conflict03_recon01"] = "GLS2-bot"
+    dict_tb["geonosis_republic_phase03_conflict01_recon01"] = "GLS3-top"
+    dict_tb["geonosis_republic_phase03_conflict02_recon01"] = "GLS3-mid"
+    dict_tb["geonosis_republic_phase03_conflict03_recon01"] = "GLS3-bot"
+    dict_tb["geonosis_republic_phase04_conflict01_recon01"] = "GLS4-top"
+    dict_tb["geonosis_republic_phase04_conflict02_recon01"] = "GLS4-mid"
+    dict_tb["geonosis_republic_phase04_conflict03_recon01"] = "GLS4-bot"
+
+    err_code, err_txt, [dict_guild, mapstats_json, dict_events] = get_tb_data(guildName)
+
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return '', None, None, 0
+
+    dict_member_by_id = {}
+    for member in dict_guild["Member"]:
+        dict_member_by_id[member["PlayerId"]] = member["PlayerName"]
+
+    dict_unitsList = data.get("unitsList_dict.json")
+
+    for battleStatus in dict_guild["TerritoryBattleStatus"]:
+        if battleStatus["Selected"]:
+            active_round = dict_tb[battleStatus["DefinitionId"]] + str(battleStatus["CurrentRound"])
+
+            for zone in battleStatus["ReconZoneStatus"]:
+                zone_name = zone["ZoneStatus"]["ZoneId"]
+
+                if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
+                    ret_re = re.search(".*_phase0(\d)_conflict0(\d)_recon01", zone_name)
+                    zone_position = int(ret_re.group(2))
+                    zone_phase = int(ret_re.group(1))
+                    list_open_territories[zone_position-1] = zone_phase
+
+                for platoon in zone["Platoon"]:
+                    platoon_name = dict_tb[zone_name] + "-" + platoon["Id"][-1]
+                    dict_platoons[platoon_name] = {}
+
+                    for squad in platoon["Squad"]:
+                        for unit in squad["Unit"]:
+                            unit_id = unit["UnitIdentifier"]
+                            unit_defId = unit_id.split(":")[0]
+                            unit_name = dict_unitsList[unit_defId]["nameKey"]
+
+                            if not unit_name in dict_platoons[platoon_name]:
+                                dict_platoons[platoon_name][unit_name] = []
+
+                            player_id = unit["MemberId"]
+                            if player_id != '':
+                                player_name = dict_member_by_id[player_id]
+                                dict_platoons[platoon_name][unit_name].append(player_name)
+
+    return active_round, dict_platoons, list_open_territories, 0
