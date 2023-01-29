@@ -6,11 +6,28 @@ import re
 import goutils
 import data
 
-def get_tb_data(guildName):
-    if not guildName=="Kangoo Legends":
-        return 1, "Only available for Kangoo Legends ["+guildName+"]", None
+dict_bot_accounts = {}
+dict_bot_accounts["Kangoo Legends"] = {"Name": "Warstat", "Locked": False}
 
-    bot_playerName = "Warstat"
+def lock_bot_account(guildName):
+    if not guildName in dict_bot_accounts:
+        return 1, "Only available for "+list(dict_bot_accounts.keys())+" but not for ["+guildName+"]"
+    dict_bot_accounts[guildName]["Locked"] = True
+    return 0, ""
+
+def unlock_bot_account(guildName):
+    if not guildName in dict_bot_accounts:
+        return 1, "Only available for "+list(dict_bot_accounts.keys())+" but not for ["+guildName+"]"
+    dict_bot_accounts[guildName]["Locked"] = False
+    return 0, ""
+
+def get_tb_data(guildName):
+    if not guildName in dict_bot_accounts:
+        return 1, "Only available for "+list(dict_bot_accounts.keys())+" but not for ["+guildName+"]", None
+    bot_playerName = dict_bot_accounts[guildName]["Name"]
+
+    if dict_bot_accounts[guildName]["Locked"]:
+        return 1, "The bot account is being used... please wait or unlock it", None
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
     goutils.log2("DBG", "getguild code="+str(process.returncode))
