@@ -40,6 +40,8 @@ def get_tb_data(guildName):
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName])
     goutils.log2("ERR", "getmapstats code="+str(process.returncode))
+    if process.returncode == 2:
+        return 1, "No TB in progress", None
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
     goutils.log2("DBG", "getevents code="+str(process.returncode))
