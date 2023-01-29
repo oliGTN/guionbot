@@ -8,6 +8,7 @@ fi
 wget https://api.swgoh.help/version 2> /dev/null
 DIFF_RES=$(diff version ../DATA/version)
 cd ..
+
 if [ "$DIFF_RES" != "" ]; then
 	echo "New data available in SWGOH API"
 else
@@ -26,7 +27,11 @@ if [ "$DIFF_RES" != "" ] || [ "$1" == "force" ]; then
 	ls -ltr DATA/
 fi
 
-rm CACHE/version
+cd CACHE
+if [ -f version ]; then
+	rm version
+fi
+cd ..
 
 #rebuild gameData.json
 cd ../swgoh-stat-calc/swgoh-stat-calc-dataBuilder
