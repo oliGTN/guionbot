@@ -4358,9 +4358,11 @@ def print_tb_status(guildName, targets_zone_stars):
         ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"\n"
 
         estimated_strike_score = 0
+        max_strike_score = 0
         for strike in dict_tb[zone_name]["Strikes"]:
             strike_name = zone_name + "_" + strike
             estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
+            max_strike_score += dict_strike_zones[strike_name]["MaxPossibleScore"]
         score_with_estimated_strikes = current_score + estimated_strike_score
         ret_print_tb_status+="Adding average fights: "+str(round(score_with_estimated_strikes/1000000, 1))+"\n"
 
@@ -4384,7 +4386,8 @@ def print_tb_status(guildName, targets_zone_stars):
 
         #create image
         img = draw_tb_previsions(dict_tb[zone_name]["Name"], dict_tb[zone_name]["Scores"],
-                                 current_score, estimated_strike_score, deploy_consumption)
+                                 current_score, estimated_strike_score, deploy_consumption,
+                                 max_strike_score)
         list_images.append(img)
 
 
@@ -4402,11 +4405,35 @@ def print_tb_status(guildName, targets_zone_stars):
 
     return 0, ret_print_tb_status, list_images
 
-def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes, deployments):
+def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, position):
+    font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 18)
+
+    end_score = int(start_score + delta_score)
+    if end_score > max_score:
+        end_score = max_score
+        delta_score = max_score - start_score
+    x_start = int(start_score/max_score*(480-20)+20)
+    x_end = int(end_score/max_score*(480-20)+20)
+    if delta_score > 0:
+        zone_img_draw.rectangle((x_start, 80, x_end, 110), color)
+    zone_img_draw.line([(x_end, 80), (x_end, 120+20*position)], fill="black", width=0)
+
+    end_score_txt = "{:,}".format(end_score)
+    if end_score < max_score/2:
+        x_txt = x_end +5
+    else:
+        end_score_txt_size = font.getsize(end_score_txt)
+        x_txt = x_end - end_score_txt_size[0] - 5
+    zone_img_draw.text((x_txt, 110+20*position), end_score_txt, "black", font=font)
+
+    return
+
+def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes, deployments, max_strikes):
     zone_img = Image.new('RGB', (500, 200), (255, 255, 255))
     zone_img_draw = ImageDraw.Draw(zone_img)
 
     score_3stars = zone_scores[2]
+
 
     if current_score > score_3stars:
         current_score = score_3stars
@@ -4422,23 +4449,7 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
     if estimated_strikes >0:
         zone_img_draw.rectangle((x_score, 80, x_strikes, 110), "yellow")
 
-    score_deployed = int(score_strikes + deployments)
-    if score_deployed > score_3stars:
-        score_deployed = score_3stars
-        deployments = score_3stars - score_strikes
-    x_deployed = int(score_deployed/score_3stars*(480-20)+20)
-    if deployments > 0:
-        zone_img_draw.rectangle((x_strikes, 80, x_deployed, 110), "orange")
-    zone_img_draw.line([(x_deployed, 80), (x_deployed, 150)], fill="black", width=0)
-
-    font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 18)
-    score_deployed_txt = "{:,}".format(score_deployed)
-    if score_deployed < score_3stars/2:
-        x_txt = x_deployed +5
-    else:
-        score_deployed_txt_size = font.getsize(score_deployed_txt)
-        x_txt = x_deployed - score_deployed_txt_size[0] - 5
-    zone_img_draw.text((x_txt, 130), score_deployed_txt, "black", font=font)
+    draw_score_zone(zone_img_draw, score_strikes, deployments, score_3stars, "orange", 3)
 
     #Draw stars
     active_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star.png")
