@@ -22,6 +22,7 @@ import goutils
 import connect_gsheets
 import connect_warstats
 import connect_mysql
+import connect_rpc
 import portraits
 import data
 
@@ -214,6 +215,27 @@ async def bot_loop_10minutes():
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 60*10 - (t_end - t_start))
+        await asyncio.sleep(waiting_time)
+
+async def bot_loop_60minutes():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        t_start = time.time()
+
+        try:
+            for guild in bot.guilds:
+                await bot.loop.run_in_executor(None, connect_rpc.get_tb_data, guild.name)
+
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
+
+        # Wait X seconds before next loop
+        t_end = time.time()
+        waiting_time = max(0, 60*60 - (t_end - t_start))
         await asyncio.sleep(waiting_time)
 
 def compute_platoon_progress(platoon_content):
@@ -1861,6 +1883,71 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emoji_check)
 
+    @commands.check(is_officer)
+    @commands.command(name='unlockbot',
+            brief="Déverrouille le compte bot pour permettre de suivre la guilde",
+            help="Déverrouille le compte bot pour permettre de suivre la guilde")
+    async def unlockbot(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.unlock_bot_account(ctx.guild.name)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" déverouillé > suivi de guilde actif")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.check(is_officer)
+    @commands.command(name='lockbot',
+            brief="Verrouille le compte bot pour permettre de le jouer",
+            help="Verrouille le compte bot pour permettre de le jouer")
+    async def lockbot(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.lock_bot_account(ctx.guild.name)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" verouillé > suivi de guilde désactivé")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.check(is_officer)
+    @commands.command(name='tbs',
+            brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
+            help="TB status \"2:1 3:3 1:2\"")
+    async def tbs(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) != 1:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbs")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        tb_phase_target = args[0]
+
+        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target)
+        if err_code == 0:
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+                if images != None:
+                    for image in images:
+                        with BytesIO() as image_binary:
+                            image.save(image_binary, 'PNG')
+                            image_binary.seek(0)
+                            await ctx.send(content = "",
+                                file=File(fp=image_binary, filename='image.png'))
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
+
 ##############################################################
 # Class: MemberCog
 # Description: contains all member commands
@@ -3134,6 +3221,7 @@ def main():
     goutils.log2("INFO", "Create tasks...")
     if not bot_noloop_mode:
         bot.loop.create_task(bot_loop_60())
+        bot.loop.create_task(bot_loop_60minutes())
         bot.loop.create_task(bot_loop_10minutes())
         bot.loop.create_task(bot_loop_5minutes())
         bot.loop.create_task(bot_loop_6hours())

@@ -1,4 +1,4 @@
-BASE_WD=$PWD
+CURWD=$PWD
 
 #Get current API version
 cd CACHE
@@ -35,4 +35,4 @@ cd ..
 
 #rebuild gameData.json
 cd ../swgoh-stat-calc/swgoh-stat-calc-dataBuilder
-node runDataBuilder.js $(grep SWGOHAPI_LOGIN $BASE_WD/config.py|cut -f2 -d\") $(grep SWGOHAPI_PASSWORD $BASE_WD/config.py|cut -f2 -d\")
+node runDataBuilder.js $(grep SWGOHAPI_LOGIN $CURWD/config.py|cut -f2 -d\") $(grep SWGOHAPI_PASSWORD $CURWD/config.py|cut -f2 -d\")
