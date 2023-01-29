@@ -1884,6 +1884,38 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_check)
 
     @commands.check(is_officer)
+    @commands.command(name='unlockbot',
+            brief="Déverrouille le compte bot pour permettre de suivre la guilde",
+            help="Déverrouille le compte bot pour permettre de suivre la guilde")
+    async def unlockbot(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.unlock_bot_account(ctx.guild.name)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" déverouillé > suivi de guilde actif")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.check(is_officer)
+    @commands.command(name='lockbot',
+            brief="Verrouille le compte bot pour permettre de le jouer",
+            help="Verrouille le compte bot pour permettre de le jouer")
+    async def lockbot(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.lock_bot_account(ctx.guild.name)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" verouillé > suivi de guilde désactivé")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.check(is_officer)
     @commands.command(name='tbs',
             brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
             help="TB status \"2:1 3:3 1:2\"")
@@ -1897,10 +1929,18 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         tb_phase_target = args[0]
 
-        err_code, ret_txt = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target)
+        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
+
+                if images != None:
+                    for image in images:
+                        with BytesIO() as image_binary:
+                            image.save(image_binary, 'PNG')
+                            image_binary.seek(0)
+                            await ctx.send(content = "",
+                                file=File(fp=image_binary, filename='image.png'))
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
