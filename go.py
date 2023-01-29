@@ -15,7 +15,7 @@ import matplotlib
 matplotlib.use('Agg') #Preventin GTK erros at startup
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from collections import Counter
 import inspect
 from texttable import Texttable
@@ -4164,7 +4164,7 @@ def print_tb_status(guildName, targets_zone_stars):
 
     ec, et, data = connect_rpc.get_tb_data(guildName)
     if ec!=0:
-        return 1, et
+        return 1, et, None
 
     dict_guild=data[0]
     mapstats=data[1]
@@ -4187,7 +4187,7 @@ def print_tb_status(guildName, targets_zone_stars):
             break
 
     if not tb_ongoing:
-        return 1, "No TB on-going"
+        return 1, "No TB on-going", None
 
     query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName+"'"
     list_playername_gp = connect_mysql.get_table(query)
@@ -4195,6 +4195,7 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_open_zones = {}
+    list_images = []
 
     for playername_gp in list_playername_gp:
         dict_tb_players[playername_gp[0]] = {}
@@ -4318,38 +4319,28 @@ def print_tb_status(guildName, targets_zone_stars):
     remaining_to_play_chars = 0
     for playerName in dict_tb_players:
         ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
-        print(playerName+ " ratio ships: "+str(ratio_deploy_ships))
         if ratio_deploy_ships < 0.99:
             remaining_to_play_ships += 1
 
         ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
-        print(playerName+ " ratio chars: "+str(ratio_deploy_chars))
         if ratio_deploy_chars < 0.99:
             remaining_to_play_chars += 1
 
-        print(dict_tb_players[playerName]["Strikes"])
         for zone in dict_open_zones:
             for strike in dict_tb[zone]["Strikes"]:
                 strike_shortname = "conflict0"+zone[-1]+"_"+strike
                 strike_name = zone+"_"+strike
-                print(strike_shortname)
                 if not strike_shortname in dict_tb_players[playerName]["Strikes"]:
                     strike_fights = dict_strike_zones[strike_name]["Participation"]
                     strike_score = dict_strike_zones[strike_name]["EventStrikeScore"]
                     strike_average_score = strike_score / strike_fights
 
                     if dict_tb[zone]["Type"]=="Ships" and ratio_deploy_ships<0.99:
-                        print("+1 ships")
                         dict_strike_zones[strike_name]["EstimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["EstimatedScore"] += strike_average_score
-                        print(strike_name)
-                        print(dict_strike_zones[strike_name])
                     elif dict_tb[zone]["Type"]=="Chars" and ratio_deploy_chars<0.99:
-                        print("+1 chars")
                         dict_strike_zones[strike_name]["EstimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["EstimatedScore"] += strike_average_score
-                        print(strike_name)
-                        print(dict_strike_zones[strike_name])
 
     ret_print_tb_status += "Reste à déployer ships : "+str(remaining_ship_deploy)+"\n"
     ret_print_tb_status += "Reste à déployer squads : "+str(remaining_char_deploy)+"\n"
@@ -4391,6 +4382,11 @@ def print_tb_status(guildName, targets_zone_stars):
                 star_for_score += 1
         ret_print_tb_status+="Zone result: "+str(star_for_score)+" stars\n"
 
+        #create image
+        img = draw_tb_previsions(dict_tb[zone_name]["Name"], dict_tb[zone_name]["Scores"],
+                                 current_score, estimated_strike_score, deploy_consumption)
+        list_images.append(img)
+
 
 
     #prepare txt
@@ -4403,8 +4399,82 @@ def print_tb_status(guildName, targets_zone_stars):
     #for zone in sorted(dict_strike_zones.keys(), key=lambda x: [-int(x[-10]), x[8], -int(x[-1])], reverse=True):
     #    ret_print_tb_status += zone + ": " +str(dict_strike_zones[zone])+"\n"
 
-    #Zone stats
+
+    return 0, ret_print_tb_status, list_images
+
+def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes, deployments):
+    zone_img = Image.new('RGB', (500, 200), (255, 255, 255))
+    zone_img_draw = ImageDraw.Draw(zone_img)
+
+    score_3stars = zone_scores[2]
+
+    if current_score > score_3stars:
+        current_score = score_3stars
+    x_score = int(current_score/score_3stars*(480-20)+20)
+    if current_score > 0:
+        zone_img_draw.rectangle((20, 80, x_score, 110), "darkgreen")
+
+    score_strikes = int(current_score + estimated_strikes)
+    if score_strikes > score_3stars:
+        score_strikes = score_3stars
+        estimated_strikes = score_3stars - current_score
+    x_strikes = int(score_strikes/score_3stars*(480-20)+20)
+    if estimated_strikes >0:
+        zone_img_draw.rectangle((x_score, 80, x_strikes, 110), "yellow")
+
+    score_deployed = int(score_strikes + deployments)
+    if score_deployed > score_3stars:
+        score_deployed = score_3stars
+        deployments = score_3stars - score_strikes
+    x_deployed = int(score_deployed/score_3stars*(480-20)+20)
+    if deployments > 0:
+        zone_img_draw.rectangle((x_strikes, 80, x_deployed, 110), "orange")
+    zone_img_draw.line([(x_deployed, 80), (x_deployed, 150)], fill="black", width=0)
+
+    font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 18)
+    score_deployed_txt = "{:,}".format(score_deployed)
+    if score_deployed < score_3stars/2:
+        x_txt = x_deployed +5
+    else:
+        score_deployed_txt_size = font.getsize(score_deployed_txt)
+        x_txt = x_deployed - score_deployed_txt_size[0] - 5
+    zone_img_draw.text((x_txt, 130), score_deployed_txt, "black", font=font)
+
+    #Draw stars
+    active_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star.png")
+    inactive_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star-inactive.png")
+    drawn_stars = 0
+    for score_star in zone_scores:
+        x_star = 200 + drawn_stars*50
+        if current_score >= score_star:
+            star_image = active_star_image
+        else:
+            star_image = inactive_star_image
+
+        zone_img.paste(star_image, (x_star, 40), star_image)
+        drawn_stars += 1
+
+    #Draw lines and text at the end
+    #Draw rectangle
+    zone_img_draw.line([(20, 80), (480, 80)], fill="black", width=0)
+    zone_img_draw.line([(20, 110), (480, 110)], fill="black", width=0)
+    zone_img_draw.line([(20, 80), (20, 110)], fill="black", width=0)
+    zone_img_draw.line([(480, 80), (480, 110)], fill="black", width=0)
+
+    #add ster limits
+    for score_star in zone_scores:
+        x_star = int(score_star / score_3stars * (480-20) + 20)
+
+        zone_img_draw.line([(x_star, 80), (x_star, 120)], fill="black", width=0)
+        
+        font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 12)
+        score_star_txt = "{:,}".format(score_star)
+        score_star_txt_size = font.getsize(score_star_txt)
+        x_txt = x_star - score_star_txt_size[0] - 5
+        zone_img_draw.text((x_txt, 115), score_star_txt, "black", font=font)
 
 
+    font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
+    zone_img_draw.text((10, 10), zone_name, "black", font=font)
 
-    return 0, ret_print_tb_status
+    return zone_img
