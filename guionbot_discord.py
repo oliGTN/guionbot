@@ -1896,7 +1896,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" déverouillé > suivi de guilde actif")
+        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" déverrouillé > suivi de guilde actif")
         await ctx.message.add_reaction(emoji_check)
 
     @commands.check(is_officer)
@@ -1912,7 +1912,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" verouillé > suivi de guilde désactivé")
+        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" verrouillé > suivi de guilde désactivé")
         await ctx.message.add_reaction(emoji_check)
 
     @commands.check(is_officer)
