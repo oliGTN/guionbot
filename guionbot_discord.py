@@ -224,7 +224,7 @@ async def bot_loop_60minutes():
 
         try:
             for guild in bot.guilds:
-                await bot.loop.run_in_executor(None, connect_rpc.get_tb_data, guild.name)
+                await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.name)
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", str(sys.exc_info()[0]))

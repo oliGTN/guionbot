@@ -4162,7 +4162,7 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["covert01"] = [4, 2388750]
     dict_tb["geonosis_republic_phase04_conflict03"]["Coverts"] = {}
 
-    ec, et, data = connect_rpc.get_tb_data(guildName)
+    ec, et, data = connect_rpc.get_rpc_data(guildName)
     if ec!=0:
         return 1, et, None
 
