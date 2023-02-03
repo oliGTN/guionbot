@@ -11,19 +11,19 @@ dict_bot_accounts["Kangoo Legends"] = {"Name": "Warstat", "Locked": False}
 
 def lock_bot_account(guildName):
     if not guildName in dict_bot_accounts:
-        return 1, "Only available for "+list(dict_bot_accounts.keys())+" but not for ["+guildName+"]"
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
     dict_bot_accounts[guildName]["Locked"] = True
     return 0, ""
 
 def unlock_bot_account(guildName):
     if not guildName in dict_bot_accounts:
-        return 1, "Only available for "+list(dict_bot_accounts.keys())+" but not for ["+guildName+"]"
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
     dict_bot_accounts[guildName]["Locked"] = False
     return 0, ""
 
 def get_rpc_data(guildName):
     if not guildName in dict_bot_accounts:
-        return 1, "Only available for "+list(dict_bot_accounts.keys())+" but not for ["+guildName+"]", None
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]", None
     bot_playerName = dict_bot_accounts[guildName]["Name"]
 
     if dict_bot_accounts[guildName]["Locked"]:
@@ -31,33 +31,51 @@ def get_rpc_data(guildName):
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
     goutils.log2("DBG", "getguild code="+str(process.returncode))
-    guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+guildName+".json", "r"))["Guild"]
+    guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+bot_playerName+".json", "r"))
+    if "Guild" in guild_json:
+        dict_guild = guild_json["Guild"]
+    else:
+        dict_guild = {}
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
     goutils.log2("DBG", "getevents code="+str(process.returncode))
-    events_json = json.load(open("/home/pi/GuionBot/warstats/TBevents_"+guildName+".json", "r"))["Event"]
+    events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json", "r"))
+    if "Event" in events_json:
+        dict_new_events = events_json["Event"]
+    else:
+        dict_new_events = {}
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TB"])
     goutils.log2("ERR", "getmapstats code="+str(process.returncode))
-    if os.path.exists(("/home/pi/GuionBot/warstats/TBmapstats_"+guildName+".json"):
-        TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+guildName+".json", "r"))["CurrentStat"]
+    if os.path.exists("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json"):
+        TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json", "r"))["CurrentStat"]
+        if "CurrentStat" in TBmapstats_json:
+            dict_TBmapstats = TBmapstats_json["CurrentStat"]
+        else:
+            dict_TBmapstats = {}
     else:
-        TBmapstats_json = {}
+        dict_TBmapstats = {}
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TW"])
     goutils.log2("ERR", "getmapstats code="+str(process.returncode))
-    if os.path.exists(("/home/pi/GuionBot/warstats/TWmapstats_"+guildName+".json"):
-        TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+guildName+".json", "r"))["CurrentStat"]
+    if os.path.exists("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json"):
+        TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json", "r"))["CurrentStat"]
+        if "CurrentStat" in TWmapstats_json:
+            dict_TWmapstats = TWmapstats_json["CurrentStat"]
+        else:
+            dict_TWmapstats = {}
     else:
-        TWmapstats_json = {}
+        dict_TWmapstats = {}
 
 
     dict_events = {}
-    for event in events_json:
+    for event in dict_new_events:
         event_id = event["Id"]
-        event_battle_id = event["Data"][0]["Activity"]["Content"]["BattleInstanceId"]
+        channel_id = event["ChannelId"]
+        ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
+        event_battle_id = ret_re.group(1)
 
-        if not event_battle_id in dict_fevents:
+        if not event_battle_id in dict_events:
             fevents = "EVENTS/"+guildName+"_"+event_battle_id+"_events.json"
             if os.path.exists(fevents):
                 f = open(fevents)
@@ -75,7 +93,7 @@ def get_rpc_data(guildName):
         f.write(json.dumps(dict_events[event_battle_id], indent=4))
         f.close()
 
-    return 0, "", [guild_json, TBmapstats_json, dict_events]
+    return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
 def parse_tb_platoons(guildName):
     active_round = "" # GLS4"
