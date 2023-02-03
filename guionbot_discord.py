@@ -224,7 +224,7 @@ async def bot_loop_60minutes():
 
         try:
             for guild in bot.guilds:
-                await bot.loop.run_in_executor(None, connect_rpc.get_tb_data, guild.name)
+                await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.name)
 
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", str(sys.exc_info()[0]))
@@ -1884,10 +1884,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_check)
 
     @commands.check(is_officer)
-    @commands.command(name='unlockbot',
-            brief="Déverrouille le compte bot pour permettre de suivre la guilde",
-            help="Déverrouille le compte bot pour permettre de suivre la guilde")
-    async def unlockbot(self, ctx, *args):
+    @commands.command(name='enablebot',
+            brief="Active le compte bot pour permettre de suivre la guilde",
+            help="Active le compte bot pour permettre de suivre la guilde")
+    async def enablebot(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
         ec, et = connect_rpc.unlock_bot_account(ctx.guild.name)
@@ -1896,14 +1896,14 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" déverouillé > suivi de guilde actif")
+        await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
         await ctx.message.add_reaction(emoji_check)
 
     @commands.check(is_officer)
-    @commands.command(name='lockbot',
-            brief="Verrouille le compte bot pour permettre de le jouer",
-            help="Verrouille le compte bot pour permettre de le jouer")
-    async def lockbot(self, ctx, *args):
+    @commands.command(name='disablebot',
+            brief="Désactive le compte bot pour permettre de le jouer",
+            help="Désactive le compte bot pour permettre de le jouer")
+    async def disablebot(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
         ec, et = connect_rpc.lock_bot_account(ctx.guild.name)
@@ -1912,7 +1912,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        await ctx.send("Compte bot de la guilde "+ctx.guild.name+" verouillé > suivi de guilde désactivé")
+        await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
         await ctx.message.add_reaction(emoji_check)
 
     @commands.check(is_officer)

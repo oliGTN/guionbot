@@ -11,5 +11,8 @@ PLAYERS/*
 PLAYERS
 GUILDS/*
 GUILDS
+EVENTS/*
+EVENTS
 CACHE/*
+SCRIPTS/__pycache__/*
 __pycache__/*
