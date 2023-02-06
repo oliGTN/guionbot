@@ -4173,7 +4173,7 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike02"] = [1, 200000]
     dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike03"] = [1, 200000]
     dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike04"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike05"] = [1, 200000]
+    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike05"] = [1, 400000]
     dict_tb["tb3_mixed_phase01_conflict01"]["Coverts"] = {}
 
     dict_tb["tb3_mixed_phase01_conflict02"] = {}
@@ -4185,7 +4185,7 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike02"] = [1, 200000]
     dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike03"] = [1, 200000]
     dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike04"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike05"] = [1, 200000]
+    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike05"] = [1, 400000]
     dict_tb["tb3_mixed_phase01_conflict02"]["Coverts"] = {}
 
     dict_tb["tb3_mixed_phase01_conflict03"] = {}
@@ -4196,7 +4196,7 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike01"] = [1, 200000]
     dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike02"] = [1, 200000]
     dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike03"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike04"] = [1, 200000]
+    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike04"] = [1, 400000]
     dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"] = {}
     dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"]["covert01"] = [1]
 
@@ -4241,6 +4241,7 @@ def print_tb_status(guildName, targets_zone_stars):
         dict_tb_players[playername_gp[0]] = {}
         dict_tb_players[playername_gp[0]]["char_gp"] = playername_gp[1]
         dict_tb_players[playername_gp[0]]["ship_gp"] = playername_gp[2]
+        dict_tb_players[playername_gp[0]]["mix_gp"] = playername_gp[1] + playername_gp[2]
         dict_tb_players[playername_gp[0]]["score"] = {"Total": 0,
                                                       "Deployed": 0,
                                                       "DeployedShips": 0,
@@ -4338,7 +4339,7 @@ def print_tb_status(guildName, targets_zone_stars):
         playerData = dict_tb_players[playerName]
         remaining_ship_deploy += playerData["ship_gp"] - playerData["score"]["DeployedShips"]
         remaining_char_deploy += playerData["char_gp"] - playerData["score"]["DeployedChars"]
-        remaining_mix_deploy += playerData["char_gp"] - playerData["score"]["DeployedMix"]
+        remaining_mix_deploy += playerData["mix_gp"] - playerData["score"]["DeployedMix"]
         
     print("remaining_ship_deploy="+str(remaining_ship_deploy))
     print("remaining_char_deploy="+str(remaining_char_deploy))
@@ -4483,11 +4484,14 @@ def print_tb_status(guildName, targets_zone_stars):
 def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, position):
     font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 18)
 
+    if delta_score == 0:
+        return start_score
+
     end_score = int(start_score + delta_score)
     if end_score > max_score:
         end_score = max_score
         delta_score = max_score - start_score
-    x_start = int(start_score/max_score*(480-20)+20)
+    x_start = int(start_score/max_score*(480-20)+20)+1
     x_end = int(end_score/max_score*(480-20)+20)
     if delta_score > 0:
         zone_img_draw.rectangle((x_start, 80, x_end, 110), color)
@@ -4501,30 +4505,18 @@ def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, p
         x_txt = x_end - end_score_txt_size[0] - 5
     zone_img_draw.text((x_txt, 110+20*position), end_score_txt, "black", font=font)
 
-    return
+    return end_score
 
 def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes, deployments, max_strikes):
-    zone_img = Image.new('RGB', (500, 200), (255, 255, 255))
+    zone_img = Image.new('RGB', (500, 220), (255, 255, 255))
     zone_img_draw = ImageDraw.Draw(zone_img)
 
     score_3stars = zone_scores[2]
 
-
-    if current_score > score_3stars:
-        current_score = score_3stars
-    x_score = int(current_score/score_3stars*(480-20)+20)
-    if current_score > 0:
-        zone_img_draw.rectangle((20, 80, x_score, 110), "darkgreen")
-
-    score_strikes = int(current_score + estimated_strikes)
-    if score_strikes > score_3stars:
-        score_strikes = score_3stars
-        estimated_strikes = score_3stars - current_score
-    x_strikes = int(score_strikes/score_3stars*(480-20)+20)
-    if estimated_strikes >0:
-        zone_img_draw.rectangle((x_score, 80, x_strikes, 110), "yellow")
-
-    draw_score_zone(zone_img_draw, score_strikes, deployments, score_3stars, "orange", 3)
+    current_score = draw_score_zone(zone_img_draw, 0, current_score, score_3stars, "darkgreen", 1)
+    deployment_score = draw_score_zone(zone_img_draw, current_score, deployments, score_3stars, "yellow", 2)
+    eststrike_score = draw_score_zone(zone_img_draw, deployment_score, estimated_strikes, score_3stars, "orange", 3)
+    final_score = draw_score_zone(zone_img_draw, eststrike_score, max_strikes-estimated_strikes, score_3stars, "red", 4)
 
     #Draw stars
     active_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star.png")
@@ -4537,27 +4529,37 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
         else:
             star_image = inactive_star_image
 
-        zone_img.paste(star_image, (x_star, 40), star_image)
+        zone_img.paste(star_image, (x_star, 50), star_image)
         drawn_stars += 1
 
     #Draw lines and text at the end
     #Draw rectangle
-    zone_img_draw.line([(20, 80), (480, 80)], fill="black", width=0)
-    zone_img_draw.line([(20, 110), (480, 110)], fill="black", width=0)
-    zone_img_draw.line([(20, 80), (20, 110)], fill="black", width=0)
-    zone_img_draw.line([(480, 80), (480, 110)], fill="black", width=0)
+    zone_img_draw.line([(20, 80), (480, 80)], fill="black", width=2)
+    zone_img_draw.line([(20, 110), (480, 110)], fill="black", width=2)
+    zone_img_draw.line([(20, 80), (20, 110)], fill="black", width=2)
+    zone_img_draw.line([(480, 80), (480, 110)], fill="black", width=2)
 
     #add ster limits
     for score_star in zone_scores:
         x_star = int(score_star / score_3stars * (480-20) + 20)
 
-        zone_img_draw.line([(x_star, 80), (x_star, 120)], fill="black", width=0)
+        zone_img_draw.line([(x_star, 80), (x_star, 120)], fill="black", width=2)
         
         font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 12)
         score_star_txt = "{:,}".format(score_star)
         score_star_txt_size = font.getsize(score_star_txt)
         x_txt = x_star - score_star_txt_size[0] - 5
         zone_img_draw.text((x_txt, 115), score_star_txt, "black", font=font)
+
+    #legend
+    zone_img_draw.rectangle((250, 10, 260, 20), fill="darkgreen")
+    zone_img_draw.text((265, 10), "Score actuel", "black", font=font)
+    zone_img_draw.rectangle((250, 30, 260, 40), fill="yellow")
+    zone_img_draw.text((265, 30), "Déploiement", "black", font=font)
+    zone_img_draw.rectangle((350, 10, 360, 20), fill="orange")
+    zone_img_draw.text((365, 10), "Combats estimés", "black", font=font)
+    zone_img_draw.rectangle((350, 30, 360, 40), fill="red")
+    zone_img_draw.text((365, 30), "Combats max", "black", font=font)
 
 
     font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
