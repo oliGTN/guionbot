@@ -113,6 +113,10 @@ dict_BT_missions['GDS']['Sand Dunes Mission']='GDS3-bottom'
 dict_BT_missions['GDS']['Republic Fleet Mission']='GDS4-top'
 dict_BT_missions['GDS']['Count Dooku\'s Hangar Mission']='GDS4-mid'
 dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
+dict_BT_missions['ROTE']={}
+dict_BT_missions['ROTE']['Mustafar']='ROTE1-DS'
+dict_BT_missions['ROTE']['Corellia']='ROTE1-MS'
+dict_BT_missions['ROTE']['Coruscant']='ROTE1-LS'
 
 dict_member_lastseen={} #{guild discord name: {player discord id: [discord displayname, date last seen (idle or online)]}
 
@@ -379,9 +383,15 @@ async def bot_loop_5minutes():
                 if not guild.name in dict_platoons_previously_done:
                     dict_platoons_previously_done[guild.name] = {}
 
-                #Lecture du statut des pelotons sur warstats
-                tbs_round, dict_platoons_done, list_open_territories, \
-                    sec_last_track = connect_warstats.parse_tb_platoons(guild_id, False)
+                #Check if guild can use RPC
+                if guild.name in connect_rpc.dict_bot_accounts:
+                    tbs_round, dict_platoons_done, list_open_territories, \
+                        secs_track = connect_rpc.parse_tb_platoons(guild.name)
+                else:
+                    #Lecture du statut des pelotons sur warstats
+                    tbs_round, dict_platoons_done, list_open_territories, \
+                        sec_last_track = connect_warstats.parse_tb_platoons(guild_id, False)
+
                 if tbs_round == '':
                     goutils.log2("DBG", "["+guild.name+"] No TB in progress")
                     dict_platoons_previously_done[guild.name] = {}
@@ -587,7 +597,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     eb_missions_full = []
     eb_missions_tmp = []
     
-    tbs_name = tbs_round[0:3]
+    tbs_name = tbs_round[:-1]
     
     async for message in tb_channel.history(limit=500):
         if str(message.author).startswith("EchoStation#") \
@@ -1348,10 +1358,28 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #          avant déploiement en service
     # Display: ça dépend
     #############################################################
-    #@commands.command(name='test', help='Réservé aux admins')
-    #@commands.check(is_owner)
-    #async def test(self, ctx, *args):
-    #    pass
+    @commands.command(name='test', help='Réservé aux admins')
+    @commands.check(is_owner)
+    async def test(self, ctx, *args):
+        #get warstats_id from DB
+        query = "SELECT warstats_id, tbChanRead_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
+        goutils.log2("DBG", query)
+        result = connect_mysql.get_line(query)
+
+        if result == None:
+            await ctx.send('ERR: commande non utilisable sur ce serveur')
+            return
+
+        [warstats_id, tbChannel_id] = result
+        if warstats_id==0 or tbChannel_id==0:
+            await ctx.send('ERR: commande non utilisable sur ce serveur')
+            return
+
+        tbs_round = "ROTE1"
+        dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
+        goutils.log2("DBG", "Platoon allocation: "+str(dict_platoons_allocation))
+
+        await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
 # Class: OfficerCog
@@ -1617,10 +1645,20 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send('ERR: commande non utilisable sur ce serveur')
             return
 
-        #Lecture du statut des pelotons sur warstats
-        tbs_round, dict_platoons_done, list_open_territories, \
-            secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
-        goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+        #Check if guild can use RPC
+        if ctx.guild.name in connect_rpc.dict_bot_accounts:
+            goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
+
+            tbs_round, dict_platoons_done, list_open_territories, \
+                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.name)
+            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+        else:
+            #Lecture du statut des pelotons sur warstats
+            goutils.log2("DBG", "Using warstats data for "+ctx.guild.name)
+
+            tbs_round, dict_platoons_done, list_open_territories, \
+                secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
+            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
@@ -1644,7 +1682,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             # print(dict_platoons_done["GDS1-top-5"])
             # print(dict_platoons_allocation["GDS1-top-5"])
             for platoon_name in dict_platoons_done:
-                phase_name = platoon_name[0:3]
+                phase_name = platoon_name.split('-')[0][:-1]
                 if not phase_name in phase_names_already_displayed:
                     phase_names_already_displayed.append(phase_name)
                 for perso in dict_platoons_done[platoon_name]:
@@ -1684,16 +1722,18 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             cur_phase = 0
 
             for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
-                if cur_phase != int(txt[1][3]):
-                    cur_phase = int(txt[1][3])
+                platoon_name = txt[1]
+                phase_num = int(platoon_name.split('-')[0][-1])
+                if cur_phase != phase_num:
+                    cur_phase = phase_num
                     full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
 
-                position = txt[1].split('-')[1]
-                if position == 'top':
+                position = platoon_name.split('-')[1]
+                if position == 'top' or position == 'DS':
                     open_for_position = list_open_territories[0]
-                elif position == 'mid':
+                elif position == 'mid' or position == 'MS':
                     open_for_position = list_open_territories[1]
-                else:  #bottom
+                else:  #bottom or 'LS'
                     open_for_position = list_open_territories[2]
                 if cur_phase < open_for_position:
                     full_txt += txt[2] + ' -- *et c\'est trop tard*\n'
