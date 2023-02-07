@@ -1982,7 +1982,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
             for [p, txt] in lines:
-                if p in dict_players_by_IG:
+                if (p in dict_players_by_IG) and display_mentions:
                     p_name = dict_players_by_IG[p][1]
                 else:
                     p_name=p
