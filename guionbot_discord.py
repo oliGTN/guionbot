@@ -1956,20 +1956,68 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         await ctx.message.add_reaction(emoji_check)
 
     @commands.check(is_officer)
+    @commands.command(name='tbrappel',
+            brief="Tag les joueurs qui n'ont pas tout déployé en BT",
+            help="go.tbrappel")
+    async def tbrappel(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 1:
+            if args[0].startswith('no'):
+                display_mentions=False
+                output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+        else:
+            display_mentions=False
+            output_channel = ctx.message.channel
+
+        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, go.tag_tb_undeployed_players, ctx.guild.name)
+        if err_code == 0:
+            dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
+            output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
+            for [p, txt] in lines:
+                if p in dict_players_by_IG:
+                    p_name = dict_players_by_IG[p][1]
+                else:
+                    p_name=p
+                output_txt += p_name+": "+txt+"\n"
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    @commands.check(is_officer)
     @commands.command(name='tbs',
             brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
-            help="TB status \"2:1 3:3 1:2\"")
+            help="TB status \"2:1 3:3 1:2\" [-estime]")
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        if len(args) != 1:
+        options = list(args)
+        estimate_fights = False
+        for arg in options:
+            if arg == "-estime":
+                estimate_fights = True
+                options.remove(arg)
+
+        if len(options) != 1:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbs")
             await ctx.message.add_reaction(emoji_error)
             return
 
-        tb_phase_target = args[0]
+        tb_phase_target = options[0]
 
-        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target)
+        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target, estimate_fights)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
