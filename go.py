@@ -4041,215 +4041,137 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-def print_tb_status(guildName, targets_zone_stars):
-    ret_print_tb_status = ""
-    dict_tb={}
-    dict_tb["t04D"] = {"PhaseDuration": 129600000, "ZoneNames": {}}
-    dict_tb["t04D"]["ZoneNames"]["top"] = "conflict01"
-    dict_tb["t04D"]["ZoneNames"]["top"] = "conflict01"
-    dict_tb["t04D"]["ZoneNames"]["mid"] = "conflict02"
-    dict_tb["t04D"]["ZoneNames"]["bot"] = "conflict03"
-    # PHASE 01
-    dict_tb["geonosis_republic_phase01_conflict01"] = {}
-    dict_tb["geonosis_republic_phase01_conflict01"]["Name"] = "GLS1-top"
-    dict_tb["geonosis_republic_phase01_conflict01"]["Type"] = "Ships"
-    dict_tb["geonosis_republic_phase01_conflict01"]["Scores"] = [42475000, 84950000, 141580000]
-    dict_tb["geonosis_republic_phase01_conflict01"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase01_conflict01"]["Strikes"]["strike01"] = [1, 523000]
-    dict_tb["geonosis_republic_phase01_conflict01"]["Coverts"] = {}
+def tag_tb_undeployed_players(guildName):
+    dict_tb = data.dict_tb
 
-    dict_tb["geonosis_republic_phase01_conflict02"] = {}
-    dict_tb["geonosis_republic_phase01_conflict02"]["Name"] = "GLS1-mid"
-    dict_tb["geonosis_republic_phase01_conflict02"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase01_conflict02"]["Scores"] = [110240000, 166640000, 256370000]
-    dict_tb["geonosis_republic_phase01_conflict02"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase01_conflict02"]["Strikes"]["strike01"] = [4, 1155000]
-    dict_tb["geonosis_republic_phase01_conflict02"]["Strikes"]["strike02"] = [4, 1155000]
-    dict_tb["geonosis_republic_phase01_conflict02"]["Coverts"] = {}
-    dict_tb["geonosis_republic_phase01_conflict02"]["Coverts"]["covert01"] = [1]
-
-    dict_tb["geonosis_republic_phase01_conflict03"] = {}
-    dict_tb["geonosis_republic_phase01_conflict03"]["Name"] = "GLS1-bot"
-    dict_tb["geonosis_republic_phase01_conflict03"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase01_conflict03"]["Scores"] = [86275000, 120425000, 179740000]
-    dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"]["strike01"] = [4, 1155000]
-    dict_tb["geonosis_republic_phase01_conflict03"]["Strikes"]["covert1"] = [4, 1501000]
-    dict_tb["geonosis_republic_phase01_conflict03"]["Coverts"] = {}
-
-    # PHASE 02
-    dict_tb["geonosis_republic_phase02_conflict01"] = {}
-    dict_tb["geonosis_republic_phase02_conflict01"]["Name"] = "GLS2-top"
-    dict_tb["geonosis_republic_phase02_conflict01"]["Type"] = "Ships"
-    dict_tb["geonosis_republic_phase02_conflict01"]["Scores"] = [71075000, 133535000, 215380000]
-    dict_tb["geonosis_republic_phase02_conflict01"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase02_conflict01"]["Strikes"]["strike01"] = [1, 900000]
-    dict_tb["geonosis_republic_phase02_conflict01"]["Coverts"] = {}
-    dict_tb["geonosis_republic_phase02_conflict01"]["Coverts"]["covert01"] = [1]
-
-    dict_tb["geonosis_republic_phase02_conflict02"] = {}
-    dict_tb["geonosis_republic_phase02_conflict02"]["Name"] = "GLS2-mid"
-    dict_tb["geonosis_republic_phase02_conflict02"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase02_conflict02"]["Scores"] = [96200000, 174235000, 260055000]
-    dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["strike01"] = [4, 1377000]
-    dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["strike02"] = [4, 1377000]
-    dict_tb["geonosis_republic_phase02_conflict02"]["Strikes"]["covert01"] = [4, 1790000]
-    dict_tb["geonosis_republic_phase02_conflict02"]["Coverts"] = {}
-
-    dict_tb["geonosis_republic_phase02_conflict03"] = {}
-    dict_tb["geonosis_republic_phase02_conflict03"]["Name"] = "GLS2-bot"
-    dict_tb["geonosis_republic_phase02_conflict03"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase02_conflict03"]["Scores"] = [121030000, 217235000, 310335000]
-    dict_tb["geonosis_republic_phase02_conflict03"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase02_conflict03"]["Strikes"]["strike01"] = [4, 1377000]
-    dict_tb["geonosis_republic_phase02_conflict03"]["Strikes"]["strike02"] = [4, 1377000]
-    dict_tb["geonosis_republic_phase02_conflict03"]["Coverts"] = {}
-    dict_tb["geonosis_republic_phase02_conflict03"]["Coverts"]["covert01"] = [4, 1377000]
-
-    # PHASE 03
-    dict_tb["geonosis_republic_phase03_conflict01"] = {}
-    dict_tb["geonosis_republic_phase03_conflict01"]["Name"] = "GLS3-top"
-    dict_tb["geonosis_republic_phase03_conflict01"]["Type"] = "Ships"
-    dict_tb["geonosis_republic_phase03_conflict01"]["Scores"] = [91395000, 152325000, 217610000]
-    dict_tb["geonosis_republic_phase03_conflict01"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase03_conflict01"]["Strikes"]["strike01"] = [1, 1800000]
-    dict_tb["geonosis_republic_phase03_conflict01"]["Coverts"] = {}
-    dict_tb["geonosis_republic_phase03_conflict01"]["Coverts"]["covert01"] = [1]
-
-    dict_tb["geonosis_republic_phase03_conflict02"] = {}
-    dict_tb["geonosis_republic_phase03_conflict02"]["Name"] = "GLS3-mid"
-    dict_tb["geonosis_republic_phase03_conflict02"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase03_conflict02"]["Scores"] = [132310000, 257065000, 378035000]
-    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["strike01"] = [4, 1627500]
-    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["strike02"] = [4, 1627500]
-    dict_tb["geonosis_republic_phase03_conflict02"]["Strikes"]["covert01"] = [4, 2115750]
-    dict_tb["geonosis_republic_phase03_conflict02"]["Coverts"] = {}
-
-    dict_tb["geonosis_republic_phase03_conflict03"] = {}
-    dict_tb["geonosis_republic_phase03_conflict03"]["Name"] = "GLS3-bot"
-    dict_tb["geonosis_republic_phase03_conflict03"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase03_conflict03"]["Scores"] = [110615000, 165925000, 221230000]
-    dict_tb["geonosis_republic_phase03_conflict03"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase03_conflict03"]["Strikes"]["strike01"] = [4, 1627500]
-    dict_tb["geonosis_republic_phase03_conflict03"]["Coverts"] = {}
-    dict_tb["geonosis_republic_phase03_conflict03"]["Coverts"]["covert01"] = [4]
-
-    # PHASE 04
-    dict_tb["geonosis_republic_phase04_conflict01"] = {}
-    dict_tb["geonosis_republic_phase04_conflict01"]["Name"] = "GLS4-top"
-    dict_tb["geonosis_republic_phase04_conflict01"]["Type"] = "Ships"
-    dict_tb["geonosis_republic_phase04_conflict01"]["Scores"] = [122490000, 340255000, 453670000]
-    dict_tb["geonosis_republic_phase04_conflict01"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase04_conflict01"]["Strikes"]["strike01"] = [1, 2750000]
-    dict_tb["geonosis_republic_phase04_conflict01"]["Coverts"] = {}
-    dict_tb["geonosis_republic_phase04_conflict01"]["Coverts"]["covert01"] = [1]
-
-    dict_tb["geonosis_republic_phase04_conflict02"] = {}
-    dict_tb["geonosis_republic_phase04_conflict02"]["Name"] = "GLS3-mid"
-    dict_tb["geonosis_republic_phase04_conflict02"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase04_conflict02"]["Scores"] = [152945000, 270930000, 436980000]
-    dict_tb["geonosis_republic_phase04_conflict02"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase04_conflict02"]["Strikes"]["strike01"] = [4, 1837500]
-    dict_tb["geonosis_republic_phase04_conflict02"]["Strikes"]["strike02"] = [4, 1837500]
-    dict_tb["geonosis_republic_phase04_conflict02"]["Coverts"] = {}
-    dict_tb["geonosis_republic_phase04_conflict02"]["Coverts"]["covert01"] = [4]
-
-    dict_tb["geonosis_republic_phase04_conflict03"] = {}
-    dict_tb["geonosis_republic_phase04_conflict03"]["Name"] = "GLS3-bot"
-    dict_tb["geonosis_republic_phase04_conflict03"]["Type"] = "Chars"
-    dict_tb["geonosis_republic_phase04_conflict03"]["Scores"] = [117510000, 268600000, 335750000]
-    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"] = {}
-    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["strike01"] = [4, 1837500]
-    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["strike02"] = [4, 1837500]
-    dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["covert01"] = [4, 2388750]
-    dict_tb["geonosis_republic_phase04_conflict03"]["Coverts"] = {}
-
-    dict_tb["t05D"] = {"PhaseDuration": 86400000, "ZoneNames": {}}
-    dict_tb["t05D"]["ZoneNames"]["DS"] = "conflict02"
-    dict_tb["t05D"]["ZoneNames"]["MS"] = "conflict03"
-    dict_tb["t05D"]["ZoneNames"]["LS"] = "conflict01"
-    # PHASE 01
-    dict_tb["tb3_mixed_phase01_conflict01"] = {}
-    dict_tb["tb3_mixed_phase01_conflict01"]["Name"] = "ROTE1-LS"
-    dict_tb["tb3_mixed_phase01_conflict01"]["Type"] = "Mix"
-    dict_tb["tb3_mixed_phase01_conflict01"]["Scores"] = [116406250, 186250000, 248333333]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike01"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike02"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike03"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike04"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike05"] = [1, 400000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Coverts"] = {}
-
-    dict_tb["tb3_mixed_phase01_conflict02"] = {}
-    dict_tb["tb3_mixed_phase01_conflict02"]["Name"] = "ROTE1-DS"
-    dict_tb["tb3_mixed_phase01_conflict02"]["Type"] = "Mix"
-    dict_tb["tb3_mixed_phase01_conflict02"]["Scores"] = [116406250, 186250000, 248333333]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike01"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike02"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike03"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike04"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike05"] = [1, 400000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Coverts"] = {}
-
-    dict_tb["tb3_mixed_phase01_conflict03"] = {}
-    dict_tb["tb3_mixed_phase01_conflict03"]["Name"] = "ROTE1-MS"
-    dict_tb["tb3_mixed_phase01_conflict03"]["Type"] = "Mix"
-    dict_tb["tb3_mixed_phase01_conflict03"]["Scores"] = [111718750, 178750000, 238333333]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike01"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike02"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike03"] = [2, 200000]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike04"] = [1, 400000]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"] = {}
-    dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"]["covert01"] = [1]
-
-    # PHASE 02
-    dict_tb["tb3_mixed_phase02_conflict01"] = {}
-    dict_tb["tb3_mixed_phase02_conflict01"]["Name"] = "ROTE2-LS"
-    dict_tb["tb3_mixed_phase02_conflict01"]["Type"] = "Mix"
-    dict_tb["tb3_mixed_phase02_conflict01"]["Scores"] = [142265625, 227625000, 303500000]
-    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike01"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike02"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike03"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike04"] = [1, 500000]
-    dict_tb["tb3_mixed_phase02_conflict01"]["Coverts"] = {}
-
-    dict_tb["tb3_mixed_phase02_conflict02"] = {}
-    dict_tb["tb3_mixed_phase02_conflict02"]["Name"] = "ROTE2-DS"
-    dict_tb["tb3_mixed_phase02_conflict02"]["Type"] = "Mix"
-    dict_tb["tb3_mixed_phase02_conflict02"]["Scores"] = [148125000, 237000000, 316000000]
-    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike01"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike02"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike03"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike04"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike05"] = [1, 500000]
-    dict_tb["tb3_mixed_phase02_conflict02"]["Coverts"] = {}
-
-    dict_tb["tb3_mixed_phase02_conflict03"] = {}
-    dict_tb["tb3_mixed_phase02_conflict03"]["Name"] = "ROTE2-MS"
-    dict_tb["tb3_mixed_phase02_conflict03"]["Type"] = "Mix"
-    dict_tb["tb3_mixed_phase02_conflict03"]["Scores"] = [148125000, 237000000, 316000000]
-    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike01"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike02"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike03"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike04"] = [2, 250000]
-    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike05"] = [1, 500000]
-    dict_tb["tb3_mixed_phase02_conflict03"]["Coverts"] = {}
-
-    ec, et, data = connect_rpc.get_rpc_data(guildName)
+    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName)
     if ec!=0:
         return 1, et, None
 
-    dict_guild=data[0]
-    mapstats=data[1]
-    dict_all_events=data[2]
+    dict_guild=rpc_data[0]
+    dict_all_events=rpc_data[2]
+
+    dict_members_by_id={}
+    for member in dict_guild["Member"]:
+        dict_members_by_id[member["PlayerId"]] = member["PlayerName"]
+
+    tb_ongoing=False
+    for battleStatus in dict_guild["TerritoryBattleStatus"]:
+        if battleStatus["Selected"]:
+            battle_id = battleStatus["InstanceId"]
+            goutils.log2("DBG", "Selected TB = "+battle_id)
+            tb_ongoing=True
+            tb_type = battleStatus["DefinitionId"]
+            tb_round_endTime = int(battleStatus["CurrentRoundEndTime"])
+            tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
+            dict_events=dict_all_events[battle_id]
+            break
+
+    if not tb_ongoing:
+        return 1, "No TB on-going", None
+
+    query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName+"'"
+    list_playername_gp = connect_mysql.get_table(query)
+
+    dict_tb_players = {}
+    dict_strike_zones = {}
+    dict_open_zones = {}
+    list_images = []
+
+    for playername_gp in list_playername_gp:
+        dict_tb_players[playername_gp[0]] = {}
+        dict_tb_players[playername_gp[0]]["char_gp"] = playername_gp[1]
+        dict_tb_players[playername_gp[0]]["ship_gp"] = playername_gp[2]
+        dict_tb_players[playername_gp[0]]["mix_gp"] = playername_gp[1] + playername_gp[2]
+        dict_tb_players[playername_gp[0]]["score"] = {"DeployedShips": 0,
+                                                      "DeployedChars": 0,
+                                                      "DeployedMix": 0}
+
+    for zone in battleStatus["ConflictZoneStatus"]:
+        if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
+            zone_name = zone["ZoneStatus"]["ZoneId"]
+            zone_score = int(zone["ZoneStatus"]["Score"])
+            dict_open_zones[zone_name] = {"Score": zone_score}
+
+    for event_id in dict_events:
+        event=dict_events[event_id]
+        event_time = int(event["Timestamp"])
+        if event_time < tb_round_startTime:
+            #event on same zone but bduring previous round
+            continue
+
+        playerName = event["AuthorName"]
+
+        for event_data in event["Data"]:
+            if "ZoneData" in event_data["Activity"]:
+                ZoneData_key = "ZoneData"
+            elif "ZoneData2" in event_data["Activity"]:
+                ZoneData_key = "ZoneData2"
+            else:
+                goutils.log2("ERR", "Event without ZoneData: "+str(event))
+                continue
+
+            if "DEPLOY" in event_data["Activity"][ZoneData_key]["ActivityLogMessage"]["Key"]:
+                zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
+                if zone_name in dict_open_zones:
+                    score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
+                    if dict_tb[zone_name]["Type"] == "Ships":
+                        dict_tb_players[playerName]["score"]["DeployedShips"] += score
+                    elif dict_tb[zone_name]["Type"] == "Chars":
+                        dict_tb_players[playerName]["score"]["DeployedChars"] += score
+                    else:
+                        dict_tb_players[playerName]["score"]["DeployedMix"] += score
+
+    list_deployment_types = []
+    for zone in dict_open_zones:
+        zone_deployment_type = dict_tb[zone_name]["Type"]
+        if not zone_deployment_type in list_deployment_types:
+            list_deployment_types.append(zone_deployment_type)
+
+    #count remaining players
+    lines_player = []
+    for playerName in dict_tb_players:
+        undeployed_player = False
+
+        ret_print_player = ""
+
+        if "Ships" in list_deployment_types:
+            ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
+            if ratio_deploy_ships < 0.99:
+                undeployed_player = True
+            ret_print_player += "ships: "+str(dict_tb_players[playerName]["score"]["DeployedShips"]) \
+                              + "/" + str(dict_tb_players[playerName]["ship_gp"]) + " "
+
+        if "Chars" in list_deployment_types:
+            ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
+            if ratio_deploy_chars < 0.99:
+                undeployed_player = True
+            ret_print_player += "chars: "+str(dict_tb_players[playerName]["score"]["DeployedShips"]) \
+                              + "/" + str(dict_tb_players[playerName]["ship_gp"]) + " "
+
+        if "Mix" in list_deployment_types:
+            ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
+            if ratio_deploy_mix < 0.99:
+                undeployed_player = True
+            ret_print_player += "mix: "+str(dict_tb_players[playerName]["score"]["DeployedMix"]) \
+                              +"/" + str(dict_tb_players[playerName]["mix_gp"]) + " "
+
+        if undeployed_player:
+            lines_player.append([playerName, ret_print_player])
+
+    return 0, "", lines_player
+
+def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
+    ret_print_tb_status = ""
+    dict_tb=data.dict_tb
+
+    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName)
+    if ec!=0:
+        return 1, et, None
+
+    dict_guild=rpc_data[0]
+    mapstats=rpc_data[1]
+    dict_all_events=rpc_data[2]
 
     dict_members_by_id={}
     for member in dict_guild["Member"]:
@@ -4285,9 +4207,7 @@ def print_tb_status(guildName, targets_zone_stars):
         dict_tb_players[playername_gp[0]]["char_gp"] = playername_gp[1]
         dict_tb_players[playername_gp[0]]["ship_gp"] = playername_gp[2]
         dict_tb_players[playername_gp[0]]["mix_gp"] = playername_gp[1] + playername_gp[2]
-        dict_tb_players[playername_gp[0]]["score"] = {"Total": 0,
-                                                      "Deployed": 0,
-                                                      "DeployedShips": 0,
+        dict_tb_players[playername_gp[0]]["score"] = {"DeployedShips": 0,
                                                       "DeployedChars": 0,
                                                       "DeployedMix": 0,
                                                       "Platoons": 0,
@@ -4351,21 +4271,7 @@ def print_tb_status(guildName, targets_zone_stars):
                         dict_tb_players[playerName]["score"]["DeployedMix"] += score
 
     for mapstat in mapstats:
-        if mapstat["MapStatId"] == "score_round_"+str(tb_round):
-            for playerstat in mapstat["PlayerStat"]:
-                member_id = playerstat["MemberId"]
-                score = int(playerstat["score"])
-                playerName = dict_members_by_id[member_id]
-                dict_tb_players[playerName]["score"]["Total"] = score
-
-        elif mapstat["MapStatId"] == "power_round_"+str(tb_round):
-            for playerstat in mapstat["PlayerStat"]:
-                member_id = playerstat["MemberId"]
-                score = int(playerstat["score"])
-                playerName = dict_members_by_id[member_id]
-                dict_tb_players[playerName]["score"]["Deployed"] = score
-
-        elif mapstat["MapStatId"] == "strike_attempt_round_"+str(tb_round):
+        if mapstat["MapStatId"] == "strike_attempt_round_"+str(tb_round):
             for playerstat in mapstat["PlayerStat"]:
                 member_id = playerstat["MemberId"]
                 playerName = dict_members_by_id[member_id]
@@ -4508,7 +4414,8 @@ def print_tb_status(guildName, targets_zone_stars):
         max_strike_score = 0
         for strike in dict_tb[zone_name]["Strikes"]:
             strike_name = zone_name + "_" + strike
-            estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
+            if compute_estimated_fights:
+                estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
             max_strike_score += dict_strike_zones[strike_name]["MaxPossibleScore"]
         score_with_estimated_strikes = current_score + estimated_strike_score
         ret_print_tb_status+="Adding average fights: "+str(round(score_with_estimated_strikes/1000000, 1))+"\n"
@@ -4592,9 +4499,9 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
     score_3stars = zone_scores[2]
 
     current_score = draw_score_zone(zone_img_draw, 0, current_score, score_3stars, "darkgreen", 1)
-    deployment_score = draw_score_zone(zone_img_draw, current_score, deployments, score_3stars, "yellow", 2)
-    eststrike_score = draw_score_zone(zone_img_draw, deployment_score, estimated_strikes, score_3stars, "orange", 3)
-    final_score = draw_score_zone(zone_img_draw, eststrike_score, max_strikes-estimated_strikes, score_3stars, "red", 4)
+    eststrike_score = draw_score_zone(zone_img_draw, current_score, estimated_strikes, score_3stars, "orange", 3)
+    deployment_score = draw_score_zone(zone_img_draw, eststrike_score, deployments, score_3stars, "yellow", 2)
+    final_score = draw_score_zone(zone_img_draw, deployment_score, max_strikes-estimated_strikes, score_3stars, "red", 4)
 
     #Draw stars
     active_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star.png")
