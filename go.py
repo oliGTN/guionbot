@@ -4169,10 +4169,10 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb["tb3_mixed_phase01_conflict01"]["Type"] = "Mix"
     dict_tb["tb3_mixed_phase01_conflict01"]["Scores"] = [116406250, 186250000, 248333333]
     dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike01"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike02"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike03"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike04"] = [1, 200000]
+    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike01"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike02"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike03"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike04"] = [2, 200000]
     dict_tb["tb3_mixed_phase01_conflict01"]["Strikes"]["strike05"] = [1, 400000]
     dict_tb["tb3_mixed_phase01_conflict01"]["Coverts"] = {}
 
@@ -4181,24 +4181,60 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb["tb3_mixed_phase01_conflict02"]["Type"] = "Mix"
     dict_tb["tb3_mixed_phase01_conflict02"]["Scores"] = [116406250, 186250000, 248333333]
     dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike01"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike02"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike03"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike04"] = [1, 200000]
+    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike01"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike02"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike03"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike04"] = [2, 200000]
     dict_tb["tb3_mixed_phase01_conflict02"]["Strikes"]["strike05"] = [1, 400000]
     dict_tb["tb3_mixed_phase01_conflict02"]["Coverts"] = {}
 
     dict_tb["tb3_mixed_phase01_conflict03"] = {}
     dict_tb["tb3_mixed_phase01_conflict03"]["Name"] = "ROTE1-MS"
     dict_tb["tb3_mixed_phase01_conflict03"]["Type"] = "Mix"
-    dict_tb["tb3_mixed_phase01_conflict03"]["Scores"] = [116406250, 186250000, 248333333]
+    dict_tb["tb3_mixed_phase01_conflict03"]["Scores"] = [111718750, 178750000, 238333333]
     dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"] = {}
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike01"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike02"] = [1, 200000]
-    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike03"] = [1, 200000]
+    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike01"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike02"] = [2, 200000]
+    dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike03"] = [2, 200000]
     dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike04"] = [1, 400000]
     dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"] = {}
     dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"]["covert01"] = [1]
+
+    # PHASE 02
+    dict_tb["tb3_mixed_phase02_conflict01"] = {}
+    dict_tb["tb3_mixed_phase02_conflict01"]["Name"] = "ROTE2-LS"
+    dict_tb["tb3_mixed_phase02_conflict01"]["Type"] = "Mix"
+    dict_tb["tb3_mixed_phase02_conflict01"]["Scores"] = [142265625, 227625000, 303500000]
+    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"] = {}
+    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike01"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike02"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike03"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict01"]["Strikes"]["strike04"] = [1, 500000]
+    dict_tb["tb3_mixed_phase02_conflict01"]["Coverts"] = {}
+
+    dict_tb["tb3_mixed_phase02_conflict02"] = {}
+    dict_tb["tb3_mixed_phase02_conflict02"]["Name"] = "ROTE2-DS"
+    dict_tb["tb3_mixed_phase02_conflict02"]["Type"] = "Mix"
+    dict_tb["tb3_mixed_phase02_conflict02"]["Scores"] = [148125000, 237000000, 316000000]
+    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"] = {}
+    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike01"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike02"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike03"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike04"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict02"]["Strikes"]["strike05"] = [1, 500000]
+    dict_tb["tb3_mixed_phase02_conflict02"]["Coverts"] = {}
+
+    dict_tb["tb3_mixed_phase02_conflict03"] = {}
+    dict_tb["tb3_mixed_phase02_conflict03"]["Name"] = "ROTE2-MS"
+    dict_tb["tb3_mixed_phase02_conflict03"]["Type"] = "Mix"
+    dict_tb["tb3_mixed_phase02_conflict03"]["Scores"] = [148125000, 237000000, 316000000]
+    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"] = {}
+    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike01"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike02"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike03"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike04"] = [2, 250000]
+    dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike05"] = [1, 500000]
+    dict_tb["tb3_mixed_phase02_conflict03"]["Coverts"] = {}
 
     ec, et, data = connect_rpc.get_rpc_data(guildName)
     if ec!=0:
@@ -4259,7 +4295,6 @@ def print_tb_status(guildName, targets_zone_stars):
 
     for event_id in dict_events:
         event=dict_events[event_id]
-        print(event)
         event_time = int(event["Timestamp"])
         if event_time < tb_round_startTime:
             #event on same zone but bduring previous round
@@ -4273,7 +4308,7 @@ def print_tb_status(guildName, targets_zone_stars):
             elif "ZoneData2" in event_data["Activity"]:
                 ZoneData_key = "ZoneData2"
             else:
-                print("no ZoneData and no ZoneData2")
+                goutils.log2("ERR", "Event without ZoneData: "+str(event))
                 continue
 
             if "CONFLICT_CONTRIBUTION" in event_data["Activity"][ZoneData_key]["ActivityLogMessage"]["Key"]:
@@ -4341,10 +4376,6 @@ def print_tb_status(guildName, targets_zone_stars):
         remaining_char_deploy += playerData["char_gp"] - playerData["score"]["DeployedChars"]
         remaining_mix_deploy += playerData["mix_gp"] - playerData["score"]["DeployedMix"]
         
-    print("remaining_ship_deploy="+str(remaining_ship_deploy))
-    print("remaining_char_deploy="+str(remaining_char_deploy))
-    print("remaining_mix_deploy="+str(remaining_mix_deploy))
-
     total_players_guild = len(dict_tb_players)
     for zone in battleStatus["StrikeZoneStatus"]:
         if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
@@ -4366,26 +4397,42 @@ def print_tb_status(guildName, targets_zone_stars):
             dict_strike_zones[strike_name]["EstimatedStrikes"] = 0
             dict_strike_zones[strike_name]["EstimatedScore"] = 0
 
-    #count strike points, as the MapStat may have score over several days
-    for playerName in dict_tb_players:
-        pass
+    list_deployment_types = []
+    for zone in dict_open_zones:
+        zone_deployment_type = dict_tb[zone_name]["Type"]
+        if not zone_deployment_type in list_deployment_types:
+            list_deployment_types.append(zone_deployment_type)
 
     #count remaining players
     remaining_to_play_ships = 0
     remaining_to_play_chars = 0
     remaining_to_play_mix = 0
     for playerName in dict_tb_players:
-        ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
-        if ratio_deploy_ships < 0.99:
-            remaining_to_play_ships += 1
+        ret_print_tb_status += playerName + ": "
 
-        ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
-        if ratio_deploy_chars < 0.99:
-            remaining_to_play_chars += 1
+        if "Ships" in list_deployment_types:
+            ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
+            if ratio_deploy_ships < 0.99:
+                remaining_to_play_ships += 1
+            else:
+                ratio_deploy_ships = 1
+            ret_print_tb_status += "Déploiement ships = "+str(int(100*ratio_deploy_ships)) + "%, "
 
-        ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / (dict_tb_players[playerName]["char_gp"] + dict_tb_players[playerName]["ship_gp"])
-        if ratio_deploy_mix < 0.99:
-            remaining_to_play_mix += 1
+        if "Chars" in list_deployment_types:
+            ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
+            if ratio_deploy_chars < 0.99:
+                remaining_to_play_chars += 1
+            else:
+                ratio_deploy_chars = 1
+            ret_print_tb_status += "Déploiement chars = "+str(int(100*ratio_deploy_chars)) + "%, "
+
+        if "Mix" in list_deployment_types:
+            ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
+            if ratio_deploy_mix < 0.99:
+                remaining_to_play_mix += 1
+            else:
+                ratio_deploy_mix = 1
+            ret_print_tb_status += "Déploiement = "+str(int(100*ratio_deploy_mix)) + "%, "
 
         for zone in dict_open_zones:
             for strike in dict_tb[zone]["Strikes"]:
@@ -4413,9 +4460,17 @@ def print_tb_status(guildName, targets_zone_stars):
                         dict_strike_zones[strike_name]["EstimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["EstimatedScore"] += strike_average_score
 
-    ret_print_tb_status += "Reste à déployer ships : "+str(remaining_ship_deploy)+"\n"
-    ret_print_tb_status += "Reste à déployer squads : "+str(remaining_char_deploy)+"\n"
-    ret_print_tb_status += "Reste à déployer mix : "+str(remaining_mix_deploy)+"\n"
+        ret_print_tb_status += str(dict_tb_players[playerName]["Strikes"]) + ", "
+        player_fights_score = dict_tb_players[playerName]["score"]["Strikes"]
+        player_fights_count = len(dict_tb_players[playerName]["Strikes"])
+        ret_print_tb_status += str(player_fights_score) + " pts en " + str(player_fights_count) + " combats\n"
+
+    if "Ships" in list_deployment_types:
+        ret_print_tb_status += "Reste à déployer ships : "+str(remaining_ship_deploy)+"\n"
+    if "Chars" in list_deployment_types:
+        ret_print_tb_status += "Reste à déployer squads : "+str(remaining_char_deploy)+"\n"
+    if "Mix" in list_deployment_types:
+        ret_print_tb_status += "Reste à déployer mix : "+str(remaining_mix_deploy)+"\n"
 
     #zone stats
     for target_zone_stars in targets_zone_stars.split(" "):
@@ -4471,9 +4526,12 @@ def print_tb_status(guildName, targets_zone_stars):
     #for player in sorted(dict_tb_players.keys(), key=lambda x: x.lower()):
     #    ret_print_tb_status += "**"+player+"**: "+str(dict_tb_players[player])+"\n"
     ret_print_tb_status += "----------------------------\n"
-    ret_print_tb_status += "Unused deployment ships : "+str(round(remaining_ship_deploy/1000000, 1))+"\n"
-    ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy/1000000, 1))+"\n"
-    ret_print_tb_status += "Unused deployment mix : "+str(round(remaining_mix_deploy/1000000, 1))+"\n"
+    if "Ships" in list_deployment_types:
+        ret_print_tb_status += "Unused deployment ships : "+str(round(remaining_ship_deploy/1000000, 1))+"\n"
+    if "Chars" in list_deployment_types:
+        ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy/1000000, 1))+"\n"
+    if "Mix" in list_deployment_types:
+        ret_print_tb_status += "Unused deployment mix : "+str(round(remaining_mix_deploy/1000000, 1))+"\n"
     ret_print_tb_status += "----------------------------\n"
     #for zone in sorted(dict_strike_zones.keys(), key=lambda x: [-int(x[-10]), x[8], -int(x[-1])], reverse=True):
     #    ret_print_tb_status += zone + ": " +str(dict_strike_zones[zone])+"\n"
