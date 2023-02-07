@@ -1981,11 +1981,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         if err_code == 0:
             dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
-            for [p, txt] in lines:
+            for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
                 if (p in dict_players_by_IG) and display_mentions:
                     p_name = dict_players_by_IG[p][1]
                 else:
-                    p_name=p
+                    p_name= "**" + p + "**"
                 output_txt += p_name+": "+txt+"\n"
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
@@ -2004,12 +2004,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         await ctx.message.add_reaction(emoji_thumb)
 
         options = list(args)
+        print (options)
         estimate_fights = False
         for arg in options:
             if arg == "-estime":
                 estimate_fights = True
                 options.remove(arg)
-
+        print (options)
         if len(options) != 1:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbs")
             await ctx.message.add_reaction(emoji_error)
