@@ -4044,7 +4044,11 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 def print_tb_status(guildName, targets_zone_stars):
     ret_print_tb_status = ""
     dict_tb={}
-    dict_tb["t04D"] = {"PhaseDuration": 129600000}
+    dict_tb["t04D"] = {"PhaseDuration": 129600000, "ZoneNames": {}}
+    dict_tb["t04D"]["ZoneNames"]["top"] = "conflict01"
+    dict_tb["t04D"]["ZoneNames"]["top"] = "conflict01"
+    dict_tb["t04D"]["ZoneNames"]["mid"] = "conflict02"
+    dict_tb["t04D"]["ZoneNames"]["bot"] = "conflict03"
     # PHASE 01
     dict_tb["geonosis_republic_phase01_conflict01"] = {}
     dict_tb["geonosis_republic_phase01_conflict01"]["Name"] = "GLS1-top"
@@ -4162,7 +4166,10 @@ def print_tb_status(guildName, targets_zone_stars):
     dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["covert01"] = [4, 2388750]
     dict_tb["geonosis_republic_phase04_conflict03"]["Coverts"] = {}
 
-    dict_tb["t05D"] = {"PhaseDuration": 86400000}
+    dict_tb["t05D"] = {"PhaseDuration": 86400000, "ZoneNames": {}}
+    dict_tb["t05D"]["ZoneNames"]["DS"] = "conflict02"
+    dict_tb["t05D"]["ZoneNames"]["MS"] = "conflict03"
+    dict_tb["t05D"]["ZoneNames"]["LS"] = "conflict01"
     # PHASE 01
     dict_tb["tb3_mixed_phase01_conflict01"] = {}
     dict_tb["tb3_mixed_phase01_conflict01"]["Name"] = "ROTE1-LS"
@@ -4407,8 +4414,9 @@ def print_tb_status(guildName, targets_zone_stars):
     remaining_to_play_ships = 0
     remaining_to_play_chars = 0
     remaining_to_play_mix = 0
+    lines_player = []
     for playerName in dict_tb_players:
-        ret_print_tb_status += playerName + ": "
+        ret_print_player = "**" + playerName + "**: "
 
         if "Ships" in list_deployment_types:
             ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
@@ -4416,7 +4424,7 @@ def print_tb_status(guildName, targets_zone_stars):
                 remaining_to_play_ships += 1
             else:
                 ratio_deploy_ships = 1
-            ret_print_tb_status += "Déploiement ships = "+str(int(100*ratio_deploy_ships)) + "%, "
+            ret_print_player += "Déploiement ships = "+str(int(100*ratio_deploy_ships)) + "%, "
 
         if "Chars" in list_deployment_types:
             ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
@@ -4424,7 +4432,7 @@ def print_tb_status(guildName, targets_zone_stars):
                 remaining_to_play_chars += 1
             else:
                 ratio_deploy_chars = 1
-            ret_print_tb_status += "Déploiement chars = "+str(int(100*ratio_deploy_chars)) + "%, "
+            ret_print_player += "Déploiement chars = "+str(int(100*ratio_deploy_chars)) + "%, "
 
         if "Mix" in list_deployment_types:
             ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
@@ -4432,7 +4440,7 @@ def print_tb_status(guildName, targets_zone_stars):
                 remaining_to_play_mix += 1
             else:
                 ratio_deploy_mix = 1
-            ret_print_tb_status += "Déploiement = "+str(int(100*ratio_deploy_mix)) + "%, "
+            ret_print_player += "Déploiement = "+str(int(100*ratio_deploy_mix)) + "%, "
 
         for zone in dict_open_zones:
             for strike in dict_tb[zone]["Strikes"]:
@@ -4460,11 +4468,16 @@ def print_tb_status(guildName, targets_zone_stars):
                         dict_strike_zones[strike_name]["EstimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["EstimatedScore"] += strike_average_score
 
-        ret_print_tb_status += str(dict_tb_players[playerName]["Strikes"]) + ", "
+        #ret_print_player += str(dict_tb_players[playerName]["Strikes"]) + ", "
         player_fights_score = dict_tb_players[playerName]["score"]["Strikes"]
         player_fights_count = len(dict_tb_players[playerName]["Strikes"])
-        ret_print_tb_status += str(player_fights_score) + " pts en " + str(player_fights_count) + " combats\n"
+        ret_print_player += str(player_fights_score) + " pts en " + str(player_fights_count) + " combats\n"
+        lines_player.append(ret_print_player)
 
+    for line in sorted(lines_player, key=lambda x: x.lower()):
+        ret_print_tb_status += line
+
+    ret_print_tb_status+="---------------\n"
     if "Ships" in list_deployment_types:
         ret_print_tb_status += "Reste à déployer ships : "+str(remaining_ship_deploy)+"\n"
     if "Chars" in list_deployment_types:
@@ -4474,7 +4487,14 @@ def print_tb_status(guildName, targets_zone_stars):
 
     #zone stats
     for target_zone_stars in targets_zone_stars.split(" "):
-        conflict = "conflict0" + target_zone_stars[0]
+        target_zone_name = target_zone_stars.split(":")[0]
+        target_stars = int(target_zone_stars.split(":")[1])
+
+        if target_zone_name in dict_tb[tb_type]["ZoneNames"]:
+            conflict = dict_tb[tb_type]["ZoneNames"][target_zone_name]
+        else:
+            return 1, "Zone inconnue: " + target_zone_name + " " + str(list(dict_tb[tb_type]["ZoneNames"].keys())), None
+
         for zone_name in dict_open_zones:
             if conflict in zone_name:
                 break
@@ -4493,7 +4513,6 @@ def print_tb_status(guildName, targets_zone_stars):
         score_with_estimated_strikes = current_score + estimated_strike_score
         ret_print_tb_status+="Adding average fights: "+str(round(score_with_estimated_strikes/1000000, 1))+"\n"
 
-        target_stars = int(target_zone_stars[2])
         target_star_score = dict_tb[zone_name]["Scores"][target_stars-1]
         if dict_tb[zone_name]["Type"] == "Ships":
             deploy_consumption = max(0, min(remaining_ship_deploy, target_star_score - score_with_estimated_strikes))
@@ -4556,6 +4575,7 @@ def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, p
     zone_img_draw.line([(x_end, 80), (x_end, 120+20*position)], fill="black", width=0)
 
     end_score_txt = "{:,}".format(end_score)
+    end_score_txt = str(round(end_score/1000000, 1))
     if end_score < max_score/2:
         x_txt = x_end +5
     else:
