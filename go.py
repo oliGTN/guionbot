@@ -4049,7 +4049,7 @@ def tag_tb_undeployed_players(guildName):
         return 1, et, None
 
     dict_guild=rpc_data[0]
-    dict_all_events=rpc_data[2]
+    mapstats=rpc_data[1]
 
     dict_members_by_id={}
     for member in dict_guild["Member"]:
@@ -4059,12 +4059,9 @@ def tag_tb_undeployed_players(guildName):
     for battleStatus in dict_guild["TerritoryBattleStatus"]:
         if battleStatus["Selected"]:
             battle_id = battleStatus["InstanceId"]
+            tb_round = battleStatus["CurrentRound"]
             goutils.log2("DBG", "Selected TB = "+battle_id)
             tb_ongoing=True
-            tb_type = battleStatus["DefinitionId"]
-            tb_round_endTime = int(battleStatus["CurrentRoundEndTime"])
-            tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
-            dict_events=dict_all_events[battle_id]
             break
 
     if not tb_ongoing:
@@ -4080,12 +4077,8 @@ def tag_tb_undeployed_players(guildName):
 
     for playername_gp in list_playername_gp:
         dict_tb_players[playername_gp[0]] = {}
-        dict_tb_players[playername_gp[0]]["char_gp"] = playername_gp[1]
-        dict_tb_players[playername_gp[0]]["ship_gp"] = playername_gp[2]
         dict_tb_players[playername_gp[0]]["mix_gp"] = playername_gp[1] + playername_gp[2]
-        dict_tb_players[playername_gp[0]]["score"] = {"DeployedShips": 0,
-                                                      "DeployedChars": 0,
-                                                      "DeployedMix": 0}
+        dict_tb_players[playername_gp[0]]["score"] = {"Deployed": 0}
 
     for zone in battleStatus["ConflictZoneStatus"]:
         if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
@@ -4093,40 +4086,13 @@ def tag_tb_undeployed_players(guildName):
             zone_score = int(zone["ZoneStatus"]["Score"])
             dict_open_zones[zone_name] = {"Score": zone_score}
 
-    for event_id in dict_events:
-        event=dict_events[event_id]
-        event_time = int(event["Timestamp"])
-        if event_time < tb_round_startTime:
-            #event on same zone but bduring previous round
-            continue
-
-        playerName = event["AuthorName"]
-
-        for event_data in event["Data"]:
-            if "ZoneData" in event_data["Activity"]:
-                ZoneData_key = "ZoneData"
-            elif "ZoneData2" in event_data["Activity"]:
-                ZoneData_key = "ZoneData2"
-            else:
-                goutils.log2("ERR", "Event without ZoneData: "+str(event))
-                continue
-
-            if "DEPLOY" in event_data["Activity"][ZoneData_key]["ActivityLogMessage"]["Key"]:
-                zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
-                if zone_name in dict_open_zones:
-                    score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
-                    if dict_tb[zone_name]["Type"] == "Ships":
-                        dict_tb_players[playerName]["score"]["DeployedShips"] += score
-                    elif dict_tb[zone_name]["Type"] == "Chars":
-                        dict_tb_players[playerName]["score"]["DeployedChars"] += score
-                    else:
-                        dict_tb_players[playerName]["score"]["DeployedMix"] += score
-
-    list_deployment_types = []
-    for zone in dict_open_zones:
-        zone_deployment_type = dict_tb[zone_name]["Type"]
-        if not zone_deployment_type in list_deployment_types:
-            list_deployment_types.append(zone_deployment_type)
+    for mapstat in mapstats:
+        if mapstat["MapStatId"] == "power_round_"+str(tb_round):
+            for playerstat in mapstat["PlayerStat"]:
+                member_id = playerstat["MemberId"]
+                playerName = dict_members_by_id[member_id]
+                score = int(playerstat["score"])
+                dict_tb_players[playerName]["score"]["Deployed"] = score
 
     #count remaining players
     lines_player = []
@@ -4135,25 +4101,10 @@ def tag_tb_undeployed_players(guildName):
 
         ret_print_player = ""
 
-        if "Ships" in list_deployment_types:
-            ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
-            if ratio_deploy_ships < 0.99:
-                undeployed_player = True
-            ret_print_player += "ships: "+"{:,}".format(dict_tb_players[playerName]["score"]["DeployedShips"]) \
-                              + "/" + "{:,}".format(dict_tb_players[playerName]["ship_gp"]) + " "
-
-        if "Chars" in list_deployment_types:
-            ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
-            if ratio_deploy_chars < 0.99:
-                undeployed_player = True
-            ret_print_player += "chars: "+"{:,}".format(dict_tb_players[playerName]["score"]["DeployedShips"]) \
-                              + "/" + "{:,}".format(dict_tb_players[playerName]["ship_gp"]) + " "
-
-        if "Mix" in list_deployment_types:
-            ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
-            if ratio_deploy_mix < 0.99:
-                undeployed_player = True
-            ret_print_player += "{:,}".format(dict_tb_players[playerName]["score"]["DeployedMix"]) \
+        ratio_deploy_mix = dict_tb_players[playerName]["score"]["Deployed"] / dict_tb_players[playerName]["mix_gp"]
+        if ratio_deploy_mix < 0.99:
+            undeployed_player = True
+        ret_print_player += "{:,}".format(dict_tb_players[playerName]["score"]["Deployed"]) \
                               +"/" + "{:,}".format(dict_tb_players[playerName]["mix_gp"]) + " "
 
         if undeployed_player:
@@ -4210,6 +4161,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         dict_tb_players[playername_gp[0]]["score"] = {"DeployedShips": 0,
                                                       "DeployedChars": 0,
                                                       "DeployedMix": 0,
+                                                      "Deployed": 0,
                                                       "Platoons": 0,
                                                       "Strikes": 0} 
         dict_tb_players[playername_gp[0]]["Strikes"] = []
@@ -4223,11 +4175,11 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     for event_id in dict_events:
         event=dict_events[event_id]
         event_time = int(event["Timestamp"])
+        playerName = event["AuthorName"]
+
         if event_time < tb_round_startTime:
             #event on same zone but bduring previous round
             continue
-
-        playerName = event["AuthorName"]
 
         for event_data in event["Data"]:
             if "ZoneData" in event_data["Activity"]:
@@ -4238,7 +4190,8 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                 goutils.log2("ERR", "Event without ZoneData: "+str(event))
                 continue
 
-            if "CONFLICT_CONTRIBUTION" in event_data["Activity"][ZoneData_key]["ActivityLogMessage"]["Key"]:
+            event_key = event_data["Activity"][ZoneData_key]["ActivityLogMessage"]["Key"]
+            if "CONFLICT_CONTRIBUTION" in event_key:
                 zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
                 strike_name = event_data["Activity"][ZoneData_key]["SourceZoneId"]
                 if zone_name in dict_open_zones:
@@ -4253,13 +4206,13 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                     strike_shortname="_".join(strike_name.split("_")[-2:])
                     dict_tb_players[playerName]["Strikes"].append(strike_shortname)
 
-            elif "RECON_CONTRIBUTION" in event_data["Activity"][ZoneData_key]["ActivityLogMessage"]["Key"]:
+            elif "RECON_CONTRIBUTION" in event_key:
                 zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
                 if zone_name in dict_open_zones:
                     score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
                     dict_tb_players[playerName]["score"]["Platoons"] += score
 
-            elif "DEPLOY" in event_data["Activity"][ZoneData_key]["ActivityLogMessage"]["Key"]:
+            elif "DEPLOY" in event_key:
                 zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
                 if zone_name in dict_open_zones:
                     score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
@@ -4279,6 +4232,15 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
 
                 while len(dict_tb_players[playerName]["Strikes"]) < attempts:
                     dict_tb_players[playerName]["Strikes"].append("?")
+
+        elif mapstat["MapStatId"] == "power_round_"+str(tb_round):
+            for playerstat in mapstat["PlayerStat"]:
+                member_id = playerstat["MemberId"]
+                playerName = dict_members_by_id[member_id]
+                score = int(playerstat["score"])
+                dict_tb_players[playerName]["score"]["Deployed"] = score
+                if dict_tb_players[playerName]["score"]["Deployed"] != dict_tb_players[playerName]["score"]["DeployedMix"]:
+                    goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
 
     remaining_ship_deploy = 0
     remaining_char_deploy = 0
