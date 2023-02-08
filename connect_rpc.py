@@ -115,11 +115,35 @@ def parse_tb_platoons(guildName):
     dict_tb["geonosis_republic_phase04_conflict02_recon01"] = "GLS4-mid"
     dict_tb["geonosis_republic_phase04_conflict03_recon01"] = "GLS4-bot"
 
-    err_code, err_txt, [dict_guild, mapstats_json, dict_events] = get_rpc_data(guildName)
+    dict_tb["t05D"] = "ROTE"
+    dict_tb["tb3_mixed_phase01_conflict01_recon01"] = "ROTE1-LS"
+    dict_tb["tb3_mixed_phase01_conflict02_recon01"] = "ROTE1-DS"
+    dict_tb["tb3_mixed_phase01_conflict03_recon01"] = "ROTE1-MS"
+    dict_tb["tb3_mixed_phase02_conflict01_recon01"] = "ROTE2-LS"
+    dict_tb["tb3_mixed_phase02_conflict02_recon01"] = "ROTE2-DS"
+    dict_tb["tb3_mixed_phase02_conflict03_recon01"] = "ROTE2-MS"
+    dict_tb["tb3_mixed_phase03_conflict01_recon01"] = "ROTE3-LS"
+    dict_tb["tb3_mixed_phase03_conflict02_recon01"] = "ROTE3-DS"
+    dict_tb["tb3_mixed_phase03_conflict03_recon01"] = "ROTE3-MS"
+    dict_tb["tb3_mixed_phase04_conflict01_recon01"] = "ROTE4-LS"
+    dict_tb["tb3_mixed_phase04_conflict02_recon01"] = "ROTE4-DS"
+    dict_tb["tb3_mixed_phase04_conflict03_recon01"] = "ROTE4-MS"
+    dict_tb["tb3_mixed_phase05_conflict01_recon01"] = "ROTE5-LS"
+    dict_tb["tb3_mixed_phase05_conflict02_recon01"] = "ROTE5-DS"
+    dict_tb["tb3_mixed_phase05_conflict03_recon01"] = "ROTE5-MS"
+    dict_tb["tb3_mixed_phase06_conflict01_recon01"] = "ROTE6-LS"
+    dict_tb["tb3_mixed_phase06_conflict02_recon01"] = "ROTE6-DS"
+    dict_tb["tb3_mixed_phase06_conflict03_recon01"] = "ROTE6-MS"
+
+    err_code, err_txt, rpc_data = get_rpc_data(guildName)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return '', None, None, 0
+
+    dict_guild = rpc_data[0]
+    mapstats_json = rpc_data[1]
+    dict_events = rpc_data[2]
 
     dict_member_by_id = {}
     for member in dict_guild["Member"]:
@@ -131,6 +155,9 @@ def parse_tb_platoons(guildName):
         if battleStatus["Selected"]:
             active_round = dict_tb[battleStatus["DefinitionId"]] + str(battleStatus["CurrentRound"])
 
+            if active_round == 0:
+                return '', None, None, 0
+
             for zone in battleStatus["ReconZoneStatus"]:
                 zone_name = zone["ZoneStatus"]["ZoneId"]
 
@@ -141,7 +168,10 @@ def parse_tb_platoons(guildName):
                     list_open_territories[zone_position-1] = zone_phase
 
                 for platoon in zone["Platoon"]:
-                    platoon_name = dict_tb[zone_name] + "-" + platoon["Id"][-1]
+                    platoon_num = int(platoon["Id"][-1])
+                    platoon_num_corrected = 7 - platoon_num
+                    platoon_num_txt = str(platoon_num_corrected)
+                    platoon_name = dict_tb[zone_name] + "-" + platoon_num_txt
                     dict_platoons[platoon_name] = {}
 
                     for squad in platoon["Squad"]:
@@ -157,5 +187,7 @@ def parse_tb_platoons(guildName):
                             if player_id != '':
                                 player_name = dict_member_by_id[player_id]
                                 dict_platoons[platoon_name][unit_name].append(player_name)
+                            else:
+                                dict_platoons[platoon_name][unit_name].append('')
 
     return active_round, dict_platoons, list_open_territories, 0
