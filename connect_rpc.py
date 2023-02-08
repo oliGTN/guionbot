@@ -2,12 +2,13 @@ import subprocess
 import os
 import json
 import re
+import threading
 
 import goutils
 import data
 
 dict_bot_accounts = {}
-dict_bot_accounts["Kangoo Legends"] = {"Name": "Warstat", "Locked": False}
+dict_bot_accounts["Kangoo Legends"] = {"Name": "Warstat", "Locked": False, "sem": threading.Semaphore()}
 
 def lock_bot_account(guildName):
     if not guildName in dict_bot_accounts:
@@ -29,6 +30,8 @@ def get_rpc_data(guildName):
     if dict_bot_accounts[guildName]["Locked"]:
         return 1, "The bot account is being used... please wait or unlock it", None
 
+    dict_bot_accounts[guildName]["sem"].acquire()
+
     process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
     goutils.log2("DBG", "getguild code="+str(process.returncode))
     guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+bot_playerName+".json", "r"))
@@ -46,9 +49,9 @@ def get_rpc_data(guildName):
         dict_new_events = {}
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TB"])
-    goutils.log2("ERR", "getmapstats code="+str(process.returncode))
+    goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json"):
-        TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json", "r"))["CurrentStat"]
+        TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json", "r"))
         if "CurrentStat" in TBmapstats_json:
             dict_TBmapstats = TBmapstats_json["CurrentStat"]
         else:
@@ -57,9 +60,9 @@ def get_rpc_data(guildName):
         dict_TBmapstats = {}
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TW"])
-    goutils.log2("ERR", "getmapstats code="+str(process.returncode))
+    goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json"):
-        TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json", "r"))["CurrentStat"]
+        TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json", "r"))
         if "CurrentStat" in TWmapstats_json:
             dict_TWmapstats = TWmapstats_json["CurrentStat"]
         else:
@@ -92,6 +95,8 @@ def get_rpc_data(guildName):
         f=open(fevents, "w")
         f.write(json.dumps(dict_events[event_battle_id], indent=4))
         f.close()
+
+    dict_bot_accounts[guildName]["sem"].release()
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
