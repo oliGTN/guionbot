@@ -4392,7 +4392,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
 
         score_with_estimated_strikes = current_score + estimated_strike_score
         if compute_estimated_fights:
-            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strikes/1000000, 1))+"\n"
+            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"\n"
 
         target_star_score = dict_tb[zone_name]["Scores"][target_stars-1]
         if dict_tb[zone_name]["Type"] == "Ships":
