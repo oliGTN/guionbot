@@ -135,11 +135,15 @@ def parse_tb_platoons(guildName):
     dict_tb["tb3_mixed_phase06_conflict02_recon01"] = "ROTE6-DS"
     dict_tb["tb3_mixed_phase06_conflict03_recon01"] = "ROTE6-MS"
 
-    err_code, err_txt, [dict_guild, mapstats_json, dict_events] = get_rpc_data(guildName)
+    err_code, err_txt, rpc_data = get_rpc_data(guildName)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return '', None, None, 0
+
+    dict_guild = rpc_data[0]
+    mapstats_json = rpc_data[1]
+    dict_events = rpc_data[2]
 
     dict_member_by_id = {}
     for member in dict_guild["Member"]:
