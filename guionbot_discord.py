@@ -2004,13 +2004,12 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         await ctx.message.add_reaction(emoji_thumb)
 
         options = list(args)
-        print (options)
         estimate_fights = False
         for arg in options:
-            if arg == "-estime":
+            if arg.startswith("-e"):
                 estimate_fights = True
                 options.remove(arg)
-        print (options)
+
         if len(options) != 1:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbs")
             await ctx.message.add_reaction(emoji_error)
