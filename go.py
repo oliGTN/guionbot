@@ -4139,22 +4139,22 @@ def tag_tb_undeployed_players(guildName):
             ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
             if ratio_deploy_ships < 0.99:
                 undeployed_player = True
-            ret_print_player += "ships: "+str(dict_tb_players[playerName]["score"]["DeployedShips"]) \
-                              + "/" + str(dict_tb_players[playerName]["ship_gp"]) + " "
+            ret_print_player += "ships: "+"{:,}".format(dict_tb_players[playerName]["score"]["DeployedShips"]) \
+                              + "/" + "{:,}".format(dict_tb_players[playerName]["ship_gp"]) + " "
 
         if "Chars" in list_deployment_types:
             ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
             if ratio_deploy_chars < 0.99:
                 undeployed_player = True
-            ret_print_player += "chars: "+str(dict_tb_players[playerName]["score"]["DeployedShips"]) \
-                              + "/" + str(dict_tb_players[playerName]["ship_gp"]) + " "
+            ret_print_player += "chars: "+"{:,}".format(dict_tb_players[playerName]["score"]["DeployedShips"]) \
+                              + "/" + "{:,}".format(dict_tb_players[playerName]["ship_gp"]) + " "
 
         if "Mix" in list_deployment_types:
             ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
             if ratio_deploy_mix < 0.99:
                 undeployed_player = True
-            ret_print_player += "mix: "+str(dict_tb_players[playerName]["score"]["DeployedMix"]) \
-                              +"/" + str(dict_tb_players[playerName]["mix_gp"]) + " "
+            ret_print_player += "{:,}".format(dict_tb_players[playerName]["score"]["DeployedMix"]) \
+                              +"/" + "{:,}".format(dict_tb_players[playerName]["mix_gp"]) + " "
 
         if undeployed_player:
             lines_player.append([playerName, ret_print_player])

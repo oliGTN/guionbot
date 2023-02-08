@@ -1989,7 +1989,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 output_txt += p_name+": "+txt+"\n"
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await ctx.send(txt)
+                await output_channel.send(txt)
 
             await ctx.message.add_reaction(emoji_check)
         else:
