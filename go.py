@@ -736,7 +736,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                     character_progress_100 = int(character_progress*100)
                     character_display += " - " + str(character_progress_100) +"%"
 
-                print(tab_progress_player)
+                #print(tab_progress_player)
                 tab_progress_player[i_subobj][i_character - 1][0] = character_progress
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
@@ -1411,8 +1411,8 @@ def print_ftj(txt_allyCode, team, server_name):
     ret_print_ftj = ""
 
     player_name, ret_get_team_progress = get_team_progress([team], txt_allyCode, server_name, 0, None, 2, {})
-    print(team)
-    print(ret_get_team_progress)
+    #print(team)
+    #print(ret_get_team_progress)
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
@@ -1422,7 +1422,7 @@ def print_ftj(txt_allyCode, team, server_name):
         return 1, "Team "+team+" not defined"
 
     ret_team = ret_get_team_progress[team]
-    print(ret_get_team_progress)
+    #print(ret_get_team_progress)
     if type(ret_team) == str:
         #error
         ret_print_ftj += ret_team
