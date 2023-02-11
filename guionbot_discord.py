@@ -1000,6 +1000,7 @@ async def on_reaction_add(reaction, user):
         and author == bot.user:
         list_alerts_sent_to_admin.remove(message.content)
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+        goutils.log2("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admins))
 
     #Manage reactions to PGS messages
     for [rgt_user, list_msg_sizes] in list_tw_opponent_msgIDs:
