@@ -31,7 +31,7 @@ def get_image_from_id(character_id):
         swgohgg_characters_url = 'http://api.swgoh.gg/characters'
         goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
         r = requests.get(swgohgg_characters_url, allow_redirects=True)
-        print(r.content[:200])
+        #print(r.content[:200])
         list_characters = json.loads(r.content.decode('utf-8'))
 
         swgohgg_ships_url = 'http://api.swgoh.gg/ships'
