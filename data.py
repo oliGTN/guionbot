@@ -111,6 +111,7 @@ dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["strike01"] = [4, 183
 dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["strike02"] = [4, 1837500]
 dict_tb["geonosis_republic_phase04_conflict03"]["Strikes"]["covert01"] = [4, 2388750]
 dict_tb["geonosis_republic_phase04_conflict03"]["Coverts"] = {}
+
 dict_tb["t05D"] = {"PhaseDuration": 86400000, "ZoneNames": {}}
 dict_tb["t05D"]["ZoneNames"]["DS"] = "conflict02"
 dict_tb["t05D"]["ZoneNames"]["MS"] = "conflict03"
@@ -148,6 +149,7 @@ dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike03"] = [2, 200000]
 dict_tb["tb3_mixed_phase01_conflict03"]["Strikes"]["strike04"] = [1, 400000]
 dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"] = {}
 dict_tb["tb3_mixed_phase01_conflict03"]["Coverts"]["covert01"] = [1]
+
 dict_tb["tb3_mixed_phase02_conflict01"] = {}
 dict_tb["tb3_mixed_phase02_conflict01"]["Name"] = "ROTE2-LS"
 dict_tb["tb3_mixed_phase02_conflict01"]["Type"] = "Mix"
@@ -180,6 +182,38 @@ dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike03"] = [2, 250000]
 dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike04"] = [2, 250000]
 dict_tb["tb3_mixed_phase02_conflict03"]["Strikes"]["strike05"] = [1, 500000]
 dict_tb["tb3_mixed_phase02_conflict03"]["Coverts"] = {}
+
+dict_tb["tb3_mixed_phase03_conflict01"] = {}
+dict_tb["tb3_mixed_phase03_conflict01"]["Name"] = "ROTE3-LS"
+dict_tb["tb3_mixed_phase03_conflict01"]["Type"] = "Mix"
+dict_tb["tb3_mixed_phase03_conflict01"]["Scores"] = [190953126, 305525000, 407366667]
+dict_tb["tb3_mixed_phase03_conflict01"]["Strikes"] = {}
+dict_tb["tb3_mixed_phase03_conflict01"]["Strikes"]["strike01"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict01"]["Strikes"]["strike02"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict01"]["Strikes"]["strike03"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict01"]["Strikes"]["strike04"] = [1, 682500]
+dict_tb["tb3_mixed_phase03_conflict01"]["Coverts"] = {}
+dict_tb["tb3_mixed_phase03_conflict02"] = {}
+dict_tb["tb3_mixed_phase03_conflict02"]["Name"] = "ROTE3-DS"
+dict_tb["tb3_mixed_phase03_conflict02"]["Type"] = "Mix"
+dict_tb["tb3_mixed_phase03_conflict02"]["Scores"] = [158960938, 254337500, 339116667]
+dict_tb["tb3_mixed_phase03_conflict02"]["Strikes"] = {}
+dict_tb["tb3_mixed_phase03_conflict02"]["Strikes"]["strike01"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict02"]["Strikes"]["strike02"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict02"]["Strikes"]["strike03"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict02"]["Strikes"]["strike04"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict02"]["Coverts"] = {}
+dict_tb["tb3_mixed_phase03_conflict03"] = {}
+dict_tb["tb3_mixed_phase03_conflict03"]["Name"] = "ROTE3-MS"
+dict_tb["tb3_mixed_phase03_conflict03"]["Type"] = "Mix"
+dict_tb["tb3_mixed_phase03_conflict03"]["Scores"] = [190953125, 305525000, 407366667]
+dict_tb["tb3_mixed_phase03_conflict03"]["Strikes"] = {}
+dict_tb["tb3_mixed_phase03_conflict03"]["Strikes"]["strike01"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict03"]["Strikes"]["strike03"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict03"]["Strikes"]["strike04"] = [2, 341250]
+dict_tb["tb3_mixed_phase03_conflict03"]["Strikes"]["strike05"] = [1, 682500]
+dict_tb["tb3_mixed_phase03_conflict03"]["Coverts"] = {}
+dict_tb["tb3_mixed_phase03_conflict03"]["Coverts"]["covert01"] = [1]
 
 dict_data={}
 def get(filename):
