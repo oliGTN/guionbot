@@ -4264,6 +4264,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                 dict_tb_players[playerName]["score"]["Deployed"] = score
                 if dict_tb_players[playerName]["score"]["Deployed"] != dict_tb_players[playerName]["score"]["DeployedMix"]:
                     goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
+                    dict_tb_players[playerName]["score"]["DeployedMix"] = dict_tb_players[playerName]["score"]["Deployed"]
 
     remaining_ship_deploy = 0
     remaining_char_deploy = 0
