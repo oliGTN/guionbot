@@ -156,6 +156,10 @@ def parse_tb_platoons(guildName):
 
     dict_unitsList = data.get("unitsList_dict.json")
 
+    if not "TerritoryBattleStatus" in dict_guild:
+        goutils.log2("WAR", "["+guildName+"] no TB in progress")
+        return '', None, None, 0
+
     for battleStatus in dict_guild["TerritoryBattleStatus"]:
         if battleStatus["Selected"]:
             active_round = dict_tb[battleStatus["DefinitionId"]] + str(battleStatus["CurrentRound"])

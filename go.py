@@ -253,7 +253,8 @@ def load_player(txt_allyCode, force_update, no_db):
                     txt_allyCode+", 'FRE_FR') has not returned a list")
             goutils.log2('ERR', player_data)
             sys.stdout.flush()
-            return 1, 'ERR: allyCode '+txt_allyCode+' not found', None
+            goutils.log2("WAR", 'Incorrect data from API. Using cache data from json')
+            dict_player = prev_dict_player
 
     else:
         goutils.log2('INFO', player_name + ' loaded from existing XML OK')
