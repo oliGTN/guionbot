@@ -436,7 +436,9 @@ class TBSListParser(HTMLParser):
         #6: en recherche de img
         #    if tb_alias found >> 7
         #    else >> 4
-        #7: end
+        #7: en recherche de <td class="text-center text-xsmall"
+        #8: en recherche de </td> ou <div class="stars hide-on-small-only"
+        #9: fin
 
         self.state_parser2=0
         #0: en recherche de <span id="track-timer"
@@ -497,6 +499,18 @@ class TBSListParser(HTMLParser):
                         else:
                             self.state_parser=4
 
+        if self.state_parser==7:
+            if tag=='td':
+                for name, value in attrs:
+                    if name=='class' and value=='text-center text-xsmall':
+                        self.state_parser=8
+
+        if self.state_parser==8:
+            if tag=='div':
+                for name, value in attrs:
+                    if name=='class' and value=='stars hide-on-small-only':
+                        self.state_parser=9
+
         #PARSER 2 pour le timer du tracker
         if self.state_parser2==0:
             if tag=='span':
@@ -507,6 +521,12 @@ class TBSListParser(HTMLParser):
         if self.state_parser2==1:
             if tag=='script':
                 self.state_parser2=2
+
+    def handle_endtag(self, tag):
+        if self.state_parser==8:
+            if tag=='td':
+                self.warstats_battle_in_progress=False
+                self.state_parser=9
 
     def handle_data(self, data):
         if self.state_parser==1:
@@ -538,7 +558,7 @@ class TBSListParser(HTMLParser):
         self.tb_alias = tb_alias
                 
 ###################################################################################
-# Parseing of a normale (resume) page for a specific phase in TB
+# Parsing of a normale (resume) page for a specific phase in TB
 ###################################################################################
 class TBSPhaseResumeParser(HTMLParser):
     def __init__(self):
