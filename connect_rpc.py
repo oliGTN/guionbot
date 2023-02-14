@@ -30,7 +30,9 @@ def get_rpc_data(guildName):
     if dict_bot_accounts[guildName]["Locked"]:
         return 1, "The bot account is being used... please wait or unlock it", None
 
+    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     dict_bot_accounts[guildName]["sem"].acquire()
+    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
     goutils.log2("DBG", "getguild code="+str(process.returncode))
@@ -96,7 +98,9 @@ def get_rpc_data(guildName):
         f.write(json.dumps(dict_events[event_battle_id], indent=4))
         f.close()
 
+    goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     dict_bot_accounts[guildName]["sem"].release()
+    goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
