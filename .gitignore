@@ -14,5 +14,6 @@ GUILDS
 EVENTS/*
 EVENTS
 CACHE/*
+CACHE
 SCRIPTS/__pycache__/*
 __pycache__/*
