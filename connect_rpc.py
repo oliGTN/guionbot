@@ -3,31 +3,36 @@ import os
 import json
 import re
 import threading
+import time
 
 import goutils
 import data
 
 dict_bot_accounts = {}
-dict_bot_accounts["Kangoo Legends"] = {"Name": "Warstat", "Locked": False, "sem": threading.Semaphore()}
+dict_bot_accounts["Kangoo Legends"] = {"Name": "Warstat", "LockedUntil": 0, "sem": threading.Semaphore()}
 
 def lock_bot_account(guildName):
     if not guildName in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
-    dict_bot_accounts[guildName]["Locked"] = True
+    dict_bot_accounts[guildName]["LockedUntil"] = int(time.time()+3600)
     return 0, ""
 
 def unlock_bot_account(guildName):
     if not guildName in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
-    dict_bot_accounts[guildName]["Locked"] = False
+    dict_bot_accounts[guildName]["LockedUntil"] = 0
     return 0, ""
+
+def islocked_bot_account(guildName):
+    is_locked = (dict_bot_accounts[guildName]["LockedUntil"] > int(time.time()))
+    return is_locked
 
 def get_rpc_data(guildName):
     if not guildName in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]", None
     bot_playerName = dict_bot_accounts[guildName]["Name"]
 
-    if dict_bot_accounts[guildName]["Locked"]:
+    if islocked_bot_account(guildName):
         return 1, "The bot account is being used... please wait or unlock it", None
 
     goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
