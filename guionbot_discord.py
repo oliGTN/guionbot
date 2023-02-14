@@ -1122,7 +1122,13 @@ async def on_typing(channel, user, when):
 @bot.event
 async def on_message_delete(message):
     #Unable to detect who is deleting a message
-    pass
+    if isinstance(message.channel, GroupChannel):
+        channel_name = message.channel.name
+    else:
+        channel_name = "DM"
+
+    goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
+                         "BEFORE:\n" + message.content)
 
 @bot.event
 async def on_message_edit(before, after):
