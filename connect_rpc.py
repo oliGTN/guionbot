@@ -187,6 +187,8 @@ def parse_tb_platoons(guildName):
                     zone_position = int(ret_re.group(2))
                     zone_phase = int(ret_re.group(1))
                     list_open_territories[zone_position-1] = zone_phase
+                if not "Platoon" in zone:
+                    continue
 
                 for platoon in zone["Platoon"]:
                     platoon_num = int(platoon["Id"][-1])
