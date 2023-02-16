@@ -49,9 +49,12 @@ def get_rpc_data(guildName):
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
     goutils.log2("DBG", "getevents code="+str(process.returncode))
-    events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json", "r"))
-    if "Event" in events_json:
-        dict_new_events = events_json["Event"]
+    if os.path.exists("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json"):
+        events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json", "r"))
+        if "Event" in events_json:
+            dict_new_events = events_json["Event"]
+        else:
+            dict_new_events = {}
     else:
         dict_new_events = {}
 
