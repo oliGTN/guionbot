@@ -655,3 +655,13 @@ def load_new_tb():
     return dict_zones, dict_toons
     
 ##############################################################
+def update_gwarstats(guild_name, dict_tb):
+    try:
+        get_gapi_client()
+        file = client.open(guild_name)
+        feuille=file.worksheet("BT graphs")
+    except:
+        goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+        return
+
+    feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
