@@ -4152,6 +4152,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_open_zones = {}
+    dict_phase = {"Round": tb_round}
     list_images = []
 
     for playername_gp in list_playername_gp:
@@ -4276,6 +4277,10 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         remaining_char_deploy += playerData["char_gp"] - playerData["score"]["DeployedChars"]
         remaining_mix_deploy += playerData["mix_gp"] - playerData["score"]["DeployedMix"]
         
+    dict_phase = ["ShipDeploy"] = remaining_ship_deploy
+    dict_phase = ["CharDeploy"] = remaining_char_deploy
+    dict_phase = ["MixDeploy"] = remaining_mix_deploy
+
     list_deployment_types = []
     for zone in dict_open_zones:
         zone_deployment_type = dict_tb[zone_name]["Type"]
@@ -4343,6 +4348,10 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         ret_print_player += str(player_fights_score) + " pts en " + str(player_fights_count) + " combats\n"
         lines_player.append(ret_print_player)
 
+    dict_phase = ["ShipPlayers"] = remaining_to_play_ships
+    dict_phase = ["CharPlayers"] = remaining_to_play_chars
+    dict_phase = ["MixPlayers"] = remaining_to_play_mix
+
     for line in sorted(lines_player, key=lambda x: x.lower()):
         ret_print_tb_status += line
 
@@ -4371,11 +4380,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
             if conflict in zone_name:
                 break
 
-        ret_print_tb_status+="---------------\n"
-        ret_print_tb_status+=dict_tb[zone_name]["Name"]+"\n"
         current_score = dict_open_zones[zone_name]["Score"]
-        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"\n"
-
 
         estimated_strike_score = 0
         max_strike_score = 0
@@ -4390,11 +4395,11 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
             cur_strike_fights += dict_strike_zones[strike_name]["Participation"]
             cur_strike_score += dict_strike_zones[strike_name]["EventStrikeScore"]
 
-        ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+" in "+str(cur_strike_fights)+" fights)\n"
+        dict_open_zones[zone_name]["StrikeScore"] = cur_strike_score
+        dict_open_zones[zone_name]["StrikeFights"] = cur_strike_fights
+        dict_open_zones[zone_name]["EstimatedStrikeScore"] = estimated_strike_score
 
         score_with_estimated_strikes = current_score + estimated_strike_score
-        if compute_estimated_fights:
-            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"\n"
 
         target_star_score = dict_tb[zone_name]["Scores"][target_stars-1]
         if dict_tb[zone_name]["Type"] == "Ships":
@@ -4407,13 +4412,42 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
             deploy_consumption = max(0, min(remaining_mix_deploy, target_star_score - score_with_estimated_strikes))
             remaining_mix_deploy -= deploy_consumption
 
+        dict_open_zones[zone_name]["Deployment"] = deploy_consumption
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
-        ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"\n"
 
         star_for_score=0
         for star_score in dict_tb[zone_name]["Scores"]:
             if score_with_estimations >= star_score:
                 star_for_score += 1
+        dict_open_zones[zone_name]["Stars"] = star_for_score
+
+    for target_zone_stars in targets_zone_stars.split(" "):
+        target_zone_name = target_zone_stars.split(":")[0]
+        conflict = dict_tb[tb_type]["ZoneNames"][target_zone_name]
+        for zone_name in dict_open_zones:
+            if conflict in zone_name:
+                break
+
+        ret_print_tb_status+="---------------\n"
+        ret_print_tb_status+=dict_tb[zone_name]["Name"]+"\n"
+
+        current_score = dict_open_zones[zone_name]["Score"]
+        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"\n"
+
+        cur_strike_score = dict_open_zones[zone_name]["StrikeScore"]
+        cur_strike_fights = dict_open_zones[zone_name]["StrikeFights"]
+        ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+" in "+str(cur_strike_fights)+" fights)\n"
+
+        estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
+        score_with_estimated_strikes = current_score + estimated_strike_score
+        if compute_estimated_fights:
+            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"\n"
+
+        deploy_consumption = dict_open_zones[zone_name]["Deployment"]
+        score_with_estimations = score_with_estimated_strikes + deploy_consumption
+        ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"\n"
+
+        star_for_score = dict_open_zones[zone_name]["Stars"]
         ret_print_tb_status+=">> Zone result: "+str(star_for_score)+" stars\n"
 
         #create image
@@ -4421,8 +4455,6 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                                  current_score, estimated_strike_score, deploy_consumption,
                                  max_strike_score)
         list_images.append(img)
-
-
 
     #prepare txt
     #for player in sorted(dict_tb_players.keys(), key=lambda x: x.lower()):
