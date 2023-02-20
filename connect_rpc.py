@@ -174,7 +174,9 @@ def parse_tb_platoons(guildName):
 
     for battleStatus in dict_guild["TerritoryBattleStatus"]:
         if battleStatus["Selected"]:
-            active_round = dict_tb[battleStatus["DefinitionId"]] + str(battleStatus["CurrentRound"])
+            tb_id = battleStatus["DefinitionId"]
+            tb_name = dict_tb[tb_id]
+            active_round = tb_name + str(battleStatus["CurrentRound"])
 
             if active_round == 0:
                 return '', None, None, 0
@@ -192,7 +194,11 @@ def parse_tb_platoons(guildName):
 
                 for platoon in zone["Platoon"]:
                     platoon_num = int(platoon["Id"][-1])
-                    platoon_num_corrected = 7 - platoon_num
+                    if tb_name == "ROTE":
+                        platoon_num_corrected = 7 - platoon_num
+                    else:
+                        platoon_num_corrected = platoon_num
+
                     platoon_num_txt = str(platoon_num_corrected)
                     platoon_name = dict_tb[zone_name] + "-" + platoon_num_txt
                     dict_platoons[platoon_name] = {}

@@ -4179,11 +4179,15 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
             strike_name = zone["ZoneStatus"]["ZoneId"]
             strike_shortname = strike_name.split("_")[-1]
+            if strike_shortname.startswith("covert"):
+                continue
+
             zone_name = strike_name[:-len(strike_shortname)-1]
 
             done_strikes = zone["PlayersParticipated"]
             score = int(zone["ZoneStatus"]["Score"])
             not_done_strikes = total_players_guild - done_strikes
+            print(zone_name)
             remaining_fight = not_done_strikes * dict_tb[zone_name]["Strikes"][strike_shortname][1]
             if not strike_name in dict_strike_zones:
                 dict_strike_zones[strike_name] = {}
@@ -4250,13 +4254,14 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
 
     for mapstat in mapstats:
         if mapstat["MapStatId"] == "strike_attempt_round_"+str(tb_round):
-            for playerstat in mapstat["PlayerStat"]:
-                member_id = playerstat["MemberId"]
-                playerName = dict_members_by_id[member_id]
-                attempts = int(playerstat["score"])
+            if "PlayerStat" in mapstat:
+                for playerstat in mapstat["PlayerStat"]:
+                    member_id = playerstat["MemberId"]
+                    playerName = dict_members_by_id[member_id]
+                    attempts = int(playerstat["score"])
 
-                while len(dict_tb_players[playerName]["Strikes"]) < attempts:
-                    dict_tb_players[playerName]["Strikes"].append("?")
+                    while len(dict_tb_players[playerName]["Strikes"]) < attempts:
+                        dict_tb_players[playerName]["Strikes"].append("?")
 
         elif mapstat["MapStatId"] == "power_round_"+str(tb_round):
             for playerstat in mapstat["PlayerStat"]:
@@ -4266,6 +4271,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                 dict_tb_players[playerName]["score"]["Deployed"] = score
                 if dict_tb_players[playerName]["score"]["Deployed"] != dict_tb_players[playerName]["score"]["DeployedMix"]:
                     goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
+                    goutils.log2("WAR", "("+str(dict_tb_players[playerName]["score"]["DeployedMix"])+" vs "+str(dict_tb_players[playerName]["score"]["Deployed"])+")")
                     dict_tb_players[playerName]["score"]["DeployedMix"] = dict_tb_players[playerName]["score"]["Deployed"]
 
     remaining_ship_deploy = 0
@@ -4277,9 +4283,9 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         remaining_char_deploy += playerData["char_gp"] - playerData["score"]["DeployedChars"]
         remaining_mix_deploy += playerData["mix_gp"] - playerData["score"]["DeployedMix"]
         
-    dict_phase = ["ShipDeploy"] = remaining_ship_deploy
-    dict_phase = ["CharDeploy"] = remaining_char_deploy
-    dict_phase = ["MixDeploy"] = remaining_mix_deploy
+    dict_phase["ShipDeploy"] = remaining_ship_deploy
+    dict_phase["CharDeploy"] = remaining_char_deploy
+    dict_phase["MixDeploy"] = remaining_mix_deploy
 
     list_deployment_types = []
     for zone in dict_open_zones:
@@ -4348,9 +4354,9 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         ret_print_player += str(player_fights_score) + " pts en " + str(player_fights_count) + " combats\n"
         lines_player.append(ret_print_player)
 
-    dict_phase = ["ShipPlayers"] = remaining_to_play_ships
-    dict_phase = ["CharPlayers"] = remaining_to_play_chars
-    dict_phase = ["MixPlayers"] = remaining_to_play_mix
+    dict_phase["ShipPlayers"] = remaining_to_play_ships
+    dict_phase["CharPlayers"] = remaining_to_play_chars
+    dict_phase["MixPlayers"] = remaining_to_play_mix
 
     for line in sorted(lines_player, key=lambda x: x.lower()):
         ret_print_tb_status += line
