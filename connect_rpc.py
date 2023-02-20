@@ -121,16 +121,16 @@ def parse_tb_platoons(guildName):
     dict_tb["t04D"] = "GLS"
     dict_tb["geonosis_republic_phase01_conflict01_recon01"] = "GLS1-top"
     dict_tb["geonosis_republic_phase01_conflict02_recon01"] = "GLS1-mid"
-    dict_tb["geonosis_republic_phase01_conflict03_recon01"] = "GLS1-bot"
+    dict_tb["geonosis_republic_phase01_conflict03_recon01"] = "GLS1-bottom"
     dict_tb["geonosis_republic_phase02_conflict01_recon01"] = "GLS2-top"
     dict_tb["geonosis_republic_phase02_conflict02_recon01"] = "GLS2-mid"
-    dict_tb["geonosis_republic_phase02_conflict03_recon01"] = "GLS2-bot"
+    dict_tb["geonosis_republic_phase02_conflict03_recon01"] = "GLS2-bottom"
     dict_tb["geonosis_republic_phase03_conflict01_recon01"] = "GLS3-top"
     dict_tb["geonosis_republic_phase03_conflict02_recon01"] = "GLS3-mid"
-    dict_tb["geonosis_republic_phase03_conflict03_recon01"] = "GLS3-bot"
+    dict_tb["geonosis_republic_phase03_conflict03_recon01"] = "GLS3-bottom"
     dict_tb["geonosis_republic_phase04_conflict01_recon01"] = "GLS4-top"
     dict_tb["geonosis_republic_phase04_conflict02_recon01"] = "GLS4-mid"
-    dict_tb["geonosis_republic_phase04_conflict03_recon01"] = "GLS4-bot"
+    dict_tb["geonosis_republic_phase04_conflict03_recon01"] = "GLS4-bottom"
 
     dict_tb["t05D"] = "ROTE"
     dict_tb["tb3_mixed_phase01_conflict01_recon01"] = "ROTE1-LS"
@@ -174,7 +174,9 @@ def parse_tb_platoons(guildName):
 
     for battleStatus in dict_guild["TerritoryBattleStatus"]:
         if battleStatus["Selected"]:
-            active_round = dict_tb[battleStatus["DefinitionId"]] + str(battleStatus["CurrentRound"])
+            tb_id = battleStatus["DefinitionId"]
+            tb_name = dict_tb[tb_id]
+            active_round = tb_name + str(battleStatus["CurrentRound"])
 
             if active_round == 0:
                 return '', None, None, 0
@@ -192,7 +194,11 @@ def parse_tb_platoons(guildName):
 
                 for platoon in zone["Platoon"]:
                     platoon_num = int(platoon["Id"][-1])
-                    platoon_num_corrected = 7 - platoon_num
+                    if tb_name=="ROTE":
+                        platoon_num_corrected = 7 - platoon_num
+                    else:
+                        platoon_num_corrected = platoon_num
+
                     platoon_num_txt = str(platoon_num_corrected)
                     platoon_name = dict_tb[zone_name] + "-" + platoon_num_txt
                     dict_platoons[platoon_name] = {}
