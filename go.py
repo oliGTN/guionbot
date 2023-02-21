@@ -4341,12 +4341,15 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     dict_phase["CharPlayers"] = remaining_to_play_chars
     dict_phase["MixPlayers"] = remaining_to_play_mix
 
-    return dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones
+    return 0, "", [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones]
 
 
 def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     dict_tb=data.dict_tb
-    dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones = get_tb_status(guildName, targets_zone_stars, compute_estimated_fights)
+    ec, et, [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = get_tb_status(guildName, targets_zone_stars, compute_estimated_fights)
+    if ec!=0:
+        return 1, et, None
+
     list_deployment_types = []
     for zone_name in dict_open_zones:
         zone_deployment_type = dict_tb[zone_name]["Type"]
