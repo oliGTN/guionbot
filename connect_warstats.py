@@ -438,7 +438,7 @@ class TBSListParser(HTMLParser):
         #    else >> 4
         #7: en recherche de <td class="text-center text-xsmall"
         #8: en recherche de </td> ou <div class="stars hide-on-small-only"
-        #9: fin
+        #9: fin // this value is referenced in get_battle_id()
 
         self.state_parser2=0
         #0: en recherche de <span id="track-timer"
@@ -543,7 +543,7 @@ class TBSListParser(HTMLParser):
                 
     def get_battle_id(self, force_latest):
         #If the oarser has not reached the end status, the required battle was not found
-        if self.state_parser!=7:
+        if self.state_parser!=9:
             return None
 
         if self.warstats_battle_in_progress or force_latest:
