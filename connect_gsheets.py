@@ -670,23 +670,25 @@ def update_gwarstats(guildName):
         return 1, et
 
     dict_tb = data.dict_tb
-    feuille.update('B1', dict_phase["Name"])
-    feuille.update('B2', dict_phase["Round"])
+    cells = []
+    cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["Name"]))
+    cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["Round"]))
+    print(cells)
 
     i_zone = 0
     for zone_fullname in dict_open_zones:
         zone = dict_open_zones[zone_fullname]
         zone_shortname = dict_tb[zone_fullname]["Name"]
         print(zone)
-        feuille.update_cell(4, 1+4*i_zone, zone_shortname)
+        cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=zone_shortname))
         zone_round = zone_fullname[-12]
         if zone_round == str(dict_phase["Round"]):
-            feuille.update_cell(4, 2+4*i_zone, "")
+            cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value=""))
         else:
-            feuille.update_cell(4, 2+4*i_zone, "!!! Phase "+zone_round)
+            cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value="!!! Phase "+zone_round))
 
         i_zone+=1
 
-    #feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
+    feuille.update_cells(cells)
 
     return 0, ""
