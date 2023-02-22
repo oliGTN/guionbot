@@ -16,6 +16,7 @@ import inspect
 import connect_mysql
 import goutils
 import data
+import go
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
@@ -655,13 +656,37 @@ def load_new_tb():
     return dict_zones, dict_toons
     
 ##############################################################
-def update_gwarstats(guild_name, dict_tb):
+def update_gwarstats(guildName):
     try:
         get_gapi_client()
-        file = client.open(guild_name)
+        file = client.open(guildName)
         feuille=file.worksheet("BT graphs")
     except:
         goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
         return
 
-    feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
+    ec, et, [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = go.get_tb_status(guildName, False, True)
+    if ec != 0:
+        return 1, et
+
+    dict_tb = data.dict_tb
+    feuille.update('B1', dict_phase["Name"])
+    feuille.update('B2', dict_phase["Round"])
+
+    i_zone = 0
+    for zone_fullname in dict_open_zones:
+        zone = dict_open_zones[zone_fullname]
+        zone_shortname = dict_tb[zone_fullname]["Name"]
+        print(zone)
+        feuille.update_cell(4, 1+4*i_zone, zone_shortname)
+        zone_round = zone_fullname[-12]
+        if zone_round == str(dict_phase["Round"]):
+            feuille.update_cell(4, 2+4*i_zone, "")
+        else:
+            feuille.update_cell(4, 2+4*i_zone, "!!! Phase "+zone_round)
+
+        i_zone+=1
+
+    #feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
+
+    return 0, ""
