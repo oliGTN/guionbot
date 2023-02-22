@@ -4045,7 +4045,7 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 def tag_tb_undeployed_players(guildName):
     dict_tb = data.dict_tb
 
-    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName)
+    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName, False)
     if ec!=0:
         return 1, et, None
 
@@ -4113,10 +4113,10 @@ def tag_tb_undeployed_players(guildName):
 
     return 0, "", lines_player
 
-def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
+def get_tb_status(guildName, compute_estimated_fights, use_cache_data):
     dict_tb=data.dict_tb
 
-    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName)
+    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName, use_cache_data)
     if ec!=0:
         return 1, et, None
 
@@ -4150,7 +4150,7 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_open_zones = {}
-    dict_phase = {"Id": battle_id, "Round": tb_round, "Type": tb_type}
+    dict_phase = {"Id": battle_id, "Round": tb_round, "Type": tb_type, "Name": dict_tb[tb_type]["Name"]}
 
     for playername_gp in list_playername_gp:
         dict_tb_players[playername_gp[0]] = {}
@@ -4346,7 +4346,7 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
 
 def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     dict_tb=data.dict_tb
-    ec, et, [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = get_tb_status(guildName, targets_zone_stars, compute_estimated_fights)
+    ec, et, [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = get_tb_status(guildName, compute_estimated_fights, False)
     if ec!=0:
         return 1, et, None
 
