@@ -27,28 +27,32 @@ def islocked_bot_account(guildName):
     is_locked = (dict_bot_accounts[guildName]["LockedUntil"] > int(time.time()))
     return is_locked
 
-def get_rpc_data(guildName):
+def get_rpc_data(guildName, use_cache_data):
     if not guildName in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]", None
     bot_playerName = dict_bot_accounts[guildName]["Name"]
 
     if islocked_bot_account(guildName):
-        return 1, "The bot account is being used... please wait or unlock it", None
+        use_cache_data = True
+        goutils.log2("WAR", "the bot account is being used... using cached data")
 
     goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     dict_bot_accounts[guildName]["sem"].acquire()
     goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
-    goutils.log2("DBG", "getguild code="+str(process.returncode))
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
+        goutils.log2("DBG", "getguild code="+str(process.returncode))
+
     guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+bot_playerName+".json", "r"))
     if "Guild" in guild_json:
         dict_guild = guild_json["Guild"]
     else:
         dict_guild = {}
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
-    goutils.log2("DBG", "getevents code="+str(process.returncode))
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
+        goutils.log2("DBG", "getevents code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json"):
         events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json", "r"))
         if "Event" in events_json:
@@ -58,8 +62,9 @@ def get_rpc_data(guildName):
     else:
         dict_new_events = {}
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TB"])
-    goutils.log2("DBG", "getmapstats code="+str(process.returncode))
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TB"])
+        goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json"):
         TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json", "r"))
         if "CurrentStat" in TBmapstats_json:
@@ -69,8 +74,9 @@ def get_rpc_data(guildName):
     else:
         dict_TBmapstats = {}
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TW"])
-    goutils.log2("DBG", "getmapstats code="+str(process.returncode))
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TW"])
+        goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json"):
         TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json", "r"))
         if "CurrentStat" in TWmapstats_json:
@@ -152,7 +158,7 @@ def parse_tb_platoons(guildName):
     dict_tb["tb3_mixed_phase06_conflict02_recon01"] = "ROTE6-DS"
     dict_tb["tb3_mixed_phase06_conflict03_recon01"] = "ROTE6-MS"
 
-    err_code, err_txt, rpc_data = get_rpc_data(guildName)
+    err_code, err_txt, rpc_data = get_rpc_data(guildName, False)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
