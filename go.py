@@ -4172,6 +4172,7 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
             dict_open_zones[zone_name] = {"Score": zone_score}
 
     total_players_guild = len(dict_tb_players)
+    dict_phase["TotalPlayers"] = total_players_guild
     for zone in battleStatus["StrikeZoneStatus"]:
         if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
             strike_name = zone["ZoneStatus"]["ZoneId"]
@@ -4346,14 +4347,14 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
         estimated_strike_score = 0
         max_strike_score = 0
         cur_strike_score = 0
-        cur_strike_fights = 0
+        cur_strike_fights = {}
         for strike in dict_tb[zone_name]["Strikes"]:
             strike_name = zone_name + "_" + strike
             if compute_estimated_fights:
                 estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
             max_strike_score += dict_strike_zones[strike_name]["MaxPossibleScore"]
 
-            cur_strike_fights += dict_strike_zones[strike_name]["Participation"]
+            cur_strike_fights[strike] = dict_strike_zones[strike_name]["Participation"]
             cur_strike_score += dict_strike_zones[strike_name]["EventStrikeScore"]
 
         dict_open_zones[zone_name]["StrikeScore"] = cur_strike_score
@@ -4361,6 +4362,12 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
         dict_open_zones[zone_name]["EstimatedStrikeScore"] = estimated_strike_score
         dict_open_zones[zone_name]["MaxStrikeScore"] = max_strike_score
         dict_open_zones[zone_name]["Deployment"] = 0
+
+        star_for_score=0
+        for star_score in dict_tb[zone_name]["Scores"]:
+            if current_score >= star_score:
+                star_for_score += 1
+        dict_open_zones[zone_name]["Stars"] = star_for_score
 
     #zone stats
     tb_type = dict_phase["Type"]
@@ -4455,7 +4462,7 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
         for star_score in dict_tb[zone_name]["Scores"]:
             if cur_score >= star_score:
                 star_for_score += 1
-        dict_open_zones[zone_name]["Stars"] = star_for_score
+        dict_open_zones[zone_name]["EstimatedStars"] = star_for_score
 
     return 0, "", [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones]
 
@@ -4532,7 +4539,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
         ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"\n"
 
         cur_strike_score = dict_open_zones[zone_name]["StrikeScore"]
-        cur_strike_fights = dict_open_zones[zone_name]["StrikeFights"]
+        cur_strike_fights = sum(dict_open_zones[zone_name]["StrikeFights"].values())
         estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
         max_strike_score = dict_open_zones[zone_name]["MaxStrikeScore"]
 
@@ -4546,7 +4553,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
         ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"\n"
 
-        star_for_score = dict_open_zones[zone_name]["Stars"]
+        star_for_score = dict_open_zones[zone_name]["EstimatedStars"]
         ret_print_tb_status+=">> Zone result: "+str(star_for_score)+" stars\n"
 
         #create image

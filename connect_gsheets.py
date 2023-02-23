@@ -657,6 +657,12 @@ def load_new_tb():
     
 ##############################################################
 def update_gwarstats(guildName):
+    ec, et, tb_data = go.get_tb_status(guildName, "", True, True)
+    if ec != 0:
+        return 1, et
+
+    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+
     try:
         get_gapi_client()
         file = client.open(guildName)
@@ -665,29 +671,89 @@ def update_gwarstats(guildName):
         goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
         return
 
-    ec, et, [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = go.get_tb_status(guildName, False, True)
-    if ec != 0:
-        return 1, et
-
     dict_tb = data.dict_tb
     cells = []
     cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["Name"]))
     cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["Round"]))
-    print(cells)
+    now = datetime.datetime.now()
+    cells.append(gspread.cell.Cell(row=1, col=8, value=now.strftime("%d/%m/%Y %H:%M:%S")))
 
     i_zone = 0
     for zone_fullname in dict_open_zones:
         zone = dict_open_zones[zone_fullname]
         zone_shortname = dict_tb[zone_fullname]["Name"]
-        print(zone)
         cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=zone_shortname))
+
         zone_round = zone_fullname[-12]
         if zone_round == str(dict_phase["Round"]):
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value=""))
         else:
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value="!!! Phase "+zone_round))
 
+        #zone scores (for the graph)
+        cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=zone["Score"]))
+        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["EstimatedStrikeScore"]))
+        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["Deployment"]))
+        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["MaxStrikeScore"]))
+
+        #zone stars
+        cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone["Stars"]))
+
+        #zone star scores
+        i_col = 1
+        for star_score in dict_tb[zone_fullname]["Scores"]:
+            cells.append(gspread.cell.Cell(row=12, col=1+i_col+4*i_zone, value=star_score))
+            i_col += 1
+
+        #zone strike stats
+        for line in [19, 20, 21, 22, 23]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value=""))
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=""))
+
+        line = 19
+        i_strike = 1
+        total_strikes=0
+        for strike in dict_tb[zone_fullname]["Strikes"]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="Strike "+str(i_strike)))
+            strike_val = str(zone["StrikeFights"][strike])+"/"+str(dict_phase["TotalPlayers"])
+            total_strikes += zone["StrikeFights"][strike]
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=strike_val))
+            i_strike+=1
+            line+=1
+        remaining_zone_strikes = (i_strike-1)*dict_phase["TotalPlayers"] - total_strikes
+        cells.append(gspread.cell.Cell(row=27, col=5+2*i_zone, value=remaining_zone_strikes))
+        cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=zone["MaxStrikeScore"]))
+
+        i_covert = 1
+        for strike in dict_tb[zone_fullname]["Coverts"]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="Special "+str(i_covert)))
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value="inconnu"))
+            i_covert+=1
+            line+=1
+
+        #strikes success
+        cells.append(gspread.cell.Cell(row=32, col=1+4*i_zone, value=zone["StrikeScore"]))
+        total_strikes_zone = sum(zone["StrikeFights"].values())
+        if total_strikes_zone == 0:
+            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=0))
+        else:
+            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=zone["StrikeScore"]/total_strikes_zone))
+        
         i_zone+=1
+
+    #global stats
+    #Remaining Deployments
+    if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+        cells.append(gspread.cell.Cell(row=26, col=1, value="Mix"))
+        cells.append(gspread.cell.Cell(row=26, col=2, value=""))
+        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableMixDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=2, value=""))
+    else:
+        cells.append(gspread.cell.Cell(row=26, col=1, value="Fleet"))
+        cells.append(gspread.cell.Cell(row=26, col=2, value="Squad"))
+        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableShipDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["AvailableCharDeploy"]))
+
 
     feuille.update_cells(cells)
 
