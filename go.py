@@ -4408,7 +4408,7 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
                 #deploy in the found zone
                 if min_zone_name != "":
                     deploy_value = min(min_dist_star, dict_remaining_deploy[zone_type])
-                    dict_open_zones[zone_name]["Deployment"] += deploy_value
+                    dict_open_zones[min_zone_name]["Deployment"] += deploy_value
                     dict_remaining_deploy[zone_type] -= deploy_value
 
     else:

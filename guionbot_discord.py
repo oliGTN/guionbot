@@ -226,18 +226,6 @@ async def bot_loop_60minutes():
     while not bot.is_closed():
         t_start = time.time()
 
-        try:
-            for guild in bot.guilds:
-                await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.name, False)
-                await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, guild.name)
-
-        except Exception as e:
-            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", str(sys.exc_info()[0]))
-            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", e)
-            goutils.log("ERR", "guionbot_discord.bot_loop_60minutes", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
-
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 60*60 - (t_end - t_start))
@@ -346,6 +334,18 @@ async def bot_loop_5minutes():
                 if not bot_test_mode:
                     await send_alert_to_admins(guild.name, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
+            #update RPC data before using different commands (tb alerts, tb_platoons)
+            try:
+                await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.name, False)
+                await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, guild.name)
+
+            except Exception as e:
+                goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
+                goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", e)
+                goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", traceback.format_exc())
+                if not bot_test_mode:
+                    await send_alert_to_admins(None, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+
             try:
                 if not guild.name in dict_tb_alerts_previously_done:
                     dict_tb_alerts_previously_done[guild.name] = []
@@ -387,7 +387,7 @@ async def bot_loop_5minutes():
                 #Check if guild can use RPC
                 if guild.name in connect_rpc.dict_bot_accounts:
                     tbs_round, dict_platoons_done, list_open_territories, \
-                        secs_track = connect_rpc.parse_tb_platoons(guild.name)
+                        secs_track = connect_rpc.parse_tb_platoons(guild.name, True)
                 else:
                     #Lecture du statut des pelotons sur warstats
                     tbs_round, dict_platoons_done, list_open_territories, \
@@ -1658,7 +1658,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
 
             tbs_round, dict_platoons_done, list_open_territories, \
-                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.name)
+                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.name, False)
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
         else:
             #Lecture du statut des pelotons sur warstats
@@ -2018,14 +2018,12 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 estimate_fights = True
                 options.remove(arg)
 
-        if len(options) != 1:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbs")
-            await ctx.message.add_reaction(emoji_error)
-            return
+        if len(options) == 0:
+            tb_phase_target = ""
+        else:
+            tb_phase_target = options[0]
 
-        tb_phase_target = options[0]
-
-        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target, estimate_fights)
+        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target, estimate_fights, False)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
