@@ -4042,82 +4042,66 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-def tag_tb_undeployed_players(guildName):
-    dict_tb = data.dict_tb
-
-    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName)
+def tag_tb_undeployed_players(guildName, use_cache_data):
+    dict_tb=data.dict_tb
+    ec, et, tb_data = get_tb_status(guildName, "", False, use_cache_data)
     if ec!=0:
         return 1, et, None
 
-    dict_guild=rpc_data[0]
-    mapstats=rpc_data[1]
+    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
 
-    dict_members_by_id={}
-    for member in dict_guild["Member"]:
-        dict_members_by_id[member["PlayerId"]] = member["PlayerName"]
-
-    tb_ongoing=False
-    for battleStatus in dict_guild["TerritoryBattleStatus"]:
-        if battleStatus["Selected"]:
-            battle_id = battleStatus["InstanceId"]
-            tb_round = battleStatus["CurrentRound"]
-            goutils.log2("DBG", "Selected TB = "+battle_id)
-            tb_ongoing=True
-            break
-
-    if not tb_ongoing:
-        return 1, "No TB on-going", None
-
-    query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName+"'"
-    list_playername_gp = connect_mysql.get_table(query)
-
-    dict_tb_players = {}
-    dict_strike_zones = {}
-    dict_open_zones = {}
-    list_images = []
-
-    for playername_gp in list_playername_gp:
-        dict_tb_players[playername_gp[0]] = {}
-        dict_tb_players[playername_gp[0]]["mix_gp"] = playername_gp[1] + playername_gp[2]
-        dict_tb_players[playername_gp[0]]["score"] = {"Deployed": 0}
-
-    for zone in battleStatus["ConflictZoneStatus"]:
-        if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
-            zone_name = zone["ZoneStatus"]["ZoneId"]
-            zone_score = int(zone["ZoneStatus"]["Score"])
-            dict_open_zones[zone_name] = {"Score": zone_score}
-
-    for mapstat in mapstats:
-        if mapstat["MapStatId"] == "power_round_"+str(tb_round):
-            for playerstat in mapstat["PlayerStat"]:
-                member_id = playerstat["MemberId"]
-                playerName = dict_members_by_id[member_id]
-                score = int(playerstat["score"])
-                dict_tb_players[playerName]["score"]["Deployed"] = score
+    dict_deployment_types = {}
+    for zone_name in dict_open_zones:
+        zone = dict_open_zones[zone_name]
+        zone_deployment_type = dict_tb[zone_name]["Type"]
+        if zone["Score"] < dict_tb[zone_name]["Scores"][2]:
+            zone_deployment_useful = True
+        else:
+            zone_deployment_useful = False
+        if not zone_deployment_type in dict_deployment_types:
+            dict_deployment_types[zone_deployment_type] = zone_deployment_useful
+        elif dict_deployment_types[zone_deployment_type] == False:
+            dict_deployment_types[zone_deployment_type] = zone_deployment_useful
 
     #count remaining players
     lines_player = []
     for playerName in dict_tb_players:
+        player = dict_tb_players[playerName]
         undeployed_player = False
 
         ret_print_player = ""
 
-        ratio_deploy_mix = dict_tb_players[playerName]["score"]["Deployed"] / dict_tb_players[playerName]["mix_gp"]
-        if ratio_deploy_mix < 0.99:
-            undeployed_player = True
-        ret_print_player += "{:,}".format(dict_tb_players[playerName]["score"]["Deployed"]) \
-                              +"/" + "{:,}".format(dict_tb_players[playerName]["mix_gp"]) + " "
+        if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+            if dict_deployment_types["Mix"]:
+                ratio_deploy_mix = player["score"]["DeployedMix"] / player["mix_gp"]
+                if ratio_deploy_mix < 0.99:
+                    undeployed_player = True
+                    ret_print_player += "{:,}".format(dict_tb_players[playerName]["score"]["DeployedMix"]) \
+                                       +"/" + "{:,}".format(dict_tb_players[playerName]["mix_gp"]) + " "
+        else:
+            if dict_deployment_types["Ships"]:
+                ratio_deploy_ships = player["score"]["DeployedShips"] / player["ship_gp"]
+                if ratio_deploy_ships < 0.99:
+                    undeployed_player = True
+                    ret_print_player += "Fleet: {:,}".format(dict_tb_players[playerName]["score"]["DeployedShips"]) \
+                                       +"/" + "{:,}".format(dict_tb_players[playerName]["ship_gp"]) + " "
+
+            if dict_deployment_types["Chars"]:
+                ratio_deploy_chars = player["score"]["DeployedChars"] / player["char_gp"]
+                if ratio_deploy_chars < 0.99:
+                    undeployed_player = True
+                    ret_print_player += "Squad: {:,}".format(dict_tb_players[playerName]["score"]["DeployedChars"]) \
+                                       +"/" + "{:,}".format(dict_tb_players[playerName]["char_gp"]) + " "
 
         if undeployed_player:
             lines_player.append([playerName, ret_print_player])
 
     return 0, "", lines_player
 
-def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
-    ret_print_tb_status = ""
+def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_cache_data):
     dict_tb=data.dict_tb
 
-    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName)
+    ec, et, rpc_data = connect_rpc.get_rpc_data(guildName, use_cache_data)
     if ec!=0:
         return 1, et, None
 
@@ -4134,7 +4118,6 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         if battleStatus["Selected"]:
             battle_id = battleStatus["InstanceId"]
             goutils.log2("DBG", "Selected TB = "+battle_id)
-            ret_print_tb_status += "Selected TB = "+battle_id+"\n"
             tb_ongoing=True
             tb_round = battleStatus["CurrentRound"]
             tb_type = battleStatus["DefinitionId"]
@@ -4152,7 +4135,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_open_zones = {}
-    list_images = []
+    dict_phase = {"Id": battle_id, "Round": tb_round, "Type": tb_type, "Name": dict_tb[tb_type]["Name"]}
 
     for playername_gp in list_playername_gp:
         dict_tb_players[playername_gp[0]] = {}
@@ -4174,10 +4157,12 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
             dict_open_zones[zone_name] = {"Score": zone_score}
 
     total_players_guild = len(dict_tb_players)
+    dict_phase["TotalPlayers"] = total_players_guild
     for zone in battleStatus["StrikeZoneStatus"]:
         if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
             strike_name = zone["ZoneStatus"]["ZoneId"]
             strike_shortname = strike_name.split("_")[-1]
+
             zone_name = strike_name[:-len(strike_shortname)-1]
 
             done_strikes = zone["PlayersParticipated"]
@@ -4210,8 +4195,6 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         for event_data in event["Data"]:
             if "ZoneData" in event_data["Activity"]:
                 ZoneData_key = "ZoneData"
-            elif "ZoneData2" in event_data["Activity"]:
-                ZoneData_key = "ZoneData2"
             else:
                 goutils.log2("ERR", "Event without ZoneData: "+str(event))
                 continue
@@ -4242,20 +4225,23 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                     score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
                     if dict_tb[zone_name]["Type"] == "Ships":
                         dict_tb_players[playerName]["score"]["DeployedShips"] += score
+                        dict_tb_players[playerName]["score"]["DeployedMix"] += score
                     elif dict_tb[zone_name]["Type"] == "Chars":
                         dict_tb_players[playerName]["score"]["DeployedChars"] += score
+                        dict_tb_players[playerName]["score"]["DeployedMix"] += score
                     else:
                         dict_tb_players[playerName]["score"]["DeployedMix"] += score
 
     for mapstat in mapstats:
         if mapstat["MapStatId"] == "strike_attempt_round_"+str(tb_round):
-            for playerstat in mapstat["PlayerStat"]:
-                member_id = playerstat["MemberId"]
-                playerName = dict_members_by_id[member_id]
-                attempts = int(playerstat["score"])
+            if "PlayerStat" in mapstat:
+                for playerstat in mapstat["PlayerStat"]:
+                    member_id = playerstat["MemberId"]
+                    playerName = dict_members_by_id[member_id]
+                    attempts = int(playerstat["score"])
 
-                while len(dict_tb_players[playerName]["Strikes"]) < attempts:
-                    dict_tb_players[playerName]["Strikes"].append("?")
+                    while len(dict_tb_players[playerName]["Strikes"]) < attempts:
+                        dict_tb_players[playerName]["Strikes"].append("?")
 
         elif mapstat["MapStatId"] == "power_round_"+str(tb_round):
             for playerstat in mapstat["PlayerStat"]:
@@ -4265,19 +4251,22 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                 dict_tb_players[playerName]["score"]["Deployed"] = score
                 if dict_tb_players[playerName]["score"]["Deployed"] != dict_tb_players[playerName]["score"]["DeployedMix"]:
                     goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
+                    goutils.log2("WAR", "("+str(dict_tb_players[playerName]["score"]["DeployedMix"])+" vs "+str(dict_tb_players[playerName]["score"]["Deployed"])+")")
                     dict_tb_players[playerName]["score"]["DeployedMix"] = dict_tb_players[playerName]["score"]["Deployed"]
 
-    remaining_ship_deploy = 0
-    remaining_char_deploy = 0
-    remaining_mix_deploy = 0
+    dict_remaining_deploy = {"Ships": 0, "Chars": 0, "Mix": 0}
     for playerName in dict_tb_players:
         playerData = dict_tb_players[playerName]
-        remaining_ship_deploy += playerData["ship_gp"] - playerData["score"]["DeployedShips"]
-        remaining_char_deploy += playerData["char_gp"] - playerData["score"]["DeployedChars"]
-        remaining_mix_deploy += playerData["mix_gp"] - playerData["score"]["DeployedMix"]
+        dict_remaining_deploy["Ships"] += playerData["ship_gp"] - playerData["score"]["DeployedShips"]
+        dict_remaining_deploy["Chars"] += playerData["char_gp"] - playerData["score"]["DeployedChars"]
+        dict_remaining_deploy["Mix"] += playerData["mix_gp"] - playerData["score"]["DeployedMix"]
         
+    dict_phase["AvailableShipDeploy"] = dict_remaining_deploy["Ships"]
+    dict_phase["AvailableCharDeploy"] = dict_remaining_deploy["Chars"]
+    dict_phase["AvailableMixDeploy"] = dict_remaining_deploy["Mix"]
+
     list_deployment_types = []
-    for zone in dict_open_zones:
+    for zone_name in dict_open_zones:
         zone_deployment_type = dict_tb[zone_name]["Type"]
         if not zone_deployment_type in list_deployment_types:
             list_deployment_types.append(zone_deployment_type)
@@ -4288,15 +4277,12 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     remaining_to_play_mix = 0
     lines_player = []
     for playerName in dict_tb_players:
-        ret_print_player = "**" + playerName + "**: "
-
         if "Ships" in list_deployment_types:
             ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
             if ratio_deploy_ships < 0.99:
                 remaining_to_play_ships += 1
             else:
                 ratio_deploy_ships = 1
-            ret_print_player += "Déploiement ships = "+str(int(100*ratio_deploy_ships)) + "%, "
 
         if "Chars" in list_deployment_types:
             ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
@@ -4304,7 +4290,6 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                 remaining_to_play_chars += 1
             else:
                 ratio_deploy_chars = 1
-            ret_print_player += "Déploiement chars = "+str(int(100*ratio_deploy_chars)) + "%, "
 
         if "Mix" in list_deployment_types:
             ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
@@ -4312,7 +4297,6 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                 remaining_to_play_mix += 1
             else:
                 ratio_deploy_mix = 1
-            ret_print_player += "Déploiement = "+str(int(100*ratio_deploy_mix)) + "%, "
 
         for zone in dict_open_zones:
             for strike in dict_tb[zone]["Strikes"]:
@@ -4337,7 +4321,171 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                         dict_strike_zones[strike_name]["EstimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["EstimatedScore"] += strike_average_score
 
-        #ret_print_player += str(dict_tb_players[playerName]["Strikes"]) + ", "
+    dict_phase["ShipPlayers"] = remaining_to_play_ships
+    dict_phase["CharPlayers"] = remaining_to_play_chars
+    dict_phase["MixPlayers"] = remaining_to_play_mix
+
+    #compute zone stats apart for deployments
+    for zone_name in dict_open_zones:
+        current_score = dict_open_zones[zone_name]["Score"]
+
+        estimated_strike_score = 0
+        max_strike_score = 0
+        cur_strike_score = 0
+        cur_strike_fights = {}
+        for strike in dict_tb[zone_name]["Strikes"]:
+            strike_name = zone_name + "_" + strike
+            if compute_estimated_fights:
+                estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
+            max_strike_score += dict_strike_zones[strike_name]["MaxPossibleScore"]
+
+            cur_strike_fights[strike] = dict_strike_zones[strike_name]["Participation"]
+            cur_strike_score += dict_strike_zones[strike_name]["EventStrikeScore"]
+
+        dict_open_zones[zone_name]["StrikeScore"] = cur_strike_score
+        dict_open_zones[zone_name]["StrikeFights"] = cur_strike_fights
+        dict_open_zones[zone_name]["EstimatedStrikeScore"] = estimated_strike_score
+        dict_open_zones[zone_name]["MaxStrikeScore"] = max_strike_score
+        dict_open_zones[zone_name]["Deployment"] = 0
+
+        star_for_score=0
+        for star_score in dict_tb[zone_name]["Scores"]:
+            if current_score >= star_score:
+                star_for_score += 1
+        dict_open_zones[zone_name]["Stars"] = star_for_score
+
+    #zone stats
+    tb_type = dict_phase["Type"]
+
+    if targets_zone_stars == "":
+        #original warstats logic: closest star, then next closest star...
+        #split the zoes by type
+        dict_zones_by_type = {"Ships": [], "Chars": [], "Mix": []}
+        for zone_name in dict_open_zones:
+            zone_type = dict_tb[zone_name]["Type"]
+            dict_zones_by_type[zone_type].append(zone_name)
+
+        full_zones = 0
+        for zone_type in ["Ships", "Chars", "Mix"]:
+            while (dict_remaining_deploy[zone_type] > 0) and (full_zones < len(dict_zones_by_type[zone_type])):
+                #find closest star
+                min_dist_star = -1
+                min_zone_name = ""
+                full_zones = 0
+                for zone_name in dict_zones_by_type[zone_type]:
+                    cur_score = dict_open_zones[zone_name]["Score"]
+                    if compute_estimated_fights:
+                        cur_score += dict_open_zones[zone_name]["EstimatedStrikeScore"]
+                    cur_score += dict_open_zones[zone_name]["Deployment"]
+
+                    if cur_score == dict_tb[zone_name]["Scores"][2]:
+                        full_zones += 1
+                        continue
+
+                    for star_score in dict_tb[zone_name]["Scores"]:
+                        if cur_score < star_score:
+                            dist_star = star_score - cur_score
+                            if min_dist_star == -1 or dist_star < min_dist_star:
+                                min_dist_star = dist_star
+                                min_zone_name = zone_name
+                            break
+
+                #deploy in the found zone
+                if min_zone_name != "":
+                    deploy_value = min(min_dist_star, dict_remaining_deploy[zone_type])
+                    dict_open_zones[min_zone_name]["Deployment"] += deploy_value
+                    dict_remaining_deploy[zone_type] -= deploy_value
+
+    else:
+        targets_zone_stars = targets_zone_stars.strip()
+        while '  ' in targets_zone_stars:
+            targets_zone_stars = targets_zone_stars.replace('  ', ' ')
+
+        for target_zone_stars in targets_zone_stars.split(" "):
+            target_zone_name = target_zone_stars.split(":")[0]
+            target_stars = int(target_zone_stars.split(":")[1])
+
+            if target_zone_name in dict_tb[tb_type]["ZoneNames"]:
+                conflict = dict_tb[tb_type]["ZoneNames"][target_zone_name]
+            else:
+                return 1, "Zone inconnue: " + target_zone_name + " " + str(list(dict_tb[tb_type]["ZoneNames"].keys())), None
+
+            for zone_name in dict_open_zones:
+                if zone_name.endswith(conflict):
+                    break
+
+            current_score = dict_open_zones[zone_name]["Score"]
+            estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
+            score_with_estimated_strikes = current_score + estimated_strike_score
+
+            target_star_score = dict_tb[zone_name]["Scores"][target_stars-1]
+            if dict_tb[zone_name]["Type"] == "Ships":
+                deploy_consumption = max(0, min(dict_remaining_deploy["Ships"], target_star_score - score_with_estimated_strikes))
+                dict_remaining_deploy["Ships"] -= deploy_consumption
+            elif dict_tb[zone_name]["Type"] == "Chars":
+                deploy_consumption = max(0, min(dict_remaining_deploy["Chars"], target_star_score - score_with_estimated_strikes))
+                dict_remaining_deploy["Chars"] -= deploy_consumption
+            else:
+                deploy_consumption = max(0, min(dict_remaining_deploy["Mix"], target_star_score - score_with_estimated_strikes))
+                dict_remaining_deploy["Mix"] -= deploy_consumption
+
+            dict_open_zones[zone_name]["Deployment"] = deploy_consumption
+            score_with_estimations = score_with_estimated_strikes + deploy_consumption
+
+    dict_phase["RemainingShipDeploy"] = dict_remaining_deploy["Ships"]
+    dict_phase["RemainingCharDeploy"] = dict_remaining_deploy["Chars"]
+    dict_phase["RemainingMixDeploy"] = dict_remaining_deploy["Mix"]
+
+    #Compute estimated stars per zone
+    for zone_name in dict_open_zones:
+        cur_score = dict_open_zones[zone_name]["Score"]
+        if compute_estimated_fights:
+            cur_score += dict_open_zones[zone_name]["EstimatedStrikeScore"]
+        cur_score += dict_open_zones[zone_name]["Deployment"]
+
+        star_for_score=0
+        for star_score in dict_tb[zone_name]["Scores"]:
+            if cur_score >= star_score:
+                star_for_score += 1
+        dict_open_zones[zone_name]["EstimatedStars"] = star_for_score
+
+    return 0, "", [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones]
+
+def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_cache_data):
+    dict_tb=data.dict_tb
+    ec, et, [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_cache_data)
+    if ec!=0:
+        return 1, et, None
+
+    list_deployment_types = []
+    for zone_name in dict_open_zones:
+        zone_deployment_type = dict_tb[zone_name]["Type"]
+        if not zone_deployment_type in list_deployment_types:
+            list_deployment_types.append(zone_deployment_type)
+
+    # START THE DISPLAY PART
+    ret_print_tb_status = ""
+    lines_player = []
+    for playerName in dict_tb_players:
+        ret_print_player = "**" + playerName + "**: "
+        if "Ships" in list_deployment_types:
+            ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
+            if ratio_deploy_ships >= 0.99:
+                ratio_deploy_ships = 1
+            ret_print_player += "Déploiement ships = "+str(int(100*ratio_deploy_ships)) + "%, "
+
+        if "Chars" in list_deployment_types:
+            ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
+            if ratio_deploy_chars >= 0.99:
+                ratio_deploy_chars = 1
+            ret_print_player += "Déploiement chars = "+str(int(100*ratio_deploy_chars)) + "%, "
+
+        if "Mix" in list_deployment_types:
+            ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
+            if ratio_deploy_mix >= 0.99:
+                ratio_deploy_mix = 1
+            ret_print_player += "Déploiement = "+str(int(100*ratio_deploy_mix)) + "%, "
+
         player_fights_score = dict_tb_players[playerName]["score"]["Strikes"]
         player_fights_count = len(dict_tb_players[playerName]["Strikes"])
         ret_print_player += str(player_fights_score) + " pts en " + str(player_fights_count) + " combats\n"
@@ -4347,48 +4495,38 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         ret_print_tb_status += line
 
     ret_print_tb_status+="---------------\n"
+    available_ship_deploy = dict_phase["AvailableShipDeploy"]
+    available_char_deploy = dict_phase["AvailableCharDeploy"]
+    available_mix_deploy = dict_phase["AvailableMixDeploy"]
+    remaining_ship_deploy = dict_phase["RemainingShipDeploy"]
+    remaining_char_deploy = dict_phase["RemainingCharDeploy"]
+    remaining_mix_deploy = dict_phase["RemainingMixDeploy"]
+    remaining_to_play_ships = dict_phase["ShipPlayers"]
+    remaining_to_play_chars = dict_phase["CharPlayers"]
+    remaining_to_play_mix = dict_phase["MixPlayers"]
     if "Ships" in list_deployment_types:
-        ret_print_tb_status += "Reste à déployer ships : "+str(remaining_ship_deploy)
-        ret_print_tb_status += " (en attente de "+str(remaining_to_play_ship)+" joueurs)\n"
+        ret_print_tb_status += "Reste à déployer ships : "+str(available_ship_deploy)
+        ret_print_tb_status += " (en attente de "+str(remaining_to_play_ships)+" joueurs)\n"
     if "Chars" in list_deployment_types:
-        ret_print_tb_status += "Reste à déployer squads : "+str(remaining_char_deploy)
-        ret_print_tb_status += " (en attente de "+str(remaining_to_play_char)+" joueurs)\n"
+        ret_print_tb_status += "Reste à déployer squads : "+str(available_char_deploy)
+        ret_print_tb_status += " (en attente de "+str(remaining_to_play_chars)+" joueurs)\n"
     if "Mix" in list_deployment_types:
-        ret_print_tb_status += "Reste à déployer mix : "+str(remaining_mix_deploy)
+        ret_print_tb_status += "Reste à déployer mix : "+str(available_mix_deploy)
         ret_print_tb_status += " (en attente de "+str(remaining_to_play_mix)+" joueurs)\n"
 
-    #zone stats
-    for target_zone_stars in targets_zone_stars.split(" "):
-        target_zone_name = target_zone_stars.split(":")[0]
-        target_stars = int(target_zone_stars.split(":")[1])
-
-        if target_zone_name in dict_tb[tb_type]["ZoneNames"]:
-            conflict = dict_tb[tb_type]["ZoneNames"][target_zone_name]
-        else:
-            return 1, "Zone inconnue: " + target_zone_name + " " + str(list(dict_tb[tb_type]["ZoneNames"].keys())), None
-
-        for zone_name in dict_open_zones:
-            if conflict in zone_name:
-                break
-
+    list_images = []
+    tb_type = dict_phase["Type"]
+    for zone_name in dict_open_zones:
         ret_print_tb_status+="---------------\n"
         ret_print_tb_status+=dict_tb[zone_name]["Name"]+"\n"
+
         current_score = dict_open_zones[zone_name]["Score"]
         ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"\n"
 
-
-        estimated_strike_score = 0
-        max_strike_score = 0
-        cur_strike_score = 0
-        cur_strike_fights = 0
-        for strike in dict_tb[zone_name]["Strikes"]:
-            strike_name = zone_name + "_" + strike
-            if compute_estimated_fights:
-                estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
-            max_strike_score += dict_strike_zones[strike_name]["MaxPossibleScore"]
-
-            cur_strike_fights += dict_strike_zones[strike_name]["Participation"]
-            cur_strike_score += dict_strike_zones[strike_name]["EventStrikeScore"]
+        cur_strike_score = dict_open_zones[zone_name]["StrikeScore"]
+        cur_strike_fights = sum(dict_open_zones[zone_name]["StrikeFights"].values())
+        estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
+        max_strike_score = dict_open_zones[zone_name]["MaxStrikeScore"]
 
         ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+" in "+str(cur_strike_fights)+" fights)\n"
 
@@ -4396,24 +4534,11 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
         if compute_estimated_fights:
             ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"\n"
 
-        target_star_score = dict_tb[zone_name]["Scores"][target_stars-1]
-        if dict_tb[zone_name]["Type"] == "Ships":
-            deploy_consumption = max(0, min(remaining_ship_deploy, target_star_score - score_with_estimated_strikes))
-            remaining_ship_deploy -= deploy_consumption
-        elif dict_tb[zone_name]["Type"] == "Chars":
-            deploy_consumption = max(0, min(remaining_char_deploy, target_star_score - score_with_estimated_strikes))
-            remaining_char_deploy -= deploy_consumption
-        else:
-            deploy_consumption = max(0, min(remaining_mix_deploy, target_star_score - score_with_estimated_strikes))
-            remaining_mix_deploy -= deploy_consumption
-
+        deploy_consumption = dict_open_zones[zone_name]["Deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
         ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"\n"
 
-        star_for_score=0
-        for star_score in dict_tb[zone_name]["Scores"]:
-            if score_with_estimations >= star_score:
-                star_for_score += 1
+        star_for_score = dict_open_zones[zone_name]["EstimatedStars"]
         ret_print_tb_status+=">> Zone result: "+str(star_for_score)+" stars\n"
 
         #create image
@@ -4421,8 +4546,6 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
                                  current_score, estimated_strike_score, deploy_consumption,
                                  max_strike_score)
         list_images.append(img)
-
-
 
     #prepare txt
     #for player in sorted(dict_tb_players.keys(), key=lambda x: x.lower()):
@@ -4435,9 +4558,6 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights):
     if "Mix" in list_deployment_types:
         ret_print_tb_status += "Unused deployment mix : "+str(round(remaining_mix_deploy/1000000, 1))+"\n"
     ret_print_tb_status += "----------------------------\n"
-    #for zone in sorted(dict_strike_zones.keys(), key=lambda x: [-int(x[-10]), x[8], -int(x[-1])], reverse=True):
-    #    ret_print_tb_status += zone + ": " +str(dict_strike_zones[zone])+"\n"
-
 
     return 0, ret_print_tb_status, list_images
 
