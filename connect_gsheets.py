@@ -12,10 +12,12 @@ import datetime
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 import inspect
+import traceback
 
 import connect_mysql
 import goutils
 import data
+import go
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
@@ -45,6 +47,14 @@ def get_gapi_client():
         except KeyError as e:
             goutils.log2('ERR', 'variable de configuration GAPI_CREDS non définie')
 
+def get_dict_columns(list_col_names, list_list_sheet):
+    dict_columns = {}
+    for i_col in range(len(list_list_sheet[0])):
+        for col_name in list_col_names:
+            if list_list_sheet[0][i_col] == col_name:
+                dict_columns[col_name] = i_col
+    return dict_columns
+
 ##############################################################
 # Function: load_config_raids
 # Parameters: None
@@ -62,21 +72,26 @@ def load_config_raids(guild_name, force_load):
             get_gapi_client()
             file = client.open(guild_name)
             feuille=file.worksheet("Raids")
-
-            list_dict_sheet=feuille.get_all_records()
-        except:
+            list_list_sheet=feuille.get_all_values()
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("WAR", "Cannot connect to Google API")
             return None
 
+        dict_columns = get_dict_columns(["Alias", "Nom complet", "Phase", "Team", "%", "Normal", "Super"], list_list_sheet)
+
         #Extract all aliases and get associated ID+nameKey
         dict_raids = {}
-        for line in list_dict_sheet:
-            if not (line['Alias'] in dict_raids):
-                dict_raids[line['Alias']] = [line['Nom complet'], {}]
+        for line in list_list_sheet[1:]:
+            alias = line[dict_columns['Alias']]
+            if not (alias in dict_raids):
+                dict_raids[alias] = [line[dict_columns['Nom complet']], {}]
 
-            dict_raids[line['Alias']][1][line['Team']]=[int(line['Phase'][-1]),
-                                                        int(line['Normal']),
-                                                        int(line['Super'])]
+            dict_raids[alias][1][line[dict_columns['Team']]]=[int(line[dict_columns['Phase']][-1]),
+                                                              int(line[dict_columns['Normal']]),
+                                                              int(line[dict_columns['Super']])]
 
         # store json file
         fjson = open(json_file, 'w')
@@ -111,7 +126,10 @@ def load_config_teams(guild_name, force_load):
             feuille=file.worksheet("teams")
     
             list_dict_sheet=feuille.get_all_records()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("WAR", "Cannot connect to Google API")
             return None, None
 
@@ -187,29 +205,36 @@ def load_config_players(guild_name, force_load):
             get_gapi_client()
             file = client.open(guild_name)
             feuille=file.worksheet("players")
-            list_dict_sheet=feuille.get_all_records()
-        except:
+            list_list_sheet=feuille.get_all_values()
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("WAR", "Cannot connect to Google API")
             return [None, None]
 
-        liste_discord_id=[str(x['Discord ID']) for x in list_dict_sheet]
+        dict_columns = get_dict_columns(["Allycode", "IG name", "Discord ID", "Officier", "Last Online"], list_list_sheet)
+
+        liste_discord_id=[str(x[dict_columns['Discord ID']]) for x in list_list_sheet]
         dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
         dict_players_by_ID={} # {key=discord ID, value=[allycode, isOfficer]}
 
-        #print(list_dict_sheet)
-        for ligne in list_dict_sheet:
+        #print(list_list_sheet)
+        for ligne in list_list_sheet[1:]:
             #Fill dict_players_by_IG
             #needs to transform into str as json only uses str as keys
-            discord_id=str(ligne['Discord ID'])
+            discord_id=str(ligne[dict_columns["Discord ID"]])
             goutils.log2("DBG", "discord_id "+discord_id)
             if discord_id!='':
                 if liste_discord_id.count(discord_id)>1:
                     #cas des comptes discord avec plusieurs comptes IG
-                    dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+discord_id+'> ['+ligne['IG name']+']']
+                    dict_players_by_IG[ligne[dict_columns['IG name']]] = [ligne[dict_columns['Allycode']], 
+                                                                         '<@'+discord_id+'> ['+ligne[dict_columns['IG name']]+']']
                 else:
-                    dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+discord_id+'>']
+                    dict_players_by_IG[ligne[dict_columns['IG name']]] = [ligne[dict_columns['Allycode']], '<@'+discord_id+'>']
             else:
-                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['IG name']]
+                dict_players_by_IG[ligne[dict_columns['IG name']]] = [ligne[dict_columns['Allycode']], 
+                                                                      ligne[dict_columns['IG name']]]
             
             #Fill dict_players_by_ID
             if discord_id!='':
@@ -218,8 +243,8 @@ def load_config_players(guild_name, force_load):
                 else:
                     is_already_officer = False
 
-                is_officer = is_already_officer or (ligne['Officier']!='')
-                dict_players_by_ID[discord_id] = [ligne['Allycode'], is_officer]
+                is_officer = is_already_officer or (ligne[dict_columns['Officier']]!='')
+                dict_players_by_ID[discord_id] = [ligne[dict_columns['Allycode']], is_officer]
 
         # store json file
         fjson = open(json_file, 'w')
@@ -302,7 +327,10 @@ def load_config_units(force_load):
             feuille=file.worksheet("units")
 
             list_dict_sheet=feuille.get_all_values()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("ERR", "Cannot connect to Google API")
             return None
 
@@ -597,7 +625,10 @@ def load_tb_teams(guild_name, force_load):
             feuille=file.worksheet("BT teams")
 
             list_dict_sheet=feuille.get_all_records()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("ERR", "Cannot connect to Google API")
             return None
 
@@ -655,3 +686,161 @@ def load_new_tb():
     return dict_zones, dict_toons
     
 ##############################################################
+def update_gwarstats(guildName):
+    ec, et, tb_data = go.get_tb_status(guildName, "", True, True)
+    if ec != 0:
+        return 1, et
+
+    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+
+    try:
+        get_gapi_client()
+        file = client.open(guildName)
+        feuille=file.worksheet("BT graphs")
+    except:
+        goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+        return
+
+    dict_tb = data.dict_tb
+    cells = []
+    cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["Name"]))
+    cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["Round"]))
+    now = datetime.datetime.now()
+    cells.append(gspread.cell.Cell(row=1, col=8, value=now.strftime("%d/%m/%Y %H:%M:%S")))
+
+    i_zone = 0
+    for zone_fullname in dict_open_zones:
+        zone = dict_open_zones[zone_fullname]
+        zone_shortname = dict_tb[zone_fullname]["Name"]
+        cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=zone_shortname))
+
+        zone_round = zone_fullname[-12]
+        if zone_round == str(dict_phase["Round"]):
+            cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value=""))
+        else:
+            cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value="!!! Phase "+zone_round))
+
+        #zone scores (for the graph)
+        cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=zone["Score"]))
+        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["EstimatedStrikeScore"]))
+        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["Deployment"]))
+        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["MaxStrikeScore"]))
+
+        #zone stars
+        cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone["Stars"]))
+
+        #zone star scores
+        i_col = 1
+        for star_score in dict_tb[zone_fullname]["Scores"]:
+            cells.append(gspread.cell.Cell(row=12, col=1+i_col+4*i_zone, value=star_score))
+            i_col += 1
+
+        #zone strike stats
+        for line in [19, 20, 21, 22, 23]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value=""))
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=""))
+
+        line = 19
+        i_strike = 1
+        total_strikes=0
+        for strike in dict_tb[zone_fullname]["Strikes"]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="Strike "+str(i_strike)))
+            strike_val = str(zone["StrikeFights"][strike])+"/"+str(dict_phase["TotalPlayers"])
+            total_strikes += zone["StrikeFights"][strike]
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=strike_val))
+            i_strike+=1
+            line+=1
+        remaining_zone_strikes = (i_strike-1)*dict_phase["TotalPlayers"] - total_strikes
+        cells.append(gspread.cell.Cell(row=27, col=5+2*i_zone, value=remaining_zone_strikes))
+        cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=zone["MaxStrikeScore"]))
+
+        i_covert = 1
+        for strike in dict_tb[zone_fullname]["Coverts"]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="Special "+str(i_covert)))
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value="inconnu"))
+            i_covert+=1
+            line+=1
+
+        #strikes success
+        cells.append(gspread.cell.Cell(row=32, col=1+4*i_zone, value=zone["StrikeScore"]))
+        total_strikes_zone = sum(zone["StrikeFights"].values())
+        if total_strikes_zone == 0:
+            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=0))
+        else:
+            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=zone["StrikeScore"]/total_strikes_zone))
+        
+        i_zone+=1
+
+    #global stats
+    #Remaining Deployments
+    if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+        cells.append(gspread.cell.Cell(row=26, col=1, value="Mix"))
+        cells.append(gspread.cell.Cell(row=26, col=2, value=""))
+        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableMixDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=2, value=""))
+    else:
+        cells.append(gspread.cell.Cell(row=26, col=1, value="Fleet"))
+        cells.append(gspread.cell.Cell(row=26, col=2, value="Squad"))
+        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableShipDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["AvailableCharDeploy"]))
+
+    #players
+    if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+        cells.append(gspread.cell.Cell(row=1, col=16, value="Mix deployment"))
+        cells.append(gspread.cell.Cell(row=1, col=19, value=""))
+
+    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["Deployed"] + x[1]["score"]["Platoons"] + x[1]["score"]["Strikes"], reverse=True))
+
+    line = 3
+    for playername in sorted_dict_tb_players:
+        player = dict_tb_players[playername]
+        cells.append(gspread.cell.Cell(row=line, col=14, value=playername))
+        total_score = player["score"]["Deployed"] + player["score"]["Platoons"] + player["score"]["Strikes"]
+        cells.append(gspread.cell.Cell(row=line, col=15, value=total_score))
+
+        if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["DeployedMix"]))
+            cells.append(gspread.cell.Cell(row=line, col=17, value=player["mix_gp"]))
+            cells.append(gspread.cell.Cell(row=line, col=19, value=""))
+            cells.append(gspread.cell.Cell(row=line, col=20, value=""))
+        else:
+            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["DeployedShips"]))
+            cells.append(gspread.cell.Cell(row=line, col=17, value=player["ship_gp"]))
+            cells.append(gspread.cell.Cell(row=line, col=19, value=player["score"]["DeployedChars"]))
+            cells.append(gspread.cell.Cell(row=line, col=20, value=player["char_gp"]))
+
+        print(player["Strikes"])
+        total_strikes = 0
+        player_strikes = 0
+        i_zone = 1
+        for zone_fullname in dict_open_zones:
+            strike_txt = ""
+            conflict = zone_fullname.split("_")[-1]
+            i_strike = 1
+            for strike in dict_tb[zone_fullname]["Strikes"]:
+                total_strikes += 1
+                conflict_strike = conflict+"_"+strike
+                print(conflict_strike)
+                if conflict_strike in player["Strikes"]:
+                    player_strikes += 1
+                    strike_txt += "S"+str(i_strike)+" "
+                i_strike+=1
+            cells.append(gspread.cell.Cell(row=line, col=21+i_zone, value=strike_txt))
+            i_zone += 1
+        cells.append(gspread.cell.Cell(row=line, col=25, value=str(player_strikes)+"/"+str(total_strikes)))
+
+        line += 1
+
+    while line<53:
+        cells.append(gspread.cell.Cell(row=line, col=14, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=15, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=16, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=17, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=19, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=20, value=""))
+        line += 1
+
+
+    feuille.update_cells(cells)
+
+    return 0, ""
