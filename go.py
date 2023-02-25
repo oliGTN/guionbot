@@ -4330,12 +4330,14 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
         current_score = dict_open_zones[zone_name]["Score"]
 
         estimated_strike_score = 0
+        estimated_strike_fights = 0
         max_strike_score = 0
         cur_strike_score = 0
         cur_strike_fights = {}
         for strike in dict_tb[zone_name]["Strikes"]:
             strike_name = zone_name + "_" + strike
             if compute_estimated_fights:
+                estimated_strike_fights += dict_strike_zones[strike_name]["EstimatedStrikes"]
                 estimated_strike_score += dict_strike_zones[strike_name]["EstimatedScore"]
             max_strike_score += dict_strike_zones[strike_name]["MaxPossibleScore"]
 
@@ -4344,6 +4346,7 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
 
         dict_open_zones[zone_name]["StrikeScore"] = cur_strike_score
         dict_open_zones[zone_name]["StrikeFights"] = cur_strike_fights
+        dict_open_zones[zone_name]["EstimatedStrikeFights"] = estimated_strike_fights
         dict_open_zones[zone_name]["EstimatedStrikeScore"] = estimated_strike_score
         dict_open_zones[zone_name]["MaxStrikeScore"] = max_strike_score
         dict_open_zones[zone_name]["Deployment"] = 0
@@ -4521,18 +4524,20 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
         ret_print_tb_status+=dict_tb[zone_name]["Name"]+"\n"
 
         current_score = dict_open_zones[zone_name]["Score"]
-        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"\n"
+        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+" "
 
         cur_strike_score = dict_open_zones[zone_name]["StrikeScore"]
         cur_strike_fights = sum(dict_open_zones[zone_name]["StrikeFights"].values())
         estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
+        estimated_strike_fights = dict_open_zones[zone_name]["EstimatedStrikeFights"]
         max_strike_score = dict_open_zones[zone_name]["MaxStrikeScore"]
 
         ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+" in "+str(cur_strike_fights)+" fights)\n"
 
         score_with_estimated_strikes = current_score + estimated_strike_score
         if compute_estimated_fights:
-            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"\n"
+            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+" "
+            ret_print_tb_status+="(in "+str(estimated_strike_fights)+" fights)\n"
 
         deploy_consumption = dict_open_zones[zone_name]["Deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
