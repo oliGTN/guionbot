@@ -47,6 +47,14 @@ def get_gapi_client():
         except KeyError as e:
             goutils.log2('ERR', 'variable de configuration GAPI_CREDS non définie')
 
+def get_dict_columns(list_col_names, list_list_sheet):
+    dict_columns = {}
+    for i_col in range(len(list_list_sheet[0])):
+        for col_name in list_col_names:
+            if list_list_sheet[0][i_col] == col_name:
+                dict_columns[col_name] = i_col
+    return dict_columns
+
 ##############################################################
 # Function: load_config_raids
 # Parameters: None
@@ -64,8 +72,7 @@ def load_config_raids(guild_name, force_load):
             get_gapi_client()
             file = client.open(guild_name)
             feuille=file.worksheet("Raids")
-
-            list_dict_sheet=feuille.get_all_records()
+            list_list_sheet=feuille.get_all_values()
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
@@ -73,15 +80,18 @@ def load_config_raids(guild_name, force_load):
             goutils.log2("WAR", "Cannot connect to Google API")
             return None
 
+        dict_columns = get_dict_columns(["Alias", "Nom complet", "Phase", "Team", "%", "Normal", "Super"], list_list_sheet)
+
         #Extract all aliases and get associated ID+nameKey
         dict_raids = {}
-        for line in list_dict_sheet:
-            if not (line['Alias'] in dict_raids):
-                dict_raids[line['Alias']] = [line['Nom complet'], {}]
+        for line in list_list_sheet[1:]:
+            alias = line[dict_columns['Alias']]
+            if not (alias in dict_raids):
+                dict_raids[alias] = [line[dict_columns['Nom complet']], {}]
 
-            dict_raids[line['Alias']][1][line['Team']]=[int(line['Phase'][-1]),
-                                                        int(line['Normal']),
-                                                        int(line['Super'])]
+            dict_raids[alias][1][line[dict_columns['Team']]]=[int(line[dict_columns['Phase']][-1]),
+                                                              int(line[dict_columns['Normal']]),
+                                                              int(line[dict_columns['Super']])]
 
         # store json file
         fjson = open(json_file, 'w')
@@ -195,7 +205,7 @@ def load_config_players(guild_name, force_load):
             get_gapi_client()
             file = client.open(guild_name)
             feuille=file.worksheet("players")
-            list_dict_sheet=feuille.get_all_records()
+            list_list_sheet=feuille.get_all_values()
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
@@ -203,24 +213,28 @@ def load_config_players(guild_name, force_load):
             goutils.log2("WAR", "Cannot connect to Google API")
             return [None, None]
 
-        liste_discord_id=[str(x['Discord ID']) for x in list_dict_sheet]
+        dict_columns = get_dict_columns(["Allycode", "IG name", "Discord ID", "Officier", "Last Online"], list_list_sheet)
+
+        liste_discord_id=[str(x[dict_columns['Discord ID']]) for x in list_list_sheet]
         dict_players_by_IG={} # {key=IG name, value=[allycode, discord name, discord display name]}
         dict_players_by_ID={} # {key=discord ID, value=[allycode, isOfficer]}
 
-        #print(list_dict_sheet)
-        for ligne in list_dict_sheet:
+        #print(list_list_sheet)
+        for ligne in list_list_sheet[1:]:
             #Fill dict_players_by_IG
             #needs to transform into str as json only uses str as keys
-            discord_id=str(ligne['Discord ID'])
+            discord_id=str(ligne[dict_columns["Discord ID"]])
             goutils.log2("DBG", "discord_id "+discord_id)
             if discord_id!='':
                 if liste_discord_id.count(discord_id)>1:
                     #cas des comptes discord avec plusieurs comptes IG
-                    dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+discord_id+'> ['+ligne['IG name']+']']
+                    dict_players_by_IG[ligne[dict_columns['IG name']]] = [ligne[dict_columns['Allycode']], 
+                                                                         '<@'+discord_id+'> ['+ligne[dict_columns['IG name']]+']']
                 else:
-                    dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], '<@'+discord_id+'>']
+                    dict_players_by_IG[ligne[dict_columns['IG name']]] = [ligne[dict_columns['Allycode']], '<@'+discord_id+'>']
             else:
-                dict_players_by_IG[ligne['IG name']]=[ligne['Allycode'], ligne['IG name']]
+                dict_players_by_IG[ligne[dict_columns['IG name']]] = [ligne[dict_columns['Allycode']], 
+                                                                      ligne[dict_columns['IG name']]]
             
             #Fill dict_players_by_ID
             if discord_id!='':
@@ -229,8 +243,8 @@ def load_config_players(guild_name, force_load):
                 else:
                     is_already_officer = False
 
-                is_officer = is_already_officer or (ligne['Officier']!='')
-                dict_players_by_ID[discord_id] = [ligne['Allycode'], is_officer]
+                is_officer = is_already_officer or (ligne[dict_columns['Officier']]!='')
+                dict_players_by_ID[discord_id] = [ligne[dict_columns['Allycode']], is_officer]
 
         # store json file
         fjson = open(json_file, 'w')
