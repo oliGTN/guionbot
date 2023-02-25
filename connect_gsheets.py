@@ -12,6 +12,7 @@ import datetime
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 import inspect
+import traceback
 
 import connect_mysql
 import goutils
@@ -65,7 +66,10 @@ def load_config_raids(guild_name, force_load):
             feuille=file.worksheet("Raids")
 
             list_dict_sheet=feuille.get_all_records()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("WAR", "Cannot connect to Google API")
             return None
 
@@ -112,7 +116,10 @@ def load_config_teams(guild_name, force_load):
             feuille=file.worksheet("teams")
     
             list_dict_sheet=feuille.get_all_records()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("WAR", "Cannot connect to Google API")
             return None, None
 
@@ -189,7 +196,10 @@ def load_config_players(guild_name, force_load):
             file = client.open(guild_name)
             feuille=file.worksheet("players")
             list_dict_sheet=feuille.get_all_records()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("WAR", "Cannot connect to Google API")
             return [None, None]
 
@@ -303,7 +313,10 @@ def load_config_units(force_load):
             feuille=file.worksheet("units")
 
             list_dict_sheet=feuille.get_all_values()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("ERR", "Cannot connect to Google API")
             return None
 
@@ -598,7 +611,10 @@ def load_tb_teams(guild_name, force_load):
             feuille=file.worksheet("BT teams")
 
             list_dict_sheet=feuille.get_all_records()
-        except:
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             goutils.log2("ERR", "Cannot connect to Google API")
             return None
 
