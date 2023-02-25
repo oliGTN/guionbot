@@ -4468,34 +4468,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
 
     # START THE DISPLAY PART
     ret_print_tb_status = ""
-    lines_player = []
-    for playerName in dict_tb_players:
-        ret_print_player = "**" + playerName + "**: "
-        if "Ships" in list_deployment_types:
-            ratio_deploy_ships = dict_tb_players[playerName]["score"]["DeployedShips"] / dict_tb_players[playerName]["ship_gp"]
-            if ratio_deploy_ships >= 0.99:
-                ratio_deploy_ships = 1
-            ret_print_player += "Déploiement ships = "+str(int(100*ratio_deploy_ships)) + "%, "
-
-        if "Chars" in list_deployment_types:
-            ratio_deploy_chars = dict_tb_players[playerName]["score"]["DeployedChars"] / dict_tb_players[playerName]["char_gp"]
-            if ratio_deploy_chars >= 0.99:
-                ratio_deploy_chars = 1
-            ret_print_player += "Déploiement chars = "+str(int(100*ratio_deploy_chars)) + "%, "
-
-        if "Mix" in list_deployment_types:
-            ratio_deploy_mix = dict_tb_players[playerName]["score"]["DeployedMix"] / dict_tb_players[playerName]["mix_gp"]
-            if ratio_deploy_mix >= 0.99:
-                ratio_deploy_mix = 1
-            ret_print_player += "Déploiement = "+str(int(100*ratio_deploy_mix)) + "%, "
-
-        player_fights_score = dict_tb_players[playerName]["score"]["Strikes"]
-        player_fights_count = len(dict_tb_players[playerName]["Strikes"])
-        ret_print_player += str(player_fights_score) + " pts en " + str(player_fights_count) + " combats\n"
-        lines_player.append(ret_print_player)
-
-    for line in sorted(lines_player, key=lambda x: x.lower()):
-        ret_print_tb_status += line
+    ret_print_tb_status += "TODO: link the Excel file for player details...\n"
 
     ret_print_tb_status+="---------------\n"
     available_ship_deploy = dict_phase["AvailableShipDeploy"]
@@ -4508,23 +4481,23 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
     remaining_to_play_chars = dict_phase["CharPlayers"]
     remaining_to_play_mix = dict_phase["MixPlayers"]
     if "Ships" in list_deployment_types:
-        ret_print_tb_status += "Reste à déployer ships : "+str(available_ship_deploy)
-        ret_print_tb_status += " (en attente de "+str(remaining_to_play_ships)+" joueurs)\n"
+        ret_print_tb_status += "Remaining to deploy ships : "+str(round(available_ship_deploy/1000000, 1))+"M"
+        ret_print_tb_status += " (waiting for "+str(remaining_to_play_ships)+" players)\n"
     if "Chars" in list_deployment_types:
-        ret_print_tb_status += "Reste à déployer squads : "+str(available_char_deploy)
-        ret_print_tb_status += " (en attente de "+str(remaining_to_play_chars)+" joueurs)\n"
+        ret_print_tb_status += "Remaining to deploy chars : "+str(round(available_char_deploy/1000000, 1))+"M"
+        ret_print_tb_status += " (waiting for "+str(remaining_to_play_chars)+" players)\n"
     if "Mix" in list_deployment_types:
-        ret_print_tb_status += "Reste à déployer mix : "+str(available_mix_deploy)
-        ret_print_tb_status += " (en attente de "+str(remaining_to_play_mix)+" joueurs)\n"
+        ret_print_tb_status += "Remaining to deploy : "+str(round(available_mix_deploy/1000000, 1))+"M"
+        ret_print_tb_status += " (waiting for "+str(remaining_to_play_mix)+" players)\n"
 
     list_images = []
     tb_type = dict_phase["Type"]
     for zone_name in dict_open_zones:
         ret_print_tb_status+="---------------\n"
-        ret_print_tb_status+=dict_tb[zone_name]["Name"]+"\n"
+        ret_print_tb_status+="**"+dict_tb[zone_name]["Name"]+"**\n"
 
         current_score = dict_open_zones[zone_name]["Score"]
-        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+" "
+        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"M "
 
         cur_strike_score = dict_open_zones[zone_name]["StrikeScore"]
         cur_strike_fights = sum(dict_open_zones[zone_name]["StrikeFights"].values())
@@ -4532,19 +4505,19 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
         estimated_strike_fights = dict_open_zones[zone_name]["EstimatedStrikeFights"]
         max_strike_score = dict_open_zones[zone_name]["MaxStrikeScore"]
 
-        ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+" in "+str(cur_strike_fights)+" fights)\n"
+        ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+"M in "+str(cur_strike_fights)+" fights)\n"
 
         score_with_estimated_strikes = current_score + estimated_strike_score
         if compute_estimated_fights:
-            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+" "
+            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"M "
             ret_print_tb_status+="(in "+str(estimated_strike_fights)+" fights)\n"
 
         deploy_consumption = dict_open_zones[zone_name]["Deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
-        ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"\n"
+        ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
         star_for_score = dict_open_zones[zone_name]["EstimatedStars"]
-        ret_print_tb_status+=">> Zone result: "+str(star_for_score)+" stars\n"
+        ret_print_tb_status+=">> Zone result: "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
         img = draw_tb_previsions(dict_tb[zone_name]["Name"], dict_tb[zone_name]["Scores"],
@@ -4557,11 +4530,11 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
     #    ret_print_tb_status += "**"+player+"**: "+str(dict_tb_players[player])+"\n"
     ret_print_tb_status += "----------------------------\n"
     if "Ships" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment ships : "+str(round(remaining_ship_deploy/1000000, 1))+"\n"
+        ret_print_tb_status += "Unused deployment ships : "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
     if "Chars" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy/1000000, 1))+"\n"
+        ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
     if "Mix" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment mix : "+str(round(remaining_mix_deploy/1000000, 1))+"\n"
+        ret_print_tb_status += "Unused deployment mix : "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
     ret_print_tb_status += "----------------------------\n"
 
     return 0, ret_print_tb_status, list_images
