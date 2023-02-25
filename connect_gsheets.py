@@ -794,7 +794,6 @@ def update_gwarstats(guildName):
     line = 3
     for playername in sorted_dict_tb_players:
         player = dict_tb_players[playername]
-        print(player)
         cells.append(gspread.cell.Cell(row=line, col=14, value=playername))
         total_score = player["score"]["Deployed"] + player["score"]["Platoons"] + player["score"]["Strikes"]
         cells.append(gspread.cell.Cell(row=line, col=15, value=total_score))
