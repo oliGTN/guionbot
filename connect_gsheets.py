@@ -784,6 +784,43 @@ def update_gwarstats(guildName):
         cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableShipDeploy"]))
         cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["AvailableCharDeploy"]))
 
+    #players
+    if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+        cells.append(gspread.cell.Cell(row=1, col=16, value="Mix deployment"))
+        cells.append(gspread.cell.Cell(row=1, col=19, value=""))
+
+    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["Deployed"] + x[1]["score"]["Platoons"] + x[1]["score"]["Strikes"], reverse=True))
+
+    line = 3
+    for playername in sorted_dict_tb_players:
+        player = dict_tb_players[playername]
+        print(player)
+        cells.append(gspread.cell.Cell(row=line, col=14, value=playername))
+        total_score = player["score"]["Deployed"] + player["score"]["Platoons"] + player["score"]["Strikes"]
+        cells.append(gspread.cell.Cell(row=line, col=15, value=total_score))
+
+        if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["DeployedMix"]))
+            cells.append(gspread.cell.Cell(row=line, col=17, value=player["mix_gp"]))
+            cells.append(gspread.cell.Cell(row=line, col=19, value=""))
+            cells.append(gspread.cell.Cell(row=line, col=20, value=""))
+        else:
+            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["DeployedShips"]))
+            cells.append(gspread.cell.Cell(row=line, col=17, value=player["ship_gp"]))
+            cells.append(gspread.cell.Cell(row=line, col=19, value=player["score"]["DeployedChars"]))
+            cells.append(gspread.cell.Cell(row=line, col=20, value=player["char_gp"]))
+
+        line += 1
+
+    while line<53:
+        cells.append(gspread.cell.Cell(row=line, col=14, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=15, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=16, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=17, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=19, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=20, value=""))
+        line += 1
+
 
     feuille.update_cells(cells)
 
