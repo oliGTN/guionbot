@@ -809,6 +809,26 @@ def update_gwarstats(guildName):
             cells.append(gspread.cell.Cell(row=line, col=19, value=player["score"]["DeployedChars"]))
             cells.append(gspread.cell.Cell(row=line, col=20, value=player["char_gp"]))
 
+        print(player["Strikes"])
+        total_strikes = 0
+        player_strikes = 0
+        i_zone = 1
+        for zone_fullname in dict_open_zones:
+            strike_txt = ""
+            conflict = zone_fullname.split("_")[-1]
+            i_strike = 1
+            for strike in dict_tb[zone_fullname]["Strikes"]:
+                total_strikes += 1
+                conflict_strike = conflict+"_"+strike
+                print(conflict_strike)
+                if conflict_strike in player["Strikes"]:
+                    player_strikes += 1
+                    strike_txt += "S"+str(i_strike)+" "
+                i_strike+=1
+            cells.append(gspread.cell.Cell(row=line, col=21+i_zone, value=strike_txt))
+            i_zone += 1
+        cells.append(gspread.cell.Cell(row=line, col=25, value=str(player_strikes)+"/"+str(total_strikes)))
+
         line += 1
 
     while line<53:
