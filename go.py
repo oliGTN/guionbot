@@ -4468,7 +4468,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
 
     # START THE DISPLAY PART
     ret_print_tb_status = ""
-    ret_print_tb_status += "TODO: link the Excel file for player details...\n"
+    ret_print_tb_status += "More details, including players \u2013 "+connect_gsheets.get_sheet_url(guildName, "BT graphs")+"\n"
 
     ret_print_tb_status+="---------------\n"
     available_ship_deploy = dict_phase["AvailableShipDeploy"]
@@ -4481,13 +4481,13 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
     remaining_to_play_chars = dict_phase["CharPlayers"]
     remaining_to_play_mix = dict_phase["MixPlayers"]
     if "Ships" in list_deployment_types:
-        ret_print_tb_status += "Remaining to deploy ships : "+str(round(available_ship_deploy/1000000, 1))+"M"
+        ret_print_tb_status += "Remaining to deploy ships \u2013 "+str(round(available_ship_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_ships)+" players)\n"
     if "Chars" in list_deployment_types:
-        ret_print_tb_status += "Remaining to deploy chars : "+str(round(available_char_deploy/1000000, 1))+"M"
+        ret_print_tb_status += "Remaining to deploy chars \u2013 "+str(round(available_char_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_chars)+" players)\n"
     if "Mix" in list_deployment_types:
-        ret_print_tb_status += "Remaining to deploy : "+str(round(available_mix_deploy/1000000, 1))+"M"
+        ret_print_tb_status += "Remaining to deploy \u2013 "+str(round(available_mix_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_mix)+" players)\n"
 
     list_images = []
@@ -4497,7 +4497,7 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
         ret_print_tb_status+="**"+dict_tb[zone_name]["Name"]+"**\n"
 
         current_score = dict_open_zones[zone_name]["Score"]
-        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"M "
+        ret_print_tb_status+="Current score \u2013 "+str(round(current_score/1000000, 1))+"M "
 
         cur_strike_score = dict_open_zones[zone_name]["StrikeScore"]
         cur_strike_fights = sum(dict_open_zones[zone_name]["StrikeFights"].values())
@@ -4509,15 +4509,15 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
 
         score_with_estimated_strikes = current_score + estimated_strike_score
         if compute_estimated_fights:
-            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"M "
+            ret_print_tb_status+="Estimated fights \u2013 "+str(round(estimated_strike_score/1000000, 1))+"M "
             ret_print_tb_status+="(in "+str(estimated_strike_fights)+" fights)\n"
 
         deploy_consumption = dict_open_zones[zone_name]["Deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
-        ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"M\n"
+        ret_print_tb_status+="Deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
         star_for_score = dict_open_zones[zone_name]["EstimatedStars"]
-        ret_print_tb_status+=">> Zone result: "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
+        ret_print_tb_status+="\u27a1 Zone result \u2013 "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
         img = draw_tb_previsions(dict_tb[zone_name]["Name"], dict_tb[zone_name]["Scores"],
@@ -4525,16 +4525,13 @@ def print_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use
                                  max_strike_score)
         list_images.append(img)
 
-    #prepare txt
-    #for player in sorted(dict_tb_players.keys(), key=lambda x: x.lower()):
-    #    ret_print_tb_status += "**"+player+"**: "+str(dict_tb_players[player])+"\n"
     ret_print_tb_status += "----------------------------\n"
     if "Ships" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment ships : "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
+        ret_print_tb_status += "Unused deployment ships \u2013 "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
     if "Chars" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment squads : "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
+        ret_print_tb_status += "Unused deployment squads \u2013 "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
     if "Mix" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment mix : "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
+        ret_print_tb_status += "Unused deployment mix \u2013 "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
     ret_print_tb_status += "----------------------------\n"
 
     return 0, ret_print_tb_status, list_images
