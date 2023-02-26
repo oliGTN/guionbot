@@ -371,6 +371,8 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             goutils.log2('DBG', query)
             connect_mysql.simple_execute(query)
 
+
+
     if load_players:
         if lastUpdated != None:
             delta_lastUpdated = datetime.datetime.now() - lastUpdated
@@ -456,10 +458,42 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     #Erase guildName for alyCodes not detected from API
     if len(allyCodes_to_remove) > 0:
         query = "UPDATE players "\
-               +"SET guildName = '' "\
+               +"SET guildName = '', guildMemberLevel = 2 "\
                +"WHERE allyCode IN "+str(tuple(allyCodes_to_remove)).replace(",)", ")")
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
+
+    #Manage guild roles (leader, officers)
+    query = "SELECT allyCode, guildMemberLevel FROM players "\
+           +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
+    goutils.log2('DBG', query)
+    roles_in_DB = connect_mysql.get_table(query)
+    dict_roles = {}
+    for role in roles_in_DB:
+        dict_roles[role[0]] = role[1]
+
+    for member in dict_guild["roster"]:
+        ac = member["allyCode"]
+        if ac in dict_roles:
+            if member["guildMemberLevel"] != dict_roles[ac]:
+                #change the role
+                query = "UPDATE players SET guildMemberLevel = "+str(member["guildMemberLevel"])+" " \
+                       +"WHERE allyCode = "+str(ac)
+                goutils.log2('DBG', query)
+                connect_mysql.simple_execute(query)
+                
+                #log it in guild_evolutions
+                description = "guildMemberLevel changed from "+str(dict_roles[ac])+" to "+str(member["guildMemberLevel"])
+                query = "INSERT INTO guild_evolutions(guild_id, allyCode, description) "
+                query+= "VALUES('"+guild_id+"', "+str(ac)+", '"+description+"')"
+                goutils.log2('DBG', query)
+                connect_mysql.simple_execute(query)
+            del dict_roles[member["allyCode"]]
+        else:
+            goutils.log2('WAR', str(ac)+" found in API but not found in DB while updating guild")
+    #manage  remaining players
+    for ac in dict_roles:
+        goutils.log2('WAR', str(ac)+" found in DB but not found in API while updating guild")
 
     return 0, "", dict_guild
 
@@ -4114,17 +4148,18 @@ def get_tb_status(guildName, targets_zone_stars, compute_estimated_fights, use_c
         dict_members_by_id[member["PlayerId"]] = member["PlayerName"]
 
     tb_ongoing=False
-    for battleStatus in dict_guild["TerritoryBattleStatus"]:
-        if battleStatus["Selected"]:
-            battle_id = battleStatus["InstanceId"]
-            goutils.log2("DBG", "Selected TB = "+battle_id)
-            tb_ongoing=True
-            tb_round = battleStatus["CurrentRound"]
-            tb_type = battleStatus["DefinitionId"]
-            tb_round_endTime = int(battleStatus["CurrentRoundEndTime"])
-            tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
-            dict_events=dict_all_events[battle_id]
-            break
+    if "TerritoryBattleStatus" in dict_guild:
+        for battleStatus in dict_guild["TerritoryBattleStatus"]:
+            if battleStatus["Selected"]:
+                battle_id = battleStatus["InstanceId"]
+                goutils.log2("DBG", "Selected TB = "+battle_id)
+                tb_ongoing=True
+                tb_round = battleStatus["CurrentRound"]
+                tb_type = battleStatus["DefinitionId"]
+                tb_round_endTime = int(battleStatus["CurrentRoundEndTime"])
+                tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
+                dict_events=dict_all_events[battle_id]
+                break
 
     if not tb_ongoing:
         return 1, "No TB on-going", None
