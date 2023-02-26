@@ -55,6 +55,21 @@ def get_dict_columns(list_col_names, list_list_sheet):
                 dict_columns[col_name] = i_col
     return dict_columns
 
+def get_sheet_url(guild_name, sheet_name):
+    try:
+        get_gapi_client()
+        file = client.open(guild_name)
+        worksheet=file.worksheet(sheet_name)
+    except Exception as e:
+        goutils.log2("ERR", sys.exc_info()[0])
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
+        goutils.log2("WAR", "Cannot connect to Google API")
+        return None
+
+    worksheet_url = "https://docs.google.com/spreadsheets/d/" + file.id + "/edit#gid=" + str(worksheet.id)
+    return worksheet_url
+
 ##############################################################
 # Function: load_config_raids
 # Parameters: None
