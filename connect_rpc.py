@@ -57,10 +57,9 @@ def islocked_bot_account(guildName):
 
 def get_rpc_data(guildName, use_cache_data):
     dict_bot_accounts = get_dict_bot_accounts()
-    print(dict_bot_accounts)
     if not guildName in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]", None
-    print(dict_bot_accounts[guildName])
+
     bot_androidId = dict_bot_accounts[guildName]["AndroidId"]
     goutils.log2("DBG", "bot account for "+guildName+" is "+bot_androidId)
 
