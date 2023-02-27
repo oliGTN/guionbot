@@ -1404,6 +1404,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def is_officer(ctx):
         ret_is_officer = False
         dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
+        print(dict_players_by_ID)
+        print(ctx.author.id)
         if str(ctx.author.id) in dict_players_by_ID:
             if dict_players_by_ID[str(ctx.author.id)][1]:
                 ret_is_officer = True

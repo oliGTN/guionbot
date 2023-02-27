@@ -873,13 +873,17 @@ def load_config_players(guild_name):
         ac = line[0]
         name = line[1]
         did = line[2]
+        if did == None:
+            did=""
         isOff = (line[3]!=2)
 
-        if list_did.count(did) == 1:
-            dict_players_by_IG[name] = [ac, "<@"+did+">"]
-        else:
-            dict_players_by_IG[name] = [ac, "<@"+did+"> ["+name+"]"]
-        dict_players_by_ID[did] = [ac, isOff]
+        if did == "":
+            dict_players_by_IG[name] = [ac, "**"+name+"**"]
+            if list_did.count(did) == 1:
+                dict_players_by_IG[name] = [ac, "<@"+did+">"]
+            else:
+                dict_players_by_IG[name] = [ac, "<@"+did+"> ["+name+"]"]
+            dict_players_by_ID[did] = [ac, isOff]
 
     return dict_players_by_IG, dict_players_by_ID
 
