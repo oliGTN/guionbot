@@ -4671,11 +4671,12 @@ def detect_tm(fevent_name):
         data=event["Data"][0]
         if data["ActivityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
             activity=data["Activity"]
-            if activity["ZoneData"]["GuildId"].startswith("oroRFpT"):
-                if "DEPLOY" in activity["ZoneData"]["ActivityLogMessage"]["Key"]:
+            if "DEPLOY" in activity["ZoneData"]["ActivityLogMessage"]["Key"]:
+                if activity["ZoneData"]["InstanceType"] == "ZONEINSTANCEHOME":
                     leader = activity["WarSquad"]["Squad"]["Cell"][0]["UnitDefId"].split(":")[0]
-                    sys.stdout.write(id+" "+str(time)+" DEFENSE: "+author+" "+leader+"\n")
-                else:
+                    print(str(time)+" DEFENSE: "+author+" "+leader)
+            else:
+                if activity["ZoneData"]["InstanceType"] == "ZONEINSTANCEAWAY":
                     if "WarSquad" in activity:
                         squad_id = activity["WarSquad"]["SquadId"]
                         if "Squad" in activity["WarSquad"]:
@@ -4697,7 +4698,7 @@ def detect_tm(fevent_name):
                                         and cell["UnitState"]["TurnPercent"] != "0":
                                         remaining_tm=True
 
-                            sys.stdout.write(id+" "+str(time)+" DEFAITE: "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
+                            sys.stdout.write(str(time)+" DEFAITE: "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
                             if count_dead==0 and remaining_tm:
                                 sys.stdout.write(" >>> TM !!!\n")
                             else:
@@ -4705,15 +4706,15 @@ def detect_tm(fevent_name):
 
                         elif activity["WarSquad"]["SquadStatus"]=="SQUADDEFEATED":
                             if "Squad" in activity["WarSquad"]:
-                                print(id+" "+str(time)+" VICTOIRE: "+author+" "+leader_opponent)
+                                print(str(time)+" VICTOIRE: "+author+" "+leader_opponent)
                         elif activity["WarSquad"]["SquadStatus"]=="SQUADLOCKED":
                             if "Squad" in activity["WarSquad"]:
-                                print(id+" "+str(time)+" DEBUT: "+author+" "+leader_opponent)
+                                print(str(time)+" DEBUT: "+author+" "+leader_opponent)
                         else:
-                            print(id+" "+str(time)+" "+activity["WarSquad"]["SquadStatus"])
+                            print(str(time)+" "+activity["WarSquad"]["SquadStatus"])
                     else:
                         scoretotal = activity["ZoneData"]["ScoreTotal"]
-                        print(id+" "+str(time)+" Score: "+scoretotal)
+                        print(str(time)+" Score: "+scoretotal)
 
         else:
             print(data["ActivityType"])
