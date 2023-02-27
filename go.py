@@ -469,8 +469,9 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     goutils.log2('DBG', query)
     roles_in_DB = connect_mysql.get_table(query)
     dict_roles = {}
-    for role in roles_in_DB:
-        dict_roles[role[0]] = role[1]
+    if roles_in_DB != None:
+        for role in roles_in_DB:
+            dict_roles[role[0]] = role[1]
 
     for member in dict_guild["roster"]:
         ac = member["allyCode"]
@@ -1626,7 +1627,7 @@ def print_gvs(list_team_names, txt_allyCode):
 def assign_gt(allyCode, server_name):
     ret_assign_gt = ''
 
-    dict_players = connect_gsheets.load_config_players(server_name, False)[0]
+    dict_players = connect_mysql.load_config_players(server_name)[0]
 
     list_territoires = connect_gsheets.load_config_gt(server_name)
         # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
@@ -2746,7 +2747,7 @@ def print_raid_progress(txt_allyCode, server_name, raid_alias, use_mentions):
     raid_phase, raid_scores = connect_warstats.parse_raid_scores(warstats_id, raid_name)
 
     #Player lines
-    dict_players_by_IG = connect_gsheets.load_config_players(server_name, False)[0]
+    dict_players_by_IG = connect_mysql.load_config_players(server_name)[0]
     list_scores = []
     list_unknown_players = []
     list_inactive_players = []
@@ -2937,7 +2938,7 @@ def print_tb_progress(txt_allyCode, server_name, tb_alias, use_mentions):
         tb_day_count = 4
 
     #Player lines
-    dict_players_by_IG = connect_gsheets.load_config_players(server_name, False)[0]
+    dict_players_by_IG = connect_mysql.load_config_players(server_name)[0]
     list_scores = []
     list_terr_by_day = [""] * tb_day_count
     first_player = True
@@ -3615,7 +3616,7 @@ def tag_players_with_character(txt_allyCode, character, server_name, tw_mode):
     allyCodes_in_DB = connect_mysql.get_table(query)
 
     guildName = allyCodes_in_DB[0][0]
-    dict_players = connect_gsheets.load_config_players(guildName, False)[0]
+    dict_players = connect_mysql.load_config_players(guildName)[0]
 
     #Manage -TW option
     if tw_mode:

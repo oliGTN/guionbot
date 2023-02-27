@@ -853,3 +853,34 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
         # need to merge them with confirmation from player
         return 1, "", [target_shard, player_existing_shard]
 
+##############################################################
+# Function: load_config_players
+# Parameters: none
+# Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>]}
+#          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
+##############################################################
+def load_config_players(guild_name):
+    query = "SELECT allyCode, name, discord_id, guildMemberLevel FROM players "
+    query+= "WHERE guildName = '"+guild_name+"'"
+    goutils.log2("DBG", query)
+    data_db = get_table(query)
+
+    dict_players_by_IG = {}
+    dict_players_by_ID = {}
+
+    list_did = [x[2] for x in data_db]
+    for line in data_db:
+        ac = line[0]
+        name = line[1]
+        did = line[2]
+        isOff = (line[3]!=2)
+
+        if list_did.count(did) == 1:
+            dict_players_by_IG[name] = [ac, "<@"+did+">"]
+        else:
+            dict_players_by_IG[name] = [ac, "<@"+did+"> ["+name+"]"]
+        dict_players_by_ID[did] = [ac, isOff]
+
+    return dict_players_by_IG, dict_players_by_ID
+
+

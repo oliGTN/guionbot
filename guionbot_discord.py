@@ -176,8 +176,9 @@ async def bot_loop_60():
                                 
                         list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
-                #goutils.log2("DBG", "guildname="+guild.name+", dict_last_seen="+str(dict_member_lastseen[guild.name]))
-                connect_gsheets.update_online_dates(guild.name, dict_member_lastseen[guild.name])
+                #This data is not written in the gsheets anymore
+                #it is kept ofr info and provision for a command
+                #connect_gsheets.update_online_dates(guild.name, dict_member_lastseen[guild.name])
 
         except Exception as e:
             goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
@@ -806,7 +807,8 @@ async def get_channel_from_channelname(ctx, channel_name):
 def manage_me(ctx, alias):
     #Special case of 'me' as allyCode
     if alias == 'me':
-        dict_players_by_ID = connect_gsheets.load_config_players(ctx.guild.name, False)[1]
+        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
+        print(dict_players_by_ID)
         if str(ctx.author.id) in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
         else:
@@ -818,7 +820,7 @@ def manage_me(ctx, alias):
         else: # '<@ without the !
             discord_id_txt = alias[2:-1]
         goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
-        dict_players_by_ID = connect_gsheets.load_config_players(ctx.guild.name, False)[1]
+        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
         if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
         else:
@@ -881,7 +883,7 @@ def manage_me(ctx, alias):
 
             discord_id = [str(x[0]) for x in guild_members_clean \
                             if x[1] == closest_name_discord][0]
-            dict_players_by_ID = connect_gsheets.load_config_players(ctx.guild.name, False)[1]
+            dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
             else:
@@ -929,11 +931,6 @@ def read_gsheets(guild_name):
     l = connect_gsheets.load_tb_teams(guild_name, True)
     if l == None:
         err_txt += "ERR: erreur en mettant à jour les BT teams\n"
-        err_code = 1
-
-    [d1, d2] = connect_gsheets.load_config_players(guild_name, True)
-    if d1 == None:
-        err_txt += "ERR: erreur en mettant à jour les PLAYERS\n"
         err_code = 1
 
     return err_code, err_txt
@@ -1406,7 +1403,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     async def is_officer(ctx):
         ret_is_officer = False
-        dict_players_by_ID = connect_gsheets.load_config_players(ctx.guild.name, False)[1]
+        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
         if str(ctx.author.id) in dict_players_by_ID:
             if dict_players_by_ID[str(ctx.author.id)][1]:
                 ret_is_officer = True
@@ -1669,7 +1666,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
-        dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
+        dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
 
         if tbs_round == '':
             await ctx.send("Aucune BT en cours (dernier update warstats: "+int(secs_track)+" secs")
@@ -1808,7 +1805,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.send("ERR: "+errtxt)
                 await ctx.message.add_reaction(emoji_error)
             else:
-                dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
+                dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
                 output_txt=""
                 for p in sorted(dict_players.keys()):
                     if p in dict_players_by_IG:
@@ -1987,7 +1984,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         err_code, ret_txt, lines = await bot.loop.run_in_executor(None, go.tag_tb_undeployed_players, ctx.guild.name, False)
         if err_code == 0:
-            dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
+            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
             for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
                 if (p in dict_players_by_IG) and display_mentions:
@@ -2061,6 +2058,47 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
         return (not bot_test_mode) or is_owner
 
+    @commands.check(command_allowed)
+    @commands.command(name='register',
+                      brief="Lie un code allié au compte discord qui lance la commande",
+                      help="Lie un code allié au compte discord qui lance la commande\n\n"\
+                           "Exemple: go.qui 123456789")
+    async def register(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ac = args[0]
+
+        if re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", ac) != None:
+            # 123-456-789 >> allyCode
+            allyCode = alias.replace("-", "")
+
+        elif ac.isnumeric():
+            # number >> allyCode
+            allyCode = ac
+
+        else:
+            await ctx.send("ERR: merci de renseigner un code allié")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        discord_id_txt = str(ctx.author.id)
+        if len(args) > 1:
+            mention = args[1]
+
+            if mention.startswith('<@'):
+                # discord @mention
+                if mention.startswith('<@!'):
+                    discord_id_txt = mention[3:-1]
+                else: # '<@ without the !
+                    discord_id_txt = mention[2:-1]
+                goutils.log2("INFO", "command launched with discord @mention "+mention)
+
+        query = "UPDATE players SET discord_id='"+discord_id_txt+"' WHERE allyCode="+ac
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+        await ctx.message.add_reaction(emoji_check)
+
     ##############################################################
     # Command: qui
     # Parameters: code allié (string) ou "me" ou pseudo ou @mention
@@ -2106,7 +2144,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     lastUpdated_txt = "joueur inconnu"
 
             #Look for Discord Pseudo if in guild
-            dict_players_by_IG = connect_gsheets.load_config_players(ctx.guild.name, False)[0]
+            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
@@ -2147,6 +2185,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(txt)
 
             await ctx.message.add_reaction(emoji_check)
+
     ##############################################################
     # Command: vtg
     # Parameters: code allié (string) ou "me", une liste de teams séparées par des espaces ou "all"
