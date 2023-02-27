@@ -386,7 +386,7 @@ async def bot_loop_5minutes():
                     dict_platoons_previously_done[guild.name] = {}
 
                 #Check if guild can use RPC
-                if guild.name in connect_rpc.dict_bot_accounts:
+                if guild.name in connect_rpc.get_dict_bot_accounts():
                     tbs_round, dict_platoons_done, list_open_territories, \
                         secs_track = connect_rpc.parse_tb_platoons(guild.name, True)
                 else:
@@ -1653,7 +1653,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             return
 
         #Check if guild can use RPC
-        if ctx.guild.name in connect_rpc.dict_bot_accounts:
+        if ctx.guild.name in connect_rpc.get_dict_bot_accounts():
             goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
 
             tbs_round, dict_platoons_done, list_open_territories, \
