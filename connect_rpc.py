@@ -4,57 +4,89 @@ import json
 import re
 import threading
 import time
+import datetime
 
 import goutils
 import data
+import connect_mysql
 
-dict_bot_accounts = {}
-dict_bot_accounts["Kangoo Legends"] = {"Name": "Warstat", "LockedUntil": 0, "sem": threading.Semaphore()}
+dict_sem={}
+def acquire_sem(id):
+    if not id in dict_sem:
+        dict_sem[id] = threading.Semaphore()
+    dict_sem[id].acquire()
+
+def release_sem(id):
+    dict_sem[id].release()
+
+def get_dict_bot_accounts():
+    query = "SELECT name, bot_android_id, bot_locked_until FROM guilds where bot_android_id != ''"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+
+    ret_dict = {}
+    if db_data != None:
+        for line in db_data:
+            ret_dict[line[0]] = {"AndroidId": line[1], "LockedUntil": line[2]}
+
+    return ret_dict
+
+def bot_account_until(guildName, until_seconds):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not guildName in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
+
+    locked_until_txt = datetime.datetime.fromtimestamp(int(time.time())+until_seconds).strftime("%Y-%m-%d %H:%M:%S")
+    query = "UPDATE guilds SET bot_locked_until='"+locked_until_txt+"' WHERE name='"+guildName.replace("'", "''")+"'"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
+    return 0, ""
 
 def lock_bot_account(guildName):
-    if not guildName in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
-    dict_bot_accounts[guildName]["LockedUntil"] = int(time.time()+3600)
-    return 0, ""
+    return bot_account_until(guildName, 3600)
 
 def unlock_bot_account(guildName):
-    if not guildName in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
-    dict_bot_accounts[guildName]["LockedUntil"] = 0
-    return 0, ""
+    return bot_account_until(guildName, 0)
 
 def islocked_bot_account(guildName):
-    is_locked = (dict_bot_accounts[guildName]["LockedUntil"] > int(time.time()))
+    dict_bot_accounts = get_dict_bot_accounts()
+    locked_until_ts = datetime.datetime.timestamp(dict_bot_accounts[guildName]["LockedUntil"])
+    is_locked = int(locked_until_ts) > int(time.time())
     return is_locked
 
 def get_rpc_data(guildName, use_cache_data):
+    dict_bot_accounts = get_dict_bot_accounts()
+    print(dict_bot_accounts)
     if not guildName in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]", None
-    bot_playerName = dict_bot_accounts[guildName]["Name"]
+    print(dict_bot_accounts[guildName])
+    bot_androidId = dict_bot_accounts[guildName]["AndroidId"]
+    goutils.log2("DBG", "bot account for "+guildName+" is "+bot_androidId)
 
     if islocked_bot_account(guildName):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
     goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
-    dict_bot_accounts[guildName]["sem"].acquire()
+    acquire_sem(guildName)
     goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_playerName])
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_androidId])
         goutils.log2("DBG", "getguild code="+str(process.returncode))
 
-    guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+bot_playerName+".json", "r"))
+    guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+bot_androidId+".json", "r"))
     if "Guild" in guild_json:
         dict_guild = guild_json["Guild"]
     else:
         dict_guild = {}
 
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_playerName])
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_androidId])
         goutils.log2("DBG", "getevents code="+str(process.returncode))
-    if os.path.exists("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json"):
-        events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_playerName+".json", "r"))
+    if os.path.exists("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json"):
+        events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json", "r"))
         if "Event" in events_json:
             dict_new_events = events_json["Event"]
         else:
@@ -63,10 +95,10 @@ def get_rpc_data(guildName, use_cache_data):
         dict_new_events = {}
 
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TB"])
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TB"])
         goutils.log2("DBG", "getmapstats code="+str(process.returncode))
-    if os.path.exists("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json"):
-        TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_playerName+".json", "r"))
+    if os.path.exists("/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"):
+        TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json", "r"))
         if "CurrentStat" in TBmapstats_json:
             dict_TBmapstats = TBmapstats_json["CurrentStat"]
         else:
@@ -75,10 +107,10 @@ def get_rpc_data(guildName, use_cache_data):
         dict_TBmapstats = {}
 
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_playerName, "TW"])
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TW"])
         goutils.log2("DBG", "getmapstats code="+str(process.returncode))
-    if os.path.exists("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json"):
-        TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_playerName+".json", "r"))
+    if os.path.exists("/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json"):
+        TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json", "r"))
         if "CurrentStat" in TWmapstats_json:
             dict_TWmapstats = TWmapstats_json["CurrentStat"]
         else:
@@ -113,7 +145,7 @@ def get_rpc_data(guildName, use_cache_data):
         f.close()
 
     goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
-    dict_bot_accounts[guildName]["sem"].release()
+    release_sem(guildName)
     goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
