@@ -15,11 +15,10 @@ def add_stats(dict_player):
     for character in dict_player['roster']:
         if character['combatType'] == None:
             char_id = character['defId']
-            goutils.log2('DBG', "combatType=None for "+char_id)
             if char_id in dict_unitsList:
                 character['combatType'] = dict_unitsList[char_id]['combatType']
             else:
-                goutils.log2('DBG', ">> combatType forced to 1")
+                goutils.log2('DBG', char_id+" >> combatType forced to 1")
                 character['combatType'] = 1
     
     try:
