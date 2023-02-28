@@ -4659,7 +4659,7 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
 
     return zone_img
 
-def detect_tm(fevent_name):
+def detect_tm(fevent_name, guildId):
     d=json.load(open(fevent_name,"r"))
     sorted_d=dict(sorted(d.items(), key=lambda x:int(x[1]["Timestamp"])))
     dict_squads={}
@@ -4676,7 +4676,7 @@ def detect_tm(fevent_name):
                     leader = activity["WarSquad"]["Squad"]["Cell"][0]["UnitDefId"].split(":")[0]
                     print(str(time)+" DEFENSE: "+author+" "+leader)
             else:
-                if activity["ZoneData"]["InstanceType"] == "ZONEINSTANCEAWAY":
+                if activity["ZoneData"]["GuildId"] == guildId:
                     if "WarSquad" in activity:
                         squad_id = activity["WarSquad"]["SquadId"]
                         if "Squad" in activity["WarSquad"]:
