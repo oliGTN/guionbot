@@ -129,7 +129,6 @@ def get_rpc_data(guildName, use_cache_data):
         else:
             ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
             event_file_id = ret_re.group(1)
-        print(event_file_id)
 
         if not event_file_id in dict_events:
             fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
