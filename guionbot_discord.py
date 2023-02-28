@@ -338,7 +338,21 @@ async def bot_loop_5minutes():
             #update RPC data before using different commands (tb alerts, tb_platoons)
             try:
                 await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.name, False)
-                await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, guild.name)
+                ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, guild.name, True)
+                if ec!=0:
+                    goutils.log2("ERR", et)
+                else:
+                    channel_id = ret_data[0]
+                    output_channel = bot.get_channel(channel_id)
+                    output_txt = ""
+                    for line in ret_data[1]:
+                        ts = line[0]
+                        txt = line[1]
+                        ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%Y-%m-%d %H:%M:%S")
+                        output_txt+=ts_txt+" - "+txt+"\n"
+                    if output_txt != "":
+                        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                            await output_channel.send("`"+txt+"`")
 
             except Exception as e:
                 goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))

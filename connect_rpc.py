@@ -7,7 +7,7 @@ import time
 import datetime
 
 import goutils
-import data
+import data as godata
 import connect_mysql
 
 dict_sem={}
@@ -208,7 +208,7 @@ def parse_tb_platoons(guildName, use_cache_data):
     for member in dict_guild["Member"]:
         dict_member_by_id[member["PlayerId"]] = member["PlayerName"]
 
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     if not "TerritoryBattleStatus" in dict_guild:
         goutils.log2("WAR", "["+guildName+"] no TB in progress")
@@ -264,7 +264,7 @@ def parse_tb_platoons(guildName, use_cache_data):
     return active_round, dict_platoons, list_open_territories, 0
 
 def parse_tw_opponent_teams(guildName, use_cache_data):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...], <beaten>, <fights>],
                     #  ['T1', 'E80', [...]]]
@@ -280,4 +280,89 @@ def parse_tw_opponent_teams(guildName, use_cache_data):
     mapstats_json = rpc_data[1]
     dict_events = rpc_data[2]
 
-    return list_teams, list_territories
+    return 0, "", [list_teams, list_territories]
+
+def get_guildChat_messages(guildName, use_cache_data):
+    query = "SELECT bot_android_id, chatChan_id, chatLatest_ts FROM guilds WHERE name='"+guildName.replace("'", "''")+"'"
+    goutils.log2("DBG", query)
+    line = connect_mysql.get_line(query)
+    if line == None:
+        return 1, "ERR: DB data for guild "+guildName, None
+    
+    bot_android_id = line[0]
+    chatChan_id = line[1]
+    chatLatest_ts = line[2]
+
+    if bot_android_id == '':
+        return 1, "ERR: no RPC bot for guild "+guildName, None
+    if chatChan_id == 0:
+        return 1, "ERR: no discord chat channel for guild "+guildName, None
+
+    err_code, err_txt, rpc_data = get_rpc_data(guildName, use_cache_data)
+
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return '', None, None, 0
+
+    dict_guild = rpc_data[0]
+    mapstats_json = rpc_data[1]
+    dict_events = rpc_data[2]
+
+    dict_unitsList = godata.get("unitsList_dict.json")
+    dict_capas = godata.get('unit_capa_list.json')
+
+    list_chat_events = []
+    for event_group_id in dict_events:
+        if not event_group_id.startswith("GUILD_CHAT"):
+            continue
+        event_group = dict_events[event_group_id]
+        for event_id in event_group:
+            event = event_group[event_id]
+            event_ts = int(event["Timestamp"])
+            if event_ts > chatLatest_ts:
+                if "Message" in event:
+                    author = event["AuthorName"]
+                    message = event["Message"]
+                    list_chat_events.append([event_ts, author+" : "+message])
+                else:
+                    for data in event["Data"]:
+                        activity = data["Activity"]
+                        if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_TIERUP":
+                            author = activity["Param"][0]["ParamValue"][0]
+                            unit_id = activity["Param"][1]["Key"][5:-5]
+                            unit_name = dict_unitsList[unit_id]["nameKey"]
+                            gear = activity["Param"][2]["Key"]
+                            list_chat_events.append([event_ts, author+" a augmenté l'équipement de "+unit_name+" au niveau "+gear])
+                        if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_ZETA_APPLIED":
+                            author = activity["Param"][0]["ParamValue"][0]
+                            ability_id = activity["Param"][1]["Key"]
+                            unit_id = activity["Param"][2]["Key"][5:-5]
+
+                            if ability_id.startswith("BASIC"):
+                                skill_id = "basicskill_"+unit_id
+                            elif ability_id.startswith("LEADER"):
+                                skill_id = "leaderskill_"+unit_id
+                            elif ability_id.startswith("UNIQUE"):
+                                if "GALACTICLEGEND" in ability_id:
+                                    skill_id = "uniqueskill_GALACTICLEGEND01"
+                                else:
+                                    skill_count = ability_id[-7:-5]
+                                    skill_id = "uniqueskill_"+unit_id+skill_count
+                            elif ability_id.startswith("SPECIAL"):
+                                skill_count = ability_id[-7:-5]
+                                skill_id = "specialskill_"+unit_id+skill_count
+
+                            unit_name = dict_unitsList[unit_id]["nameKey"]
+                            skill_name = dict_capas[unit_id][skill_id][0]
+                            list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+skill_name+" ("+unit_name+")"])
+
+    if len(list_chat_events)>0:
+        list_chat_events = sorted(list_chat_events, key=lambda x:x[0])
+
+        max_ts = list_chat_events[-1][0]
+        query = "UPDATE guilds SET chatLatest_ts="+str(max_ts)+" WHERE name='"+guildName.replace("'", "''")+"'"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+    return 0, "", [chatChan_id, list_chat_events]
+
