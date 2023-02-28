@@ -122,25 +122,31 @@ def get_rpc_data(guildName, use_cache_data):
     for event in dict_new_events:
         event_id = event["Id"]
         channel_id = event["ChannelId"]
-        ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
-        event_battle_id = ret_re.group(1)
+        event_ts = int(event["Timestamp"])
+        if channel_id.startswith("guild-{"):
+            event_day_ts = int(event_ts/1000/86400)*86400*1000
+            event_file_id = "GUILD_CHAT:"+str(event_day_ts)
+        else:
+            ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
+            event_file_id = ret_re.group(1)
+        print(event_file_id)
 
-        if not event_battle_id in dict_events:
-            fevents = "EVENTS/"+guildName+"_"+event_battle_id+"_events.json"
+        if not event_file_id in dict_events:
+            fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
             if os.path.exists(fevents):
                 f = open(fevents)
-                dict_events[event_battle_id]=json.load(f)
+                dict_events[event_file_id]=json.load(f)
                 f.close()
             else:
-                dict_events[event_battle_id]={}
+                dict_events[event_file_id]={}
 
-        if not event_id in dict_events[event_battle_id]:
-            dict_events[event_battle_id][event_id] = event
+        if not event_id in dict_events[event_file_id]:
+            dict_events[event_file_id][event_id] = event
 
-    for event_battle_id in dict_events:
-        fevents = "EVENTS/"+guildName+"_"+event_battle_id+"_events.json"
+    for event_file_id in dict_events:
+        fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
         f=open(fevents, "w")
-        f.write(json.dumps(dict_events[event_battle_id], indent=4))
+        f.write(json.dumps(dict_events[event_file_id], indent=4))
         f.close()
 
     goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
@@ -257,3 +263,22 @@ def parse_tb_platoons(guildName, use_cache_data):
                                 dict_platoons[platoon_name][unit_name].append('')
 
     return active_round, dict_platoons, list_open_territories, 0
+
+def parse_tw_opponent_teams(guildName, use_cache_data):
+    dict_unitsList = data.get("unitsList_dict.json")
+
+    list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...], <beaten>, <fights>],
+                    #  ['T1', 'E80', [...]]]
+    list_territories = [] # [['T1', <size>, <filled>, <victories>, <fails>], ...],
+
+    err_code, err_txt, rpc_data = get_rpc_data(guildName, use_cache_data)
+
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return '', None, None, 0
+
+    dict_guild = rpc_data[0]
+    mapstats_json = rpc_data[1]
+    dict_events = rpc_data[2]
+
+    return list_teams, list_territories
