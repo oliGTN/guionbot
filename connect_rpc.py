@@ -355,6 +355,11 @@ def get_guildChat_messages(guildName, use_cache_data):
                             unit_name = dict_unitsList[unit_id]["nameKey"]
                             skill_name = dict_capas[unit_id][skill_id][0]
                             list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+skill_name+" ("+unit_name+")"])
+                        if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_PROMOTED":
+                            author = activity["Param"][0]["ParamValue"][0]
+                            unit_id = activity["Param"][1]["Key"][5:-5]
+                            unit_name = dict_unitsList[unit_id]["nameKey"]
+                            list_chat_events.append([event_ts, author+" vient de promouvoir "+unit_name+" à 7 étoiles"])
 
     if len(list_chat_events)>0:
         list_chat_events = sorted(list_chat_events, key=lambda x:x[0])
