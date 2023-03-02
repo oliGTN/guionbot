@@ -146,7 +146,7 @@ def get_rpc_data(guildName, use_cache_data):
             dict_event_counts[event_file_id]+=1
             dict_events[event_file_id][event_id] = event
 
-    if max(dict_event_counts. alues))) > 0:
+    if max(dict_event_counts.values()) > 0:
         goutils.log2("INFO", "New events: "+str(dict_event_counts))
 
     for event_file_id in dict_events:
