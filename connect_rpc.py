@@ -119,6 +119,7 @@ def get_rpc_data(guildName, use_cache_data):
 
 
     dict_events = {}
+    dict_event_counts = {}
     for event in dict_new_events:
         event_id = event["Id"]
         channel_id = event["ChannelId"]
@@ -139,8 +140,13 @@ def get_rpc_data(guildName, use_cache_data):
             else:
                 dict_events[event_file_id]={}
 
+            dict_event_counts[event_file_id]=0
+
         if not event_id in dict_events[event_file_id]:
+            dict_event_counts[event_file_id]+=1
             dict_events[event_file_id][event_id] = event
+
+    goutils.log2("INFO", "New events: "+str(dict_event_counts))
 
     for event_file_id in dict_events:
         fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
