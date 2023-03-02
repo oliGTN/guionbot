@@ -365,7 +365,12 @@ def get_guildChat_messages(guildName, use_cache_data):
                                 unit_name = dict_unitsList[unit_id]["nameKey"]
                             else:
                                 unit_name = unit_id
-                            skill_name = dict_capas[unit_id][skill_id][0]
+                            if skill_id in dict_capas:
+                                skill_name = dict_capas[unit_id][skill_id][0]
+                            elif skill_id.lower() in dict_capas:
+                                skill_name = dict_capas[unit_id][skill_id.lower()][0]
+                            else:
+                                skill_name = skill_id
                             if "ZETA" in activity["Key"]:
                                 list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+skill_name+" ("+unit_name+")"])
                             else:
