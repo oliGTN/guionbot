@@ -323,7 +323,7 @@ def get_guildChat_messages(guildName, use_cache_data):
                 if "Message" in event:
                     author = event["AuthorName"]
                     message = event["Message"]
-                    list_chat_events.append([event_ts, \N{SPEECH BALLOON} "+author+" : "+message])
+                    list_chat_events.append([event_ts, "\N{SPEECH BALLOON} "+author+" : "+message])
                 else:
                     for data in event["Data"]:
                         activity = data["Activity"]
