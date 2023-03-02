@@ -367,9 +367,11 @@ def get_guildChat_messages(guildName, use_cache_data):
                                 unit_name = unit_id
                             if skill_id in dict_capas:
                                 goutils.log2("WAR", skill_id+" not found")
+                                goutils.log2("WAR", dict[unid_id])
                                 skill_name = dict_capas[unit_id][skill_id][0]
                             elif skill_id.lower() in dict_capas:
                                 goutils.log2("WAR", skill_id.lower()+" not found")
+                                goutils.log2("WAR", dict[unid_id])
                                 skill_name = dict_capas[unit_id][skill_id.lower()][0]
                             else:
                                 skill_name = skill_id
