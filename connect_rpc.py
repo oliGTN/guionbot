@@ -378,7 +378,7 @@ def get_guildChat_messages(guildName, use_cache_data):
                             else:
                                 goutils.log2("WAR", skill_id+" not found")
                                 goutils.log2("WAR", skill_id.lower()+" not found")
-                                goutils.log2("WAR", dict[unid_id])
+                                goutils.log2("WAR", dict_capas[unit_id])
                                 skill_name = skill_id
                             if "ZETA" in activity["Key"]:
                                 list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+skill_name+" ("+unit_name+")"])
