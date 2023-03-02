@@ -323,14 +323,19 @@ def get_guildChat_messages(guildName, use_cache_data):
                 if "Message" in event:
                     author = event["AuthorName"]
                     message = event["Message"]
-                    list_chat_events.append([event_ts, author+" : "+message])
+                    list_chat_events.append([event_ts, \N{SPEECH BALLOON} "+author+" : "+message])
                 else:
                     for data in event["Data"]:
                         activity = data["Activity"]
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_TIERUP":
                             author = activity["Param"][0]["ParamValue"][0]
+                            if activity["Param"][1]["Key"].endswith("_NAME_V2"):
+                                activity["Param"][1]["Key"] = activity["Param"][1]["Key"][:-3]
                             unit_id = activity["Param"][1]["Key"][5:-5]
-                            unit_name = dict_unitsList[unit_id]["nameKey"]
+                            if unit_id in dict_unitsList:
+                                unit_name = dict_unitsList[unit_id]["nameKey"]
+                            else:
+                                unit_name = unit_id
                             gear = activity["Param"][2]["Key"]
                             list_chat_events.append([event_ts, author+" a augmenté l'équipement de "+unit_name+" au niveau "+gear])
 
@@ -338,6 +343,8 @@ def get_guildChat_messages(guildName, use_cache_data):
                         or activity["Key"] == "GUILD_CHANNEL_ACTIVITY_OMICRON_APPLIED":
                             author = activity["Param"][0]["ParamValue"][0]
                             ability_id = activity["Param"][1]["Key"]
+                            if activity["Param"][2]["Key"].endswith("_NAME_V2"):
+                                activity["Param"][2]["Key"] = activity["Param"][2]["Key"][:-3]
                             unit_id = activity["Param"][2]["Key"][5:-5]
 
                             if ability_id.startswith("BASIC"):
@@ -354,7 +361,10 @@ def get_guildChat_messages(guildName, use_cache_data):
                                 skill_count = ability_id[-7:-5]
                                 skill_id = "specialskill_"+unit_id+skill_count
 
-                            unit_name = dict_unitsList[unit_id]["nameKey"]
+                            if unit_id in dict_unitsList:
+                                unit_name = dict_unitsList[unit_id]["nameKey"]
+                            else:
+                                unit_name = unit_id
                             skill_name = dict_capas[unit_id][skill_id][0]
                             if "ZETA" in activity["Key"]:
                                 list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+skill_name+" ("+unit_name+")"])
@@ -364,12 +374,17 @@ def get_guildChat_messages(guildName, use_cache_data):
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_PROMOTED" \
                         or activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_ACTIVATED":
                             author = activity["Param"][0]["ParamValue"][0]
+                            if activity["Param"][1]["Key"].endswith("_NAME_V2"):
+                                activity["Param"][1]["Key"] = activity["Param"][1]["Key"][:-3]
                             unit_id = activity["Param"][1]["Key"][5:-5]
-                            unit_name = dict_unitsList[unit_id]["nameKey"]
-                            if "PROMOTED" in activity["Key"]:
-                                list_chat_events.append([event_ts, author+" vient de promouvoir "+unit_name+" à 7 étoiles"])
+                            if unit_id in dict_unitsList:
+                                unit_name = dict_unitsList[unit_id]["nameKey"]
                             else:
-                                list_chat_events.append([event_ts, author+" vient de débloquer "+unit_name])
+                                unit_name = unit_id
+                            if "PROMOTED" in activity["Key"]:
+                                list_chat_events.append([event_ts, "\N{WHITE MEDIUM STAR} "+author+" vient de promouvoir "+unit_name+" à 7 étoiles"])
+                            else:
+                                list_chat_events.append([event_ts, "\N{OPEN LOCK} "+author+" vient de débloquer "+unit_name])
 
     if len(list_chat_events)>0:
         list_chat_events = sorted(list_chat_events, key=lambda x:x[0])
