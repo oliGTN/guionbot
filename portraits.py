@@ -279,10 +279,11 @@ def get_image_from_character(character_id, dict_player, game_mode):
             portrait_draw.text((26-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
 
             #CREW
-            for crew_element in character["crew"]:
-                crew_id = crew_element["unitId"]
-                crew_image = get_image_from_character(crew_id, dict_player, game_mode)
-                portrait_image = add_vertical(portrait_image, crew_image)
+            if "crew" in character and character["crew"]!= None:
+                for crew_element in character["crew"]:
+                    crew_id = crew_element["unitId"]
+                    crew_image = get_image_from_character(crew_id, dict_player, game_mode)
+                    portrait_image = add_vertical(portrait_image, crew_image)
 
         #Orange frame if character unavail
         if 'reserved' in character:

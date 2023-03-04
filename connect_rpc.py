@@ -20,7 +20,7 @@ def release_sem(id):
     dict_sem[id].release()
 
 def get_dict_bot_accounts():
-    query = "SELECT name, bot_android_id, bot_locked_until FROM guilds where bot_android_id != ''"
+    query = "SELECT server_id, bot_android_id, bot_locked_until FROM guild_bot_infos where bot_android_id != ''"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
@@ -31,23 +31,28 @@ def get_dict_bot_accounts():
 
     return ret_dict
 
-def bot_account_until(guildName, until_seconds):
+def get_guildName_from_id(server_id):
+    query = "SELECT name from guilds JOIN guild_bot_infos on guilds.id = guild_bot_infos.guild_id WHERE server_id="+str(server_id)
+    goutils.log2("DBG", query)
+    return connect_mysql.get_value(query)
+
+def bot_account_until(server_id, until_seconds):
     dict_bot_accounts = get_dict_bot_accounts()
-    if not guildName in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]"
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]"
 
     locked_until_txt = datetime.datetime.fromtimestamp(int(time.time())+until_seconds).strftime("%Y-%m-%d %H:%M:%S")
-    query = "UPDATE guilds SET bot_locked_until='"+locked_until_txt+"' WHERE name='"+guildName.replace("'", "''")+"'"
+    query = "UPDATE guild_bot_infos SET bot_locked_until='"+locked_until_txt+"' WHERE server_id="+str(server_id)
     goutils.log2("DBG", query)
     connect_mysql.simple_execute(query)
 
     return 0, ""
 
-def lock_bot_account(guildName):
-    return bot_account_until(guildName, 3600)
+def lock_bot_account(server_id):
+    return bot_account_until(server_id, 3600)
 
-def unlock_bot_account(guildName):
-    return bot_account_until(guildName, 0)
+def unlock_bot_account(server_id):
+    return bot_account_until(server_id, 0)
 
 def islocked_bot_account(guildName):
     dict_bot_accounts = get_dict_bot_accounts()
@@ -55,20 +60,22 @@ def islocked_bot_account(guildName):
     is_locked = int(locked_until_ts) > int(time.time())
     return is_locked
 
-def get_rpc_data(guildName, use_cache_data):
+def get_rpc_data(server_id, use_cache_data):
     dict_bot_accounts = get_dict_bot_accounts()
-    if not guildName in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+guildName+"]", None
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    bot_androidId = dict_bot_accounts[guildName]["AndroidId"]
-    goutils.log2("DBG", "bot account for "+guildName+" is "+bot_androidId)
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
 
-    if islocked_bot_account(guildName):
+    guildName = get_guildName_from_id(server_id)
+
+    if islocked_bot_account(server_id):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
     goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
-    acquire_sem(guildName)
+    acquire_sem(server_id)
     goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     if not use_cache_data:
@@ -156,12 +163,12 @@ def get_rpc_data(guildName, use_cache_data):
         f.close()
 
     goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
-    release_sem(guildName)
+    release_sem(server_id)
     goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
-def parse_tb_platoons(guildName, use_cache_data):
+def parse_tb_platoons(server_id, use_cache_data):
     active_round = "" # GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
     list_open_territories = [0, 0, 0] # [4, 3, 3]
@@ -201,7 +208,7 @@ def parse_tb_platoons(guildName, use_cache_data):
     dict_tb["tb3_mixed_phase06_conflict02_recon01"] = "ROTE6-DS"
     dict_tb["tb3_mixed_phase06_conflict03_recon01"] = "ROTE6-MS"
 
-    err_code, err_txt, rpc_data = get_rpc_data(guildName, use_cache_data)
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, use_cache_data)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -210,6 +217,7 @@ def parse_tb_platoons(guildName, use_cache_data):
     dict_guild = rpc_data[0]
     mapstats_json = rpc_data[1]
     dict_events = rpc_data[2]
+    guildName = dict_guild["Profile"]["Name"]
 
     dict_member_by_id = {}
     for member in dict_guild["Member"]:
@@ -268,16 +276,19 @@ def parse_tb_platoons(guildName, use_cache_data):
                             else:
                                 dict_platoons[platoon_name][unit_name].append('')
 
+    if max(list_open_territories)==0:
+        return '', None, None, 0
+
     return active_round, dict_platoons, list_open_territories, 0
 
-def parse_tw_opponent_teams(guildName, use_cache_data):
+def parse_tw_opponent_teams(server_id, use_cache_data):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...], <beaten>, <fights>],
                     #  ['T1', 'E80', [...]]]
     list_territories = [] # [['T1', <size>, <filled>, <victories>, <fails>], ...],
 
-    err_code, err_txt, rpc_data = get_rpc_data(guildName, use_cache_data)
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, use_cache_data)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -289,23 +300,31 @@ def parse_tw_opponent_teams(guildName, use_cache_data):
 
     return 0, "", [list_teams, list_territories]
 
-def get_guildChat_messages(guildName, use_cache_data):
-    query = "SELECT bot_android_id, chatChan_id, chatLatest_ts FROM guilds WHERE name='"+guildName.replace("'", "''")+"'"
+def get_guildChat_messages(server_id, use_cache_data):
+    romans = {}
+    romans["TIER08"] = "VIII"
+    romans["TIER09"] = "IX"
+    romans["TIER10"] = "X"
+    romans["TIER11"] = "XI"
+    romans["TIER12"] = "XII"
+    romans["TIER13"] = "XIII"
+
+    query = "SELECT bot_android_id, chatChan_id, chatLatest_ts FROM guild_bot_infos WHERE server_id="+str(server_id)
     goutils.log2("DBG", query)
     line = connect_mysql.get_line(query)
     if line == None:
-        return 1, "ERR: DB data for guild "+guildName, None
+        return 1, "ERR: no DB data for server "+str(server_id), None
     
     bot_android_id = line[0]
     chatChan_id = line[1]
     chatLatest_ts = line[2]
 
     if bot_android_id == '':
-        return 1, "ERR: no RPC bot for guild "+guildName, None
+        return 1, "ERR: no RPC bot for guild "+str(server_id), None
     if chatChan_id == 0:
-        return 1, "ERR: no discord chat channel for guild "+guildName, None
+        return 1, "ERR: no discord chat channel for guild "+str(server_id), None
 
-    err_code, err_txt, rpc_data = get_rpc_data(guildName, use_cache_data)
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, use_cache_data)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -344,6 +363,8 @@ def get_guildChat_messages(guildName, use_cache_data):
                             else:
                                 unit_name = unit_id
                             gear = activity["Param"][2]["Key"]
+                            if gear in romans:
+                                gear = romans[gear]
                             list_chat_events.append([event_ts, author+" a augmenté l'équipement de "+unit_name+" au niveau "+gear])
 
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_ZETA_APPLIED"\
@@ -372,14 +393,17 @@ def get_guildChat_messages(guildName, use_cache_data):
                                 unit_name = dict_unitsList[unit_id]["nameKey"]
                             else:
                                 unit_name = unit_id
-                            if skill_id in dict_capas[unit_id]:
+                            if unit_id in dict_capas and skill_id in dict_capas[unit_id]:
                                 skill_name = dict_capas[unit_id][skill_id][0]
-                            elif skill_id.lower() in dict_capas[unit_id]:
+                            elif unit_id in dict_capas and skill_id.lower() in dict_capas[unit_id]:
                                 skill_name = dict_capas[unit_id][skill_id.lower()][0]
                             else:
-                                goutils.log2("WAR", skill_id+" not found")
-                                goutils.log2("WAR", skill_id.lower()+" not found")
-                                goutils.log2("WAR", dict_capas[unit_id])
+                                if not unit_id in dict_capas:
+                                    goutils.log2("WAR", unit_id+" not found")
+                                elif not skill_id in dict_capas[unit_id]:
+                                    goutils.log2("WAR", skill_id+" not found")
+                                elif not skill_id.lower() in dict_capas[unit_id]:
+                                    goutils.log2("WAR", skill_id.lower()+" not found")
                                 skill_name = skill_id
                             if "ZETA" in activity["Key"]:
                                 list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+skill_name+" ("+unit_name+")"])
@@ -405,7 +429,7 @@ def get_guildChat_messages(guildName, use_cache_data):
         list_chat_events = sorted(list_chat_events, key=lambda x:x[0])
 
         max_ts = list_chat_events[-1][0]
-        query = "UPDATE guilds SET chatLatest_ts="+str(max_ts)+" WHERE name='"+guildName.replace("'", "''")+"'"
+        query = "UPDATE guild_bot_infos SET chatLatest_ts="+str(max_ts)+" WHERE server_id="+str(server_id)
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 

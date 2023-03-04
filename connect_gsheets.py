@@ -25,6 +25,11 @@ client=None
 
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 
+def get_gfile_name(server_id):
+    query = "SELECT gfile_name FROM guild_bot_infos WHERE server_id="+str(server_id)
+    goutils.log2("DBG", query)
+    return connect_mysql.get_value(query)
+
 ##############################################################
 # Function: get_gapi_client
 # Parameters: none
@@ -55,10 +60,11 @@ def get_dict_columns(list_col_names, list_list_sheet):
                 dict_columns[col_name] = i_col
     return dict_columns
 
-def get_sheet_url(guild_name, sheet_name):
+def get_sheet_url(server_id, sheet_name):
+    gfile_name = get_gfile_name(server_id)
     try:
         get_gapi_client()
-        file = client.open(guild_name)
+        file = client.open(gfile_name)
         worksheet=file.worksheet(sheet_name)
     except Exception as e:
         goutils.log2("ERR", sys.exc_info()[0])
@@ -79,13 +85,14 @@ def get_sheet_url(guild_name, sheet_name):
 #                          {team_name:
 #                             [phase, normal, super]}]}
 ##############################################################
-def load_config_raids(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+guild_name+"_config_raids.json"
+def load_config_raids(server_id, force_load):
+    gfile_name = get_gfile_name(server_id)
+    json_file = "CACHE"+os.path.sep+gfile_name+"_config_raids.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
             get_gapi_client()
-            file = client.open(guild_name)
+            file = client.open(gfile_name)
             feuille=file.worksheet("Raids")
             list_list_sheet=feuille.get_all_values()
         except Exception as e:
@@ -131,13 +138,18 @@ def load_config_raids(guild_name, force_load):
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+guild_name+"_config_teams.json"
+def load_config_teams(server_id, force_load):
+    if server_id == 0:
+        gfile_name = "GuiOnBot config"
+    else:
+        gfile_name = get_gfile_name(server_id)
+
+    json_file = "CACHE"+os.path.sep+gfile_name+"_config_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
             get_gapi_client()
-            file = client.open(guild_name)
+            file = client.open(gfile_name)
             feuille=file.worksheet("teams")
     
             list_dict_sheet=feuille.get_all_records()
@@ -192,7 +204,7 @@ def load_config_teams(guild_name, force_load):
                                                                                 character_name]
     
         #Update DB
-        connect_mysql.update_guild_teams(guild_name, dict_teams)
+        connect_mysql.update_guild_teams(gfile_name, dict_teams)
 
         # store json file
         fjson = open(json_file, 'w')
@@ -212,13 +224,14 @@ def load_config_teams(guild_name, force_load):
 # Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>]}
 #          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
-def load_config_players(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+guild_name+"_config_players.json"
+def load_config_players(server_id, force_load):
+    gfile_name = get_gfile_name(server_id)
+    json_file = "CACHE"+os.path.sep+gfile_name+"_config_players.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
             get_gapi_client()
-            file = client.open(guild_name)
+            file = client.open(gfile_name)
             feuille=file.worksheet("players")
             list_list_sheet=feuille.get_all_values()
         except Exception as e:
@@ -277,10 +290,11 @@ def load_config_players(guild_name, force_load):
 # Purpose: lit l'onglet "GT" du fichier Sheets
 # Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
 ##############################################################
-def load_config_gt(guild_name):
+def load_config_gt(server_id):
+    gfile_name = get_gfile_name(server_id)
     global client    
     get_gapi_client()
-    file = client.open(guild_name)
+    file = client.open(gfile_name)
     feuille=file.worksheet("GT")
 
     list_dict_sheet=feuille.get_all_records()
@@ -303,10 +317,12 @@ def load_config_gt(guild_name):
 # Purpose: lit l'onglet "COUNTER" du fichier Sheets
 # Output:  list_counter_teams [[nom équipe à contrer, [liste équipes qui peuvent contrer], nombre nécessaire], ...]
 ##############################################################
-def load_config_counter(guild_name):
+def load_config_counter(server_id):
+    gfile_name = get_gfile_name(server_id)
+
     global client    
     get_gapi_client()
-    file = client.open(guild_name)
+    file = client.open(gfile_name)
     feuille=file.worksheet("COUNTER")
 
     list_dict_sheet=feuille.get_all_records()
@@ -396,17 +412,19 @@ def load_config_units(force_load):
 
 ##############################################################
 # Function: update_online_dates
-# Parameters: guild_name (used for the file name)
+# Parameters: gfile_name (used for the file name)
 #             dict_lastseen
 #             {key=discord id,
 #              value=[discord name, date last seen (idle or online)]}
 # Purpose: met à jour la colonne "Last Online" de l'onglet "players"
 # Output:  none
 ##############################################################
-def update_online_dates(guild_name, dict_lastseen):
+def update_online_dates(server_id, dict_lastseen):
+    gfile_name = get_gfile_name(server_id)
+
     try:
         get_gapi_client()
-        file = client.open(guild_name)
+        file = client.open(gfile_name)
         feuille=file.worksheet("players")
     except:
         goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
@@ -486,13 +504,15 @@ def update_online_dates(guild_name, dict_lastseen):
 #         dict of star tagrets by TB and by day
 #         margin of score before reaching the target
 ##############################################################
-def get_tb_triggers(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+guild_name+"_config_tb.json"
+def get_tb_triggers(server_id, force_load):
+    gfile_name = get_gfile_name(server_id)
+
+    json_file = "CACHE"+os.path.sep+gfile_name+"_config_tb.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
             get_gapi_client()
-            file = client.open(guild_name)
+            file = client.open(gfile_name)
             feuille=file.worksheet("BT")
         except:
             goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
@@ -630,13 +650,15 @@ def get_tb_triggers(guild_name, force_load):
 
     return [territory_stars, daily_targets, margin]
 
-def load_tb_teams(guild_name, force_load):
-    json_file = "CACHE"+os.path.sep+guild_name+"_config_tb_teams.json"
+def load_tb_teams(server_id, force_load):
+    gfile_name = get_gfile_name(server_id)
+
+    json_file = "CACHE"+os.path.sep+gfile_name+"_config_tb_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
             get_gapi_client()
-            file = client.open(guild_name)
+            file = client.open(gfile_name)
             feuille=file.worksheet("BT teams")
 
             list_dict_sheet=feuille.get_all_records()
@@ -701,7 +723,9 @@ def load_new_tb():
     return dict_zones, dict_toons
     
 ##############################################################
-def update_gwarstats(guildName):
+def update_gwarstats(server_id):
+    gfile_name = get_gfile_name(server_id)
+
     ec, et, tb_data = go.get_tb_status(guildName, "", True, True)
     if ec != 0:
         return 1, et

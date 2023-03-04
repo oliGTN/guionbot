@@ -859,9 +859,11 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
 # Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>]}
 #          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
-def load_config_players(guild_name):
-    query = "SELECT allyCode, name, discord_id, guildMemberLevel FROM players "
-    query+= "WHERE guildName = '"+guild_name+"'"
+def load_config_players(server_id):
+    query = "SELECT allyCode, players.name, discord_id, guildMemberLevel FROM players "
+    query+= "JOIN guilds ON guilds.name = players.guildName "
+    query+= "JOIN guild_bot_infos ON guild_bot_infos.guild_id = guilds.id "
+    query+= "WHERE server_id = "+str(server_id)
     goutils.log2("DBG", query)
     data_db = get_table(query)
 

@@ -1,6 +1,6 @@
 rm -rf /home/pi/GuionBot/SQLBACKUP/
 mkdir /home/pi/GuionBot/SQLBACKUP
-for table in gp_history gv_history roster_evolutions guilds players shards stat_list guild_evolutions
+for table in gp_history gv_history roster_evolutions guilds guild_bot_infos players shards stat_list guild_evolutions
 do
 	mysqldump -u<user> -p<password> --opt guionbotdb $table > /home/pi/GuionBot/SQLBACKUP/$table.sql
 done

@@ -118,7 +118,7 @@ dict_BT_missions['ROTE']['Mustafar']='ROTE1-DS'
 dict_BT_missions['ROTE']['Corellia']='ROTE1-MS'
 dict_BT_missions['ROTE']['Coruscant']='ROTE1-LS'
 
-dict_member_lastseen={} #{guild discord name: {player discord id: [discord displayname, date last seen (idle or online)]}
+dict_member_lastseen={} #{guild discord id: {player discord id: [discord displayname, date last seen (idle or online)]}
 
 list_tw_opponent_msgIDs = []
 
@@ -132,18 +132,18 @@ dict_tw_alerts_previously_done = {}
 #                                                            #
 ##############################################################
 
-def set_id_lastseen(event_name, guild_name, player_id):
+def set_id_lastseen(event_name, server_id, player_id):
     global dict_member_lastseen
 
-    if guild_name in dict_member_lastseen:
-        if player_id in dict_member_lastseen[guild_name]:
-            dict_member_lastseen[guild_name][player_id][1]=datetime.datetime.now(guild_timezone)
-            alias = dict_member_lastseen[guild_name][player_id][0]
-            goutils.log2("DBG", event_name+": guild="+guild_name+" user="+str(player_id)+" ("+alias+")")
+    if server_id in dict_member_lastseen:
+        if player_id in dict_member_lastseen[server_id]:
+            dict_member_lastseen[server_id][player_id][1]=datetime.datetime.now(guild_timezone)
+            alias = dict_member_lastseen[server_id][player_id][0]
+            goutils.log2("DBG", event_name+": guild="+str(server_id)+" user="+str(player_id)+" ("+alias+")")
         else:
-            goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+guild_name)
+            goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+str(server_id))
     else:
-        goutils.log2("WAR", "unknown guild="+guild_name)
+        goutils.log2("WAR", "unknown guild="+str(server_id))
 
 ##############################################################
 # Function: bot_loop_60
@@ -159,27 +159,23 @@ async def bot_loop_60():
         try:
             #GET ONLINE AND MOBILE STATUS
             for guild in bot.guilds:
-                if not guild.name in dict_member_lastseen:
-                    dict_member_lastseen[guild.name] = {}
+                if not guild.id in dict_member_lastseen:
+                    dict_member_lastseen[guild.id] = {}
 
                 list_members=[]
                 for role in guild.roles:
                     for member in role.members:
                         #Ensure all guild members are in the dict, so that other events
                         #  know which users to update
-                        if not member.id in dict_member_lastseen[guild.name]:
-                            dict_member_lastseen[guild.name][member.id]= [member.display_name, None]
+                        if not member.id in dict_member_lastseen[guild.id]:
+                            dict_member_lastseen[guild.id][member.id]= [member.display_name, None]
                             
                         if not(str(member.status) == 'offline' and
                                 str(member.mobile_status) == 'offline'):
-                            dict_member_lastseen[guild.name][member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
+                            dict_member_lastseen[guild.id][member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
                                 
                         list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
-                #This data is not written in the gsheets anymore
-                #it is kept ofr info and provision for a command
-                #connect_gsheets.update_online_dates(guild.name, dict_member_lastseen[guild.name])
-
         except Exception as e:
             goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
             goutils.log("ERR", "bot_loop_60", e)
@@ -265,24 +261,24 @@ async def bot_loop_5minutes():
         dict_tw_alerts = {}
         for guild in bot.guilds:
             try:
-                if not guild.name in dict_tw_alerts_previously_done:
-                    dict_tw_alerts_previously_done[guild.name] = [0, {}]
+                if not guild.id in dict_tw_alerts_previously_done:
+                    dict_tw_alerts_previously_done[guild.id] = [0, {}]
 
                 #CHECK ALERTS FOR TERRITORY WAR
-                list_tw_alerts = go.get_tw_alerts(guild.name)
+                list_tw_alerts = go.get_tw_alerts(guild.id)
                 if len(list_tw_alerts) > 0:
                     [channel_id, dict_messages] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
 
                     if len(dict_messages) == 0:
                         #No TW started, reset prev_alerts per territory
-                        dict_tw_alerts_previously_done[guild.name][1] = {}
+                        dict_tw_alerts_previously_done[guild.id][1] = {}
 
                     for territory in dict_messages:
                         msg_txt = dict_messages[territory]
                         goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg_txt)
 
-                        if not territory in dict_tw_alerts_previously_done[guild.name][1]:
+                        if not territory in dict_tw_alerts_previously_done[guild.id][1]:
                             if not first_bot_loop_5minutes:
                                 #Short message to admins
                                 if territory.startswith('Home:'):
@@ -295,17 +291,17 @@ async def bot_loop_5minutes():
                                 if not bot_test_mode:
                                     #Full message to TW guild channel
                                     new_msg = await tw_bot_channel.send(msg_txt)
-                                    dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, new_msg.id]
+                                    dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
 
                                 goutils.log2("DBG", "["+guild.name+"] New TW alert sent to admins " \
                                             +"and channel "+str(channel_id))
                             else:
-                                dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, 0]
+                                dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, 0]
                                 goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
                         elif not territory.startswith('Placement:'):
                             #Placement alerts are only sent once, never modified
 
-                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.name][1][territory]
+                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
                             if old_msg_txt != msg_txt:
                                 #Short message to admins
                                 await send_alert_to_admins(guild.name, territory+" is modified")
@@ -316,12 +312,12 @@ async def bot_loop_5minutes():
                                     if old_msg_id != 0:
                                         old_msg = await tw_bot_channel.fetch_message(old_msg_id)
                                         await old_msg.edit(content=msg_txt)
-                                        dict_tw_alerts_previously_done[guild.name][1][territory][0] = msg_txt
+                                        dict_tw_alerts_previously_done[guild.id][1][territory][0] = msg_txt
                                     else:
                                         #TW alert detected but not sent because during the first bot loop
                                         # because it is modified, it is now sent
                                         new_msg = await tw_bot_channel.send(msg_txt)
-                                        dict_tw_alerts_previously_done[guild.name][1][territory] = [msg_txt, new_msg.id]
+                                        dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
 
                                 goutils.log2("DBG", "["+guild.name+"] Modified TW alert sent to admins " \
                                             +"and channel "+str(channel_id))
@@ -337,8 +333,8 @@ async def bot_loop_5minutes():
 
             #update RPC data before using different commands (tb alerts, tb_platoons)
             try:
-                await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.name, False)
-                ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, guild.name, True)
+                await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.id, False)
+                ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, guild.id, True)
                 if ec!=0:
                     goutils.log2("ERR", et)
                 else:
@@ -363,13 +359,13 @@ async def bot_loop_5minutes():
                     await send_alert_to_admins(None, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
             try:
-                if not guild.name in dict_tb_alerts_previously_done:
-                    dict_tb_alerts_previously_done[guild.name] = []
+                if not guild.id in dict_tb_alerts_previously_done:
+                    dict_tb_alerts_previously_done[guild.id] = []
 
                 #CHECK ALERTS FOR BT
-                list_tb_alerts = go.get_tb_alerts(guild.name, False)
+                list_tb_alerts = go.get_tb_alerts(guild.id, False)
                 for tb_alert in list_tb_alerts:
-                    if not tb_alert in dict_tb_alerts_previously_done[guild.name]:
+                    if not tb_alert in dict_tb_alerts_previously_done[guild.id]:
                         if not first_bot_loop_5minutes:
                             await send_alert_to_echocommanders(guild.name, tb_alert)
                             goutils.log2("INFO", "["+guild.name+"] New TB alert: "+tb_alert)
@@ -378,40 +374,31 @@ async def bot_loop_5minutes():
                     else:
                         goutils.log2("DBG", "["+guild.name+"] Already known TB alert: "+tb_alert)
 
-                dict_tb_alerts_previously_done[guild.name] = list_tb_alerts
+                dict_tb_alerts_previously_done[guild.id] = list_tb_alerts
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))
                 goutils.log2("ERR", "["+guild.name+"]"+str(e))
                 goutils.log2("ERR", "["+guild.name+"]"+traceback.format_exc())
                 if not bot_test_mode:
-                    await send_alert_to_admins(guild.name, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+                    await send_alert_to_admins(guild.id, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
             try:
-                #get guild_id from DB
-                query = "SELECT warstats_id FROM guilds WHERE name='"+guild.name.replace("'", "''")+"'"
-                goutils.log2("DBG", query)
-                guild_id = connect_mysql.get_value(query)
-
-                if guild_id == 0:
-                    goutils.log2("ERR", "warstats_id=0 for guild "+guild.name)
-                    raise Exception("unknown guild id")
-
-                if not guild.name in dict_platoons_previously_done:
-                    dict_platoons_previously_done[guild.name] = {}
+                if not guild.id in dict_platoons_previously_done:
+                    dict_platoons_previously_done[guild.id] = {}
 
                 #Check if guild can use RPC
-                if guild.name in connect_rpc.get_dict_bot_accounts():
+                if guild.id in connect_rpc.get_dict_bot_accounts():
                     tbs_round, dict_platoons_done, list_open_territories, \
-                        secs_track = connect_rpc.parse_tb_platoons(guild.name, True)
+                        secs_track = connect_rpc.parse_tb_platoons(guild.id, True)
                 else:
                     #Lecture du statut des pelotons sur warstats
                     tbs_round, dict_platoons_done, list_open_territories, \
-                        sec_last_track = connect_warstats.parse_tb_platoons(guild_id, False)
+                        sec_last_track = connect_warstats.parse_tb_platoons(guild.id)
 
                 if tbs_round == '':
                     goutils.log2("DBG", "["+guild.name+"] No TB in progress")
-                    dict_platoons_previously_done[guild.name] = {}
+                    dict_platoons_previously_done[guild.id] = {}
                 else:
                     goutils.log2("DBG", "["+guild.name+"] Current state of platoon filling: "+str(dict_platoons_done))
                     goutils.log2("INFO", "["+guild.name+"] End of warstats parsing for TB: round " + tbs_round)
@@ -420,7 +407,7 @@ async def bot_loop_5minutes():
                     for territory_platoon in dict_platoons_done:
                         current_progress = compute_platoon_progress(dict_platoons_done[territory_platoon])
                         goutils.log("DBG", "guionbot_discord.bot_loop_5minutes", "["+guild.name+"] Progress of platoon "+territory_platoon+": "+str(current_progress))
-                        if not territory_platoon in dict_platoons_previously_done[guild.name]:
+                        if not territory_platoon in dict_platoons_previously_done[guild.id]:
                             #If the territory was not already detected, then all allocation within that territory are new
                             for character in dict_platoons_done[territory_platoon]:
                                 for player in dict_platoons_done[territory_platoon][character]:
@@ -439,19 +426,19 @@ async def bot_loop_5minutes():
 
                         else:
                             for character in dict_platoons_done[territory_platoon]:
-                                if not character in dict_platoons_previously_done[guild.name][territory_platoon]:
+                                if not character in dict_platoons_previously_done[guild.id][territory_platoon]:
                                     for player in dict_platoons_done[territory_platoon][character]:
                                         if player != '':
                                             goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "["+guild.name+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                             new_allocation_detected = True
                                 else:
                                     for player in dict_platoons_done[territory_platoon][character]:
-                                        if not player in dict_platoons_previously_done[guild.name][territory_platoon][character]:
+                                        if not player in dict_platoons_previously_done[guild.id][territory_platoon][character]:
                                             if player != '':
                                                 goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "["+guild.name+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                                 new_allocation_detected = True
 
-                            previous_progress = compute_platoon_progress(dict_platoons_previously_done[guild.name][territory_platoon])
+                            previous_progress = compute_platoon_progress(dict_platoons_previously_done[guild.id][territory_platoon])
                             if current_progress == 1 and previous_progress < 1:
                                 territory = territory_platoon[:-1]
                                 territory_full_count = compute_territory_progress(dict_platoons_done, territory)
@@ -487,7 +474,7 @@ async def bot_loop_5minutes():
                         if not first_bot_loop_5minutes:
                             await send_alert_to_echocommanders(guild.name, msg)
 
-                    dict_platoons_previously_done[guild.name] = dict_platoons_done.copy()
+                    dict_platoons_previously_done[guild.id] = dict_platoons_done.copy()
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))
@@ -566,12 +553,15 @@ async def send_alert_to_admins(server_name, message):
 # Purpose: send a message to Echobot admins.
 # Output: None
 ##############################################################
-async def send_alert_to_echocommanders(server_name, message):
+async def send_alert_to_echocommanders(server_id, message):
+    server = bot.get_guild(server_id)
+    server_name = server.name
+    
     goutils.log2("DBG", "server_name="+server_name+", message="+message)
     if bot_test_mode:
         await send_alert_to_admins(server_name, message)
     else:
-        query = "SELECT tbChanOut_id, tbRoleOut FROM guilds WHERE name='"+server_name.replace("'", "''")+"'"
+        query = "SELECT tbChanOut_id, tbRoleOut FROM guilds WHERE server_id="+str(server_id)
         goutils.log2("DBG", query)
         result = connect_mysql.get_line(query)
         if result == None:
@@ -589,7 +579,7 @@ async def send_alert_to_echocommanders(server_name, message):
 
         if tbRoleOut != "":
             for guild in bot.guilds:
-                if guild.name == server_name:
+                if guild.id == server_id:
                     for role in guild.roles:
                         if role.name == tbRoleOut:
                             for member in role.members:
@@ -822,8 +812,8 @@ async def get_channel_from_channelname(ctx, channel_name):
 def manage_me(ctx, alias):
     #Special case of 'me' as allyCode
     if alias == 'me':
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
-        print(dict_players_by_ID)
+        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+        #print(dict_players_by_ID)
         if str(ctx.author.id) in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
         else:
@@ -835,7 +825,7 @@ def manage_me(ctx, alias):
         else: # '<@ without the !
             discord_id_txt = alias[2:-1]
         goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
+        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
         if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
         else:
@@ -898,7 +888,7 @@ def manage_me(ctx, alias):
 
             discord_id = [str(x[0]) for x in guild_members_clean \
                             if x[1] == closest_name_discord][0]
-            dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
+            dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
             else:
@@ -914,7 +904,7 @@ def manage_me(ctx, alias):
 # Purpose: affecte le code allié de l'auteur si "me"
 # OUT: err_code (0 = OK), err_txt
 ##############################################################
-def read_gsheets(guild_name):
+def read_gsheets(server_id):
     err_code = 0
     err_txt = ""
 
@@ -923,27 +913,27 @@ def read_gsheets(guild_name):
         err_txt += "ERR: erreur en mettant à jour les UNITS\n"
         err_code = 1
 
-    l, d = connect_gsheets.load_config_teams("GuiOnBot config", True)
+    l, d = connect_gsheets.load_config_teams(0, True)
     if d == None:
         err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
         err_code = 1
 
-    l, d = connect_gsheets.load_config_teams(guild_name, True)
+    l, d = connect_gsheets.load_config_teams(server_id, True)
     if d == None:
         err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
         err_code = 1
 
-    d = connect_gsheets.load_config_raids(guild_name, True)
+    d = connect_gsheets.load_config_raids(server_id, True)
     if d == None:
         err_txt += "ERR: erreur en mettant à jour les RAIDS\n"
         err_code = 1
 
-    [ts, dt, m] = connect_gsheets.get_tb_triggers(guild_name, True)
+    [ts, dt, m] = connect_gsheets.get_tb_triggers(server_id, True)
     if ts == None:
         err_txt += "ERR: erreur en mettant à jour la BT\n"
         err_code = 1
 
-    l = connect_gsheets.load_tb_teams(guild_name, True)
+    l = connect_gsheets.load_tb_teams(server_id, True)
     if l == None:
         err_txt += "ERR: erreur en mettant à jour les BT teams\n"
         err_code = 1
@@ -995,7 +985,7 @@ async def on_reaction_add(reaction, user):
     message = reaction.message
     if isinstance(message.channel, GroupChannel):
         guild_name = message.channel.guild.name
-        set_id_lastseen("on_reaction_add", reaction.message.channel.guild.name, user.id)
+        set_id_lastseen("on_reaction_add", reaction.message.channel.guild.id, user.id)
     else:
         guild_name = "DM"
     author = message.author
@@ -1053,7 +1043,7 @@ async def on_reaction_add(reaction, user):
 @bot.event
 async def on_message(message):
     if isinstance(message.channel, GroupChannel):
-        set_id_lastseen("on_message", message.channel.guild.name, message.author.id)
+        set_id_lastseen("on_message", message.channel.guild.id, message.author.id)
 
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
@@ -1129,8 +1119,7 @@ async def on_command_error(ctx, error):
 ##############################################################
 @bot.event
 async def on_typing(channel, user, when):
-    guild_name = channel.guild.name
-    set_id_lastseen("on_typing", guild_name, user.id)
+    set_id_lastseen("on_typing", channel.guild.id, user.id)
 
 @bot.event
 async def on_message_delete(message):
@@ -1153,39 +1142,36 @@ async def on_message_edit(before, after):
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                          "BEFORE:\n" + before.content + "\n" +\
                          "AFTER:\n" + after.content)
-    guild_name = before.channel.guild.name
-    set_id_lastseen("on_message_edit", guild_name, before.author.id)
+    guild_id = before.channel.guild.id
+    set_id_lastseen("on_message_edit", guild_id, before.author.id)
 
 @bot.event
 async def on_reaction_remove(reaction, user):
-    guild_name = reaction.message.channel.guild.name
-    set_id_lastseen("on_reaction_remove", guild_name, user.id)
+    guild_id = reaction.message.channel.guild.id
+    set_id_lastseen("on_reaction_remove", guild_id, user.id)
 
 @bot.event
 async def on_member_join(member):
-    guild_name = member.guild.name
-    set_id_lastseen("on_member_join", guild_name, member.id)
+    set_id_lastseen("on_member_join", member.guild.id, member.id)
 
 @bot.event
 async def on_member_update(before, after):
-    guild_name = before.guild.name
-    set_id_lastseen("on_member_update", guild_name, before.id)
+    set_id_lastseen("on_member_update", before.guild.id, before.id)
     if before.display_name != after.display_name:
         goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 @bot.event
 async def on_user_update(before, after):
     if isinstance(before.channel, GroupChannel):
-        guild_name = before.channel.guild.name
+        guild_id = before.channel.guild.id
     else:
-        guild_name = "DM"
+        guild_id = "DM"
 
-    set_id_lastseen("on_user_update", guild_name, before.id)
+    set_id_lastseen("on_user_update", guild_id, before.id)
 
 @bot.event
 async def on_voice_state_update(member, before, after):
-    guild_name = member.guild.name
-    set_id_lastseen("on_voice_state_update", guild_name, member.id)
+    set_id_lastseen("on_voice_state_update", member.guild.id, member.id)
 
 ##############################################################
 #                                                            #
@@ -1418,9 +1404,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     async def is_officer(ctx):
         ret_is_officer = False
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.name)[1]
-        print(dict_players_by_ID)
-        print(ctx.author.id)
+        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+        #print(dict_players_by_ID)
+        #print(ctx.author.id)
         if str(ctx.author.id) in dict_players_by_ID:
             if dict_players_by_ID[str(ctx.author.id)][1]:
                 ret_is_officer = True
@@ -1441,7 +1427,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
         data.reset_data()
-        err_code, err_txt = read_gsheets(ctx.guild.name)
+        err_code, err_txt = read_gsheets(ctx.guild.id)
 
         if err_code == 1:
             await ctx.send(err_txt)
@@ -1491,7 +1477,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.print_raid_progress(allyCode, ctx.guild.name, raid_name, display_mentions)
+            err, errtxt, ret_cmd = go.print_raid_progress(allyCode, ctx.guild.id, raid_name, display_mentions)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1543,7 +1529,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         else:
             err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
                                                     go.find_best_teams_for_raid,
-                                                    allyCode, ctx.guild.name, raid_name, True)
+                                                    allyCode, ctx.guild.id, raid_name, True)
             if err !=0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1601,7 +1587,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, ctx.guild.name, tb_name, display_mentions)
+            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, ctx.guild.id, tb_name, display_mentions)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
@@ -1654,12 +1640,12 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             output_channel = ctx.message.channel
 
         #get warstats_id from DB
-        query = "SELECT warstats_id, tbChanRead_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
+        query = "SELECT warstats_id, tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
         goutils.log2("DBG", query)
         result = connect_mysql.get_line(query)
 
         if result == None:
-            await ctx.send('ERR: commande non utilisable sur ce serveur')
+            await ctx.send('ERR: Guilde non déclarée dans le bot')
             return
 
         [warstats_id, tbChannel_id] = result
@@ -1668,22 +1654,22 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             return
 
         #Check if guild can use RPC
-        if ctx.guild.name in connect_rpc.get_dict_bot_accounts():
+        if ctx.guild.id in connect_rpc.get_dict_bot_accounts():
             goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
 
             tbs_round, dict_platoons_done, list_open_territories, \
-                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.name, False)
+                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.id, False)
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
         else:
             #Lecture du statut des pelotons sur warstats
-            goutils.log2("DBG", "Using warstats data for "+ctx.guild.name)
+            goutils.log2("DBG", "Using warstats data for "+ctx.guild.id)
 
             tbs_round, dict_platoons_done, list_open_territories, \
                 secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
-        dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
+        dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
 
         if tbs_round == '':
             await ctx.send("Aucune BT en cours (dernier update warstats: "+int(secs_track)+" secs")
@@ -1952,7 +1938,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def enablebot(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = connect_rpc.unlock_bot_account(ctx.guild.name)
+        ec, et = connect_rpc.unlock_bot_account(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -1968,7 +1954,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def disablebot(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = connect_rpc.lock_bot_account(ctx.guild.name)
+        ec, et = connect_rpc.lock_bot_account(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -2037,7 +2023,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         else:
             tb_phase_target = options[0]
 
-        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.name, tb_phase_target, estimate_fights, False)
+        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.id, tb_phase_target, estimate_fights, False)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
@@ -2832,7 +2818,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         # Computes images
         e, ret_cmd, images = await bot.loop.run_in_executor(None,
                     go.get_tw_battle_image, list_char_attack, allyCode_attack, \
-                                             character_defense, ctx.guild.name)
+                                             character_defense, ctx.guild.id)
                         
         if e == 0:      
             #regroup images into bigger ones containing several teams
