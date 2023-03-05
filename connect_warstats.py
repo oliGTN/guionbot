@@ -1695,7 +1695,7 @@ def parse_tw_opponent_teams(server_id):
             #When first detecting end of TW, drop TW data into the logs
             if len(dict_tw_opponent_teams[server_id][0]) > 0:
                 goutils.log2('INFO', "["+guildName+"] end of TW "+str(war_id))
-                goutils.log2('INFO', "["+guildName+"] Opponent teams" + str(dict_tw_opponent_teams[guild_id]))
+                goutils.log2('INFO', "["+guildName+"] Opponent teams" + str(dict_tw_opponent_teams[server_id]))
                 goutils.log2('INFO', "["+guildName+"] " + goutils.print_tw_best_teams(dict_tw_opponent_teams[server_id][0], "Meilleure défense adverse"))
             else:
                 goutils.log2('INFO', "["+guildName+"] no TW in progress")
@@ -1741,7 +1741,7 @@ def parse_tw_defense_teams(server_id):
             #When first detecting end of TW, drop TW data into the logs
             if len(dict_tw_defense_teams[server_id][0]) > 0:
                 goutils.log2('INFO', "["+guildName+"] end of TW")
-                goutils.log2('INFO', "["+guildName+"] Defense teams" + str(dict_tw_defense_teams[guild_id]))
+                goutils.log2('INFO', "["+guildName+"] Defense teams" + str(dict_tw_defense_teams[server_id]))
                 goutils.log2('INFO', "["+guildName+"] " + goutils.print_tw_best_teams(dict_tw_defense_teams[server_id][0], "Notre meilleure défense"))
             else:
                 goutils.log2('INFO', "["+guildName+"] no TW in progress")
