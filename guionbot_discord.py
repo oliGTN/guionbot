@@ -2147,7 +2147,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     lastUpdated_txt = "joueur inconnu"
 
             #Look for Discord Pseudo if in guild
-            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
+            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
