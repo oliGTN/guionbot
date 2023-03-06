@@ -243,9 +243,64 @@ def compute_territory_progress(dict_platoons, territory):
     return count
 
 ##############################################################
+# Function: bot_loop_1minute
+# Parameters: none
+# Purpose: executed every 1 minute
+# Output: none
+##############################################################
+async def bot_loop_1minute():
+    await bot.wait_until_ready()
+
+    while not bot.is_closed():
+        t_start = time.time()
+
+        query = "SELECT server_id FROM guild_bot_infos "
+        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min"
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+
+        if not db_data==None:
+            for server_id in db_data:
+                #update RPC data before using different commands (tb alerts, tb_platoons)
+                try:
+                    await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False)
+                    ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
+                    if ec!=0:
+                        goutils.log2("ERR", et)
+                    else:
+                        channel_id = ret_data[0]
+                        output_channel = bot.get_channel(channel_id)
+                        output_txt = ""
+                        for line in ret_data[1]:
+                            ts = line[0]
+                            txt = line[1]
+                            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+                            output_txt+=ts_txt+" - "+txt+"\n"
+                        if output_txt != "":
+                            output_txt = output_txt[:-1]
+                            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                                await output_channel.send("`"+txt+"`")
+
+                except Exception as e:
+                    goutils.log2("ERR", str(sys.exc_info()[0]))
+                    goutils.log2("ERR", e)
+                    goutils.log2("ERR", traceback.format_exc())
+                    if not bot_test_mode:
+                        await send_alert_to_admins(None, "Exception in bot_loop_1minute:"+str(sys.exc_info()[0]))
+
+
+        # Wait X seconds before next loop
+        t_end = time.time()
+        waiting_time = max(0, 60 - (t_end - t_start))
+        await asyncio.sleep(waiting_time)
+
+        #Ensure writing in logs
+        sys.stdout.flush()
+
+##############################################################
 # Function: bot_loop_5minutes
 # Parameters: none
-# Purpose: executed every 15 minutes, typicaly for warstats sync
+# Purpose: executed every 5 minutes
 # Output: none
 ##############################################################
 async def bot_loop_5minutes():
@@ -330,33 +385,6 @@ async def bot_loop_5minutes():
                 goutils.log2("ERR", "["+guild.name+"]"+traceback.format_exc())
                 if not bot_test_mode:
                     await send_alert_to_admins(guild.name, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
-
-            #update RPC data before using different commands (tb alerts, tb_platoons)
-            try:
-                await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, guild.id, False)
-                ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, guild.id, True)
-                if ec!=0:
-                    goutils.log2("ERR", et)
-                else:
-                    channel_id = ret_data[0]
-                    output_channel = bot.get_channel(channel_id)
-                    output_txt = ""
-                    for line in ret_data[1]:
-                        ts = line[0]
-                        txt = line[1]
-                        ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
-                        output_txt+=ts_txt+" - "+txt+"\n"
-                    if output_txt != "":
-                        output_txt = output_txt[:-1]
-                        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                            await output_channel.send("`"+txt+"`")
-
-            except Exception as e:
-                goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", str(sys.exc_info()[0]))
-                goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", e)
-                goutils.log("ERR", "guionbot_discord.bot_loop_5minutes", traceback.format_exc())
-                if not bot_test_mode:
-                    await send_alert_to_admins(None, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
             try:
                 if not guild.id in dict_tb_alerts_previously_done:
@@ -3362,6 +3390,7 @@ def main():
         bot.loop.create_task(bot_loop_60minutes())
         bot.loop.create_task(bot_loop_10minutes())
         bot.loop.create_task(bot_loop_5minutes())
+        bot.loop.create_task(bot_loop_1minute())
         bot.loop.create_task(bot_loop_6hours())
 
     #Ajout des commandes groupées par catégorie
