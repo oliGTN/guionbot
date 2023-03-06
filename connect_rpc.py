@@ -124,11 +124,12 @@ def get_rpc_data(server_id, use_cache_data):
     else:
         dict_TWmapstats = {}
 
-    #log update time in DB
-    query = "UPDATE guild_bot_infos SET bot_latestUpdate=CURRENT_TIMESTAMP() "
-    query+= "WHERE server_id="+str(server_id)
-    goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    if not use_cache_data:
+        #log update time in DB
+        query = "UPDATE guild_bot_infos SET bot_latestUpdate=CURRENT_TIMESTAMP() "
+        query+= "WHERE server_id="+str(server_id)
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
 
     dict_events = {}
     dict_event_counts = {}
