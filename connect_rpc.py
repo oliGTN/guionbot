@@ -431,6 +431,13 @@ def get_guildChat_messages(server_id, use_cache_data):
                             else:
                                 list_chat_events.append([event_ts, "\N{OPEN LOCK} "+author+" vient de débloquer "+unit_name])
 
+                        if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_TB_STARTED":
+                            phase = activity["Param"][1]["ParamValue"][0]
+                            list_chat_events.append([event_ts, "La Bataille de Territoire Phase "+phase+" a commencé"])
+                        if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_SIMMED_RAID_AUTO_SUMMONED":
+                            raid = activity["Param"][0]["Key"][5:-5]
+                            list_chat_events.append([event_ts, "Le Raid : "+raid+" (simulation activée) vient de commencer, participez maintenant !"])
+
     if len(list_chat_events)>0:
         list_chat_events = sorted(list_chat_events, key=lambda x:x[0])
 
