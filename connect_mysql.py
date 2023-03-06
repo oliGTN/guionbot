@@ -369,12 +369,12 @@ def insert_roster_evo(allyCode, defId, evo_txt):
 
         query = "INSERT INTO roster_evolutions(allyCode, defId, description) "\
                +"VALUES("+str(allyCode)+", '"+defId+"', '"+evo_txt+"')"
-        goutils.log("DBG", "insert_roster_evo", query)
+        goutils.log2("DBG", query)
         cursor.execute(query)
 
         mysql_db.commit()
     except Error as error:
-        goutils.log("ERR", "insert_roster_evo", error)
+        goutils.log2("ERR", error)
         return -1
         
     finally:
@@ -420,7 +420,7 @@ def update_player(dict_player):
 
         query = "INSERT IGNORE INTO players(allyCode) "\
                +"VALUES("+str(p_allyCode)+")"
-        goutils.log("DBG", "update_player", query)
+        goutils.log2("DBG", query)
         cursor.execute(query)
 
         query = "UPDATE players "\
@@ -436,7 +436,7 @@ def update_player(dict_player):
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
-        goutils.log("DBG", "update_player", query)
+        goutils.log2("DBG", query)
         cursor.execute(query)
 
         # Update the roster
@@ -466,7 +466,7 @@ def update_player(dict_player):
             #launch query to update roster element, with stats
             query = "INSERT IGNORE INTO roster(allyCode, defId) "\
                    +"VALUES("+str(p_allyCode)+", '"+c_defId+"')"
-            goutils.log("DBG", "update_player", query)
+            goutils.log2("DBG", query)
             cursor.execute(query)
 
             query = "UPDATE roster "\
@@ -498,21 +498,21 @@ def update_player(dict_player):
             query +="WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"
 
-            goutils.log("DBG", "update_player", query)
+            goutils.log2("DBG", query)
             cursor.execute(query)
             mysql_db.commit()
 
             #Get DB index rroster_id for next queries
             query = "SELECT id FROM roster WHERE allyCode = "+str(p_allyCode)+" AND defId = '"+c_defId+"'"
-            goutils.log("DBG", "update_player", query)
+            goutils.log2("DBG", query)
             roster_id = get_value(query)
-            goutils.log("DBG", "update_player", "roster_id="+str(roster_id))
+            goutils.log2("DBG", "roster_id="+str(roster_id))
 
             #Get existing mod IDs from DB
             query = "SELECT id FROM mods WHERE roster_id = "+str(roster_id)
-            goutils.log("DBG", "update_player", query)
+            goutils.log2("DBG", query)
             previous_mods_ids = get_column(query)
-            goutils.log("DBG", "update_player", previous_mods_ids)
+            goutils.log2("DBG", previous_mods_ids)
 
             ## GET DEFINITION OF MODS ##
             current_mods_ids = []
@@ -557,7 +557,7 @@ def update_player(dict_player):
         
                 query = "INSERT IGNORE INTO mods(id) "\
                        +"VALUES('"+mod_id+"')"
-                goutils.log("DBG", "update_player", query)
+                goutils.log2("DBG", query)
                 cursor.execute(query)
     
                 query = "UPDATE mods "\
@@ -578,14 +578,14 @@ def update_player(dict_player):
                        +"sec4_stat = "+str(mod_secondaryStat4_unitStat)+", "\
                        +"sec4_value = "+str(mod_secondaryStat4_value)+" "\
                        +"WHERE id = '"+mod_id+"'"
-                goutils.log("DBG", "update_player", query)
+                goutils.log2("DBG", query)
                 cursor.execute(query)
 
             #remove mods not used anymore
             to_be_removed_mods_ids = tuple(set(previous_mods_ids)-set(current_mods_ids))
             if len(to_be_removed_mods_ids) > 0:
                 query = "DELETE FROM mods WHERE id IN "+ str(tuple(to_be_removed_mods_ids)).replace(",)", ")")
-                goutils.log("DBG", "update_player", query)
+                goutils.log2("DBG", query)
                 cursor.execute(query)
 
             ## GET DEFINITION OF CAPACITIES ##
@@ -616,7 +616,7 @@ def update_player(dict_player):
                 #launch query to update skills
                 query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
                        +"VALUES("+str(roster_id)+", '"+capa_shortname+"')"
-                goutils.log("DBG", "update_player", query)
+                goutils.log2("DBG", query)
                 cursor.execute(query)
 
                 query = "UPDATE roster_skills "\
@@ -626,7 +626,7 @@ def update_player(dict_player):
                        +"omicron_tier = "+str(capa_omicron_tier)+" "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
-                goutils.log("DBG", "update_player", query)
+                goutils.log2("DBG", query)
                 cursor.execute(query)
 
             #Update zeta count in roster element
@@ -678,7 +678,7 @@ def update_player(dict_player):
                +"    modq = "+str(p_modq)+" "\
                +"WHERE date = CURDATE() "\
                +"AND allyCode = "+str(p_allyCode)
-        goutils.log("DBG", "update_player", query)
+        goutils.log2("DBG", query)
         cursor.execute(query)
 
         mysql_db.commit()
