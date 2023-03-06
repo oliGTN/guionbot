@@ -4082,15 +4082,16 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                         dict_tb_players[playerName]["Strikes"].append("?")
 
         elif mapstat["MapStatId"] == "power_round_"+str(tb_round):
-            for playerstat in mapstat["PlayerStat"]:
-                member_id = playerstat["MemberId"]
-                playerName = dict_members_by_id[member_id]
-                score = int(playerstat["score"])
-                dict_tb_players[playerName]["score"]["Deployed"] = score
-                if dict_tb_players[playerName]["score"]["Deployed"] != dict_tb_players[playerName]["score"]["DeployedMix"]:
-                    goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
-                    goutils.log2("WAR", "("+str(dict_tb_players[playerName]["score"]["DeployedMix"])+" vs "+str(dict_tb_players[playerName]["score"]["Deployed"])+")")
-                    dict_tb_players[playerName]["score"]["DeployedMix"] = dict_tb_players[playerName]["score"]["Deployed"]
+            if "PlayerStat" in mapstat:
+                for playerstat in mapstat["PlayerStat"]:
+                    member_id = playerstat["MemberId"]
+                    playerName = dict_members_by_id[member_id]
+                    score = int(playerstat["score"])
+                    dict_tb_players[playerName]["score"]["Deployed"] = score
+                    if dict_tb_players[playerName]["score"]["Deployed"] != dict_tb_players[playerName]["score"]["DeployedMix"]:
+                        goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
+                        goutils.log2("WAR", "("+str(dict_tb_players[playerName]["score"]["DeployedMix"])+" vs "+str(dict_tb_players[playerName]["score"]["Deployed"])+")")
+                        dict_tb_players[playerName]["score"]["DeployedMix"] = dict_tb_players[playerName]["score"]["Deployed"]
 
     dict_remaining_deploy = {"Ships": 0, "Chars": 0, "Mix": 0}
     for playerName in dict_tb_players:
@@ -4294,10 +4295,11 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
 
 def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data):
     dict_tb=data.dict_tb
-    ec, et, [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data)
+    ec, et, tb_data = get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data)
     if ec!=0:
         return 1, et, None
 
+    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
     list_deployment_types = []
     for zone_name in dict_open_zones:
         zone_deployment_type = dict_tb[zone_name]["Type"]
