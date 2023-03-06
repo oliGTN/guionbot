@@ -848,7 +848,6 @@ def update_gwarstats(server_id):
             cells.append(gspread.cell.Cell(row=line, col=19, value=player["score"]["DeployedChars"]))
             cells.append(gspread.cell.Cell(row=line, col=20, value=player["char_gp"]))
 
-        print(player["Strikes"])
         total_strikes = 0
         player_strikes = 0
         i_zone = 1
@@ -859,7 +858,6 @@ def update_gwarstats(server_id):
             for strike in dict_tb[zone_fullname]["Strikes"]:
                 total_strikes += 1
                 conflict_strike = conflict+"_"+strike
-                print(conflict_strike)
                 if conflict_strike in player["Strikes"]:
                     player_strikes += 1
                     strike_txt += "S"+str(i_strike)+" "
