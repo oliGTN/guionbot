@@ -338,11 +338,11 @@ async def bot_loop_5minutes():
                             if not first_bot_loop_5minutes:
                                 #Short message to admins
                                 if territory.startswith('Home:'):
-                                    await send_alert_to_admins(guild.name, territory+" is lost")
+                                    await send_alert_to_admins(guild, territory+" is lost")
                                 elif territory.startswith('Placement:'):
-                                    await send_alert_to_admins(guild.name, territory+" is filled")
+                                    await send_alert_to_admins(guild, territory+" is filled")
                                 else:
-                                    await send_alert_to_admins(guild.name, territory+" is open")
+                                    await send_alert_to_admins(guild, territory+" is open")
 
                                 if not bot_test_mode:
                                     #Full message to TW guild channel
@@ -360,7 +360,7 @@ async def bot_loop_5minutes():
                             [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
                             if old_msg_txt != msg_txt:
                                 #Short message to admins
-                                await send_alert_to_admins(guild.name, territory+" is modified")
+                                await send_alert_to_admins(guild, territory+" is modified")
 
 
                                 if not bot_test_mode:
@@ -385,7 +385,7 @@ async def bot_loop_5minutes():
                 goutils.log2("ERR", "["+guild.name+"]"+str(e))
                 goutils.log2("ERR", "["+guild.name+"]"+traceback.format_exc())
                 if not bot_test_mode:
-                    await send_alert_to_admins(guild.name, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+                    await send_alert_to_admins(guild, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
             try:
                 if not guild.id in dict_tb_alerts_previously_done:
@@ -396,7 +396,7 @@ async def bot_loop_5minutes():
                 for tb_alert in list_tb_alerts:
                     if not tb_alert in dict_tb_alerts_previously_done[guild.id]:
                         if not first_bot_loop_5minutes:
-                            await send_alert_to_echocommanders(guild.name, tb_alert)
+                            await send_alert_to_echocommanders(guild, tb_alert)
                             goutils.log2("INFO", "["+guild.name+"] New TB alert: "+tb_alert)
                         else:
                             goutils.log2("DBG", "["+guild.name+"] New TB alert within the first 5 minutes: "+tb_alert)
@@ -410,7 +410,7 @@ async def bot_loop_5minutes():
                 goutils.log2("ERR", "["+guild.name+"]"+str(e))
                 goutils.log2("ERR", "["+guild.name+"]"+traceback.format_exc())
                 if not bot_test_mode:
-                    await send_alert_to_admins(guild.id, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+                    await send_alert_to_admins(guild, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
             try:
                 if not guild.id in dict_platoons_previously_done:
@@ -501,7 +501,7 @@ async def bot_loop_5minutes():
                         msg += territory_display+": "+str(territory_full_count)+"/6)"
                         goutils.log("INFO", "guionbot_discord.bot_loop_5minutes", "["+guild.name+"]"+msg)
                         if not first_bot_loop_5minutes:
-                            await send_alert_to_echocommanders(guild.name, msg)
+                            await send_alert_to_echocommanders(guild, msg)
 
                     dict_platoons_previously_done[guild.id] = dict_platoons_done.copy()
 
@@ -510,7 +510,7 @@ async def bot_loop_5minutes():
                 goutils.log2("ERR", "["+guild.name+"]"+str(e))
                 goutils.log2("ERR", "["+guild.name+"]"+traceback.format_exc())
                 if not bot_test_mode:
-                    await send_alert_to_admins(guild.name, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+                    await send_alert_to_admins(guild, "Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
         first_bot_loop_5minutes = False
 
@@ -562,11 +562,11 @@ async def bot_loop_6hours():
 #          stop/start the bot for a new message to be allowed
 # Output: None
 ##############################################################
-async def send_alert_to_admins(server_name, message):
+async def send_alert_to_admins(server, message):
     global list_alerts_sent_to_admin
 
-    if server_name != None:
-        message = "["+server_name+"] "+message
+    if server != None:
+        message = "["+server.name+"] "+message
 
     if not message in list_alerts_sent_to_admin:
         list_ids = config.GO_ADMIN_IDS.split(' ')
@@ -582,15 +582,12 @@ async def send_alert_to_admins(server_name, message):
 # Purpose: send a message to Echobot admins.
 # Output: None
 ##############################################################
-async def send_alert_to_echocommanders(server_id, message):
-    server = bot.get_guild(server_id)
-    server_name = server.name
-    
-    goutils.log2("DBG", "server_name="+server_name+", message="+message)
+async def send_alert_to_echocommanders(server, message):
+    goutils.log2("DBG", "server.name="+server.name+", message="+message)
     if bot_test_mode:
-        await send_alert_to_admins(server_name, message)
+        await send_alert_to_admins(server, message)
     else:
-        query = "SELECT tbChanOut_id, tbRoleOut FROM guilds WHERE server_id="+str(server_id)
+        query = "SELECT tbChanOut_id, tbRoleOut FROM guilds WHERE server_id="+str(server.id)
         goutils.log2("DBG", query)
         result = connect_mysql.get_line(query)
         if result == None:
@@ -602,21 +599,19 @@ async def send_alert_to_echocommanders(server_id, message):
         if tbChanOut_id != 0:
             tb_channel = bot.get_channel(tbChanOut_id)
             try:
-                await tb_channel.send("["+server_name+"]"+ message)
+                await tb_channel.send("["+server.name+"]"+ message)
             except discorderrors.Forbidden as e:
-                goutils.log2("WAR", "["+server_name+"] Cannot send message to "+str(tbChanOut_id))
+                goutils.log2("WAR", "["+server.name+"] Cannot send message to "+str(tbChanOut_id))
 
         if tbRoleOut != "":
-            for guild in bot.guilds:
-                if guild.id == server_id:
-                    for role in guild.roles:
-                        if role.name == tbRoleOut:
-                            for member in role.members:
-                                channel = await member.create_dm()
-                                try:
-                                    await channel.send("["+server_name+"]"+ message)
-                                except discorderrors.Forbidden as e:
-                                    goutils.log2("WAR", "["+server_name+"] Cannot send DM to "+member.name)
+            for role in server.roles:
+                if role.name == tbRoleOut:
+                    for member in role.members:
+                        channel = await member.create_dm()
+                        try:
+                            await channel.send("["+server.name+"]"+ message)
+                        except discorderrors.Forbidden as e:
+                            goutils.log2("WAR", "["+server.name+"] Cannot send DM to "+member.name)
 
 ##############################################################
 # Function: get_eb_allocation
@@ -1086,7 +1081,7 @@ async def on_message(message):
         goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
         if not bot_test_mode:
-            await send_alert_to_admins(guild_name, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
+            await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
     #Read messages from Juke's bot
     if message.author.id == config.JBOT_DISCORD_ID:
@@ -1140,7 +1135,7 @@ async def on_command_error(ctx, error):
         await ctx.send("ERR: erreur inconnue")
         await ctx.message.add_reaction(emoji_error)
         goutils.log2("ERR", error)
-        await send_alert_to_admins(ctx.guild.name, "ERR: erreur inconnue "+str(error))
+        await send_alert_to_admins(ctx.guild, "ERR: erreur inconnue "+str(error))
         raise error
 
 ##############################################################
@@ -1837,7 +1832,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.send("ERR: "+errtxt)
                 await ctx.message.add_reaction(emoji_error)
             else:
-                dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
+                dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
                 output_txt=""
                 for p in sorted(dict_players.keys()):
                     if p in dict_players_by_IG:
@@ -1947,7 +1942,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
         else:
             err, errtxt, ret_cmd = go.tag_players_with_character(allyCode, character_alias,
-                                                                 ctx.guild.name, tw_mode)
+                                                                 ctx.guild.id, tw_mode)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
