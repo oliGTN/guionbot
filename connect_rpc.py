@@ -307,13 +307,7 @@ def parse_tw_opponent_teams(server_id, use_cache_data):
     return 0, "", [list_teams, list_territories]
 
 def get_guildChat_messages(server_id, use_cache_data):
-    romans = {}
-    romans["TIER08"] = "VIII"
-    romans["TIER09"] = "IX"
-    romans["TIER10"] = "X"
-    romans["TIER11"] = "XI"
-    romans["TIER12"] = "XII"
-    romans["TIER13"] = "XIII"
+    FRE_FR = godata.get('FRE_FR.json')
 
     query = "SELECT bot_android_id, chatChan_id, chatLatest_ts FROM guild_bot_infos WHERE server_id="+str(server_id)
     goutils.log2("DBG", query)
@@ -340,9 +334,6 @@ def get_guildChat_messages(server_id, use_cache_data):
     mapstats_json = rpc_data[1]
     dict_events = rpc_data[2]
 
-    dict_unitsList = godata.get("unitsList_dict.json")
-    dict_capas = godata.get('unit_capa_list.json')
-
     list_chat_events = []
     for event_group_id in dict_events:
         if not event_group_id.startswith("GUILD_CHAT"):
@@ -361,81 +352,50 @@ def get_guildChat_messages(server_id, use_cache_data):
                         activity = data["Activity"]
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_TIERUP":
                             author = activity["Param"][0]["ParamValue"][0]
-                            if activity["Param"][1]["Key"].endswith("_NAME_V2"):
-                                activity["Param"][1]["Key"] = activity["Param"][1]["Key"][:-3]
-                            unit_id = activity["Param"][1]["Key"][5:-5]
-                            if unit_id in dict_unitsList:
-                                unit_name = dict_unitsList[unit_id]["nameKey"]
-                            else:
-                                unit_name = unit_id
-                            gear = activity["Param"][2]["Key"]
-                            if gear in romans:
-                                gear = romans[gear]
-                            list_chat_events.append([event_ts, author+" a augmenté l'équipement de "+unit_name+" au niveau "+gear])
+                            unit_key = activity["Param"][1]["Key"]
+                            if unit_key in FRE_FR:
+                                unit_key = FRE_FR[unit_key]
+                            gear_key = activity["Param"][2]["Key"]
+                            if gear_key in FRE_FR:
+                                gear_key = FRE_FR[gear_key]
+                            list_chat_events.append([event_ts, author+" a augmenté l'équipement de "+unit_key+" au niveau "+gear_key])
 
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_ZETA_APPLIED"\
                         or activity["Key"] == "GUILD_CHANNEL_ACTIVITY_OMICRON_APPLIED":
                             author = activity["Param"][0]["ParamValue"][0]
-                            ability_id = activity["Param"][1]["Key"]
-                            if activity["Param"][2]["Key"].endswith("_NAME_V2"):
-                                activity["Param"][2]["Key"] = activity["Param"][2]["Key"][:-3]
-                            unit_id = activity["Param"][2]["Key"][5:-5]
+                            ability_key = activity["Param"][1]["Key"]
+                            if ability_key in FRE_FR:
+                                ability_key = FRE_FR[ability_key]
+                            unit_key = activity["Param"][2]["Key"]
+                            if unit_key in FRE_FR:
+                                unit_key = FRE_FR[unit_key]
 
-                            if ability_id.startswith("BASIC"):
-                                skill_id = "basicskill_"+unit_id
-                            elif ability_id.startswith("LEADER"):
-                                skill_id = "leaderskill_"+unit_id
-                            elif ability_id.startswith("UNIQUE"):
-                                if "GALACTICLEGEND" in ability_id:
-                                    skill_id = "uniqueskill_GALACTICLEGEND01"
-                                else:
-                                    skill_count = ability_id[-7:-5]
-                                    skill_id = "uniqueskill_"+unit_id+skill_count
-                            elif ability_id.startswith("SPECIAL"):
-                                skill_count = ability_id[-7:-5]
-                                skill_id = "specialskill_"+unit_id+skill_count
-
-                            if unit_id in dict_unitsList:
-                                unit_name = dict_unitsList[unit_id]["nameKey"]
-                            else:
-                                unit_name = unit_id
-                            if unit_id in dict_capas and skill_id in dict_capas[unit_id]:
-                                skill_name = dict_capas[unit_id][skill_id][0]
-                            elif unit_id in dict_capas and skill_id.lower() in dict_capas[unit_id]:
-                                skill_name = dict_capas[unit_id][skill_id.lower()][0]
-                            else:
-                                if not unit_id in dict_capas:
-                                    goutils.log2("WAR", unit_id+" not found")
-                                elif not skill_id in dict_capas[unit_id]:
-                                    goutils.log2("WAR", skill_id+" not found")
-                                elif not skill_id.lower() in dict_capas[unit_id]:
-                                    goutils.log2("WAR", skill_id.lower()+" not found")
-                                skill_name = skill_id
                             if "ZETA" in activity["Key"]:
-                                list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+skill_name+" ("+unit_name+")"])
+                                list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+ability_key+" ("+unit_key+")"])
                             else:
-                                list_chat_events.append([event_ts, author+" a utilisé une amélioration omicron sur "+skill_name+" ("+unit_name+")"])
+                                list_chat_events.append([event_ts, author+" a utilisé une amélioration omicron sur "+ability_key+" ("+unit_key+")"])
 
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_PROMOTED" \
                         or activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_ACTIVATED":
                             author = activity["Param"][0]["ParamValue"][0]
-                            if activity["Param"][1]["Key"].endswith("_NAME_V2"):
-                                activity["Param"][1]["Key"] = activity["Param"][1]["Key"][:-3]
-                            unit_id = activity["Param"][1]["Key"][5:-5]
-                            if unit_id in dict_unitsList:
-                                unit_name = dict_unitsList[unit_id]["nameKey"]
-                            else:
-                                unit_name = unit_id
+                            unit_key = activity["Param"][1]["Key"]
+                            if unit_key in FRE_FR:
+                                unit_key = FRE_FR[unit_key]
                             if "PROMOTED" in activity["Key"]:
-                                list_chat_events.append([event_ts, "\N{WHITE MEDIUM STAR} "+author+" vient de promouvoir "+unit_name+" à 7 étoiles"])
+                                list_chat_events.append([event_ts, "\N{WHITE MEDIUM STAR} "+author+" vient de promouvoir "+unit_key+" à 7 étoiles"])
                             else:
-                                list_chat_events.append([event_ts, "\N{OPEN LOCK} "+author+" vient de débloquer "+unit_name])
+                                list_chat_events.append([event_ts, "\N{OPEN LOCK} "+author+" vient de débloquer "+unit_key])
 
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_TB_STARTED":
+                            tb_key = activity["Param"][0]["Key"]
+                            if tb_key in FRE_FR:
+                                tb_key = FRE_FR[tb_key]
                             phase = activity["Param"][1]["ParamValue"][0]
-                            list_chat_events.append([event_ts, "La Bataille de Territoire Phase "+phase+" a commencé"])
+                            list_chat_events.append([event_ts, "La Bataille de Territoire "+tb_key+" Phase "+phase+" a commencé"])
                         if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_SIMMED_RAID_AUTO_SUMMONED":
-                            raid = activity["Param"][0]["Key"][5:-5]
+                            raid_key = activity["Param"][0]["Key"]
+                            if raid_key in FRE_FR:
+                                raid_key = FRE_FR[raid_key]
                             list_chat_events.append([event_ts, "Le Raid : "+raid+" (simulation activée) vient de commencer, participez maintenant !"])
 
     if len(list_chat_events)>0:
