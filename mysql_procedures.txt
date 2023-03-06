@@ -122,6 +122,7 @@ DROP TABLE IF EXISTS `guild_bot_infos`;
 CREATE TABLE `guild_bot_infos` (
   `server_id` bigint(20) NOT NULL DEFAULT 0,
   `guild_id` varchar(12) NOT NULL DEFAULT '',
+  `gfile_name` varchar(45) DEFAULT NULL,
   `warstats_id` smallint(6) NOT NULL DEFAULT 0,
   `warstats_user` varchar(45) NOT NULL DEFAULT '',
   `warstats_pass` varchar(45) NOT NULL DEFAULT '',
@@ -130,6 +131,8 @@ CREATE TABLE `guild_bot_infos` (
   `tbRoleOut` varchar(45) NOT NULL,
   `twChanOut_id` bigint(20) NOT NULL DEFAULT 0,
   `bot_android_id` varchar(16) DEFAULT '',
+  `bot_LatestUpdate` timestamp NULL DEFAULT current_timestamp(),
+  `bot_period_min` smallint(6) DEFAULT 5,
   `bot_locked_until` timestamp NULL DEFAULT current_timestamp(),
   `chatChan_id` bigint(20) DEFAULT 0,
   `chatLatest_ts` bigint(20) DEFAULT 0,
@@ -151,7 +154,7 @@ CREATE TABLE `guild_evolutions` (
   `allyCode` int(11) DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3489 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=3621 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -392,7 +395,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=3822662 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=4072938 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -409,7 +412,7 @@ CREATE TABLE `roster_evolutions` (
   `defId` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=350785 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=352481 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -430,7 +433,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=29915439 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=30922756 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1130,4 +1133,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-03-02 22:37:29
+-- Dump completed on 2023-03-06  1:07:20
