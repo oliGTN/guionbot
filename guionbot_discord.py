@@ -587,7 +587,7 @@ async def send_alert_to_echocommanders(server, message):
     if bot_test_mode:
         await send_alert_to_admins(server, message)
     else:
-        query = "SELECT tbChanOut_id, tbRoleOut FROM guilds WHERE server_id="+str(server.id)
+        query = "SELECT tbChanOut_id, tbRoleOut FROM guild_bot_infos WHERE server_id="+str(server.id)
         goutils.log2("DBG", query)
         result = connect_mysql.get_line(query)
         if result == None:
