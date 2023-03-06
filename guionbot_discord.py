@@ -264,6 +264,7 @@ async def bot_loop_1minute():
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
                     await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False)
+                    await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, server_id)
                     ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
                     if ec!=0:
                         goutils.log2("ERR", et)
@@ -2013,9 +2014,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             display_mentions=False
             output_channel = ctx.message.channel
 
-        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, go.tag_tb_undeployed_players, ctx.guild.name, False)
+        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, go.tag_tb_undeployed_players, ctx.guild.id, False)
         if err_code == 0:
-            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.name)[0]
+            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
             for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
                 if (p in dict_players_by_IG) and display_mentions:
@@ -2253,7 +2254,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 teams = ["all"]
 
             err, ret_cmd = await bot.loop.run_in_executor(None, go.print_vtg,
-                                                    teams, allyCode, ctx.guild.name, tw_mode)
+                                                    teams, allyCode, ctx.guild.id, tw_mode)
             if err == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
@@ -2299,7 +2300,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 teams = ["all"]
 
             err, txt, images = await bot.loop.run_in_executor(None, go.print_vtj,
-                                                    teams, allyCode, ctx.guild.name, tw_mode)
+                                                    teams, allyCode, ctx.guild.id, tw_mode)
             if err != 0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -2356,7 +2357,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_ftj, allyCode, team, ctx.guild.name)
+            err_code, ret_cmd = await bot.loop.run_in_executor(None, go.print_ftj, allyCode, team, ctx.guild.id)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2773,7 +2774,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             if len(characters) > 0:
                 e, ret_cmd, images = await bot.loop.run_in_executor(None,
-                    go.get_character_image, [[list(characters), allyCode, '']], False, True, '', ctx.guild.name)
+                    go.get_character_image, [[list(characters), allyCode, '']], False, True, '', ctx.guild.id)
                     
                 if e == 0:
                     for image in images:
@@ -3190,7 +3191,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
                                                     go.find_best_teams_for_raid,
-                                                    allyCode, ctx.guild.name, raid_name, False)
+                                                    allyCode, ctx.guild.id, raid_name, False)
             if err !=0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
