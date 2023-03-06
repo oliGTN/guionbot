@@ -124,6 +124,11 @@ def get_rpc_data(server_id, use_cache_data):
     else:
         dict_TWmapstats = {}
 
+    #log update time in DB
+    query = "UPDATE guild_bot_infos SET bot_latestUpdate=CURRENT_TIMESTAMP() "
+    query+= "WHERE server_id="+str(server_id)
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
 
     dict_events = {}
     dict_event_counts = {}
@@ -313,7 +318,7 @@ def get_guildChat_messages(server_id, use_cache_data):
     goutils.log2("DBG", query)
     line = connect_mysql.get_line(query)
     if line == None:
-        return 1, "ERR: no DB data for server "+str(server_id), None
+        return 1, "INFO: no DB data for server "+str(server_id), None
     
     bot_android_id = line[0]
     chatChan_id = line[1]
