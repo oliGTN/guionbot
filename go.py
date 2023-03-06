@@ -3872,9 +3872,9 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-def tag_tb_undeployed_players(guildName, use_cache_data):
+def tag_tb_undeployed_players(server_id, use_cache_data):
     dict_tb=data.dict_tb
-    ec, et, tb_data = get_tb_status(guildName, "", False, use_cache_data)
+    ec, et, tb_data = get_tb_status(server_id, "", False, use_cache_data)
     if ec!=0:
         return 1, et, None
 
@@ -3964,7 +3964,7 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
     if not tb_ongoing:
         return 1, "No TB on-going", None
 
-    query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName+"'"
+    query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
     list_playername_gp = connect_mysql.get_table(query)
 
     dict_tb_players = {}
