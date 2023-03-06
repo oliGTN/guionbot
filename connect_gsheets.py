@@ -726,7 +726,7 @@ def load_new_tb():
 def update_gwarstats(server_id):
     gfile_name = get_gfile_name(server_id)
 
-    ec, et, tb_data = go.get_tb_status(guildName, "", True, True)
+    ec, et, tb_data = go.get_tb_status(server_id, "", False, True)
     if ec != 0:
         return 1, et
 
@@ -734,7 +734,7 @@ def update_gwarstats(server_id):
 
     try:
         get_gapi_client()
-        file = client.open(guildName)
+        file = client.open(gfile_name)
         feuille=file.worksheet("BT graphs")
     except:
         goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
