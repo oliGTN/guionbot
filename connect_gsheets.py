@@ -62,6 +62,8 @@ def get_dict_columns(list_col_names, list_list_sheet):
 
 def get_sheet_url(server_id, sheet_name):
     gfile_name = get_gfile_name(server_id)
+    if gfile_name==None or gfile_name=='':
+        return None
     try:
         get_gapi_client()
         file = client.open(gfile_name)
