@@ -255,7 +255,8 @@ async def bot_loop_1minute():
         t_start = time.time()
 
         query = "SELECT server_id FROM guild_bot_infos "
-        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min"
+        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min "
+        query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_column(query)
 
