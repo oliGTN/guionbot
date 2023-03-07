@@ -3991,6 +3991,9 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
             zone_score = int(zone["ZoneStatus"]["Score"])
             dict_open_zones[zone_name] = {"Score": zone_score}
 
+    #sort the dict to display zones in the same order as the game
+    dict_open_zones = dict(sorted(dict_open_zones.items(), key=lambda x:dict_tb[tb_type]["ZonePositions"][dict_tb[x[0]]["Name"].split("-")[1]]))
+
     if len(dict_open_zones)==0:
         return 1, "No TB on-going", None
 
@@ -4025,6 +4028,9 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
         event=dict_events[event_id]
         event_time = int(event["Timestamp"])
         playerName = event["AuthorName"]
+        if not playerName in dict_tb_players:
+            #should not happen unless new player and until API resynchronizes
+            continue
 
         if event_time < tb_round_startTime:
             #event on same zone but bduring previous round
@@ -4086,6 +4092,10 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                 for playerstat in mapstat["PlayerStat"]:
                     member_id = playerstat["MemberId"]
                     playerName = dict_members_by_id[member_id]
+                    if not playerName in dict_tb_players:
+                        #should not happen unless new player and until API resynchronizes
+                        continue
+
                     score = int(playerstat["score"])
                     dict_tb_players[playerName]["score"]["Deployed"] = score
                     if dict_tb_players[playerName]["score"]["Deployed"] != dict_tb_players[playerName]["score"]["DeployedMix"]:
@@ -4308,7 +4318,9 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
 
     # START THE DISPLAY PART
     ret_print_tb_status = ""
-    ret_print_tb_status += "More details, including players \u2013 "+connect_gsheets.get_sheet_url(server_id, "BT graphs")+"\n"
+    sheet_url = connect_gsheets.get_sheet_url(server_id, "BT graphs")
+    if sheet_url != None:
+        ret_print_tb_status += "More details, including players \u2013 "+sheet_url+"\n"
 
     ret_print_tb_status+="---------------\n"
     available_ship_deploy = dict_phase["AvailableShipDeploy"]
