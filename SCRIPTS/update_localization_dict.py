@@ -10,8 +10,8 @@ for filename in os.listdir(localization_path):
         if line[0] == "#":
             continue
         tab_line = line.split('|')
-        key = tab_line[0]
-        value = tab_line[1]
+        key = tab_line[0].strip()
+        value = tab_line[1].strip()
         dict_lang[key]=value
     f.close()
     jsonname = "../DATA/"+lang+".json"
