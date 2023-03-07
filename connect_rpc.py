@@ -126,7 +126,7 @@ def get_rpc_data(server_id, use_cache_data):
 
     if not use_cache_data:
         #log update time in DB - rounded to fix times (eg: always 00:05, 00:10 for 5 min period)
-        query = "UPDATE guild_bot_infos SET bot_latestUpdate=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min)"
+        query = "UPDATE guild_bot_infos SET bot_latestUpdate=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
         query+= "WHERE server_id="+str(server_id)
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
