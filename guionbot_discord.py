@@ -1027,7 +1027,7 @@ async def on_reaction_add(reaction, user):
         and author == bot.user:
         list_alerts_sent_to_admin.remove(message.content)
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
-        goutils.log2("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admins))
+        goutils.log2("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admin))
 
     #Manage reactions to PGS messages
     for [rgt_user, list_msg_sizes] in list_tw_opponent_msgIDs:
@@ -1955,7 +1955,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emoji_check)
 
-    @commands.check(is_officer)
     @commands.command(name='enablebot',
             brief="Active le compte bot pour permettre de suivre la guilde",
             help="Active le compte bot pour permettre de suivre la guilde")
@@ -1971,7 +1970,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
         await ctx.message.add_reaction(emoji_check)
 
-    @commands.check(is_officer)
     @commands.command(name='disablebot',
             brief="Désactive le compte bot pour permettre de le jouer",
             help="Désactive le compte bot pour permettre de le jouer")
@@ -2089,7 +2087,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='register',
                       brief="Lie un code allié au compte discord qui lance la commande",
                       help="Lie un code allié au compte discord qui lance la commande\n\n"\
-                           "Exemple: go.qui 123456789")
+                           "Exemple: go.register 123456789\n"\
+                           "Exemple: go.register 123456789 @chatondu75")
     async def register(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
