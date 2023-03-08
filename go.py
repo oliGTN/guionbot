@@ -3413,7 +3413,7 @@ def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
     allyCodes_in_DB = connect_mysql.get_table(query)
 
     guildName = allyCodes_in_DB[0][0]
-    dict_players = connect_mysql.load_config_players(guildName)[0]
+    dict_players = connect_mysql.load_config_players(server_id)[0]
 
     #Manage -TW option
     if tw_mode:
