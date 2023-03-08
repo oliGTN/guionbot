@@ -761,12 +761,6 @@ def update_gwarstats(server_id):
         else:
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value="!!! Phase "+zone_round))
 
-        #zone scores (for the graph)
-        cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=zone["Score"]))
-        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["EstimatedStrikeScore"]))
-        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["Deployment"]))
-        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["MaxStrikeScore"]))
-
         #zone stars
         cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone["Stars"]))
 
@@ -775,6 +769,12 @@ def update_gwarstats(server_id):
         for star_score in dict_tb[zone_fullname]["Scores"]:
             cells.append(gspread.cell.Cell(row=12, col=1+i_col+4*i_zone, value=star_score))
             i_col += 1
+
+        #zone scores (for the graph)
+        cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=min(star_score, zone["Score"])))
+        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["EstimatedStrikeScore"]))
+        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["Deployment"]))
+        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["MaxStrikeScore"]))
 
         #zone strike stats
         for line in [19, 20, 21, 22, 23]:
@@ -830,13 +830,13 @@ def update_gwarstats(server_id):
         cells.append(gspread.cell.Cell(row=1, col=16, value="Mix deployment"))
         cells.append(gspread.cell.Cell(row=1, col=19, value=""))
 
-    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["Deployed"] + x[1]["score"]["Platoons"] + x[1]["score"]["Strikes"], reverse=True))
+    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["Deployed"] + x[1]["score"]["Strikes"], reverse=True))
 
     line = 3
     for playername in sorted_dict_tb_players:
         player = dict_tb_players[playername]
         cells.append(gspread.cell.Cell(row=line, col=14, value=playername))
-        total_score = player["score"]["Deployed"] + player["score"]["Platoons"] + player["score"]["Strikes"]
+        total_score = player["score"]["Deployed"] + player["score"]["Strikes"]
         cells.append(gspread.cell.Cell(row=line, col=15, value=total_score))
 
         if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
