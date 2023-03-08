@@ -1915,8 +1915,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                  brief="Tag les possesseurs d'un Perso dans la Guilde",
                  help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
                       "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
-                      "Exemple : go.tbg me SEE\n"\
-                      "Exemple : go.tbg me SEE:G13")
+                      "Exemple : go.tpg me SEE\n"\
+                      "Exemple : go.tpg me SEE:G13")
     async def tpg(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
