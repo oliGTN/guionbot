@@ -117,6 +117,21 @@ dict_BT_missions['ROTE']={}
 dict_BT_missions['ROTE']['Mustafar']='ROTE1-DS'
 dict_BT_missions['ROTE']['Corellia']='ROTE1-MS'
 dict_BT_missions['ROTE']['Coruscant']='ROTE1-LS'
+dict_BT_missions['ROTE']['Geonosis']='ROTE2-DS'
+dict_BT_missions['ROTE']['Felucia']='ROTE2-MS'
+dict_BT_missions['ROTE']['Bracca']='ROTE2-LS'
+dict_BT_missions['ROTE']['Dathomir']='ROTE3-DS'
+dict_BT_missions['ROTE']['Tatooine']='ROTE3-MS'
+dict_BT_missions['ROTE']['Kashyyyk']='ROTE3-LS'
+dict_BT_missions['ROTE']['Haven-class Medical Station']='ROTE4-DS'
+dict_BT_missions['ROTE']['Kessel']='ROTE4-MS'
+dict_BT_missions['ROTE']['Lothal']='ROTE4-LS'
+dict_BT_missions['ROTE']['Malachor']='ROTE5-DS'
+dict_BT_missions['ROTE']['Vandor']='ROTE5-MS'
+dict_BT_missions['ROTE']['Ring of Kafrene']='ROTE5-LS'
+dict_BT_missions['ROTE']['Death Star']='ROTE6-DS'
+dict_BT_missions['ROTE']['Hoth']='ROTE6-MS'
+dict_BT_missions['ROTE']['Scarif']='ROTE6-LS'
 
 dict_member_lastseen={} #{guild discord id: {player discord id: [discord displayname, date last seen (idle or online)]}
 
@@ -782,7 +797,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                 existing_platoons = [i for i in dict_platoons_allocation.keys()
                                                 if i.startswith(territory_name_position)]
                                                 
-                                if len(existing_platoons) == 0:                    
+                                if True: #len(existing_platoons) == 0:                    
+                                #TODO risk of regression here. Check kept for provision
+                                #necessary to remove the check when same zone has different allocations among several days
                                     # with the right name for the territory, modify dictionary
                                     keys_to_rename=[]                         
                                     for platoon_name in dict_platoons_allocation:
@@ -797,7 +814,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         del dict_platoons_allocation[key]
                                         
                             else:
-                                goutils.log("WAR", "get_eb_allocation", 'Mission \"'+territory_name+'\" inconnue')
+                                goutils.log2("WAR", 'Mission \"'+territory_name+'\" inconnue')
 
     return dict_platoons_allocation
 
@@ -1012,6 +1029,7 @@ async def on_reaction_add(reaction, user):
         guild_name = message.channel.guild.name
         set_id_lastseen("on_reaction_add", reaction.message.channel.guild.id, user.id)
     else:
+        goutils.log2("INFO", "Message type: "+str(type(message.channel)))
         guild_name = "DM"
     author = message.author
     emoji = reaction.emoji
@@ -1152,6 +1170,7 @@ async def on_message_delete(message):
     if isinstance(message.channel, GroupChannel):
         channel_name = message.channel.name
     else:
+        goutils.log2("INFO", "Message type: "+str(type(message.channel)))
         channel_name = "DM"
 
     goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
@@ -1162,6 +1181,7 @@ async def on_message_edit(before, after):
     if isinstance(before.channel, GroupChannel):
         channel_name = before.channel.name
     else:
+        goutils.log2("INFO", "Message type: "+str(type(before.channel)))
         channel_name = "DM"
 
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
@@ -1190,6 +1210,7 @@ async def on_user_update(before, after):
     if isinstance(before.channel, GroupChannel):
         guild_id = before.channel.guild.id
     else:
+        goutils.log2("INFO", "Message type: "+str(type(before.channel)))
         guild_id = "DM"
 
     set_id_lastseen("on_user_update", guild_id, before.id)
@@ -1718,9 +1739,12 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 phase_name = platoon_name.split('-')[0][:-1]
                 if not phase_name in phase_names_already_displayed:
                     phase_names_already_displayed.append(phase_name)
+                print("---"+platoon_name)
+                print(dict_platoons_done[platoon_name])
                 for perso in dict_platoons_done[platoon_name]:
                     if '' in dict_platoons_done[platoon_name][perso]:
                         if platoon_name in dict_platoons_allocation:
+                            print(dict_platoons_allocation[platoon_name])
                             if perso in dict_platoons_allocation[platoon_name]:
                                 for allocated_player in dict_platoons_allocation[
                                         platoon_name][perso]:
@@ -1748,11 +1772,12 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                 erreur_detectee = True
                                 list_err.append('ERR: ' + perso +
                                                 ' n\'a pas été affecté ('+platoon_name+')')
-                                goutils.log('ERR', "guionbot_discord.vdp", perso + ' n\'a pas été affecté')
-                                goutils.log("ERR", "guionbot_discord.vdp", dict_platoons_allocation[platoon_name].keys())
+                                goutils.log2('ERR', perso + ' n\'a pas été affecté')
+                                goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
 
             full_txt = ''
             cur_phase = 0
+            print(list_txt)
 
             for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
                 platoon_name = txt[1]
