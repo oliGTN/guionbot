@@ -862,7 +862,6 @@ def get_tb_guild_scores(server_id, use_cache_data):
 
     [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
     active_round = dict_tb[dict_phase["Type"]]["Shortname"]+str(dict_phase["Round"])
-    print(active_round)
     dict_territory_scores = {}
     for zone in dict_open_zones:
         zone_name_tab = dict_tb[zone]["Name"].split("-")
@@ -871,7 +870,6 @@ def get_tb_guild_scores(server_id, use_cache_data):
         zone_name += zone_name_tab[0][-1]
         zone_name += "-"
         zone_name += zone_name_tab[1]
-        print(zone_name)
         zone_score = dict_open_zones[zone]["Score"]
         dict_territory_scores[zone_name] = zone_score
 
