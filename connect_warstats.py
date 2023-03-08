@@ -1889,3 +1889,4 @@ def parse_raid_scores(server_id, raid_name):
         set_next_warstats_read_short(raid_list_parser.get_last_track(), "raid_scores", server_id)
 
     return dict_raid_phase[server_id][raid_name], dict_raid_player_scores[server_id][raid_name]
+

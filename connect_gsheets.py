@@ -15,9 +15,9 @@ import inspect
 import traceback
 
 import connect_mysql
+import connect_rpc
 import goutils
 import data
-import go
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
 # ou plusieurs fois le même (gain de temps)
@@ -613,7 +613,7 @@ def get_tb_triggers(server_id, force_load):
                 bot_target = bot_stars[l-1] + '-' + bot_stars[l]
 
                 if daily_name!='':
-                    if top_stars[l-1] == top_column_title:
+                    if top_stars[l-1] in [top_column_title, "DS"]:
                         current_tb_name = daily_name
                     elif daily_name!='':
                         day_index = int(daily_name[-1])-1
@@ -728,7 +728,7 @@ def load_new_tb():
 def update_gwarstats(server_id):
     gfile_name = get_gfile_name(server_id)
 
-    ec, et, tb_data = go.get_tb_status(server_id, "", False, True)
+    ec, et, tb_data = connect_rpc.get_tb_status(server_id, "", False, True)
     if ec != 0:
         return 1, et
 

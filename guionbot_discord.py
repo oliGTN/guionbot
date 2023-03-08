@@ -2008,7 +2008,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             display_mentions=False
             output_channel = ctx.message.channel
 
-        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, go.tag_tb_undeployed_players, ctx.guild.id, False)
+        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, connect_rpc.tag_tb_undeployed_players, ctx.guild.id, False)
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
