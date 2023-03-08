@@ -399,6 +399,12 @@ def get_guildChat_messages(server_id, use_cache_data):
                                 raid_key = FRE_FR[raid_key]
                             list_chat_events.append([event_ts, "Le Raid : "+raid_key+" (simulation activée) vient de commencer, participez maintenant !"])
 
+                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_RAID_AUTO_SUMMONED_TU15":
+                            raid_key = activity["Param"][0]["Key"]
+                            if raid_key in FRE_FR:
+                                raid_key = FRE_FR[raid_key]
+                            list_chat_events.append([event_ts, "Le Raid : "+raid_key+" vient de commencer"])
+
                         elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_DEMOTE":
                             demoted = activity["Param"][0]["ParamValue"][0]
                             demoter = activity["Param"][1]["ParamValue"][0]
