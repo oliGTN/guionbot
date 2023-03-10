@@ -742,11 +742,22 @@ def update_gwarstats(server_id):
         goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
         return
 
+    now = datetime.datetime.now()
+
+    #first need to check if the round has evolved
+    # in that case, duplicate current sheet as backup copy
+    prev_round = int(feuille.get("B2")[0][0])
+    prev_shortname = feuille.get("A4")[0][0].split("-")[0][:-1]
+    if prev_round != dict_phase["Round"]:
+        max_sheet_id = max([ws.id for ws in file.worksheets()])
+        new_sheet_name=prev_shortname+" J"+str(prev_round)+" "+now.strftime("%d/%m")
+        feuille.duplicate(insert_sheet_index=max_sheet_id+1, new_sheet_name=new_sheet_name)
+
+
     dict_tb = data.dict_tb
     cells = []
     cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["Name"]))
     cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["Round"]))
-    now = datetime.datetime.now()
     cells.append(gspread.cell.Cell(row=1, col=8, value=now.strftime("%d/%m/%Y %H:%M:%S")))
 
     i_zone = 0
