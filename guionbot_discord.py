@@ -408,7 +408,7 @@ async def bot_loop_5minutes():
                     dict_tb_alerts_previously_done[guild.id] = []
 
                 #CHECK ALERTS FOR BT
-                list_tb_alerts = go.get_tb_alerts(guild.id, False)
+                list_tb_alerts = go.get_tb_alerts(guild.id, True)
                 for tb_alert in list_tb_alerts:
                     if not tb_alert in dict_tb_alerts_previously_done[guild.id]:
                         if not first_bot_loop_5minutes:
@@ -809,10 +809,29 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             keys_to_rename.append(platoon_name)
                                     for key in keys_to_rename:
                                         new_key = territory_name_position+key[-2:]
-                                        dict_platoons_allocation[new_key] = \
-                                                dict_platoons_allocation[key]
-                                        del dict_platoons_allocation[key]
-                                        
+                                        ################
+                                        ## TODO remove the if False when ready
+                                        ################
+                                        if False: #new_key in dict_platoons_allocation:
+                                            #Case of a platoon allocated twice
+                                            # - either part day1 and part day 2
+                                            # - or day2 replaces day1
+                                            #Anyway the logic is to add, in the day2 allocations,
+                                            # all allocations from day1 that are not in conflict
+                                            # (day2 has priority)
+                                            for charname in dict_platoons_allocation[key]:
+                                                if charname in dict_platoons_allocation[newkey]:
+                                                    players = dict_platoons_allocation[newkey][charname]
+                                                    added_players = dict_platoons_allocation[key][charname]
+                                                    for player in added_players:
+                                                        players.append(player)
+                                                    dict_platoons_allocation[newkey][charname] = players
+
+                                        else:
+                                            dict_platoons_allocation[new_key] = \
+                                                    dict_platoons_allocation[key]
+                                            del dict_platoons_allocation[key]
+                                            
                             else:
                                 goutils.log2("WAR", 'Mission \"'+territory_name+'\" inconnue')
 
