@@ -76,14 +76,14 @@ for unit in game_data["Units"]:
 
         if "OmicronMode" in skill:
             if skill["OmicronMode"] == "CONQUEST_OMICRON":
-                dict_capa[unit_id][skill_shortname][3] = "Conquête"
-                dict_capa[unit_id][skill_id][3] = "Conquête"
+                dict_capa[unit_id][skill_shortname][3] = "CQ"
+                dict_capa[unit_id][skill_id][3] = "CQ"
             elif skill["OmicronMode"] == "GUILD_RAID_OMICRON":
-                dict_capa[unit_id][skill_shortname][3] = "Raid"
-                dict_capa[unit_id][skill_id][3] = "Raid"
+                dict_capa[unit_id][skill_shortname][3] = "RD"
+                dict_capa[unit_id][skill_id][3] = "RD"
             elif skill["OmicronMode"] == "GAC_3_OMICRON":
-                dict_capa[unit_id][skill_shortname][3] = "GAC 3v3"
-                dict_capa[unit_id][skill_id][3] = "GAC 3v3"
+                dict_capa[unit_id][skill_shortname][3] = "GA3"
+                dict_capa[unit_id][skill_id][3] = "GA3"
             elif skill["OmicronMode"] == "TERRITORY_BATTLE_BOTH_OMICRON":
                 dict_capa[unit_id][skill_shortname][3] = "TB"
                 dict_capa[unit_id][skill_id][3] = "TB"
@@ -91,8 +91,8 @@ for unit in game_data["Units"]:
                 dict_capa[unit_id][skill_shortname][3] = "TW"
                 dict_capa[unit_id][skill_id][3] = "TW"
             elif skill["OmicronMode"] == "GAC_OMICRON":
-                dict_capa[unit_id][skill_shortname][3] = "GAC"
-                dict_capa[unit_id][skill_id][3] = "GAC"
+                dict_capa[unit_id][skill_shortname][3] = "GA"
+                dict_capa[unit_id][skill_id][3] = "GA"
             else:
                 print("OmicronMode inconnu : "+skill["OmicronMode"])
                 sys.exit(1)
