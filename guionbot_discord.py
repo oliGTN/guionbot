@@ -1049,7 +1049,9 @@ async def on_reaction_add(reaction, user):
         set_id_lastseen("on_reaction_add", reaction.message.channel.guild.id, user.id)
     else:
         goutils.log2("INFO", "Message type: "+str(type(message.channel)))
+        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
         guild_name = "DM"
+
     author = message.author
     emoji = reaction.emoji
     goutils.log2("DBG", "guild_name: "+guild_name)
@@ -1190,6 +1192,7 @@ async def on_message_delete(message):
         channel_name = message.channel.name
     else:
         goutils.log2("INFO", "Message type: "+str(type(message.channel)))
+        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
         channel_name = "DM"
 
     goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
@@ -1201,6 +1204,7 @@ async def on_message_edit(before, after):
         channel_name = before.channel.name
     else:
         goutils.log2("INFO", "Message type: "+str(type(before.channel)))
+        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
         channel_name = "DM"
 
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
@@ -1230,6 +1234,7 @@ async def on_user_update(before, after):
         guild_id = before.channel.guild.id
     else:
         goutils.log2("INFO", "Message type: "+str(type(before.channel)))
+        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
         guild_id = "DM"
 
     set_id_lastseen("on_user_update", guild_id, before.id)
