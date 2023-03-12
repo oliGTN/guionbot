@@ -864,7 +864,7 @@ def get_tb_guild_scores(server_id, use_cache_data):
     dict_tb = godata.dict_tb
     ec, et, tb_data = get_tb_status(server_id, "", False, use_cache_data)
     if ec!=0:
-        return 1, et, None
+        return {}, ""
 
     [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
     active_round = dict_tb[dict_phase["Type"]]["Shortname"]+str(dict_phase["Round"])
