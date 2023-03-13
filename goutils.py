@@ -428,7 +428,7 @@ def get_capa_id_from_short(character_id, capa_short):
     if capa_standard == '':
         return ''
     elif capa_standard[0] == 'B':
-        capa_id = 'B'
+        pass
     elif capa_standard[0] == 'S':
         capa_id = 'S'
         if capa_standard[-1] in '0123456789':
@@ -436,7 +436,7 @@ def get_capa_id_from_short(character_id, capa_short):
         else:
             capa_id += '1'
     elif capa_standard[0] == 'C' or capa_standard[0] == 'L':
-        capa_id = 'L'
+        pass
     elif capa_standard[0] == 'U':
         capa_id = 'U'
         if capa_standard[-1] in '0123456789':
@@ -449,6 +449,13 @@ def get_capa_id_from_short(character_id, capa_short):
             dict_capas[character_id][capa_id][0] == 'Placeholder') and \
             'GL' in dict_capas[character_id]:
             capa_id = 'GL'
+
+    elif capa_standard[0] == 'H':
+        capa_id = 'H'
+        if capa_standard[-1] in '0123456789':
+            capa_id += capa_standard[-1]
+        else:
+            capa_id += '1'
     
     return capa_id
 
