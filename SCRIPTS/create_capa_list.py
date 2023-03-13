@@ -29,8 +29,17 @@ for unit in game_data["Units"]:
 
     unit_id = unit["BaseId"]
     dict_capa[unit_id] = {}
+    list_skills = []
     for skillref in unit["SkillReference"]:
         skill_id = skillref["SkillId"]
+        list_skills.append(skill_id)
+    if "Crew" in unit:
+        for crew in unit["Crew"]:
+            for skillref in crew["SkillReference"]:
+                skill_id = skillref["SkillId"]
+                list_skills.append(skill_id)
+
+    for skill_id in list_skills:
         skill = dict_skills[skill_id]
 
         if skill_id.startswith("basic"):
