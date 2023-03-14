@@ -1204,7 +1204,7 @@ async def on_message_edit(before, after):
         channel_name = before.channel.name
     else:
         goutils.log2("INFO", "Message type: "+str(type(before.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
+        goutils.log2("INFO", "Message guild: "+str(type(before.guild)))
         channel_name = "DM"
 
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\

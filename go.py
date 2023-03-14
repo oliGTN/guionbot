@@ -3810,7 +3810,7 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
     [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
     list_deployment_types = []
     for zone_name in dict_open_zones:
-        zone_deployment_type = dict_tb[zone_name]["Type"]
+        zone_deployment_type = dict_tb[zone_name]["type"]
         if not zone_deployment_type in list_deployment_types:
             list_deployment_types.append(zone_deployment_type)
 
@@ -3841,16 +3841,16 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_mix)+" players)\n"
 
     list_images = []
-    tb_type = dict_phase["Type"]
+    tb_type = dict_phase["type"]
     for zone_name in dict_open_zones:
         ret_print_tb_status+="---------------\n"
-        ret_print_tb_status+="**"+dict_tb[zone_name]["Name"]+"**\n"
+        ret_print_tb_status+="**"+dict_tb[zone_name]["name"]+"**\n"
 
-        current_score = dict_open_zones[zone_name]["Score"]
+        current_score = dict_open_zones[zone_name]["score"]
         ret_print_tb_status+="Current score \u2013 "+str(round(current_score/1000000, 1))+"M "
 
-        cur_strike_score = dict_open_zones[zone_name]["StrikeScore"]
-        cur_strike_fights = sum(dict_open_zones[zone_name]["StrikeFights"].values())
+        cur_strike_score = dict_open_zones[zone_name]["strikeScore"]
+        cur_strike_fights = sum(dict_open_zones[zone_name]["strikeFights"].values())
         estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
         estimated_strike_fights = dict_open_zones[zone_name]["EstimatedStrikeFights"]
         max_strike_score = dict_open_zones[zone_name]["MaxStrikeScore"]
@@ -3862,15 +3862,15 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
             ret_print_tb_status+="Estimated fights \u2013 "+str(round(estimated_strike_score/1000000, 1))+"M "
             ret_print_tb_status+="(in "+str(estimated_strike_fights)+" fights)\n"
 
-        deploy_consumption = dict_open_zones[zone_name]["Deployment"]
+        deploy_consumption = dict_open_zones[zone_name]["deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
-        ret_print_tb_status+="Deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
+        ret_print_tb_status+="deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
         star_for_score = dict_open_zones[zone_name]["EstimatedStars"]
         ret_print_tb_status+="\u27a1 Zone result \u2013 "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
-        img = draw_tb_previsions(dict_tb[zone_name]["Name"], dict_tb[zone_name]["Scores"],
+        img = draw_tb_previsions(dict_tb[zone_name]["name"], dict_tb[zone_name]["scores"],
                                  current_score, estimated_strike_score, deploy_consumption,
                                  max_strike_score)
         list_images.append(img)
@@ -3983,14 +3983,14 @@ def detect_tm(fevent_name, guildId):
         timestamp= int(int(event["Timestamp"])/1000)
         time=datetime.datetime.fromtimestamp(timestamp)
         data=event["Data"][0]
-        if data["ActivityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
-            activity=data["Activity"]
-            if "DEPLOY" in activity["ZoneData"]["ActivityLogMessage"]["Key"]:
-                if activity["ZoneData"]["InstanceType"] == "ZONEINSTANCEHOME":
+        if data["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
+            activity=data["activity"]
+            if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+                if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
                     leader = activity["WarSquad"]["Squad"]["Cell"][0]["UnitDefId"].split(":")[0]
                     print(str(time)+" DEFENSE: "+author+" "+leader)
             else:
-                if activity["ZoneData"]["GuildId"] == guildId:
+                if activity["zoneData"]["GuildId"] == guildId:
                     if "WarSquad" in activity:
                         squad_id = activity["WarSquad"]["SquadId"]
                         if "Squad" in activity["WarSquad"]:
@@ -4027,11 +4027,11 @@ def detect_tm(fevent_name, guildId):
                         else:
                             print(str(time)+" "+activity["WarSquad"]["SquadStatus"])
                     else:
-                        scoretotal = activity["ZoneData"]["ScoreTotal"]
+                        scoretotal = activity["zoneData"]["scoreTotal"]
                         print(str(time)+" Score: "+scoretotal)
 
         else:
-            print(data["ActivityType"])
+            print(data["activityType"])
 
     return
 
