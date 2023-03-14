@@ -181,7 +181,7 @@ def load_player(txt_allyCode, force_update, no_db):
         else:
             recent_player = 0
 
-        json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
+        json_file = "PLAYERS_RPC"+os.path.sep+txt_allyCode+".json"
         goutils.log2("INFO", 'reading file ' + json_file + '...')
         if os.path.isfile(json_file):
             if os.path.getsize(json_file) == 0:
@@ -200,7 +200,7 @@ def load_player(txt_allyCode, force_update, no_db):
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting API data for player ' + txt_allyCode + '...')
         if client != None:
-            player_data = client.get_data('player', [txt_allyCode], 'FRE_FR')
+            player_data = connect_rpc.get_player(txt_allyCode)
         else:
             goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
             player_data = [prev_dict_player]
