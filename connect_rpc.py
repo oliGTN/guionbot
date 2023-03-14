@@ -77,14 +77,14 @@ def get_rpc_data(server_id, use_cache_data):
     goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     acquire_sem(server_id)
     goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
-
+    
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_androidId])
         goutils.log2("DBG", "getguild code="+str(process.returncode))
 
     guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+bot_androidId+".json", "r"))
-    if "Guild" in guild_json:
-        dict_guild = guild_json["Guild"]
+    if "guild" in guild_json:
+        dict_guild = guild_json["guild"]
     else:
         dict_guild = {}
 
@@ -93,20 +93,21 @@ def get_rpc_data(server_id, use_cache_data):
         goutils.log2("DBG", "getevents code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json"):
         events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json", "r"))
-        if "Event" in events_json:
-            dict_new_events = events_json["Event"]
+        print("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json")
+        if "event" in events_json:
+            list_new_events = events_json["event"]
         else:
-            dict_new_events = {}
+            list_new_events = []
     else:
-        dict_new_events = {}
+        list_new_events = []
 
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TB"])
         goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"):
         TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json", "r"))
-        if "CurrentStat" in TBmapstats_json:
-            dict_TBmapstats = TBmapstats_json["CurrentStat"]
+        if "currentStat" in TBmapstats_json:
+            dict_TBmapstats = TBmapstats_json["currentStat"]
         else:
             dict_TBmapstats = {}
     else:
@@ -117,8 +118,8 @@ def get_rpc_data(server_id, use_cache_data):
         goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json"):
         TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json", "r"))
-        if "CurrentStat" in TWmapstats_json:
-            dict_TWmapstats = TWmapstats_json["CurrentStat"]
+        if "currentStat" in TWmapstats_json:
+            dict_TWmapstats = TWmapstats_json["currentStat"]
         else:
             dict_TWmapstats = {}
     else:
@@ -133,10 +134,10 @@ def get_rpc_data(server_id, use_cache_data):
 
     dict_events = {}
     dict_event_counts = {}
-    for event in dict_new_events:
-        event_id = event["Id"]
-        channel_id = event["ChannelId"]
-        event_ts = int(event["Timestamp"])
+    for event in list_new_events:
+        event_id = event["id"]
+        channel_id = event["channelId"]
+        event_ts = int(event["timestamp"])
         if channel_id.startswith("guild-{"):
             event_day_ts = int(event_ts/1000/86400)*86400*1000
             event_file_id = "GUILD_CHAT:"+str(event_day_ts)
@@ -223,39 +224,39 @@ def parse_tb_platoons(server_id, use_cache_data):
     dict_guild = rpc_data[0]
     mapstats_json = rpc_data[1]
     dict_events = rpc_data[2]
-    guildName = dict_guild["Profile"]["Name"]
+    guildName = dict_guild["profile"]["name"]
 
     dict_member_by_id = {}
-    for member in dict_guild["Member"]:
-        dict_member_by_id[member["PlayerId"]] = member["PlayerName"]
+    for member in dict_guild["member"]:
+        dict_member_by_id[member["playerId"]] = member["playerName"]
 
     dict_unitsList = godata.get("unitsList_dict.json")
 
-    if not "TerritoryBattleStatus" in dict_guild:
+    if not "territoryBattleStatus" in dict_guild:
         goutils.log2("WAR", "["+guildName+"] no TB in progress")
         return '', None, None, 0
 
-    for battleStatus in dict_guild["TerritoryBattleStatus"]:
-        if battleStatus["Selected"]:
-            tb_id = battleStatus["DefinitionId"]
+    for battleStatus in dict_guild["territoryBattleStatus"]:
+        if battleStatus["selected"]:
+            tb_id = battleStatus["definitionId"]
             tb_name = dict_tb[tb_id]
-            active_round = tb_name + str(battleStatus["CurrentRound"])
+            active_round = tb_name + str(battleStatus["currentRound"])
 
             if active_round == 0:
                 return '', None, None, 0
 
-            for zone in battleStatus["ReconZoneStatus"]:
-                zone_name = zone["ZoneStatus"]["ZoneId"]
+            for zone in battleStatus["reconZoneStatus"]:
+                zone_name = zone["zoneStatus"]["zoneId"]
 
-                if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
+                if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
                     ret_re = re.search(".*_phase0(\d)_conflict0(\d)_recon01", zone_name)
                     zone_position = int(ret_re.group(2))
                     zone_phase = int(ret_re.group(1))
                     list_open_territories[zone_position-1] = zone_phase
-                if not "Platoon" in zone:
+                if not "platoon" in zone:
                     continue
 
-                for platoon in zone["Platoon"]:
+                for platoon in zone["platoon"]:
                     platoon_num = int(platoon["Id"][-1])
                     if tb_name == "ROTE":
                         platoon_num_corrected = 7 - platoon_num
@@ -266,16 +267,16 @@ def parse_tb_platoons(server_id, use_cache_data):
                     platoon_name = dict_tb[zone_name] + "-" + platoon_num_txt
                     dict_platoons[platoon_name] = {}
 
-                    for squad in platoon["Squad"]:
-                        for unit in squad["Unit"]:
-                            unit_id = unit["UnitIdentifier"]
+                    for squad in platoon["squad"]:
+                        for unit in squad["unit"]:
+                            unit_id = unit["unitIdentifier"]
                             unit_defId = unit_id.split(":")[0]
                             unit_name = dict_unitsList[unit_defId]["nameKey"]
 
                             if not unit_name in dict_platoons[platoon_name]:
                                 dict_platoons[platoon_name][unit_name] = []
 
-                            player_id = unit["MemberId"]
+                            player_id = unit["memberId"]
                             if player_id != '':
                                 player_name = dict_member_by_id[player_id]
                                 dict_platoons[platoon_name][unit_name].append(player_name)
@@ -341,76 +342,76 @@ def get_guildChat_messages(server_id, use_cache_data):
         event_group = dict_events[event_group_id]
         for event_id in event_group:
             event = event_group[event_id]
-            event_ts = int(event["Timestamp"])
+            event_ts = int(event["timestamp"])
             if event_ts > chatLatest_ts:
                 if "Message" in event:
                     author = event["AuthorName"]
                     message = event["Message"]
                     list_chat_events.append([event_ts, "\N{SPEECH BALLOON} "+author+" : "+message])
                 else:
-                    for data in event["Data"]:
-                        activity = data["Activity"]
-                        if activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_TIERUP":
-                            author = activity["Param"][0]["ParamValue"][0]
-                            unit_key = activity["Param"][1]["Key"]
+                    for data in event["data"]:
+                        activity = data["activity"]
+                        if activity["key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_TIERUP":
+                            author = activity["param"][0]["paramValue"][0]
+                            unit_key = activity["param"][1]["key"]
                             if unit_key in FRE_FR:
                                 unit_key = FRE_FR[unit_key]
-                            gear_key = activity["Param"][2]["Key"]
+                            gear_key = activity["param"][2]["key"]
                             if gear_key in FRE_FR:
                                 gear_key = FRE_FR[gear_key]
                             list_chat_events.append([event_ts, author+" a augmenté l'équipement de "+unit_key+" au niveau "+gear_key])
 
-                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_ZETA_APPLIED"\
-                        or activity["Key"] == "GUILD_CHANNEL_ACTIVITY_OMICRON_APPLIED":
-                            author = activity["Param"][0]["ParamValue"][0]
-                            ability_key = activity["Param"][1]["Key"]
+                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_ZETA_APPLIED"\
+                        or activity["key"] == "GUILD_CHANNEL_ACTIVITY_OMICRON_APPLIED":
+                            author = activity["param"][0]["paramValue"][0]
+                            ability_key = activity["param"][1]["key"]
                             if ability_key in FRE_FR:
                                 ability_key = FRE_FR[ability_key]
-                            unit_key = activity["Param"][2]["Key"]
+                            unit_key = activity["param"][2]["key"]
                             if unit_key in FRE_FR:
                                 unit_key = FRE_FR[unit_key]
 
-                            if "ZETA" in activity["Key"]:
+                            if "ZETA" in activity["key"]:
                                 list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+ability_key+" ("+unit_key+")"])
                             else:
                                 list_chat_events.append([event_ts, author+" a utilisé une amélioration omicron sur "+ability_key+" ("+unit_key+")"])
 
-                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_PROMOTED" \
-                        or activity["Key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_ACTIVATED":
-                            author = activity["Param"][0]["ParamValue"][0]
-                            unit_key = activity["Param"][1]["Key"]
+                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_PROMOTED" \
+                        or activity["key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_ACTIVATED":
+                            author = activity["param"][0]["paramValue"][0]
+                            unit_key = activity["param"][1]["key"]
                             if unit_key in FRE_FR:
                                 unit_key = FRE_FR[unit_key]
-                            if "PROMOTED" in activity["Key"]:
+                            if "PROMOTED" in activity["key"]:
                                 list_chat_events.append([event_ts, "\N{WHITE MEDIUM STAR} "+author+" vient de promouvoir "+unit_key+" à 7 étoiles"])
                             else:
                                 list_chat_events.append([event_ts, "\N{OPEN LOCK} "+author+" vient de débloquer "+unit_key])
 
-                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_TB_STARTED":
-                            tb_key = activity["Param"][0]["Key"]
+                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_TB_STARTED":
+                            tb_key = activity["param"][0]["key"]
                             if tb_key in FRE_FR:
                                 tb_key = FRE_FR[tb_key]
-                            phase = activity["Param"][1]["ParamValue"][0]
+                            phase = activity["param"][1]["paramValue"][0]
                             list_chat_events.append([event_ts, tb_key+" la phase "+phase+" a commencé"])
 
-                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_SIMMED_RAID_AUTO_SUMMONED":
-                            raid_key = activity["Param"][0]["Key"]
+                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_SIMMED_RAID_AUTO_SUMMONED":
+                            raid_key = activity["param"][0]["key"]
                             if raid_key in FRE_FR:
                                 raid_key = FRE_FR[raid_key]
                             list_chat_events.append([event_ts, "Le Raid : "+raid_key+" (simulation activée) vient de commencer, participez maintenant !"])
 
-                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_RAID_AUTO_SUMMONED_TU15":
-                            raid_key = activity["Param"][0]["Key"]
+                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_RAID_AUTO_SUMMONED_TU15":
+                            raid_key = activity["Param"][0]["key"]
                             if raid_key in FRE_FR:
                                 raid_key = FRE_FR[raid_key]
                             list_chat_events.append([event_ts, "Le Raid : "+raid_key+" vient de commencer"])
 
-                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_DEMOTE":
-                            demoted = activity["Param"][0]["ParamValue"][0]
-                            demoter = activity["Param"][1]["ParamValue"][0]
+                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_DEMOTE":
+                            demoted = activity["param"][0]["paramValue"][0]
+                            demoter = activity["param"][1]["paramValue"][0]
                             list_chat_events.append([event_ts, demoted+" a été rétrogradé par "+demoter])
 
-                        elif activity["Key"] == "GUILD_CHANNEL_ACTIVITY_RAID_TALLY_COMPLETE":
+                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_RAID_TALLY_COMPLETE":
                             list_chat_events.append([event_ts, "Les raids sont disponibles et peuvent être lancés"])
 
                         else:
@@ -438,7 +439,7 @@ def tag_tb_undeployed_players(server_id, use_cache_data):
     for zone_name in dict_open_zones:
         zone = dict_open_zones[zone_name]
         zone_deployment_type = dict_tb[zone_name]["Type"]
-        if zone["Score"] < dict_tb[zone_name]["Scores"][2]:
+        if zone["score"] < dict_tb[zone_name]["scores"][2]:
             zone_deployment_useful = True
         else:
             zone_deployment_useful = False
@@ -492,22 +493,22 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
     dict_guild=rpc_data[0]
     mapstats=rpc_data[1]
     dict_all_events=rpc_data[2]
-    guildName = dict_guild["Profile"]["Name"]
+    guildName = dict_guild["profile"]["name"]
 
     dict_members_by_id={}
-    for member in dict_guild["Member"]:
-        dict_members_by_id[member["PlayerId"]] = member["PlayerName"]
+    for member in dict_guild["member"]:
+        dict_members_by_id[member["playerId"]] = member["playerName"]
 
     tb_ongoing=False
-    if "TerritoryBattleStatus" in dict_guild:
-        for battleStatus in dict_guild["TerritoryBattleStatus"]:
-            if battleStatus["Selected"]:
-                battle_id = battleStatus["InstanceId"]
+    if "territoryBattleStatus" in dict_guild:
+        for battleStatus in dict_guild["territoryBattleStatus"]:
+            if battleStatus["selected"]:
+                battle_id = battleStatus["instanceId"]
                 goutils.log2("DBG", "Selected TB = "+battle_id)
                 tb_ongoing=True
-                tb_round = battleStatus["CurrentRound"]
-                tb_type = battleStatus["DefinitionId"]
-                tb_round_endTime = int(battleStatus["CurrentRoundEndTime"])
+                tb_round = battleStatus["currentRound"]
+                tb_type = battleStatus["definitionId"]
+                tb_round_endTime = int(battleStatus["currentRoundEndTime"])
                 tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
                 if battle_id in dict_all_events:
                     dict_events=dict_all_events[battle_id]
@@ -539,11 +540,11 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                                                       "Strikes": 0} 
         dict_tb_players[playername_gp[0]]["Strikes"] = []
 
-    for zone in battleStatus["ConflictZoneStatus"]:
-        if zone["ZoneStatus"]["ZoneState"] == "ZONEOPEN":
-            zone_name = zone["ZoneStatus"]["ZoneId"]
-            zone_score = int(zone["ZoneStatus"]["Score"])
-            dict_open_zones[zone_name] = {"Score": zone_score}
+    for zone in battleStatus["conflictZoneStatus"]:
+        if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
+            zone_name = zone["zoneStatus"]["zoneId"]
+            zone_score = int(zone["zoneStatus"]["score"])
+            dict_open_zones[zone_name] = {"score": zone_score}
 
     #sort the dict to display zones in the same order as the game
     dict_open_zones = dict(sorted(dict_open_zones.items(), key=lambda x:dict_tb[tb_type]["ZonePositions"][dict_tb[x[0]]["Name"].split("-")[1]]))
@@ -561,14 +562,14 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
             zone_name = strike_name[:-len(strike_shortname)-1]
 
             done_strikes = zone["PlayersParticipated"]
-            score = int(zone["ZoneStatus"]["Score"])
+            score = int(zone["ZoneStatus"]["score"])
             not_done_strikes = total_players_guild - done_strikes
             remaining_fight = not_done_strikes * dict_tb[zone_name]["Strikes"][strike_shortname][1]
             if not strike_name in dict_strike_zones:
                 dict_strike_zones[strike_name] = {}
 
             dict_strike_zones[strike_name]["Participation"] = done_strikes
-            dict_strike_zones[strike_name]["Score"] = score
+            dict_strike_zones[strike_name]["score"] = score
             dict_strike_zones[strike_name]["MaxPossibleStrikes"] = not_done_strikes
             dict_strike_zones[strike_name]["MaxPossibleScore"] = remaining_fight
             dict_strike_zones[strike_name]["EstimatedStrikes"] = 0
@@ -602,7 +603,7 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                 zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
                 strike_name = event_data["Activity"][ZoneData_key]["SourceZoneId"]
                 if zone_name in dict_open_zones:
-                    score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
+                    score = int(event_data["Activity"][ZoneData_key]["scoreDelta"])
                     dict_tb_players[playerName]["score"]["Strikes"] += score
 
                     dict_strike_zones[strike_name]["EventStrikes"] += 1
@@ -614,13 +615,13 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
             elif "RECON_CONTRIBUTION" in event_key:
                 zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
                 if zone_name in dict_open_zones:
-                    score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
+                    score = int(event_data["Activity"][ZoneData_key]["scoreDelta"])
                     dict_tb_players[playerName]["score"]["Platoons"] += score
 
             elif "DEPLOY" in event_key:
                 zone_name = event_data["Activity"][ZoneData_key]["ZoneId"]
                 if zone_name in dict_open_zones:
-                    score = int(event_data["Activity"][ZoneData_key]["ScoreDelta"])
+                    score = int(event_data["Activity"][ZoneData_key]["scoreDelta"])
                     if dict_tb[zone_name]["Type"] == "Ships":
                         dict_tb_players[playerName]["score"]["DeployedShips"] += score
                         dict_tb_players[playerName]["score"]["DeployedMix"] += score
@@ -730,7 +731,7 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
 
     #compute zone stats apart for deployments
     for zone_name in dict_open_zones:
-        current_score = dict_open_zones[zone_name]["Score"]
+        current_score = dict_open_zones[zone_name]["score"]
 
         estimated_strike_score = 0
         estimated_strike_fights = 0
@@ -755,7 +756,7 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
         dict_open_zones[zone_name]["Deployment"] = 0
 
         star_for_score=0
-        for star_score in dict_tb[zone_name]["Scores"]:
+        for star_score in dict_tb[zone_name]["scores"]:
             if current_score >= star_score:
                 star_for_score += 1
         dict_open_zones[zone_name]["Stars"] = star_for_score
@@ -779,16 +780,16 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                 min_zone_name = ""
                 full_zones = 0
                 for zone_name in dict_zones_by_type[zone_type]:
-                    cur_score = dict_open_zones[zone_name]["Score"]
+                    cur_score = dict_open_zones[zone_name]["score"]
                     if compute_estimated_fights:
                         cur_score += dict_open_zones[zone_name]["EstimatedStrikeScore"]
                     cur_score += dict_open_zones[zone_name]["Deployment"]
 
-                    if cur_score == dict_tb[zone_name]["Scores"][2]:
+                    if cur_score == dict_tb[zone_name]["scores"][2]:
                         full_zones += 1
                         continue
 
-                    for star_score in dict_tb[zone_name]["Scores"]:
+                    for star_score in dict_tb[zone_name]["scores"]:
                         if cur_score < star_score:
                             dist_star = star_score - cur_score
                             if min_dist_star == -1 or dist_star < min_dist_star:
@@ -820,11 +821,11 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                 if zone_name.endswith(conflict):
                     break
 
-            current_score = dict_open_zones[zone_name]["Score"]
+            current_score = dict_open_zones[zone_name]["score"]
             estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
             score_with_estimated_strikes = current_score + estimated_strike_score
 
-            target_star_score = dict_tb[zone_name]["Scores"][target_stars-1]
+            target_star_score = dict_tb[zone_name]["scores"][target_stars-1]
             if dict_tb[zone_name]["Type"] == "Ships":
                 deploy_consumption = max(0, min(dict_remaining_deploy["Ships"], target_star_score - score_with_estimated_strikes))
                 dict_remaining_deploy["Ships"] -= deploy_consumption
@@ -844,13 +845,13 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
 
     #Compute estimated stars per zone
     for zone_name in dict_open_zones:
-        cur_score = dict_open_zones[zone_name]["Score"]
+        cur_score = dict_open_zones[zone_name]["score"]
         if compute_estimated_fights:
             cur_score += dict_open_zones[zone_name]["EstimatedStrikeScore"]
         cur_score += dict_open_zones[zone_name]["Deployment"]
 
         star_for_score=0
-        for star_score in dict_tb[zone_name]["Scores"]:
+        for star_score in dict_tb[zone_name]["scores"]:
             if cur_score >= star_score:
                 star_for_score += 1
         dict_open_zones[zone_name]["EstimatedStars"] = star_for_score
@@ -876,7 +877,7 @@ def get_tb_guild_scores(server_id, use_cache_data):
         zone_name += zone_name_tab[0][-1]
         zone_name += "-"
         zone_name += zone_name_tab[1]
-        zone_score = dict_open_zones[zone]["Score"]
+        zone_score = dict_open_zones[zone]["score"]
         dict_territory_scores[zone_name] = zone_score
 
     return dict_territory_scores, active_round
