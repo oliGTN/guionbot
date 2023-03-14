@@ -756,14 +756,14 @@ def update_gwarstats(server_id):
 
     dict_tb = data.dict_tb
     cells = []
-    cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["Name"]))
+    cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["name"]))
     cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["Round"]))
     cells.append(gspread.cell.Cell(row=1, col=8, value=now.strftime("%d/%m/%Y %H:%M:%S")))
 
     i_zone = 0
     for zone_fullname in dict_open_zones:
         zone = dict_open_zones[zone_fullname]
-        zone_shortname = dict_tb[zone_fullname]["Name"]
+        zone_shortname = dict_tb[zone_fullname]["name"]
         cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=zone_shortname))
 
         zone_round = zone_fullname[-12]
@@ -777,14 +777,14 @@ def update_gwarstats(server_id):
 
         #zone star scores
         i_col = 1
-        for star_score in dict_tb[zone_fullname]["Scores"]:
+        for star_score in dict_tb[zone_fullname]["scores"]:
             cells.append(gspread.cell.Cell(row=12, col=1+i_col+4*i_zone, value=star_score))
             i_col += 1
 
         #zone scores (for the graph)
-        cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=min(star_score, zone["Score"])))
+        cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=min(star_score, zone["score"])))
         cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["EstimatedStrikeScore"]))
-        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["Deployment"]))
+        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["deployment"]))
         cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["MaxStrikeScore"]))
 
         #zone strike stats
@@ -795,10 +795,10 @@ def update_gwarstats(server_id):
         line = 19
         i_strike = 1
         total_strikes=0
-        for strike in dict_tb[zone_fullname]["Strikes"]:
-            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="Strike "+str(i_strike)))
-            strike_val = str(zone["StrikeFights"][strike])+"/"+str(dict_phase["TotalPlayers"])
-            total_strikes += zone["StrikeFights"][strike]
+        for strike in dict_tb[zone_fullname]["strikes"]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="strike "+str(i_strike)))
+            strike_val = str(zone["strikeFights"][strike])+"/"+str(dict_phase["TotalPlayers"])
+            total_strikes += zone["strikeFights"][strike]
             cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=strike_val))
             i_strike+=1
             line+=1
@@ -807,25 +807,25 @@ def update_gwarstats(server_id):
         cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=zone["MaxStrikeScore"]))
 
         i_covert = 1
-        for strike in dict_tb[zone_fullname]["Coverts"]:
+        for strike in dict_tb[zone_fullname]["coverts"]:
             cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="Special "+str(i_covert)))
             cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value="inconnu"))
             i_covert+=1
             line+=1
 
         #strikes success
-        cells.append(gspread.cell.Cell(row=32, col=1+4*i_zone, value=zone["StrikeScore"]))
-        total_strikes_zone = sum(zone["StrikeFights"].values())
+        cells.append(gspread.cell.Cell(row=32, col=1+4*i_zone, value=zone["strikeScore"]))
+        total_strikes_zone = sum(zone["strikeFights"].values())
         if total_strikes_zone == 0:
             cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=0))
         else:
-            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=zone["StrikeScore"]/total_strikes_zone))
+            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=zone["strikeScore"]/total_strikes_zone))
         
         i_zone+=1
 
     #global stats
     #Remaining Deployments
-    if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+    if dict_tb[dict_phase["type"]]["Shortname"] == "ROTE":
         cells.append(gspread.cell.Cell(row=26, col=1, value="Mix"))
         cells.append(gspread.cell.Cell(row=26, col=2, value=""))
         cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableMixDeploy"]))
@@ -837,28 +837,28 @@ def update_gwarstats(server_id):
         cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["AvailableCharDeploy"]))
 
     #players
-    if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
+    if dict_tb[dict_phase["type"]]["Shortname"] == "ROTE":
         cells.append(gspread.cell.Cell(row=1, col=16, value="Mix deployment"))
         cells.append(gspread.cell.Cell(row=1, col=19, value=""))
 
-    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["Deployed"] + x[1]["score"]["Strikes"], reverse=True))
+    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["deployed"] + x[1]["score"]["strikes"], reverse=True))
 
     line = 3
     for playername in sorted_dict_tb_players:
         player = dict_tb_players[playername]
         cells.append(gspread.cell.Cell(row=line, col=14, value=playername))
-        total_score = player["score"]["Deployed"] + player["score"]["Strikes"]
+        total_score = player["score"]["deployed"] + player["score"]["strikes"]
         cells.append(gspread.cell.Cell(row=line, col=15, value=total_score))
 
-        if dict_tb[dict_phase["Type"]]["Shortname"] == "ROTE":
-            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["DeployedMix"]))
+        if dict_tb[dict_phase["type"]]["Shortname"] == "ROTE":
+            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["deployedMix"]))
             cells.append(gspread.cell.Cell(row=line, col=17, value=player["mix_gp"]))
             cells.append(gspread.cell.Cell(row=line, col=19, value=""))
             cells.append(gspread.cell.Cell(row=line, col=20, value=""))
         else:
-            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["DeployedShips"]))
+            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["deployedShips"]))
             cells.append(gspread.cell.Cell(row=line, col=17, value=player["ship_gp"]))
-            cells.append(gspread.cell.Cell(row=line, col=19, value=player["score"]["DeployedChars"]))
+            cells.append(gspread.cell.Cell(row=line, col=19, value=player["score"]["deployedChars"]))
             cells.append(gspread.cell.Cell(row=line, col=20, value=player["char_gp"]))
 
         total_strikes = 0
@@ -868,10 +868,10 @@ def update_gwarstats(server_id):
             strike_txt = ""
             conflict = zone_fullname.split("_")[-1]
             i_strike = 1
-            for strike in dict_tb[zone_fullname]["Strikes"]:
+            for strike in dict_tb[zone_fullname]["strikes"]:
                 total_strikes += 1
                 conflict_strike = conflict+"_"+strike
-                if conflict_strike in player["Strikes"]:
+                if conflict_strike in player["strikes"]:
                     player_strikes += 1
                     strike_txt += "S"+str(i_strike)+" "
                 i_strike+=1
