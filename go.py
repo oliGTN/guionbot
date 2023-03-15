@@ -3598,7 +3598,7 @@ def get_modq_graph(txt_allyCode):
     return 0, "", image
 
 def get_tw_defense_toons(server_id):
-    query = "SELECT twChanOut_id, warstats_id FROM guilds "
+    query = "SELECT twChanOut_id, warstats_id FROM guild_bot_infos "
     query+= "WHERE server_id="+str(server_id)
     goutils.log2('DBG', query)
     db_data = connect_mysql.get_line(query)
@@ -3975,43 +3975,47 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
 
     return zone_img
 
-def detect_tm(fevent_name, guildId):
+def detect_tm(fevent_name, fguild_name):
+    g=json.load(open(fguild_name,"r"))
+    guildId = g["guild"]["profile"]["id"]
+
+
     d=json.load(open(fevent_name,"r"))
-    sorted_d=dict(sorted(d.items(), key=lambda x:int(x[1]["Timestamp"])))
+    sorted_d=dict(sorted(d.items(), key=lambda x:int(x[1]["timestamp"])))
     dict_squads={}
     for id in sorted_d:
         event=d[id]
-        author=event["AuthorName"]
-        timestamp= int(int(event["Timestamp"])/1000)
+        author=event["authorName"]
+        timestamp= int(int(event["timestamp"])/1000)
         time=datetime.datetime.fromtimestamp(timestamp)
-        data=event["Data"][0]
+        data=event["data"][0]
         if data["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
             activity=data["activity"]
             if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
                 if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
-                    leader = activity["WarSquad"]["Squad"]["Cell"][0]["UnitDefId"].split(":")[0]
+                    leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
                     print(str(time)+" DEFENSE: "+author+" "+leader)
             else:
-                if activity["zoneData"]["GuildId"] == guildId:
-                    if "WarSquad" in activity:
-                        squad_id = activity["WarSquad"]["SquadId"]
-                        if "Squad" in activity["WarSquad"]:
-                            opponent=activity["WarSquad"]["PlayerName"]
-                            leader = activity["WarSquad"]["Squad"]["Cell"][0]["UnitDefId"].split(":")[0]
+                if activity["zoneData"]["guildId"] == guildId:
+                    if "warSquad" in activity:
+                        squad_id = activity["warSquad"]["squadId"]
+                        if "squad" in activity["warSquad"]:
+                            opponent=activity["warSquad"]["playerName"]
+                            leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
                             leader_opponent = leader+"@"+opponent
                             dict_squads[squad_id]=leader_opponent
                         else:
                             leader_opponent=dict_squads[squad_id]
 
-                        if activity["WarSquad"]["SquadStatus"]=="SQUADAVAILABLE":
+                        if activity["warSquad"]["squadStatus"]=="SQUADAVAILABLE":
                             count_dead=0
                             remaining_tm=False
-                            if "Squad" in activity["WarSquad"]:
-                                for cell in activity["WarSquad"]["Squad"]["Cell"]:
-                                    if cell["UnitState"]["HealthPercent"] == "0":
+                            if "squad" in activity["warSquad"]:
+                                for cell in activity["warSquad"]["squad"]["cell"]:
+                                    if cell["unitState"]["healthPercent"] == "0":
                                         count_dead+=1
-                                    if cell["UnitState"]["TurnPercent"] != "100" \
-                                        and cell["UnitState"]["TurnPercent"] != "0":
+                                    if cell["unitState"]["turnPercent"] != "100" \
+                                        and cell["unitState"]["turnPercent"] != "0":
                                         remaining_tm=True
 
                             sys.stdout.write(str(time)+" DEFAITE: "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
@@ -4020,14 +4024,14 @@ def detect_tm(fevent_name, guildId):
                             else:
                                 sys.stdout.write("\n")
 
-                        elif activity["WarSquad"]["SquadStatus"]=="SQUADDEFEATED":
-                            if "Squad" in activity["WarSquad"]:
+                        elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
+                            if "squad" in activity["warSquad"]:
                                 print(str(time)+" VICTOIRE: "+author+" "+leader_opponent)
-                        elif activity["WarSquad"]["SquadStatus"]=="SQUADLOCKED":
-                            if "Squad" in activity["WarSquad"]:
+                        elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
+                            if "squad" in activity["warSquad"]:
                                 print(str(time)+" DEBUT: "+author+" "+leader_opponent)
                         else:
-                            print(str(time)+" "+activity["WarSquad"]["SquadStatus"])
+                            print(str(time)+" "+activity["warSquad"]["squadStatus"])
                     else:
                         scoretotal = activity["zoneData"]["scoreTotal"]
                         print(str(time)+" Score: "+scoretotal)
