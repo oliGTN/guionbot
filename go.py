@@ -2861,8 +2861,12 @@ def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 # OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
 #                                      territory2: alert_territory2...}]
 ############################################
-def get_tw_alerts(server_id):
+def get_tw_alerts(server_id, use_cache_data):
     dict_unitsList = data.get("unitsList_dict.json")
+
+    #Check if the guild can use RPC
+    if not server_id in connect_rpc.get_dict_bot_accounts():
+        return []
 
     query = "SELECT name, twChanOut_id, warstats_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
@@ -2876,9 +2880,15 @@ def get_tw_alerts(server_id):
     if twChannel_id == 0 or warstats_id == 0:
         return []
 
+    rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
+    tw_ongoing = rpc_data[0]
+    if not tw_ongoing:
+        return []
+
     list_tw_alerts = [twChannel_id, {}]
 
-    [list_opponent_squads, list_opp_territories] = connect_warstats.parse_tw_opponent_teams(server_id)
+    list_opponent_squads = rpc_data[2][0]
+    list_opp_territories = rpc_data[2][1]
     if len(list_opponent_squads) > 0:
         list_opponent_players = [x[1] for x in list_opponent_squads]
         longest_opp_player_name = max(list_opponent_players, key=len)
@@ -2913,37 +2923,56 @@ def get_tw_alerts(server_id):
 
             list_tw_alerts[1][territory] = msg
 
-    [list_defense_squads, list_def_territories], secs_track = connect_warstats.parse_tw_defense_teams(server_id)
+    list_defense_squads = rpc_data[1][0]
+    list_def_territories = rpc_data[1][1]
     if len(list_def_territories) > 0:
-        #Alert for defense fully set
-        list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
-        for territory in list_full_territories:
+        #Alert for defense fully set OR new orders
+        nb_full = 0
+        for territory in list_def_territories:
             territory_name = territory[0]
+            size = territory[1]
+            filled = territory[2]
+            orders = territory[5]
 
             n_territory = int(territory_name[1])
             if territory_name[0] == "T" and int(territory_name[1]) > 2:
                 n_territory -= 2
 
             if n_territory == 1:
-                msg = "**DEFENSE** - __Le 1er territoire "
+                territory_fullname = "__Le 1er territoire "
             else:
-                msg = "**DEFENSE** - __Le "+str(n_territory)+"e territoire "
+                territory_fullname = "__Le "+str(n_territory)+"e territoire "
 
             if territory_name[0] == "T" and int(territory_name[1]) < 3:
-                msg += "du haut__"
+                territory_fullname += "du haut__"
             elif territory_name[0] == "T":
-                msg += "du milieu__"
+                territory_fullname += "du milieu__"
             elif territory_name[0] == "F":
-                msg += "des vaisseaux__"
+                territory_fullname += "des vaisseaux__"
             else:
-                msg += "du bas__"
+                territory_fullname += "du bas__"
 
-            nb_full = len(list_full_territories)
-            msg += " ("+territory_name+") est rempli ("+str(nb_full)+"/10)."
-            if nb_full==10:
-                msg = '\N{WHITE HEAVY CHECK MARK}'+msg
+            print(territory_fullname)
+            print(size)
+            print(filled)
+            if size == filled:
+                nb_full += 1
+                if orders == None:
+                    txt_orders = ""
+                else:
+                    txt_orders = " - " + orders
+                msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+txt_orders+") "
+                msg+= "est rempli ("+str(nb_full)+"/10)."
 
-            list_tw_alerts[1]["Placement:"+territory_name] = msg
+                if nb_full==10:
+                    msg = '\N{WHITE HEAVY CHECK MARK}'+msg
+
+                list_tw_alerts[1]["Placement:"+territory_name] = msg
+
+            if orders != None:
+                msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+") "
+                msg+= "a de nouveaux ordres : "+orders
+                list_tw_alerts[1]["Ordres:"+territory_name] = msg
 
         #Alert for defense lost
         list_lost_territories = [t for t in list_def_territories if t[1]==t[3]]

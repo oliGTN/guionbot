@@ -881,3 +881,130 @@ def get_tb_guild_scores(server_id, use_cache_data):
         dict_territory_scores[zone_name] = zone_score
 
     return dict_territory_scores, active_round
+
+########################################
+# get_tw_status
+# get statues of territories in attack and def
+# list_teams: [["T1", "Karcot", ["General Skywalker", "CT-5555 Fives", ...], <is_beaten>, <fights>],
+#              ["T1", "JeanLuc"...
+# list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>], ...]
+########################################
+def get_tw_status(server_id, use_cache_data):
+    dict_tw=godata.dict_tw
+
+    ec, et, rpc_data = get_rpc_data(server_id, use_cache_data)
+    if ec!=0:
+        return 1, et, None
+
+    dict_guild=rpc_data[0]
+    mapstats=rpc_data[1]
+    dict_all_events=rpc_data[2]
+    guildName = dict_guild["profile"]["name"]
+
+    dict_members_by_id={}
+    for member in dict_guild["member"]:
+        dict_members_by_id[member["playerId"]] = member["playerName"]
+
+    tw_ongoing=False
+    if "territoryWarStatus" in dict_guild:
+        for battleStatus in dict_guild["territoryWarStatus"]:
+            if "awayGuild" in battleStatus:
+                    tw_ongoing = True
+                    cur_tw = battleStatus
+            else:
+                print(battleStatus.keys())
+                print(battleStatus["awayGuild"].keys())
+
+    if not tw_ongoing:
+        return False, [[], []], [[], []]
+
+    list_teams = {}
+    list_territories = {}
+
+    for guild in ["homeGuild", "awayGuild"]:
+        list_teams[guild] = []
+        list_territories[guild] = []
+        if guild in cur_tw:
+            for zone in cur_tw[guild]["conflictStatus"]:
+                zone_id = zone["zoneStatus"]["zoneId"]
+                zone_shortname = dict_tw[zone_id]
+                victories=0
+                fails=0
+                if "warSquad" in zone:
+                    for squad in zone["warSquad"]:
+                        player_name = squad["playerName"]
+                        list_chars = [c["unitDefId"].split(":")[0] for c in squad["squad"]["cell"]]
+                        is_beaten = (squad["squadStatus"]=="SQUADDEFEATED")
+                        fights = squad["successfulDefends"]
+                        list_teams[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights])
+
+                        if is_beaten:
+                            victories+=1
+                            fails+=(fights-1)
+                        else:
+                            fails+=fights
+
+                zone_size = zone["squadCapacity"]
+                filled = zone["squadCount"]
+                if "commandMessage" in zone["zoneStatus"]:
+                    commandMsg = zone["zoneStatus"]["commandMessage"]
+                else:
+                    commandMsg = None
+                list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg])
+
+    return True, [list_teams["homeGuild"], list_territories["homeGuild"]], \
+                 [list_teams["awayGuild"], list_territories["awayGuild"]]
+
+def parse_tw_stats(server_id):
+    global dict_last_warstats_read
+    global dict_next_warstats_read
+    global dict_tw_stats
+
+    if not server_id in dict_next_warstats_read:
+        init_globals(server_id)
+
+    #First, check there is value to re-parse the page
+    if time.time() < dict_next_warstats_read[server_id]["tw_stats"]:
+        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tw_stats", server_id))+" secs")
+    else:
+        [guildName, guild_id] = get_warstats_id(server_id)
+        warstats_tws_url_guild = warstats_tws_url + str(guild_id)
+        try:
+            page = urlopen(guildName, warstats_tws_url_guild)
+        except (requests.exceptions.ConnectionError) as e:
+            goutils.log2('ERR', 'error while opening '+warstats_tws_url_guild)
+            return dict_tw_defense_teams[guildName], -1
+        
+        tw_list_parser = TWSListParser()
+        tw_list_parser.feed(page.content.decode('utf-8', 'ignore'))
+        dict_last_warstats_read[guildName] = tw_list_parser.get_last_track()
+    
+        [war_id, war_in_progress] = tw_list_parser.get_war_id()
+        if not war_in_progress:
+            goutils.log2('INFO', "["+str(guildName)+"] no TW in progress")
+
+            dict_tw_stats[server_id] = []
+
+            set_next_warstats_read_long(11, 'PST8PDT',
+                                        tw_list_parser.get_last_track(),
+                                        "tw_stats", server_id)
+
+            return dict_tw_stats[server_id], dict_last_warstats_read[server_id]
+    
+        goutils.log2('INFO', "Current TW is "+war_id)
+        warstats_stats_url=warstats_stats_baseurl+war_id
+        try:
+            page = urlopen(server_id, warstats_stats_url)
+        except (requests.exceptions.ConnectionError) as e:
+            goutils.log2('ERR', 'error while opening '+warstats_stats_url)
+            return dict_tw_stats[server_id], -1
+
+        stats_parser = TWSStatsParser()
+        stats_parser.feed(page.content.decode('utf-8', 'ignore'))
+
+        dict_tw_stats[server_id] = stats_parser.get_active_players()
+
+        set_next_warstats_read_short(stats_parser.get_last_track(), "tw_stats", server_id)
+
+    return dict_tw_stats[server_id], dict_last_warstats_read[server_id]
+
