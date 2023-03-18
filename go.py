@@ -4121,3 +4121,38 @@ def get_tb_alerts(server_id, force_latest):
 
     return tb_trigger_messages
     
+def get_tw_def_player(fevents_name, player_name):
+    tw_events = json.load(open(fevents_name, 'r'))
+    if "event" in tw_events:
+        #events from rpc, not in EVENTS
+        dict_tw_events = {}
+        for event in tw_events["event"]:
+            event_id = event["id"]
+            dict_tw_events[event_id] = event
+    else:
+        dict_tw_events = tw_events
+
+    dict_def = {}
+
+    for event_id in dict_tw_events:
+        event = dict_tw_events[event_id]
+        if "TERRITORY_WAR" in event["channelId"] \
+            and event["authorName"] == player_name \
+            and event["data"][0]["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY" \
+            and event["data"][0]["activity"]["zoneData"]["activityLogMessage"]["key"]=="TERRITORY_CHANNEL_ACTIVITY_CONFLICT_DEFENSE_DEPLOY":
+
+            #defense from the player
+            territory = event["data"][0]["activity"]["zoneData"]["zoneId"]
+            cur_def = [territory]
+            warSquad = event["data"][0]["activity"]["warSquad"]
+            for cell in warSquad["squad"]["cell"]:
+                cur_def.append([cell["unitDefId"], cell["unitId"]])
+            leader = cur_def[1][0]
+            dict_def[leader] = cur_def
+
+
+    for leader in dict_def:
+        print("---\n"+leader)
+        for element in dict_def[leader]:
+            print("   "+str(element))
+

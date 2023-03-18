@@ -328,7 +328,28 @@ dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike04"] = [1, 1151719]
 dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike05"] = [1, 2303438]
 dict_tb["tb3_mixed_phase06_conflict03"]["coverts"] = {}
 
-dict_data={}
+dict_tw = {}
+dict_tw["tw_jakku01_phase01_conflict01"] = "T1"
+dict_tw["tw_jakku01_phase01_conflict02"] = "B1"
+dict_tw["tw_jakku01_phase02_conflict01"] = "T2"
+dict_tw["tw_jakku01_phase02_conflict02"] = "B2"
+dict_tw["tw_jakku01_phase03_conflict01"] = "F1"
+dict_tw["tw_jakku01_phase03_conflict02"] = "T3"
+dict_tw["tw_jakku01_phase03_conflict03"] = "B3"
+dict_tw["tw_jakku01_phase04_conflict01"] = "F2"
+dict_tw["tw_jakku01_phase04_conflict02"] = "T4"
+dict_tw["tw_jakku01_phase04_conflict03"] = "B4"
+dict_tw["T1"] = "tw_jakku01_phase01_conflict01"
+dict_tw["B1"] = "tw_jakku01_phase01_conflict02"
+dict_tw["T2"] = "tw_jakku01_phase02_conflict01"
+dict_tw["B2"] = "tw_jakku01_phase02_conflict02"
+dict_tw["F1"] = "tw_jakku01_phase03_conflict01"
+dict_tw["T3"] = "tw_jakku01_phase03_conflict02"
+dict_tw["B3"] = "tw_jakku01_phase03_conflict03"
+dict_tw["F2"] = "tw_jakku01_phase04_conflict01"
+dict_tw["T4"] = "tw_jakku01_phase04_conflict02"
+dict_tw["B4"] = "tw_jakku01_phase04_conflict03"
+
 dict_data={}
 def get(filename):
     if filename in dict_data:
