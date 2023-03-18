@@ -2925,9 +2925,10 @@ def get_tw_alerts(server_id, use_cache_data):
 
     list_defense_squads = rpc_data[1][0]
     list_def_territories = rpc_data[1][1]
+    list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
+    nb_full = len(list_full_territories)
     if len(list_def_territories) > 0:
         #Alert for defense fully set OR new orders
-        nb_full = 0
         for territory in list_def_territories:
             territory_name = territory[0]
             size = territory[1]
@@ -2956,7 +2957,6 @@ def get_tw_alerts(server_id, use_cache_data):
             print(size)
             print(filled)
             if size == filled:
-                nb_full += 1
                 if orders == None:
                     txt_orders = ""
                 else:

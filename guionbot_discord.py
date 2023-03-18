@@ -161,12 +161,12 @@ def set_id_lastseen(event_name, server_id, player_id):
         goutils.log2("WAR", "unknown guild="+str(server_id))
 
 ##############################################################
-# Function: bot_loop_60
+# Function: bot_loop_60secs
 # Parameters: none
 # Purpose: cette fonction est exécutée toutes les 60 secondes
 # Output: none
 ##############################################################
-async def bot_loop_60():
+async def bot_loop_60secs():
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
@@ -192,12 +192,49 @@ async def bot_loop_60():
                         list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
         except Exception as e:
-            goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
-            goutils.log("ERR", "bot_loop_60", e)
-            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(None, "Exception in bot_loop_60:"+str(sys.exc_info()[0]))
+                await send_alert_to_admins(None, "Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
         
+        #UPDATE RPC data
+        query = "SELECT server_id FROM guild_bot_infos "
+        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min "
+        query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+
+        if not db_data==None:
+            for server_id in db_data:
+                #update RPC data before using different commands (tb alerts, tb_platoons)
+                try:
+                    await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False)
+                    await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, server_id)
+                    ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
+                    if ec!=0:
+                        goutils.log2("ERR", et)
+                    else:
+                        channel_id = ret_data[0]
+                        output_channel = bot.get_channel(channel_id)
+                        output_txt = ""
+                        for line in ret_data[1]:
+                            ts = line[0]
+                            txt = line[1]
+                            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+                            output_txt+=ts_txt+" - "+txt+"\n"
+                        if output_txt != "":
+                            output_txt = output_txt[:-1]
+                            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                                await output_channel.send("`"+txt+"`")
+
+                except Exception as e:
+                    goutils.log2("ERR", str(sys.exc_info()[0]))
+                    goutils.log2("ERR", e)
+                    goutils.log2("ERR", traceback.format_exc())
+                    if not bot_test_mode:
+                        await send_alert_to_admins(None, "Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
+
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 60 - (t_end - t_start))
@@ -258,63 +295,6 @@ def compute_territory_progress(dict_platoons, territory):
     return count
 
 ##############################################################
-# Function: bot_loop_1minute
-# Parameters: none
-# Purpose: executed every 1 minute
-# Output: none
-##############################################################
-async def bot_loop_1minute():
-    await bot.wait_until_ready()
-
-    while not bot.is_closed():
-        t_start = time.time()
-
-        query = "SELECT server_id FROM guild_bot_infos "
-        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min "
-        query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
-        goutils.log2("DBG", query)
-        db_data = connect_mysql.get_column(query)
-
-        if not db_data==None:
-            for server_id in db_data:
-                #update RPC data before using different commands (tb alerts, tb_platoons)
-                try:
-                    await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False)
-                    await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, server_id)
-                    ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
-                    if ec!=0:
-                        goutils.log2("ERR", et)
-                    else:
-                        channel_id = ret_data[0]
-                        output_channel = bot.get_channel(channel_id)
-                        output_txt = ""
-                        for line in ret_data[1]:
-                            ts = line[0]
-                            txt = line[1]
-                            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
-                            output_txt+=ts_txt+" - "+txt+"\n"
-                        if output_txt != "":
-                            output_txt = output_txt[:-1]
-                            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                                await output_channel.send("`"+txt+"`")
-
-                except Exception as e:
-                    goutils.log2("ERR", str(sys.exc_info()[0]))
-                    goutils.log2("ERR", e)
-                    goutils.log2("ERR", traceback.format_exc())
-                    if not bot_test_mode:
-                        await send_alert_to_admins(None, "Exception in bot_loop_1minute:"+str(sys.exc_info()[0]))
-
-
-        # Wait X seconds before next loop
-        t_end = time.time()
-        waiting_time = max(0, 60 - (t_end - t_start))
-        await asyncio.sleep(waiting_time)
-
-        #Ensure writing in logs
-        sys.stdout.flush()
-
-##############################################################
 # Function: bot_loop_5minutes
 # Parameters: none
 # Purpose: executed every 5 minutes
@@ -337,7 +317,7 @@ async def bot_loop_5minutes():
                     dict_tw_alerts_previously_done[guild.id] = [0, {}]
 
                 #CHECK ALERTS FOR TERRITORY WAR
-                list_tw_alerts = go.get_tw_alerts(guild.id)
+                list_tw_alerts = go.get_tw_alerts(guild.id, True)
                 if len(list_tw_alerts) > 0:
                     [channel_id, dict_messages] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
@@ -3431,11 +3411,10 @@ def main():
     #Create periodic tasks
     goutils.log2("INFO", "Create tasks...")
     if not bot_noloop_mode:
-        bot.loop.create_task(bot_loop_60())
-        bot.loop.create_task(bot_loop_60minutes())
-        bot.loop.create_task(bot_loop_10minutes())
+        bot.loop.create_task(bot_loop_60secs())
         bot.loop.create_task(bot_loop_5minutes())
-        bot.loop.create_task(bot_loop_1minute())
+        bot.loop.create_task(bot_loop_10minutes())
+        bot.loop.create_task(bot_loop_60minutes())
         bot.loop.create_task(bot_loop_6hours())
 
     #Ajout des commandes groupées par catégorie
