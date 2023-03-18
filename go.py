@@ -2919,7 +2919,11 @@ def get_tw_alerts(server_id, use_cache_data):
 
             msg += " ("+territory+") est ouvert. Avec ces adversaires :"
             for leader in counter_leaders:
-                msg += "\n - "+leader+": "+str(counter_leaders[leader])
+                if leader in dict_unitsList:
+                    leader_name = dict_unitsList[leader]["nameKey"]
+                else:
+                    leader_name = leader
+                msg += "\n - "+leader_name+": "+str(counter_leaders[leader])
 
             list_tw_alerts[1][territory] = msg
 
@@ -2953,9 +2957,6 @@ def get_tw_alerts(server_id, use_cache_data):
             else:
                 territory_fullname += "du bas__"
 
-            print(territory_fullname)
-            print(size)
-            print(filled)
             if size == filled:
                 if orders == None:
                     txt_orders = ""
