@@ -175,6 +175,25 @@ def get_rpc_data(server_id, use_cache_data):
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
+def join_raids(server_id):
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, True)
+
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+
+    dict_guild = rpc_data[0]
+    list_raids = [x["raidId"] for x in dict_guild["raidStatus"] if not x["hasPlayerParticipated"]]
+    if len(list_raids) == 0:
+        return 0, "Le bot a déjà rejoint tous les raids possibles"
+
+    process = subprocess.run(["/home/pi/GuionBot/warstats/joinraids.sh", bot_androidId])
+    goutils.log2("DBG", "joinraids code="+str(process.returncode))
+    if process.returncode!=0:
+        return 1, "Erreur en rejoignant les raids - code="+str(process.returncode)
+
+    return 0, "Le bot a rejoint "+str(list_raids)
+
 def parse_tb_platoons(server_id, use_cache_data):
     active_round = "" # GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}

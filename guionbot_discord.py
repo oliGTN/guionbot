@@ -337,6 +337,8 @@ async def bot_loop_5minutes():
                                     await send_alert_to_admins(guild, territory+" is lost")
                                 elif territory.startswith('Placement:'):
                                     await send_alert_to_admins(guild, territory+" is filled")
+                                elif territory.startswith('Ordres:'):
+                                    await send_alert_to_admins(guild, territory+" has new orders")
                                 else:
                                     await send_alert_to_admins(guild, territory+" is open")
 
@@ -350,8 +352,13 @@ async def bot_loop_5minutes():
                             else:
                                 dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, 0]
                                 goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
-                        elif not territory.startswith('Placement:'):
+                        elif not territory.startswith('Placement:') \
+                             and not territory.startswith('Ordres:'):
+
                             #Placement alerts are only sent once, never modified
+                            #Home: may be modified
+                            #<None> (new open territory in attack) may be modified
+                            #Ordres: re-sent every time they change
 
                             [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
                             if old_msg_txt != msg_txt:
@@ -372,6 +379,18 @@ async def bot_loop_5minutes():
                                         dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
 
                                 goutils.log2("DBG", "["+guild.name+"] Modified TW alert sent to admins " \
+                                            +"and channel "+str(channel_id))
+
+                        elif territory.startswith('Ordres:'):
+                            #Ordres: re-sent every time they change
+
+                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
+                            if old_msg_txt != msg_txt:
+                                if not bot_test_mode:
+                                    new_msg = await tw_bot_channel.send(msg_txt)
+                                    dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
+
+                                goutils.log2("DBG", "["+guild.name+"] New orders for TW sent to admins " \
                                             +"and channel "+str(channel_id))
                 else:
                     goutils.log2("WAR", "["+guild.name+"] TW alerts could not be detected")
@@ -1258,7 +1277,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #            (c'est pour ça qu'elle est réservée aux développeurs)
     # Display: output de la ligne de commande, comme dans une console
     ##############################################################
-    @commands.command(name='cmd', help='Lance une ligne de commande sur le serveur')
+    @commands.command(name='cmd', help='Lance une ligne de commande sur le serveur du bot')
     @commands.check(is_owner)
     async def cmd(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -1436,6 +1455,326 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         goutils.log2("DBG", "Platoon allocation: "+str(dict_platoons_allocation))
 
         await ctx.message.add_reaction(emoji_check)
+
+##############################################################
+# Class: ServerCog
+# Description: contains all commands linked to the server and its warbot
+##############################################################
+class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à son warbot"):
+    def __init__(self, bot):
+        self.bot = bot
+
+    ##############################################################
+    # Function: is_owner
+    # Parameters: ctx (objet Contexte)
+    # Purpose: vérifie si le contexte appartient à un admin du bot
+    #          Le but est de limiter certains commandes aux développeurs
+    # Output: True/False
+    ##############################################################
+    async def is_owner(ctx):
+        return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
+
+    ##############################################################
+    # Function: is_officer
+    # Parameters: ctx (objet Contexte)
+    # Purpose: vérifie si le contexte appartient à un officier
+    #          Le but est de limiter certains commandes aux officiers
+    # Output: True/False
+    ##############################################################
+    async def is_officer(ctx):
+        ret_is_officer = False
+        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+        #print(dict_players_by_ID)
+        #print(ctx.author.id)
+        if str(ctx.author.id) in dict_players_by_ID:
+            if dict_players_by_ID[str(ctx.author.id)][1]:
+                ret_is_officer = True
+
+        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+
+        return (ret_is_officer and (not bot_test_mode)) or is_owner
+
+    ##############################################################
+    # Command: vdp
+    # Parameters: [optionnel] nom du channel où écrire les résultats (sous forme "#nom_du_channel")
+    # Purpose: Vérification du déploiements de Pelotons
+    # Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
+    #          avec un groupement par phase puis un tri par joueur
+    ##############################################################
+    @commands.check(is_officer)
+    @commands.command(name='vdp',
+                 brief="Vérification de Déploiement des Pelotons en BT",
+                 help="Vérification de Déploiement des Pelotons en BT\n\n"\
+                      "Exemple : go.vdp #batailles-des-territoires\n"\
+                      "Exemple : go.vdp no-mentions")
+    async def vdp(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 1:
+            if args[0].startswith('no'):
+                display_mentions=False
+                output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+        else:
+            display_mentions=False
+            output_channel = ctx.message.channel
+
+        #get warstats_id from DB
+        query = "SELECT warstats_id, tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
+        goutils.log2("DBG", query)
+        result = connect_mysql.get_line(query)
+
+        if result == None:
+            await ctx.send('ERR: Guilde non déclarée dans le bot')
+            return
+
+        [warstats_id, tbChannel_id] = result
+        if warstats_id==0 or tbChannel_id==0:
+            await ctx.send('ERR: commande non utilisable sur ce serveur')
+            return
+
+        #Check if guild can use RPC
+        if ctx.guild.id in connect_rpc.get_dict_bot_accounts():
+            goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
+
+            tbs_round, dict_platoons_done, list_open_territories, \
+                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.id, False)
+            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+        else:
+            #Lecture du statut des pelotons sur warstats
+            goutils.log2("DBG", "Using warstats data for "+ctx.guild.id)
+
+            tbs_round, dict_platoons_done, list_open_territories, \
+                secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
+            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+
+        #Recuperation des dernieres donnees sur gdrive
+        dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
+
+        if tbs_round == '':
+            await ctx.send("Aucune BT en cours (dernier update warstats: "+int(secs_track)+" secs")
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            goutils.log2("INFO", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
+
+            dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
+            goutils.log2("DBG", "Platoon allocation: "+str(dict_platoons_allocation))
+            
+            #Comparaison des dictionnaires
+            #Recherche des persos non-affectés
+            erreur_detectee = False
+            list_platoon_names = sorted(dict_platoons_done.keys())
+            phase_names_already_displayed = []
+            list_txt = []  #[[joueur, peloton, txt], ...]
+            list_err = []
+            # print(dict_platoons_done["GDS1-top-5"])
+            # print(dict_platoons_allocation["GDS1-top-5"])
+            for platoon_name in dict_platoons_done:
+                phase_name = platoon_name.split('-')[0][:-1]
+                if not phase_name in phase_names_already_displayed:
+                    phase_names_already_displayed.append(phase_name)
+                print("---"+platoon_name)
+                print(dict_platoons_done[platoon_name])
+                for perso in dict_platoons_done[platoon_name]:
+                    if '' in dict_platoons_done[platoon_name][perso]:
+                        if platoon_name in dict_platoons_allocation:
+                            print(dict_platoons_allocation[platoon_name])
+                            if perso in dict_platoons_allocation[platoon_name]:
+                                for allocated_player in dict_platoons_allocation[
+                                        platoon_name][perso]:
+                                    if not allocated_player in dict_platoons_done[
+                                            platoon_name][perso]:
+                                        erreur_detectee = True
+                                        if (allocated_player in dict_players_by_IG) and display_mentions:
+                                            list_txt.append([
+                                                allocated_player, platoon_name,
+                                                '**' +
+                                                dict_players_by_IG[allocated_player][1] +
+                                                '** n\'a pas affecté ' + perso +
+                                                ' en ' + platoon_name
+                                            ])
+                                        else:
+                                            #joueur non-défini dans gsheets ou mentions non autorisées,
+                                            # on l'affiche quand même
+                                            list_txt.append([
+                                                allocated_player, platoon_name,
+                                                '**' + allocated_player +
+                                                '** n\'a pas affecté ' + perso +
+                                                ' en ' + platoon_name
+                                            ])
+                            else:
+                                erreur_detectee = True
+                                list_err.append('ERR: ' + perso +
+                                                ' n\'a pas été affecté ('+platoon_name+')')
+                                goutils.log2('ERR', perso + ' n\'a pas été affecté')
+                                goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
+
+            full_txt = ''
+            cur_phase = 0
+            print(list_txt)
+
+            for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
+                platoon_name = txt[1]
+                phase_num = int(platoon_name.split('-')[0][-1])
+                if cur_phase != phase_num:
+                    cur_phase = phase_num
+                    full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
+
+                position = platoon_name.split('-')[1]
+                if position == 'top' or position == 'DS':
+                    open_for_position = list_open_territories[0]
+                elif position == 'mid' or position == 'MS':
+                    open_for_position = list_open_territories[1]
+                else:  #bottom or 'LS'
+                    open_for_position = list_open_territories[2]
+                if cur_phase < open_for_position:
+                    full_txt += txt[2] + ' -- *et c\'est trop tard*\n'
+                else:
+                    full_txt += txt[2] + '\n'
+
+            if erreur_detectee:
+                for txt in sorted(set(list_err)):
+                    full_txt += txt + '\n'
+            else:
+                full_txt = "Aucune erreur de peloton\n"
+
+            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ " s"
+            full_txt += "(dernier update warstats : "+secs_track_txt+")"
+
+            for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
+                await output_channel.send(txt)
+
+            await ctx.message.add_reaction(emoji_check)
+        
+    @commands.command(name='bot.enable',
+            brief="Active le compte bot pour permettre de suivre la guilde",
+            help="Active le compte bot pour permettre de suivre la guilde")
+    async def botenable(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.unlock_bot_account(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.command(name='bot.disable',
+            brief="Désactive le compte bot pour permettre de le jouer",
+            help="Désactive le compte bot pour permettre de le jouer")
+    async def botdisable(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.lock_bot_account(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.command(name='bot.joinraids',
+            brief="Inscrit le bot à tous les raids disponibles",
+            help="Inscrit le bot à tous les raids disponibles")
+    async def botjoinraids(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.join_raids(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.check(is_officer)
+    @commands.command(name='tbrappel',
+            brief="Tag les joueurs qui n'ont pas tout déployé en BT",
+            help="go.tbrappel")
+    async def tbrappel(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 1:
+            if args[0].startswith('no'):
+                display_mentions=False
+                output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+        else:
+            display_mentions=False
+            output_channel = ctx.message.channel
+
+        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, connect_rpc.tag_tb_undeployed_players, ctx.guild.id, False)
+        if err_code == 0:
+            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
+            output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
+            for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
+                if (p in dict_players_by_IG) and display_mentions:
+                    p_name = dict_players_by_IG[p][1]
+                else:
+                    p_name= "**" + p + "**"
+                output_txt += p_name+": "+txt+"\n"
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await output_channel.send(txt)
+
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    @commands.check(is_officer)
+    @commands.command(name='tbs',
+            brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
+            help="TB status \"2:1 3:3 1:2\" [-estime]")
+    async def tbs(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        options = list(args)
+        estimate_fights = False
+        for arg in options:
+            if arg.startswith("-e"):
+                estimate_fights = True
+                options.remove(arg)
+
+        if len(options) == 0:
+            tb_phase_target = ""
+        else:
+            tb_phase_target = options[0]
+
+        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.id, tb_phase_target, estimate_fights, False)
+        if err_code == 0:
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+            if images != None:
+                for image in images:
+                    with BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        await ctx.send(content = "",
+                            file=File(fp=image_binary, filename='image.png'))
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
 
 ##############################################################
 # Class: OfficerCog
@@ -1659,164 +1998,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
 
     ##############################################################
-    # Command: vdp
-    # Parameters: [optionnel] nom du channel où écrire les résultats (sous forme "#nom_du_channel")
-    # Purpose: Vérification du déploiements de Pelotons
-    # Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
-    #          avec un groupement par phase puis un tri par joueur
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='vdp',
-                 brief="Vérification de Déploiement des Pelotons en BT",
-                 help="Vérification de Déploiement des Pelotons en BT\n\n"\
-                      "Exemple : go.vdp #batailles-des-territoires\n"\
-                      "Exemple : go.vdp no-mentions")
-    async def vdp(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
-        if len(args) == 1:
-            if args[0].startswith('no'):
-                display_mentions=False
-                output_channel = ctx.message.channel
-            else:
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
-        else:
-            display_mentions=False
-            output_channel = ctx.message.channel
-
-        #get warstats_id from DB
-        query = "SELECT warstats_id, tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
-        goutils.log2("DBG", query)
-        result = connect_mysql.get_line(query)
-
-        if result == None:
-            await ctx.send('ERR: Guilde non déclarée dans le bot')
-            return
-
-        [warstats_id, tbChannel_id] = result
-        if warstats_id==0 or tbChannel_id==0:
-            await ctx.send('ERR: commande non utilisable sur ce serveur')
-            return
-
-        #Check if guild can use RPC
-        if ctx.guild.id in connect_rpc.get_dict_bot_accounts():
-            goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
-
-            tbs_round, dict_platoons_done, list_open_territories, \
-                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.id, False)
-            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
-        else:
-            #Lecture du statut des pelotons sur warstats
-            goutils.log2("DBG", "Using warstats data for "+ctx.guild.id)
-
-            tbs_round, dict_platoons_done, list_open_territories, \
-                secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
-            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
-
-        #Recuperation des dernieres donnees sur gdrive
-        dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
-
-        if tbs_round == '':
-            await ctx.send("Aucune BT en cours (dernier update warstats: "+int(secs_track)+" secs")
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            goutils.log2("INFO", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
-
-            dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
-            goutils.log2("DBG", "Platoon allocation: "+str(dict_platoons_allocation))
-            
-            #Comparaison des dictionnaires
-            #Recherche des persos non-affectés
-            erreur_detectee = False
-            list_platoon_names = sorted(dict_platoons_done.keys())
-            phase_names_already_displayed = []
-            list_txt = []  #[[joueur, peloton, txt], ...]
-            list_err = []
-            # print(dict_platoons_done["GDS1-top-5"])
-            # print(dict_platoons_allocation["GDS1-top-5"])
-            for platoon_name in dict_platoons_done:
-                phase_name = platoon_name.split('-')[0][:-1]
-                if not phase_name in phase_names_already_displayed:
-                    phase_names_already_displayed.append(phase_name)
-                print("---"+platoon_name)
-                print(dict_platoons_done[platoon_name])
-                for perso in dict_platoons_done[platoon_name]:
-                    if '' in dict_platoons_done[platoon_name][perso]:
-                        if platoon_name in dict_platoons_allocation:
-                            print(dict_platoons_allocation[platoon_name])
-                            if perso in dict_platoons_allocation[platoon_name]:
-                                for allocated_player in dict_platoons_allocation[
-                                        platoon_name][perso]:
-                                    if not allocated_player in dict_platoons_done[
-                                            platoon_name][perso]:
-                                        erreur_detectee = True
-                                        if (allocated_player in dict_players_by_IG) and display_mentions:
-                                            list_txt.append([
-                                                allocated_player, platoon_name,
-                                                '**' +
-                                                dict_players_by_IG[allocated_player][1] +
-                                                '** n\'a pas affecté ' + perso +
-                                                ' en ' + platoon_name
-                                            ])
-                                        else:
-                                            #joueur non-défini dans gsheets ou mentions non autorisées,
-                                            # on l'affiche quand même
-                                            list_txt.append([
-                                                allocated_player, platoon_name,
-                                                '**' + allocated_player +
-                                                '** n\'a pas affecté ' + perso +
-                                                ' en ' + platoon_name
-                                            ])
-                            else:
-                                erreur_detectee = True
-                                list_err.append('ERR: ' + perso +
-                                                ' n\'a pas été affecté ('+platoon_name+')')
-                                goutils.log2('ERR', perso + ' n\'a pas été affecté')
-                                goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
-
-            full_txt = ''
-            cur_phase = 0
-            print(list_txt)
-
-            for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
-                platoon_name = txt[1]
-                phase_num = int(platoon_name.split('-')[0][-1])
-                if cur_phase != phase_num:
-                    cur_phase = phase_num
-                    full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
-
-                position = platoon_name.split('-')[1]
-                if position == 'top' or position == 'DS':
-                    open_for_position = list_open_territories[0]
-                elif position == 'mid' or position == 'MS':
-                    open_for_position = list_open_territories[1]
-                else:  #bottom or 'LS'
-                    open_for_position = list_open_territories[2]
-                if cur_phase < open_for_position:
-                    full_txt += txt[2] + ' -- *et c\'est trop tard*\n'
-                else:
-                    full_txt += txt[2] + '\n'
-
-            if erreur_detectee:
-                for txt in sorted(set(list_err)):
-                    full_txt += txt + '\n'
-            else:
-                full_txt = "Aucune erreur de peloton\n"
-
-            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ " s"
-            full_txt += "(dernier update warstats : "+secs_track_txt+")"
-
-            for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
-                await output_channel.send(txt)
-
-            await ctx.message.add_reaction(emoji_check)
-        
-    ##############################################################
     # Command: platoons
     # Parameters: alias of the character to find
     # Purpose: Tag all players in the guild which own the selected character
@@ -1879,61 +2060,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
-    # Command: srg
-    # Parameters: minimum relic level
-    # Purpose: display the PG for DS and LS characters above a minimum relic level
-    # Display: the total PG for DS, LS and total
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='srg',
-                 brief="Synthèse de PG pour un niveau de Relic dans la Guilde",
-                 help="Synthèse de PG pour un niveau de Relic dans la Guilde\n\n"\
-                      "Exemple : go.srg me R5")
-    async def srg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        #Check arguments
-        args = list(args)
-
-        if len(args) == 2:
-            allyCode = args[0]
-            relic_min = args[1]
-        else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help srg")
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        allyCode = manage_me(ctx, allyCode)
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        if relic_min[0] != 'R' or not relic_min[1:].isnumeric():
-            await ctx.send("ERR: relic minimum incorect")
-            await ctx.message.add_reaction(emoji_error)
-            return
-        relic_min = relic_min[1:]
-
-        query = "SELECT guildName, " \
-              + "ROUND(sum(CASE WHEN forceAlignment<>3 THEN gp ELSE 0 END)/1000000,1) as 'PG DS/N', " \
-              + "ROUND(sum(CASE WHEN forceAlignment<>2 THEN gp ELSE 0 END)/1000000,1) as 'PG LS/N', " \
-              + "ROUND(sum(gp)/1000000,1) as 'PG' " \
-              + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+allyCode+"') " \
-              + "AND (relic_currentTier-2)>="+relic_min+" " \
-              + "group by guildName "
-        goutils.log2("DBG", query)
-        output = connect_mysql.text_query(query)
-        output_txt = ""
-        for row in output:
-            output_txt+=str(row)+'\n'
-        await ctx.send('`' + output_txt + '`')
-
-        await ctx.message.add_reaction(emoji_check)
-
-    ##############################################################
     # Command: tpg
     # Parameters: alias of the character to find
     # Purpose: Tag all players in the guild which own the selected character
@@ -1984,115 +2110,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     await ctx.send(intro_txt +" : aucun joueur")
 
                 await ctx.message.add_reaction(emoji_check)
-
-    @commands.command(name='enablebot',
-            brief="Active le compte bot pour permettre de suivre la guilde",
-            help="Active le compte bot pour permettre de suivre la guilde")
-    async def enablebot(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        ec, et = connect_rpc.unlock_bot_account(ctx.guild.id)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
-        await ctx.message.add_reaction(emoji_check)
-
-    @commands.command(name='disablebot',
-            brief="Désactive le compte bot pour permettre de le jouer",
-            help="Désactive le compte bot pour permettre de le jouer")
-    async def disablebot(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        ec, et = connect_rpc.lock_bot_account(ctx.guild.id)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
-        await ctx.message.add_reaction(emoji_check)
-
-    @commands.check(is_officer)
-    @commands.command(name='tbrappel',
-            brief="Tag les joueurs qui n'ont pas tout déployé en BT",
-            help="go.tbrappel")
-    async def tbrappel(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
-        if len(args) == 1:
-            if args[0].startswith('no'):
-                display_mentions=False
-                output_channel = ctx.message.channel
-            else:
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
-        else:
-            display_mentions=False
-            output_channel = ctx.message.channel
-
-        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, connect_rpc.tag_tb_undeployed_players, ctx.guild.id, False)
-        if err_code == 0:
-            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
-            output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
-            for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
-                if (p in dict_players_by_IG) and display_mentions:
-                    p_name = dict_players_by_IG[p][1]
-                else:
-                    p_name= "**" + p + "**"
-                output_txt += p_name+": "+txt+"\n"
-
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await output_channel.send(txt)
-
-            await ctx.message.add_reaction(emoji_check)
-        else:
-            await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emoji_error)
-
-    @commands.check(is_officer)
-    @commands.command(name='tbs',
-            brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
-            help="TB status \"2:1 3:3 1:2\" [-estime]")
-    async def tbs(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        options = list(args)
-        estimate_fights = False
-        for arg in options:
-            if arg.startswith("-e"):
-                estimate_fights = True
-                options.remove(arg)
-
-        if len(options) == 0:
-            tb_phase_target = ""
-        else:
-            tb_phase_target = options[0]
-
-        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.id, tb_phase_target, estimate_fights, False)
-        if err_code == 0:
-            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                await ctx.send(txt)
-
-            if images != None:
-                for image in images:
-                    with BytesIO() as image_binary:
-                        image.save(image_binary, 'PNG')
-                        image_binary.seek(0)
-                        await ctx.send(content = "",
-                            file=File(fp=image_binary, filename='image.png'))
-
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
-        else:
-            await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emoji_error)
 
 ##############################################################
 # Class: MemberCog
@@ -3420,6 +3437,7 @@ def main():
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
     bot.add_cog(AdminCog(bot))
+    bot.add_cog(ServerCog(bot))
     bot.add_cog(OfficerCog(bot))
     bot.add_cog(MemberCog(bot))
 
