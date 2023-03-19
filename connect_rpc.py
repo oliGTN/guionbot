@@ -175,8 +175,11 @@ def get_rpc_data(server_id, use_cache_data):
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
 def join_raids(server_id):
-    err_code, err_txt, rpc_data = get_rpc_data(server_id, True)
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, True)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -185,6 +188,9 @@ def join_raids(server_id):
     list_raids = [x["raidId"] for x in dict_guild["raidStatus"] if not x["hasPlayerParticipated"]]
     if len(list_raids) == 0:
         return 0, "Le bot a déjà rejoint tous les raids possibles"
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/joinraids.sh", bot_androidId])
     goutils.log2("DBG", "joinraids code="+str(process.returncode))
