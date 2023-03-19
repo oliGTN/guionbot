@@ -12,7 +12,7 @@ from pytz import timezone
 import difflib
 import re
 from discord.ext import commands
-from discord import Activity, ActivityType, Intents, File, GroupChannel, errors as discorderrors
+from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
 from io import BytesIO
 from requests import get
 import traceback
@@ -1043,13 +1043,11 @@ async def on_reaction_add(reaction, user):
         return
 
     message = reaction.message
-    if isinstance(message.channel, GroupChannel):
+    if isinstance(message.channel, DMChannel):
+        guild_name = "DM"
+    else:
         guild_name = message.channel.guild.name
         set_id_lastseen("on_reaction_add", reaction.message.channel.guild.id, user.id)
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(message.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
-        guild_name = "DM"
 
     author = message.author
     emoji = reaction.emoji
@@ -1105,7 +1103,7 @@ async def on_reaction_add(reaction, user):
 ##############################################################
 @bot.event
 async def on_message(message):
-    if isinstance(message.channel, GroupChannel):
+    if not isinstance(message.channel, DMChannel):
         set_id_lastseen("on_message", message.channel.guild.id, message.author.id)
 
     lower_msg = message.content.lower().strip()
@@ -1187,24 +1185,20 @@ async def on_typing(channel, user, when):
 @bot.event
 async def on_message_delete(message):
     #Unable to detect who is deleting a message
-    if isinstance(message.channel, GroupChannel):
-        channel_name = message.channel.name
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(message.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
+    if isinstance(message.channel, DMChannel):
         channel_name = "DM"
+    else:
+        channel_name = message.channel.name
 
     goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
                          "BEFORE:\n" + message.content)
 
 @bot.event
 async def on_message_edit(before, after):
-    if isinstance(before.channel, GroupChannel):
-        channel_name = before.channel.name
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(before.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(before.guild)))
+    if isinstance(before.channel, DMChannel):
         channel_name = "DM"
+    else:
+        channel_name = before.channel.name
 
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                          "BEFORE:\n" + before.content + "\n" +\
@@ -1229,12 +1223,10 @@ async def on_member_update(before, after):
 
 @bot.event
 async def on_user_update(before, after):
-    if isinstance(before.channel, GroupChannel):
-        guild_id = before.channel.guild.id
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(before.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
+    if isinstance(before.channel, DMChannel):
         guild_id = "DM"
+    else:
+        guild_id = before.channel.guild.id
 
     set_id_lastseen("on_user_update", guild_id, before.id)
 
