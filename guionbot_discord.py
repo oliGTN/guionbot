@@ -2588,7 +2588,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_options) <= 1:
                 ret_cmd = await bot.loop.run_in_executor(None,
                     go.print_character_stats, list_characters,
-                    list_options, allyCode, False, ctx.guild.id, "")
+                    list_options, allyCode, False, None, None)
             else:
                 ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
                 
