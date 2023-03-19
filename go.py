@@ -297,36 +297,32 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             goutils.log2("WAR", 'Failed to find cache data '+json_file)
             client_data = None
 
-    if isinstance(client_data, list):
-        if len(client_data) > 0:
-            if len(client_data) > 1:
-                goutils.log2('WAR', "client.get_data(\'guild\', "+txt_allyCode+
-                        ", 'FRE_FR') has returned a list of size "+
-                        str(len(player_data)))            
-                            
-            dict_guild = client_data[0]
-            guildName = dict_guild['name']
-            guild_id = dict_guild['id']
-            total_players = len(dict_guild['roster'])
-            allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
-            guild_gp = dict_guild["gp"]
-            goutils.log2("INFO", "success retrieving "+guildName+" ("\
-                        +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
-                        
-            # store json file
-            json_file = "GUILDS"+os.path.sep+guild_id+".json"
-            fjson = open(json_file, 'w')
-            fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
-            fjson.close()
+    if not isinstance(client_data, list) or len(client_data)!=1:
+        goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
+        if guild_id == "":
+            goutils.log2("WAR", 'Unknown guild for player '+txt_allyCode)
+            return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+        elif os.path.isfile(json_file):
+            prev_dict_guild = json.load(open(json_file, 'r'))
+            client_data = [prev_dict_guild]
         else:
-            goutils.log2("ERR", "client.get_data('guild', "+txt_allyCode+
-                    ", 'FRE_FR') has returned an empty list")
-            return 1, 'ERR: cannot fetch guild fo allyCode '+txt_allyCode, None
-    else:
-        goutils.log2('ERR', "client.get_data('guild', "+
-                txt_allyCode+", 'FRE_FR') has not returned a list")
-        goutils.log2("ERR", client_data)
-        return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+            goutils.log2("ERR", 'Failed to find cache data '+json_file)
+            return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+
+    dict_guild = client_data[0]
+    guildName = dict_guild['name']
+    guild_id = dict_guild['id']
+    total_players = len(dict_guild['roster'])
+    allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
+    guild_gp = dict_guild["gp"]
+    goutils.log2("INFO", "success retrieving "+guildName+" ("\
+                +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
+                
+    # store json file
+    json_file = "GUILDS"+os.path.sep+guild_id+".json"
+    fjson = open(json_file, 'w')
+    fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
+    fjson.close()
 
     #Get guild data from DB
     query = "SELECT lastUpdated FROM guilds "\
@@ -338,7 +334,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         is_new_guild = True
 
         #Create guild in DB
-        query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
+        query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guildName.replace("'", "''")+"', '"+guild_id+"')"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
@@ -1625,7 +1621,10 @@ def print_gvs(list_team_names, txt_allyCode):
         
     return 0, ret_print_gvs
                        
-def print_character_stats(characters, options, txt_allyCode, compute_guild):
+#########################################"
+# IN tw_zone: name of the TW zone to filter the players (other guild) - only for compute_guild=True
+#########################################"
+def print_character_stats(characters, options, txt_allyCode, compute_guild, server_id, tw_zone):
     ret_print_character_stats = ''
 
     list_stats_for_display=[['speed', "Vit"],
@@ -1795,18 +1794,50 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
     elif len(characters) == 1 and characters[0] != "all" and not characters[0].startswith("tag:"):
         #Compute stats at guild level, only one character
         
-        #Get data for the guild and associated players
-        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
-        if err_code != 0:
-            return "ERR: cannot get guild data from SWGOH.HELP API"
-                            
         #Get character_id
         character_alias = characters[0]
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
         if txt != '':
             return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
-                                    
         character_id = list_character_ids[0]
+
+        #if tw_zone is set, need to find the txt_allyCode by using the TW opponent
+        if tw_zone != None:
+            #Check if the guild can use RPC
+            if not server_id in connect_rpc.get_dict_bot_accounts():
+                return "ERR: cannot detect TW opponent in this server"
+
+            rpc_data = connect_rpc.get_tw_status(server_id, True)
+            tw_ongoing = rpc_data[0]
+            if not tw_ongoing:
+                return "ERR: no TW ongoing"
+                return []
+
+            list_opponent_squads = rpc_data[2][0]
+            tuple_opp_players = tuple(set([x[1] for x in list_opponent_squads]))
+
+            #get one allyCode from opponent guild
+            query = "SELECT allyCode FROM players "
+            query+= "WHERE name in "+str(tuple_opp_players)+" "
+            query+= "GROUP BY guildName ORDER BY count(*) DESC LIMIT 1"
+            goutils.log2("DBG", query)
+            txt_allyCode = str(connect_mysql.get_value(query))
+
+            #filter the players that needs to be displayed
+            dict_tw_zone_players = {}
+            for team in list_opponent_squads:
+                zone=team[0]
+                if tw_zone=="all" or zone==tw_zone:
+                    team_char_ids = team[2]
+                    if character_id in team_char_ids:
+                        team_player_name = team[1]
+                        dict_tw_zone_players[team_player_name] = zone
+
+        #Get data for the guild and associated players
+        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        if err_code != 0:
+            return "ERR: cannot get guild data from SWGOH.HELP API"
+                            
         db_stat_data_char = []
         goutils.log2("INFO", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
@@ -1834,6 +1865,11 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
         character_name = dict_id_name[character_alias][0][1]
         
         ret_print_character_stats += "Statistiques pour "+character_name
+        if tw_zone!=None:
+            ret_print_character_stats += " en GT"
+            if tw_zone!="all":
+                ret_print_character_stats += " sur la zone "+tw_zone
+
         if sort_option_id == 0:
             ret_print_character_stats += " (tri par nom)\n"
         else:
@@ -1849,6 +1885,9 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
     # Create all lines before display
     list_print_stats=[]
     for player_name in list_player_names:
+        if tw_zone!=None and not player_name in dict_tw_zone_players:
+            continue
+
         if player_name in dict_stats:
             dict_player = dict_stats[player_name]
         else:
@@ -1880,7 +1919,10 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                                 character_stats[stat_id] = dict_player[character_id]["stats"][stat_type][stat_id]
                 
                 if compute_guild:
-                    line_header = player_name
+                    if tw_zone == None:
+                        line_header = player_name
+                    else:
+                        line_header = dict_tw_zone_players[player_name]+":"+player_name
                 else:
                     line_header = character_name
                 list_print_stats.append([line_header, character_rarity+character_gear, character_stats])

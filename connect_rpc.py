@@ -93,7 +93,6 @@ def get_rpc_data(server_id, use_cache_data):
         goutils.log2("DBG", "getevents code="+str(process.returncode))
     if os.path.exists("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json"):
         events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json", "r"))
-        print("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json")
         if "event" in events_json:
             list_new_events = events_json["event"]
         else:

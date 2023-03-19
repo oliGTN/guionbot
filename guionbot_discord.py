@@ -1241,22 +1241,37 @@ async def on_voice_state_update(member, before, after):
 ##############################################################
 
 ##############################################################
+# Function: <role>_allowed
+# Parameters: ctx (objet Contexte)
+# Purpose: check is the user linked to ctx has the right role
+#          in test mode, onluy the admins are allowed to launch commands
+# Output: True/False
+##############################################################
+def admin_command(ctx):
+    return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
+def member_command(ctx):
+    is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+    return (not bot_test_mode) or is_owner
+def officer_command(ctx):
+    ret_is_officer = False
+    dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+    #print(dict_players_by_ID)
+    #print(ctx.author.id)
+    if str(ctx.author.id) in dict_players_by_ID:
+        if dict_players_by_ID[str(ctx.author.id)][1]:
+            ret_is_officer = True
+
+    is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+
+    return (ret_is_officer and (not bot_test_mode)) or is_owner
+
+##############################################################
 # Class: AdminCog
 # Description: contains all admin commands
 ##############################################################
 class AdminCog(commands.Cog, name="Commandes pour les admins"):
     def __init__(self, bot):
         self.bot = bot
-
-    ##############################################################
-    # Function: is_owner
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si le contexte appartient à un admin du bot
-    #          Le but est de limiter certains commandes aux développeurs
-    # Output: True/False
-    ##############################################################
-    async def is_owner(ctx):
-        return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
 
     ##############################################################
     # Command: cmd
@@ -1270,7 +1285,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Display: output de la ligne de commande, comme dans une console
     ##############################################################
     @commands.command(name='cmd', help='Lance une ligne de commande sur le serveur du bot')
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def cmd(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1290,7 +1305,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Display: statut si le bot est ON, avec taille du CACHE
     ##############################################################
     @commands.command(name='info', help='Statut du bot')
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def info(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1329,7 +1344,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Display: output de la requête, s'il y en a un
     ##############################################################
     @commands.command(name='sql', help='Lance une requête SQL dans la database')
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def sql(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1360,7 +1375,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  help="Force la synchro API d'un Joueur\n\n"\
                       "Exemple: go.fsj 123456789\n"\
                       "Exemple: go.fsj me clearcache")
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def fsj(self, ctx, allyCode, *options):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1426,7 +1441,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Display: ça dépend
     #############################################################
     @commands.command(name='test', help='Réservé aux admins')
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def test(self, ctx, *args):
         #get warstats_id from DB
         query = "SELECT warstats_id, tbChanRead_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
@@ -1457,43 +1472,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         self.bot = bot
 
     ##############################################################
-    # Function: is_owner
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si le contexte appartient à un admin du bot
-    #          Le but est de limiter certains commandes aux développeurs
-    # Output: True/False
-    ##############################################################
-    async def is_owner(ctx):
-        return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
-
-    ##############################################################
-    # Function: is_officer
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si le contexte appartient à un officier
-    #          Le but est de limiter certains commandes aux officiers
-    # Output: True/False
-    ##############################################################
-    async def is_officer(ctx):
-        ret_is_officer = False
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
-        #print(dict_players_by_ID)
-        #print(ctx.author.id)
-        if str(ctx.author.id) in dict_players_by_ID:
-            if dict_players_by_ID[str(ctx.author.id)][1]:
-                ret_is_officer = True
-
-        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
-
-        return (ret_is_officer and (not bot_test_mode)) or is_owner
-
-    ##############################################################
     # Command: vdp
     # Parameters: [optionnel] nom du channel où écrire les résultats (sous forme "#nom_du_channel")
     # Purpose: Vérification du déploiements de Pelotons
     # Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
     #          avec un groupement par phase puis un tri par joueur
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='vdp',
                  brief="Vérification de Déploiement des Pelotons en BT",
                  help="Vérification de Déploiement des Pelotons en BT\n\n"\
@@ -1689,7 +1674,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.send(et)
         await ctx.message.add_reaction(emoji_check)
 
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='tbrappel',
             brief="Tag les joueurs qui n'ont pas tout déployé en BT",
             help="go.tbrappel")
@@ -1730,7 +1715,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.send(ret_txt)
             await ctx.message.add_reaction(emoji_error)
 
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='tbs',
             brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
             help="TB status \"2:1 3:3 1:2\" [-estime]")
@@ -1768,6 +1753,56 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.send(ret_txt)
             await ctx.message.add_reaction(emoji_error)
 
+    ##############################################################
+    # Command: spgt
+    # Parameters: zone shortname or "all" / alias of a character
+    # Purpose: stats of a character/ship for the TW opponents
+    # Display: one line per opponent player
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='spgt',
+                 brief="Stats de Perso de l'adversaire en GT",
+                 help="Stats de Perso de l'adversaire en GT\n\n"\
+                      "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
+                      "Exemple: go.spg all JMK\n"\
+                      "Exemple: go.spg F1 -v Executor")
+    async def spgt(self, ctx, tw_zone, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if not tw_zone in ['all']+list(data.dict_tw.keys()):
+            await ctx.send("ERR: zone TW inconnue")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        list_options = []
+        list_characters = []
+        for item in characters:
+            if item[0] == "-":
+                list_options.append(item)
+            else:
+                list_characters.append(item)
+        
+        if len(list_characters) > 0:
+            if len(list_options) <= 1:
+                ret_cmd = await bot.loop.run_in_executor(None,
+                    go.print_character_stats, list_characters,
+                    list_options, "", True, ctx.guild.id, tw_zone)
+            else:
+                ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
+        else:
+            ret_cmd = 'ERR: merci de préciser perso'
+            
+        if ret_cmd[0:3] == 'ERR':
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            #texte classique
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                await ctx.send("```"+txt+"```")
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
 ##############################################################
 # Class: OfficerCog
 # Description: contains all officer commands
@@ -1777,32 +1812,12 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         self.bot = bot
 
     ##############################################################
-    # Function: is_officer
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si le contexte appartient à un officier
-    #          Le but est de limiter certains commandes aux officiers
-    # Output: True/False
-    ##############################################################
-    async def is_officer(ctx):
-        ret_is_officer = False
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
-        #print(dict_players_by_ID)
-        #print(ctx.author.id)
-        if str(ctx.author.id) in dict_players_by_ID:
-            if dict_players_by_ID[str(ctx.author.id)][1]:
-                ret_is_officer = True
-
-        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
-
-        return (ret_is_officer and (not bot_test_mode)) or is_owner
-
-    ##############################################################
     # Command: lgs
     # Parameters: None
     # Purpose: Update cache files from google sheet, and JSON files from API
     # Display: None
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='lgs', brief="Lit les dernières infos du google sheet",
                              help="Lit les dernières infos du google sheet")
     async def lgs(self, ctx):
@@ -1822,7 +1837,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Purpose: Affichage des scores en fonction des teams du joueur
     # Display: Une ligne par joueur, avec ses teams et son score
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='rrg',
                  brief="Résultats de raid de Guilde",
                  help="Résultats de raid de Guilde\n\n"
@@ -1886,7 +1901,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Purpose: Display results by player depending on whcih teams they have
     # Display: One line per player, with emojis
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='trg',
                  brief="Teams de Raid de Guilde",
                  help="Teams de Raid de Guilde\n\n"
@@ -1932,7 +1947,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Purpose: Display results by player depending on whcih teams they have
     # Display: One line per player, with emojis
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='rbg',
                  brief="Résultats de BT de Guilde",
                  help="Résultats de BT de Guilde\n\n"
@@ -1995,7 +2010,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Purpose: Tag all players in the guild which own the selected character
     # Display: One line with all discord tags
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='platoons',
                  brief="Affecte les pelotons pour la BT",
                  help="Affecte les pelotons pour la BT\n\n"\
@@ -2057,7 +2072,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Purpose: Tag all players in the guild which own the selected character
     # Display: One line with all discord tags
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='tpg',
                  brief="Tag les possesseurs d'un Perso dans la Guilde",
                  help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
@@ -2111,18 +2126,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     def __init__(self, bot):
         self.bot = bot
 
-    ##############################################################
-    # Function: command_allowed
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si on est en mode test
-    #          En mode test, seuls les admins peuvent lancer des commandes
-    # Output: True/False
-    ##############################################################
-    async def command_allowed(ctx):
-        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
-        return (not bot_test_mode) or is_owner
-
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='register',
                       brief="Lie un code allié au compte discord qui lance la commande",
                       help="Lie un code allié au compte discord qui lance la commande\n\n"\
@@ -2172,7 +2176,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     #          pareil pour sa guild
     #          et des liens (swgoh.gg ou warstats)
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='qui',
                       brief="Identifie un joueur et sa guilde",
                       help="Identifie un joueur et sa guilde\n\n"\
@@ -2258,7 +2262,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
     #          ou plusieurs tableaux à la suite si plusieurs teams
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='vtg',
                       brief="Vérifie la dispo d'une team dans la guilde",
                       help="Vérifie la dispo d'une team dans la guilde\n\n"\
@@ -2305,7 +2309,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Une ligne par joueur avec des peros + stats en colonne
     #          ou plusieurs ligne à la suite si plusieurs teams
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='vtj',
                  brief="Vérifie la dispo d'une ou plusieurs teams chez un joueur",
                  help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
@@ -2351,7 +2355,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='fegv',
                  brief="Donne les Farming d'Eclats pour le Guide de Voyage",
                  help="Donne les Farmings d'Eclats pour le Guide de Voyage\n\n"\
@@ -2376,7 +2380,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(ret_cmd)
 
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ftj',
                  brief="Donne le progrès de farming d'une team chez un joueur",
                  help="Donne le progrès de farming d'une team chez un joueur\n\n"\
@@ -2407,7 +2411,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Une ligne par requis du guide de voyage
     #          un score global à la fin
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gvj',
                  brief="Donne le progrès dans le guide de voyage pour un perso chez un joueur",
                  help="Donne le progrès dans le guide de voyage pour un perso chez un joueur\n\n"\
@@ -2444,7 +2448,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: Progrès dans le guide de voyage pour un perso
     # Display: Une ligne par perso - joueur, avec son score
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gvg',
                  brief="Donne le progrès dans le guide de voyage pour une perso dans la guilde",
                  help="Donne le progrès dans le guide de voyage pour une perso dans la guilde\n\n"\
@@ -2481,7 +2485,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: Progrès dans le guide de voyage pour un perso dans le shard
     # Display: Une ligne par joueur, avec son score
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gvs',
                  brief="Donne le progrès dans le guide de voyage pour un perso dans le shard",
                  help="Donne le progrès dans le guide de voyage pour un perso dans le shard\n\n"\
@@ -2519,7 +2523,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Un premier tableau donnant la dispo des équipes utilisées en counter
     #          Un 2e tableau donnant les possibilités de counter contre des équipes données
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='scg',
                  brief="Capacité de contre de la guilde",
                  help="Capacité de contre de la guilde\n\n"\
@@ -2553,7 +2557,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: stats vitesse et pouvoir d'un perso
     # Display: la vitess et le pouvoir
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
@@ -2584,7 +2588,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_options) <= 1:
                 ret_cmd = await bot.loop.run_in_executor(None,
                     go.print_character_stats, list_characters,
-                    list_options, allyCode, False)
+                    list_options, allyCode, False, ctx.guild.id, "")
             else:
                 ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
                 
@@ -2605,13 +2609,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: stats vitesse et pouvoir d'un perso sur toute la guilde
     # Display: la vitess et le pouvoir
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='spg',
                  brief="Stats de Perso d'une Guilde",
                  help="Stats de Perso d'une Guilde\n\n"\
                       "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
                       "Exemple: go.spg 123456789 JKR\n"\
-                      "Exemple: go.spj me -v \"Dark Maul\"")
+                      "Exemple: go.spg me -v \"Dark Maul\"")
     async def spg(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -2633,7 +2637,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 if len(list_options) <= 1:
                     ret_cmd = await bot.loop.run_in_executor(None,
                         go.print_character_stats, list_characters,
-                        list_options, allyCode, True)
+                        list_options, allyCode, True, None, None)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
@@ -2656,7 +2660,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: graph de distribution des PG des membres de la guilde
     # Display: graph (#=actif, .=inactif depuis 36 heures)
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gdp',
                  brief="Graphique des PG d'une guilde",
                  help="Graphique des PG d'une guilde\n\n"\
@@ -2700,7 +2704,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: graph de progrès de GV du perso
     # Display: graph
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ggv',
                  brief="Graphique de GV d'un perso",
                  help="Graphique de GV d'un perso\n\n"\
@@ -2756,7 +2760,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: graph de progrès de modq du joueur
     # Display: graph
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gmj',
                  brief="Graphique de Modq d'un Joueur",
                  help="Graphique de Modq d'un Joueur\n\n"\
@@ -2790,7 +2794,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher une image des portraits choisis
     # Display: l'image produite
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ppj',
                  brief="Portraits de Perso d'un Joueur",
                  help="Portraits de Perso d'un Joueur\n"\
@@ -2840,7 +2844,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher une image avec les 2 équipes et un "SUCCESS"
     # Display: l'image produite
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='rgt',
                  brief="Image d'un Résultat en Guerre de Territoire",
                  help="Image d'un Résultat en Guerre de Territoire\n"\
@@ -2933,7 +2937,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     #          et la position du joueur dans ce graph
     # Display: l'image du graph
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gsp',
                  brief="Graphique d'une Statistique d'un Perso",
                  help="Graphique d'une Statistique d'un Perso\n"\
@@ -2976,7 +2980,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: summary of roster evolution for a player
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='erj',
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
@@ -3009,7 +3013,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: summary of roster evolution for a guild
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='erg',
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
@@ -3042,7 +3046,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: list of omicrons of a player
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='loj',
                  brief="Liste des Omicrons d'un Joueur",
                  help="Liste des Omicrons d'un Joueur\n"\
@@ -3079,7 +3083,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: list of omicrons of a guild
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='log',
                  brief="Liste des Omicrons d'une Guilde",
                  help="Liste des Omicrons d'une Guilde\n"\
@@ -3116,7 +3120,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: give a recommendation of teams per player in defense
     # Display: one recommendation per group of 1M of PG
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ntg',
                  brief="Nombre de Teams en GT",
                  help="Nombre de Teams en GT\n\n"\
@@ -3200,7 +3204,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # IN: name of the payer, name of the raid
     # OUT: a line with the teams for the payer to make the best score
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='trj',
                  brief="Teams de Raid du Joueur",
                  help="Teams de Raid du Joueur\n\n"
@@ -3249,7 +3253,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: compte les persos listés groupés par étoiles et gear
     # Display: un tableau
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='cpg', help="Compte les GLs d'une Guilde")
     async def info(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -3307,7 +3311,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: manage members of player's shard
     # Display: depending of the sub-command
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='shard', brief="Gère les shards du joueur",
                  help="Gère les shards du joueur\n"\
                       "Exemple : go.shard me char 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de persos"\
