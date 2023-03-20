@@ -3895,19 +3895,19 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         ret_print_tb_status += "More details, including players \u2013 "+sheet_url+"\n"
 
     ret_print_tb_status+="---------------\n"
-    available_ship_deploy = dict_phase["AvailableShipDeploy"]
-    available_char_deploy = dict_phase["AvailableCharDeploy"]
-    available_mix_deploy = dict_phase["AvailableMixDeploy"]
-    remaining_ship_deploy = dict_phase["RemainingShipDeploy"]
-    remaining_char_deploy = dict_phase["RemainingCharDeploy"]
-    remaining_mix_deploy = dict_phase["RemainingMixDeploy"]
-    remaining_to_play_ships = dict_phase["ShipPlayers"]
-    remaining_to_play_chars = dict_phase["CharPlayers"]
-    remaining_to_play_mix = dict_phase["MixPlayers"]
-    if "Ships" in list_deployment_types:
+    available_ship_deploy = dict_phase["availableShipDeploy"]
+    available_char_deploy = dict_phase["availableCharDeploy"]
+    available_mix_deploy = dict_phase["availableMixDeploy"]
+    remaining_ship_deploy = dict_phase["remainingShipDeploy"]
+    remaining_char_deploy = dict_phase["remainingCharDeploy"]
+    remaining_mix_deploy = dict_phase["remainingMixDeploy"]
+    remaining_to_play_ships = dict_phase["shipPlayers"]
+    remaining_to_play_chars = dict_phase["charPlayers"]
+    remaining_to_play_mix = dict_phase["mixPlayers"]
+    if "ships" in list_deployment_types:
         ret_print_tb_status += "Remaining to deploy ships \u2013 "+str(round(available_ship_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_ships)+" players)\n"
-    if "Chars" in list_deployment_types:
+    if "chars" in list_deployment_types:
         ret_print_tb_status += "Remaining to deploy chars \u2013 "+str(round(available_char_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_chars)+" players)\n"
     if "Mix" in list_deployment_types:
@@ -3925,9 +3925,9 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
 
         cur_strike_score = dict_open_zones[zone_name]["strikeScore"]
         cur_strike_fights = sum(dict_open_zones[zone_name]["strikeFights"].values())
-        estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
-        estimated_strike_fights = dict_open_zones[zone_name]["EstimatedStrikeFights"]
-        max_strike_score = dict_open_zones[zone_name]["MaxStrikeScore"]
+        estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
+        estimated_strike_fights = dict_open_zones[zone_name]["estimatedStrikeFights"]
+        max_strike_score = dict_open_zones[zone_name]["maxStrikeScore"]
 
         ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+"M in "+str(cur_strike_fights)+" fights)\n"
 
@@ -3940,7 +3940,7 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
         ret_print_tb_status+="deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
-        star_for_score = dict_open_zones[zone_name]["EstimatedStars"]
+        star_for_score = dict_open_zones[zone_name]["estimatedStars"]
         ret_print_tb_status+="\u27a1 Zone result \u2013 "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
@@ -3950,9 +3950,9 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         list_images.append(img)
 
     ret_print_tb_status += "----------------------------\n"
-    if "Ships" in list_deployment_types:
+    if "ships" in list_deployment_types:
         ret_print_tb_status += "Unused deployment ships \u2013 "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
-    if "Chars" in list_deployment_types:
+    if "chars" in list_deployment_types:
         ret_print_tb_status += "Unused deployment squads \u2013 "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
     if "Mix" in list_deployment_types:
         ret_print_tb_status += "Unused deployment mix \u2013 "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
