@@ -421,6 +421,10 @@ def get_capa_from_shorts(character_id, capa_shorts):
     
     return req_capa_ids
 
+###########################
+# IN Chef, Leader, Unique1, Unique2
+# OUT L, L, U1, U2
+###########################
 def get_capa_id_from_short(character_id, capa_short):
     dict_capas = data.get('unit_capa_list.json')
     capa_standard = capa_short.upper().replace(' ', '')
