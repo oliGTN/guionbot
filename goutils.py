@@ -423,12 +423,12 @@ def get_capa_from_shorts(character_id, capa_shorts):
 
 def get_capa_id_from_short(character_id, capa_short):
     dict_capas = data.get('unit_capa_list.json')
-
     capa_standard = capa_short.upper().replace(' ', '')
+
     if capa_standard == '':
         return ''
     elif capa_standard[0] == 'B':
-        pass
+        capa_id = 'B'
     elif capa_standard[0] == 'S':
         capa_id = 'S'
         if capa_standard[-1] in '0123456789':
@@ -436,7 +436,7 @@ def get_capa_id_from_short(character_id, capa_short):
         else:
             capa_id += '1'
     elif capa_standard[0] == 'C' or capa_standard[0] == 'L':
-        pass
+        capa_id = 'L'
     elif capa_standard[0] == 'U':
         capa_id = 'U'
         if capa_standard[-1] in '0123456789':
