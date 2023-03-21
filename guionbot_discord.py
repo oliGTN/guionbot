@@ -154,7 +154,7 @@ def set_id_lastseen(event_name, server_id, player_id):
         if player_id in dict_member_lastseen[server_id]:
             dict_member_lastseen[server_id][player_id][1]=datetime.datetime.now(guild_timezone)
             alias = dict_member_lastseen[server_id][player_id][0]
-            goutils.log2("DBG", event_name+": guild="+str(server_id)+" user="+str(player_id)+" ("+alias+")")
+            #goutils.log2("DBG", event_name+": guild="+str(server_id)+" user="+str(player_id)+" ("+alias+")")
         else:
             goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+str(server_id))
     else:

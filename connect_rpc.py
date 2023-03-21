@@ -544,6 +544,7 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
         return 1, "No TB on-going", None
 
     query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
+    goutils.log2("DBG", query)
     list_playername_gp = connect_mysql.get_table(query)
 
     dict_tb_players = {}
@@ -809,7 +810,7 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                         cur_score += dict_open_zones[zone_name]["estimatedStrikeScore"]
                     cur_score += dict_open_zones[zone_name]["deployment"]
 
-                    if cur_score == dict_tb[zone_name]["scores"][2]:
+                    if cur_score >= dict_tb[zone_name]["scores"][2]:
                         full_zones += 1
                         continue
 
