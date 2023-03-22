@@ -1,9 +1,5 @@
 CMD_PWD=$PWD
 
-# SWGOH-STAT-CALC
-cd /home/pi/GuionBot/swgoh-stat-calc
-node server.js &
-
 # GUIONBOT
 if [ "$1" = "" ]; then
 	cd /home/pi/GuionBot/guionbot-master

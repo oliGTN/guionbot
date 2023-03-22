@@ -5,8 +5,7 @@ import os
 
 import data
 
-crinolo_url = 'https://swgoh-stat-calc.glitch.me/api?flags=statIDs,unscaled,calcGP,percentVals,gameStyle'
-crinolo_url = 'http://localhost:8000/api?flags=statIDs,unscaled,calcGP,percentVals,gameStyle'
+crinolo_url = 'http://localhost:3223/api?flags=statIDs,unscaled,calcGP,percentVals,gameStyle'
 
 def add_stats(dict_player):
     dict_unitsList = data.get("unitsList_dict.json")
