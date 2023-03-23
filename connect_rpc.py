@@ -185,8 +185,11 @@ def join_raids(server_id):
         return 1, "Erreur en se connectant au bot"
 
     dict_guild = rpc_data[0]
-    list_raids = [x["raidId"] for x in dict_guild["raidStatus"] if not x["hasPlayerParticipated"]]
-    if len(list_raids) == 0:
+    if "raidStatus" in dict_guild:
+        list_raids = [x["raidId"] for x in dict_guild["raidStatus"] if not x["hasPlayerParticipated"]]
+        if len(list_raids) == 0:
+            return 0, "Le bot a déjà rejoint tous les raids possibles"
+    else:
         return 0, "Le bot a déjà rejoint tous les raids possibles"
 
     bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
@@ -662,8 +665,10 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                 for playerstat in mapstat["playerStat"]:
                     member_id = playerstat["memberId"]
                     playerName = dict_members_by_id[member_id]
-                    attempts = int(playerstat["score"])
+                    if not playerName in dict_tb_players:
+                        continue
 
+                    attempts = int(playerstat["score"])
                     while len(dict_tb_players[playerName]["strikes"]) < attempts:
                         dict_tb_players[playerName]["strikes"].append("?")
 
