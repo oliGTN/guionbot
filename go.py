@@ -3655,7 +3655,7 @@ def get_modq_graph(txt_allyCode):
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
     #add title
-    title = "Progès MODQ de "+player_name
+    title = "Progrès MODQ de "+player_name
     fig.suptitle(title)
     #set min/max on X axis
     if min_date == max_date:
