@@ -55,8 +55,10 @@ dict_stat_names["speed"] = [5, False, "Vitesse"]
 dict_stat_names["vitesse"] = [5, False, "Vitesse"]
 dict_stat_names["protection"] = [28, False, "Protection"]
 dict_stat_names["dégâts physiques"] = [6, False, "Dégâts Physiques"]
+dict_stat_names["dp"] = [6, False, "Dégâts Physiques"]
 dict_stat_names["physical damages"] = [6, False, "Dégâts Physiques"]
 dict_stat_names["dégâts spéciaux"] = [7, False, "Dégâts spéciaux"]
+dict_stat_names["ds"] = [7, False, "Dégâts spéciaux"]
 dict_stat_names["special damages"] = [7, False, "Dégâts spéciaux"]
 dict_stat_names["santé"] = [1, False, "Santé"]
 dict_stat_names["health"] = [1, False, "Santé"]
@@ -295,36 +297,32 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             goutils.log2("WAR", 'Failed to find cache data '+json_file)
             client_data = None
 
-    if isinstance(client_data, list):
-        if len(client_data) > 0:
-            if len(client_data) > 1:
-                goutils.log2('WAR', "client.get_data(\'guild\', "+txt_allyCode+
-                        ", 'FRE_FR') has returned a list of size "+
-                        str(len(player_data)))            
-                            
-            dict_guild = client_data[0]
-            guildName = dict_guild['name']
-            guild_id = dict_guild['id']
-            total_players = len(dict_guild['roster'])
-            allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
-            guild_gp = dict_guild["gp"]
-            goutils.log2("INFO", "success retrieving "+guildName+" ("\
-                        +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
-                        
-            # store json file
-            json_file = "GUILDS"+os.path.sep+guild_id+".json"
-            fjson = open(json_file, 'w')
-            fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
-            fjson.close()
+    if not isinstance(client_data, list) or len(client_data)!=1:
+        goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
+        if guild_id == "":
+            goutils.log2("WAR", 'Unknown guild for player '+txt_allyCode)
+            return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+        elif os.path.isfile(json_file):
+            prev_dict_guild = json.load(open(json_file, 'r'))
+            client_data = [prev_dict_guild]
         else:
-            goutils.log2("ERR", "client.get_data('guild', "+txt_allyCode+
-                    ", 'FRE_FR') has returned an empty list")
-            return 1, 'ERR: cannot fetch guild fo allyCode '+txt_allyCode, None
-    else:
-        goutils.log2('ERR', "client.get_data('guild', "+
-                txt_allyCode+", 'FRE_FR') has not returned a list")
-        goutils.log2("ERR", client_data)
-        return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+            goutils.log2("ERR", 'Failed to find cache data '+json_file)
+            return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+
+    dict_guild = client_data[0]
+    guildName = dict_guild['name']
+    guild_id = dict_guild['id']
+    total_players = len(dict_guild['roster'])
+    allyCodes_in_API = [int(x['allyCode']) for x in dict_guild['roster']]
+    guild_gp = dict_guild["gp"]
+    goutils.log2("INFO", "success retrieving "+guildName+" ("\
+                +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
+                
+    # store json file
+    json_file = "GUILDS"+os.path.sep+guild_id+".json"
+    fjson = open(json_file, 'w')
+    fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
+    fjson.close()
 
     #Get guild data from DB
     query = "SELECT lastUpdated FROM guilds "\
@@ -336,7 +334,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         is_new_guild = True
 
         #Create guild in DB
-        query = "INSERT IGNORE INTO guilds(name) VALUES('"+guildName.replace("'", "''")+"')"
+        query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guildName.replace("'", "''")+"', '"+guild_id+"')"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
@@ -1623,7 +1621,10 @@ def print_gvs(list_team_names, txt_allyCode):
         
     return 0, ret_print_gvs
                        
-def print_character_stats(characters, options, txt_allyCode, compute_guild):
+#########################################"
+# IN tw_zone: name of the TW zone to filter the players (other guild) - only for compute_guild=True
+#########################################"
+def print_character_stats(characters, options, txt_allyCode, compute_guild, server_id, tw_zone):
     ret_print_character_stats = ''
 
     list_stats_for_display=[['speed', "Vit"],
@@ -1793,18 +1794,50 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
     elif len(characters) == 1 and characters[0] != "all" and not characters[0].startswith("tag:"):
         #Compute stats at guild level, only one character
         
-        #Get data for the guild and associated players
-        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
-        if err_code != 0:
-            return "ERR: cannot get guild data from SWGOH.HELP API"
-                            
         #Get character_id
         character_alias = characters[0]
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
         if txt != '':
             return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
-                                    
         character_id = list_character_ids[0]
+
+        #if tw_zone is set, need to find the txt_allyCode by using the TW opponent
+        if tw_zone != None:
+            #Check if the guild can use RPC
+            if not server_id in connect_rpc.get_dict_bot_accounts():
+                return "ERR: cannot detect TW opponent in this server"
+
+            rpc_data = connect_rpc.get_tw_status(server_id, True)
+            tw_ongoing = rpc_data[0]
+            if not tw_ongoing:
+                return "ERR: no TW ongoing"
+                return []
+
+            list_opponent_squads = rpc_data[2][0]
+            tuple_opp_players = tuple(set([x[1] for x in list_opponent_squads]))
+
+            #get one allyCode from opponent guild
+            query = "SELECT allyCode FROM players "
+            query+= "WHERE name in "+str(tuple_opp_players)+" "
+            query+= "GROUP BY guildName ORDER BY count(*) DESC LIMIT 1"
+            goutils.log2("DBG", query)
+            txt_allyCode = str(connect_mysql.get_value(query))
+
+            #filter the players that needs to be displayed
+            dict_tw_zone_players = {}
+            for team in list_opponent_squads:
+                zone=team[0]
+                if tw_zone=="all" or zone==tw_zone:
+                    team_char_ids = team[2]
+                    if character_id in team_char_ids:
+                        team_player_name = team[1]
+                        dict_tw_zone_players[team_player_name] = zone
+
+        #Get data for the guild and associated players
+        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        if err_code != 0:
+            return "ERR: cannot get guild data from SWGOH.HELP API"
+                            
         db_stat_data_char = []
         goutils.log2("INFO", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
@@ -1832,6 +1865,11 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
         character_name = dict_id_name[character_alias][0][1]
         
         ret_print_character_stats += "Statistiques pour "+character_name
+        if tw_zone!=None:
+            ret_print_character_stats += " en GT"
+            if tw_zone!="all":
+                ret_print_character_stats += " sur la zone "+tw_zone
+
         if sort_option_id == 0:
             ret_print_character_stats += " (tri par nom)\n"
         else:
@@ -1847,6 +1885,9 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
     # Create all lines before display
     list_print_stats=[]
     for player_name in list_player_names:
+        if tw_zone!=None and not player_name in dict_tw_zone_players:
+            continue
+
         if player_name in dict_stats:
             dict_player = dict_stats[player_name]
         else:
@@ -1878,7 +1919,10 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild):
                                 character_stats[stat_id] = dict_player[character_id]["stats"][stat_type][stat_id]
                 
                 if compute_guild:
-                    line_header = player_name
+                    if tw_zone == None:
+                        line_header = player_name
+                    else:
+                        line_header = dict_tw_zone_players[player_name]+":"+player_name
                 else:
                     line_header = character_name
                 list_print_stats.append([line_header, character_rarity+character_gear, character_stats])
@@ -2859,8 +2903,12 @@ def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 # OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
 #                                      territory2: alert_territory2...}]
 ############################################
-def get_tw_alerts(server_id):
+def get_tw_alerts(server_id, use_cache_data):
     dict_unitsList = data.get("unitsList_dict.json")
+
+    #Check if the guild can use RPC
+    if not server_id in connect_rpc.get_dict_bot_accounts():
+        return []
 
     query = "SELECT name, twChanOut_id, warstats_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
@@ -2874,9 +2922,15 @@ def get_tw_alerts(server_id):
     if twChannel_id == 0 or warstats_id == 0:
         return []
 
+    rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
+    tw_ongoing = rpc_data[0]
+    if not tw_ongoing:
+        return []
+
     list_tw_alerts = [twChannel_id, {}]
 
-    [list_opponent_squads, list_opp_territories] = connect_warstats.parse_tw_opponent_teams(server_id)
+    list_opponent_squads = rpc_data[2][0]
+    list_opp_territories = rpc_data[2][1]
     if len(list_opponent_squads) > 0:
         list_opponent_players = [x[1] for x in list_opponent_squads]
         longest_opp_player_name = max(list_opponent_players, key=len)
@@ -2907,41 +2961,61 @@ def get_tw_alerts(server_id):
 
             msg += " ("+territory+") est ouvert. Avec ces adversaires :"
             for leader in counter_leaders:
-                msg += "\n - "+leader+": "+str(counter_leaders[leader])
+                if leader in dict_unitsList:
+                    leader_name = dict_unitsList[leader]["nameKey"]
+                else:
+                    leader_name = leader
+                msg += "\n - "+leader_name+": "+str(counter_leaders[leader])
 
             list_tw_alerts[1][territory] = msg
 
-    [list_defense_squads, list_def_territories], secs_track = connect_warstats.parse_tw_defense_teams(server_id)
+    list_defense_squads = rpc_data[1][0]
+    list_def_territories = rpc_data[1][1]
+    list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
+    nb_full = len(list_full_territories)
     if len(list_def_territories) > 0:
-        #Alert for defense fully set
-        list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
-        for territory in list_full_territories:
+        #Alert for defense fully set OR new orders
+        for territory in list_def_territories:
             territory_name = territory[0]
+            size = territory[1]
+            filled = territory[2]
+            orders = territory[5]
 
             n_territory = int(territory_name[1])
             if territory_name[0] == "T" and int(territory_name[1]) > 2:
                 n_territory -= 2
 
             if n_territory == 1:
-                msg = "**DEFENSE** - __Le 1er territoire "
+                territory_fullname = "__Le 1er territoire "
             else:
-                msg = "**DEFENSE** - __Le "+str(n_territory)+"e territoire "
+                territory_fullname = "__Le "+str(n_territory)+"e territoire "
 
             if territory_name[0] == "T" and int(territory_name[1]) < 3:
-                msg += "du haut__"
+                territory_fullname += "du haut__"
             elif territory_name[0] == "T":
-                msg += "du milieu__"
+                territory_fullname += "du milieu__"
             elif territory_name[0] == "F":
-                msg += "des vaisseaux__"
+                territory_fullname += "des vaisseaux__"
             else:
-                msg += "du bas__"
+                territory_fullname += "du bas__"
 
-            nb_full = len(list_full_territories)
-            msg += " ("+territory_name+") est rempli ("+str(nb_full)+"/10)."
-            if nb_full==10:
-                msg = '\N{WHITE HEAVY CHECK MARK}'+msg
+            if size == filled:
+                if orders == None:
+                    txt_orders = ""
+                else:
+                    txt_orders = " - " + orders
+                msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+txt_orders+") "
+                msg+= "est rempli ("+str(nb_full)+"/10)."
 
-            list_tw_alerts[1]["Placement:"+territory_name] = msg
+                if nb_full==10:
+                    msg = '\N{WHITE HEAVY CHECK MARK}'+msg
+
+                list_tw_alerts[1]["Placement:"+territory_name] = msg
+
+            if orders != None:
+                msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+") "
+                msg+= "a de nouveaux ordres : "+orders
+                list_tw_alerts[1]["Ordres:"+territory_name] = msg
 
         #Alert for defense lost
         list_lost_territories = [t for t in list_def_territories if t[1]==t[3]]
@@ -3581,7 +3655,7 @@ def get_modq_graph(txt_allyCode):
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
     #add title
-    title = "Progès MODQ de "+player_name
+    title = "Progrès MODQ de "+player_name
     fig.suptitle(title)
     #set min/max on X axis
     if min_date == max_date:
@@ -3596,7 +3670,7 @@ def get_modq_graph(txt_allyCode):
     return 0, "", image
 
 def get_tw_defense_toons(server_id):
-    query = "SELECT twChanOut_id, warstats_id FROM guilds "
+    query = "SELECT twChanOut_id, warstats_id FROM guild_bot_infos "
     query+= "WHERE server_id="+str(server_id)
     goutils.log2('DBG', query)
     db_data = connect_mysql.get_line(query)
@@ -3821,19 +3895,19 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         ret_print_tb_status += "More details, including players \u2013 "+sheet_url+"\n"
 
     ret_print_tb_status+="---------------\n"
-    available_ship_deploy = dict_phase["AvailableShipDeploy"]
-    available_char_deploy = dict_phase["AvailableCharDeploy"]
-    available_mix_deploy = dict_phase["AvailableMixDeploy"]
-    remaining_ship_deploy = dict_phase["RemainingShipDeploy"]
-    remaining_char_deploy = dict_phase["RemainingCharDeploy"]
-    remaining_mix_deploy = dict_phase["RemainingMixDeploy"]
-    remaining_to_play_ships = dict_phase["ShipPlayers"]
-    remaining_to_play_chars = dict_phase["CharPlayers"]
-    remaining_to_play_mix = dict_phase["MixPlayers"]
-    if "Ships" in list_deployment_types:
+    available_ship_deploy = dict_phase["availableShipDeploy"]
+    available_char_deploy = dict_phase["availableCharDeploy"]
+    available_mix_deploy = dict_phase["availableMixDeploy"]
+    remaining_ship_deploy = dict_phase["remainingShipDeploy"]
+    remaining_char_deploy = dict_phase["remainingCharDeploy"]
+    remaining_mix_deploy = dict_phase["remainingMixDeploy"]
+    remaining_to_play_ships = dict_phase["shipPlayers"]
+    remaining_to_play_chars = dict_phase["charPlayers"]
+    remaining_to_play_mix = dict_phase["mixPlayers"]
+    if "ships" in list_deployment_types:
         ret_print_tb_status += "Remaining to deploy ships \u2013 "+str(round(available_ship_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_ships)+" players)\n"
-    if "Chars" in list_deployment_types:
+    if "chars" in list_deployment_types:
         ret_print_tb_status += "Remaining to deploy chars \u2013 "+str(round(available_char_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_chars)+" players)\n"
     if "Mix" in list_deployment_types:
@@ -3851,9 +3925,9 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
 
         cur_strike_score = dict_open_zones[zone_name]["strikeScore"]
         cur_strike_fights = sum(dict_open_zones[zone_name]["strikeFights"].values())
-        estimated_strike_score = dict_open_zones[zone_name]["EstimatedStrikeScore"]
-        estimated_strike_fights = dict_open_zones[zone_name]["EstimatedStrikeFights"]
-        max_strike_score = dict_open_zones[zone_name]["MaxStrikeScore"]
+        estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
+        estimated_strike_fights = dict_open_zones[zone_name]["estimatedStrikeFights"]
+        max_strike_score = dict_open_zones[zone_name]["maxStrikeScore"]
 
         ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+"M in "+str(cur_strike_fights)+" fights)\n"
 
@@ -3866,7 +3940,7 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
         ret_print_tb_status+="deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
-        star_for_score = dict_open_zones[zone_name]["EstimatedStars"]
+        star_for_score = dict_open_zones[zone_name]["estimatedStars"]
         ret_print_tb_status+="\u27a1 Zone result \u2013 "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
@@ -3876,9 +3950,9 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         list_images.append(img)
 
     ret_print_tb_status += "----------------------------\n"
-    if "Ships" in list_deployment_types:
+    if "ships" in list_deployment_types:
         ret_print_tb_status += "Unused deployment ships \u2013 "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
-    if "Chars" in list_deployment_types:
+    if "chars" in list_deployment_types:
         ret_print_tb_status += "Unused deployment squads \u2013 "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
     if "Mix" in list_deployment_types:
         ret_print_tb_status += "Unused deployment mix \u2013 "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
@@ -3973,43 +4047,47 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
 
     return zone_img
 
-def detect_tm(fevent_name, guildId):
+def detect_tm(fevent_name, fguild_name):
+    g=json.load(open(fguild_name,"r"))
+    guildId = g["guild"]["profile"]["id"]
+
+
     d=json.load(open(fevent_name,"r"))
-    sorted_d=dict(sorted(d.items(), key=lambda x:int(x[1]["Timestamp"])))
+    sorted_d=dict(sorted(d.items(), key=lambda x:int(x[1]["timestamp"])))
     dict_squads={}
     for id in sorted_d:
         event=d[id]
-        author=event["AuthorName"]
-        timestamp= int(int(event["Timestamp"])/1000)
+        author=event["authorName"]
+        timestamp= int(int(event["timestamp"])/1000)
         time=datetime.datetime.fromtimestamp(timestamp)
-        data=event["Data"][0]
+        data=event["data"][0]
         if data["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
             activity=data["activity"]
             if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
                 if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
-                    leader = activity["WarSquad"]["Squad"]["Cell"][0]["UnitDefId"].split(":")[0]
+                    leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
                     print(str(time)+" DEFENSE: "+author+" "+leader)
             else:
-                if activity["zoneData"]["GuildId"] == guildId:
-                    if "WarSquad" in activity:
-                        squad_id = activity["WarSquad"]["SquadId"]
-                        if "Squad" in activity["WarSquad"]:
-                            opponent=activity["WarSquad"]["PlayerName"]
-                            leader = activity["WarSquad"]["Squad"]["Cell"][0]["UnitDefId"].split(":")[0]
+                if activity["zoneData"]["guildId"] == guildId:
+                    if "warSquad" in activity:
+                        squad_id = activity["warSquad"]["squadId"]
+                        if "squad" in activity["warSquad"]:
+                            opponent=activity["warSquad"]["playerName"]
+                            leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
                             leader_opponent = leader+"@"+opponent
                             dict_squads[squad_id]=leader_opponent
                         else:
                             leader_opponent=dict_squads[squad_id]
 
-                        if activity["WarSquad"]["SquadStatus"]=="SQUADAVAILABLE":
+                        if activity["warSquad"]["squadStatus"]=="SQUADAVAILABLE":
                             count_dead=0
                             remaining_tm=False
-                            if "Squad" in activity["WarSquad"]:
-                                for cell in activity["WarSquad"]["Squad"]["Cell"]:
-                                    if cell["UnitState"]["HealthPercent"] == "0":
+                            if "squad" in activity["warSquad"]:
+                                for cell in activity["warSquad"]["squad"]["cell"]:
+                                    if cell["unitState"]["healthPercent"] == "0":
                                         count_dead+=1
-                                    if cell["UnitState"]["TurnPercent"] != "100" \
-                                        and cell["UnitState"]["TurnPercent"] != "0":
+                                    if cell["unitState"]["turnPercent"] != "100" \
+                                        and cell["unitState"]["turnPercent"] != "0":
                                         remaining_tm=True
 
                             sys.stdout.write(str(time)+" DEFAITE: "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
@@ -4018,14 +4096,14 @@ def detect_tm(fevent_name, guildId):
                             else:
                                 sys.stdout.write("\n")
 
-                        elif activity["WarSquad"]["SquadStatus"]=="SQUADDEFEATED":
-                            if "Squad" in activity["WarSquad"]:
+                        elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
+                            if "squad" in activity["warSquad"]:
                                 print(str(time)+" VICTOIRE: "+author+" "+leader_opponent)
-                        elif activity["WarSquad"]["SquadStatus"]=="SQUADLOCKED":
-                            if "Squad" in activity["WarSquad"]:
+                        elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
+                            if "squad" in activity["warSquad"]:
                                 print(str(time)+" DEBUT: "+author+" "+leader_opponent)
                         else:
-                            print(str(time)+" "+activity["WarSquad"]["SquadStatus"])
+                            print(str(time)+" "+activity["warSquad"]["squadStatus"])
                     else:
                         scoretotal = activity["zoneData"]["scoreTotal"]
                         print(str(time)+" Score: "+scoretotal)
@@ -4115,3 +4193,38 @@ def get_tb_alerts(server_id, force_latest):
 
     return tb_trigger_messages
     
+def get_tw_def_player(fevents_name, player_name):
+    tw_events = json.load(open(fevents_name, 'r'))
+    if "event" in tw_events:
+        #events from rpc, not in EVENTS
+        dict_tw_events = {}
+        for event in tw_events["event"]:
+            event_id = event["id"]
+            dict_tw_events[event_id] = event
+    else:
+        dict_tw_events = tw_events
+
+    dict_def = {}
+
+    for event_id in dict_tw_events:
+        event = dict_tw_events[event_id]
+        if "TERRITORY_WAR" in event["channelId"] \
+            and event["authorName"] == player_name \
+            and event["data"][0]["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY" \
+            and event["data"][0]["activity"]["zoneData"]["activityLogMessage"]["key"]=="TERRITORY_CHANNEL_ACTIVITY_CONFLICT_DEFENSE_DEPLOY":
+
+            #defense from the player
+            territory = event["data"][0]["activity"]["zoneData"]["zoneId"]
+            cur_def = [territory]
+            warSquad = event["data"][0]["activity"]["warSquad"]
+            for cell in warSquad["squad"]["cell"]:
+                cur_def.append([cell["unitDefId"], cell["unitId"]])
+            leader = cur_def[1][0]
+            dict_def[leader] = cur_def
+
+
+    for leader in dict_def:
+        print("---\n"+leader)
+        for element in dict_def[leader]:
+            print("   "+str(element))
+

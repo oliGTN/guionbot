@@ -748,7 +748,7 @@ def update_gwarstats(server_id):
     # in that case, duplicate current sheet as backup copy
     prev_round = int(feuille.get("B2")[0][0])
     prev_shortname = feuille.get("A4")[0][0].split("-")[0][:-1]
-    if prev_round != dict_phase["Round"]:
+    if prev_round != dict_phase["round"]:
         max_sheet_id = max([ws.id for ws in file.worksheets()])
         new_sheet_name=prev_shortname+" J"+str(prev_round)+" "+now.strftime("%d/%m")
         feuille.duplicate(insert_sheet_index=max_sheet_id+1, new_sheet_name=new_sheet_name)
@@ -757,7 +757,7 @@ def update_gwarstats(server_id):
     dict_tb = data.dict_tb
     cells = []
     cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["name"]))
-    cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["Round"]))
+    cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["round"]))
     cells.append(gspread.cell.Cell(row=1, col=8, value=now.strftime("%d/%m/%Y %H:%M:%S")))
 
     i_zone = 0
@@ -767,13 +767,13 @@ def update_gwarstats(server_id):
         cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=zone_shortname))
 
         zone_round = zone_fullname[-12]
-        if zone_round == str(dict_phase["Round"]):
+        if zone_round == str(dict_phase["round"]):
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value=""))
         else:
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value="!!! Phase "+zone_round))
 
         #zone stars
-        cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone["Stars"]))
+        cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone["stars"]))
 
         #zone star scores
         i_col = 1
@@ -783,9 +783,9 @@ def update_gwarstats(server_id):
 
         #zone scores (for the graph)
         cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=min(star_score, zone["score"])))
-        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["EstimatedStrikeScore"]))
+        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["estimatedStrikeScore"]))
         cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["deployment"]))
-        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["MaxStrikeScore"]))
+        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["maxStrikeScore"]))
 
         #zone strike stats
         for line in [19, 20, 21, 22, 23]:
@@ -804,7 +804,7 @@ def update_gwarstats(server_id):
             line+=1
         remaining_zone_strikes = (i_strike-1)*dict_phase["TotalPlayers"] - total_strikes
         cells.append(gspread.cell.Cell(row=27, col=5+2*i_zone, value=remaining_zone_strikes))
-        cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=zone["MaxStrikeScore"]))
+        cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=zone["maxStrikeScore"]))
 
         i_covert = 1
         for strike in dict_tb[zone_fullname]["coverts"]:
@@ -825,19 +825,19 @@ def update_gwarstats(server_id):
 
     #global stats
     #Remaining Deployments
-    if dict_tb[dict_phase["type"]]["Shortname"] == "ROTE":
+    if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
         cells.append(gspread.cell.Cell(row=26, col=1, value="Mix"))
         cells.append(gspread.cell.Cell(row=26, col=2, value=""))
-        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableMixDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["availableMixDeploy"]))
         cells.append(gspread.cell.Cell(row=27, col=2, value=""))
     else:
         cells.append(gspread.cell.Cell(row=26, col=1, value="Fleet"))
         cells.append(gspread.cell.Cell(row=26, col=2, value="Squad"))
-        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["AvailableShipDeploy"]))
-        cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["AvailableCharDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["availableShipDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["availableCharDeploy"]))
 
     #players
-    if dict_tb[dict_phase["type"]]["Shortname"] == "ROTE":
+    if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
         cells.append(gspread.cell.Cell(row=1, col=16, value="Mix deployment"))
         cells.append(gspread.cell.Cell(row=1, col=19, value=""))
 
@@ -850,7 +850,7 @@ def update_gwarstats(server_id):
         total_score = player["score"]["deployed"] + player["score"]["strikes"]
         cells.append(gspread.cell.Cell(row=line, col=15, value=total_score))
 
-        if dict_tb[dict_phase["type"]]["Shortname"] == "ROTE":
+        if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
             cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["deployedMix"]))
             cells.append(gspread.cell.Cell(row=line, col=17, value=player["mix_gp"]))
             cells.append(gspread.cell.Cell(row=line, col=19, value=""))

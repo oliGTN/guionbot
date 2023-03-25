@@ -12,7 +12,7 @@ from pytz import timezone
 import difflib
 import re
 from discord.ext import commands
-from discord import Activity, ActivityType, Intents, File, GroupChannel, errors as discorderrors
+from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
 from io import BytesIO
 from requests import get
 import traceback
@@ -154,19 +154,19 @@ def set_id_lastseen(event_name, server_id, player_id):
         if player_id in dict_member_lastseen[server_id]:
             dict_member_lastseen[server_id][player_id][1]=datetime.datetime.now(guild_timezone)
             alias = dict_member_lastseen[server_id][player_id][0]
-            goutils.log2("DBG", event_name+": guild="+str(server_id)+" user="+str(player_id)+" ("+alias+")")
+            #goutils.log2("DBG", event_name+": guild="+str(server_id)+" user="+str(player_id)+" ("+alias+")")
         else:
             goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+str(server_id))
     else:
         goutils.log2("WAR", "unknown guild="+str(server_id))
 
 ##############################################################
-# Function: bot_loop_60
+# Function: bot_loop_60secs
 # Parameters: none
 # Purpose: cette fonction est exécutée toutes les 60 secondes
 # Output: none
 ##############################################################
-async def bot_loop_60():
+async def bot_loop_60secs():
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
@@ -192,12 +192,49 @@ async def bot_loop_60():
                         list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
             
         except Exception as e:
-            goutils.log("ERR", "bot_loop_60", sys.exc_info()[0])
-            goutils.log("ERR", "bot_loop_60", e)
-            goutils.log("ERR", "bot_loop_60", traceback.format_exc())
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(None, "Exception in bot_loop_60:"+str(sys.exc_info()[0]))
+                await send_alert_to_admins(None, "Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
         
+        #UPDATE RPC data
+        query = "SELECT server_id FROM guild_bot_infos "
+        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min "
+        query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+
+        if not db_data==None:
+            for server_id in db_data:
+                #update RPC data before using different commands (tb alerts, tb_platoons)
+                try:
+                    await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False)
+                    await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, server_id)
+                    ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
+                    if ec!=0:
+                        goutils.log2("ERR", et)
+                    else:
+                        channel_id = ret_data[0]
+                        output_channel = bot.get_channel(channel_id)
+                        output_txt = ""
+                        for line in ret_data[1]:
+                            ts = line[0]
+                            txt = line[1]
+                            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+                            output_txt+=ts_txt+" - "+txt+"\n"
+                        if output_txt != "":
+                            output_txt = output_txt[:-1]
+                            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                                await output_channel.send("`"+txt+"`")
+
+                except Exception as e:
+                    goutils.log2("ERR", str(sys.exc_info()[0]))
+                    goutils.log2("ERR", e)
+                    goutils.log2("ERR", traceback.format_exc())
+                    if not bot_test_mode:
+                        await send_alert_to_admins(None, "Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
+
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 60 - (t_end - t_start))
@@ -258,63 +295,6 @@ def compute_territory_progress(dict_platoons, territory):
     return count
 
 ##############################################################
-# Function: bot_loop_1minute
-# Parameters: none
-# Purpose: executed every 1 minute
-# Output: none
-##############################################################
-async def bot_loop_1minute():
-    await bot.wait_until_ready()
-
-    while not bot.is_closed():
-        t_start = time.time()
-
-        query = "SELECT server_id FROM guild_bot_infos "
-        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min "
-        query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
-        goutils.log2("DBG", query)
-        db_data = connect_mysql.get_column(query)
-
-        if not db_data==None:
-            for server_id in db_data:
-                #update RPC data before using different commands (tb alerts, tb_platoons)
-                try:
-                    await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False)
-                    await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, server_id)
-                    ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
-                    if ec!=0:
-                        goutils.log2("ERR", et)
-                    else:
-                        channel_id = ret_data[0]
-                        output_channel = bot.get_channel(channel_id)
-                        output_txt = ""
-                        for line in ret_data[1]:
-                            ts = line[0]
-                            txt = line[1]
-                            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
-                            output_txt+=ts_txt+" - "+txt+"\n"
-                        if output_txt != "":
-                            output_txt = output_txt[:-1]
-                            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                                await output_channel.send("`"+txt+"`")
-
-                except Exception as e:
-                    goutils.log2("ERR", str(sys.exc_info()[0]))
-                    goutils.log2("ERR", e)
-                    goutils.log2("ERR", traceback.format_exc())
-                    if not bot_test_mode:
-                        await send_alert_to_admins(None, "Exception in bot_loop_1minute:"+str(sys.exc_info()[0]))
-
-
-        # Wait X seconds before next loop
-        t_end = time.time()
-        waiting_time = max(0, 60 - (t_end - t_start))
-        await asyncio.sleep(waiting_time)
-
-        #Ensure writing in logs
-        sys.stdout.flush()
-
-##############################################################
 # Function: bot_loop_5minutes
 # Parameters: none
 # Purpose: executed every 5 minutes
@@ -337,7 +317,7 @@ async def bot_loop_5minutes():
                     dict_tw_alerts_previously_done[guild.id] = [0, {}]
 
                 #CHECK ALERTS FOR TERRITORY WAR
-                list_tw_alerts = go.get_tw_alerts(guild.id)
+                list_tw_alerts = go.get_tw_alerts(guild.id, True)
                 if len(list_tw_alerts) > 0:
                     [channel_id, dict_messages] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
@@ -357,6 +337,8 @@ async def bot_loop_5minutes():
                                     await send_alert_to_admins(guild, territory+" is lost")
                                 elif territory.startswith('Placement:'):
                                     await send_alert_to_admins(guild, territory+" is filled")
+                                elif territory.startswith('Ordres:'):
+                                    await send_alert_to_admins(guild, territory+" has new orders")
                                 else:
                                     await send_alert_to_admins(guild, territory+" is open")
 
@@ -370,8 +352,13 @@ async def bot_loop_5minutes():
                             else:
                                 dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, 0]
                                 goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
-                        elif not territory.startswith('Placement:'):
+                        elif not territory.startswith('Placement:') \
+                             and not territory.startswith('Ordres:'):
+
                             #Placement alerts are only sent once, never modified
+                            #Home: may be modified
+                            #<None> (new open territory in attack) may be modified
+                            #Ordres: re-sent every time they change
 
                             [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
                             if old_msg_txt != msg_txt:
@@ -392,6 +379,18 @@ async def bot_loop_5minutes():
                                         dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
 
                                 goutils.log2("DBG", "["+guild.name+"] Modified TW alert sent to admins " \
+                                            +"and channel "+str(channel_id))
+
+                        elif territory.startswith('Ordres:'):
+                            #Ordres: re-sent every time they change
+
+                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
+                            if old_msg_txt != msg_txt:
+                                if not bot_test_mode:
+                                    new_msg = await tw_bot_channel.send(msg_txt)
+                                    dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
+
+                                goutils.log2("DBG", "["+guild.name+"] New orders for TW sent to admins " \
                                             +"and channel "+str(channel_id))
                 else:
                     goutils.log2("WAR", "["+guild.name+"] TW alerts could not be detected")
@@ -1044,13 +1043,11 @@ async def on_reaction_add(reaction, user):
         return
 
     message = reaction.message
-    if isinstance(message.channel, GroupChannel):
+    if isinstance(message.channel, DMChannel):
+        guild_name = "DM"
+    else:
         guild_name = message.channel.guild.name
         set_id_lastseen("on_reaction_add", reaction.message.channel.guild.id, user.id)
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(message.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
-        guild_name = "DM"
 
     author = message.author
     emoji = reaction.emoji
@@ -1106,7 +1103,7 @@ async def on_reaction_add(reaction, user):
 ##############################################################
 @bot.event
 async def on_message(message):
-    if isinstance(message.channel, GroupChannel):
+    if not isinstance(message.channel, DMChannel):
         set_id_lastseen("on_message", message.channel.guild.id, message.author.id)
 
     lower_msg = message.content.lower().strip()
@@ -1188,24 +1185,20 @@ async def on_typing(channel, user, when):
 @bot.event
 async def on_message_delete(message):
     #Unable to detect who is deleting a message
-    if isinstance(message.channel, GroupChannel):
-        channel_name = message.channel.name
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(message.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
+    if isinstance(message.channel, DMChannel):
         channel_name = "DM"
+    else:
+        channel_name = message.channel.name
 
     goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
                          "BEFORE:\n" + message.content)
 
 @bot.event
 async def on_message_edit(before, after):
-    if isinstance(before.channel, GroupChannel):
-        channel_name = before.channel.name
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(before.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(before.guild)))
+    if isinstance(before.channel, DMChannel):
         channel_name = "DM"
+    else:
+        channel_name = before.channel.name
 
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                          "BEFORE:\n" + before.content + "\n" +\
@@ -1230,12 +1223,10 @@ async def on_member_update(before, after):
 
 @bot.event
 async def on_user_update(before, after):
-    if isinstance(before.channel, GroupChannel):
-        guild_id = before.channel.guild.id
-    else:
-        goutils.log2("INFO", "Message type: "+str(type(before.channel)))
-        goutils.log2("INFO", "Message guild: "+str(type(message.guild)))
+    if isinstance(before.channel, DMChannel):
         guild_id = "DM"
+    else:
+        guild_id = before.channel.guild.id
 
     set_id_lastseen("on_user_update", guild_id, before.id)
 
@@ -1250,22 +1241,37 @@ async def on_voice_state_update(member, before, after):
 ##############################################################
 
 ##############################################################
+# Function: <role>_allowed
+# Parameters: ctx (objet Contexte)
+# Purpose: check is the user linked to ctx has the right role
+#          in test mode, onluy the admins are allowed to launch commands
+# Output: True/False
+##############################################################
+def admin_command(ctx):
+    return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
+def member_command(ctx):
+    is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+    return (not bot_test_mode) or is_owner
+def officer_command(ctx):
+    ret_is_officer = False
+    dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+    #print(dict_players_by_ID)
+    #print(ctx.author.id)
+    if str(ctx.author.id) in dict_players_by_ID:
+        if dict_players_by_ID[str(ctx.author.id)][1]:
+            ret_is_officer = True
+
+    is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+
+    return (ret_is_officer and (not bot_test_mode)) or is_owner
+
+##############################################################
 # Class: AdminCog
 # Description: contains all admin commands
 ##############################################################
 class AdminCog(commands.Cog, name="Commandes pour les admins"):
     def __init__(self, bot):
         self.bot = bot
-
-    ##############################################################
-    # Function: is_owner
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si le contexte appartient à un admin du bot
-    #          Le but est de limiter certains commandes aux développeurs
-    # Output: True/False
-    ##############################################################
-    async def is_owner(ctx):
-        return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
 
     ##############################################################
     # Command: cmd
@@ -1278,8 +1284,8 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #            (c'est pour ça qu'elle est réservée aux développeurs)
     # Display: output de la ligne de commande, comme dans une console
     ##############################################################
-    @commands.command(name='cmd', help='Lance une ligne de commande sur le serveur')
-    @commands.check(is_owner)
+    @commands.command(name='cmd', help='Lance une ligne de commande sur le serveur du bot')
+    @commands.check(admin_command)
     async def cmd(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1299,7 +1305,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Display: statut si le bot est ON, avec taille du CACHE
     ##############################################################
     @commands.command(name='info', help='Statut du bot')
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def info(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1338,7 +1344,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Display: output de la requête, s'il y en a un
     ##############################################################
     @commands.command(name='sql', help='Lance une requête SQL dans la database')
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def sql(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1369,7 +1375,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  help="Force la synchro API d'un Joueur\n\n"\
                       "Exemple: go.fsj 123456789\n"\
                       "Exemple: go.fsj me clearcache")
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def fsj(self, ctx, allyCode, *options):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -1435,7 +1441,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     # Display: ça dépend
     #############################################################
     @commands.command(name='test', help='Réservé aux admins')
-    @commands.check(is_owner)
+    @commands.check(admin_command)
     async def test(self, ctx, *args):
         #get warstats_id from DB
         query = "SELECT warstats_id, tbChanRead_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
@@ -1458,225 +1464,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
-# Class: OfficerCog
-# Description: contains all officer commands
+# Class: ServerCog
+# Description: contains all commands linked to the server and its warbot
 ##############################################################
-class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
+class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à son warbot"):
     def __init__(self, bot):
         self.bot = bot
-
-    ##############################################################
-    # Function: is_officer
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si le contexte appartient à un officier
-    #          Le but est de limiter certains commandes aux officiers
-    # Output: True/False
-    ##############################################################
-    async def is_officer(ctx):
-        ret_is_officer = False
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
-        #print(dict_players_by_ID)
-        #print(ctx.author.id)
-        if str(ctx.author.id) in dict_players_by_ID:
-            if dict_players_by_ID[str(ctx.author.id)][1]:
-                ret_is_officer = True
-
-        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
-
-        return (ret_is_officer and (not bot_test_mode)) or is_owner
-
-    ##############################################################
-    # Command: lgs
-    # Parameters: None
-    # Purpose: Update cache files from google sheet, and JSON files from API
-    # Display: None
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='lgs', brief="Lit les dernières infos du google sheet",
-                             help="Lit les dernières infos du google sheet")
-    async def lgs(self, ctx):
-        await ctx.message.add_reaction(emoji_thumb)
-        data.reset_data()
-        err_code, err_txt = read_gsheets(ctx.guild.id)
-
-        if err_code == 1:
-            await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            await ctx.message.add_reaction(emoji_check)
-
-    ##############################################################
-    # Command: rrg
-    # Parameters: nom du raid, tel que défini dans le fichier gsheets
-    # Purpose: Affichage des scores en fonction des teams du joueur
-    # Display: Une ligne par joueur, avec ses teams et son score
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='rrg',
-                 brief="Résultats de raid de Guilde",
-                 help="Résultats de raid de Guilde\n\n"
-                      "Exemple : go.rrg me crancor")
-    async def rrg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
-        if len(args) == 3:
-            if args[2].startswith('no'):
-                display_mentions=False
-                output_channel = ctx.message.channel
-            else:
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[2])
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
-        elif len(args) == 2:
-            display_mentions=False
-            output_channel = ctx.message.channel
-        else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rrg")
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        allyCode = args[0]
-        raid_name = args[1]
-
-        allyCode = manage_me(ctx, allyCode)
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            err, errtxt, ret_cmd = go.print_raid_progress(allyCode, ctx.guild.id, raid_name, display_mentions)
-            if err != 0:
-                await ctx.send(errtxt)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                output_part = 0
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    if txt.startswith("__Rappels"):
-                        output_part = 1
-                    if "*phase en cours*" in txt:
-                        output_part = 2
-
-                    if output_part == 0:
-                        await ctx.send("```"+txt+"```")
-                    else: # 1 or 2
-                        await ctx.send(txt)
-                        if (output_channel != ctx.message.channel) and (output_part == 2):
-                            await output_channel.send(txt)
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
-
-    ##############################################################
-    # Command: rbg
-    # Parameters: name of the TB (GDS, HLS...)
-    # Purpose: Display results by player depending on whcih teams they have
-    # Display: One line per player, with emojis
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='trg',
-                 brief="Teams de Raid de Guilde",
-                 help="Teams de Raid de Guilde\n\n"
-                      "Exemple : go.trg me crancor")
-    async def trg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        if len(args) != 2:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help trg")
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        allyCode = args[0]
-        raid_name = args[1]
-
-        allyCode = manage_me(ctx, allyCode)
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
-                                                    go.find_best_teams_for_raid,
-                                                    allyCode, ctx.guild.id, raid_name, True)
-            if err !=0:
-                await ctx.send(txt)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                output_txt = ""
-                for pname in dict_best_teams:
-                    lbts = dict_best_teams[pname]
-                    output_txt += "**" + pname + "**: " + str(lbts[0]) + "\n"
-
-                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                    await ctx.send(txt)
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
-
-    ##############################################################
-    # Command: rbg
-    # Parameters: name of the TB (GDS, HLS...)
-    # Purpose: Display results by player depending on whcih teams they have
-    # Display: One line per player, with emojis
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='rbg',
-                 brief="Résultats de BT de Guilde",
-                 help="Résultats de BT de Guilde\n\n"
-                      "Exemple : go.rbg me GLS")
-    async def rbg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
-        if len(args) == 3:
-            if args[2].startswith('no'):
-                display_mentions=False
-                output_channel = ctx.message.channel
-            else:
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[2])
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
-        elif len(args) == 2:
-            display_mentions=False
-            output_channel = ctx.message.channel
-        else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rbg")
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        allyCode = args[0]
-        tb_name = args[1]
-
-        allyCode = manage_me(ctx, allyCode)
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, ctx.guild.id, tb_name, display_mentions)
-            if err != 0:
-                await ctx.send(errtxt)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                output_part = 0
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    if txt.startswith("__Rappels"):
-                        output_part = 1
-
-                    if output_part == 0:
-                        await ctx.send("```"+txt+"```")
-                    else:
-                        await ctx.send(txt)
-                        if output_channel != ctx.message.channel:
-                            await output_channel.send(txt)
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
-
 
     ##############################################################
     # Command: vdp
@@ -1685,7 +1478,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
     #          avec un groupement par phase puis un tri par joueur
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='vdp',
                  brief="Vérification de Déploiement des Pelotons en BT",
                  help="Vérification de Déploiement des Pelotons en BT\n\n"\
@@ -1836,13 +1629,388 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
             await ctx.message.add_reaction(emoji_check)
         
+    @commands.command(name='bot.enable',
+            brief="Active le compte bot pour permettre de suivre la guilde",
+            help="Active le compte bot pour permettre de suivre la guilde")
+    async def botenable(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.unlock_bot_account(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.command(name='bot.disable',
+            brief="Désactive le compte bot pour permettre de le jouer",
+            help="Désactive le compte bot pour permettre de le jouer")
+    async def botdisable(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.lock_bot_account(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.command(name='bot.joinraids',
+            brief="Inscrit le bot à tous les raids disponibles",
+            help="Inscrit le bot à tous les raids disponibles")
+    async def botjoinraids(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.join_raids(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.check(officer_command)
+    @commands.command(name='tbrappel',
+            brief="Tag les joueurs qui n'ont pas tout déployé en BT",
+            help="go.tbrappel")
+    async def tbrappel(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 1:
+            if args[0].startswith('no'):
+                display_mentions=False
+                output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+        else:
+            display_mentions=False
+            output_channel = ctx.message.channel
+
+        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, connect_rpc.tag_tb_undeployed_players, ctx.guild.id, False)
+        if err_code == 0:
+            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
+            output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
+            for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
+                if (p in dict_players_by_IG) and display_mentions:
+                    p_name = dict_players_by_IG[p][1]
+                else:
+                    p_name= "**" + p + "**"
+                output_txt += p_name+": "+txt+"\n"
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await output_channel.send(txt)
+
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    @commands.check(officer_command)
+    @commands.command(name='tbs',
+            brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
+            help="TB status \"2:1 3:3 1:2\" [-estime]")
+    async def tbs(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        options = list(args)
+        estimate_fights = False
+        for arg in options:
+            if arg.startswith("-e"):
+                estimate_fights = True
+                options.remove(arg)
+
+        if len(options) == 0:
+            tb_phase_target = ""
+        else:
+            tb_phase_target = options[0]
+
+        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.id, tb_phase_target, estimate_fights, False)
+        if err_code == 0:
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+            if images != None:
+                for image in images:
+                    with BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        await ctx.send(content = "",
+                            file=File(fp=image_binary, filename='image.png'))
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    ##############################################################
+    # Command: spgt
+    # Parameters: zone shortname or "all" / alias of a character
+    # Purpose: stats of a character/ship for the TW opponents
+    # Display: one line per opponent player
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='spgt',
+                 brief="Stats de Perso de l'adversaire en GT",
+                 help="Stats de Perso de l'adversaire en GT\n\n"\
+                      "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
+                      "Exemple: go.spg all JMK\n"\
+                      "Exemple: go.spg F1 -v Executor")
+    async def spgt(self, ctx, tw_zone, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if not tw_zone in ['all']+list(data.dict_tw.keys()):
+            await ctx.send("ERR: zone TW inconnue")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        list_options = []
+        list_characters = []
+        for item in characters:
+            if item[0] == "-":
+                list_options.append(item)
+            else:
+                list_characters.append(item)
+        
+        if len(list_characters) > 0:
+            if len(list_options) <= 1:
+                ret_cmd = await bot.loop.run_in_executor(None,
+                    go.print_character_stats, list_characters,
+                    list_options, "", True, ctx.guild.id, tw_zone)
+            else:
+                ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
+        else:
+            ret_cmd = 'ERR: merci de préciser perso'
+            
+        if ret_cmd[0:3] == 'ERR':
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            #texte classique
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                await ctx.send("```"+txt+"```")
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+
+##############################################################
+# Class: OfficerCog
+# Description: contains all officer commands
+##############################################################
+class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
+    def __init__(self, bot):
+        self.bot = bot
+
+    ##############################################################
+    # Command: lgs
+    # Parameters: None
+    # Purpose: Update cache files from google sheet, and JSON files from API
+    # Display: None
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='lgs', brief="Lit les dernières infos du google sheet",
+                             help="Lit les dernières infos du google sheet")
+    async def lgs(self, ctx):
+        await ctx.message.add_reaction(emoji_thumb)
+        data.reset_data()
+        err_code, err_txt = read_gsheets(ctx.guild.id)
+
+        if err_code == 1:
+            await ctx.send(err_txt)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: rrg
+    # Parameters: nom du raid, tel que défini dans le fichier gsheets
+    # Purpose: Affichage des scores en fonction des teams du joueur
+    # Display: Une ligne par joueur, avec ses teams et son score
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='rrg',
+                 brief="Résultats de raid de Guilde",
+                 help="Résultats de raid de Guilde\n\n"
+                      "Exemple : go.rrg me crancor")
+    async def rrg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 3:
+            if args[2].startswith('no'):
+                display_mentions=False
+                output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[2])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+        elif len(args) == 2:
+            display_mentions=False
+            output_channel = ctx.message.channel
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rrg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = args[0]
+        raid_name = args[1]
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, errtxt, ret_cmd = go.print_raid_progress(allyCode, ctx.guild.id, raid_name, display_mentions)
+            if err != 0:
+                await ctx.send(errtxt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                output_part = 0
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    if txt.startswith("__Rappels"):
+                        output_part = 1
+                    if "*phase en cours*" in txt:
+                        output_part = 2
+
+                    if output_part == 0:
+                        await ctx.send("```"+txt+"```")
+                    else: # 1 or 2
+                        await ctx.send(txt)
+                        if (output_channel != ctx.message.channel) and (output_part == 2):
+                            await output_channel.send(txt)
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: rbg
+    # Parameters: name of the TB (GDS, HLS...)
+    # Purpose: Display results by player depending on whcih teams they have
+    # Display: One line per player, with emojis
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='trg',
+                 brief="Teams de Raid de Guilde",
+                 help="Teams de Raid de Guilde\n\n"
+                      "Exemple : go.trg me crancor")
+    async def trg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) != 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help trg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = args[0]
+        raid_name = args[1]
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, txt, dict_best_teams = await bot.loop.run_in_executor(None,
+                                                    go.find_best_teams_for_raid,
+                                                    allyCode, ctx.guild.id, raid_name, True)
+            if err !=0:
+                await ctx.send(txt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                output_txt = ""
+                for pname in dict_best_teams:
+                    lbts = dict_best_teams[pname]
+                    output_txt += "**" + pname + "**: " + str(lbts[0]) + "\n"
+
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send(txt)
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: rbg
+    # Parameters: name of the TB (GDS, HLS...)
+    # Purpose: Display results by player depending on whcih teams they have
+    # Display: One line per player, with emojis
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='rbg',
+                 brief="Résultats de BT de Guilde",
+                 help="Résultats de BT de Guilde\n\n"
+                      "Exemple : go.rbg me GLS")
+    async def rbg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        display_mentions=True
+        #Sortie sur un autre channel si donné en paramètre
+        if len(args) == 3:
+            if args[2].startswith('no'):
+                display_mentions=False
+                output_channel = ctx.message.channel
+            else:
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[2])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+        elif len(args) == 2:
+            display_mentions=False
+            output_channel = ctx.message.channel
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rbg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode = args[0]
+        tb_name = args[1]
+
+        allyCode = manage_me(ctx, allyCode)
+                
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            err, errtxt, ret_cmd = go.print_tb_progress(allyCode, ctx.guild.id, tb_name, display_mentions)
+            if err != 0:
+                await ctx.send(errtxt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                output_part = 0
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    if txt.startswith("__Rappels"):
+                        output_part = 1
+
+                    if output_part == 0:
+                        await ctx.send("```"+txt+"```")
+                    else:
+                        await ctx.send(txt)
+                        if output_channel != ctx.message.channel:
+                            await output_channel.send(txt)
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+
+
     ##############################################################
     # Command: platoons
     # Parameters: alias of the character to find
     # Purpose: Tag all players in the guild which own the selected character
     # Display: One line with all discord tags
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='platoons',
                  brief="Affecte les pelotons pour la BT",
                  help="Affecte les pelotons pour la BT\n\n"\
@@ -1899,67 +2067,12 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
-    # Command: srg
-    # Parameters: minimum relic level
-    # Purpose: display the PG for DS and LS characters above a minimum relic level
-    # Display: the total PG for DS, LS and total
-    ##############################################################
-    @commands.check(is_officer)
-    @commands.command(name='srg',
-                 brief="Synthèse de PG pour un niveau de Relic dans la Guilde",
-                 help="Synthèse de PG pour un niveau de Relic dans la Guilde\n\n"\
-                      "Exemple : go.srg me R5")
-    async def srg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        #Check arguments
-        args = list(args)
-
-        if len(args) == 2:
-            allyCode = args[0]
-            relic_min = args[1]
-        else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help srg")
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        allyCode = manage_me(ctx, allyCode)
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        if relic_min[0] != 'R' or not relic_min[1:].isnumeric():
-            await ctx.send("ERR: relic minimum incorect")
-            await ctx.message.add_reaction(emoji_error)
-            return
-        relic_min = relic_min[1:]
-
-        query = "SELECT guildName, " \
-              + "ROUND(sum(CASE WHEN forceAlignment<>3 THEN gp ELSE 0 END)/1000000,1) as 'PG DS/N', " \
-              + "ROUND(sum(CASE WHEN forceAlignment<>2 THEN gp ELSE 0 END)/1000000,1) as 'PG LS/N', " \
-              + "ROUND(sum(gp)/1000000,1) as 'PG' " \
-              + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+allyCode+"') " \
-              + "AND (relic_currentTier-2)>="+relic_min+" " \
-              + "group by guildName "
-        goutils.log2("DBG", query)
-        output = connect_mysql.text_query(query)
-        output_txt = ""
-        for row in output:
-            output_txt+=str(row)+'\n'
-        await ctx.send('`' + output_txt + '`')
-
-        await ctx.message.add_reaction(emoji_check)
-
-    ##############################################################
     # Command: tpg
     # Parameters: alias of the character to find
     # Purpose: Tag all players in the guild which own the selected character
     # Display: One line with all discord tags
     ##############################################################
-    @commands.check(is_officer)
+    @commands.check(officer_command)
     @commands.command(name='tpg',
                  brief="Tag les possesseurs d'un Perso dans la Guilde",
                  help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
@@ -2005,115 +2118,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emoji_check)
 
-    @commands.command(name='enablebot',
-            brief="Active le compte bot pour permettre de suivre la guilde",
-            help="Active le compte bot pour permettre de suivre la guilde")
-    async def enablebot(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        ec, et = connect_rpc.unlock_bot_account(ctx.guild.id)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
-        await ctx.message.add_reaction(emoji_check)
-
-    @commands.command(name='disablebot',
-            brief="Désactive le compte bot pour permettre de le jouer",
-            help="Désactive le compte bot pour permettre de le jouer")
-    async def disablebot(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        ec, et = connect_rpc.lock_bot_account(ctx.guild.id)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
-        await ctx.message.add_reaction(emoji_check)
-
-    @commands.check(is_officer)
-    @commands.command(name='tbrappel',
-            brief="Tag les joueurs qui n'ont pas tout déployé en BT",
-            help="go.tbrappel")
-    async def tbrappel(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
-        if len(args) == 1:
-            if args[0].startswith('no'):
-                display_mentions=False
-                output_channel = ctx.message.channel
-            else:
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
-        else:
-            display_mentions=False
-            output_channel = ctx.message.channel
-
-        err_code, ret_txt, lines = await bot.loop.run_in_executor(None, connect_rpc.tag_tb_undeployed_players, ctx.guild.id, False)
-        if err_code == 0:
-            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
-            output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
-            for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
-                if (p in dict_players_by_IG) and display_mentions:
-                    p_name = dict_players_by_IG[p][1]
-                else:
-                    p_name= "**" + p + "**"
-                output_txt += p_name+": "+txt+"\n"
-
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await output_channel.send(txt)
-
-            await ctx.message.add_reaction(emoji_check)
-        else:
-            await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emoji_error)
-
-    @commands.check(is_officer)
-    @commands.command(name='tbs',
-            brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
-            help="TB status \"2:1 3:3 1:2\" [-estime]")
-    async def tbs(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        options = list(args)
-        estimate_fights = False
-        for arg in options:
-            if arg.startswith("-e"):
-                estimate_fights = True
-                options.remove(arg)
-
-        if len(options) == 0:
-            tb_phase_target = ""
-        else:
-            tb_phase_target = options[0]
-
-        err_code, ret_txt, images = await bot.loop.run_in_executor(None, go.print_tb_status, ctx.guild.id, tb_phase_target, estimate_fights, False)
-        if err_code == 0:
-            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                await ctx.send(txt)
-
-            if images != None:
-                for image in images:
-                    with BytesIO() as image_binary:
-                        image.save(image_binary, 'PNG')
-                        image_binary.seek(0)
-                        await ctx.send(content = "",
-                            file=File(fp=image_binary, filename='image.png'))
-
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
-        else:
-            await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emoji_error)
-
 ##############################################################
 # Class: MemberCog
 # Description: contains all member commands
@@ -2122,18 +2126,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     def __init__(self, bot):
         self.bot = bot
 
-    ##############################################################
-    # Function: command_allowed
-    # Parameters: ctx (objet Contexte)
-    # Purpose: vérifie si on est en mode test
-    #          En mode test, seuls les admins peuvent lancer des commandes
-    # Output: True/False
-    ##############################################################
-    async def command_allowed(ctx):
-        is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
-        return (not bot_test_mode) or is_owner
-
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='register',
                       brief="Lie un code allié au compte discord qui lance la commande",
                       help="Lie un code allié au compte discord qui lance la commande\n\n"\
@@ -2183,7 +2176,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     #          pareil pour sa guild
     #          et des liens (swgoh.gg ou warstats)
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='qui',
                       brief="Identifie un joueur et sa guilde",
                       help="Identifie un joueur et sa guilde\n\n"\
@@ -2269,7 +2262,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Un tableau avec un joueur par ligne et des peros + stats en colonne
     #          ou plusieurs tableaux à la suite si plusieurs teams
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='vtg',
                       brief="Vérifie la dispo d'une team dans la guilde",
                       help="Vérifie la dispo d'une team dans la guilde\n\n"\
@@ -2316,7 +2309,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Une ligne par joueur avec des peros + stats en colonne
     #          ou plusieurs ligne à la suite si plusieurs teams
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='vtj',
                  brief="Vérifie la dispo d'une ou plusieurs teams chez un joueur",
                  help="Vérifie la dispo d'une ou plusieurs teams chez un joueur\n\n"\
@@ -2362,7 +2355,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='fegv',
                  brief="Donne les Farming d'Eclats pour le Guide de Voyage",
                  help="Donne les Farmings d'Eclats pour le Guide de Voyage\n\n"\
@@ -2387,7 +2380,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(ret_cmd)
 
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ftj',
                  brief="Donne le progrès de farming d'une team chez un joueur",
                  help="Donne le progrès de farming d'une team chez un joueur\n\n"\
@@ -2418,7 +2411,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Une ligne par requis du guide de voyage
     #          un score global à la fin
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gvj',
                  brief="Donne le progrès dans le guide de voyage pour un perso chez un joueur",
                  help="Donne le progrès dans le guide de voyage pour un perso chez un joueur\n\n"\
@@ -2455,7 +2448,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: Progrès dans le guide de voyage pour un perso
     # Display: Une ligne par perso - joueur, avec son score
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gvg',
                  brief="Donne le progrès dans le guide de voyage pour une perso dans la guilde",
                  help="Donne le progrès dans le guide de voyage pour une perso dans la guilde\n\n"\
@@ -2492,7 +2485,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: Progrès dans le guide de voyage pour un perso dans le shard
     # Display: Une ligne par joueur, avec son score
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gvs',
                  brief="Donne le progrès dans le guide de voyage pour un perso dans le shard",
                  help="Donne le progrès dans le guide de voyage pour un perso dans le shard\n\n"\
@@ -2530,7 +2523,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: Un premier tableau donnant la dispo des équipes utilisées en counter
     #          Un 2e tableau donnant les possibilités de counter contre des équipes données
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='scg',
                  brief="Capacité de contre de la guilde",
                  help="Capacité de contre de la guilde\n\n"\
@@ -2564,7 +2557,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: stats vitesse et pouvoir d'un perso
     # Display: la vitess et le pouvoir
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
@@ -2595,7 +2588,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(list_options) <= 1:
                 ret_cmd = await bot.loop.run_in_executor(None,
                     go.print_character_stats, list_characters,
-                    list_options, allyCode, False)
+                    list_options, allyCode, False, None, None)
             else:
                 ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
                 
@@ -2616,13 +2609,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: stats vitesse et pouvoir d'un perso sur toute la guilde
     # Display: la vitess et le pouvoir
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='spg',
                  brief="Stats de Perso d'une Guilde",
                  help="Stats de Perso d'une Guilde\n\n"\
                       "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
                       "Exemple: go.spg 123456789 JKR\n"\
-                      "Exemple: go.spj me -v \"Dark Maul\"")
+                      "Exemple: go.spg me -v \"Dark Maul\"")
     async def spg(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -2644,7 +2637,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 if len(list_options) <= 1:
                     ret_cmd = await bot.loop.run_in_executor(None,
                         go.print_character_stats, list_characters,
-                        list_options, allyCode, True)
+                        list_options, allyCode, True, None, None)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
             else:
@@ -2667,7 +2660,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: graph de distribution des PG des membres de la guilde
     # Display: graph (#=actif, .=inactif depuis 36 heures)
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gdp',
                  brief="Graphique des PG d'une guilde",
                  help="Graphique des PG d'une guilde\n\n"\
@@ -2711,7 +2704,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: graph de progrès de GV du perso
     # Display: graph
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ggv',
                  brief="Graphique de GV d'un perso",
                  help="Graphique de GV d'un perso\n\n"\
@@ -2767,7 +2760,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: graph de progrès de modq du joueur
     # Display: graph
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gmj',
                  brief="Graphique de Modq d'un Joueur",
                  help="Graphique de Modq d'un Joueur\n\n"\
@@ -2801,7 +2794,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher une image des portraits choisis
     # Display: l'image produite
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ppj',
                  brief="Portraits de Perso d'un Joueur",
                  help="Portraits de Perso d'un Joueur\n"\
@@ -2851,7 +2844,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: afficher une image avec les 2 équipes et un "SUCCESS"
     # Display: l'image produite
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='rgt',
                  brief="Image d'un Résultat en Guerre de Territoire",
                  help="Image d'un Résultat en Guerre de Territoire\n"\
@@ -2944,7 +2937,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     #          et la position du joueur dans ce graph
     # Display: l'image du graph
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='gsp',
                  brief="Graphique d'une Statistique d'un Perso",
                  help="Graphique d'une Statistique d'un Perso\n"\
@@ -2987,7 +2980,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: summary of roster evolution for a player
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='erj',
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
@@ -3020,7 +3013,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: summary of roster evolution for a guild
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='erg',
                  brief="Evolution du Roster d'un Joueur",
                  help="Evolution du roster d'un joueur sur X jours\n"\
@@ -3053,7 +3046,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: list of omicrons of a player
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='loj',
                  brief="Liste des Omicrons d'un Joueur",
                  help="Liste des Omicrons d'un Joueur\n"\
@@ -3090,7 +3083,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: list of omicrons of a guild
     # Display: list
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='log',
                  brief="Liste des Omicrons d'une Guilde",
                  help="Liste des Omicrons d'une Guilde\n"\
@@ -3127,7 +3120,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: give a recommendation of teams per player in defense
     # Display: one recommendation per group of 1M of PG
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='ntg',
                  brief="Nombre de Teams en GT",
                  help="Nombre de Teams en GT\n\n"\
@@ -3211,7 +3204,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # IN: name of the payer, name of the raid
     # OUT: a line with the teams for the payer to make the best score
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='trj',
                  brief="Teams de Raid du Joueur",
                  help="Teams de Raid du Joueur\n\n"
@@ -3260,7 +3253,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: compte les persos listés groupés par étoiles et gear
     # Display: un tableau
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='cpg', help="Compte les GLs d'une Guilde")
     async def info(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -3318,7 +3311,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: manage members of player's shard
     # Display: depending of the sub-command
     ##############################################################
-    @commands.check(command_allowed)
+    @commands.check(member_command)
     @commands.command(name='shard', brief="Gère les shards du joueur",
                  help="Gère les shards du joueur\n"\
                       "Exemple : go.shard me char 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de persos"\
@@ -3431,16 +3424,16 @@ def main():
     #Create periodic tasks
     goutils.log2("INFO", "Create tasks...")
     if not bot_noloop_mode:
-        bot.loop.create_task(bot_loop_60())
-        bot.loop.create_task(bot_loop_60minutes())
-        bot.loop.create_task(bot_loop_10minutes())
+        bot.loop.create_task(bot_loop_60secs())
         bot.loop.create_task(bot_loop_5minutes())
-        bot.loop.create_task(bot_loop_1minute())
+        bot.loop.create_task(bot_loop_10minutes())
+        bot.loop.create_task(bot_loop_60minutes())
         bot.loop.create_task(bot_loop_6hours())
 
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
     bot.add_cog(AdminCog(bot))
+    bot.add_cog(ServerCog(bot))
     bot.add_cog(OfficerCog(bot))
     bot.add_cog(MemberCog(bot))
 
