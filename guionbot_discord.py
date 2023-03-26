@@ -1218,17 +1218,17 @@ async def on_member_join(member):
 @bot.event
 async def on_member_update(before, after):
     set_id_lastseen("on_member_update", before.guild.id, before.id)
+    if before.avatar != after.avatar:
+        goutils.log2("INFO", "Avatar change  for "+after.display_name)
     if before.display_name != after.display_name:
         goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 @bot.event
 async def on_user_update(before, after):
-    if isinstance(before.channel, DMChannel):
-        guild_id = "DM"
-    else:
-        guild_id = before.channel.guild.id
-
-    set_id_lastseen("on_user_update", guild_id, before.id)
+    if before.avatar != after.avatar:
+        goutils.log2("INFO", "Avatar change  for "+after.display_name)
+    if before.display_name != after.display_name:
+        goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
