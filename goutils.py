@@ -280,7 +280,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
         line_defId = line[1]
         if cur_defId != line_defId:
             if line_defId in dict_unitsList:
-                line_nameKey = dict_unitsList[line_defId]['nameKey']
+                line_nameKey = dict_unitsList[line_defId]['name']
             else:
                 line_nameKey = line_defId
             line_combatType = line[2]
@@ -310,7 +310,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
         line_defId = line[1]
         if cur_defId != line_defId:
             if line_defId in dict_unitsList:
-                line_nameKey = dict_unitsList[line_defId]['nameKey']
+                line_nameKey = dict_unitsList[line_defId]['name']
             else:
                 line_nameKey = line_defId
             line_combatType = line[2]
@@ -676,7 +676,7 @@ def get_characters_from_alias(list_alias):
                         char_with_omicron = True
                 if char_with_omicron:
                     list_ids.append(char_id)
-                    char_name = dict_unitsList[char_id]["nameKey"]
+                    char_name = dict_unitsList[char_id]["name"]
                     dict_id_name[character_alias].append([char_id, char_name])
 
         elif character_alias.startswith("tag:"):
@@ -697,21 +697,32 @@ def get_characters_from_alias(list_alias):
                 combatType = 2
             else:
                 #Alias of tag / faction for characters and ships
-                tag_alias = character_alias[5:]
+                tag_alias = character_alias[4:]
                 combatType = 0
 
-            closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
-            if len(closest_names)<1:
-                log2('WAR', "No tag found for "+tag_alias)
-                txt_not_found_characters += character_alias + ' '
-            else:
+            if tag_alias == "all":
                 dict_id_name[character_alias] = []
-                for [character_id, character_name, char_ct] in dict_tagAlias[closest_names[0]]:
+                for character_id in dict_unitsList:
+                    character_name = dict_unitsList[character_id]["name"]
+                    char_ct = dict_unitsList[character_id]["combatType"]
                     if combatType == 0 or (combatType == char_ct):
                         if not character_id in list_ids:
                             list_ids.append(character_id)
                         if not [character_id, character_name] in dict_id_name[character_alias]:
                             dict_id_name[character_alias].append([character_id, character_name])
+            else:
+                closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
+                if len(closest_names)<1:
+                    log2('WAR', "No tag found for "+tag_alias)
+                    txt_not_found_characters += character_alias + ' '
+                else:
+                    dict_id_name[character_alias] = []
+                    for [character_id, character_name, char_ct] in dict_tagAlias[closest_names[0]]:
+                        if combatType == 0 or (combatType == char_ct):
+                            if not character_id in list_ids:
+                                list_ids.append(character_id)
+                            if not [character_id, character_name] in dict_id_name[character_alias]:
+                                dict_id_name[character_alias].append([character_id, character_name])
         else:
             #First look for exact match (better for performance)
             if character_alias.lower() in dict_unitAlias:

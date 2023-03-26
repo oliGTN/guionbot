@@ -298,7 +298,7 @@ def parse_tb_platoons(server_id, use_cache_data):
                         for unit in squad["unit"]:
                             unit_id = unit["unitIdentifier"]
                             unit_defId = unit_id.split(":")[0]
-                            unit_name = dict_unitsList[unit_defId]["nameKey"]
+                            unit_name = dict_unitsList[unit_defId]["name"]
 
                             if not unit_name in dict_platoons[platoon_name]:
                                 dict_platoons[platoon_name][unit_name] = []

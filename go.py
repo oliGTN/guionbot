@@ -183,7 +183,8 @@ def load_player(txt_allyCode, force_update, no_db):
         else:
             recent_player = 0
 
-        json_file = "PLAYERS_RPC"+os.path.sep+txt_allyCode+".json"
+        json_file = "PLAYERS"+os.path.sep+txt_allyCode+".json"
+        #json_file = "PLAYERS_RPC"+os.path.sep+txt_allyCode+".json"
         goutils.log2("INFO", 'reading file ' + json_file + '...')
         if os.path.isfile(json_file):
             if os.path.getsize(json_file) == 0:
@@ -202,7 +203,8 @@ def load_player(txt_allyCode, force_update, no_db):
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting API data for player ' + txt_allyCode + '...')
         if client != None:
-            player_data = connect_rpc.get_player(txt_allyCode)
+            player_data = client.get_data('player', [txt_allyCode], 'FRE_FR')
+            #player_data = connect_rpc.get_player(txt_allyCode)
         else:
             goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
             player_data = [prev_dict_player]
@@ -1409,9 +1411,9 @@ def print_fegv(txt_allyCode):
     ret_print_fegv = ""
     for line in ret_db:
         gv_target_id = line[0][:-3]
-        gv_target_name = dict_unitsList[gv_target_id]['nameKey']
+        gv_target_name = dict_unitsList[gv_target_id]['name']
         character_id = line[1]
-        character_name = dict_unitsList[character_id]['nameKey']
+        character_name = dict_unitsList[character_id]['name']
         character_display = "["+gv_target_name+"] "+character_name+" "+str(line[3])+"/"+str(line[2])+" étoiles"
 
         for event in dict_unitsList[character_id]['farmingInfo']:
@@ -2375,7 +2377,7 @@ def print_erx(txt_allyCode, days, compute_guild):
             unit_id = line[2]
             if unit_id != "all":
                 if unit_id in dict_unitsList:
-                    unit_name = dict_unitsList[unit_id]["nameKey"]
+                    unit_name = dict_unitsList[unit_id]["name"]
                 else:
                     unit_name = unit_id
 
@@ -2385,8 +2387,8 @@ def print_erx(txt_allyCode, days, compute_guild):
                     stats_units[unit_id] = [unit_name, 1]
 
                 if unit_id in dict_unitsList:
-                    if "categoryIdList" in dict_unitsList[unit_id]:
-                        unit_categories = dict_unitsList[unit_id]["categoryIdList"]
+                    if "categoryId" in dict_unitsList[unit_id]:
+                        unit_categories = dict_unitsList[unit_id]["categoryId"]
                     else:
                         unit_categories = []
 
@@ -2420,7 +2422,7 @@ def print_erx(txt_allyCode, days, compute_guild):
                     if not char_gv_id in dict_unitsList:
                         return 1, "ERR: "+char_gv_id+" is defined in the GV but not in the unitsList"
 
-                    char_gv_name = dict_unitsList[char_gv_id]["nameKey"]
+                    char_gv_name = dict_unitsList[char_gv_id]["name"]
                     if unit_id in dict_teams_gv[char_gv_id]:
                         if char_gv_id in stats_gv:
                             stats_gv[char_gv_id][1] += 1
@@ -2962,7 +2964,7 @@ def get_tw_alerts(server_id, use_cache_data):
             msg += " ("+territory+") est ouvert. Avec ces adversaires :"
             for leader in counter_leaders:
                 if leader in dict_unitsList:
-                    leader_name = dict_unitsList[leader]["nameKey"]
+                    leader_name = dict_unitsList[leader]["name"]
                 else:
                     leader_name = leader
                 msg += "\n - "+leader_name+": "+str(counter_leaders[leader])
@@ -3794,7 +3796,7 @@ def allocate_platoons(txt_allyCode, list_zones):
             size_db=len(ret_db)
         if size_db < count:
             filtered_list_zones = [x for x in list_ops if x in dict_tb_toons[defId]]
-            character_name = dict_unitsList[defId]['nameKey']
+            character_name = dict_unitsList[defId]['name']
             ec, et, list = find_best_toons_in_guild(txt_allyCode, defId, "R9")
             if dict_unitsList[defId]['combatType']==1:
                 best_next_toons = [x[0]+" ("+str(x[1])+" étoiles "+x[2]+")" for x in list[size_db:count+1]]
@@ -3835,7 +3837,7 @@ def allocate_platoons(txt_allyCode, list_zones):
             
             if not player in dict_players:
                 dict_players[player]=[]
-            dict_players[player].append([zone, dict_unitsList[defId]['nameKey']])
+            dict_players[player].append([zone, dict_unitsList[defId]['name']])
 
     return 0, "", dict_players
 
