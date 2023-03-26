@@ -3940,7 +3940,7 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
 
         deploy_consumption = dict_open_zones[zone_name]["deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
-        ret_print_tb_status+="deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
+        ret_print_tb_status+="Deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
         star_for_score = dict_open_zones[zone_name]["estimatedStars"]
         ret_print_tb_status+="\u27a1 Zone result \u2013 "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
@@ -4229,4 +4229,50 @@ def get_tw_def_player(fevents_name, player_name):
         print("---\n"+leader)
         for element in dict_def[leader]:
             print("   "+str(element))
+
+def deploy_bot_tb(server_id, zone_shortname, characters):
+    dict_unitsList = data.get("unitsList_dict.json")
+
+    #Manage request for all characters
+    if 'all' in characters:
+        list_character_ids=list(dict_unitsList.keys())
+    else:
+        #specific list of characters for one player
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+        if txt != '':
+            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+
+    dict_tb=data.dict_tb
+    ec, et, tb_data = connect_rpc.get_tb_status(server_id, "", False, True)
+    if ec!=0:
+        return 1, et
+    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+    tb_type = dict_phase["type"]
+
+    if zone_shortname in dict_tb[tb_type]["zoneNames"]:
+        conflict = dict_tb[tb_type]["zoneNames"][zone_shortname]
+    else:
+        return 1, "Zone inconnue pour cette BT"
+
+    for zone_name in dict_open_zones:
+        if zone_name.endswith(conflict):
+            break
+
+    zone_type = dict_tb[zone_name]["type"]
+    if zone_type != "Mix":
+        if zone_type == "chars":
+            combatType = 1
+        else:
+            combatType = 2
+        filtered_list_character_ids = []
+        for unit_id in list_character_ids:
+            if dict_unitsList[unit_id]["combatType"] == combatType:
+                filtered_list_character_ids.append(unit_id)
+        list_character_ids = filtered_list_character_ids
+
+    ec, txt = connect_rpc.deploy_tb(server_id, zone_name, list_character_ids)
+
+    return ec, txt
+
+
 

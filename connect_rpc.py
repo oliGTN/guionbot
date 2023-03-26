@@ -174,6 +174,209 @@ def get_rpc_data(server_id, use_cache_data):
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
+def get_bot_player_data(server_id, use_cache_data):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+
+    if islocked_bot_account(server_id):
+        use_cache_data = True
+        goutils.log2("WAR", "the bot account is being used... using cached data")
+
+    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    acquire_sem(server_id)
+    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
+        goutils.log2("DBG", "getguild code="+str(process.returncode))
+
+    dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_androidId+".json", "r"))
+
+    goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    release_sem(server_id)
+    goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+
+    return 0, "", dict_player
+
+def join_raids(server_id):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+
+    dict_guild = rpc_data[0]
+    if "raidStatus" in dict_guild:
+        list_raids = [x["raidId"] for x in dict_guild["raidStatus"] if not x["hasPlayerParticipated"]]
+        if len(list_raids) == 0:
+            return 0, "Le bot a déjà rejoint tous les raids possibles"
+    else:
+        return 0, "Le bot a déjà rejoint tous les raids possibles"
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+
+    process = subprocess.run(["/home/pi/GuionBot/warstats/joinraids.sh", bot_androidId])
+    goutils.log2("DBG", "joinraids code="+str(process.returncode))
+    if process.returncode!=0:
+        return 1, "Erreur en rejoignant les raids - code="+str(process.returncode)
+
+    return 0, "Le bot a rejoint "+str(list_raids)
+
+def parse_tb_platoons(server_id, use_cache_data):
+    active_round = "" # GLS4"
+    dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
+    list_open_territories = [0, 0, 0] # [4, 3, 3]
+
+    dict_tb = {}
+    dict_tb["t04D"] = "GLS"
+    dict_tb["geonosis_republic_phase01_conflict01_recon01"] = "GLS1-top"
+    dict_tb["geonosis_republic_phase01_conflict02_recon01"] = "GLS1-mid"
+    dict_tb["geonosis_republic_phase01_conflict03_recon01"] = "GLS1-bottom"
+    dict_tb["geonosis_republic_phase02_conflict01_recon01"] = "GLS2-top"
+    dict_tb["geonosis_republic_phase02_conflict02_recon01"] = "GLS2-mid"
+    dict_tb["geonosis_republic_phase02_conflict03_recon01"] = "GLS2-bottom"
+    dict_tb["geonosis_republic_phase03_conflict01_recon01"] = "GLS3-top"
+    dict_tb["geonosis_republic_phase03_conflict02_recon01"] = "GLS3-mid"
+    dict_tb["geonosis_republic_phase03_conflict03_recon01"] = "GLS3-bottom"
+    dict_tb["geonosis_republic_phase04_conflict01_recon01"] = "GLS4-top"
+    dict_tb["geonosis_republic_phase04_conflict02_recon01"] = "GLS4-mid"
+    dict_tb["geonosis_republic_phase04_conflict03_recon01"] = "GLS4-bottom"
+
+    dict_tb["t05D"] = "ROTE"
+    dict_tb["tb3_mixed_phase01_conflict01_recon01"] = "ROTE1-LS"
+    dict_tb["tb3_mixed_phase01_conflict02_recon01"] = "ROTE1-DS"
+    dict_tb["tb3_mixed_phase01_conflict03_recon01"] = "ROTE1-MS"
+    dict_tb["tb3_mixed_phase02_conflict01_recon01"] = "ROTE2-LS"
+    dict_tb["tb3_mixed_phase02_conflict02_recon01"] = "ROTE2-DS"
+    dict_tb["tb3_mixed_phase02_conflict03_recon01"] = "ROTE2-MS"
+    dict_tb["tb3_mixed_phase03_conflict01_recon01"] = "ROTE3-LS"
+    dict_tb["tb3_mixed_phase03_conflict02_recon01"] = "ROTE3-DS"
+    dict_tb["tb3_mixed_phase03_conflict03_recon01"] = "ROTE3-MS"
+    dict_tb["tb3_mixed_phase04_conflict01_recon01"] = "ROTE4-LS"
+    dict_tb["tb3_mixed_phase04_conflict02_recon01"] = "ROTE4-DS"
+    dict_tb["tb3_mixed_phase04_conflict03_recon01"] = "ROTE4-MS"
+def get_rpc_data(server_id, use_cache_data):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+
+    guildName = get_guildName_from_id(server_id)
+
+    if islocked_bot_account(server_id):
+        use_cache_data = True
+        goutils.log2("WAR", "the bot account is being used... using cached data")
+
+    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    acquire_sem(server_id)
+    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_androidId])
+        goutils.log2("DBG", "getguild code="+str(process.returncode))
+
+    guild_json = json.load(open("/home/pi/GuionBot/warstats/guild_"+bot_androidId+".json", "r"))
+    if "guild" in guild_json:
+        dict_guild = guild_json["guild"]
+    else:
+        dict_guild = {}
+
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_androidId])
+        goutils.log2("DBG", "getevents code="+str(process.returncode))
+    if os.path.exists("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json"):
+        events_json = json.load(open("/home/pi/GuionBot/warstats/events_"+bot_androidId+".json", "r"))
+        if "event" in events_json:
+            list_new_events = events_json["event"]
+        else:
+            list_new_events = []
+    else:
+        list_new_events = []
+
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TB"])
+        goutils.log2("DBG", "getmapstats code="+str(process.returncode))
+    if os.path.exists("/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"):
+        TBmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json", "r"))
+        if "currentStat" in TBmapstats_json:
+            dict_TBmapstats = TBmapstats_json["currentStat"]
+        else:
+            dict_TBmapstats = {}
+    else:
+        dict_TBmapstats = {}
+
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TW"])
+        goutils.log2("DBG", "getmapstats code="+str(process.returncode))
+    if os.path.exists("/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json"):
+        TWmapstats_json = json.load(open("/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json", "r"))
+        if "currentStat" in TWmapstats_json:
+            dict_TWmapstats = TWmapstats_json["currentStat"]
+        else:
+            dict_TWmapstats = {}
+    else:
+        dict_TWmapstats = {}
+
+    if not use_cache_data:
+        #log update time in DB - rounded to fix times (eg: always 00:05, 00:10 for 5 min period)
+        query = "UPDATE guild_bot_infos SET bot_latestUpdate=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
+        query+= "WHERE server_id="+str(server_id)
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+    dict_events = {}
+    dict_event_counts = {}
+    for event in list_new_events:
+        event_id = event["id"]
+        channel_id = event["channelId"]
+        event_ts = int(event["timestamp"])
+        if channel_id.startswith("guild-{"):
+            event_day_ts = int(event_ts/1000/86400)*86400*1000
+            event_file_id = "GUILD_CHAT:"+str(event_day_ts)
+        else:
+            ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
+            event_file_id = ret_re.group(1)
+
+        if not event_file_id in dict_events:
+            fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
+            if os.path.exists(fevents):
+                f = open(fevents)
+                dict_events[event_file_id]=json.load(f)
+                f.close()
+            else:
+                dict_events[event_file_id]={}
+
+            dict_event_counts[event_file_id]=0
+
+        if not event_id in dict_events[event_file_id]:
+            dict_event_counts[event_file_id]+=1
+            dict_events[event_file_id][event_id] = event
+
+    if max(dict_event_counts.values()) > 0:
+        goutils.log2("INFO", "New events: "+str(dict_event_counts))
+
+    for event_file_id in dict_events:
+        fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
+        f=open(fevents, "w")
+        f.write(json.dumps(dict_events[event_file_id], indent=4))
+        f.close()
+
+    goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    release_sem(server_id)
+    goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+
+    return 0, "", [dict_guild, dict_TBmapstats, dict_events]
+
 def join_raids(server_id):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
@@ -941,9 +1144,6 @@ def get_tw_status(server_id, use_cache_data):
             if "awayGuild" in battleStatus:
                     tw_ongoing = True
                     cur_tw = battleStatus
-            else:
-                print(battleStatus.keys())
-                print(battleStatus["awayGuild"].keys())
 
     if not tw_ongoing:
         return False, [[], []], [[], []]
@@ -1038,3 +1238,41 @@ def parse_tw_stats(server_id):
 
     return dict_tw_stats[server_id], dict_last_warstats_read[server_id]
 
+def deploy_tb(server_id, zone, list_defId):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+    dict_guild = rpc_data[0]
+
+    err_code, err_txt, rpc_data = get_bot_player_data(server_id, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+    dict_player = rpc_data
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+
+    list_char_id = []
+    filtered_list_defId = []
+    for unit in dict_player["rosterUnit"]:
+        full_defId = unit["definitionId"]
+        defId = full_defId.split(":")[0]
+        if defId in list_defId:
+            list_char_id.append(unit["id"])
+            filtered_list_defId.append(defId)
+
+    if len(list_char_id) == 0:
+        return 1, "Plus rien à déployer"
+
+    print(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_androidId, zone]+list_char_id)
+    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_androidId, zone]+list_char_id)
+    goutils.log2("DBG", "deploy_tb code="+str(process.returncode))
+    if process.returncode!=0 and process.returncode<10:
+        return 1, "Erreur en déployant en TB - code="+str(process.returncode)
+
+    return 0, "Le bot a déployé "+str(process.returnCode)+" en " + zone
