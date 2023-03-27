@@ -116,11 +116,11 @@ def refresh_cache():
         for line in ret_table:
             guild_name = line[0]
             guild_allyCode = line[1]
-            goutils.log('INFO', 'go.refresh_cache', "refresh guild " + guild_name \
+            goutils.log2('INFO', "refresh guild " + guild_name \
                        +" with allyCode " + str(guild_allyCode))
-            e, t, d = load_guild(str(guild_allyCode), False, False)
-            if e == 0 and d['name'] == guild_name:
-                e, t, d = load_guild(str(guild_allyCode), True, False)
+            e, t, dict_guild = load_guild(str(guild_allyCode), False, False)
+            if e == 0 and dict_guild["profile"]['name'] == guild_name:
+                e, t, dict_guild = load_guild(str(guild_allyCode), True, False)
                 break
             elif e == 0:
                 goutils.log2('WAR', "load_guild("+str(guild_allyCode)+") returned guild "+guild_name)
@@ -238,8 +238,7 @@ def load_player(txt_allyCode, force_update, no_db):
             fjson.close()
 
             # update DB
-            #ret = connect_mysql.update_player(delta_dict_player)
-            ret=0
+            ret = connect_mysql.update_player(delta_dict_player)
             if ret == 0:
                 goutils.log2("INFO", "success updating "+dict_player['name']+" in DB")
             else:
@@ -256,7 +255,7 @@ def load_player(txt_allyCode, force_update, no_db):
 
 def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
-    goutils.log2('INFO', 'Requesting API data for guild of ' + txt_allyCode)
+    goutils.log2('INFO', 'Requesting RPC data for guild of ' + txt_allyCode)
 
     query = "SELECT id FROM guilds "
     query+= "JOIN players ON players.guildName = guilds.name "
@@ -264,51 +263,37 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     goutils.log2("DBG", 'query: '+query)
     db_result = connect_mysql.get_value(query)
 
+    prev_dict_guild = None
     if db_result == None or db_result == "":
         goutils.log2("WAR", 'Guild ID not found for '+txt_allyCode)
         guild_id = ""
     else:
         guild_id = db_result
         goutils.log2("INFO", 'Guild ID for '+txt_allyCode+' is '+guild_id)
-    json_file = "GUILDS"+os.path.sep+guild_id+".json"
 
-    if client != None:
-        client_data = client.get_data('guild', txt_allyCode, 'FRE_FR')
-    else:
-        goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
-        if guild_id == "":
-            goutils.log2("WAR", 'Unknown guild for player '+txt_allyCode)
-            client_data = None
-        elif os.path.isfile(json_file):
+        json_file = "GUILDS/"+guild_id+".json"
+        if os.path.isfile(json_file):
             prev_dict_guild = json.load(open(json_file, 'r'))
-            client_data = [prev_dict_guild]
-        else:
-            goutils.log2("WAR", 'Failed to find cache data '+json_file)
-            client_data = None
 
-    if not isinstance(client_data, list) or len(client_data)!=1:
-        goutils.log2("WAR", 'Cannot connect to API. Using cache data from json')
-        if guild_id == "":
-            goutils.log2("WAR", 'Unknown guild for player '+txt_allyCode)
-            return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
-        elif os.path.isfile(json_file):
-            prev_dict_guild = json.load(open(json_file, 'r'))
-            client_data = [prev_dict_guild]
-        else:
-            goutils.log2("ERR", 'Failed to find cache data '+json_file)
-            return 1, 'ERR: cannot fetch guild for allyCode '+txt_allyCode, None
+    ec, et, dict_guild = connect_rpc.get_guild_data(txt_allyCode, False)
+    if ec != 0:
+        goutils.log2("WAR", 'RPC error ("+et+"). Using cache data from json')
+        dict_guild = prev_dict_guild
 
-    dict_guild = client_data[0]
-    guildName = dict_guild['name']
-    guild_id = dict_guild['id']
-    total_players = len(dict_guild["rosterUnit"])
-    allyCodes_in_API = [int(x['allyCode']) for x in dict_guild["rosterUnit"]]
-    guild_gp = dict_guild["gp"]
+    if dict_guild == None:
+        goutils.log2("ERR", Cannot guild data for "+txt_allyCode)
+        return 1, "ERR Cannot guild data for "+txt_allyCode, None
+
+    guildName = dict_guild["profile"]['name']
+    guild_id = dict_guild[profile"]['id']
+    total_players = len(dict_guild["member"])
+    playerId_in_API = [x['playerId'] for x in dict_guild["member"]]
+    guild_gp = sum([int(x['galacticPower']) for x in dict_guild["member"]])
     goutils.log2("INFO", "success retrieving "+guildName+" ("\
-                +str(total_players)+" players, "+str(guild_gp)+" GP) from SWGOH.HELP API")
+                +str(total_players)+" players, "+str(guild_gp)+" GP) from RPC")
                 
     # store json file
-    json_file = "GUILDS"+os.path.sep+guild_id+".json"
+    json_file = "GUILDS/"+guild_id+".json"
     fjson = open(json_file, 'w')
     fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
     fjson.close()
@@ -335,30 +320,28 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         is_new_guild = False
 
 
-    query = "SELECT allyCode FROM players "\
+    query = "SELECT playerId FROM players "\
            +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
     goutils.log2('DBG', query)
-    allyCodes_in_DB = connect_mysql.get_column(query)
+    playerId_in_DB = connect_mysql.get_column(query)
 
-    allyCodes_to_add = []
-    for ac in allyCodes_in_API:
-        if not ac in allyCodes_in_DB:
-            allyCodes_to_add.append(ac)
-            query = "INSERT INTO guild_evolutions(guild_id, allyCode, description) "
-            query+= "VALUES('"+guild_id+"', "+str(ac)+", 'added')"
+    playerId_to_add = []
+    for id in playerId_in_API:
+        if not id in playerId_in_DB:
+            playerId_to_add.append(ac)
+            query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+            query+= "VALUES('"+guild_id+"', "+str(id)+", 'added')"
             goutils.log2('DBG', query)
             connect_mysql.simple_execute(query)
 
-    allyCodes_to_remove = []
-    for ac in allyCodes_in_DB:
-        if not ac in allyCodes_in_API:
-            allyCodes_to_remove.append(ac)
-            query = "INSERT INTO guild_evolutions(guild_id, allyCode, description) "
-            query+= "VALUES('"+guild_id+"', "+str(ac)+", 'removed')"
+    playerId_to_remove = []
+    for id in playerId_in_DB:
+        if not id in playerId_in_API:
+            playerId_to_remove.append(ac)
+            query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+            query+= "VALUES('"+guild_id+"', "+str(id)+", 'removed')"
             goutils.log2('DBG', query)
             connect_mysql.simple_execute(query)
-
-
 
     if load_players:
         if lastUpdated != None:
@@ -372,7 +355,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         else:
             need_refresh_due_to_time = False
 
-        need_to_add_players = (len(allyCodes_to_add) > 0)
+        need_to_add_players = (len(playerId_to_add) > 0)
         goutils.log2("DBG", "need_to_add_players="+str(need_to_add_players))
         goutils.log2("DBG", "need_refresh_due_to_time="+str(need_refresh_due_to_time))
 
@@ -382,15 +365,14 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
             if is_new_guild or need_refresh_due_to_time:
                 #add all players
-                list_allyCodes_to_update = [x['allyCode'] for x in dict_guild["rosterUnit"]]
+                list_playerId_to_update = [x['playerId'] for x in dict_guild["member"]]
             else:
                 #only some players to be added
-                list_allyCodes_to_update = allyCodes_to_add
-                total_players = len(list_allyCodes_to_update)
+                list_playerId_to_update = playerId_to_add
+                total_players = len(list_playerId_to_update)
 
             if guild_loading_status != None:
                 #The guild is already being loaded
-                #while dict_loading_guilds[guildName][1] < dict_loading_guilds[guildName][0]:
                 while guild_loading_status != None:
                     goutils.log2('INFO', "Guild "+guildName+" already loading ("\
                             + guild_loading_status + "), waiting 30 seconds...")
@@ -413,11 +395,11 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
                 #add player data
                 i_player = 0
-                for allyCode in list_allyCodes_to_update:
+                for playerId in list_playerId_to_update:
                     i_player += 1
                     goutils.log2("INFO", "player #"+str(i_player))
                     
-                    e, t, d = load_player(str(allyCode), 0, False)
+                    e, t, d = load_player(str(playerId), 0, False)
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
                 parallel_work.set_guild_loading_status(guildName, None)
@@ -443,15 +425,15 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         connect_mysql.simple_execute(query)
 
     #Erase guildName for alyCodes not detected from API
-    if len(allyCodes_to_remove) > 0:
+    if len(playerId_to_remove) > 0:
         query = "UPDATE players "\
                +"SET guildName = '', guildMemberLevel = 2 "\
-               +"WHERE allyCode IN "+str(tuple(allyCodes_to_remove)).replace(",)", ")")
+               +"WHERE playerId IN "+str(tuple(playerId_to_remove)).replace(",)", ")")
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
     #Manage guild roles (leader, officers)
-    query = "SELECT allyCode, guildMemberLevel FROM players "\
+    query = "SELECT playerId, guildMemberLevel FROM players "\
            +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
     goutils.log2('DBG', query)
     roles_in_DB = connect_mysql.get_table(query)
@@ -460,28 +442,28 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         for role in roles_in_DB:
             dict_roles[role[0]] = role[1]
 
-    for member in dict_guild["rosterUnit"]:
-        ac = member["allyCode"]
-        if ac in dict_roles:
-            if member["guildMemberLevel"] != dict_roles[ac]:
+    for member in dict_guild["member"]:
+        id = member["playerId"]
+        if id in dict_roles:
+            if member["memberLevel"] != dict_roles[id]:
                 #change the role
-                query = "UPDATE players SET guildMemberLevel = "+str(member["guildMemberLevel"])+" " \
-                       +"WHERE allyCode = "+str(ac)
+                query = "UPDATE players SET guildMemberLevel = "+str(member["memberLevel"])+" " \
+                       +"WHERE playerId = "+str(id)
                 goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
                 
                 #log it in guild_evolutions
-                description = "guildMemberLevel changed from "+str(dict_roles[ac])+" to "+str(member["guildMemberLevel"])
-                query = "INSERT INTO guild_evolutions(guild_id, allyCode, description) "
-                query+= "VALUES('"+guild_id+"', "+str(ac)+", '"+description+"')"
+                description = "guildMemberLevel changed from "+str(dict_roles[id])+" to "+str(member["memberLevel"])
+                query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+                query+= "VALUES('"+guild_id+"', "+str(id)+", '"+description+"')"
                 goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
-            del dict_roles[member["allyCode"]]
+            del dict_roles[member["playerId"]]
         else:
-            goutils.log2('WAR', str(ac)+" found in API but not found in DB while updating guild")
+            goutils.log2('WAR', str(id)+" found in RPC but not found in DB while updating guild")
     #manage  remaining players
-    for ac in dict_roles:
-        goutils.log2('WAR', str(ac)+" found in DB but not found in API while updating guild")
+    for id in dict_roles:
+        goutils.log2('WAR', str(id)+" found in DB but not found in RPC while updating guild")
 
     return 0, "", dict_guild
 
@@ -1996,10 +1978,10 @@ def get_gp_distribution(txt_allyCode):
         return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
 
     guild_stats=[] #Serie of all players
-    for player in dict_guild["rosterUnit"]:
-        gp = (player['gpChar'] + player['gpShip']) / 1000000
+    for player in dict_guild["member"]:
+        gp = int(player['galacticPower']) / 1000000
         guild_stats.append(gp)
-    guild_name = dict_guild["name"]
+    guild_name = dict_guild["profile"]["name"]
 
     graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
@@ -3198,7 +3180,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 ################################################################
 def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_guild):
     if compute_guild:
-        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        err_code, err_txt, dict_guild = load_guild(txt_allyCode, True, True)
         if err_code != 0:
             return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, {}
     else:
@@ -3268,7 +3250,7 @@ def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_guild):
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
 def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
-    err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+    err_code, err_txt, dict_guild = load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
