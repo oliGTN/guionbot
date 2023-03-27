@@ -139,7 +139,6 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
                 "rarity": line_rarity,
                 "gear": line_gear,
                 "rarity": line_rarity,
-                "gear": line_gear,
                 "relic_currentTier": line_relic_currentTier,
                 "gp": line_gp,
                 "speed": line_speed,
@@ -292,7 +291,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
                     "defId": line_defId,
                     "combatType": line_combatType,
                     "rarity": line_rarity,
-                    "gear": line_gear,
+                    "currentTier": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {'final':{}}}
                 
@@ -329,7 +328,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
                     "defId": line_defId,
                     "combatType": line_combatType,
                     "rarity": line_rarity,
-                    "gear": line_gear,
+                    "currentTier": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {'final':{}}}
 
@@ -514,26 +513,26 @@ def delta_dict_player(dict1, dict2):
 
     delta_dict = {}
     delta_dict['allyCode'] = allyCode
-    delta_dict['roster'] = {}
+    delta_dict['rosterUnit'] = {}
 
     #compare player information
-    for info in ['guildName', 'id', 'lastActivity', 'level', 'name', 'arena', 'grandArena', 'stats', 'poUTCOffsetMinutes']:
+    for info in ['guildName', "level", 'name', 'pvpProfile', 'playerRating', 'profileStat', 'localTimeZoneOffsetMinutes']:
         if dict2[info] != dict1[info]:
             log("INFO", "delta_dict_player", info+" has changed for "+str(allyCode))
         delta_dict[info] = dict2[info]
 
     #compare roster
-    for character_id in dict2['roster']:
-        character = dict2['roster'][character_id]
-        if character_id in dict1['roster']:
-            if character != dict1['roster'][character_id]:
+    for character_id in dict2['rosterUnit']:
+        character = dict2['rosterUnit'][character_id]
+        if character_id in dict1['rosterUnit']:
+            if character != dict1['rosterUnit'][character_id]:
                 log("INFO", "delta_dict_player", "character "+character_id+" has changed for "+str(allyCode))
-                detect_delta_roster_element(allyCode, dict1['roster'][character_id], character)
-                delta_dict['roster'][character_id] = character
+                detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
+                delta_dict['rosterUnit'][character_id] = character
         else:
             log("INFO", "delta_dict_player", "new character "+character_id+" for "+str(allyCode))
             connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
-            delta_dict['roster'][character_id] = character
+            delta_dict['rosterUnit'][character_id] = character
 
     return delta_dict
 
@@ -559,25 +558,25 @@ def extended_gear_to_txt(extended_gear):
     
 def detect_delta_roster_element(allyCode, char1, char2):
     dict_capas = data.get('unit_capa_list.json')
-    defId = char1['defId']
+    defId = char1['definitionId'].split(":")[0]
 
     #RARITY
-    if (char1['rarity'] != char2['rarity']) and (char2['rarity'] >= 4):
-        for rarity_step in range(max(char1['rarity']+1, 4),
-                                 char2['rarity']+1):
+    if (char1['currentRarity'] != char2['currentRarity']) and (char2['currentRarity'] >= 4):
+        for rarity_step in range(max(char1['currentRarity']+1, 4),
+                                 char2['currentRarity']+1):
             evo_txt = "rarity changed to "+str(rarity_step)
             log("INFO", "delta_roster_element", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #LEVEL
-    if (char1['level'] != char2['level']) and (char2['level'] == 85):
+    if (char1["currentLevel"] != char2["currentLevel"]) and (char2["currentLevel"] == 85):
         evo_txt = "level changed to 85"
         log("INFO", "delta_roster_element", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #GEAR / RELIC
-    gear1 = extended_gear(char1['gear'], len(char1['equipped']), char1['relic'])
-    gear2 = extended_gear(char2['gear'], len(char2['equipped']), char2['relic'])
+    gear1 = extended_gear(char1["currentTier"], len(char1["equipment"]), char1['relic'])
+    gear2 = extended_gear(char2["currentTier"], len(char2["equipment"]), char2['relic'])
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
             evo_txt = "gear changed to "+extended_gear_to_txt(gear_step)
@@ -585,9 +584,9 @@ def detect_delta_roster_element(allyCode, char1, char2):
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ZETAS
-    for skill2 in char2['skills']:
+    for skill2 in char2['skill']:
         skill_id = skill2['id']
-        skill2_isZeta = skill2['isZeta'] and skill2['tier']>=8
+        skill2_isZeta = dict_capas[defId][skill_id][2] and skill2['tier']>=8
         if defId in dict_capas:
             if skill_id in dict_capas[defId]:
                 skill2_isOmicron = dict_capas[defId][skill_id][3]!="" \
@@ -599,10 +598,10 @@ def detect_delta_roster_element(allyCode, char1, char2):
             log2('ERR', defId + " not found in dict_capas")
             skill2_isOmicron = False
 
-        skill1_matchID = [x for x in char1['skills'] if x['id'] == skill_id]
+        skill1_matchID = [x for x in char1['skill'] if x['id'] == skill_id]
         if len(skill1_matchID)>0:
             skill1 = skill1_matchID[0]
-            skill1_isZeta = skill1['isZeta'] and skill1['tier']>=8
+            skill1_isZeta = dict_capas[defId][skill_id][2] and skill1['tier']>=8
             if defId in dict_capas:
                 if skill_id in dict_capas[defId]:
                     skill1_isOmicron = dict_capas[defId][skill_id][3]!="" \
@@ -626,15 +625,15 @@ def detect_delta_roster_element(allyCode, char1, char2):
 def roster_from_list_to_dict(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
 
-    if type(dict_player['roster']) == dict:
+    if type(dict_player['rosterUnit']) == dict:
         log("DBG", "roster_from_list_to_dict", "no transformation needed for "+txt_allyCode)
         return dict_player
 
     dict_roster = {}
-    for character in dict_player['roster']:
-        dict_roster[character['defId']] = character
+    for character in dict_player['rosterUnit']:
+        dict_roster[character['definitionId'].split(":")[0]] = character
 
-    dict_player['roster'] = dict_roster
+    dict_player['rosterUnit'] = dict_roster
     log("DBG", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
 
     return dict_player
@@ -642,16 +641,16 @@ def roster_from_list_to_dict(dict_player):
 def roster_from_dict_to_list(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
 
-    if type(dict_player['roster']) == list:
+    if type(dict_player['rosterUnit']) == list:
         log("DBG", "roster_from_dict_to_list", "no transformation needed for "+txt_allyCode)
         return dict_player
 
     list_roster = []
-    for character_id in dict_player['roster']:
-        character = dict_player['roster'][character_id]
+    for character_id in dict_player['rosterUnit']:
+        character = dict_player['rosterUnit'][character_id]
         list_roster.append(character)
 
-    dict_player['roster'] = list_roster
+    dict_player['rosterUnit'] = list_roster
     log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
 
     return dict_player

@@ -174,6 +174,23 @@ def get_rpc_data(server_id, use_cache_data):
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
+def get_player_data(txt_allyCode, use_cache_data):
+    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    acquire_sem(txt_allyCode)
+    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getplayer.sh", txt_allyCode])
+        goutils.log2("DBG", "getplayer code="+str(process.returncode))
+
+    dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/"+txt_allyCode+".json", "r"))
+
+    goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+    release_sem(txt_allyCode)
+    goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
+
+    return 0, "", dict_player
+
 def get_bot_player_data(server_id, use_cache_data):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
@@ -192,7 +209,7 @@ def get_bot_player_data(server_id, use_cache_data):
     
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
-        goutils.log2("DBG", "getguild code="+str(process.returncode))
+        goutils.log2("DBG", "getplayerbot code="+str(process.returncode))
 
     dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_androidId+".json", "r"))
 
