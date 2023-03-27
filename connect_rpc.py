@@ -247,6 +247,33 @@ def join_raids(server_id):
 
     return 0, "Le bot a rejoint "+str(list_raids)
 
+def join_tw(server_id):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+
+    dict_guild = rpc_data[0]
+    if "territoryWarStatus" in dict_guild:
+        if "playerStatus" in dict_guild["territoryWarStatus"][0]:
+            return 0, "Le bot a déjà rejoint la GT"
+    else:
+        return 0, "Aucune GT en cours"
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+
+    process = subprocess.run(["/home/pi/GuionBot/warstats/join_tw.sh", bot_androidId])
+    goutils.log2("DBG", "join_tw code="+str(process.returncode))
+    if process.returncode!=0:
+        return 1, "Erreur en rejoignant la GT - code="+str(process.returncode)
+
+    return 0, "Le bot a rejoint la GT"
+
 def parse_tb_platoons(server_id, use_cache_data):
     active_round = "" # GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}

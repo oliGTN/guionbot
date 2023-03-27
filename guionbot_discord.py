@@ -1218,17 +1218,17 @@ async def on_member_join(member):
 @bot.event
 async def on_member_update(before, after):
     set_id_lastseen("on_member_update", before.guild.id, before.id)
+    if before.avatar != after.avatar:
+        goutils.log2("INFO", "Avatar change  for "+after.display_name)
     if before.display_name != after.display_name:
         goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 @bot.event
 async def on_user_update(before, after):
-    if isinstance(before.channel, DMChannel):
-        guild_id = "DM"
-    else:
-        guild_id = before.channel.guild.id
-
-    set_id_lastseen("on_user_update", guild_id, before.id)
+    if before.avatar != after.avatar:
+        goutils.log2("INFO", "Avatar change  for "+after.display_name)
+    if before.display_name != after.display_name:
+        goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 @bot.event
 async def on_voice_state_update(member, before, after):
@@ -1666,6 +1666,21 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emoji_thumb)
 
         ec, et = connect_rpc.join_raids(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.command(name='bot.jointw',
+            brief="Inscrit le bot à la GT en cours",
+            help="Inscrit le bot à la GT en cours")
+    async def botjoinraids(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.join_tw(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
