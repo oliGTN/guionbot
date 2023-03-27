@@ -1674,6 +1674,21 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.send(et)
         await ctx.message.add_reaction(emoji_check)
 
+    @commands.command(name='bot.jointw',
+            brief="Inscrit le bot à la GT en cours",
+            help="Inscrit le bot à la GT en cours")
+    async def botjoinraids(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = connect_rpc.join_tw(ctx.guild.id)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
     @commands.check(officer_command)
     @commands.command(name='tbrappel',
             brief="Tag les joueurs qui n'ont pas tout déployé en BT",
