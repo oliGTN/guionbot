@@ -1677,7 +1677,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='bot.jointw',
             brief="Inscrit le bot à la GT en cours",
             help="Inscrit le bot à la GT en cours")
-    async def botjoinraids(self, ctx, *args):
+    async def botjointw(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
         ec, et = connect_rpc.join_tw(ctx.guild.id)
