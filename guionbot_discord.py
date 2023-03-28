@@ -209,7 +209,7 @@ async def bot_loop_60secs():
             for server_id in db_data:
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
-                    await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False)
+                    await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, False, False)
                     await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, server_id)
                     ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
                     if ec!=0:
