@@ -86,12 +86,12 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         dict_guild = {}
     release_sem(guild_file)
 
-    tpmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"
+    tbmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"
     acquire_sem(tbmap_file)
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TB"])
         goutils.log2("DBG", "getmapstats code="+str(process.returncode))
-    if os.path.exists(tpmap_file):
+    if os.path.exists(tbmap_file):
         TBmapstats_json = json.load(open(tbmap_file, "r"))
         if "currentStat" in TBmapstats_json:
             dict_TBmapstats = TBmapstats_json["currentStat"]
