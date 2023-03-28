@@ -89,7 +89,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
     tbmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"
     acquire_sem(tbmap_file)
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TB"])
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId,])
         goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists(tbmap_file):
         TBmapstats_json = json.load(open(tbmap_file, "r"))
@@ -103,9 +103,6 @@ def get_rpc_data(server_id, with_events, use_cache_data):
 
     twmap_file = "/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json"
     acquire_sem(twmap_file)
-    if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId, "TW"])
-        goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     if os.path.exists(twmap_file):
         TWmapstats_json = json.load(open(twmap_file, "r"))
         if "currentStat" in TWmapstats_json:
@@ -158,9 +155,9 @@ def get_rpc_data(server_id, with_events, use_cache_data):
 
             dict_event_counts[event_file_id]=0
 
-        if not event_id in dict_events[event_file_id]:
-            dict_event_counts[event_file_id]+=1
-            dict_events[event_file_id][event_id] = event
+            if not event_id in dict_events[event_file_id]:
+                dict_event_counts[event_file_id]+=1
+                dict_events[event_file_id][event_id] = event
 
         if max(dict_event_counts.values()) > 0:
             goutils.log2("INFO", "New events: "+str(dict_event_counts))
