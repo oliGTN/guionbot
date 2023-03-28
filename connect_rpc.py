@@ -144,16 +144,16 @@ def get_rpc_data(server_id, with_events, use_cache_data):
 
             if not event_file_id in dict_events:
                 fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
-                acquire_sem(fevents)
                 if os.path.exists(fevents):
+                    acquire_sem(fevents)
                     f = open(fevents)
-                dict_events[event_file_id]=json.load(f)
-                f.close()
-                release_sem(fevents)
-            else:
-                dict_events[event_file_id]={}
+                    dict_events[event_file_id]=json.load(f)
+                    f.close()
+                    release_sem(fevents)
+                else:
+                    dict_events[event_file_id]={}
 
-            dict_event_counts[event_file_id]=0
+                dict_event_counts[event_file_id]=0
 
             if not event_id in dict_events[event_file_id]:
                 dict_event_counts[event_file_id]+=1
@@ -1124,7 +1124,6 @@ def deploy_tb(server_id, zone, list_defId):
     if len(list_char_id) == 0:
         return 1, "Plus rien à déployer"
 
-    print(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_androidId, zone]+list_char_id)
     process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_androidId, zone]+list_char_id)
     goutils.log2("DBG", "deploy_tb code="+str(process.returncode))
     if process.returncode!=0 and process.returncode<10:
@@ -1164,7 +1163,6 @@ def deploy_tw(server_id, zone, list_defId):
         goutils.log2("ERR", "Need 5 units but found "+str(list_char_id))
         return 1, "ERR: il faut exactement 5 persos"
 
-    print(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
     process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
     if process.returncode!=0:
