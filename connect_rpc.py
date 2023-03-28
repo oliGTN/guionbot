@@ -1285,13 +1285,11 @@ def deploy_tb(server_id, zone, list_defId):
     bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
 
     list_char_id = []
-    filtered_list_defId = []
     for unit in dict_player["rosterUnit"]:
         full_defId = unit["definitionId"]
         defId = full_defId.split(":")[0]
         if defId in list_defId:
             list_char_id.append(unit["id"])
-            filtered_list_defId.append(defId)
 
     if len(list_char_id) == 0:
         return 1, "Plus rien à déployer"
@@ -1303,3 +1301,43 @@ def deploy_tb(server_id, zone, list_defId):
         return 1, "Erreur en déployant en TB - code="+str(process.returncode)
 
     return 0, "Le bot a déployé "+str(process.returnCode)+" en " + zone
+
+def deploy_tw(server_id, zone, list_defId):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+
+    err_code, err_txt, rpc_data = get_rpc_data(server_id, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+    dict_guild = rpc_data[0]
+
+    err_code, err_txt, rpc_data = get_bot_player_data(server_id, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+    dict_player = rpc_data
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+
+    dict_roster = {}
+    for unit in dict_player["rosterUnit"]:
+        full_defId = unit["definitionId"]
+        defId = full_defId.split(":")[0]
+        dict_roster[defId] = unit
+
+    list_char_id = []
+    for defId in list_defId:
+        list_char_id.append(dict_roster[defId]["id"])
+    if len(list_char_id) != 5:
+        goutils.log2("ERR", "Need 5 units but found "+str(list_char_id))
+        return 1, "ERR: il faut exactement 5 persos"
+
+    print(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
+    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
+    goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
+    if process.returncode!=0 and process.returncode<10:
+        return 1, "Erreur en déployant en GT - code="+str(process.returncode)
+
+    return 0, "Le bot a posé "+str(list_defId)+" en " + zone

@@ -4274,5 +4274,22 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
 
     return ec, txt
 
+def deploy_bot_tw(server_id, zone_shortname, characters):
+    dict_unitsList = data.get("unitsList_dict.json")
 
+    #specific list of characters for one player
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+
+    dict_tw=data.dict_tw
+
+    if zone_shortname in dict_tw:
+        zone_name = dict_tw[zone_shortname]
+    else:
+        return 1, "Zone GT inconnue"
+
+    ec, txt = connect_rpc.deploy_tw(server_id, zone_name, list_character_ids)
+
+    return ec, txt
 

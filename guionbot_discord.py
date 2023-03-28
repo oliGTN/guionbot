@@ -1689,6 +1689,21 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.send(et)
         await ctx.message.add_reaction(emoji_check)
 
+    @commands.command(name='bot.deftw',
+            brief="Déploie des persos en def de GT",
+            help="Déploie des persos en def de GT")
+    async def botdeftw(self, ctx, zone, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = go.deploy_bot_tw(ctx.guild.id, zone, characters)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
     @commands.check(officer_command)
     @commands.command(name='tbrappel',
             brief="Tag les joueurs qui n'ont pas tout déployé en BT",
