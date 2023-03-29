@@ -1813,7 +1813,6 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
             tw_ongoing = rpc_data[0]
             if not tw_ongoing:
                 return "ERR: no TW ongoing"
-                return []
 
             list_opponent_squads = rpc_data[2][0]
             tuple_opp_players = tuple(set([x[1] for x in list_opponent_squads]))
@@ -1823,7 +1822,10 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
             query+= "WHERE name in "+str(tuple_opp_players)+" "
             query+= "GROUP BY guildName ORDER BY count(*) DESC LIMIT 1"
             goutils.log2("DBG", query)
-            txt_allyCode = str(connect_mysql.get_value(query))
+            db_data = connect_mysql.get_value(query)
+            if db_data == None:
+                return "ERR: la guilde adverse n'a pas été entrée dans le bot"
+            txt_allyCode = str(db_data)
 
             #filter the players that needs to be displayed
             dict_tw_zone_players = {}
