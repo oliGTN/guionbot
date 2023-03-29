@@ -516,7 +516,7 @@ def delta_dict_player(dict1, dict2):
     delta_dict['rosterUnit'] = {}
 
     #compare player information
-    for info in ['guildName', "lastActivityTime", "level", 'name', 'pvpProfile', 'playerRating', 'profileStat', 'localTimeZoneOffsetMinutes']:
+    for info in ["playerId", "guildName", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes"]:
         if dict2[info] != dict1[info]:
             log("INFO", "delta_dict_player", info+" has changed for "+str(allyCode))
         delta_dict[info] = dict2[info]
@@ -575,8 +575,16 @@ def detect_delta_roster_element(allyCode, char1, char2):
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #GEAR / RELIC
-    gear1 = extended_gear(char1["currentTier"], len(char1["equipment"]), char1['relic'])
-    gear2 = extended_gear(char2["currentTier"], len(char2["equipment"]), char2['relic'])
+    if "relic" in char1:
+        relic1 = char1["relic"]
+    else:
+        relic1 = None
+    if "relic" in char2:
+        relic2 = char2["relic"]
+    else:
+        relic2 = None
+    gear1 = extended_gear(char1["currentTier"], len(char1["equipment"]), relic1)
+    gear2 = extended_gear(char2["currentTier"], len(char2["equipment"]), relic2)
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
             evo_txt = "gear changed to "+extended_gear_to_txt(gear_step)
@@ -586,11 +594,11 @@ def detect_delta_roster_element(allyCode, char1, char2):
     #ZETAS
     for skill2 in char2['skill']:
         skill_id = skill2['id']
-        skill2_isZeta = dict_capas[defId][skill_id][2] and skill2['tier']>=8
+        skill2_isZeta = dict_capas[defId][skill_id][2] and (skill2['tier']+2)>=8
         if defId in dict_capas:
             if skill_id in dict_capas[defId]:
                 skill2_isOmicron = dict_capas[defId][skill_id][3]!="" \
-                                and skill2['tier'] == dict_capas[defId][skill_id][4]
+                                and (skill2['tier']+2) == dict_capas[defId][skill_id][4]
             else:
                 log2('ERR', skill_id + " not found in dict_capas")
                 skill2_isOmicron = False
@@ -601,11 +609,11 @@ def detect_delta_roster_element(allyCode, char1, char2):
         skill1_matchID = [x for x in char1['skill'] if x['id'] == skill_id]
         if len(skill1_matchID)>0:
             skill1 = skill1_matchID[0]
-            skill1_isZeta = dict_capas[defId][skill_id][2] and skill1['tier']>=8
+            skill1_isZeta = dict_capas[defId][skill_id][2] and (skill1['tier']+2)>=8
             if defId in dict_capas:
                 if skill_id in dict_capas[defId]:
                     skill1_isOmicron = dict_capas[defId][skill_id][3]!="" \
-                                    and skill1['tier'] == dict_capas[defId][skill_id][4]
+                                    and (skill1['tier']+2) == dict_capas[defId][skill_id][4]
                 else:
                     skill1_isOmicron = False
             else:

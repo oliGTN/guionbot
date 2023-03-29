@@ -245,7 +245,7 @@ def get_image_from_character(character_id, dict_player, game_mode):
             #ZETAS
             zetas = 0
             for skill in character["skills"]:
-                if skill["isZeta"] and (skill["tier"]==skill["tiers"]):
+                if skill["isZeta"] and (skill["tier"]+2)>=8:
                     zetas += 1
             if zetas != None and zetas>0:
                 zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
@@ -259,7 +259,7 @@ def get_image_from_character(character_id, dict_player, game_mode):
             if character_id in dict_capas:
                 for skill in character["skills"]:
                     skill_id = skill['id']
-                    skill_tier = skill['tier']
+                    skill_tier = skill['tier']+2
                     if skill_id in dict_capas[character_id]:
                         if dict_capas[character_id][skill_id][3]!="" \
                                 and skill_tier == dict_capas[character_id][skill_id][4]:

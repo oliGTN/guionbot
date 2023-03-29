@@ -174,20 +174,48 @@ def get_rpc_data(server_id, use_cache_data):
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
+def get_guild_data(txt_allyCode, use_cache_data):
+    ec, et, dict_player = get_player_data(txt_allyCode, use_cache_data)
+    if ec != 0:
+        return 1, et, None
+
+    if not "guildId" in dict_player:
+        return 1, "ERR: ce joueur n'a pas de guilde", None
+
+    guild_id = dict_player["guildId"]
+    if guild_id == None or guild_id == "":
+        return 1, "ERR: ce joueur n'a pas de guilde", None
+
+    acquire_sem(guild_id)
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getextguild.sh", guild_id])
+        goutils.log2("DBG", "getextguild code="+str(process.returncode))
+
+    guild_json = "/home/pi/GuionBot/warstats/GUILDS/"+guild_id+".json"
+    if os.path.exists(guild_json):
+        dict_guild = json.load(open(guild_json, "r"))["guild"]
+    else:
+        return 1, "ERR: impossible de trouver les données pour la guilde "+guild_id, None
+
+    release_sem(guild_id)
+
+    return 0, "", dict_guild
+
+
 def get_player_data(txt_allyCode, use_cache_data):
-    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     acquire_sem(txt_allyCode)
-    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getplayer.sh", txt_allyCode])
         goutils.log2("DBG", "getplayer code="+str(process.returncode))
 
-    dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/"+txt_allyCode+".json", "r"))
+    player_json = "/home/pi/GuionBot/warstats/PLAYERS/"+txt_allyCode+".json"
+    if os.path.exists(player_json):
+        dict_player = json.load(open(player_json, "r"))
+    else:
+        return 1, "ERR: impossible de trouver les données pour le joueur "+txt_allyCode, None
 
-    goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     release_sem(txt_allyCode)
-    goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     return 0, "", dict_player
 

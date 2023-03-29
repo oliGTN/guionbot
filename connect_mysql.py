@@ -459,7 +459,6 @@ def update_player(dict_player):
             c_gear = character['currentTier']
             c_gp = character['gp']
             c_level = character['currentLevel']
-            c_nameKey = ""
             c_rarity = character['currentRarity']
             
             c_relic_currentTier = 0
@@ -484,13 +483,8 @@ def update_player(dict_player):
                    +"    gear = "+str(c_gear)+", "\
                    +"    gp = "+str(c_gp)+", "\
                    +"    level = "+str(c_level)+", "\
-                   +"    nameKey = '"+c_nameKey+"', "\
                    +"    rarity = "+str(c_rarity)+", "\
                    +"    relic_currentTier = "+str(c_relic_currentTier)+" "
-
-            for i_eqpt in range(6):
-                if c_equipped[i_eqpt] != '':
-                   query += ",eqpt"+str(i_eqpt+1)+" = '"+c_equipped[i_eqpt]+"'"
 
             if "stats" in character:
                 stat_type = "final"
@@ -608,7 +602,7 @@ def update_player(dict_player):
             c_zeta_count = 0
             for capa in character['skill']:
                 capa_name = capa['id']
-                capa_level = capa['tier']
+                capa_level = capa['tier']+2
                 capa_isZeta = dict_capas[character_id][capa_name][2]
                 capa_omicron_type = dict_capas[character_id][capa_name][3]
                 capa_omicron_tier = dict_capas[character_id][capa_name][4]

@@ -217,6 +217,13 @@ def load_player(txt_allyCode, force_update, no_db):
                 unit["equipment"] = []
             if not "skill" in unit:
                 unit["skill"] = []
+            if not "equippedStatMod" in unit:
+                unit["equippedStatMod"] = []
+            else:
+                for mod in unit["equippedStatMod"]:
+                    if not "secondaryStat" in mod:
+                        mod["secondaryStat"] = []
+
 
         #Add statistics
         err_code, err_txt, dict_player = connect_crinolo.add_stats(dict_player)
@@ -277,15 +284,15 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
     ec, et, dict_guild = connect_rpc.get_guild_data(txt_allyCode, False)
     if ec != 0:
-        goutils.log2("WAR", 'RPC error ("+et+"). Using cache data from json')
+        goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
         dict_guild = prev_dict_guild
 
     if dict_guild == None:
-        goutils.log2("ERR", Cannot guild data for "+txt_allyCode)
-        return 1, "ERR Cannot guild data for "+txt_allyCode, None
+        goutils.log2("ERR", "Cannot get guild data for "+txt_allyCode)
+        return 1, "ERR Cannot get guild data for "+txt_allyCode, None
 
     guildName = dict_guild["profile"]['name']
-    guild_id = dict_guild[profile"]['id']
+    guild_id = dict_guild["profile"]['id']
     total_players = len(dict_guild["member"])
     playerId_in_API = [x['playerId'] for x in dict_guild["member"]]
     guild_gp = sum([int(x['galacticPower']) for x in dict_guild["member"]])
@@ -328,9 +335,9 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     playerId_to_add = []
     for id in playerId_in_API:
         if not id in playerId_in_DB:
-            playerId_to_add.append(ac)
+            playerId_to_add.append(id)
             query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-            query+= "VALUES('"+guild_id+"', "+str(id)+", 'added')"
+            query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'added')"
             goutils.log2('DBG', query)
             connect_mysql.simple_execute(query)
 
