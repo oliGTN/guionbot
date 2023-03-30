@@ -65,8 +65,8 @@ def get_image_from_id(character_id):
     return char_img
 
 def get_guild_logo(dict_guild, target_size):
-    logo_name = dict_guild["bannerLogo"]
-    logo_colors = dict_guild["bannerColor"]
+    logo_name = dict_guild["profile"]["bannerLogoId"]
+    logo_colors = dict_guild["profile"]["bannerColorId"]
 
     logo_color_elements = logo_colors.split("_")
     if logo_colors.startswith("bright"):
@@ -169,6 +169,7 @@ def add_horizontal(img1, img2):
     
 def get_image_from_character(character_id, dict_player, game_mode):
     dict_unitsList = data.get("unitsList_dict.json")
+    dict_capas = data.get("unit_capa_list.json")
 
     portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
     portrait_draw = ImageDraw.Draw(portrait_image)
@@ -179,11 +180,11 @@ def get_image_from_character(character_id, dict_player, game_mode):
     portrait_image.paste(character_image, (20, 10), character_mask_image)
     
     #Get character details
-    if character_id in dict_player["roster"]:
-        character = dict_player["roster"][character_id]
+    if character_id in dict_player["rosterUnit"]:
+        character = dict_player["rosterUnit"][character_id]
 
         #RARITY
-        rarity = character["rarity"]
+        rarity = character["currentRarity"]
         active_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star.png')
         inactive_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star-inactive.png')
         for cur_rarity in [1, 2, 3, 4, 5, 6, 7]:
@@ -195,16 +196,12 @@ def get_image_from_character(character_id, dict_player, game_mode):
                 star_image = inactive_star_img
             portrait_image.paste(star_image, (pos_x, pos_y), star_image)
 
-        combatType = character["combatType"]
-        if character_id in dict_unitsList:
-            forceAlignment = dict_unitsList[character_id]["forceAlignment"]
-        else:
-            goutils.log2("WAR", "unkonwn forceAlignment for "+character_id)
-            forceAlignment = 1
+        combatType = dict_unitsList[character_id]["combatType"]
+        forceAlignment = dict_unitsList[character_id]["forceAlignment"]
 
         if combatType == 1:
             #GEAR
-            gear = character["gear"]
+            gear = character["currentTier"]
             if gear < 13:
                 gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g'+str(gear)+'-frame.png')
                 gear_frame_img = gear_frame_img.resize((126,126))
@@ -236,7 +233,7 @@ def get_image_from_character(character_id, dict_player, game_mode):
                 portrait_draw.text((78,107), str(relic), (255, 255, 255), font=font)
             else:
                 #LEVEL
-                level = character["level"]
+                level = character["currentLevel"]
                 level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
                 level_frame_img = level_frame_img.resize((40,40))
                 portrait_image.paste(level_frame_img, (64, 107), level_frame_img)
@@ -244,8 +241,9 @@ def get_image_from_character(character_id, dict_player, game_mode):
 
             #ZETAS
             zetas = 0
-            for skill in character["skills"]:
-                if skill["isZeta"] and (skill["tier"]+2)>=8:
+            for skill in character["skill"]:
+                skill_id = skill["id"]
+                if dict_capas[character_id][skill_id][2] and (skill["tier"]+2)>=8:
                     zetas += 1
             if zetas != None and zetas>0:
                 zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
@@ -254,10 +252,9 @@ def get_image_from_character(character_id, dict_player, game_mode):
                 portrait_draw.text((29,100), str(zetas), (255, 255, 255), font=font)
 
             #OMICRONS
-            dict_capas = data.get('unit_capa_list.json')
             omicrons = 0
             if character_id in dict_capas:
-                for skill in character["skills"]:
+                for skill in character["skill"]:
                     skill_id = skill['id']
                     skill_tier = skill['tier']+2
                     if skill_id in dict_capas[character_id]:
@@ -272,15 +269,15 @@ def get_image_from_character(character_id, dict_player, game_mode):
                 portrait_draw.text((130,100), str(omicrons), (255, 255, 255), font=font)
         else:
             #LEVEL
-            level = character["level"]
+            level = character["currentLevel"]
             level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
             level_frame_img = level_frame_img.resize((40,40))
             portrait_image.paste(level_frame_img, (4, 107), level_frame_img)
             portrait_draw.text((26-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
 
             #CREW
-            if "crew" in character and character["crew"]!= None:
-                for crew_element in character["crew"]:
+            if "crew" in dict_unitsList[character_id] and dict_unitsList[character_id]["crew"]!= None:
+                for crew_element in dict_unitsList[character_id]["crew"]:
                     crew_id = crew_element["unitId"]
                     crew_image = get_image_from_character(crew_id, dict_player, game_mode)
                     portrait_image = add_vertical(portrait_image, crew_image)
@@ -309,8 +306,8 @@ def get_image_from_team(list_character_ids, dict_player, tw_territory, game_mode
 
     total_gp = 0
     for character_id in list_character_ids:
-        if character_id in dict_player["roster"]:
-            total_gp += dict_player["roster"][character_id]["gp"]
+        if character_id in dict_player["rosterUnit"]:
+            total_gp += dict_player["rosterUnit"][character_id]["gp"]
         character_img = get_image_from_character(character_id, dict_player, game_mode)
         list_portrait_images.append(character_img)
 

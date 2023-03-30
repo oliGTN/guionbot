@@ -231,9 +231,7 @@ def get_bot_player_data(server_id, use_cache_data):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
-    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     acquire_sem(server_id)
-    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
@@ -241,9 +239,7 @@ def get_bot_player_data(server_id, use_cache_data):
 
     dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_androidId+".json", "r"))
 
-    goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     release_sem(server_id)
-    goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     return 0, "", dict_player
 
@@ -349,9 +345,7 @@ def get_rpc_data(server_id, use_cache_data):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
-    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     acquire_sem(server_id)
-    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_androidId])

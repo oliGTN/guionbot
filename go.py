@@ -331,6 +331,8 @@ def load_guild(txt_allyCode, load_players, cmd_request):
            +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
     goutils.log2('DBG', query)
     playerId_in_DB = connect_mysql.get_column(query)
+    while None in playerId_in_DB:
+        playerId_in_DB.remove(None)
 
     playerId_to_add = []
     for id in playerId_in_API:
@@ -344,7 +346,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
     playerId_to_remove = []
     for id in playerId_in_DB:
         if not id in playerId_in_API:
-            playerId_to_remove.append(ac)
+            playerId_to_remove.append(id)
             query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
             query+= "VALUES('"+guild_id+"', "+str(id)+", 'removed')"
             goutils.log2('DBG', query)

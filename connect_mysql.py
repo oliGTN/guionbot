@@ -27,7 +27,7 @@ def db_connect():
         # Recover DB information from URL
         urllib.parse.uses_netloc.append('mysql')
         try:
-            url = urllib.parse.urlparse(config.MYSQL_DATABASE_URL+"test")
+            url = urllib.parse.urlparse(config.MYSQL_DATABASE_URL)
             # 'NAME': url.path[1:],
             # 'USER': url.username,
             # 'PASSWORD': url.password,

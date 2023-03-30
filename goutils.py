@@ -778,3 +778,66 @@ def print_tw_best_teams(list_teams, intro_txt):
 
     return output_txt
 
+def api_to_rpc(dict_player):
+    dict_rpc_player = {}
+    dict_rpc_player["allyCode"] = dict_player["allyCode"]
+    dict_rpc_player["guildId"] = dict_player["guildRefId"]
+    dict_rpc_player["guildName"] = dict_player["guildName"]
+    dict_rpc_player["lastActivityTime"] = str(dict_player["lastActivity"])
+    dict_rpc_player["level"] = dict_player["level"]
+    dict_rpc_player["localTimeZoneOffsetMinutes"] = dict_player["poUTCOffsetMinutes"]
+    dict_rpc_player["name"] = dict_player["name"]
+    dict_rpc_player["playerId"] = dict_player["id"]
+    dict_rpc_player["playerRating"] = {}
+    dict_rpc_player["playerRating"]["playerRankStatus"] = {}
+    dict_rpc_player["playerRating"]["playerRankStatus"]["divisionId"] = dict_player["grandArena"][-1]["division"]
+    dict_rpc_player["playerRating"]["playerRankStatus"]["leagueId"] = dict_player["grandArena"][-1]["league"]
+    dict_rpc_player["profileStat"] = {}
+    for stat in dict_player["stats"]:
+        if stat["nameKey"].startswith("Puissance Galactique (perso"):
+            dict_rpc_player["profileStat"]["STAT_CHARACTER_GALACTIC_POWER_ACQUIRED_NAME"] = str(stat["value"])
+        elif stat["nameKey"].startswith("Puissance Galactique (vaisseaux"):
+            dict_rpc_player["profileStat"]["STAT_SHIP_GALACTIC_POWER_ACQUIRED_NAME"] = str(stat["value"])
+        elif stat["nameKey"].startswith("Puissance Galactique"):
+            dict_rpc_player["profileStat"]["STAT_GALACTIC_POWER_ACQUIRED_NAME"] = str(stat["value"])
+
+    char_arena = {}
+    char_arena["rank"] = dict_player["arena"]["char"]["rank"]
+    char_arena["type"] = "SQUADARENA"
+    ship_arena = {}
+    ship_arena["rank"] = dict_player["arena"]["shop"]["rank"]
+    ship_arena["type"] = "FLEETARENA"
+    dict_rpc_player["pvpProfile"] = [char_arena, ship_arena]
+    dict_rpc_player["rosterUnit"] = {}
+    for unit_id in dict_player["roster"]:
+        unit = dict_player["roster"][unit_id]
+        rpc_unit = {}
+        rpc_unit["currentLevel"] = unit["level"]
+        rpc_unit["currentRarity"] = unit["rarity"]
+        rpc_unit["currentTier"] = unit["gear"]
+        if unit["rarity"] == 1:
+            rpc_unit["definitionId"] = unit_id+":ONE_STAR"
+        elif unit["rarity"] == 2:
+            rpc_unit["definitionId"] = unit_id+":TWO_STAR"
+        elif unit["rarity"] == 3:
+            rpc_unit["definitionId"] = unit_id+":THREE_STAR"
+        elif unit["rarity"] == 4:
+            rpc_unit["definitionId"] = unit_id+":FOUR_STAR"
+        elif unit["rarity"] == 5:
+            rpc_unit["definitionId"] = unit_id+":FIVE_STAR"
+        elif unit["rarity"] == 6:
+            rpc_unit["definitionId"] = unit_id+":SIX_STAR"
+        else:
+            rpc_unit["definitionId"] = unit_id+":SEVEN_STAR"
+        rpc_unit["equipment"] = []
+        for eqpt in unit["equipped"]:
+            rpc_eqpt = {}
+            rpc_eqpt["equipmentId"] = eqpt["equipmentId"]
+            rpc_eqpt["slot"] = int(eqpt["slot"])
+            rpc_unit["equipment"].append(rpc_eqpt)
+        rpc_unit["equippedStatMod"] = []
+        for mod in unit["mods"]:
+            rpc_mod = {}
+            rpc_mod["definitionId"]
+
+
