@@ -1326,26 +1326,27 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_thumb)
 
         # get the DB information
-        output_txt=''
-        output_size = connect_mysql.text_query("CALL get_db_size()")
-        for row in output_size:
-            output_txt+=str(row)+'\n'
+        query = "SELECT guilds.name AS Guilde, \
+                 count(*) as Joueurs, \
+                 guilds.lastUpdated as MàJ \
+                 FROM guilds \
+                 JOIN players ON players.guildName = guilds.name \
+                 WHERE `update`=1 \
+                 GROUP BY guilds.name \
+                 ORDER BY guilds.lastUpdated DESC"
+        goutils.log2("DBG", query)
+        output_players = connect_mysql.text_query(query)
+        total_guilds = connect_mysql.get_value("SELECT count(*) from guilds")
+        total_players = connect_mysql.get_value("SELECT count(*) from players")
 
-        output_players = connect_mysql.text_query("SELECT guilds.name AS Guilde, \
-                                                    count(*) as Joueurs, \
-                                                    guilds.lastUpdated as MàJ \
-                                                    FROM guilds \
-                                                    JOIN players ON players.guildName = guilds.name \
-                                                    GROUP BY guilds.name \
-                                                    ORDER BY guilds.lastUpdated DESC")
-        output_txt += "\n"
+        await ctx.send("**GuiOn bot is UP** since "+str(bot_uptime)+" (GMT)")
+        await ctx.send("Guilde suivies :")
+        output_txt=""
         for row in output_players:
-            output_txt+=str(row)+'\n'
-
-
-        await ctx.send('**GuiOn bot is UP** since '+str(bot_uptime)+' (GMT)')
+            output_txt += str(row)+"\n"
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-            await ctx.send('``` '+txt[1:]+'```')
+            await ctx.send("``` " + txt[1:] + "```")
+        await ctx.send("et au total "+str(total_guilds)+" guildes et "+str(total_players)+" joueur connus")
 
         await ctx.message.add_reaction(emoji_check)
 
