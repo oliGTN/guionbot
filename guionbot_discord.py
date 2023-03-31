@@ -409,7 +409,7 @@ async def bot_loop_5minutes():
                                 goutils.log2("DBG", "["+guild.name+"] New orders for TW sent to admins " \
                                             +"and channel "+str(channel_id))
                 else:
-                    goutils.log2("WAR", "["+guild.name+"] TW alerts could not be detected")
+                    goutils.log2("DBG", "["+guild.name+"] TW alerts could not be detected")
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))
