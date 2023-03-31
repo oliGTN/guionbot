@@ -415,8 +415,12 @@ def update_player(dict_player):
         p_arena_ship_rank_txt = ("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))
 
         #GAC
-        p_grand_arena_league = dict_player['playerRating']["playerRankStatus"]['leagueId']
-        p_grand_arena_division = 6 - int(dict_player['playerRating']["playerRankStatus"]['divisionId']/5)
+        if "playerRating" in dict_player and "playerRankStatus" in dict_player["playerRating"]:
+            p_grand_arena_league = dict_player['playerRating']["playerRankStatus"]['leagueId']
+            p_grand_arena_division = 6 - int(dict_player['playerRating']["playerRankStatus"]['divisionId']/5)
+        else:
+            p_grand_arena_league = ""
+            p_grand_arena_division = 0
         p_grand_arena_rank = p_grand_arena_league + str(p_grand_arena_division)
 
         for stat in dict_player["profileStat"]:
@@ -429,7 +433,7 @@ def update_player(dict_player):
 
         query = "INSERT IGNORE INTO players(allyCode) "\
                +"VALUES("+str(p_allyCode)+")"
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         query = "UPDATE players "\
@@ -446,11 +450,11 @@ def update_player(dict_player):
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         # Update the roster
-        goutils.log2("DBG", "update "+str(len(dict_player["rosterUnit"]))+" character(s)")
+        #goutils.log2("DBG", "update "+str(len(dict_player["rosterUnit"]))+" character(s)")
         for character_id in dict_player["rosterUnit"]:
             character = dict_player["rosterUnit"][character_id]
             c_defId = character_id
@@ -465,14 +469,10 @@ def update_player(dict_player):
             if "relic" in character:
                 c_relic_currentTier = character['relic']['currentTier']
 
-            c_equipped = ['', '', '', '', '', '']
-            for eqpt in character['equipment']:
-                c_equipped[eqpt['slot']] = eqpt['equipmentId']
-                            
             #launch query to update roster element, with stats
             query = "INSERT IGNORE INTO roster(allyCode, defId) "\
                    +"VALUES("+str(p_allyCode)+", '"+c_defId+"')"
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             cursor.execute(query)
 
             query = "UPDATE roster "\
@@ -487,33 +487,31 @@ def update_player(dict_player):
                    +"    relic_currentTier = "+str(c_relic_currentTier)+" "
 
             if "stats" in character:
-                stat_type = "final"
-                if stat_type in character["stats"]:
-                    for stat_id in ['1', '5', '6', '7', '14', '16', '17', '18', '28']:
-                        stat_value = 0
-                        if stat_id in character["stats"][stat_type]:
-                            stat_value = character["stats"][stat_type][stat_id]
-                        
-                        query += ",stat"+stat_id+" = "+str(stat_value)+" "
+                for stat_id in ['1', '5', '6', '7', '14', '16', '17', '18', '28']:
+                    stat_value = 0
+                    if stat_id in character["stats"]["final"]:
+                        stat_value = character["stats"]["final"][stat_id]
+                    
+                    query += ",stat"+stat_id+" = "+str(stat_value)+" "
 
             query +="WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"
 
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             cursor.execute(query)
             mysql_db.commit()
 
             #Get DB index roster_id for next queries
             query = "SELECT id FROM roster WHERE allyCode = "+str(p_allyCode)+" AND defId = '"+c_defId+"'"
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             roster_id = get_value(query)
-            goutils.log2("DBG", "roster_id="+str(roster_id))
+            #goutils.log2("DBG", "roster_id="+str(roster_id))
 
             #Get existing mod IDs from DB
             query = "SELECT id FROM mods WHERE roster_id = "+str(roster_id)
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             previous_mods_ids = get_column(query)
-            goutils.log2("DBG", previous_mods_ids)
+            #goutils.log2("DBG", previous_mods_ids)
 
             ## GET DEFINITION OF MODS ##
             current_mods_ids = []
@@ -567,7 +565,7 @@ def update_player(dict_player):
             
                     query = "INSERT IGNORE INTO mods(id) "\
                            +"VALUES('"+mod_id+"')"
-                    goutils.log2("DBG", query)
+                    #goutils.log2("DBG", query)
                     cursor.execute(query)
         
                     query = "UPDATE mods "\
@@ -588,14 +586,14 @@ def update_player(dict_player):
                            +"sec4_stat = "+str(mod_secondaryStat4_unitStat)+", "\
                            +"sec4_value = "+str(mod_secondaryStat4_value)+" "\
                            +"WHERE id = '"+mod_id+"'"
-                    goutils.log2("DBG", query)
+                    #goutils.log2("DBG", query)
                     cursor.execute(query)
 
             #remove mods not used anymore
             to_be_removed_mods_ids = tuple(set(previous_mods_ids)-set(current_mods_ids))
             if len(to_be_removed_mods_ids) > 0:
                 query = "DELETE FROM mods WHERE id IN "+ str(tuple(to_be_removed_mods_ids)).replace(",)", ")")
-                goutils.log2("DBG", query)
+                #goutils.log2("DBG", query)
                 cursor.execute(query)
 
             ## GET DEFINITION OF CAPACITIES ##
@@ -610,7 +608,7 @@ def update_player(dict_player):
                 capa_shortname = capa_name[0].upper()
                 if capa_shortname in 'SU' and capa_name[-1] in '0123456789':
                     capa_shortname += capa_name[-1]
-                goutils.log2("DBG", capa_name + " >> " + capa_shortname)
+                #goutils.log2("DBG", capa_name + " >> " + capa_shortname)
                     
                 if capa_name == 'uniqueskill_GALACTICLEGEND01':
                     capa_shortname = 'GL'
@@ -621,7 +619,7 @@ def update_player(dict_player):
                 #launch query to update skills
                 query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
                        +"VALUES("+str(roster_id)+", '"+capa_shortname+"')"
-                goutils.log2("DBG", query)
+                #goutils.log2("DBG", query)
                 cursor.execute(query)
 
                 query = "UPDATE roster_skills "\
@@ -631,7 +629,7 @@ def update_player(dict_player):
                        +"omicron_tier = "+str(capa_omicron_tier)+" "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
-                goutils.log2("DBG", query)
+                #goutils.log2("DBG", query)
                 cursor.execute(query)
 
             #Update zeta count in roster element
@@ -639,7 +637,7 @@ def update_player(dict_player):
                    +"SET zeta_count = "+str(c_zeta_count)+" "\
                    +"WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             cursor.execute(query)
                 
         #Compute ModQ from DB data
@@ -653,7 +651,7 @@ def update_player(dict_player):
               + "(sec2_stat=5 AND sec2_value>=15) OR " \
               + "(sec3_stat=5 AND sec3_value>=15) OR " \
               + "(sec4_stat=5 AND sec4_value>=15)) "
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         p_modq = get_value(query)
 
         #Manage GP history
@@ -668,7 +666,7 @@ def update_player(dict_player):
 
         query = "INSERT IGNORE INTO gp_history(date, allyCode) "\
                +"VALUES(CURDATE(), "+str(p_allyCode)+")"
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         query = "UPDATE gp_history "\
@@ -683,7 +681,7 @@ def update_player(dict_player):
                +"    modq = "+str(p_modq)+" "\
                +"WHERE date = CURDATE() "\
                +"AND allyCode = "+str(p_allyCode)
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         mysql_db.commit()

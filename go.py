@@ -99,9 +99,6 @@ def manage_disk_usage():
 # return: error code
 ##################################
 def refresh_cache():
-    #CLEAN OLD FILES NOT ACCESSED FOR LONG TIME
-    #Need to keep KEEPDIR to prevent removal of the directory by GIT
-    
     # Get the guilds to be refreshed
     # the query gets one allyCode by guild in the DB
     query = "SELECT guilds.name, allyCode "\
@@ -159,12 +156,23 @@ def refresh_cache():
 ##################################
 # Function: load_player
 # inputs: txt_allyCode (string)
-#         int force_update (0: default, 1: force update, -1: do not update unless there is no XML)
+#         int force_update (0: update if not recently updated,
+#                           1: force update,
+#                           -1: do not update unless there is no JSON)
 #         bool no_db: do not put player in DB
 # return: err_code, err_text, dict_player
 ##################################
-def load_player(txt_allyCode, force_update, no_db):
+def load_player(ac_or_id, force_update, no_db):
     goutils.log2("DBG", "START")
+
+    #get playerId from allyCode:
+    if len(ac_or_id) == 9:
+        allyCode = ac_or_id
+        query = "SELECT playerId FROM players WHERE allyCode='"+allyCode+"'"
+        goutils.log2("DBG", query)
+        playerId = connect_mysql.get_value(query)
+    else:
+        playerId = ac_or_id
 
     if no_db:
         recent_player = False
@@ -172,44 +180,48 @@ def load_player(txt_allyCode, force_update, no_db):
     else:
         # The query tests if the update is less than 60 minutes for all players
         # Assumption: when the command is player-related, updating one is costless
-        query_result = connect_mysql.get_line("SELECT \
-                            (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) AS recent, \
-                            name \
-                            FROM players WHERE allyCode = '"+txt_allyCode+"'")
-    
-        if query_result != None:
-            recent_player = query_result[0]
-            player_name = query_result[1]
-        else:
-            recent_player = 0
-
-        json_file = "PLAYERS/rpc_"+txt_allyCode+".json"
-        goutils.log2("INFO", 'reading file ' + json_file + '...')
-        if os.path.isfile(json_file):
-            if os.path.getsize(json_file) == 0:
-                goutils.log2("DBG", "... empty file, delete it")
-                #empty file, delete it
-                os.remove(json_file)
-                prev_dict_player = None
+        if playerId != None:
+            query = "SELECT (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) AS recent, "
+            query+= "name FROM players WHERE playerId = '"+str(playerId)+"'"
+            goutils.log2("DBG", query)
+            query_result = connect_mysql.get_line(query)
+            if query_result != None:
+                recent_player = query_result[0]
             else:
-                goutils.log2("DBG", "... correct file")
-                prev_dict_player = json.load(open(json_file, 'r'))
-                prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+                recent_player = 0
+
+            json_file = "PLAYERS/"+playerId+".json"
+            goutils.log2("INFO", 'reading file ' + json_file + '...')
+            if os.path.isfile(json_file):
+                if os.path.getsize(json_file) == 0:
+                    goutils.log2("DBG", "... empty file, delete it")
+                    #empty file, delete it
+                    os.remove(json_file)
+                    prev_dict_player = None
+                else:
+                    goutils.log2("DBG", "... correct file")
+                    prev_dict_player = json.load(open(json_file, 'r'))
+                    prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+            else:
+                goutils.log2("DBG", "... the file does not exist")
+                prev_dict_player = None
         else:
-            goutils.log2("DBG", "... the file does not exist")
+            goutils.log2("DBG", "Player "+ac_or_id+" unknown. Need to get whole data")
+            recent_player = 0
             prev_dict_player = None
 
+
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
-        goutils.log2("INFO", 'Requesting RPC data for player ' + txt_allyCode + '...')
-        ec, et, dict_player = connect_rpc.get_player_data(txt_allyCode, False)
+        goutils.log2("INFO", 'Requesting RPC data for player ' + ac_or_id + '...')
+        ec, et, dict_player = connect_rpc.get_player_data(ac_or_id, False)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
             dict_player = prev_dict_player
 
         if dict_player == None:
-            goutils.log2("ERR", 'Cannot get player data for '+txt_allyCode)
+            goutils.log2("ERR", 'Cannot get player data for '+ac_or_id)
             sys.stdout.flush()
-            return 1, 'ERR: cannot get player data for '+txt_allyCode, None
+            return 1, 'ERR: cannot get player data for '+ac_or_id, None
 
         #Add mandatory elements to compute stats
         for unit in dict_player["rosterUnit"]:
@@ -231,7 +243,10 @@ def load_player(txt_allyCode, force_update, no_db):
         #Transform the roster into dictionary with key = defId
         dict_player = goutils.roster_from_list_to_dict(dict_player)
 
-        goutils.log2("INFO", "success retrieving "+dict_player['name']+" from RPC")
+        playerId = dict_player["playerId"]
+        player_name = dict_player["name"]
+
+        goutils.log2("INFO", "success retrieving "+player_name+" from RPC")
         sys.stdout.flush()
         
         if not no_db:
@@ -240,6 +255,7 @@ def load_player(txt_allyCode, force_update, no_db):
             sys.stdout.flush()
         
             # store json file
+            json_file = "PLAYERS/"+playerId+".json"
             fjson = open(json_file, 'w')
             fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
             fjson.close()
@@ -249,13 +265,14 @@ def load_player(txt_allyCode, force_update, no_db):
             if ret == 0:
                 goutils.log2("INFO", "success updating "+dict_player['name']+" in DB")
             else:
-                goutils.log2('ERR', 'update_player '+txt_allyCode+' returned an error')
-                return 1, 'ERR: update_player '+txt_allyCode+' returned an error', None
+                goutils.log2('ERR', 'update_player '+ac_or_id+' returned an error')
+                return 1, 'ERR: update_player '+ac_or_id+' returned an error', None
             sys.stdout.flush()
                 
     else:
-        goutils.log2('INFO', player_name + ' loaded from existing XML OK')
         dict_player = prev_dict_player
+        player_name = dict_player["name"]
+        goutils.log2('INFO', player_name + ' loaded from existing XML OK')
     
     sys.stdout.flush()
     return 0, "", dict_player
@@ -1002,7 +1019,7 @@ def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, e
         #only one player, potentially several teams
         
         #Load or update data for the player
-        e, t, d = load_player(txt_allyCode, 0, False)
+        e, t, d = load_player(txt_allyCode, 1, False)
         if e != 0:
             #error wile loading guild data
             return "", 'ERR: joueur non trouvé pour code allié ' + txt_allyCode
@@ -1222,7 +1239,7 @@ def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
         if ec != 0:
             return ec, et
 
-        ec, et, list_active_players, secs_track = get_tw_active_players(server_id)
+        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id)
         if ec != 0:
             return ec, et
     else:
@@ -1301,7 +1318,7 @@ def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
         if ec != 0:
             return ec, et, None
 
-        ec, et, list_active_players, secs_track = get_tw_active_players(server_id)
+        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id)
         if ec != 0:
             return ec, et
     else:
@@ -1710,7 +1727,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
                     return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
-        e, t, dict_player = load_player(txt_allyCode, 0, False)
+        e, t, dict_player = load_player(txt_allyCode, 1, False)
         player_name = dict_player["name"]
         list_player_names = [player_name]
 
@@ -1792,7 +1809,6 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
             tw_ongoing = rpc_data[0]
             if not tw_ongoing:
                 return "ERR: no TW ongoing"
-                return []
 
             list_opponent_squads = rpc_data[2][0]
             tuple_opp_players = tuple(set([x[1] for x in list_opponent_squads]))
@@ -1802,7 +1818,10 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
             query+= "WHERE name in "+str(tuple_opp_players)+" "
             query+= "GROUP BY guildName ORDER BY count(*) DESC LIMIT 1"
             goutils.log2("DBG", query)
-            txt_allyCode = str(connect_mysql.get_value(query))
+            db_data = connect_mysql.get_value(query)
+            if db_data == None:
+                return "ERR: la guilde adverse n'a pas été entrée dans le bot"
+            txt_allyCode = str(db_data)
 
             #filter the players that needs to be displayed
             dict_tw_zone_players = {}
@@ -2032,7 +2051,9 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mo
 
     list_ids_dictplayer = []
     for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
-        e, t, dict_player = load_player(txt_allyCode, -int(not(refresh_player)), False)
+        # refresh_player = True  > load_player(force_update=1)
+        # refresh_player = False > load_player(force_update=-1)
+        e, t, dict_player = load_player(txt_allyCode, 2*int(refresh_player)-1, False)
 
         #Tag reserved characters
         if game_mode == "TW":
@@ -2080,39 +2101,51 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mo
 #################################
 def get_tw_battle_image(list_char_attack, allyCode_attack, \
                         character_defense, server_id):
-    err_code = 0
-    err_txt = ''
+    war_txt = ""
+
+    dict_unitsList = data.get("unitsList_dict.json")
+
+    #Check if the guild can use RPC
+    if not server_id in connect_rpc.get_dict_bot_accounts():
+        return []
+
+    query = "SELECT name, twChanOut_id FROM guild_bot_infos "
+    query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
+    query+= "WHERE server_id="+str(server_id)
+    goutils.log2('DBG', query)
+    db_data = connect_mysql.get_line(query)
+
+    guildName = db_data[0]
+    twChannel_id = db_data[1]
+    if twChannel_id == 0:
+        return 1, "ERR: commande inutilisable sur ce serveur\n", None
+
+    rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
+    tw_ongoing = rpc_data[0]
+    if not tw_ongoing:
+        return 1, "ERR: aucune GT en cours\n", None
+
+    list_opponent_squads = rpc_data[2][0]
+    if len(list_opponent_squads) == 0:
+        goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
+        return 1, "ERR: aucune phase d'attaque en cours en GT\n", None
 
     #Get full character names for attack
     list_id_attack, dict_id_name, txt = goutils.get_characters_from_alias(list_char_attack)
     if txt != '':
-        err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
+        war_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
     #Get full character name for defense
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_defense])
     if txt != '':
-        err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
+        war_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
     char_def_id = list_character_ids[0]
 
-    #Get full character names for defense squads
-    query = "SELECT warstats_id FROM guild_bot_infos "
-    query+= "where server_id = "+str(server_id)
-    goutils.log2("DBG", query)
-    warstats_id = connect_mysql.get_value(query)
-
-    if warstats_id == None or warstats_id == 0:
-        return 1, "ERR: Guilde non déclarée dans le bot\n", None
-
-    [list_opponent_squads, list_opp_territories] = connect_warstats.parse_tw_opponent_teams(server_id)
-    if len(list_opponent_squads) == 0:
-        goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
-        err_txt += "ERR: aucune phase d'attaque en cours en GT\n"
-        return 1, err_txt, None
 
     list_opponent_char_alias = list(set([j for i in [x[2] for x in list_opponent_squads] for j in i]))
     list_opponent_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_opponent_char_alias)
     if txt != '':
-        err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
+        war_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
     list_opp_squad_ids = []
     for opp_squad in list_opponent_squads:
@@ -2128,8 +2161,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     list_opp_squads_with_char = list(filter(lambda x:char_def_id in x[2], list_opp_squad_ids))
     if len(list_opp_squads_with_char) == 0:
-        err_txt += 'ERR: '+character_defense+' ne fait pas partie des teams en défense\n'
-        return 1, err_txt, None
+        return 1, 'ERR: '+character_defense+' ne fait pas partie des teams en défense\n', None
 
     # Look for the name among known player names in DB
     results = connect_mysql.get_table("SELECT name, allyCode FROM players")
@@ -2141,9 +2173,8 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         closest_names=difflib.get_close_matches(player_name, list_names, 1)
         #print(closest_names)
         if len(closest_names)<1:
-            err_txt += 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n'
             goutils.log2("ERR", player_name+' ne fait pas partie des joueurs connus')
-            opp_squad[1]=''
+            return 1, 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n', None
         else:
             goutils.log2("INFO", "cmd launched with name that looks like "+closest_names[0])
             for r in results:
@@ -2158,17 +2189,16 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
             list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
-    e, t, images = get_character_image(list_char_allycodes, True, False, 'TW', server_id)
-    err_txt += t
-    if e != 0:
-        return 1, err_txt, None
+    ec, et, images = get_character_image(list_char_allycodes, True, False, 'TW', server_id)
+    if ec != 0:
+        return 1, et, None
 
-    return 0, err_txt, images
+    return 0, war_txt, images
 
 def get_stat_graph(txt_allyCode, character_alias, stat_name):
     err_txt = ""
 
-    e, t, d = load_player(txt_allyCode, 0, False)
+    e, t, d = load_player(txt_allyCode, 1, False)
     if e != 0:
         return 1, "ERR: cannot get player data from SWGOH.HELP API", None
         
@@ -2235,7 +2265,7 @@ def print_lox(txt_allyCode, compute_guild):
         if err_code != 0:
             return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, []
     else:
-        e, t, d = load_player(txt_allyCode, 0, False)
+        e, t, d = load_player(txt_allyCode, 1, False)
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
 
@@ -2891,7 +2921,7 @@ def get_tw_alerts(server_id, use_cache_data):
     if not server_id in connect_rpc.get_dict_bot_accounts():
         return []
 
-    query = "SELECT name, twChanOut_id, warstats_id FROM guild_bot_infos "
+    query = "SELECT name, twChanOut_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
     query+= "WHERE server_id="+str(server_id)
     goutils.log2('DBG', query)
@@ -2899,8 +2929,7 @@ def get_tw_alerts(server_id, use_cache_data):
 
     guildName = db_data[0]
     twChannel_id = db_data[1]
-    warstats_id = db_data[2]
-    if twChannel_id == 0 or warstats_id == 0:
+    if twChannel_id == 0:
         return []
 
     rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
@@ -3193,7 +3222,7 @@ def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_guild):
         if err_code != 0:
             return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, {}
     else:
-        e, t, d = load_player(txt_allyCode, 0, False)
+        e, t, d = load_player(txt_allyCode, 1, False)
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, {}
 
@@ -3264,18 +3293,13 @@ def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players, secs_track = get_tw_active_players(server_id)
+        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id)
         if ec != 0:
             return ec, et
 
     opposite_search = (character[0]=="-")
     if opposite_search and tw_mode:
         return 1, "ERR: impossible de chercher un perso non présent (avec le '-') avec l'option -TW", None
-
-    if tw_mode:
-        ec, et, list_active_players, secs_track = get_tw_active_players(server_id)
-        if ec != 0:
-            return ec, et
 
     tab_virtual_character = character.split(':')
 
@@ -3651,17 +3675,30 @@ def get_modq_graph(txt_allyCode):
     return 0, "", image
 
 def get_tw_defense_toons(server_id):
-    query = "SELECT twChanOut_id, warstats_id FROM guild_bot_infos "
+    dict_unitsList = data.get("unitsList_dict.json")
+
+    #Check if the guild can use RPC
+    if not server_id in connect_rpc.get_dict_bot_accounts():
+        return []
+
+    query = "SELECT name, twChanOut_id FROM guild_bot_infos "
+    query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
     query+= "WHERE server_id="+str(server_id)
     goutils.log2('DBG', query)
     db_data = connect_mysql.get_line(query)
 
-    twChannel_id = db_data[0]
-    warstats_id = db_data[1]
-    if warstats_id == 0:
-        return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + server_id, None, -1
+    guildName = db_data[0]
+    twChannel_id = db_data[1]
+    if twChannel_id == 0:
+        return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    [list_defense_squads, list_def_territories], secs_track = connect_warstats.parse_tw_defense_teams(warstats_id)
+    rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
+    tw_ongoing = rpc_data[0]
+    if not tw_ongoing:
+        return 1, "ERR: aucune GT en cours\n", None
+
+    list_defense_squads = rpc_data[1][0]
+
     list_defense_characters = set([j for i in [x[2] for x in list_defense_squads] for j in i])
     list_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_defense_characters)
     if txt != '':
@@ -3678,22 +3715,6 @@ def get_tw_defense_toons(server_id):
             dict_def_toon_player[char_id].append(player)
 
     return 0, "", dict_def_toon_player, secs_track
-
-def get_tw_active_players(server_id):
-    query = "SELECT twChanOut_id, warstats_id FROM guild_bot_infos "
-    query+= "WHERE server_id="+str(server_id)
-    goutils.log2('DBG', query)
-    db_data = connect_mysql.get_line(query)
-
-    twChannel_id = db_data[0]
-    warstats_id = db_data[1]
-    if warstats_id == 0:
-        return 1, "ERR: impossible d'utiliser l'option -TW depuis le serveur " + str(server_id), None, -1
-
-    list_active_players, secs_track = connect_warstats.parse_tw_stats(server_id)
-    list_active_player_names = [x[0] for x in list_active_players]
-
-    return 0, "", list_active_player_names, secs_track
 
 def allocate_platoons(txt_allyCode, list_zones):
     total_err_txt = ""
@@ -4097,9 +4118,9 @@ def detect_tm(fevent_name, fguild_name):
 def get_tb_alerts(server_id, force_latest):
     #Check if the guild can use RPC
     if server_id in connect_rpc.get_dict_bot_accounts():
-        territory_scores, active_round = connect_rpc.get_tb_guild_scores(server_id, force_latest)
+        territory_scores, active_round = connect_rpc.get_tb_guild_scores(server_id, not force_latest)
     else:
-        territory_scores, active_round = connect_warstats.parse_tb_guild_scores(server_id, force_latest)
+        return []
     goutils.log2("DBG", "["+str(server_id)+"] territory_scores="+str(territory_scores))
 
     if active_round != "":
@@ -4253,5 +4274,22 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
 
     return ec, txt
 
+def deploy_bot_tw(server_id, zone_shortname, characters):
+    dict_unitsList = data.get("unitsList_dict.json")
 
+    #specific list of characters for one player
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+
+    dict_tw=data.dict_tw
+
+    if zone_shortname in dict_tw:
+        zone_name = dict_tw[zone_shortname]
+    else:
+        return 1, "Zone GT inconnue"
+
+    ec, txt = connect_rpc.deploy_tw(server_id, zone_name, list_character_ids)
+
+    return ec, txt
 
