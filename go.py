@@ -1233,15 +1233,15 @@ def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, e
 def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
 
     #Manage -TW option
-    secs_track = -1
     if tw_mode:
-        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_id)
+        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id, False)
         if ec != 0:
             return ec, et
 
-        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id)
+        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, True)
         if ec != 0:
             return ec, et
+
     else:
         dict_def_toon_player = {}
         list_active_players = None
@@ -1305,22 +1305,18 @@ def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
 
             ret_print_vtx += "\n\n"
 
-        if tw_mode:
-            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
-            ret_print_vtx += "(dernier update warstats: "+secs_track_txt+")"
-                
     return 0, ret_print_vtx
 
 def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_id)
-        if ec != 0:
-            return ec, et, None
-
-        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id)
+        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id, False)
         if ec != 0:
             return ec, et
+
+        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, True)
+        if ec != 0:
+            return ec, et, None
     else:
         dict_def_toon_player = {}
         list_active_players = None
@@ -1374,10 +1370,6 @@ def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
                     else:
                         image_mode = ""
                     e, t, images = get_character_image(list_char_allycodes, True, False, image_mode, server_id)
-
-        if tw_mode:
-            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
-            ret_print_vtx += "(dernier update warstats: "+secs_track_txt+")"
 
     #In case of several teams, don't display images
     if len(ret_get_team_progress) > 1:
@@ -2038,7 +2030,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mo
 
     #Get reserved TW toons
     if game_mode == "TW":
-        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_id)
+        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, False)
         if ec != 0:
             return 1, et, None
     
@@ -3293,7 +3285,7 @@ def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id)
+        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id, False)
         if ec != 0:
             return ec, et
 
@@ -3425,12 +3417,10 @@ def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
 
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player, secs_track = get_tw_defense_toons(server_id)
+        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, True)
         if ec != 0:
             return ec, et, None
 
-        secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ "s"
-        intro_txt += " (dernier update warstats: "+secs_track_txt+")"
     else:
         dict_def_toon_player = {}
 
@@ -3674,7 +3664,7 @@ def get_modq_graph(txt_allyCode):
 
     return 0, "", image
 
-def get_tw_defense_toons(server_id):
+def get_tw_defense_toons(server_id, use_cache_data):
     dict_unitsList = data.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
@@ -3699,22 +3689,16 @@ def get_tw_defense_toons(server_id):
 
     list_defense_squads = rpc_data[1][0]
 
-    list_defense_characters = set([j for i in [x[2] for x in list_defense_squads] for j in i])
-    list_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_defense_characters)
-    if txt != '':
-        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None, -1
-
     dict_def_toon_player = {}
     for squad in list_defense_squads:
         player = squad[1]
-        for alias in squad[2]:
-            char_id = dict_id_name[alias][0][0]
+        for char_id in squad[2]:
             if not char_id in dict_def_toon_player:
                 dict_def_toon_player[char_id] = []
 
             dict_def_toon_player[char_id].append(player)
 
-    return 0, "", dict_def_toon_player, secs_track
+    return 0, "", dict_def_toon_player
 
 def allocate_platoons(txt_allyCode, list_zones):
     total_err_txt = ""

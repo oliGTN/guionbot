@@ -1087,7 +1087,7 @@ def get_tw_status(server_id, use_cache_data):
     return True, [list_teams["homeGuild"], list_territories["homeGuild"]], \
                  [list_teams["awayGuild"], list_territories["awayGuild"]]
 
-def get_tw_active_players(server_id):
+def get_tw_active_players(server_id, use_cache_data):
     ec, et, rpc_data = get_rpc_data(server_id, False, use_cache_data)
     if ec!=0:
         return 1, et, None
@@ -1097,7 +1097,7 @@ def get_tw_active_players(server_id):
     list_active_players = []
     for member in dict_guild["member"]:
         dict_members[member["playerId"]] = member["playerName"]
-    for member in dict_guild["territoryWarStatus"]["optedInMember"]:
+    for member in dict_guild["territoryWarStatus"][0]["optedInMember"]:
         list_active_players.append(dict_members[member["memberId"]])
 
     return 0, "", list_active_players
