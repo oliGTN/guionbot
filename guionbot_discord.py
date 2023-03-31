@@ -37,6 +37,7 @@ MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 list_alerts_sent_to_admin = []
 bot_test_mode = False
 first_bot_loop_5minutes = True
+first_bot_loop_10minutes = True
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -204,14 +205,19 @@ async def bot_loop_60secs():
         query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_column(query)
+        goutils.log2("DBG", "db_data: "+str(db_data))
 
         if not db_data==None:
             for server_id in db_data:
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
+                    goutils.log2("DBG", "before get_rpc_update: "+str(server_id))
                     await bot.loop.run_in_executor(None, connect_rpc.get_rpc_data, server_id, True, False)
+                    goutils.log2("DBG", "before update_gwarstats: "+str(server_id))
                     await bot.loop.run_in_executor(None, connect_gsheets.update_gwarstats, server_id)
+                    goutils.log2("DBG", "before get_guildChat: "+str(server_id))
                     ec, et, ret_data = await bot.loop.run_in_executor(None, connect_rpc.get_guildChat_messages, server_id, True)
+                    goutils.log2("DBG", "after get_guildChat: "+str(server_id))
                     if ec!=0:
                         goutils.log2("ERR", et)
                     else:
@@ -250,25 +256,35 @@ async def bot_loop_60secs():
 # Output: none
 ##############################################################
 async def bot_loop_10minutes():
+    global first_bot_loop_10minutes
+
     await bot.wait_until_ready()
     while not bot.is_closed():
         t_start = time.time()
 
-        try:
-            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-            await bot.loop.run_in_executor(None, go.refresh_cache)
+        if not first_bot_loop_10minutes:
+            try:
+                #REFRESH and CLEAN CACHE DATA FROM SWGOH API
+                await bot.loop.run_in_executor(None, go.refresh_cache)
 
-        except Exception as e:
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
+            except Exception as e:
+                goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
+                goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
+                goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
+                if not bot_test_mode:
+                    await send_alert_to_admins(None, "Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
-        # Wait X seconds before next loop
-        t_end = time.time()
-        waiting_time = max(0, 60*10 - (t_end - t_start))
-        await asyncio.sleep(waiting_time)
+            # Wait 600 seconds before next loop
+            t_end = time.time()
+            waiting_time = max(0, 60*10 - (t_end - t_start))
+            await asyncio.sleep(waiting_time)
+        else:
+            first_bot_loop_10minutes = False
+            # Wait 60 seconds before next loop
+            # Just have a first shortloop without refresh to ensure bot connection to discord
+            t_end = time.time()
+            waiting_time = max(0, 60 - (t_end - t_start))
+            await asyncio.sleep(waiting_time)
 
 async def bot_loop_60minutes():
     await bot.wait_until_ready()
@@ -407,7 +423,7 @@ async def bot_loop_5minutes():
                     dict_tb_alerts_previously_done[guild.id] = []
 
                 #CHECK ALERTS FOR BT
-                list_tb_alerts = go.get_tb_alerts(guild.id, True)
+                list_tb_alerts = go.get_tb_alerts(guild.id, False)
                 for tb_alert in list_tb_alerts:
                     if not tb_alert in dict_tb_alerts_previously_done[guild.id]:
                         if not first_bot_loop_5minutes:
@@ -1049,10 +1065,10 @@ async def on_reaction_add(reaction, user):
         guild_name = message.channel.guild.name
         set_id_lastseen("on_reaction_add", reaction.message.channel.guild.id, user.id)
 
-    author = message.author
+    author = message.author.display_name
     emoji = reaction.emoji
     goutils.log2("DBG", "guild_name: "+guild_name)
-    goutils.log2("DBG", "message: "+str(message))
+    goutils.log2("DBG", "message: "+str(message.content))
     goutils.log2("DBG", "author of the message: "+str(author))
     goutils.log2("DBG", "emoji: "+str(emoji))
     goutils.log2("DBG", "user of the reaction: "+str(user))
@@ -1410,7 +1426,6 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 await ctx.message.add_reaction(emoji_error)
                 return
 
-
             delta_player = goutils.delta_dict_player(player_before, player_now)
 
             query = "SELECT * FROM roster_evolutions\n"
@@ -1443,24 +1458,6 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(admin_command)
     async def test(self, ctx, *args):
-        #get warstats_id from DB
-        query = "SELECT warstats_id, tbChanRead_id FROM guilds WHERE server_id = " + str(ctx.guild.id)
-        goutils.log2("DBG", query)
-        result = connect_mysql.get_line(query)
-
-        if result == None:
-            await ctx.send('ERR: commande non utilisable sur ce serveur')
-            return
-
-        [warstats_id, tbChannel_id] = result
-        if warstats_id==0 or tbChannel_id==0:
-            await ctx.send('ERR: commande non utilisable sur ce serveur')
-            return
-
-        tbs_round = "ROTE1"
-        dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
-        goutils.log2("DBG", "Platoon allocation: "+str(dict_platoons_allocation))
-
         await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
@@ -1502,17 +1499,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             display_mentions=False
             output_channel = ctx.message.channel
 
-        #get warstats_id from DB
-        query = "SELECT warstats_id, tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
+        #get bot config from DB
+        query = "SELECT tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
         goutils.log2("DBG", query)
-        result = connect_mysql.get_line(query)
+        result = connect_mysql.get_value(query)
 
         if result == None:
             await ctx.send('ERR: Guilde non déclarée dans le bot')
             return
 
-        [warstats_id, tbChannel_id] = result
-        if warstats_id==0 or tbChannel_id==0:
+        tbChannel_id = result
+        if tbChannel_id==0:
             await ctx.send('ERR: commande non utilisable sur ce serveur')
             return
 
@@ -1524,12 +1521,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 secs_track = connect_rpc.parse_tb_platoons(ctx.guild.id, False)
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
         else:
-            #Lecture du statut des pelotons sur warstats
-            goutils.log2("DBG", "Using warstats data for "+ctx.guild.id)
-
-            tbs_round, dict_platoons_done, list_open_territories, \
-                secs_track = connect_warstats.parse_tb_platoons(warstats_id, False)
-            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+            await ctx.send('ERR: commande non utilisable sur ce serveur')
+            return
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
@@ -2232,7 +2225,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
             else:
                 #Unknown allyCode in DB
-                e, t, dict_player = go.load_player(allyCode, 0, True)
+                e, t, dict_player = go.load_player(allyCode, 1, True)
                 if e == 0:
                     player_name = dict_player["name"]
                     guildName = dict_player["guildName"]

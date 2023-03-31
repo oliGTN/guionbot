@@ -167,3 +167,13 @@ for category in game_data["category"]:
 fnew = open('DATA'+os.path.sep+'categoryList_dict.json', 'w')
 fnew.write(json.dumps(categoryList_dict, sort_keys=True, indent=4))
 fnew.close()
+
+modList_dict = {}
+for mod in game_data["statMod"]:
+    modList_dict[mod['id']] = {"slot": mod["slot"],
+                               "setId": mod["setId"],
+                               "rarity": mod["rarity"]}
+
+fnew = open('DATA'+os.path.sep+'modList_dict.json', 'w')
+fnew.write(json.dumps(modList_dict, sort_keys=True, indent=4))
+fnew.close()

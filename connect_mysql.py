@@ -383,48 +383,62 @@ def insert_roster_evo(allyCode, defId, evo_txt):
     
 def update_player(dict_player):
     dict_unitsList = data.get("unitsList_dict.json")
+    dict_modList = data.get("modList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
+    dict_stats = data.get("dict_stats.json")
     cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor()
         
         # Update basic player information
-        p_allyCode = dict_player['allyCode']
-        p_guildName = dict_player['guildName']
+        p_allyCode = dict_player["allyCode"]
+        p_playerId = dict_player["playerId"]
+        p_guildName = dict_player["guildName"]
 
-        p_lastActivity_player = dict_player['lastActivity']
+        p_lastActivity_player = int(dict_player["lastActivityTime"])
         p_lastActivity_ts = datetime.datetime.fromtimestamp(p_lastActivity_player/1000)
         p_lastActivity = p_lastActivity_ts.strftime('%Y-%m-%d %H:%M:%S')
 
         p_level = dict_player['level']
         p_name = dict_player['name']
-        p_arena_char_rank = dict_player['arena']['char']['rank']
-        p_arena_char_rank_txt = ("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))
-        p_arena_ship_rank = dict_player['arena']['ship']['rank']
-        p_arena_ship_rank_txt = ("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))
-        if len(dict_player['grandArena'])>0:
-            p_grand_arena_league = dict_player['grandArena'][-1]['league']
-            p_grand_arena_division = 6 - int(dict_player['grandArena'][-1]['division']/5)
-            p_grand_arena_rank = p_grand_arena_league + str(p_grand_arena_division)
-        else:
-            p_grand_arena_rank = "NULL"
 
-        for stat in dict_player['stats']:
-            if stat['nameKey'] == "Puissance Galactique (personnages)\u00a0:":
+        # SQUAD and FLEET arenas
+        p_arena_char_rank = None
+        p_arena_ship_rank = None
+        for arena in dict_player['pvpProfile']:
+            if arena["type"] == "SQUADARENA":
+                p_arena_char_rank = arena["rank"]
+            elif arena["type"] == "FLEETARENA":
+                p_arena_ship_rank = arena["rank"]
+        p_arena_char_rank_txt = ("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))
+        p_arena_ship_rank_txt = ("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))
+
+        #GAC
+        if "playerRating" in dict_player and "playerRankStatus" in dict_player["playerRating"]:
+            p_grand_arena_league = dict_player['playerRating']["playerRankStatus"]['leagueId']
+            p_grand_arena_division = 6 - int(dict_player['playerRating']["playerRankStatus"]['divisionId']/5)
+        else:
+            p_grand_arena_league = ""
+            p_grand_arena_division = 0
+        p_grand_arena_rank = p_grand_arena_league + str(p_grand_arena_division)
+
+        for stat in dict_player["profileStat"]:
+            if stat['nameKey'] == "STAT_CHARACTER_GALACTIC_POWER_ACQUIRED_NAME":
                 p_char_gp = stat['value']
-            elif stat['nameKey'] == "Puissance Galactique (vaisseaux)\u00a0:":
+            elif stat['nameKey'] == "STAT_SHIP_GALACTIC_POWER_ACQUIRED_NAME":
                 p_ship_gp = stat['value']
 
-        p_poUTCOffsetMinutes = dict_player['poUTCOffsetMinutes']
+        p_poUTCOffsetMinutes = dict_player['localTimeZoneOffsetMinutes']
 
         query = "INSERT IGNORE INTO players(allyCode) "\
                +"VALUES("+str(p_allyCode)+")"
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         query = "UPDATE players "\
                +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
+               +"    playerId = '"+p_playerId+"', "\
                +"    lastActivity = '"+p_lastActivity+"', "\
                +"    level = "+str(p_level)+", "\
                +"    name = '"+str(p_name).replace("'", "''")+"', "\
@@ -436,37 +450,29 @@ def update_player(dict_player):
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         # Update the roster
-        goutils.log2("DBG", "update "+str(len(dict_player['roster']))+" character(s)")
-        for character_id in dict_player['roster']:
-            character = dict_player['roster'][character_id]
-            c_combatType = character['combatType']
-            c_defId = character['defId']
-            if c_defId in dict_unitsList:
-                c_forceAlignment = dict_unitsList[c_defId]['forceAlignment']
-            else:
-                c_forceAlignment = 1
-            c_gear = character['gear']
+        #goutils.log2("DBG", "update "+str(len(dict_player["rosterUnit"]))+" character(s)")
+        for character_id in dict_player["rosterUnit"]:
+            character = dict_player["rosterUnit"][character_id]
+            c_defId = character_id
+            c_combatType = dict_unitsList[character_id]['combatType']
+            c_forceAlignment = dict_unitsList[c_defId]['forceAlignment']
+            c_gear = character['currentTier']
             c_gp = character['gp']
-            c_level = character['level']
-            c_nameKey = ''
-            c_rarity = character['rarity']
+            c_level = character['currentLevel']
+            c_rarity = character['currentRarity']
             
             c_relic_currentTier = 0
-            if character['relic'] != None:
+            if "relic" in character:
                 c_relic_currentTier = character['relic']['currentTier']
 
-            c_equipped = ['', '', '', '', '', '']
-            for eqpt in character['equipped']:
-                c_equipped[eqpt['slot']] = eqpt['equipmentId']
-                            
             #launch query to update roster element, with stats
             query = "INSERT IGNORE INTO roster(allyCode, defId) "\
                    +"VALUES("+str(p_allyCode)+", '"+c_defId+"')"
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             cursor.execute(query)
 
             query = "UPDATE roster "\
@@ -477,135 +483,132 @@ def update_player(dict_player):
                    +"    gear = "+str(c_gear)+", "\
                    +"    gp = "+str(c_gp)+", "\
                    +"    level = "+str(c_level)+", "\
-                   +"    nameKey = '"+c_nameKey+"', "\
                    +"    rarity = "+str(c_rarity)+", "\
                    +"    relic_currentTier = "+str(c_relic_currentTier)+" "
 
-            for i_eqpt in range(6):
-                if c_equipped[i_eqpt] != '':
-                   query += ",eqpt"+str(i_eqpt+1)+" = '"+c_equipped[i_eqpt]+"'"
-
             if "stats" in character:
-                stat_type = "final"
-                if stat_type in character["stats"]:
-                    for stat_id in ['1', '5', '6', '7', '14', '16', '17', '18', '28']:
-                        stat_value = 0
-                        if stat_id in character["stats"][stat_type]:
-                            stat_value = character["stats"][stat_type][stat_id]
-                        
-                        query += ",stat"+stat_id+" = "+str(stat_value)+" "
+                for stat_id in ['1', '5', '6', '7', '14', '16', '17', '18', '28']:
+                    stat_value = 0
+                    if stat_id in character["stats"]["final"]:
+                        stat_value = character["stats"]["final"][stat_id]
+                    
+                    query += ",stat"+stat_id+" = "+str(stat_value)+" "
 
             query +="WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"
 
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             cursor.execute(query)
             mysql_db.commit()
 
-            #Get DB index rroster_id for next queries
+            #Get DB index roster_id for next queries
             query = "SELECT id FROM roster WHERE allyCode = "+str(p_allyCode)+" AND defId = '"+c_defId+"'"
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             roster_id = get_value(query)
-            goutils.log2("DBG", "roster_id="+str(roster_id))
+            #goutils.log2("DBG", "roster_id="+str(roster_id))
 
             #Get existing mod IDs from DB
             query = "SELECT id FROM mods WHERE roster_id = "+str(roster_id)
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             previous_mods_ids = get_column(query)
-            goutils.log2("DBG", previous_mods_ids)
+            #goutils.log2("DBG", previous_mods_ids)
 
             ## GET DEFINITION OF MODS ##
             current_mods_ids = []
-            for mod in character['mods']:
-                mod_id = mod['id']
-                mod_level = mod['level']
-                mod_pips = mod['pips']
-                mod_primaryStat_unitStat = mod['primaryStat']['unitStat']
-                mod_primaryStat_value = mod['primaryStat']['value']
-                
-                mod_secondaryStat_unitStats=[]
-                mod_secondaryStat_values=[]
-                mod_secondaryStat1_unitStat=0
-                mod_secondaryStat1_value=0
-                mod_secondaryStat2_unitStat=0
-                mod_secondaryStat2_value=0
-                mod_secondaryStat3_unitStat=0
-                mod_secondaryStat3_value=0
-                mod_secondaryStat4_unitStat=0
-                mod_secondaryStat4_value=0
-                for sec_stat in mod['secondaryStat']:
-                    mod_secondaryStat_unitStats.append(sec_stat['unitStat'])
-                    mod_secondaryStat_values.append(sec_stat['value'])
-                if len(mod_secondaryStat_unitStats)>0:
-                    mod_secondaryStat1_unitStat = mod_secondaryStat_unitStats[0]
-                    mod_secondaryStat1_value = mod_secondaryStat_values[0]
-                if len(mod_secondaryStat_unitStats)>1:
-                    mod_secondaryStat2_unitStat = mod_secondaryStat_unitStats[1]
-                    mod_secondaryStat2_value = mod_secondaryStat_values[1]
-                if len(mod_secondaryStat_unitStats)>2:
-                    mod_secondaryStat3_unitStat = mod_secondaryStat_unitStats[2]
-                    mod_secondaryStat3_value = mod_secondaryStat_values[2]
-                if len(mod_secondaryStat_unitStats)>3:
-                    mod_secondaryStat4_unitStat = mod_secondaryStat_unitStats[3]
-                    mod_secondaryStat4_value = mod_secondaryStat_values[3]
+            if 'equippedStatMod' in character:
+                for mod in character['equippedStatMod']:
+                    mod_id = mod['id']
+                    mod_level = mod['level']
+                    mod_pips = dict_modList[mod["definitionId"]]['rarity']
+                    mod_primaryStat_unitStat = mod['primaryStat']["stat"]['unitStatId']
+                    if dict_stats[str(mod_primaryStat_unitStat)]["isDecimal"]:
+                        mod_primaryStat_value = int(mod['primaryStat']["stat"]['statValueDecimal'])/100
+                    else:
+                        mod_primaryStat_value = int(mod['primaryStat']["stat"]['statValueDecimal'])/10000
                     
-                mod_set = mod['set']
-                mod_slot = mod['slot']
-                mod_tier = mod['tier']
+                    mod_secondaryStat_unitStats=[]
+                    mod_secondaryStat_values=[]
+                    mod_secondaryStat1_unitStat=0
+                    mod_secondaryStat1_value=0
+                    mod_secondaryStat2_unitStat=0
+                    mod_secondaryStat2_value=0
+                    mod_secondaryStat3_unitStat=0
+                    mod_secondaryStat3_value=0
+                    mod_secondaryStat4_unitStat=0
+                    mod_secondaryStat4_value=0
+                    for sec_stat in mod['secondaryStat']:
+                        mod_secondaryStat_unitStats.append(sec_stat["stat"]["unitStatId"])
+                        if dict_stats[str(sec_stat["stat"]["unitStatId"])]["isDecimal"]:
+                            sec_stat_value = int(sec_stat["stat"]["statValueDecimal"])/100
+                        else:
+                            sec_stat_value = int(sec_stat["stat"]["statValueDecimal"])/10000
+                        mod_secondaryStat_values.append(sec_stat_value)
 
-                current_mods_ids.append(mod_id)
+                    if len(mod_secondaryStat_unitStats)>0:
+                        mod_secondaryStat1_unitStat = mod_secondaryStat_unitStats[0]
+                        mod_secondaryStat1_value = mod_secondaryStat_values[0]
+                    if len(mod_secondaryStat_unitStats)>1:
+                        mod_secondaryStat2_unitStat = mod_secondaryStat_unitStats[1]
+                        mod_secondaryStat2_value = mod_secondaryStat_values[1]
+                    if len(mod_secondaryStat_unitStats)>2:
+                        mod_secondaryStat3_unitStat = mod_secondaryStat_unitStats[2]
+                        mod_secondaryStat3_value = mod_secondaryStat_values[2]
+                    if len(mod_secondaryStat_unitStats)>3:
+                        mod_secondaryStat4_unitStat = mod_secondaryStat_unitStats[3]
+                        mod_secondaryStat4_value = mod_secondaryStat_values[3]
+                        
+                    mod_set = dict_modList[mod["definitionId"]]['setId']
+                    mod_slot = dict_modList[mod["definitionId"]]['slot']
+                    mod_tier = mod['tier']
+
+                    current_mods_ids.append(mod_id)
+            
+                    query = "INSERT IGNORE INTO mods(id) "\
+                           +"VALUES('"+mod_id+"')"
+                    #goutils.log2("DBG", query)
+                    cursor.execute(query)
         
-                query = "INSERT IGNORE INTO mods(id) "\
-                       +"VALUES('"+mod_id+"')"
-                goutils.log2("DBG", query)
-                cursor.execute(query)
-    
-                query = "UPDATE mods "\
-                       +"SET roster_id = "+str(roster_id)+", "\
-                       +"level = "+str(mod_level)+", "\
-                       +"pips = "+str(mod_pips)+", "\
-                       +"mod_set = "+str(mod_set)+", "\
-                       +"slot = "+str(mod_slot)+", "\
-                       +"tier = "+str(mod_tier)+", "\
-                       +"prim_stat = "+str(mod_primaryStat_unitStat)+", "\
-                       +"prim_value = "+str(mod_primaryStat_value)+", "\
-                       +"sec1_stat = "+str(mod_secondaryStat1_unitStat)+", "\
-                       +"sec1_value = "+str(mod_secondaryStat1_value)+", "\
-                       +"sec2_stat = "+str(mod_secondaryStat2_unitStat)+", "\
-                       +"sec2_value = "+str(mod_secondaryStat2_value)+", "\
-                       +"sec3_stat = "+str(mod_secondaryStat3_unitStat)+", "\
-                       +"sec3_value = "+str(mod_secondaryStat3_value)+", "\
-                       +"sec4_stat = "+str(mod_secondaryStat4_unitStat)+", "\
-                       +"sec4_value = "+str(mod_secondaryStat4_value)+" "\
-                       +"WHERE id = '"+mod_id+"'"
-                goutils.log2("DBG", query)
-                cursor.execute(query)
+                    query = "UPDATE mods "\
+                           +"SET roster_id = "+str(roster_id)+", "\
+                           +"level = "+str(mod_level)+", "\
+                           +"pips = "+str(mod_pips)+", "\
+                           +"mod_set = "+str(mod_set)+", "\
+                           +"slot = "+str(mod_slot)+", "\
+                           +"tier = "+str(mod_tier)+", "\
+                           +"prim_stat = "+str(mod_primaryStat_unitStat)+", "\
+                           +"prim_value = "+str(mod_primaryStat_value)+", "\
+                           +"sec1_stat = "+str(mod_secondaryStat1_unitStat)+", "\
+                           +"sec1_value = "+str(mod_secondaryStat1_value)+", "\
+                           +"sec2_stat = "+str(mod_secondaryStat2_unitStat)+", "\
+                           +"sec2_value = "+str(mod_secondaryStat2_value)+", "\
+                           +"sec3_stat = "+str(mod_secondaryStat3_unitStat)+", "\
+                           +"sec3_value = "+str(mod_secondaryStat3_value)+", "\
+                           +"sec4_stat = "+str(mod_secondaryStat4_unitStat)+", "\
+                           +"sec4_value = "+str(mod_secondaryStat4_value)+" "\
+                           +"WHERE id = '"+mod_id+"'"
+                    #goutils.log2("DBG", query)
+                    cursor.execute(query)
 
             #remove mods not used anymore
             to_be_removed_mods_ids = tuple(set(previous_mods_ids)-set(current_mods_ids))
             if len(to_be_removed_mods_ids) > 0:
                 query = "DELETE FROM mods WHERE id IN "+ str(tuple(to_be_removed_mods_ids)).replace(",)", ")")
-                goutils.log2("DBG", query)
+                #goutils.log2("DBG", query)
                 cursor.execute(query)
 
             ## GET DEFINITION OF CAPACITIES ##
             c_zeta_count = 0
-            for capa in character['skills']:
+            for capa in character['skill']:
                 capa_name = capa['id']
-                capa_level = capa['tier']
-                capa_isZeta = capa['isZeta']
-                
-                capa_omicron_type = ""
-                capa_omicron_tier = "-1"
-                if character_id in dict_capas:
-                    if capa_name in dict_capas[character_id]:
-                        capa_omicron_type = dict_capas[character_id][capa_name][3]
-                        capa_omicron_tier = dict_capas[character_id][capa_name][4]
+                capa_level = capa['tier']+2
+                capa_isZeta = dict_capas[character_id][capa_name][2]
+                capa_omicron_type = dict_capas[character_id][capa_name][3]
+                capa_omicron_tier = dict_capas[character_id][capa_name][4]
                 
                 capa_shortname = capa_name[0].upper()
                 if capa_shortname in 'SU' and capa_name[-1] in '0123456789':
                     capa_shortname += capa_name[-1]
-                goutils.log2("DBG", capa_name + " >> " + capa_shortname)
+                #goutils.log2("DBG", capa_name + " >> " + capa_shortname)
                     
                 if capa_name == 'uniqueskill_GALACTICLEGEND01':
                     capa_shortname = 'GL'
@@ -616,7 +619,7 @@ def update_player(dict_player):
                 #launch query to update skills
                 query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
                        +"VALUES("+str(roster_id)+", '"+capa_shortname+"')"
-                goutils.log2("DBG", query)
+                #goutils.log2("DBG", query)
                 cursor.execute(query)
 
                 query = "UPDATE roster_skills "\
@@ -626,7 +629,7 @@ def update_player(dict_player):
                        +"omicron_tier = "+str(capa_omicron_tier)+" "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
-                goutils.log2("DBG", query)
+                #goutils.log2("DBG", query)
                 cursor.execute(query)
 
             #Update zeta count in roster element
@@ -634,7 +637,7 @@ def update_player(dict_player):
                    +"SET zeta_count = "+str(c_zeta_count)+" "\
                    +"WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"
-            goutils.log2("DBG", query)
+            #goutils.log2("DBG", query)
             cursor.execute(query)
                 
         #Compute ModQ from DB data
@@ -648,7 +651,7 @@ def update_player(dict_player):
               + "(sec2_stat=5 AND sec2_value>=15) OR " \
               + "(sec3_stat=5 AND sec3_value>=15) OR " \
               + "(sec4_stat=5 AND sec4_value>=15)) "
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         p_modq = get_value(query)
 
         #Manage GP history
@@ -663,7 +666,7 @@ def update_player(dict_player):
 
         query = "INSERT IGNORE INTO gp_history(date, allyCode) "\
                +"VALUES(CURDATE(), "+str(p_allyCode)+")"
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         query = "UPDATE gp_history "\
@@ -678,7 +681,7 @@ def update_player(dict_player):
                +"    modq = "+str(p_modq)+" "\
                +"WHERE date = CURDATE() "\
                +"AND allyCode = "+str(p_allyCode)
-        goutils.log2("DBG", query)
+        #goutils.log2("DBG", query)
         cursor.execute(query)
 
         mysql_db.commit()

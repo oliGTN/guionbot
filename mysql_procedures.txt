@@ -121,18 +121,15 @@ DROP TABLE IF EXISTS `guild_bot_infos`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_bot_infos` (
   `server_id` bigint(20) NOT NULL DEFAULT 0,
-  `guild_id` varchar(12) NOT NULL DEFAULT '',
-  `gfile_name` varchar(45) DEFAULT NULL,
-  `warstats_id` smallint(6) NOT NULL DEFAULT 0,
-  `warstats_user` varchar(45) NOT NULL DEFAULT '',
-  `warstats_pass` varchar(45) NOT NULL DEFAULT '',
+  `guild_id` varchar(24) NOT NULL DEFAULT '',
+  `gfile_name` varchar(45) DEFAULT '',
   `tbChanRead_id` bigint(20) NOT NULL DEFAULT 0,
   `tbChanOut_id` bigint(20) NOT NULL DEFAULT 0,
   `tbRoleOut` varchar(45) NOT NULL,
   `twChanOut_id` bigint(20) NOT NULL DEFAULT 0,
   `bot_android_id` varchar(16) DEFAULT '',
   `bot_LatestUpdate` timestamp NULL DEFAULT current_timestamp(),
-  `bot_period_min` smallint(6) DEFAULT 5,
+  `bot_period_min` smallint(6) DEFAULT 15,
   `bot_locked_until` timestamp NULL DEFAULT current_timestamp(),
   `chatChan_id` bigint(20) DEFAULT 0,
   `chatLatest_ts` bigint(20) DEFAULT 0,
@@ -150,11 +147,11 @@ DROP TABLE IF EXISTS `guild_evolutions`;
 CREATE TABLE `guild_evolutions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `timestamp` timestamp NULL DEFAULT current_timestamp(),
-  `guild_id` varchar(12) COLLATE utf8_bin DEFAULT NULL,
-  `allyCode` int(11) DEFAULT NULL,
+  `guild_id` varchar(24) COLLATE utf8_bin DEFAULT NULL,
+  `playerId` varchar(24) COLLATE utf8_bin DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3621 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=5786 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -170,7 +167,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3178 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3245 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -195,7 +192,7 @@ CREATE TABLE `guild_team_roster` (
   `zetaList` varchar(255) DEFAULT NULL,
   `omicronList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15470 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=15915 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -210,7 +207,7 @@ CREATE TABLE `guild_team_roster_omicrons` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1450 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1452 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -225,7 +222,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1799 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1898 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -243,7 +240,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=546 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=587 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -255,7 +252,7 @@ DROP TABLE IF EXISTS `guilds`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guilds` (
   `name` varchar(255) NOT NULL DEFAULT 'noname',
-  `id` varchar(12) NOT NULL DEFAULT '',
+  `id` varchar(24) NOT NULL DEFAULT '',
   `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
   `lastRequested` timestamp NOT NULL DEFAULT current_timestamp(),
   `update` tinyint(4) NOT NULL DEFAULT 0,
@@ -337,6 +334,7 @@ DROP TABLE IF EXISTS `players`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `players` (
   `allyCode` int(11) NOT NULL,
+  `playerId` varchar(24) DEFAULT NULL,
   `guildName` varchar(255) DEFAULT NULL,
   `guildMemberLevel` tinyint(4) DEFAULT 2,
   `lastActivity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -348,7 +346,6 @@ CREATE TABLE `players` (
   `char_gp` int(11) DEFAULT NULL,
   `ship_gp` int(11) DEFAULT NULL,
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
-  `lastUpdateFromGame` timestamp NOT NULL DEFAULT current_timestamp(),
   `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
   `shipShard_id` int(11) DEFAULT NULL,
   `charShard_id` int(11) DEFAULT NULL,
@@ -395,7 +392,7 @@ CREATE TABLE `roster` (
   `stat28` bigint(20) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=4072938 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=4311877 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -412,7 +409,7 @@ CREATE TABLE `roster_evolutions` (
   `defId` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=352481 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=372992 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -428,12 +425,12 @@ CREATE TABLE `roster_skills` (
   `name` varchar(45) DEFAULT NULL,
   `level` int(11) DEFAULT NULL,
   `isZeta` tinyint(4) DEFAULT 0,
-  `omicron_type` varchar(2) DEFAULT '',
+  `omicron_type` varchar(4) DEFAULT '',
   `omicron_tier` tinyint(4) DEFAULT -1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=30922756 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=31894384 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1133,4 +1130,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-03-06  1:07:20
+-- Dump completed on 2023-03-31 13:09:17

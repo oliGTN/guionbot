@@ -5,6 +5,7 @@ import re
 import threading
 import time
 import datetime
+import inspect
 
 import goutils
 import data as godata
@@ -21,7 +22,7 @@ def release_sem(id):
 
 def get_dict_bot_accounts():
     query = "SELECT server_id, bot_android_id, bot_locked_until FROM guild_bot_infos where bot_android_id != ''"
-    goutils.log2("DBG", query)
+    #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
     ret_dict = {}
@@ -61,6 +62,9 @@ def islocked_bot_account(guildName):
     return is_locked
 
 def get_rpc_data(server_id, with_events, use_cache_data):
+    #goutils.log2("DBG", "START get_rpc_data("+str(server_id)+", "+str(with_events)+", "+str(use_cache_data)+")")
+    #if use_cache_data == False:
+    #    print(inspect.stack())
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
@@ -181,6 +185,51 @@ def get_rpc_data(server_id, with_events, use_cache_data):
 
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
+def get_guild_data(txt_allyCode, use_cache_data):
+    ec, et, dict_player = get_player_data(txt_allyCode, use_cache_data)
+    if ec != 0:
+        return 1, et, None
+
+    if not "guildId" in dict_player:
+        return 1, "ERR: ce joueur n'a pas de guilde", None
+
+    guild_id = dict_player["guildId"]
+    if guild_id == None or guild_id == "":
+        return 1, "ERR: ce joueur n'a pas de guilde", None
+
+    acquire_sem(guild_id)
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getextguild.sh", guild_id])
+        goutils.log2("DBG", "getextguild code="+str(process.returncode))
+
+    guild_json = "/home/pi/GuionBot/warstats/GUILDS/"+guild_id+".json"
+    if os.path.exists(guild_json):
+        dict_guild = json.load(open(guild_json, "r"))["guild"]
+    else:
+        return 1, "ERR: impossible de trouver les données pour la guilde "+guild_id, None
+
+    release_sem(guild_id)
+
+    return 0, "", dict_guild
+
+
+def get_player_data(txt_allyCode, use_cache_data):
+    acquire_sem(txt_allyCode)
+    
+    if not use_cache_data:
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getplayer.sh", txt_allyCode])
+        goutils.log2("DBG", "getplayer code="+str(process.returncode))
+
+    player_json = "/home/pi/GuionBot/warstats/PLAYERS/"+txt_allyCode+".json"
+    if os.path.exists(player_json):
+        dict_player = json.load(open(player_json, "r"))
+    else:
+        return 1, "ERR: impossible de trouver les données pour le joueur "+txt_allyCode, None
+
+    release_sem(txt_allyCode)
+
+    return 0, "", dict_player
+
 def get_bot_player_data(server_id, use_cache_data):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
@@ -193,19 +242,15 @@ def get_bot_player_data(server_id, use_cache_data):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
-    goutils.log2("DBG", "try to acquire sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     acquire_sem(server_id)
-    goutils.log2("DBG", "sem acquired sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
-        goutils.log2("DBG", "getguild code="+str(process.returncode))
+        goutils.log2("DBG", "getplayerbot code="+str(process.returncode))
 
     dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_androidId+".json", "r"))
 
-    goutils.log2("DBG", "try to release sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
     release_sem(server_id)
-    goutils.log2("DBG", "sem released sem in p="+str(os.getpid())+", t="+str(threading.get_native_id()))
 
     return 0, "", dict_player
 
@@ -1042,58 +1087,20 @@ def get_tw_status(server_id, use_cache_data):
     return True, [list_teams["homeGuild"], list_territories["homeGuild"]], \
                  [list_teams["awayGuild"], list_territories["awayGuild"]]
 
-def parse_tw_stats(server_id):
-    global dict_last_warstats_read
-    global dict_next_warstats_read
-    global dict_tw_stats
+def get_tw_active_players(server_id):
+    ec, et, rpc_data = get_rpc_data(server_id, False, use_cache_data)
+    if ec!=0:
+        return 1, et, None
 
-    if not server_id in dict_next_warstats_read:
-        init_globals(server_id)
+    dict_guild=rpc_data[0]
+    dict_members={}
+    list_active_players = []
+    for member in dict_guild["member"]:
+        dict_members[member["playerId"]] = member["playerName"]
+    for member in dict_guild["territoryWarStatus"]["optedInMember"]:
+        list_active_players.append(dict_members[member["memberId"]])
 
-    #First, check there is value to re-parse the page
-    if time.time() < dict_next_warstats_read[server_id]["tw_stats"]:
-        goutils.log2("DBG", "Use cached data. Next warstats refresh in "+str(get_next_warstats_read("tw_stats", server_id))+" secs")
-    else:
-        [guildName, guild_id] = get_warstats_id(server_id)
-        warstats_tws_url_guild = warstats_tws_url + str(guild_id)
-        try:
-            page = urlopen(guildName, warstats_tws_url_guild)
-        except (requests.exceptions.ConnectionError) as e:
-            goutils.log2('ERR', 'error while opening '+warstats_tws_url_guild)
-            return dict_tw_defense_teams[guildName], -1
-        
-        tw_list_parser = TWSListParser()
-        tw_list_parser.feed(page.content.decode('utf-8', 'ignore'))
-        dict_last_warstats_read[guildName] = tw_list_parser.get_last_track()
-    
-        [war_id, war_in_progress] = tw_list_parser.get_war_id()
-        if not war_in_progress:
-            goutils.log2('INFO', "["+str(guildName)+"] no TW in progress")
-
-            dict_tw_stats[server_id] = []
-
-            set_next_warstats_read_long(11, 'PST8PDT',
-                                        tw_list_parser.get_last_track(),
-                                        "tw_stats", server_id)
-
-            return dict_tw_stats[server_id], dict_last_warstats_read[server_id]
-    
-        goutils.log2('INFO', "Current TW is "+war_id)
-        warstats_stats_url=warstats_stats_baseurl+war_id
-        try:
-            page = urlopen(server_id, warstats_stats_url)
-        except (requests.exceptions.ConnectionError) as e:
-            goutils.log2('ERR', 'error while opening '+warstats_stats_url)
-            return dict_tw_stats[server_id], -1
-
-        stats_parser = TWSStatsParser()
-        stats_parser.feed(page.content.decode('utf-8', 'ignore'))
-
-        dict_tw_stats[server_id] = stats_parser.get_active_players()
-
-        set_next_warstats_read_short(stats_parser.get_last_track(), "tw_stats", server_id)
-
-    return dict_tw_stats[server_id], dict_last_warstats_read[server_id]
+    return 0, "", list_active_players
 
 def deploy_tb(server_id, zone, list_defId):
     dict_bot_accounts = get_dict_bot_accounts()
