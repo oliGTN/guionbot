@@ -13,12 +13,19 @@ import connect_mysql
 
 dict_sem={}
 def acquire_sem(id):
+    calling_func = inspect.stack()[2][3]
+    print(calling_func)
+    #goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
     if not id in dict_sem:
         dict_sem[id] = threading.Semaphore()
     dict_sem[id].acquire()
+    #goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
 
 def release_sem(id):
+    calling_func = inspect.stack()[2][3]
+    #goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
     dict_sem[id].release()
+    #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
     query = "SELECT server_id, bot_android_id, bot_locked_until FROM guild_bot_infos where bot_android_id != ''"
@@ -63,8 +70,8 @@ def islocked_bot_account(guildName):
 
 def get_rpc_data(server_id, with_events, use_cache_data):
     #goutils.log2("DBG", "START get_rpc_data("+str(server_id)+", "+str(with_events)+", "+str(use_cache_data)+")")
-    #if use_cache_data == False:
-    #    print(inspect.stack())
+    calling_func = inspect.stack()[1][3]
+
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
@@ -137,6 +144,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         dict_event_counts = {}
         for event in list_new_events:
             event_id = event["id"]
+            print(event_id)
             channel_id = event["channelId"]
             event_ts = int(event["timestamp"])
             if channel_id.startswith("guild-{"):
@@ -149,9 +157,14 @@ def get_rpc_data(server_id, with_events, use_cache_data):
             if not event_file_id in dict_events:
                 fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
                 if os.path.exists(fevents):
+                    goutils.log2("DBG", "get previous events from "+fevents)
                     acquire_sem(fevents)
-                    f = open(fevents)
-                    dict_events[event_file_id]=json.load(f)
+                    f = open(fevents, "r")
+                    try:
+                        dict_events[event_file_id]=json.load(f)
+                    except:
+                        goutils.log2("WAR", "error while reading "+fevents+" ... ignoring")
+                        dict_events[event_file_id]={}
                     f.close()
                     release_sem(fevents)
                 else:
@@ -173,6 +186,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
             f.write(json.dumps(dict_events[event_file_id], indent=4))
             f.close()
             release_sem(fevents)
+            goutils.log2("DBG", str(fevents)+" succesfully written")
     else:
         dict_events = {}
 
@@ -183,6 +197,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
+    #goutils.log2("DBG", "END get_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
 def get_guild_data(txt_allyCode, use_cache_data):

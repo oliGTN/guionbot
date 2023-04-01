@@ -147,6 +147,7 @@ def update_guild_teams(guild_name, dict_team):
         
         mysql_db.commit()
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         
     finally:
@@ -203,6 +204,7 @@ def text_query(query):
         
         mysql_db.commit()
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         rows=[error]
         
@@ -223,6 +225,7 @@ def simple_execute(query):
         
         mysql_db.commit()
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         
     finally:
@@ -242,6 +245,7 @@ def simple_callproc(proc_name, args):
         
         mysql_db.commit()
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         
     finally:
@@ -263,6 +267,7 @@ def get_value(query):
                 tuples.append(results)
 
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         
     finally:
@@ -291,6 +296,7 @@ def get_column(query):
                 tuples.append(results)
 
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         
     finally:
@@ -317,6 +323,7 @@ def get_line(query):
                 tuples.append(results)
 
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         
     finally:
@@ -349,6 +356,7 @@ def get_table(query):
                 tuples.append(results)
 
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         
     finally:
@@ -374,6 +382,7 @@ def insert_roster_evo(allyCode, defId, evo_txt):
 
         mysql_db.commit()
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         return -1
         
@@ -686,6 +695,7 @@ def update_player(dict_player):
 
         mysql_db.commit()
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         return -1
         
@@ -759,6 +769,7 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
             mysql_db.commit()
 
     except Error as error:
+        goutils.log2("ERR", query)
         goutils.log2("ERR", error)
         return -1
         
