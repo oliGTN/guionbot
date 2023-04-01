@@ -127,7 +127,10 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         events_file = "/home/pi/GuionBot/warstats/events_"+bot_androidId+".json"
         acquire_sem(events_file)
         if not use_cache_data:
-            process = subprocess.run(["/home/pi/GuionBot/warstats/getevents.sh", bot_androidId])
+            process_params = ["/home/pi/GuionBot/warstats/getevents.sh", bot_androidId]
+            print(process_params)
+            goutils.log2("DBG", "process_params="+str(process_params))
+            process = subprocess.run(process_params)
             goutils.log2("DBG", "getevents code="+str(process.returncode))
         if os.path.exists(events_file):
             events_json = json.load(open(events_file, "r"))
@@ -141,6 +144,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
 
         dict_events = {}
         dict_event_counts = {}
+        goutils.log2("DBG", "start loop list_new_events")
         for event in list_new_events:
             event_id = event["id"]
             channel_id = event["channelId"]
@@ -174,9 +178,11 @@ def get_rpc_data(server_id, with_events, use_cache_data):
                 dict_event_counts[event_file_id]+=1
                 dict_events[event_file_id][event_id] = event
 
+        goutils.log2("DBG", "end loop list_new_events")
         if max(dict_event_counts.values()) > 0:
             goutils.log2("INFO", "New events: "+str(dict_event_counts))
 
+        goutils.log2("DBG", "start writing events files")
         for event_file_id in dict_events:
             fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
             acquire_sem(fevents)
@@ -185,6 +191,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
             f.close()
             release_sem(fevents)
             goutils.log2("DBG", str(fevents)+" succesfully written")
+        goutils.log2("DBG", "end writing events files")
     else:
         dict_events = {}
 

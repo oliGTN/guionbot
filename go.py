@@ -2112,7 +2112,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
+    rpc_data = connect_rpc.get_tw_status(server_id, True)
     tw_ongoing = rpc_data[0]
     if not tw_ongoing:
         return 1, "ERR: aucune GT en cours\n", None
@@ -2133,22 +2133,11 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         war_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
     char_def_id = list_character_ids[0]
 
-
-    list_opponent_char_alias = list(set([j for i in [x[2] for x in list_opponent_squads] for j in i]))
-    list_opponent_char_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_opponent_char_alias)
-    if txt != '':
-        war_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
-
     list_opp_squad_ids = []
     for opp_squad in list_opponent_squads:
         territory = opp_squad[0]
         player_name = opp_squad[1]
-        squad_char_ids = []
-        squad_char_alias = opp_squad[2]
-        for char_alias in squad_char_alias:
-            char_id = dict_id_name[char_alias][0][0]
-            squad_char_ids.append(char_id)
-
+        squad_char_ids = opp_squad[2]
         list_opp_squad_ids.append([territory, player_name, squad_char_ids])
 
     list_opp_squads_with_char = list(filter(lambda x:char_def_id in x[2], list_opp_squad_ids))
@@ -2156,8 +2145,9 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         return 1, 'ERR: '+character_defense+' ne fait pas partie des teams en défense\n', None
 
     # Look for the name among known player names in DB
-    results = connect_mysql.get_table("SELECT name, allyCode FROM players")
+    results = connect_mysql.get_table("SELECT name, allyCode, guildName FROM players ORDER BY guildName, name")
     list_names = [x[0] for x in results]
+    print(list_names)
 
     for opp_squad in list_opp_squads_with_char:
         player_name = opp_squad[1]
