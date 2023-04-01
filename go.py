@@ -365,7 +365,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         if not id in playerId_in_API:
             playerId_to_remove.append(id)
             query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-            query+= "VALUES('"+guild_id+"', "+str(id)+", 'removed')"
+            query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'removed')"
             goutils.log2('DBG', query)
             connect_mysql.simple_execute(query)
 
@@ -481,7 +481,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 #log it in guild_evolutions
                 description = "guildMemberLevel changed from "+str(dict_roles[id])+" to "+str(member["memberLevel"])
                 query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-                query+= "VALUES('"+guild_id+"', "+str(id)+", '"+description+"')"
+                query+= "VALUES('"+guild_id+"', '"+str(id)+"', '"+description+"')"
                 goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
             del dict_roles[member["playerId"]]
