@@ -14,7 +14,6 @@ import connect_mysql
 dict_sem={}
 def acquire_sem(id):
     calling_func = inspect.stack()[2][3]
-    print(calling_func)
     #goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
     if not id in dict_sem:
         dict_sem[id] = threading.Semaphore()
@@ -144,7 +143,6 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         dict_event_counts = {}
         for event in list_new_events:
             event_id = event["id"]
-            print(event_id)
             channel_id = event["channelId"]
             event_ts = int(event["timestamp"])
             if channel_id.startswith("guild-{"):
@@ -499,71 +497,34 @@ def get_guildChat_messages(server_id, use_cache_data):
                 else:
                     for data in event["data"]:
                         activity = data["activity"]
-                        if activity["key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_TIERUP":
-                            author = activity["param"][0]["paramValue"][0]
-                            unit_key = activity["param"][1]["key"]
-                            if unit_key in FRE_FR:
-                                unit_key = FRE_FR[unit_key]
-                            gear_key = activity["param"][2]["key"]
-                            if gear_key in FRE_FR:
-                                gear_key = FRE_FR[gear_key]
-                            list_chat_events.append([event_ts, author+" a augmenté l'équipement de "+unit_key+" au niveau "+gear_key])
+                        txt_activity = FRE_FR[activity["key"]]
 
-                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_ZETA_APPLIED"\
-                        or activity["key"] == "GUILD_CHANNEL_ACTIVITY_OMICRON_APPLIED":
-                            author = activity["param"][0]["paramValue"][0]
-                            ability_key = activity["param"][1]["key"]
-                            if ability_key in FRE_FR:
-                                ability_key = FRE_FR[ability_key]
-                            unit_key = activity["param"][2]["key"]
-                            if unit_key in FRE_FR:
-                                unit_key = FRE_FR[unit_key]
+                        #remove formating tags
+                        while "[" in txt_activity:
+                            pos_open = txt_activity.find("[")
+                            pos_close = txt_activity.find("]")
+                            txt_activity = txt_activity[:pos_open] + txt_activity[pos_close+1:]
 
-                            if "ZETA" in activity["key"]:
-                                list_chat_events.append([event_ts, author+" a utilisé une amélioration zêta sur "+ability_key+" ("+unit_key+")"])
-                            else:
-                                list_chat_events.append([event_ts, author+" a utilisé une amélioration omicron sur "+ability_key+" ("+unit_key+")"])
+                        #add parameters
+                        if "param" in activity:
+                            for i_param in range(len(activity["param"])):
+                                tag_param="{"+str(i_param)+"}"
+                                if tag_param in txt_activity:
+                                    pos_open = txt_activity.find(tag_param)
+                                    pos_close = pos_open + len(tag_param) - 1
+                                    param = activity["param"][i_param]
+                                    if "paramValue" in param:
+                                        val_param = param["paramValue"][0]
+                                    else:
+                                        val_param = FRE_FR[param["key"]]
+                                    txt_activity = txt_activity[:pos_open] + val_param + txt_activity[pos_close+1:]
 
-                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_PROMOTED" \
-                        or activity["key"] == "GUILD_CHANNEL_ACTIVITY_UNIT_ACTIVATED":
-                            author = activity["param"][0]["paramValue"][0]
-                            unit_key = activity["param"][1]["key"]
-                            if unit_key in FRE_FR:
-                                unit_key = FRE_FR[unit_key]
-                            if "PROMOTED" in activity["key"]:
-                                list_chat_events.append([event_ts, "\N{WHITE MEDIUM STAR} "+author+" vient de promouvoir "+unit_key+" à 7 étoiles"])
-                            else:
-                                list_chat_events.append([event_ts, "\N{OPEN LOCK} "+author+" vient de débloquer "+unit_key])
+                        if "UNIT_PROMOTED" in activity["key"]:
+                            txt_activity = "\N{WHITE MEDIUM STAR} "+txt_activity
+                        if "UNIT_ACTIVATED" in activity["key"]:
+                            txt_activity = "\N{OPEN LOCK} "+txt_activity
 
-                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_TB_STARTED":
-                            tb_key = activity["param"][0]["key"]
-                            if tb_key in FRE_FR:
-                                tb_key = FRE_FR[tb_key]
-                            phase = activity["param"][1]["paramValue"][0]
-                            list_chat_events.append([event_ts, tb_key+" la phase "+phase+" a commencé"])
-
-                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_SIMMED_RAID_AUTO_SUMMONED":
-                            raid_key = activity["param"][0]["key"]
-                            if raid_key in FRE_FR:
-                                raid_key = FRE_FR[raid_key]
-                            list_chat_events.append([event_ts, "Le Raid : "+raid_key+" (simulation activée) vient de commencer, participez maintenant !"])
-
-                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_RAID_AUTO_SUMMONED_TU15":
-                            raid_key = activity["param"][0]["key"]
-                            if raid_key in FRE_FR:
-                                raid_key = FRE_FR[raid_key]
-                            list_chat_events.append([event_ts, "Le Raid : "+raid_key+" vient de commencer"])
-
-                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_DEMOTE":
-                            demoted = activity["param"][0]["paramValue"][0]
-                            demoter = activity["param"][1]["paramValue"][0]
-                            list_chat_events.append([event_ts, demoted+" a été rétrogradé par "+demoter])
-
-                        elif activity["key"] == "GUILD_CHANNEL_ACTIVITY_RAID_TALLY_COMPLETE":
-                            list_chat_events.append([event_ts, "Les raids sont disponibles et peuvent être lancés"])
-
-                        else:
-                            goutils.log2("WAR", "Unknown key "+activity["key"])
+                        list_chat_events.append([event_ts, txt_activity])
 
     if len(list_chat_events)>0:
         list_chat_events = sorted(list_chat_events, key=lambda x:x[0])
