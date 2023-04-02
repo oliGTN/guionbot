@@ -130,8 +130,10 @@ def get_rpc_data(server_id, with_events, use_cache_data):
             process_params = ["/home/pi/GuionBot/warstats/getevents.sh", bot_androidId]
             print(process_params)
             goutils.log2("DBG", "process_params="+str(process_params))
+            sys.stdout.flush()
             process = subprocess.run(process_params)
             goutils.log2("DBG", "getevents code="+str(process.returncode))
+            sys.stdout.flush()
         if os.path.exists(events_file):
             events_json = json.load(open(events_file, "r"))
             if "event" in events_json:
@@ -145,6 +147,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         dict_events = {}
         dict_event_counts = {}
         goutils.log2("DBG", "start loop list_new_events")
+        sys.stdout.flush()
         for event in list_new_events:
             event_id = event["id"]
             channel_id = event["channelId"]
@@ -179,6 +182,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
                 dict_events[event_file_id][event_id] = event
 
         goutils.log2("DBG", "end loop list_new_events")
+        sys.stdout.flush()
         if max(dict_event_counts.values()) > 0:
             goutils.log2("INFO", "New events: "+str(dict_event_counts))
 
