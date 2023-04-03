@@ -138,7 +138,6 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
             line_character={ \
                 "rarity": line_rarity,
                 "gear": line_gear,
-                "rarity": line_rarity,
                 "relic_currentTier": line_relic_currentTier,
                 "gp": line_gp,
                 "speed": line_speed,
@@ -262,7 +261,7 @@ def create_guild_teams(db_data):
     liste_teams = list(dict_teams.keys())
     return liste_teams, dict_teams
     
-def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
+def create_dict_stats(db_stat_data_char, db_stat_data):
     dict_players={}
     dict_unitsList = data.get("unitsList_dict.json")
 
@@ -287,10 +286,8 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
             line_gear = line[4]
             line_relic_currentTier = line[5]
             dict_players[line_name][line_defId]={ \
-                    "nameKey": line_nameKey,
-                    "defId": line_defId,
-                    "combatType": line_combatType,
-                    "rarity": line_rarity,
+                    "defId": line_defId+":STARS",
+                    "currentRarity": line_rarity,
                     "currentTier": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {'final':{}}}
@@ -324,10 +321,8 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
             line_stat18 = line[11]
             line_stat28 = line[12]
             dict_players[line_name][line_defId]={ \
-                    "nameKey": line_nameKey,
-                    "defId": line_defId,
-                    "combatType": line_combatType,
-                    "rarity": line_rarity,
+                    "defId": line_defId+":STARS",
+                    "currentRarity": line_rarity,
                     "currentTier": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {'final':{}}}
@@ -341,57 +336,6 @@ def create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods):
             dict_players[line_name][line_defId]["stats"]["final"]['28'] = int(line_stat28)
 
             cur_defId = line_defId
-
-    
-    cur_name = ''
-    for line in db_stat_data_mods:
-        line_name = line[0]
-        if cur_name != line_name:
-            cur_defId = ''
-            cur_name = line_name
-        
-        line_defId = line[1]
-        if cur_defId != line_defId:
-            cur_mod_id = -1
-            dict_players[line_name][line_defId]["mods"]=[]
-            cur_defId = line_defId
-            
-        line_mod_id = line[2]
-        if cur_mod_id != line_mod_id:
-            line_pips = line[3]
-            line_set = line[4]
-            line_level = line[5]
-            dict_players[line_name][line_defId]["mods"].append(
-                {"pips": line_pips,
-                "set": line_set,
-                "level": line_level,
-                "primaryStat": {},
-                "secondaryStat": []
-                })
-                
-            cur_mod_id = line_mod_id
-            
-        line_prim_stat = line[6]
-        line_prim_value = line[7]
-        dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["unitStat"] = line_prim_stat
-        dict_players[line_name][line_defId]["mods"][-1]["primaryStat"]["value"] = line_prim_value
-
-        line_sec1_stat = line[8]
-        line_sec1_value = line[9]
-        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
-            {"unitStat": line_sec1_stat, "value": line_sec1_value})
-        line_sec2_stat = line[10]
-        line_sec2_value = line[11]
-        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
-            {"unitStat": line_sec2_stat, "value": line_sec2_value})
-        line_sec3_stat = line[12]
-        line_sec3_value = line[13]
-        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
-            {"unitStat": line_sec3_stat, "value": line_sec3_value})
-        line_sec4_stat = line[14]
-        line_sec4_value = line[15]
-        dict_players[line_name][line_defId]["mods"][-1]["secondaryStat"].append(
-            {"unitStat": line_sec4_stat, "value": line_sec4_value})
 
     return dict_players
     
@@ -777,67 +721,4 @@ def print_tw_best_teams(list_teams, intro_txt):
                     output_txt += intro_txt+" "+label_terr+" "+label+" : rien de particulier à signaler"
 
     return output_txt
-
-def api_to_rpc(dict_player):
-    dict_rpc_player = {}
-    dict_rpc_player["allyCode"] = dict_player["allyCode"]
-    dict_rpc_player["guildId"] = dict_player["guildRefId"]
-    dict_rpc_player["guildName"] = dict_player["guildName"]
-    dict_rpc_player["lastActivityTime"] = str(dict_player["lastActivity"])
-    dict_rpc_player["level"] = dict_player["level"]
-    dict_rpc_player["localTimeZoneOffsetMinutes"] = dict_player["poUTCOffsetMinutes"]
-    dict_rpc_player["name"] = dict_player["name"]
-    dict_rpc_player["playerId"] = dict_player["id"]
-    dict_rpc_player["playerRating"] = {}
-    dict_rpc_player["playerRating"]["playerRankStatus"] = {}
-    dict_rpc_player["playerRating"]["playerRankStatus"]["divisionId"] = dict_player["grandArena"][-1]["division"]
-    dict_rpc_player["playerRating"]["playerRankStatus"]["leagueId"] = dict_player["grandArena"][-1]["league"]
-    dict_rpc_player["profileStat"] = {}
-    for stat in dict_player["stats"]:
-        if stat["nameKey"].startswith("Puissance Galactique (perso"):
-            dict_rpc_player["profileStat"]["STAT_CHARACTER_GALACTIC_POWER_ACQUIRED_NAME"] = str(stat["value"])
-        elif stat["nameKey"].startswith("Puissance Galactique (vaisseaux"):
-            dict_rpc_player["profileStat"]["STAT_SHIP_GALACTIC_POWER_ACQUIRED_NAME"] = str(stat["value"])
-        elif stat["nameKey"].startswith("Puissance Galactique"):
-            dict_rpc_player["profileStat"]["STAT_GALACTIC_POWER_ACQUIRED_NAME"] = str(stat["value"])
-
-    char_arena = {}
-    char_arena["rank"] = dict_player["arena"]["char"]["rank"]
-    char_arena["type"] = "SQUADARENA"
-    ship_arena = {}
-    ship_arena["rank"] = dict_player["arena"]["shop"]["rank"]
-    ship_arena["type"] = "FLEETARENA"
-    dict_rpc_player["pvpProfile"] = [char_arena, ship_arena]
-    dict_rpc_player["rosterUnit"] = {}
-    for unit_id in dict_player["roster"]:
-        unit = dict_player["roster"][unit_id]
-        rpc_unit = {}
-        rpc_unit["currentLevel"] = unit["level"]
-        rpc_unit["currentRarity"] = unit["rarity"]
-        rpc_unit["currentTier"] = unit["gear"]
-        if unit["rarity"] == 1:
-            rpc_unit["definitionId"] = unit_id+":ONE_STAR"
-        elif unit["rarity"] == 2:
-            rpc_unit["definitionId"] = unit_id+":TWO_STAR"
-        elif unit["rarity"] == 3:
-            rpc_unit["definitionId"] = unit_id+":THREE_STAR"
-        elif unit["rarity"] == 4:
-            rpc_unit["definitionId"] = unit_id+":FOUR_STAR"
-        elif unit["rarity"] == 5:
-            rpc_unit["definitionId"] = unit_id+":FIVE_STAR"
-        elif unit["rarity"] == 6:
-            rpc_unit["definitionId"] = unit_id+":SIX_STAR"
-        else:
-            rpc_unit["definitionId"] = unit_id+":SEVEN_STAR"
-        rpc_unit["equipment"] = []
-        for eqpt in unit["equipped"]:
-            rpc_eqpt = {}
-            rpc_eqpt["equipmentId"] = eqpt["equipmentId"]
-            rpc_eqpt["slot"] = int(eqpt["slot"])
-            rpc_unit["equipment"].append(rpc_eqpt)
-        rpc_unit["equippedStatMod"] = []
-        for mod in unit["mods"]:
-            rpc_mod = {}
-            rpc_mod["definitionId"]
-
 
