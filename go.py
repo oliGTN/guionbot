@@ -427,6 +427,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     
                     e, t, d = load_player(str(playerId), 0, False)
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
+                    time.sleep(0)
 
                 parallel_work.set_guild_loading_status(guildName, None)
 
@@ -1851,7 +1852,6 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
         if db_stat_data == None:
             return "ERR: aucune donnée trouvée"
 
-        db_stat_data_mods = []
         list_character_ids=[character_id]
         list_player_names=set([x[0] for x in db_stat_data])
         character_name = dict_id_name[character_alias][0][1]
@@ -1869,7 +1869,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
             ret_print_character_stats += " (tri par "+sort_option_full_name+")\n"
     
         # Generate dict from DB data
-        dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data, db_stat_data_mods)
+        dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data)
     else:
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
@@ -3886,7 +3886,7 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
     if "chars" in list_deployment_types:
         ret_print_tb_status += "Remaining to deploy chars \u2013 "+str(round(available_char_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_chars)+" players)\n"
-    if "Mix" in list_deployment_types:
+    if "mix" in list_deployment_types:
         ret_print_tb_status += "Remaining to deploy \u2013 "+str(round(available_mix_deploy/1000000, 1))+"M"
         ret_print_tb_status += " (waiting for "+str(remaining_to_play_mix)+" players)\n"
 
@@ -3930,7 +3930,7 @@ def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use
         ret_print_tb_status += "Unused deployment ships \u2013 "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
     if "chars" in list_deployment_types:
         ret_print_tb_status += "Unused deployment squads \u2013 "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
-    if "Mix" in list_deployment_types:
+    if "mix" in list_deployment_types:
         ret_print_tb_status += "Unused deployment mix \u2013 "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
     ret_print_tb_status += "----------------------------\n"
 
@@ -4233,7 +4233,7 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
             break
 
     zone_type = dict_tb[zone_name]["type"]
-    if zone_type != "Mix":
+    if zone_type != "mix":
         if zone_type == "chars":
             combatType = 1
         else:
