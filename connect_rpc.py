@@ -1,5 +1,6 @@
 import subprocess
 import os
+import sys
 import json
 import re
 import threading
@@ -377,7 +378,7 @@ def parse_tb_platoons(server_id, use_cache_data):
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return '', None, None, 0
+        return '', None, None
 
     dict_guild = rpc_data[0]
     mapstats_json = rpc_data[1]
@@ -392,7 +393,7 @@ def parse_tb_platoons(server_id, use_cache_data):
 
     if not "territoryBattleStatus" in dict_guild:
         goutils.log2("WAR", "["+guildName+"] no TB in progress")
-        return '', None, None, 0
+        return '', None, None
 
     for battleStatus in dict_guild["territoryBattleStatus"]:
         if battleStatus["selected"]:
@@ -401,7 +402,7 @@ def parse_tb_platoons(server_id, use_cache_data):
             active_round = tb_name + str(battleStatus["currentRound"])
 
             if active_round == 0:
-                return '', None, None, 0
+                return '', None, None
 
             for zone in battleStatus["reconZoneStatus"]:
                 zone_name = zone["zoneStatus"]["zoneId"]
@@ -442,9 +443,9 @@ def parse_tb_platoons(server_id, use_cache_data):
                                 dict_platoons[platoon_name][unit_name].append('')
 
     if max(list_open_territories)==0:
-        return '', None, None, 0
+        return '', None, None
 
-    return active_round, dict_platoons, list_open_territories, 0
+    return active_round, dict_platoons, list_open_territories
 
 def parse_tw_opponent_teams(server_id, use_cache_data):
     dict_unitsList = godata.get("unitsList_dict.json")
