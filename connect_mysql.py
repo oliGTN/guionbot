@@ -527,6 +527,7 @@ def update_player(dict_player):
             if 'equippedStatMod' in character:
                 for mod in character['equippedStatMod']:
                     mod_id = mod['id']
+                    mod_defId = mod['definitionId']
                     mod_level = mod['level']
                     mod_pips = dict_modList[mod["definitionId"]]['rarity']
                     mod_primaryStat_unitStat = mod['primaryStat']["stat"]['unitStatId']
@@ -579,6 +580,7 @@ def update_player(dict_player):
         
                     query = "UPDATE mods "\
                            +"SET roster_id = "+str(roster_id)+", "\
+                           +"defId = "+str(mod_defId)+", "\
                            +"level = "+str(mod_level)+", "\
                            +"pips = "+str(mod_pips)+", "\
                            +"mod_set = "+str(mod_set)+", "\
