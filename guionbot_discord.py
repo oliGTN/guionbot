@@ -449,12 +449,10 @@ async def bot_loop_5minutes():
 
                 #Check if guild can use RPC
                 if guild.id in connect_rpc.get_dict_bot_accounts():
-                    tbs_round, dict_platoons_done, list_open_territories, \
-                        secs_track = connect_rpc.parse_tb_platoons(guild.id, True)
+                    tbs_round, dict_platoons_done, list_open_territories = connect_rpc.parse_tb_platoons(guild.id, True)
                 else:
                     #Lecture du statut des pelotons sur warstats
-                    tbs_round, dict_platoons_done, list_open_territories, \
-                        sec_last_track = connect_warstats.parse_tb_platoons(guild.id)
+                    tbs_round, dict_platoons_done, list_open_territories = connect_warstats.parse_tb_platoons(guild.id)
 
                 if tbs_round == '':
                     goutils.log2("DBG", "["+guild.name+"] No TB in progress")
@@ -652,6 +650,9 @@ async def send_alert_to_echocommanders(server, message):
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
 async def get_eb_allocation(tbChannel_id, tbs_round):
+    dict_alias = data.get("unitsAlias_dict.json")
+    dict_units = data.get("unitsList_dict.json")
+
     # Lecture des affectation ECHOBOT
     tb_channel = bot.get_channel(tbChannel_id)
     dict_platoons_allocation = {}  #key=platton_name, value={key=perso, value=[player...]}
@@ -662,8 +663,13 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     tbs_name = tbs_round[:-1]
     
     async for message in tb_channel.history(limit=500):
+        print(message.author.name)
+        print(message.author.id)
         if str(message.author).startswith("EchoStation#") \
-        or str(message.author).startswith("Echobase#"):
+        or str(message.author).startswith("Echobase#") \
+        if message.author.id == 416767534528987137 \ #common EchoStation
+        or message.author.id == 1067119357529960510 \ #KangooLegends Echobot
+        or message.author.id == 1092026153885253722: #Padawans Echobot
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
@@ -683,14 +689,21 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                         platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
                         for dict_player in dict_embed['fields']:
                             player_name = dict_player['name']
-                            for character in dict_player['value'].split('\n'):
-                                char_name = character[1:-1]
-                                if char_name != 'Filled in another phase':
+                            if player_name != 'Filled in another phase':
+                                for character in dict_player['value'].split('\n'):
+                                    char_name = character[1:-1]
                                     if char_name[0:4]=='*` *':
                                         char_name=char_name[4:]
                                     if not platoon_name in dict_platoons_allocation:
                                         dict_platoons_allocation[
                                             platoon_name] = {}
+
+                                    #transform the name into French
+                                    print(char_name)
+                                    perso_id = dict_alias[char_name.lower()][1]
+                                    print(perso_id)
+                                    char_name = dict_units[perso_id]["name"]
+
                                     if not char_name in dict_platoons_allocation[
                                             platoon_name]:
                                         dict_platoons_allocation[platoon_name][
@@ -722,6 +735,13 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     if player_name != 'Filled in another phase':
                                         if not platoon_name in dict_platoons_allocation:
                                             dict_platoons_allocation[platoon_name] = {}
+
+                                        #transform the name into French
+                                        print(char_name)
+                                        perso_id = dict_alias[char_name.lower()][1]
+                                        print(perso_id)
+                                        char_name = dict_units[perso_id]["name"]
+
                                         if not char_name in dict_platoons_allocation[
                                                 platoon_name]:
                                             dict_platoons_allocation[platoon_name][
@@ -730,7 +750,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             char_name].append(player_name)
 
             elif message.content.startswith('Rare Units:'):
-                #EB message by unit / Rare unis
+                #EB message by unit / Rare units
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
                     if 'fields' in dict_embed:
@@ -750,12 +770,19 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                                     line)
                                     player_name = ret_re.group(3).strip()
                                         
-                                    if char_name != 'Filled in another phase':
+                                    if player_name != 'Filled in another phase':
                                         if char_name[0:4]=='*` *':
                                             char_name=char_name[4:]
                                         if not platoon_name in dict_platoons_allocation:
                                             dict_platoons_allocation[
                                                 platoon_name] = {}
+
+                                        #transform the name into French
+                                        print(char_name)
+                                        perso_id = dict_alias[char_name.lower()][1]
+                                        print(perso_id)
+                                        char_name = dict_units[perso_id]["name"]
+
                                         if not char_name in dict_platoons_allocation[
                                                 platoon_name]:
                                             dict_platoons_allocation[platoon_name][
@@ -773,19 +800,26 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                         player_name = re.search('\*\*(.*)\*\*',
                                 dict_embed['description']).group(1)
 
-                        for dict_platoon in dict_embed['fields']:
-                            platoon_pos = dict_platoon['name'].split(" ")[0]
-                            platoon_num = dict_platoon['name'][-1]
-                            platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
-                                
-                            for character in dict_platoon['value'].split('\n'):
-                                char_name = character[1:-1]
-                                if char_name != 'Filled in another phase':
+                        if player_name != 'Filled in another phase':
+                            for dict_platoon in dict_embed['fields']:
+                                platoon_pos = dict_platoon['name'].split(" ")[0]
+                                platoon_num = dict_platoon['name'][-1]
+                                platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
+                                    
+                                for character in dict_platoon['value'].split('\n'):
+                                    char_name = character[1:-1]
                                     if char_name[0:4]=='*` *':
                                         char_name=char_name[4:]
                                     if not platoon_name in dict_platoons_allocation:
                                         dict_platoons_allocation[
                                             platoon_name] = {}
+
+                                    #transform the name into French
+                                    print(char_name)
+                                    perso_id = dict_alias[char_name.lower()][1]
+                                    print(perso_id)
+                                    char_name = dict_units[perso_id]["name"]
+
                                     if not char_name in dict_platoons_allocation[
                                             platoon_name]:
                                         dict_platoons_allocation[platoon_name][
@@ -1518,8 +1552,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         if ctx.guild.id in connect_rpc.get_dict_bot_accounts():
             goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
 
-            tbs_round, dict_platoons_done, list_open_territories, \
-                secs_track = connect_rpc.parse_tb_platoons(ctx.guild.id, False)
+            tbs_round, dict_platoons_done, list_open_territories = connect_rpc.parse_tb_platoons(ctx.guild.id, False)
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
         else:
             await ctx.send('ERR: commande non utilisable sur ce serveur')
@@ -1529,7 +1562,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
 
         if tbs_round == '':
-            await ctx.send("Aucune BT en cours (dernier update warstats: "+int(secs_track)+" secs")
+            await ctx.send("Aucune BT en cours")
             await ctx.message.add_reaction(emoji_error)
         else:
             goutils.log2("INFO", 'Lecture terminée du statut BT sur warstats: round ' + tbs_round)
@@ -1614,9 +1647,6 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     full_txt += txt + '\n'
             else:
                 full_txt = "Aucune erreur de peloton\n"
-
-            secs_track_txt = str(int(secs_track/60))+" min "+str(secs_track%60)+ " s"
-            full_txt += "(dernier update warstats : "+secs_track_txt+")"
 
             for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
@@ -3467,4 +3497,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
