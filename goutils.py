@@ -722,3 +722,10 @@ def print_tw_best_teams(list_teams, intro_txt):
 
     return output_txt
 
+def remove_format_from_desc(desc):
+    while "[" in desc:
+        pos_open = desc.find("[")
+        pos_close = desc.find("]")
+        desc = desc[:pos_open] + desc[pos_close+1:]
+
+    return desc.replace("\\n", "\n")

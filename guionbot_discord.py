@@ -2241,6 +2241,30 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
+    # display kit
+    # IN: character alias
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='kit',
+                      brief="Affiche le kit d'un perso",
+                      help="Affiche le kit d'un perso\n\n"\
+                           "Exemple: go.kit kitfisto")
+    async def kit(self, ctx, alias):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = go.print_unit_kit(alias)
+
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        for txt in goutils.split_txt(et, MAX_MSG_SIZE):
+             await ctx.send(txt)
+
+        await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
     # Command: qui
     # Parameters: code allié (string) ou "me" ou pseudo ou @mention
     # Purpose: Donner les infos de base d'unee personne

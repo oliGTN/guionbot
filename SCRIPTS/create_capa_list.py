@@ -17,6 +17,10 @@ dict_abilities={}
 for ability in game_data["ability"]:
     dict_abilities[ability["id"]] = ability
 
+f=open("DATA/abilityList_dict.json", "w")
+f.write(json.dumps(dict_abilities, indent=4))
+f.close()
+
 for unit in game_data["units"]:
     if unit["baseId"] in added_units:
         continue
@@ -124,7 +128,7 @@ for unit in game_data["units"]:
 
     added_units.append(unit["baseId"])
 
-f=open("DATA/unit_capa_list2.json", "w")
+f=open("DATA/unit_capa_list.json", "w")
 f.write(json.dumps(dict_capa, indent=4))
 f.close()
 

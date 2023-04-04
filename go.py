@@ -4270,3 +4270,82 @@ def deploy_bot_tw(server_id, zone_shortname, characters):
 
     return ec, txt
 
+##############################################################
+# print_unit_kit
+# IN: character alias
+##############################################################
+def print_unit_kit(alias):
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([alias])
+    if len(list_character_ids) > 1:
+        return 1, "ERR: un seul personnage à la fois"
+
+    dict_units = data.get("unitsList_dict.json")
+    dict_abilities = data.get("abilityList_dict.json")
+    FRE_FR = data.get("FRE_FR.json")
+    unit_id = list_character_ids[0]
+
+    output_txt = "**"+FRE_FR["UNIT_"+unit_id+"_NAME"]+"** : "
+    output_txt+= FRE_FR["UNIT_"+unit_id+"_DESC"]+"\n"
+
+    #BASIC
+    ability_id = dict_units[unit_id]["basicAttackRef"]["abilityId"]
+    ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+    ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
+    ability_desc = goutils.remove_format_from_desc(ability_desc)
+    output_txt+= "\n**Basique - "+ability_name+"** : "+ability_desc+"\n"
+
+    if "tier" in dict_abilities[ability_id]:
+        ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+        ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
+        output_txt+= ability_max_desc+"\n"
+
+    #SPECIALS
+    ab_id = 1
+    for special in dict_units[unit_id]["limitBreakRef"]:
+        ability_id = special["abilityId"]
+        if ability_id == "generic_reinforcement":
+            continue
+        ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+        ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
+        ability_desc = goutils.remove_format_from_desc(ability_desc)
+        output_txt+= "\n** Spéciale "+str(ab_id)+" - "+ability_name+"** : "+ability_desc+"\n"
+
+        if "tier" in dict_abilities[ability_id]:
+            ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+            ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
+            output_txt+= ability_max_desc+"\n"
+
+        ab_id+=1
+
+    #LEADER
+    if "leaderAbilityRef" in dict_units[unit_id]:
+        ability_id = dict_units[unit_id]["basicAttackRef"]["abilityId"]
+        ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+        ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
+        ability_desc = goutils.remove_format_from_desc(ability_desc)
+        output_txt+= "\n**Chef - "+ability_name+"** : "+ability_desc+"\n"
+
+        if "tier" in dict_abilities[ability_id]:
+            ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+            ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
+            output_txt+= ability_max_desc+"\n"
+
+    #UNIQUES
+    ab_id = 1
+    for special in dict_units[unit_id]["uniqueAbilityRef"]:
+        ability_id = special["abilityId"]
+        ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+        if ability_name == "Placeholder":
+            continue
+        ability_desc = goutils.remove_format_from_desc(ability_desc)
+        ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
+        output_txt+= "\n** Unique "+str(ab_id)+" - "+ability_name+"** : "+ability_desc+"\n"
+
+        if "tier" in dict_abilities[ability_id]:
+            ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+            ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
+            output_txt+= ability_max_desc+"\n"
+
+        ab_id+=1
+
+    return 0, output_txt
