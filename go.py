@@ -4053,7 +4053,10 @@ def detect_tm(fevent_name, fguild_name):
                             leader_opponent = leader+"@"+opponent
                             dict_squads[squad_id]=leader_opponent
                         else:
-                            leader_opponent=dict_squads[squad_id]
+                            if squad_id in dict_squads:
+                                leader_opponent=dict_squads[squad_id]
+                            else:
+                                leader_opponent="UNKNOWN_LEADER"
 
                         if activity["warSquad"]["squadStatus"]=="SQUADAVAILABLE":
                             count_dead=0
@@ -4208,11 +4211,11 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
     dict_unitsList = data.get("unitsList_dict.json")
 
     #Manage request for all characters
-    if 'all' in characters:
+    if characters == 'all':
         list_character_ids=list(dict_unitsList.keys())
     else:
         #specific list of characters for one player
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([characters])
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 

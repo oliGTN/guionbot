@@ -1,7 +1,7 @@
 .git-crypt/*
 guionbot-gitcrypt-key.txt
 config.py
-test_go.py
+test_*.py
 SCRIPTS/mysql_backup.sh
 IMAGES/CHARACTERS/*
 IMAGES/GUILD_LOGOS/*

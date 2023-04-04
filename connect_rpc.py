@@ -1124,7 +1124,7 @@ def deploy_tb(server_id, zone, list_defId):
     if process.returncode!=0 and process.returncode<10:
         return 1, "Erreur en déployant en TB - code="+str(process.returncode)
 
-    return 0, "Le bot a déployé "+str(process.returnCode)+" en " + zone
+    return 0, "Le bot a déployé en " + zone
 
 def deploy_tw(server_id, zone, list_defId):
     dict_bot_accounts = get_dict_bot_accounts()

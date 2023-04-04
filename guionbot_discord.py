@@ -690,28 +690,27 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                         platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
                         for dict_player in dict_embed['fields']:
                             player_name = dict_player['name']
-                            if player_name != 'Filled in another phase':
-                                for character in dict_player['value'].split('\n'):
-                                    char_name = character[1:-1]
-                                    if char_name[0:4]=='*` *':
-                                        char_name=char_name[4:]
-                                    if not platoon_name in dict_platoons_allocation:
-                                        dict_platoons_allocation[
-                                            platoon_name] = {}
+                            for character in dict_player['value'].split('\n'):
+                                char_name = character[1:-1]
+                                if char_name[0:4]=='*` *':
+                                    char_name=char_name[4:]
+                                if not platoon_name in dict_platoons_allocation:
+                                    dict_platoons_allocation[
+                                        platoon_name] = {}
 
-                                    #transform the name into French
-                                    print(char_name)
-                                    perso_id = dict_alias[char_name.lower()][1]
-                                    print(perso_id)
-                                    char_name = dict_units[perso_id]["name"]
+                                #transform the name into French
+                                print(char_name)
+                                perso_id = dict_alias[char_name.lower()][1]
+                                print(perso_id)
+                                char_name = dict_units[perso_id]["name"]
 
-                                    if not char_name in dict_platoons_allocation[
-                                            platoon_name]:
-                                        dict_platoons_allocation[platoon_name][
-                                            char_name] = []
+                                if not char_name in dict_platoons_allocation[
+                                        platoon_name]:
                                     dict_platoons_allocation[platoon_name][
-                                        char_name].append(player_name)
-                    
+                                        char_name] = []
+                                dict_platoons_allocation[platoon_name][
+                                    char_name].append(player_name)
+                
             elif message.content.startswith('Common units:'):
                 #EB message by unit / Common units
                 for embed in message.embeds:
@@ -733,22 +732,21 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                                         line)
                                     player_name = ret_re.group(3).strip()
                                     
-                                    if player_name != 'Filled in another phase':
-                                        if not platoon_name in dict_platoons_allocation:
-                                            dict_platoons_allocation[platoon_name] = {}
+                                    if not platoon_name in dict_platoons_allocation:
+                                        dict_platoons_allocation[platoon_name] = {}
 
-                                        #transform the name into French
-                                        print(char_name)
-                                        perso_id = dict_alias[char_name.lower()][1]
-                                        print(perso_id)
-                                        char_name = dict_units[perso_id]["name"]
+                                    #transform the name into French
+                                    print(char_name)
+                                    perso_id = dict_alias[char_name.lower()][1]
+                                    print(perso_id)
+                                    char_name = dict_units[perso_id]["name"]
 
-                                        if not char_name in dict_platoons_allocation[
-                                                platoon_name]:
-                                            dict_platoons_allocation[platoon_name][
-                                                char_name] = []
+                                    if not char_name in dict_platoons_allocation[
+                                            platoon_name]:
                                         dict_platoons_allocation[platoon_name][
-                                            char_name].append(player_name)
+                                            char_name] = []
+                                    dict_platoons_allocation[platoon_name][
+                                        char_name].append(player_name)
 
             elif message.content.startswith('Rare Units:'):
                 #EB message by unit / Rare units
@@ -771,44 +769,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                                     line)
                                     player_name = ret_re.group(3).strip()
                                         
-                                    if player_name != 'Filled in another phase':
-                                        if char_name[0:4]=='*` *':
-                                            char_name=char_name[4:]
-                                        if not platoon_name in dict_platoons_allocation:
-                                            dict_platoons_allocation[
-                                                platoon_name] = {}
-
-                                        #transform the name into French
-                                        print(char_name)
-                                        perso_id = dict_alias[char_name.lower()][1]
-                                        print(perso_id)
-                                        char_name = dict_units[perso_id]["name"]
-
-                                        if not char_name in dict_platoons_allocation[
-                                                platoon_name]:
-                                            dict_platoons_allocation[platoon_name][
-                                                char_name] = []
-                                        dict_platoons_allocation[platoon_name][
-                                            char_name].append(player_name)
-
-            elif message.content.startswith("<@"):
-                #EB message by player
-                for embed in message.embeds:
-                    dict_embed = embed.to_dict()
-                    if 'fields' in dict_embed:
-                        #on garde le nom de la BT mais on met X comme numéro de phase
-                        #le numéro de phase sera affecté plus tard
-                        player_name = re.search('\*\*(.*)\*\*',
-                                dict_embed['description']).group(1)
-
-                        if player_name != 'Filled in another phase':
-                            for dict_platoon in dict_embed['fields']:
-                                platoon_pos = dict_platoon['name'].split(" ")[0]
-                                platoon_num = dict_platoon['name'][-1]
-                                platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
-                                    
-                                for character in dict_platoon['value'].split('\n'):
-                                    char_name = character[1:-1]
                                     if char_name[0:4]=='*` *':
                                         char_name=char_name[4:]
                                     if not platoon_name in dict_platoons_allocation:
@@ -827,6 +787,42 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             char_name] = []
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
+
+            elif message.content.startswith("<@"):
+                #EB message by player
+                for embed in message.embeds:
+                    dict_embed = embed.to_dict()
+                    if 'fields' in dict_embed:
+                        #on garde le nom de la BT mais on met X comme numéro de phase
+                        #le numéro de phase sera affecté plus tard
+                        player_name = re.search('\*\*(.*)\*\*',
+                                dict_embed['description']).group(1)
+
+                        for dict_platoon in dict_embed['fields']:
+                            platoon_pos = dict_platoon['name'].split(" ")[0]
+                            platoon_num = dict_platoon['name'][-1]
+                            platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
+                                
+                            for character in dict_platoon['value'].split('\n'):
+                                char_name = character[1:-1]
+                                if char_name[0:4]=='*` *':
+                                    char_name=char_name[4:]
+                                if not platoon_name in dict_platoons_allocation:
+                                    dict_platoons_allocation[
+                                        platoon_name] = {}
+
+                                #transform the name into French
+                                print(char_name)
+                                perso_id = dict_alias[char_name.lower()][1]
+                                print(perso_id)
+                                char_name = dict_units[perso_id]["name"]
+
+                                if not char_name in dict_platoons_allocation[
+                                        platoon_name]:
+                                    dict_platoons_allocation[platoon_name][
+                                        char_name] = []
+                                dict_platoons_allocation[platoon_name][
+                                    char_name].append(player_name)
 
             elif message.content.startswith(":information_source: **Overview**"):
                 #Overview of the EB posts. Gives the territory names
@@ -1594,7 +1590,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                 for allocated_player in dict_platoons_allocation[
                                         platoon_name][perso]:
                                     if not allocated_player in dict_platoons_done[
-                                            platoon_name][perso]:
+                                            platoon_name][perso] and allocated_player \
+                                            != "Filled in another phase":
                                         erreur_detectee = True
                                         if (allocated_player in dict_players_by_IG) and display_mentions:
                                             list_txt.append([
@@ -1721,6 +1718,26 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emoji_thumb)
 
         ec, et = go.deploy_bot_tw(ctx.guild.id, zone, characters)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
+    #######################################################
+    # Deploy the toon(s) represented by caracters in the zone in TB
+    # IN: zone (DS, LS, DS or top, mid, bot)
+    # IN: characters ("ugnaught" or "tag:s:all" or "all" or "tag:darkside")
+    #######################################################
+    @commands.command(name='bot.deploytb',
+            brief="Déploie des persos en BT",
+            help="Déploie des persos en BT")
+    async def botdeploytb(self, ctx, zone, characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = go.deploy_bot_tb(ctx.guild.id, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
