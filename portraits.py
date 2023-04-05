@@ -243,7 +243,7 @@ def get_image_from_character(character_id, dict_player, game_mode):
             zetas = 0
             for skill in character["skill"]:
                 skill_id = skill["id"]
-                if dict_capas[character_id][skill_id][2] and (skill["tier"]+2)>=8:
+                if ( (skill["tier"]+2) >= dict_capas[character_id][skill_id]["zetaTier"] ):
                     zetas += 1
             if zetas != None and zetas>0:
                 zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
@@ -258,9 +258,8 @@ def get_image_from_character(character_id, dict_player, game_mode):
                     skill_id = skill['id']
                     skill_tier = skill['tier']+2
                     if skill_id in dict_capas[character_id]:
-                        if dict_capas[character_id][skill_id][3]!="" \
-                                and skill_tier == dict_capas[character_id][skill_id][4]:
-                            if game_mode=="" or (dict_capas[character_id][skill_id][3]==game_mode):
+                        if skill_tier >= dict_capas[character_id][skill_id]["omicronTier"]:
+                            if game_mode=="" or (dict_capas[character_id][skill_id]["omicronMode"]==game_mode):
                                 omicrons += 1
             if omicrons>0:
                 omicron_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_omicron.png')
@@ -302,6 +301,7 @@ def get_image_from_character(character_id, dict_player, game_mode):
 #################################################
 def get_image_from_team(list_character_ids, dict_player, tw_territory, game_mode):
     list_portrait_images = []
+    print(str(dict_player)[:1000])
     player_name = dict_player["name"]
 
     total_gp = 0

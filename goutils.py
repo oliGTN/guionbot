@@ -348,7 +348,7 @@ def get_capa_from_id(character_id, capa_id):
         log2("ERR", "unknown capa id "+capa_id)
         return capa_id
 
-    return dict_capas[character_id][capa_id][1]
+    return dict_capas[character_id][capa_id]["name"]
     
 def get_capa_from_shorts(character_id, capa_shorts):
     dict_capas = data.get('unit_capa_list.json')
@@ -358,7 +358,7 @@ def get_capa_from_shorts(character_id, capa_shorts):
         if capa_id == '':
             continue
         if capa_id in dict_capas[character_id]:
-            req_capa_ids.append([capa_id, dict_capas[character_id][capa_id][0]])
+            req_capa_ids.append([capa_id, dict_capas[character_id][capa_id]["id"]])
         else:
             log2("WAR", "cannot find capa "+capa+" for "+character_id)
     
@@ -393,7 +393,7 @@ def get_capa_id_from_short(character_id, capa_short):
 
         # Manage the galactic legends
         if (capa_id not in dict_capas[character_id] or \
-            dict_capas[character_id][capa_id][0] == 'Placeholder') and \
+            dict_capas[character_id][capa_id]["name"] == 'Placeholder') and \
             'GL' in dict_capas[character_id]:
             capa_id = 'GL'
 
@@ -538,11 +538,10 @@ def detect_delta_roster_element(allyCode, char1, char2):
     #ZETAS
     for skill2 in char2['skill']:
         skill_id = skill2['id']
-        skill2_isZeta = dict_capas[defId][skill_id][2] and (skill2['tier']+2)>=8
+        skill2_isZeta = ( (skill2['tier']+2) >= dict_capas[defId][skill_id]["zetaTier"] )
         if defId in dict_capas:
             if skill_id in dict_capas[defId]:
-                skill2_isOmicron = dict_capas[defId][skill_id][3]!="" \
-                                and (skill2['tier']+2) == dict_capas[defId][skill_id][4]
+                skill2_isOmicron = ( (skill2['tier']+2) >= dict_capas[defId][skill_id]["omicronTier"] )
             else:
                 log2('ERR', skill_id + " not found in dict_capas")
                 skill2_isOmicron = False
@@ -553,11 +552,10 @@ def detect_delta_roster_element(allyCode, char1, char2):
         skill1_matchID = [x for x in char1['skill'] if x['id'] == skill_id]
         if len(skill1_matchID)>0:
             skill1 = skill1_matchID[0]
-            skill1_isZeta = dict_capas[defId][skill_id][2] and (skill1['tier']+2)>=8
+            skill1_isZeta = ( (skill1['tier']+2) >= dict_capas[defId][skill_id]["zetaTier"] )
             if defId in dict_capas:
                 if skill_id in dict_capas[defId]:
-                    skill1_isOmicron = dict_capas[defId][skill_id][3]!="" \
-                                    and (skill1['tier']+2) == dict_capas[defId][skill_id][4]
+                    skill1_isOmicron = ( (skill1['tier']+2) >= dict_capas[defId][skill_id]["omicronTier"] )
                 else:
                     skill1_isOmicron = False
             else:
@@ -570,7 +568,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
             evo_txt = "new omicron "+get_capa_from_id(defId, skill_id)
-            evo_txt += " for " + dict_capas[defId][skill_id][3]
+            evo_txt += " for " + dict_capas[defId][skill_id]["omicronMode"]
             log("INFO", "delta_roster_element", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
@@ -623,7 +621,7 @@ def get_characters_from_alias(list_alias):
             for char_id in dict_capas:
                 char_with_omicron = False
                 for skill in dict_capas[char_id]:
-                    if dict_capas[char_id][skill][4] >= 0:
+                    if "omicronMode" in dict_capas[char_id][skill]:
                         char_with_omicron = True
                 if char_with_omicron:
                     list_ids.append(char_id)

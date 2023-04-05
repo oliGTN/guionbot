@@ -4276,6 +4276,8 @@ def deploy_bot_tw(server_id, zone_shortname, characters):
 ##############################################################
 def print_unit_kit(alias):
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([alias])
+    if len(list_character_ids) == 0:
+        return 1, "ERR: personnage inconnu"
     if len(list_character_ids) > 1:
         return 1, "ERR: un seul personnage à la fois"
 

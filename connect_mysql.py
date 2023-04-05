@@ -5,6 +5,7 @@ import urllib.parse
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import datetime
+import time
 import wcwidth
 def wc_ljust(text, length):
     return text + ' ' * max(0, length - wcwidth.wcswidth(text))
@@ -612,9 +613,13 @@ def update_player(dict_player):
             for capa in character['skill']:
                 capa_name = capa['id']
                 capa_level = capa['tier']+2
-                capa_isZeta = dict_capas[character_id][capa_name][2]
-                capa_omicron_type = dict_capas[character_id][capa_name][3]
-                capa_omicron_tier = dict_capas[character_id][capa_name][4]
+                capa_isZeta = (dict_capas[character_id][capa_name]["zetaTier"]<99)
+                if "omicronMode" in  dict_capas[character_id][capa_name]:
+                    capa_omicron_type = dict_capas[character_id][capa_name]["omicronMode"]
+                    capa_omicron_tier = dict_capas[character_id][capa_name]["omicronTier"]
+                else:
+                    capa_omicron_type = ""
+                    capa_omicron_tier = "-1"
                 
                 capa_shortname = capa_name[0].upper()
                 if capa_shortname in 'SU' and capa_name[-1] in '0123456789':
@@ -650,6 +655,8 @@ def update_player(dict_player):
                    +"AND   defId = '"+c_defId+"'"
             #goutils.log2("DBG", query)
             cursor.execute(query)
+
+            time.sleep(0)
                 
         #Compute ModQ from DB data
         query = "SELECT count(mods.id)/(char_gp/100000) " \
