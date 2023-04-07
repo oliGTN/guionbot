@@ -14,12 +14,18 @@ for skill in game_data["skill"]:
 
 #create dict for abilities
 dict_abilities={}
+dict_lore={}
 for ability in game_data["ability"]:
     dict_abilities[ability["id"]] = ability
+    dict_lore[ability["nameKey"]] = ability["descKey"]
 
 f=open("DATA/abilityList_dict.json", "w")
 f.write(json.dumps(dict_abilities, indent=4))
 f.close()
+f=open("DATA/lore_dict.json", "w")
+f.write(json.dumps(dict_lore, indent=4))
+f.close()
+
 
 for unit in game_data["units"]:
     if unit["baseId"] in added_units:

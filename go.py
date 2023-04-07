@@ -4283,23 +4283,30 @@ def print_unit_kit(alias):
 
     dict_units = data.get("unitsList_dict.json")
     dict_abilities = data.get("abilityList_dict.json")
+    dict_lore = data.get("lore_dict.json")
     FRE_FR = data.get("FRE_FR.json")
     unit_id = list_character_ids[0]
 
-    output_txt = "**"+FRE_FR["UNIT_"+unit_id+"_NAME"]+"** : "
-    output_txt+= FRE_FR["UNIT_"+unit_id+"_DESC"]+"\n"
+    nameKey = dict_units[unit_id]["nameKey"]
+    descKey = dict_units[unit_id]["descKey"]
+    output_txt = "**"+FRE_FR[nameKey]+"** : "+FRE_FR[descKey]+"\n"
+
+    #LORE
+    if nameKey in dict_lore:
+        lore_desc = FRE_FR[dict_lore[nameKey]]
+        lore_desc = goutils.remove_format_from_desc(lore_desc)
+        output_txt+= lore_desc+"\n"
 
     #BASIC
     ability_id = dict_units[unit_id]["basicAttackRef"]["abilityId"]
     ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
     ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-    ability_desc = goutils.remove_format_from_desc(ability_desc)
-    output_txt+= "\n**Basique - "+ability_name+"** : "+ability_desc+"\n"
 
     if "tier" in dict_abilities[ability_id]:
-        ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-        ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
-        output_txt+= ability_max_desc+"\n"
+        ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+
+    ability_desc = goutils.remove_format_from_desc(ability_desc)
+    output_txt+= "\n**Basique - "+ability_name+"** : "+ability_desc+"\n"
 
     #SPECIALS
     ab_id = 1
@@ -4309,13 +4316,14 @@ def print_unit_kit(alias):
             continue
         ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
         ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-        ability_desc = goutils.remove_format_from_desc(ability_desc)
-        output_txt+= "\n** Spéciale "+str(ab_id)+" - "+ability_name+"** : "+ability_desc+"\n"
+        ability_cooldown = dict_abilities[ability_id]["cooldown"]
 
         if "tier" in dict_abilities[ability_id]:
-            ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-            ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
-            output_txt+= ability_max_desc+"\n"
+            ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+            ability_cooldown = dict_abilities[ability_id]["tier"][-1]["cooldownMaxOverride"]
+
+        ability_desc = goutils.remove_format_from_desc(ability_desc)
+        output_txt+= "\n** Spéciale "+str(ab_id)+" - "+ability_name+"** (délai de "+str(ability_cooldown)+") : "+ability_desc+"\n"
 
         ab_id+=1
 
@@ -4324,13 +4332,12 @@ def print_unit_kit(alias):
         ability_id = dict_units[unit_id]["basicAttackRef"]["abilityId"]
         ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
         ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-        ability_desc = goutils.remove_format_from_desc(ability_desc)
-        output_txt+= "\n**Chef - "+ability_name+"** : "+ability_desc+"\n"
 
         if "tier" in dict_abilities[ability_id]:
-            ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-            ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
-            output_txt+= ability_max_desc+"\n"
+            ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+
+        ability_desc = goutils.remove_format_from_desc(ability_desc)
+        output_txt+= "\n**Chef - "+ability_name+"** : "+ability_desc+"\n"
 
     #UNIQUES
     ab_id = 1
@@ -4341,13 +4348,12 @@ def print_unit_kit(alias):
             continue
         ability_desc = goutils.remove_format_from_desc(ability_desc)
         ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-        output_txt+= "\n** Unique "+str(ab_id)+" - "+ability_name+"** : "+ability_desc+"\n"
 
         if "tier" in dict_abilities[ability_id]:
-            ability_max_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-            ability_max_desc = goutils.remove_format_from_desc(ability_max_desc)
-            output_txt+= ability_max_desc+"\n"
+            ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
 
+        ability_desc = goutils.remove_format_from_desc(ability_desc)
+        output_txt+= "\n** Unique "+str(ab_id)+" - "+ability_name+"** : "+ability_desc+"\n"
         ab_id+=1
 
     return 0, output_txt
