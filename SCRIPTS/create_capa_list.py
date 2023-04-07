@@ -109,6 +109,9 @@ for unit in game_data["units"]:
             elif skill["omicronMode"] == "GAC_3_OMICRON":
                 dict_capa[unit_id][skill_shortname]["omicronMode"] = "GA3"
                 dict_capa[unit_id][skill_id]["omicronMode"] = "GA3"
+            elif skill["omicronMode"] == "GAC_5_OMICRON":
+                dict_capa[unit_id][skill_shortname]["omicronMode"] = "GA3"
+                dict_capa[unit_id][skill_id]["omicronMode"] = "GA5"
             elif skill["omicronMode"] == "TERRITORY_BATTLE_BOTH_OMICRON":
                 dict_capa[unit_id][skill_shortname]["omicronMode"] = "TB"
                 dict_capa[unit_id][skill_id]["omicronMode"] = "TB"
