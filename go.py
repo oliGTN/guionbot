@@ -4284,9 +4284,11 @@ def print_unit_kit(alias):
     dict_units = data.get("unitsList_dict.json")
     dict_abilities = data.get("abilityList_dict.json")
     dict_lore = data.get("lore_dict.json")
+    dict_capas = data.get("unit_capa_list.json")
     FRE_FR = data.get("FRE_FR.json")
     unit_id = list_character_ids[0]
 
+    #NAME
     nameKey = dict_units[unit_id]["nameKey"]
     descKey = dict_units[unit_id]["descKey"]
     output_txt = "**"+FRE_FR[nameKey]+"** : "+FRE_FR[descKey]+"\n"
@@ -4299,14 +4301,7 @@ def print_unit_kit(alias):
 
     #BASIC
     ability_id = dict_units[unit_id]["basicAttackRef"]["abilityId"]
-    ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
-    ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-
-    if "tier" in dict_abilities[ability_id]:
-        ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-
-    ability_desc = goutils.remove_format_from_desc(ability_desc)
-    output_txt+= "\n**Basique - "+ability_name+"** : "+ability_desc+"\n"
+    output_txt += print_ability(unit_id, ability_id, "Basique")
 
     #SPECIALS
     ab_id = 1
@@ -4314,30 +4309,13 @@ def print_unit_kit(alias):
         ability_id = special["abilityId"]
         if ability_id == "generic_reinforcement":
             continue
-        ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
-        ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-        ability_cooldown = dict_abilities[ability_id]["cooldown"]
-
-        if "tier" in dict_abilities[ability_id]:
-            ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-            ability_cooldown = dict_abilities[ability_id]["tier"][-1]["cooldownMaxOverride"]
-
-        ability_desc = goutils.remove_format_from_desc(ability_desc)
-        output_txt+= "\n** Spéciale "+str(ab_id)+" - "+ability_name+"** (délai de "+str(ability_cooldown)+") : "+ability_desc+"\n"
-
+        output_txt += print_ability(unit_id, ability_id, "Spéciale "+str(ab_id))
         ab_id+=1
 
     #LEADER
     if "leaderAbilityRef" in dict_units[unit_id]:
-        ability_id = dict_units[unit_id]["basicAttackRef"]["abilityId"]
-        ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
-        ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-
-        if "tier" in dict_abilities[ability_id]:
-            ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-
-        ability_desc = goutils.remove_format_from_desc(ability_desc)
-        output_txt+= "\n**Chef - "+ability_name+"** : "+ability_desc+"\n"
+        ability_id = dict_units[unit_id]["leaderAbilityRef"]["abilityId"]
+        output_txt += print_ability(unit_id, ability_id, "Chef")
 
     #UNIQUES
     ab_id = 1
@@ -4346,14 +4324,43 @@ def print_unit_kit(alias):
         ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
         if ability_name == "Placeholder":
             continue
-        ability_desc = goutils.remove_format_from_desc(ability_desc)
-        ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
-
-        if "tier" in dict_abilities[ability_id]:
-            ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
-
-        ability_desc = goutils.remove_format_from_desc(ability_desc)
-        output_txt+= "\n** Unique "+str(ab_id)+" - "+ability_name+"** : "+ability_desc+"\n"
+        output_txt += print_ability(unit_id, ability_id, "Unique "+str(ab_id))
         ab_id+=1
 
     return 0, output_txt
+
+def print_ability(unit_id, ability_id, ability_type):
+    output_txt = ""
+
+    dict_abilities = data.get("abilityList_dict.json")
+    dict_capas = data.get("unit_capa_list.json")
+    FRE_FR = data.get("FRE_FR.json")
+
+    ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+    ability_name = goutils.remove_format_from_desc(ability_name)
+
+    ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
+    isZeta = False
+    isOmicron = False
+    if "cooldown" in dict_abilities[ability_id]:
+        ability_cooldown = dict_abilities[ability_id]["cooldown"]
+    else:
+        ability_cooldown = 0
+
+    if "tier" in dict_abilities[ability_id]:
+        ability_desc = FRE_FR[dict_abilities[ability_id]["tier"][-1]["descKey"]]
+        if "cooldownMaxOverride" in dict_abilities[ability_id]["tier"][-1]:
+            ability_cooldown = dict_abilities[ability_id]["tier"][-1]["cooldownMaxOverride"]
+        isZeta = dict_capas[unit_id][ability_id]["zetaTier"] < 99
+        isOmicron = dict_capas[unit_id][ability_id]["omicronTier"] < 99
+
+    ability_desc = goutils.remove_format_from_desc(ability_desc)
+    output_txt+= "\n** "+ability_type+" - "+ability_name
+    if isZeta:
+        output_txt+= " - ZETA"
+    output_txt+= " **"
+    if ability_cooldown > 0:
+        output_txt+= " (délai de "+str(ability_cooldown)+")"
+    output_txt+= " : "+ability_desc+"\n"
+
+    return output_txt

@@ -19,6 +19,9 @@ for ability in game_data["ability"]:
     dict_abilities[ability["id"]] = ability
     dict_lore[ability["nameKey"]] = ability["descKey"]
 
+f=open("DATA/skillList_dict.json", "w")
+f.write(json.dumps(dict_skills, indent=4))
+f.close()
 f=open("DATA/abilityList_dict.json", "w")
 f.write(json.dumps(dict_abilities, indent=4))
 f.close()
@@ -51,6 +54,7 @@ for unit in game_data["units"]:
 
     for skill_id in list_skills:
         skill = dict_skills[skill_id]
+        my_capa = {}
 
         if skill_id.startswith("basic"):
             skill_shortname = "B"
@@ -77,63 +81,51 @@ for unit in game_data["units"]:
             print("Type de skill inconnu : "+skill_id)
             sys.exit(1)
 
-        dict_capa[unit_id][skill_shortname] = {}
-        dict_capa[unit_id][skill_id] = {}
-
         ability_id = skill["abilityReference"]
         ability = dict_abilities[ability_id]
         ability_name = FRE_FR[ability["nameKey"]]
-        dict_capa[unit_id][skill_shortname]["name"] = ability_name
-        dict_capa[unit_id][skill_id]["name"] = ability_name
 
-        dict_capa[unit_id][skill_id]["type"] = skill_type
+        my_capa["name"] = ability_name
+        my_capa["type"] = skill_type
 
-        dict_capa[unit_id][skill_shortname]["zetaTier"] = 99
-        dict_capa[unit_id][skill_id]["zetaTier"] = 99
+        my_capa["zetaTier"] = 99
         for i_tier in range(len(skill["tier"])):
             tier = skill["tier"][i_tier]
             if tier["isZetaTier"]:
-                dict_capa[unit_id][skill_shortname]["zetaTier"] = i_tier+2
-                dict_capa[unit_id][skill_id]["zetaTier"] = i_tier+2
+                my_capa["zetaTier"] = i_tier+2
                 break
 
-        dict_capa[unit_id][skill_shortname]["id"] = skill_id
+        my_capa["id"] = skill_id
 
         if "omicronMode" in skill:
             if skill["omicronMode"] == "CONQUEST_OMICRON":
-                dict_capa[unit_id][skill_shortname]["omicronMode"] = "CQ"
-                dict_capa[unit_id][skill_id]["omicronMode"] = "CQ"
+                my_capa["omicronMode"] = "CQ"
             elif skill["omicronMode"] == "GUILD_RAID_OMICRON":
-                dict_capa[unit_id][skill_shortname]["omicronMode"] = "RD"
-                dict_capa[unit_id][skill_id]["omicronMode"] = "RD"
+                my_capa["omicronMode"] = "RD"
             elif skill["omicronMode"] == "GAC_3_OMICRON":
-                dict_capa[unit_id][skill_shortname]["omicronMode"] = "GA3"
-                dict_capa[unit_id][skill_id]["omicronMode"] = "GA3"
+                my_capa["omicronMode"] = "GA3"
             elif skill["omicronMode"] == "GAC_5_OMICRON":
-                dict_capa[unit_id][skill_shortname]["omicronMode"] = "GA3"
-                dict_capa[unit_id][skill_id]["omicronMode"] = "GA5"
+                my_capa["omicronMode"] = "GA3"
             elif skill["omicronMode"] == "TERRITORY_BATTLE_BOTH_OMICRON":
-                dict_capa[unit_id][skill_shortname]["omicronMode"] = "TB"
-                dict_capa[unit_id][skill_id]["omicronMode"] = "TB"
+                my_capa["omicronMode"] = "TB"
             elif skill["omicronMode"] == "TERRITORY_WAR_OMICRON":
-                dict_capa[unit_id][skill_shortname]["omicronMode"] = "TW"
-                dict_capa[unit_id][skill_id]["omicronMode"] = "TW"
+                my_capa["omicronMode"] = "TW"
             elif skill["omicronMode"] == "GAC_OMICRON":
-                dict_capa[unit_id][skill_shortname]["omicronMode"] = "GA"
-                dict_capa[unit_id][skill_id]["omicronMode"] = "GA"
+                my_capa["omicronMode"] = "GA"
             else:
                 print("OmicronMode inconnu : "+skill["omicronMode"])
                 sys.exit(1)
 
-        dict_capa[unit_id][skill_shortname]["omicronTier"] = 99
-        dict_capa[unit_id][skill_id]["omicronTier"] = 99
+        my_capa["omicronTier"] = 99
         for i_tier in range(len(skill["tier"])):
             tier = skill["tier"][i_tier]
             if tier["isOmicronTier"]:
-                dict_capa[unit_id][skill_shortname]["omicronTier"] = i_tier+2
-                dict_capa[unit_id][skill_id]["omicronTier"] = i_tier+2
+                my_capa["omicronTier"] = i_tier+2
                 break
 
+        dict_capa[unit_id][skill_id] = my_capa
+        dict_capa[unit_id][skill_shortname] = my_capa
+        dict_capa[unit_id][ability_id] = my_capa
 
     added_units.append(unit["baseId"])
 
