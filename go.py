@@ -2229,7 +2229,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
             return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
     else:
         #default filter R0+
-        relic_txt = "R0"
+        relic_txt = "R0+"
         relic_filter = ">="
         relic = 0
 
