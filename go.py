@@ -2293,7 +2293,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     title = stat_frName + " de " + character_name + " (" + str(player_value) + ") pour "+player_name+"\n"
     title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " "+relic_txt+" connus"
 
-    image = get_distribution_graph(stat_g13_values, guild_values, 50, title, "valeur de la stat", "nombre de persos", "tous", "guilde", player_value)
+    image = get_distribution_graph(stat_g13_values, guild_values, 50, title, "valeur de la stat", "nombre de persos", "tous", guild_name, player_value)
 
     return 0, err_txt, image
 
