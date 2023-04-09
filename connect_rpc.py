@@ -627,10 +627,14 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
                 battle_id = battleStatus["instanceId"]
                 goutils.log2("DBG", "Selected TB = "+battle_id)
                 tb_ongoing=True
-                tb_round = battleStatus["currentRound"]
                 tb_type = battleStatus["definitionId"]
+                tb_round = battleStatus["currentRound"]
+                if tb_round > dict_tb[tb_type]["maxRound"]:
+                    tb_ongoing=True
+
                 tb_round_endTime = int(battleStatus["currentRoundEndTime"])
                 tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
+
                 if battle_id in dict_all_events:
                     dict_events=dict_all_events[battle_id]
                 else:
@@ -981,6 +985,7 @@ def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_c
         dict_open_zones[zone_name]["estimatedStars"] = star_for_score
 
     return 0, "", [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones]
+
 ##########################################"
 # OUT: dict_territory_scores = {"GLS-P3-top": 24500000, ...}
 # OUT: tb_active_round = 3
