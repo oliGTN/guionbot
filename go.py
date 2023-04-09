@@ -1968,9 +1968,28 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
 
     return ret_print_character_stats
 
-def get_distribution_graph(values, bins, title, x_title, y_title, highlight_value):
+def get_distribution_graph(values, values_2, bin_count, title, x_title, y_title, legend, legend_2, highlight_value):
     fig, ax = plt.subplots()
-    ax.hist(values, bins=bins)
+
+    #pre-calculate bins to align histograms
+    if values_2 != None:
+        bins=np.histogram(np.hstack((values, values_2)), bins=bin_count)[1]
+        bin_count = len(bins)
+    else:
+        bins = bin_count
+
+    # 1st hist
+    ax.hist(values, bins=bins, color='blue', label=legend)
+
+    # 2nd hist
+    if values_2 != None:
+        ax.hist(values_2, bins=bins, label=legend_2, color='lightblue')
+
+    # legend
+    if legend!='' or legend_2!='':
+        ax.legend(loc='upper right')
+
+    # titles
     fig.suptitle(title)
     ax.set_xlabel(x_title)
     ax.set_ylabel(y_title)
@@ -1978,7 +1997,7 @@ def get_distribution_graph(values, bins, title, x_title, y_title, highlight_valu
     if highlight_value != None:
         min_x = plt.xlim()[0]
         max_x = plt.xlim()[1]
-        bin_width = (max_x - min_x) / bins
+        bin_width = (max_x - min_x) / bin_count
         plt.axvspan(highlight_value - bin_width/2,
                     highlight_value + bin_width/2,
                     color='red', alpha = 0.5)
@@ -2006,7 +2025,7 @@ def get_gp_distribution(txt_allyCode):
     graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
-    image = get_distribution_graph(guild_stats, 20, graph_title, "PG du joueur", "nombre de joueurs", None)
+    image = get_distribution_graph(guild_stats, None, 20, graph_title, "PG du joueur", "nombre de joueurs", "", "", None)
     logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
     image.paste(logo_img, (10,10), logo_img)
     
@@ -2184,6 +2203,21 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     if e != 0:
         return 1, "ERR: cannot get player data from SWGOH.HELP API", None
         
+    #get the relic filter if any
+    relic_filter = False
+    if ":" in character_alias:
+        tab_alias = character_alias.split(":")
+        character_alias = tab_alias[0]
+        relic_txt = tab_alias[1]
+        if relic_txt[0].lower() != "r":
+            return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
+        if not relic_txt[1:].isnumeric():
+            return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
+        relic = int(relic_txt[1:])
+        if relic<0 or relic>9:
+            return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
+        relic_filter = True
+
     #Get character_id
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
     if txt != '':
@@ -2191,6 +2225,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
             
     character_id = list_character_ids[0]
     character_name = dict_id_name[character_alias][0][1]
+    guild_name = d["guildName"]
 
     #Get statistic id
     closest_names=difflib.get_close_matches(stat_name.lower(), dict_stat_names.keys(), 1)
@@ -2207,13 +2242,16 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     #Get data from DB
     db_stat_data_char = []
     goutils.log2("INFO", "Get player data from DB...")
-    query = "SELECT allyCode, gear,combatType,"\
-           +stat_string+","\
-           +"CASE WHEN allyCode="+txt_allyCode+" THEN 1 ELSE 0 END "\
-           +"from roster "\
-           +"where defId = '"+character_id+"' "\
-           +"AND not "+stat_string+"=0 "\
-           +"AND (gear = 13 or allyCode = "+txt_allyCode+" or combatType=2)"
+    query = "SELECT r.allyCode, gear, combatType,"\
+           +stat_string+", guildName "\
+           +"FROM roster AS r "\
+           +"JOIN players ON players.allyCode = r.allyCode "\
+           +"WHERE defId = '"+character_id+"' "\
+           +"AND not "+stat_string+"=0 "
+    if relic_filter:
+        query += "AND (relic_currentTier >= "+str(relic+2)+" or r.allyCode = "+txt_allyCode+" or combatType=2)"
+    else:
+        query += "AND (gear = 13 or r.allyCode = "+txt_allyCode+" or combatType=2)"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
@@ -2223,7 +2261,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         stat_divider = 100000000
 
     stat_g13_values = [x[3]/stat_divider for x in db_data if (x[1]==13 or x[2]==2)]
-    player_values = [x[3]/stat_divider for x in db_data if x[4]==1]
+    player_values = [x[3]/stat_divider for x in db_data if x[0]==int(txt_allyCode)]
     if len(player_values) > 0:
         if stat_isPercent:
             player_value = int(100*player_values[0])/100
@@ -2233,11 +2271,20 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         goutils.log2("WAR", "Character "+character_alias+" is locked for "+txt_allyCode)
         err_txt +="WAR: Le perso "+character_alias+" n'est pas débloqué pour "+txt_allyCode
         player_value = None
+    if guild_name != "":
+        guild_values = [x[3]/stat_divider for x in db_data if x[4]==guild_name]
+    else:
+        guild_values = None
 
+    # Draw graph
     title = stat_frName + " de " + character_name + " (" + str(player_value) + ")\n"
-    title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " relic connus"
-    image = get_distribution_graph(stat_g13_values, 50, title, "valeur de la stat", "nombre de persos", player_value)
-    
+    if relic_filter:
+        title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " R"+str(relic)+"+ connus"
+
+    else:
+        title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " relic connus"
+    image = get_distribution_graph(stat_g13_values, guild_values, 50, title, "valeur de la stat", "nombre de persos", "tous", "guilde", player_value)
+
     return 0, err_txt, image
 
 ###############################
