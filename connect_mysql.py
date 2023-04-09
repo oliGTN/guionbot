@@ -404,7 +404,7 @@ def update_player(dict_player):
         # Update basic player information
         p_allyCode = dict_player["allyCode"]
         p_playerId = dict_player["playerId"]
-        ig "guildName" in dict_player:
+        if "guildName" in dict_player:
             p_guildName = dict_player["guildName"]
         else:
             p_guildName = ""
