@@ -404,7 +404,10 @@ def update_player(dict_player):
         # Update basic player information
         p_allyCode = dict_player["allyCode"]
         p_playerId = dict_player["playerId"]
-        p_guildName = dict_player["guildName"]
+        ig "guildName" in dict_player:
+            p_guildName = dict_player["guildName"]
+        else:
+            p_guildName = ""
 
         p_lastActivity_player = int(dict_player["lastActivityTime"])
         p_lastActivity_ts = datetime.datetime.fromtimestamp(p_lastActivity_player/1000)
