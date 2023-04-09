@@ -2240,6 +2240,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
             
     character_id = list_character_ids[0]
     character_name = dict_id_name[character_alias][0][1]
+    player_name = d["name"]
     guild_name = d["guildName"]
 
     #Get statistic id
@@ -2289,7 +2290,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         guild_values = None
 
     # Draw graph
-    title = stat_frName + " de " + character_name + " (" + str(player_value) + ")\n"
+    title = stat_frName + " de " + character_name + " (" + str(player_value) + ") pour "+player_name+"\n"
     title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " "+relic_txt+" connus"
 
     image = get_distribution_graph(stat_g13_values, guild_values, 50, title, "valeur de la stat", "nombre de persos", "tous", "guilde", player_value)
