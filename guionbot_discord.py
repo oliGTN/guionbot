@@ -3037,7 +3037,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='gsp',
                  brief="Graphique d'une Statistique d'un Perso",
                  help="Graphique d'une Statistique d'un Perso\n"\
-                      "Exemple: go.gsp me GAS vitesse")
+                      "Exemple: go.gsp me GAS vitesse\n" \
+                      "Exemple: go.gsp me GAS:R8 vitesse (pour filtrer sur les GAS R8)\n" \
+                      "Exemple: go.gsp me GAS:R5+ vitesse (pour filtrer sur les GAS R5 et plus)\n" \
+                      "Exemple: go.gsp me GAS:R7- vitesse (pour filtrer sur les GAS R7 et moins)")
     async def gsp(self, ctx, *options):
         await ctx.message.add_reaction(emoji_thumb)
 

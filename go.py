@@ -2204,19 +2204,33 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
         return 1, "ERR: cannot get player data from SWGOH.HELP API", None
         
     #get the relic filter if any
-    relic_filter = False
     if ":" in character_alias:
         tab_alias = character_alias.split(":")
         character_alias = tab_alias[0]
         relic_txt = tab_alias[1]
         if relic_txt[0].lower() != "r":
             return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
-        if not relic_txt[1:].isnumeric():
+
+        # check for R7+ or R7-
+        if relic_txt[-1] == "+":
+            relic_filter = ">="
+            relic_num = relic_txt[:-1]
+        elif relic_txt[-1] == "-":
+            relic_filter = "<="
+            relic_num = relic_txt[:-1]
+        else:
+            relic_filter = "="
+            relic_num = relic_txt
+
+        if not relic_num[1:].isnumeric():
             return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
-        relic = int(relic_txt[1:])
+        relic = int(relic_num[1:])
         if relic<0 or relic>9:
             return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
-        relic_filter = True
+    else:
+        #default filter R0+
+        relic_filter = ">="
+        relic = 0
 
     #Get character_id
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
@@ -2247,11 +2261,8 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
            +"FROM roster AS r "\
            +"JOIN players ON players.allyCode = r.allyCode "\
            +"WHERE defId = '"+character_id+"' "\
-           +"AND not "+stat_string+"=0 "
-    if relic_filter:
-        query += "AND (relic_currentTier >= "+str(relic+2)+" or r.allyCode = "+txt_allyCode+" or combatType=2)"
-    else:
-        query += "AND (gear = 13 or r.allyCode = "+txt_allyCode+" or combatType=2)"
+           +"AND not "+stat_string+"=0 " \
+           +"AND ((gear=13 and relic_currentTier "+relic_filter+str(relic+2)+") or r.allyCode = "+txt_allyCode+" or combatType=2)"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
@@ -2278,11 +2289,8 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     # Draw graph
     title = stat_frName + " de " + character_name + " (" + str(player_value) + ")\n"
-    if relic_filter:
-        title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " R"+str(relic)+"+ connus"
+    title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " "+relic_txt+" connus"
 
-    else:
-        title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " relic connus"
     image = get_distribution_graph(stat_g13_values, guild_values, 50, title, "valeur de la stat", "nombre de persos", "tous", "guilde", player_value)
 
     return 0, err_txt, image
