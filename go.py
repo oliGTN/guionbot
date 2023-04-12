@@ -475,7 +475,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
             if member["memberLevel"] != dict_roles[id]:
                 #change the role
                 query = "UPDATE players SET guildMemberLevel = "+str(member["memberLevel"])+" " \
-                       +"WHERE playerId = "+str(id)
+                       +"WHERE playerId = '"+str(id)+"'"
                 goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
                 
