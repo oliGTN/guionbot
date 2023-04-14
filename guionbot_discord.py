@@ -919,7 +919,7 @@ async def get_channel_from_channelname(ctx, channel_name):
 def manage_me(ctx, alias):
     #Special case of 'me' as allyCode
     if alias == 'me':
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+        dict_players_by_ID = connect_mysql.load_config_players()[1]
         #print(dict_players_by_ID)
         if str(ctx.author.id) in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
@@ -932,7 +932,7 @@ def manage_me(ctx, alias):
         else: # '<@ without the !
             discord_id_txt = alias[2:-1]
         goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
-        dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+        dict_players_by_ID = connect_mysql.load_config_players()[1]
         if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
         else:
@@ -995,7 +995,7 @@ def manage_me(ctx, alias):
 
             discord_id = [str(x[0]) for x in guild_members_clean \
                             if x[1] == closest_name_discord][0]
-            dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+            dict_players_by_ID = connect_mysql.load_config_players()[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
             else:
@@ -1301,7 +1301,7 @@ def member_command(ctx):
     return (not bot_test_mode) or is_owner
 def officer_command(ctx):
     ret_is_officer = False
-    dict_players_by_ID = connect_mysql.load_config_players(ctx.guild.id)[1]
+    dict_players_by_ID = connect_mysql.load_config_players()[1]
     #print(dict_players_by_ID)
     #print(ctx.author.id)
     if str(ctx.author.id) in dict_players_by_ID:
@@ -1556,7 +1556,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #Recuperation des dernieres donnees sur gdrive
-        dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
+        dict_players_by_IG = connect_mysql.load_config_players()[0]
 
         if tbs_round == '':
             await ctx.send("Aucune BT en cours")
@@ -1770,7 +1770,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         err_code, ret_txt, lines = await bot.loop.run_in_executor(None, connect_rpc.tag_tb_undeployed_players, ctx.guild.id, False)
         if err_code == 0:
-            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
+            dict_players_by_IG = connect_mysql.load_config_players()[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
             for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
                 if (p in dict_players_by_IG) and display_mentions:
@@ -2122,7 +2122,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 await ctx.send("ERR: "+errtxt)
                 await ctx.message.add_reaction(emoji_error)
             else:
-                dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
+                dict_players_by_IG = connect_mysql.load_config_players()[0]
                 output_txt=""
                 for p in sorted(dict_players.keys()):
                     if p in dict_players_by_IG:
@@ -2309,7 +2309,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     lastUpdated_txt = "joueur inconnu"
 
             #Look for Discord Pseudo if in guild
-            dict_players_by_IG = connect_mysql.load_config_players(ctx.guild.id)[0]
+            dict_players_by_IG = connect_mysql.load_config_players()[0]
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)

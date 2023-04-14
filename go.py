@@ -2567,7 +2567,7 @@ def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
     raid_phase, raid_scores = connect_warstats.parse_raid_scores(server_id, raid_name)
 
     #Player lines
-    dict_players_by_IG = connect_mysql.load_config_players(server_id)[0]
+    dict_players_by_IG = connect_mysql.load_config_players()[0]
     list_scores = []
     list_unknown_players = []
     list_inactive_players = []
@@ -2757,7 +2757,7 @@ def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
         tb_day_count = 4
 
     #Player lines
-    dict_players_by_IG = connect_mysql.load_config_players(server_id)[0]
+    dict_players_by_IG = connect_mysql.load_config_players()[0]
     list_scores = []
     list_terr_by_day = [""] * tb_day_count
     first_player = True
@@ -3460,7 +3460,7 @@ def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
     allyCodes_in_DB = connect_mysql.get_table(query)
 
     guildName = allyCodes_in_DB[0][0]
-    dict_players = connect_mysql.load_config_players(server_id)[0]
+    dict_players = connect_mysql.load_config_players()[0]
 
     #Manage -TW option
     if tw_mode:
