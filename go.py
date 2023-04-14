@@ -426,8 +426,11 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     goutils.log2("INFO", "player #"+str(i_player))
                     
                     e, t, d = load_player(str(playerId), 0, False)
+                    goutils.log2("DBG", "after load_player...")
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
+                    goutils.log2("DBG", "after set_guild_loading_status...")
                     time.sleep(0)
+                    goutils.log2("DBG", "after sleep...")
 
                 parallel_work.set_guild_loading_status(guildName, None)
 

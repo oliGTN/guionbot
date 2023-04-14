@@ -222,6 +222,11 @@ def get_guild_data(txt_allyCode, use_cache_data):
     if guild_id == None or guild_id == "":
         return 1, "ERR: ce joueur n'a pas de guilde", None
 
+    ec, et, dict_guild = get_guild_data_from_id(guild_id, use_cache_data)
+
+    return ec, et, dict_guild
+
+def get_guild_data_from_id(guild_id, use_cache_data):
     acquire_sem(guild_id)
     if not use_cache_data:
         process = subprocess.run(["/home/pi/GuionBot/warstats/getextguild.sh", guild_id])
@@ -237,21 +242,20 @@ def get_guild_data(txt_allyCode, use_cache_data):
 
     return 0, "", dict_guild
 
-
-def get_player_data(txt_allyCode, use_cache_data):
-    acquire_sem(txt_allyCode)
+def get_player_data(ac_or_id, use_cache_data):
+    acquire_sem(ac_or_id)
     
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getplayer.sh", txt_allyCode])
+        process = subprocess.run(["/home/pi/GuionBot/warstats/getplayer.sh", ac_or_id])
         goutils.log2("DBG", "getplayer code="+str(process.returncode))
 
-    player_json = "/home/pi/GuionBot/warstats/PLAYERS/"+txt_allyCode+".json"
+    player_json = "/home/pi/GuionBot/warstats/PLAYERS/"+ac_or_id+".json"
     if os.path.exists(player_json):
         dict_player = json.load(open(player_json, "r"))
     else:
-        return 1, "ERR: impossible de trouver les données pour le joueur "+txt_allyCode, None
+        return 1, "ERR: impossible de trouver les données pour le joueur "+ac_or_id, None
 
-    release_sem(txt_allyCode)
+    release_sem(ac_or_id)
 
     return 0, "", dict_player
 
@@ -448,6 +452,7 @@ def parse_tb_platoons(server_id, use_cache_data):
     return active_round, dict_platoons, list_open_territories
 
 def parse_tw_opponent_teams(server_id, use_cache_data):
+    ######### THIS FUNCTION IS NOT READY ##############
     dict_unitsList = godata.get("unitsList_dict.json")
 
     list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...], <beaten>, <fights>],
@@ -1010,6 +1015,46 @@ def get_tb_guild_scores(server_id, use_cache_data):
         dict_territory_scores[zone_name] = zone_score
 
     return dict_territory_scores, active_round
+
+########################################
+# get_tw_opponent_leader
+# get an allyCode of the opponent TW guild
+########################################
+def get_tw_opponent_leader(server_id):
+    ec, et, rpc_data = get_rpc_data(server_id, False, True)
+    if ec!=0:
+        return 1, et, None
+
+    dict_guild=rpc_data[0]
+
+    tw_ongoing=False
+    opp_guild_id = None
+    if "territoryWarStatus" in dict_guild:
+        for battleStatus in dict_guild["territoryWarStatus"]:
+            tw_ongoing = True
+            if "awayGuild" in battleStatus:
+                opp_guild_id = battleStatus["awayGuild"]["profile"]["id"]
+
+    if not tw_ongoing:
+        return 0, "Pas de GT en cours", None
+    if opp_guild_id == None:
+        return 0, "Adversaire de GT pas encore connu", None
+
+    ec, et, dict_guild = get_guild_data_from_id(opp_guild_id, False)
+    if ec != 0:
+        return ec, et, None
+
+    for member in dict_guild["member"]:
+        if member["memberLevel"] == 4:
+            leader_id = member["playerId"]
+
+    ec, et, dict_player = get_player_data(leader_id, False)
+    if ec != 0:
+        return ec, et, None
+
+    leader_ac = dict_player["allyCode"]
+
+    return 0, "", str(leader_ac)
 
 ########################################
 # get_tw_status

@@ -2761,37 +2761,45 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Graphique des PG d'une guilde",
                  help="Graphique des PG d'une guilde\n\n"\
                       "Exemple: go.gdp me\n"\
-                      "Exemple: go.gdp 123456789")
+                      "Exemple: go.gdp 123456789\n"\
+                      "Exemple: go.gdp -TW")
     async def gdp(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        if allyCode == "-TW":
+            ec, et, allyCode = connect_rpc.get_tw_opponent_leader(ctx.guild.id)
+            if ec != 0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emoji_error)
+                return
+        else:
+            allyCode = manage_me(ctx, allyCode)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emoji_error)
+                return
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
+        # First call to display the chart quickly, without the inactive players
+        e, err_txt, image = await bot.loop.run_in_executor(None,
+            go.get_gp_distribution, allyCode)
+        if e != 0:
+            await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
         else:
-            # First call to display the chart quickly, without the inactive players
-            e, err_txt, image = await bot.loop.run_in_executor(None,
-                go.get_gp_distribution, allyCode)
-            if e != 0:
-                await ctx.send(err_txt)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                with BytesIO() as image_binary:
-                    image.save(image_binary, 'PNG')
-                    image_binary.seek(0)
-                    await ctx.send(content = "",
-                           file=File(fp=image_binary, filename='image.png'))
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(content = "",
+                       file=File(fp=image_binary, filename='image.png'))
 
-                await ctx.message.add_reaction(emoji_hourglass)
+            await ctx.message.add_reaction(emoji_hourglass)
 
-                # Now load all players from the guild
-                await bot.loop.run_in_executor(None, go.load_guild, allyCode, True, True)
+            # Now load all players from the guild
+            await bot.loop.run_in_executor(None, go.load_guild, allyCode, True, True)
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.remove_reaction(emoji_hourglass, bot.user)
-                await ctx.message.add_reaction(emoji_check)
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.remove_reaction(emoji_hourglass, bot.user)
+            await ctx.message.add_reaction(emoji_check)
                 
     ##############################################################
     # Command: ggv
