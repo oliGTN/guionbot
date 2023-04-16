@@ -3245,7 +3245,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
         else:
-            await ctx.send(ret_cmd)
+            await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
 
     ##############################################################
