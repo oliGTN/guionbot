@@ -69,7 +69,7 @@ def islocked_bot_account(guildName):
     return is_locked
 
 def get_rpc_data(server_id, with_events, use_cache_data):
-    #goutils.log2("DBG", "START get_rpc_data("+str(server_id)+", "+str(with_events)+", "+str(use_cache_data)+")")
+    goutils.log2("DBG", "START get_rpc_data("+str(server_id)+", "+str(with_events)+", "+str(use_cache_data)+")")
     calling_func = inspect.stack()[1][3]
 
     dict_bot_accounts = get_dict_bot_accounts()
@@ -129,7 +129,6 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         acquire_sem(events_file)
         if not use_cache_data:
             process_params = ["/home/pi/GuionBot/warstats/getevents.sh", bot_androidId]
-            print(process_params)
             goutils.log2("DBG", "process_params="+str(process_params))
             sys.stdout.flush()
             process = subprocess.run(process_params)
@@ -208,7 +207,7 @@ def get_rpc_data(server_id, with_events, use_cache_data):
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
-    #goutils.log2("DBG", "END get_rpc_data")
+    goutils.log2("DBG", "END get_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
 def get_guild_data(txt_allyCode, use_cache_data):
@@ -1060,20 +1059,21 @@ def get_tw_opponent_leader(server_id):
 ########################################
 # get_tw_status
 # get statues of territories in attack and def
+# tw_ongoing: True/False
 # list_teams: [["T1", "Karcot", ["General Skywalker", "CT-5555 Fives", ...], <is_beaten>, <fights>],
 #              ["T1", "JeanLuc"...
 # list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>], ...]
+# opp_guild: [name, id]
 ########################################
 def get_tw_status(server_id, use_cache_data):
     dict_tw=godata.dict_tw
 
     ec, et, rpc_data = get_rpc_data(server_id, False, use_cache_data)
     if ec!=0:
-        return 1, et, None
+        return False, [[], []], [[], []], None
 
     dict_guild=rpc_data[0]
     mapstats=rpc_data[1]
-    guildName = dict_guild["profile"]["name"]
 
     dict_members_by_id={}
     for member in dict_guild["member"]:
@@ -1083,11 +1083,14 @@ def get_tw_status(server_id, use_cache_data):
     if "territoryWarStatus" in dict_guild:
         for battleStatus in dict_guild["territoryWarStatus"]:
             if "awayGuild" in battleStatus:
-                    tw_ongoing = True
-                    cur_tw = battleStatus
+                tw_ongoing = True
+                cur_tw = battleStatus
 
     if not tw_ongoing:
-        return False, [[], []], [[], []]
+        return False, [[], []], [[], []], None
+
+    opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
+    opp_guildId = battleStatus["awayGuild"]["profile"]["id"]
 
     list_teams = {}
     list_territories = {}
@@ -1124,7 +1127,8 @@ def get_tw_status(server_id, use_cache_data):
                 list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg])
 
     return True, [list_teams["homeGuild"], list_territories["homeGuild"]], \
-                 [list_teams["awayGuild"], list_territories["awayGuild"]]
+                 [list_teams["awayGuild"], list_territories["awayGuild"]], \
+                 [opp_guildName, opp_guildId]
 
 def get_tw_active_players(server_id, use_cache_data):
     ec, et, rpc_data = get_rpc_data(server_id, False, use_cache_data)

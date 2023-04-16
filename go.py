@@ -268,6 +268,7 @@ def load_player(ac_or_id, force_update, no_db):
                 goutils.log2('ERR', 'update_player '+ac_or_id+' returned an error')
                 return 1, 'ERR: update_player '+ac_or_id+' returned an error', None
             sys.stdout.flush()
+            goutils.log2('DBG', "after flush...")
                 
     else:
         dict_player = prev_dict_player
@@ -275,6 +276,7 @@ def load_player(ac_or_id, force_update, no_db):
         goutils.log2('INFO', player_name + ' loaded from existing XML OK')
     
     sys.stdout.flush()
+    goutils.log2('DBG', "after flush...")
     return 0, "", dict_player
 
 def load_guild(txt_allyCode, load_players, cmd_request):
@@ -2144,6 +2146,8 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
         return 1, "ERR: aucune phase d'attaque en cours en GT\n", None
 
+    guildName = rpc_data[3][0]
+
     #Get full character names for attack
     list_id_attack, dict_id_name, txt = goutils.get_characters_from_alias(list_char_attack)
     if txt != '':
@@ -2167,17 +2171,21 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
         return 1, 'ERR: '+character_defense+' ne fait pas partie des teams en défense\n', None
 
     # Look for the name among known player names in DB
-    results = connect_mysql.get_table("SELECT name, allyCode, guildName FROM players ORDER BY guildName, name")
-    list_names = [x[0] for x in results]
-    print(list_names)
+    query = "SELECT name, allyCode "
+    query+= "FROM players "
+    query+= "WHERE guildName='"+guildName.replace("'", "''")+"' "
+    query+= "ORDER BY name"
+    goutils.log2("DBG", query)
+    results = connect_mysql.get_table(query)
+    list_DB_names = [x[0] for x in results]
 
     for opp_squad in list_opp_squads_with_char:
         player_name = opp_squad[1]
 
-        closest_names=difflib.get_close_matches(player_name, list_names, 1)
+        closest_names=difflib.get_close_matches(player_name, list_DB_names, 1)
         #print(closest_names)
         if len(closest_names)<1:
-            goutils.log2("ERR", player_name+' ne fait pas partie des joueurs connus')
+            goutils.log2("ERR", player_name+' ne fait pas partie des joueurs connus de la guilde '+guildName)
             return 1, 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n', None
         else:
             goutils.log2("INFO", "cmd launched with name that looks like "+closest_names[0])
@@ -4414,13 +4422,16 @@ def print_ability(unit_id, ability_id, ability_type):
         isZeta = dict_capas[unit_id][ability_id]["zetaTier"] < 99
         isOmicron = dict_capas[unit_id][ability_id]["omicronTier"] < 99
 
-    ability_desc = goutils.remove_format_from_desc(ability_desc)
-    output_txt+= "\n** "+ability_type+" - "+ability_name
-    if isZeta:
-        output_txt+= " - ZETA"
-    output_txt+= " **"
-    if ability_cooldown > 0:
-        output_txt+= " (délai de "+str(ability_cooldown)+")"
-    output_txt+= " : "+ability_desc+"\n"
+    if ability_name != "":
+        ability_desc = goutils.remove_format_from_desc(ability_desc)
+        output_txt+= "\n** "+ability_type+" - "+ability_name
+        if isZeta:
+            output_txt+= " - ZETA"
+        if isOmicron:
+            output_txt+= " - OMICRON"
+        output_txt+= " **"
+        if ability_cooldown > 0:
+            output_txt+= " (délai de "+str(ability_cooldown)+")"
+        output_txt+= " : "+ability_desc+"\n"
 
     return output_txt
