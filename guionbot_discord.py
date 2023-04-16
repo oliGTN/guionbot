@@ -3157,9 +3157,22 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='loj',
                  brief="Liste des Omicrons d'un Joueur",
                  help="Liste des Omicrons d'un Joueur\n"\
-                      "Exemple: go.loj 123456789")
-    async def loj(self, ctx, allyCode):
+                      "Exemple: go.loj 123456789 \n"\
+                      "Exemple: go.loj 123456789 Mara\n"\
+                      "Exemple: go.loj 123456789 mode:GA")
+    async def loj(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) == 1:
+            allyCode = args[0]
+            list_characters = ["all"]
+        elif len(args) >= 2:
+            allyCode = args[0]
+            list_characters = args[1:]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
@@ -3168,8 +3181,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         e, err_txt, txt_lines = await bot.loop.run_in_executor(None,
-                                      go.print_lox, allyCode, False)
+                                      go.print_lox, allyCode, list_characters, False)
         if e == 0 and len(txt_lines) >0:
+            if err_txt != "":
+                await ctx.send(err_txt)
             output_txt=''
             for row in txt_lines:
                 output_txt+=str(row)+'\n'
@@ -3194,9 +3209,22 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='log',
                  brief="Liste des Omicrons d'une Guilde",
                  help="Liste des Omicrons d'une Guilde\n"\
-                      "Exemple: go.log 123456789")
-    async def log(self, ctx, allyCode):
+                      "Exemple: go.log 123456789 \n"\
+                      "Exemple: go.loj 123456789 Mara\n"\
+                      "Exemple: go.loj 123456789 mode:TW")
+    async def log(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) == 1:
+            allyCode = args[0]
+            list_characters = ["all"]
+        elif len(args) >= 2:
+            allyCode = args[0]
+            list_characters = args[1:]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         allyCode= manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
@@ -3205,8 +3233,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         e, err_txt, txt_lines = await bot.loop.run_in_executor(None,
-                    go.print_lox, allyCode, True)
+                    go.print_lox, allyCode, list_characters, True)
         if e == 0 and len(txt_lines) >0:
+            if err_txt != "":
+                await ctx.send(err_txt)
             output_txt=''
             for row in txt_lines:
                 output_txt+=str(row)+'\n'

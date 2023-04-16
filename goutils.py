@@ -545,7 +545,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
         for ability in char2["purchaseAbilityId"]:
             if ability.startswith("ultimateability"):
                 char2_ulti = True
-    if !char1_ulti and char2_ulti:
+    if (not char1_ulti) and char2_ulti:
         evo_txt = "ultimate unlocked"
         log2("INFO", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)

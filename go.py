@@ -2309,12 +2309,67 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     return 0, err_txt, image
 
 ###############################
-def print_lox(txt_allyCode, compute_guild):
+def print_lox(txt_allyCode, characters, compute_guild):
+    war_txt = ""
+
+    dict_capa = data.get("unit_capa_list.json")
+    all_modes = []
+    for unit_id in dict_capa:
+        unit = dict_capa[unit_id]
+        has_omicron = False
+        for ability_id in unit:
+            ability = unit[ability_id]
+            if ability["omicronTier"] < 99:
+                all_modes.append(ability["omicronMode"])
+    all_modes = set(all_modes)
+
+    if 'all' in characters:
+        #Manage request for all characters
+        get_all = True
+    else:
+        get_all = False
+
+        #look for omicron tag
+        non_mode_characters = []
+        list_modes = []
+        for unit in characters:
+            print(unit)
+            if unit.startswith("mode:"):
+                unit_tab = unit.split(":")
+                if len(unit_tab)>2:
+                    return 1, "ERR: syntax incorrecte pour le mode omicron "+unit, None
+                mode = unit_tab[1]
+                if not mode in all_modes:
+                    return 1, "ERR: mode omicron inconnu "+mode+" parmi "+str(all_modes), None
+                list_modes.append(mode)
+            else:
+                non_mode_characters.append(unit)
+                
+        #specific list of characters for one player
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(non_mode_characters)
+        if txt != '':
+            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+        for unit_id in list_character_ids:
+            unit = dict_capa[unit_id]
+            has_omicron = False
+            for ability_id in unit:
+                ability = unit[ability_id]
+                if ability["omicronTier"] < 99:
+                    has_omicron = True
+                    break
+            if not has_omicron:
+                war_txt += "WAR: pas d'omicron connu pour "+dict_id_name[unit_id] + "\n"
+
+        if len(list_character_ids)==0 and len(list_modes)==0:
+            return 1, "ERR: aucun personnage ni aucun mode omicron défini", None
+
+    #GET DATA FROM PLAYER OR GUILD
     if compute_guild:
         err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
         if err_code != 0:
             return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, []
     else:
+        #Get data for this player
         e, t, d = load_player(txt_allyCode, 1, False)
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
@@ -2326,6 +2381,18 @@ def print_lox(txt_allyCode, compute_guild):
     query+= "JOIN roster_skills ON roster_id = roster.id \n"
     query+= "JOIN players ON players.allyCode=roster.allyCode \n"
     query+= "WHERE (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) \n"
+    if not get_all:
+        query+= "AND ( \n"
+        if len(list_character_ids)>0:
+            query+= "    defId IN "+str(tuple(list_character_ids)).replace(",)", ")")+" \n"
+        else:
+            query+= "    0 \n"
+        query+= "    OR\n"
+        if len(list_modes)>0:
+            query+= "    omicron_type IN "+str(tuple(list_modes)).replace(",)", ")")+" \n"
+        else:
+            query+= "    0 \n"
+        query+= ") \n"
     if compute_guild:
         query+= "AND guildName=(SELECT guildName FROM players WHERE allyCode="+txt_allyCode+") \n"
     else:
@@ -2334,7 +2401,7 @@ def print_lox(txt_allyCode, compute_guild):
     goutils.log2("DBG", query)
 
     db_lines = connect_mysql.text_query(query)
-    return 0, "", db_lines
+    return 0, war_txt, db_lines
 
 ###############################
 def print_erx(txt_allyCode, days, compute_guild):
