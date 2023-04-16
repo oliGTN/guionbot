@@ -27,7 +27,6 @@ def pad_txt(txt, size):
 
     return ret_pad_txt
 
-
 ##############################################################
 # Function: pad_txt2
 # Parameters: txt (string) > texte à modifier
@@ -470,11 +469,11 @@ def delta_dict_player(dict1, dict2):
         character = dict2['rosterUnit'][character_id]
         if character_id in dict1['rosterUnit']:
             if character != dict1['rosterUnit'][character_id]:
-                log("INFO", "delta_dict_player", "character "+character_id+" has changed for "+str(allyCode))
+                log2("INFO", "character "+character_id+" has changed for "+str(allyCode))
                 detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
                 delta_dict['rosterUnit'][character_id] = character
         else:
-            log("INFO", "delta_dict_player", "new character "+character_id+" for "+str(allyCode))
+            log2("INFO", "new character "+character_id+" for "+str(allyCode))
             connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
             delta_dict['rosterUnit'][character_id] = character
 
@@ -532,8 +531,24 @@ def detect_delta_roster_element(allyCode, char1, char2):
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
             evo_txt = "gear changed to "+extended_gear_to_txt(gear_step)
-            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            log2("INFO", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+
+    #ULTIMATE
+    char1_ulti = False
+    if "purchaseAbilityId" in char1:
+        for ability in char1["purchaseAbilityId"]:
+            if ability.startswith("ultimateability"):
+                char1_ulti = True
+    char2_ulti = False
+    if "purchaseAbilityId" in char2:
+        for ability in char2["purchaseAbilityId"]:
+            if ability.startswith("ultimateability"):
+                char2_ulti = True
+    if !char1_ulti and char2_ulti:
+        evo_txt = "ultimate unlocked"
+        log2("INFO", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ZETAS
     for skill2 in char2['skill']:

@@ -311,7 +311,6 @@ def get_image_from_character(character_id, dict_player, game_mode):
 #################################################
 def get_image_from_team(list_character_ids, dict_player, tw_territory, game_mode):
     list_portrait_images = []
-    print(str(dict_player)[:1000])
     player_name = dict_player["name"]
 
     total_gp = 0

@@ -659,6 +659,30 @@ def update_player(dict_player):
             #goutils.log2("DBG", query)
             cursor.execute(query)
 
+            ## CHECK FOR ULTIMATE
+            if "purchaseAbilityId" in character:
+                ultimate = False
+                for ability in character["purchaseAbilityId"]:
+                    if ability.startswith("ultimate"):
+                        ultimate = True
+
+                if ultimate:
+                    query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
+                           +"VALUES("+str(roster_id)+", 'ULTI')"
+                    #goutils.log2("DBG", query)
+                    cursor.execute(query)
+
+                    query = "UPDATE roster_skills "\
+                           +"SET level = 1, "\
+                           +"isZeta = 0, "\
+                           +"omicron_type = '', "\
+                           +"omicron_tier = -1 "\
+                           +"WHERE roster_id = "+str(roster_id)+" "\
+                           +"AND name = 'ULTI'"
+                    #goutils.log2("DBG", query)
+                    cursor.execute(query)
+
+            #SLEEP at the end of character loop
             time.sleep(0)
                 
         #Compute ModQ from DB data
