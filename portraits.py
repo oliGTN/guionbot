@@ -222,7 +222,17 @@ def get_image_from_character(character_id, dict_player, game_mode):
             if relic>0:
                 relic_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'relic-badge-atlas.png')
 
-                if forceAlignment == 2:
+                #FIRST LOOK IF ULTIMATE ACTIVATED
+                ultimate = False
+                if "purchaseAbilityId" in character:
+                    for ability in character["purchaseAbilityId"]:
+                        if ability.startswith("ultimateability"):
+                            ultimate = True
+
+                #ALLOCATE the right relic badge depending on ultimate, then alignment if no ultimate
+                if ultimate:
+                    relic_frame_img = relic_frame_img.crop((0, 162, 54, 216))
+                elif forceAlignment == 2:
                     relic_frame_img = relic_frame_img.crop((0, 0, 54, 54))
                 elif forceAlignment == 3:
                     relic_frame_img = relic_frame_img.crop((0, 54, 54, 108))
