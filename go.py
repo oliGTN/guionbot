@@ -51,29 +51,31 @@ else:
 parallel_work.clean_cache()
 
 dict_stat_names={} # unitStatUd, is percentage
-dict_stat_names["speed"] = [5, False, "Vitesse"]
+dict_stat_names["santé"] =  [1, False, "Santé"]
+dict_stat_names["health"] = [1, False, "Santé"]
+dict_stat_names["speed"] =   [5, False, "Vitesse"]
 dict_stat_names["vitesse"] = [5, False, "Vitesse"]
-dict_stat_names["protection"] = [28, False, "Protection"]
 dict_stat_names["dégâts physiques"] = [6, False, "Dégâts Physiques"]
-dict_stat_names["dp"] = [6, False, "Dégâts Physiques"]
+dict_stat_names["dp"] =               [6, False, "Dégâts Physiques"]
 dict_stat_names["physical damages"] = [6, False, "Dégâts Physiques"]
 dict_stat_names["dégâts spéciaux"] = [7, False, "Dégâts spéciaux"]
-dict_stat_names["ds"] = [7, False, "Dégâts spéciaux"]
+dict_stat_names["ds"] =              [7, False, "Dégâts spéciaux"]
 dict_stat_names["special damages"] = [7, False, "Dégâts spéciaux"]
-dict_stat_names["santé"] = [1, False, "Santé"]
-dict_stat_names["health"] = [1, False, "Santé"]
-dict_stat_names["chances de coup critique"] = [14, True, "Chances de coups critique"]
-dict_stat_names["cdc"] = [14, True, "Chances de coups critique"]
-dict_stat_names["critical chance"] = [14, True, "Chances de coups critique"]
-dict_stat_names["cc"] = [14, True, "Chances de coups critique"]
+dict_stat_names["chances de coup critique physique"] = [14, True, "Chances de coups critique"]
+dict_stat_names["cdc"] =                      [14, True, "Chances de coups critique"]
+dict_stat_names["physical critical chance"] =          [14, True, "Chances de coups critique"]
+dict_stat_names["cc"] =                       [14, True, "Chances de coups critique"]
 dict_stat_names["dégâts critiques"] = [16, True, "Dégâts critiques"]
-dict_stat_names["dc"] = [16, True, "Dégâts critiques"]
+dict_stat_names["dc"] =               [16, True, "Dégâts critiques"]
 dict_stat_names["critical damages"] = [16, True, "Dégâts critiques"]
-dict_stat_names["cd"] = [16, True, "Dégâts critiques"]
+dict_stat_names["cd"] =               [16, True, "Dégâts critiques"]
 dict_stat_names["pouvoir"] = [17, True, "Pouvoir"]
 dict_stat_names["potency"] = [17, True, "Pouvoir"]
 dict_stat_names["tenacité"] = [18, True, "Ténacité"]
 dict_stat_names["tenacity"] = [18, True, "Ténacité"]
+dict_stat_names["tena"] =     [18, True, "Ténacité"]
+dict_stat_names["protec"] =     [28, False, "Protection"]
+dict_stat_names["protection"] = [28, False, "Protection"]
 
 BOT_GFILE = 0
 
@@ -1629,7 +1631,9 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
                             ['health', " Santé"],
                             ['protection', "Protec"],
                             ['potency', "Pouvoir"],
-                            ['tenacity', "Ténacité"]]
+                            ['tenacity', "Ténacité"],
+                            ['critical damages', "DegCrit"],
+                            ['physical critical chance', "PhyCdC "]]
 
     #manage sorting options
     sort_option_id=0 # sort by name
@@ -1844,6 +1848,8 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
                +"stat5, "\
                +"stat6, "\
                +"stat7, "\
+               +"stat14, "\
+               +"stat16, "\
                +"stat17, "\
                +"stat18, "\
                +"stat28 "\
@@ -1853,6 +1859,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
                +"AND defId = '"+character_id+"' "\
                +"ORDER BY players.name, defId"
 
+        goutils.log2("DBG", query)
         db_stat_data = connect_mysql.get_table(query)
         if db_stat_data == None:
             return "ERR: aucune donnée trouvée"
@@ -2342,6 +2349,15 @@ def print_lox(txt_allyCode, characters, compute_guild):
                 if not mode in all_modes:
                     return 1, "ERR: mode omicron inconnu "+mode+" parmi "+str(all_modes), None
                 list_modes.append(mode)
+
+                #manage GA combinations
+                if mode=='GA':
+                    list_modes.append("GA3")
+                    list_modes.append("GA5")
+                elif mode=='GA3':
+                    list_modes.append("GA")
+                elif mode=='GA5':
+                    list_modes.append("GA")
             else:
                 non_mode_characters.append(unit)
                 

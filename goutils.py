@@ -316,9 +316,11 @@ def create_dict_stats(db_stat_data_char, db_stat_data):
             line_stat5 = line[7]
             line_stat6 = line[8]
             line_stat7 = line[9]
-            line_stat17 = line[10]
-            line_stat18 = line[11]
-            line_stat28 = line[12]
+            line_stat14 = line[10]
+            line_stat16 = line[11]
+            line_stat17 = line[12]
+            line_stat18 = line[13]
+            line_stat28 = line[14]
             dict_players[line_name][line_defId]={ \
                     "defId": line_defId+":STARS",
                     "currentRarity": line_rarity,
@@ -330,6 +332,8 @@ def create_dict_stats(db_stat_data_char, db_stat_data):
             dict_players[line_name][line_defId]["stats"]["final"]['5'] = int(line_stat5)
             dict_players[line_name][line_defId]["stats"]["final"]['6'] = int(line_stat6)
             dict_players[line_name][line_defId]["stats"]["final"]['7'] = int(line_stat7)
+            dict_players[line_name][line_defId]["stats"]["final"]['14'] = int(line_stat14)
+            dict_players[line_name][line_defId]["stats"]["final"]['16'] = int(line_stat16)
             dict_players[line_name][line_defId]["stats"]["final"]['17'] = int(line_stat17)
             dict_players[line_name][line_defId]["stats"]["final"]['18'] = int(line_stat18)
             dict_players[line_name][line_defId]["stats"]["final"]['28'] = int(line_stat28)
