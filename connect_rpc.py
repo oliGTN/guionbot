@@ -181,8 +181,10 @@ def get_rpc_data(server_id, with_events, use_cache_data):
                 dict_event_counts[event_file_id]+=1
                 dict_events[event_file_id][event_id] = event
 
+            # give way to other tasks
+            time.sleep(0)
+
         goutils.log2("DBG", "end loop list_new_events")
-        time.sleep(0)
         sys.stdout.flush()
         if max(dict_event_counts.values()) > 0:
             goutils.log2("INFO", "New events: "+str(dict_event_counts))
