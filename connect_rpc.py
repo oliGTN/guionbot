@@ -15,17 +15,17 @@ import connect_mysql
 dict_sem={}
 def acquire_sem(id):
     calling_func = inspect.stack()[2][3]
-    #goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
+    goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
     if not id in dict_sem:
         dict_sem[id] = threading.Semaphore()
     dict_sem[id].acquire()
-    #goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
+    goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
 
 def release_sem(id):
     calling_func = inspect.stack()[2][3]
-    #goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
+    goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
     dict_sem[id].release()
-    #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
+    goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
     query = "SELECT server_id, bot_android_id, bot_locked_until FROM guild_bot_infos where bot_android_id != ''"

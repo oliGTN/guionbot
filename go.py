@@ -222,7 +222,7 @@ def load_player(ac_or_id, force_update, no_db):
 
         if dict_player == None:
             goutils.log2("ERR", 'Cannot get player data for '+ac_or_id)
-            sys.stdout.flush()
+            #sys.stdout.flush()
             return 1, 'ERR: cannot get player data for '+ac_or_id, None
 
         #Add mandatory elements to compute stats
@@ -249,12 +249,12 @@ def load_player(ac_or_id, force_update, no_db):
         player_name = dict_player["name"]
 
         goutils.log2("INFO", "success retrieving "+player_name+" from RPC")
-        sys.stdout.flush()
+        #sys.stdout.flush()
         
         if not no_db:
             # compute differences
             delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
-            sys.stdout.flush()
+            #sys.stdout.flush()
         
             # store json file
             json_file = "PLAYERS/"+playerId+".json"
@@ -269,7 +269,7 @@ def load_player(ac_or_id, force_update, no_db):
             else:
                 goutils.log2('ERR', 'update_player '+ac_or_id+' returned an error')
                 return 1, 'ERR: update_player '+ac_or_id+' returned an error', None
-            sys.stdout.flush()
+            #sys.stdout.flush()
             goutils.log2('DBG', "after flush...")
                 
     else:
@@ -277,8 +277,9 @@ def load_player(ac_or_id, force_update, no_db):
         player_name = dict_player["name"]
         goutils.log2('INFO', player_name + ' loaded from existing XML OK')
     
-    sys.stdout.flush()
-    goutils.log2('DBG', "after flush...")
+    goutils.log2('DBG', "before flush...")
+    #sys.stdout.flush()
+    goutils.log2('DBG', "END")
     return 0, "", dict_player
 
 def load_guild(txt_allyCode, load_players, cmd_request):
@@ -408,7 +409,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                             + guild_loading_status + "), waiting 30 seconds...")
                     time.sleep(30)
                     guild_loading_status = parallel_work.get_guild_loading_status(guildName)
-                    sys.stdout.flush()
+                    #sys.stdout.flush()
             else:
                 #Ensure only one guild loading at a time
                 #while len(dict_loading_guilds) > 1:
@@ -418,7 +419,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
                     time.sleep(30)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
-                    sys.stdout.flush()
+                    #sys.stdout.flush()
 
                 #Request to load this guild
                 parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
@@ -546,7 +547,7 @@ def load_shard(shard_id, shard_type, cmd_request):
                         + guild_loading_status + "), waiting 30 seconds...")
                 time.sleep(30)
                 guild_loading_status = parallel_work.get_guild_loading_status(guildName)
-                sys.stdout.flush()
+                #sys.stdout.flush()
         else:
             #Ensure only one guild loading at a time
             #while len(dict_loading_guilds) > 1:
@@ -556,7 +557,7 @@ def load_shard(shard_id, shard_type, cmd_request):
                             +"will start after loading of "+str(list_other_guilds_loading_status))
                 time.sleep(30)
                 list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
-                sys.stdout.flush()
+                #sys.stdout.flush()
 
             #Request to load this guild
             parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))

@@ -436,9 +436,9 @@ def log2(level, txt):
 
     if level=='DBG':
         if config.LOG_LEVEL=='DBG':
-            print(log_string)
+            print(log_string, flush=True)
     else:
-        print(log_string)
+        print(log_string, flush=True)
 
 ################################################
 # function: delta_dict_player
