@@ -14,6 +14,7 @@ import connect_mysql
 
 dict_sem={}
 def acquire_sem(id):
+    id=str(id)
     calling_func = inspect.stack()[2][3]
     goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
     if not id in dict_sem:
@@ -22,6 +23,7 @@ def acquire_sem(id):
     goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
 
 def release_sem(id):
+    id=str(id)
     calling_func = inspect.stack()[2][3]
     goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
     dict_sem[id].release()
