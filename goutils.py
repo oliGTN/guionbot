@@ -419,9 +419,9 @@ def log(level, fct, txt):
 
     if level=='DBG':
         if config.LOG_LEVEL=='DBG':
-            print(log_string)
+            print(log_string, flush=True)
     else:
-        print(log_string)
+        print(log_string, flush=True)
 
 ################################################
 # function: log
@@ -464,9 +464,18 @@ def delta_dict_player(dict1, dict2):
 
     #compare player information
     for info in ["playerId", "guildName", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes"]:
+        if not info in dict2:
+            dict2[info] = None
+        if not info in dict1:
+            dict1[info] = None
+
         if dict2[info] != dict1[info]:
             log("INFO", "delta_dict_player", info+" has changed for "+str(allyCode))
         delta_dict[info] = dict2[info]
+
+        #manage missing elements
+        if delta_dict[info] == None:
+            del delta_dict[info]
 
     #compare roster
     for character_id in dict2['rosterUnit']:
