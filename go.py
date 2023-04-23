@@ -30,7 +30,7 @@ import connect_rpc
 import goutils
 import portraits
 import parallel_work
-import data
+import data as godata
 
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 50
@@ -89,7 +89,7 @@ def manage_disk_usage():
     total = st.f_blocks * st.f_frsize
     used = total - free
     used_percentage = int(used/total*1000)/10
-    goutils.log('INFO', 'go.manage_disk_usage', 'Disk usage = ' + str(used_percentage) + '%')
+    goutils.log2('INFO', 'Disk usage = ' + str(used_percentage) + '%')
 
     if used_percentage > 98:
         return 1, "Disk usage is above 98%"
@@ -108,7 +108,7 @@ def refresh_cache():
            +"JOIN players on players.guildName = guilds.name "\
            +"WHERE guilds.update=1 "\
            +"ORDER BY guilds.lastUpdated"
-    goutils.log('DBG', 'go.refresh_cache', query)
+    goutils.log2('DBG', query)
     ret_table = connect_mysql.get_table(query)
     
     if ret_table != None:
@@ -254,7 +254,6 @@ def load_player(ac_or_id, force_update, no_db):
         if not no_db:
             # compute differences
             delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
-            #sys.stdout.flush()
         
             # store json file
             json_file = "PLAYERS/"+playerId+".json"
@@ -595,7 +594,7 @@ def load_shard(shard_id, shard_type, cmd_request):
     return 0, ""
 
 def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
     line = ''
 
     #manage team_name in a path for recursing requests
@@ -997,7 +996,7 @@ def get_team_header(team_name, objectifs):
 
 #IN: gv_mode (0: VTJ, 1: GVJ, 2: FTJ)
 def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, exclusive_player_list, gv_mode, dict_tw_def):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
@@ -1402,7 +1401,7 @@ def print_fegv(txt_allyCode):
           + "AND (isnull(rarity) OR rarity<rarity_reco) "
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     ret_print_fegv = ""
     for line in ret_db:
@@ -1623,7 +1622,7 @@ def print_gvs(list_team_names, txt_allyCode):
 # IN tw_zone: name of the TW zone to filter the players (other guild) - only for compute_guild=True
 #########################################"
 def print_character_stats(characters, options, txt_allyCode, compute_guild, server_id, tw_zone):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
     ret_print_character_stats = ''
 
     list_stats_for_display=[['speed', "Vit"],
@@ -2127,7 +2126,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
                         character_defense, server_id):
     war_txt = ""
 
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
     if not server_id in connect_rpc.get_dict_bot_accounts():
@@ -2320,7 +2319,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
 def print_lox(txt_allyCode, characters, compute_guild):
     war_txt = ""
 
-    dict_capa = data.get("unit_capa_list.json")
+    dict_capa = godata.get("unit_capa_list.json")
     all_modes = []
     for unit_id in dict_capa:
         unit = dict_capa[unit_id]
@@ -2422,8 +2421,8 @@ def print_lox(txt_allyCode, characters, compute_guild):
 
 ###############################
 def print_erx(txt_allyCode, days, compute_guild):
-    dict_unitsList = data.get("unitsList_dict.json")
-    dict_categoryList = data.get("categoryList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
+    dict_categoryList = godata.get("categoryList_dict.json")
 
     #Recuperation des dernieres donnees sur gdrive
     list_teams, dict_teams = connect_gsheets.load_config_teams(BOT_GFILE, False)
@@ -2630,6 +2629,7 @@ def print_erx(txt_allyCode, days, compute_guild):
 #################################
 def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
     dict_raids = connect_gsheets.load_config_raids(server_id, False)
+    dict_raid_tiers = godata.dict_raid_tiers
     if raid_alias in dict_raids:
         raid_config = dict_raids[raid_alias]
     else:
@@ -2703,8 +2703,8 @@ def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
 
             if player_has_team:
                 guild_score_by_phase[team_phase-1] += team_normal_score
-                if guild_score_by_phase[team_phase-1] > data.dict_raid_tiers[raid_name][team_phase-1]:
-                    guild_score_by_phase[team_phase-1] = data.dict_raid_tiers[raid_name][team_phase-1]
+                if guild_score_by_phase[team_phase-1] > dict_raid_tiers[raid_name][team_phase-1]:
+                    guild_score_by_phase[team_phase-1] = dict_raid_tiers[raid_name][team_phase-1]
 
             line.append(player_has_team)
         player_score = raid_scores[player_name]
@@ -2770,33 +2770,33 @@ def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
 
     #Display theoretical obtainable score and phase
     goutils.log2("DBG", "guild_score_by_phase = "+str(guild_score_by_phase))
-    goutils.log2("DBG", "data.dict_raid_tiers = "+str(data.dict_raid_tiers))
-    if guild_score_by_phase[0] < data.dict_raid_tiers[raid_name][0]:
+    goutils.log2("DBG", "dict_raid_tiers = "+str(dict_raid_tiers))
+    if guild_score_by_phase[0] < dict_raid_tiers[raid_name][0]:
         total_normal_score = guild_score_by_phase[0]
-    elif guild_score_by_phase[1] < data.dict_raid_tiers[raid_name][1]:
+    elif guild_score_by_phase[1] < dict_raid_tiers[raid_name][1]:
         total_normal_score = sum(guild_score_by_phase[:2])
-    elif guild_score_by_phase[2] < data.dict_raid_tiers[raid_name][2]:
+    elif guild_score_by_phase[2] < dict_raid_tiers[raid_name][2]:
         total_normal_score = sum(guild_score_by_phase[:3])
     else:
         total_normal_score = sum(guild_score_by_phase)
 
-    if total_normal_score >= sum(data.dict_raid_tiers[raid_name]):
+    if total_normal_score >= sum(dict_raid_tiers[raid_name]):
         normal_raid_phase = 5
-    elif total_normal_score >= sum(data.dict_raid_tiers[raid_name][:3]):
+    elif total_normal_score >= sum(dict_raid_tiers[raid_name][:3]):
         normal_raid_phase = 4
-        normal_progress = (                  total_normal_score - sum(data.dict_raid_tiers[raid_name][:3]))/ \
-                          (sum(data.dict_raid_tiers[raid_name]) - sum(data.dict_raid_tiers[raid_name][:3]))
-    elif total_normal_score >= sum(data.dict_raid_tiers[raid_name][:2]):
+        normal_progress = (                  total_normal_score - sum(dict_raid_tiers[raid_name][:3]))/ \
+                          (sum(dict_raid_tiers[raid_name]) - sum(dict_raid_tiers[raid_name][:3]))
+    elif total_normal_score >= sum(dict_raid_tiers[raid_name][:2]):
         normal_raid_phase = 3
-        normal_progress = (                      total_normal_score - sum(data.dict_raid_tiers[raid_name][:2]))/ \
-                          (sum(data.dict_raid_tiers[raid_name][:3]) - sum(data.dict_raid_tiers[raid_name][:2]))
-    elif total_normal_score >= data.dict_raid_tiers[raid_name][0]:
+        normal_progress = (                      total_normal_score - sum(dict_raid_tiers[raid_name][:2]))/ \
+                          (sum(dict_raid_tiers[raid_name][:3]) - sum(dict_raid_tiers[raid_name][:2]))
+    elif total_normal_score >= dict_raid_tiers[raid_name][0]:
         normal_raid_phase = 2
-        normal_progress = (                      total_normal_score - data.dict_raid_tiers[raid_name][0])/ \
-                          (sum(data.dict_raid_tiers[raid_name][:2]) - data.dict_raid_tiers[raid_name][0])
+        normal_progress = (                      total_normal_score - dict_raid_tiers[raid_name][0])/ \
+                          (sum(dict_raid_tiers[raid_name][:2]) - dict_raid_tiers[raid_name][0])
     else:
         normal_raid_phase = 1
-        normal_progress = total_normal_score / sum(data.dict_raid_tiers[raid_name])
+        normal_progress = total_normal_score / sum(dict_raid_tiers[raid_name])
     ret_print_raid_progress+= "\nScore atteignable par la guilde en mode normal : "+str(total_normal_score)
     if normal_raid_phase == 5:
         ret_print_raid_progress+= " (raid terminé)"
@@ -3049,7 +3049,7 @@ def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 #                                      territory2: alert_territory2...}]
 ############################################
 def get_tw_alerts(server_id, use_cache_data):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
     if not server_id in connect_rpc.get_dict_bot_accounts():
@@ -3807,7 +3807,7 @@ def get_modq_graph(txt_allyCode):
     return 0, "", image
 
 def get_tw_defense_toons(server_id, use_cache_data):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
     if not server_id in connect_rpc.get_dict_bot_accounts():
@@ -3867,7 +3867,7 @@ def allocate_platoons(txt_allyCode, list_zones):
             dict_toons[toon][0] += dict_zones[ops][toon][0]
     dict_guild={}
 
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
     list_blocked_ops=[]
     for defId in dict_toons:
         count = dict_toons[defId][0]
@@ -4004,7 +4004,7 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
     return 0, "", ret_db
 
 def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data):
-    dict_tb=data.dict_tb
+    dict_tb=godata.dict_tb
     ec, et, tb_data = connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data)
     if ec!=0:
         return 1, et, None
@@ -4175,9 +4175,10 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
 
     return zone_img
 
-def detect_tm(fevent_name, fguild_name):
+def print_events(fevent_name, fguild_name):
     g=json.load(open(fguild_name,"r"))
     guildId = g["guild"]["profile"]["id"]
+    dict_tb = godata.dict_tb
 
 
     d=json.load(open(fevent_name,"r"))
@@ -4189,6 +4190,8 @@ def detect_tm(fevent_name, fguild_name):
         timestamp= int(int(event["timestamp"])/1000)
         time=datetime.datetime.fromtimestamp(timestamp)
         data=event["data"][0]
+
+        #TW
         if data["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
             activity=data["activity"]
             if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
@@ -4238,6 +4241,23 @@ def detect_tm(fevent_name, fguild_name):
                     else:
                         scoretotal = activity["zoneData"]["scoreTotal"]
                         print(str(time)+" Score: "+scoretotal)
+
+        #TB
+        elif data["activityType"]=="TERRITORY_CONFLICT_ACTIVITY":
+            activity=data["activity"]
+            if "CONFLICT_CONTRIBUTION" in activity["zoneData"]["activityLogMessage"]["key"]:
+                zone_data = activity["zoneData"]
+                zone_id = zone_data["zoneId"]
+                zone_name = dict_tb[zone_id]["name"]
+                phases_ok = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
+                phases_tot = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
+                print(str(time)+" COMBAT: "+author+" "+str(phases_ok)+"/"+str(phases_tot)+" en "+zone_name)
+            elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+                zone_data = activity["zoneData"]
+                zone_id = zone_data["zoneId"]
+                zone_name = dict_tb[zone_id]["name"]
+                points = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
+                print(str(time)+" DEPLOIEMENT: "+author+" déploie "+str(points)+" en "+zone_name)
 
         else:
             print(data["activityType"])
@@ -4360,7 +4380,7 @@ def get_tw_def_player(fevents_name, player_name):
             print("   "+str(element))
 
 def deploy_bot_tb(server_id, zone_shortname, characters):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     #Manage request for all characters
     if characters == 'all':
@@ -4371,7 +4391,7 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
-    dict_tb=data.dict_tb
+    dict_tb=godata.dict_tb
     ec, et, tb_data = connect_rpc.get_tb_status(server_id, "", False, True)
     if ec!=0:
         return 1, et
@@ -4404,14 +4424,14 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
     return ec, txt
 
 def deploy_bot_tw(server_id, zone_shortname, characters):
-    dict_unitsList = data.get("unitsList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
     if txt != '':
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
-    dict_tw=data.dict_tw
+    dict_tw=godata.dict_tw
 
     if zone_shortname in dict_tw:
         zone_name = dict_tw[zone_shortname]
@@ -4433,11 +4453,11 @@ def print_unit_kit(alias):
     if len(list_character_ids) > 1:
         return 1, "ERR: un seul personnage à la fois"
 
-    dict_units = data.get("unitsList_dict.json")
-    dict_abilities = data.get("abilityList_dict.json")
-    dict_lore = data.get("lore_dict.json")
-    dict_capas = data.get("unit_capa_list.json")
-    FRE_FR = data.get("FRE_FR.json")
+    dict_units = godata.get("unitsList_dict.json")
+    dict_abilities = godata.get("abilityList_dict.json")
+    dict_lore = godata.get("lore_dict.json")
+    dict_capas = godata.get("unit_capa_list.json")
+    FRE_FR = godata.get("FRE_FR.json")
     unit_id = list_character_ids[0]
 
     #NAME
@@ -4484,9 +4504,9 @@ def print_unit_kit(alias):
 def print_ability(unit_id, ability_id, ability_type):
     output_txt = ""
 
-    dict_abilities = data.get("abilityList_dict.json")
-    dict_capas = data.get("unit_capa_list.json")
-    FRE_FR = data.get("FRE_FR.json")
+    dict_abilities = godata.get("abilityList_dict.json")
+    dict_capas = godata.get("unit_capa_list.json")
+    FRE_FR = godata.get("FRE_FR.json")
 
     ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
     ability_name = goutils.remove_format_from_desc(ability_name)
