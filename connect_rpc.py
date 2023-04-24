@@ -544,9 +544,10 @@ def get_guildChat_messages(server_id, use_cache_data):
                             txt_activity = "\N{WHITE MEDIUM STAR} "+txt_activity
                         if "UNIT_ACTIVATED" in activity["key"]:
                             txt_activity = "\N{OPEN LOCK} "+txt_activity
-                        if activity["key"].endswith("_JOIN"):
+                        if activity["key"].endswith("_JOIN") or "_PROMOTE_TO_" in activity["key"]:
                             txt_activity = "\N{SLIGHTLY SMILING FACE}"+txt_activity
-                        if activity["key"].endswith("_LEFT") or activity["key"].endswith("_REMOVED"):
+                        if activity["key"].endswith("_LEFT") or activity["key"].endswith("_REMOVED") \
+                           or activity["key"].endswith("_DEMOTE"):
                             txt_activity = "\N{SLIGHTLY FROWNING FACE}"+txt_activity
 
                         list_chat_events.append([event_ts, txt_activity])
