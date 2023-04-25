@@ -204,6 +204,9 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
                         [line_defId]["omicrons"][line_omicron]=is_omicron_active
 
     cur_playername = ''
+    if gv_characters_unlocked == None:
+        gv_characters_unlocked = []
+
     for line in gv_characters_unlocked:
         line_playername = line[0]
         line_alyCode = line[1]
