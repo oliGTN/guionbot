@@ -13,6 +13,7 @@ import difflib
 import re
 from discord.ext import commands
 from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
+import discord
 from io import BytesIO
 from requests import get
 import traceback
@@ -30,6 +31,7 @@ intents = Intents.default()
 intents.members = True
 intents.presences = True
 bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
+
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
@@ -254,11 +256,11 @@ async def bot_loop_60secs():
                 try:
                     goutils.log2("DBG", "before get_rpc_update: "+str(server_id))
                     #await start_thread( connect_rpc.get_rpc_data, server_id, True, False)
-                    await start_thread(connect_rpc.get_rpc_data, server_id, True, False)
+                    await connect_rpc.get_rpc_data( server_id, True, False)
                     goutils.log2("DBG", "before update_gwarstats: "+str(server_id))
-                    await start_thread( connect_gsheets.update_gwarstats, server_id)
+                    await connect_gsheets.update_gwarstats( server_id)
                     goutils.log2("DBG", "before get_guildChat: "+str(server_id))
-                    ec, et, ret_data = await start_thread( connect_rpc.get_guildChat_messages, server_id, True)
+                    ec, et, ret_data = await connect_rpc.get_guildChat_messages( server_id, True)
                     goutils.log2("DBG", "after get_guildChat: "+str(server_id))
                     if ec!=0:
                         goutils.log2("ERR", et)
@@ -307,7 +309,7 @@ async def bot_loop_10minutes():
         if not first_bot_loop_10minutes:
             try:
                 #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-                await start_thread( go.refresh_cache)
+                await go.refresh_cache()
 
             except Exception as e:
                 goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
@@ -375,7 +377,7 @@ async def bot_loop_5minutes():
                     dict_tw_alerts_previously_done[guild.id] = [0, {}]
 
                 #CHECK ALERTS FOR TERRITORY WAR
-                list_tw_alerts = go.get_tw_alerts(guild.id, True)
+                list_tw_alerts = await go.get_tw_alerts(guild.id, True)
                 if len(list_tw_alerts) > 0:
                     [channel_id, dict_messages] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
@@ -465,7 +467,7 @@ async def bot_loop_5minutes():
                     dict_tb_alerts_previously_done[guild.id] = []
 
                 #CHECK ALERTS FOR BT
-                list_tb_alerts = go.get_tb_alerts(guild.id, False)
+                list_tb_alerts = await go.get_tb_alerts(guild.id, False)
                 for tb_alert in list_tb_alerts:
                     if not tb_alert in dict_tb_alerts_previously_done[guild.id]:
                         if not first_bot_loop_5minutes:
@@ -491,7 +493,7 @@ async def bot_loop_5minutes():
                     if not guild.id in dict_platoons_previously_done:
                         dict_platoons_previously_done[guild.id] = {}
 
-                    tbs_round, dict_platoons_done, list_open_territories = connect_rpc.parse_tb_platoons(guild.id, True)
+                    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(guild.id, True)
 
                     if tbs_round == '':
                         goutils.log2("DBG", "["+guild.name+"] No TB in progress")
@@ -603,7 +605,7 @@ async def bot_loop_6hours():
 
         try:
             #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-            err_code, err_txt = await start_thread( go.manage_disk_usage)
+            err_code, err_txt = go.manage_disk_usage()
 
             if err_code > 0:
                 await send_alert_to_admins(None, err_txt)
@@ -1476,8 +1478,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             query = "SELECT CURRENT_TIMESTAMP"
             goutils.log2("DBG", query)
             timestamp_before = connect_mysql.get_value(query)
-            e, t, player_before = await start_thread( go.load_player,
-                                            allyCode, -1, True)
+            e, t, player_before = await go.load_player( allyCode, -1, True)
             if e!=0:
                 await ctx.send(t)
                 await ctx.message.add_reaction(emoji_error)
@@ -1488,8 +1489,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 if os.path.isfile(json_file):
                     os.remove(json_file)
 
-            e, t, player_now = await start_thread( go.load_player,
-                                            allyCode, 1, False)
+            e, t, player_now = await go.load_player( allyCode, 1, False)
             if e!=0:
                 await ctx.send(t)
                 await ctx.message.add_reaction(emoji_error)
@@ -1586,7 +1586,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         if ctx.guild.id in connect_rpc.get_dict_bot_accounts():
             goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
 
-            tbs_round, dict_platoons_done, list_open_territories = connect_rpc.parse_tb_platoons(ctx.guild.id, False)
+            tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(ctx.guild.id, False)
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
         else:
             await ctx.send('ERR: commande non utilisable sur ce serveur')
@@ -1694,7 +1694,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botenable(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = connect_rpc.unlock_bot_account(ctx.guild.id)
+        ec, et = await connect_rpc.unlock_bot_account(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -1709,7 +1709,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botdisable(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = connect_rpc.lock_bot_account(ctx.guild.id)
+        ec, et = await connect_rpc.lock_bot_account(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -1724,7 +1724,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botjoinraids(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = connect_rpc.join_raids(ctx.guild.id)
+        ec, et = await connect_rpc.join_raids(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -1739,7 +1739,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botjointw(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = connect_rpc.join_tw(ctx.guild.id)
+        ec, et = await connect_rpc.join_tw(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -1805,7 +1805,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             display_mentions=False
             output_channel = ctx.message.channel
 
-        err_code, ret_txt, lines = await start_thread( connect_rpc.tag_tb_undeployed_players, ctx.guild.id, False)
+        err_code, ret_txt, lines = await connect_rpc.tag_tb_undeployed_players( ctx.guild.id, False)
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
@@ -1843,7 +1843,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         else:
             tb_phase_target = options[0]
 
-        err_code, ret_txt, images = await start_thread( go.print_tb_status, ctx.guild.id, tb_phase_target, estimate_fights, False)
+        err_code, ret_txt, images = await go.print_tb_status( ctx.guild.id, tb_phase_target, estimate_fights, False)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
@@ -1893,8 +1893,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         
         if len(list_characters) > 0:
             if len(list_options) <= 1:
-                ret_cmd = await start_thread(
-                    go.print_character_stats, list_characters,
+                ret_cmd = await go.print_character_stats( list_characters,
                     list_options, "", True, ctx.guild.id, tw_zone)
             else:
                 ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
@@ -2213,7 +2212,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = go.tag_players_with_character(allyCode, character_alias,
+            err, errtxt, ret_cmd = await go.tag_players_with_character(allyCode, character_alias,
                                                                  ctx.guild.id, tw_mode)
             if err != 0:
                 await ctx.send(errtxt)
@@ -2335,7 +2334,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
             else:
                 #Unknown allyCode in DB
-                e, t, dict_player = go.load_player(allyCode, 1, True)
+                e, t, dict_player = await go.load_player(allyCode, 1, True)
                 if e == 0:
                     player_name = dict_player["name"]
                     guildName = dict_player["guildName"]
@@ -2423,8 +2422,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(teams) == 0:
                 teams = ["all"]
 
-            err, ret_cmd = await start_thread( go.print_vtg,
-                                                    teams, allyCode, ctx.guild.id, tw_mode)
+            err, ret_cmd = await go.print_vtg( teams, allyCode, ctx.guild.id, tw_mode)
             if err == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
@@ -2469,8 +2467,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(teams) == 0:
                 teams = ["all"]
 
-            err, txt, images = await start_thread( go.print_vtj,
-                                                    teams, allyCode, ctx.guild.id, tw_mode)
+            err, txt, images = await go.print_vtj( teams, allyCode, ctx.guild.id, tw_mode)
             if err != 0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -2563,7 +2560,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(characters) == 0:
                 characters = ["all"]
                 
-            err_code, ret_cmd = await start_thread( go.print_gvj, characters, allyCode)
+            err_code, ret_cmd = await go.print_gvj( characters, allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2601,7 +2598,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(characters) == 0:
                 characters = ["all"]
 
-            err_code, ret_cmd = await start_thread( go.print_gvg, characters, allyCode)
+            err_code, ret_cmd = await go.print_gvg( characters, allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2638,7 +2635,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
                 return
 
-            err_code, ret_cmd = await start_thread( go.print_gvs, characters, allyCode)
+            err_code, ret_cmd = await go.print_gvs( characters, allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2719,8 +2716,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 list_characters=['all']
 
             if len(list_options) <= 1:
-                ret_cmd = await start_thread(
-                    go.print_character_stats, list_characters,
+                ret_cmd = await go.print_character_stats( list_characters,
                     list_options, allyCode, False, None, None)
             else:
                 ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
@@ -2768,8 +2764,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             
             if len(list_characters) > 0:
                 if len(list_options) <= 1:
-                    ret_cmd = await start_thread(
-                        go.print_character_stats, list_characters,
+                    ret_cmd = await go.print_character_stats( list_characters,
                         list_options, allyCode, True, None, None)
                 else:
                     ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
@@ -2804,7 +2799,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await ctx.message.add_reaction(emoji_thumb)
 
         if allyCode == "-TW":
-            ec, et, allyCode = connect_rpc.get_tw_opponent_leader(ctx.guild.id)
+            ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emoji_error)
@@ -2817,8 +2812,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 return
 
         # First call to display the chart quickly, without the inactive players
-        e, err_txt, image = await start_thread(
-            go.get_gp_distribution, allyCode)
+        e, err_txt, image = await go.get_gp_distribution( allyCode)
         if e != 0:
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
@@ -2832,7 +2826,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_hourglass)
 
             # Now load all players from the guild
-            await start_thread( go.load_guild, allyCode, True, True)
+            await go.load_guild( allyCode, True, True)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.remove_reaction(emoji_hourglass, bot.user)
@@ -2866,10 +2860,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             characters = ["all"]
 
         #First run a GVJ to ensure at least on result
-        err_code, ret_cmd = await start_thread(
-                                  go.print_gvj,
-                                  characters,
-                                  allyCode)
+        err_code, ret_cmd = await go.print_gvj( characters, allyCode)
         if err_code != 0:
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
@@ -2951,8 +2942,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
         else:
             if len(characters) > 0:
-                e, ret_cmd, images = await start_thread(
-                    go.get_character_image, [[list(characters), allyCode, '']], False, True, '', ctx.guild.id)
+                e, ret_cmd, images = await go.get_character_image( [[list(characters),
+                                                    allyCode, '']], False, True, '', ctx.guild.id)
                     
                 if e == 0:
                     for image in images:
@@ -3023,8 +3014,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         character_defense = options[pos_vs+1]
 
         # Computes images
-        e, ret_cmd, images = await start_thread(
-                    go.get_tw_battle_image, list_char_attack, allyCode_attack, \
+        e, ret_cmd, images = await go.get_tw_battle_image( list_char_attack, allyCode_attack, 
                                              character_defense, ctx.guild.id)
                         
         if e == 0:      
@@ -3551,8 +3541,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 return
             else:
                 #First ensure that the player exists in DB
-                e, t, player_now = await start_thread( go.load_player,
-                                                shardmate_ac, -1, False)
+                e, t, player_now = await go.load_player(shardmate_ac, -1, False)
                 if e!=0:
                     await ctx.send(t)
                     await ctx.message.add_reaction(emoji_error)

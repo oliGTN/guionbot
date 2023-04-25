@@ -391,7 +391,7 @@ def insert_roster_evo(allyCode, defId, evo_txt):
         if cursor != None:
             cursor.close()
     
-def update_player(dict_player):
+async def update_player(dict_player):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_modList = data.get("modList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
@@ -683,7 +683,7 @@ def update_player(dict_player):
                     cursor.execute(query)
 
             #SLEEP at the end of character loop
-            time.sleep(0)
+            await asyncio.sleep(0)
                 
         #Compute ModQ from DB data
         query = "SELECT count(mods.id)/(char_gp/100000) " \

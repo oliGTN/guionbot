@@ -658,10 +658,10 @@ def load_new_tb():
     return dict_zones, dict_toons
     
 ##############################################################
-def update_gwarstats(server_id):
+async def update_gwarstats(server_id):
     gfile_name = get_gfile_name(server_id)
 
-    ec, et, tb_data = connect_rpc.get_tb_status(server_id, "", False, True)
+    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, True)
     if ec != 0:
         return 1, et
 

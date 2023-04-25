@@ -21,6 +21,7 @@ import inspect
 from texttable import Texttable
 import itertools
 import numpy as np
+import asyncio
 
 import connect_gsheets
 import connect_mysql
@@ -100,7 +101,7 @@ def manage_disk_usage():
 # Function: refresh_cache
 # return: error code
 ##################################
-def refresh_cache():
+async def refresh_cache():
     # Get the guilds to be refreshed
     # the query gets one allyCode by guild in the DB
     query = "SELECT guilds.name, allyCode "\
@@ -117,9 +118,9 @@ def refresh_cache():
             guild_allyCode = line[1]
             goutils.log2('INFO', "refresh guild " + guild_name \
                        +" with allyCode " + str(guild_allyCode))
-            e, t, dict_guild = load_guild(str(guild_allyCode), False, False)
+            e, t, dict_guild = await load_guild(str(guild_allyCode), False, False)
             if e == 0 and dict_guild["profile"]['name'] == guild_name:
-                e, t, dict_guild = load_guild(str(guild_allyCode), True, False)
+                e, t, dict_guild = await load_guild(str(guild_allyCode), True, False)
                 break
             elif e == 0:
                 goutils.log2('WAR', "load_guild("+str(guild_allyCode)+") returned guild "+guild_name)
@@ -142,7 +143,7 @@ def refresh_cache():
             shard_id = line[0]
             shard_type = line[1]
             goutils.log2('INFO', "refresh shard " + str(shard_id) + " " + shard_type)
-            e, t = load_shard(shard_id, shard_type, False)
+            e, t = await load_shard(shard_id, shard_type, False)
             if e == 0:
                 break
             else:
@@ -164,7 +165,7 @@ def refresh_cache():
 #         bool no_db: do not put player in DB
 # return: err_code, err_text, dict_player
 ##################################
-def load_player(ac_or_id, force_update, no_db):
+async def load_player(ac_or_id, force_update, no_db):
     goutils.log2("DBG", "START")
 
     #get playerId from allyCode:
@@ -215,7 +216,7 @@ def load_player(ac_or_id, force_update, no_db):
 
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting RPC data for player ' + ac_or_id + '...')
-        ec, et, dict_player = connect_rpc.get_player_data(ac_or_id, False)
+        ec, et, dict_player = await connect_rpc.get_player_data(ac_or_id, False)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
             dict_player = prev_dict_player
@@ -262,7 +263,7 @@ def load_player(ac_or_id, force_update, no_db):
             fjson.close()
 
             # update DB
-            ret = connect_mysql.update_player(delta_dict_player)
+            ret = await connect_mysql.update_player(delta_dict_player)
             if ret == 0:
                 goutils.log2("INFO", "success updating "+dict_player['name']+" in DB")
             else:
@@ -281,7 +282,7 @@ def load_player(ac_or_id, force_update, no_db):
     goutils.log2('DBG', "END")
     return 0, "", dict_player
 
-def load_guild(txt_allyCode, load_players, cmd_request):
+async def load_guild(txt_allyCode, load_players, cmd_request):
     #Get API data for the guild
     goutils.log2('INFO', 'Requesting RPC data for guild of ' + txt_allyCode)
 
@@ -303,7 +304,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
         if os.path.isfile(json_file):
             prev_dict_guild = json.load(open(json_file, 'r'))
 
-    ec, et, dict_guild = connect_rpc.get_guild_data(txt_allyCode, False)
+    ec, et, dict_guild = await connect_rpc.get_guild_data(txt_allyCode, False)
     if ec != 0:
         goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
         dict_guild = prev_dict_guild
@@ -406,7 +407,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 while guild_loading_status != None:
                     goutils.log2('INFO', "Guild "+guildName+" already loading ("\
                             + guild_loading_status + "), waiting 30 seconds...")
-                    time.sleep(30)
+                    await asyncio.sleep(30)
                     guild_loading_status = parallel_work.get_guild_loading_status(guildName)
                     #sys.stdout.flush()
             else:
@@ -416,7 +417,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                 while len(list_other_guilds_loading_status) > 0:
                     goutils.log2('INFO', "Guild "+guildName+" loading "\
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
-                    time.sleep(30)
+                    await asyncio.sleep(30)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
                     #sys.stdout.flush()
 
@@ -429,11 +430,11 @@ def load_guild(txt_allyCode, load_players, cmd_request):
                     i_player += 1
                     goutils.log2("INFO", "player #"+str(i_player))
                     
-                    e, t, d = load_player(str(playerId), 0, False)
+                    e, t, d = await load_player(str(playerId), 0, False)
                     goutils.log2("DBG", "after load_player...")
                     parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
                     goutils.log2("DBG", "after set_guild_loading_status...")
-                    time.sleep(0)
+                    await asyncio.sleep(1)
                     goutils.log2("DBG", "after sleep...")
 
                 parallel_work.set_guild_loading_status(guildName, None)
@@ -501,7 +502,7 @@ def load_guild(txt_allyCode, load_players, cmd_request):
 
     return 0, "", dict_guild
 
-def load_shard(shard_id, shard_type, cmd_request):
+async def load_shard(shard_id, shard_type, cmd_request):
     #Get API data for the guild
     goutils.log2('INFO', 'Requesting API data for shard ' + str(shard_id))
 
@@ -544,7 +545,7 @@ def load_shard(shard_id, shard_type, cmd_request):
             while guild_loading_status != None:
                 goutils.log2('INFO', "Guild "+guildName+" already loading ("\
                         + guild_loading_status + "), waiting 30 seconds...")
-                time.sleep(30)
+                await asyncio.sleep(30)
                 guild_loading_status = parallel_work.get_guild_loading_status(guildName)
                 #sys.stdout.flush()
         else:
@@ -554,7 +555,7 @@ def load_shard(shard_id, shard_type, cmd_request):
             while len(list_other_guilds_loading_status) > 0:
                 goutils.log2('INFO', "Guild "+guildName+" loading "\
                             +"will start after loading of "+str(list_other_guilds_loading_status))
-                time.sleep(30)
+                await asyncio.sleep(30)
                 list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
                 #sys.stdout.flush()
 
@@ -567,7 +568,7 @@ def load_shard(shard_id, shard_type, cmd_request):
                 i_player += 1
                 goutils.log2("INFO", "player #"+str(i_player))
                 
-                e, t, d = load_player(str(allyCode), 0, False)
+                e, t, d = await load_player(str(allyCode), 0, False)
                 parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
 
             parallel_work.set_guild_loading_status(guildName, None)
@@ -995,7 +996,7 @@ def get_team_header(team_name, objectifs):
     return entete
 
 #IN: gv_mode (0: VTJ, 1: GVJ, 2: FTJ)
-def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, exclusive_player_list, gv_mode, dict_tw_def):
+async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, exclusive_player_list, gv_mode, dict_tw_def):
     dict_unitsList = godata.get("unitsList_dict.json")
     ret_get_team_progress = {}
 
@@ -1027,7 +1028,7 @@ def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, e
         #only one player, potentially several teams
         
         #Load or update data for the player
-        e, t, d = load_player(txt_allyCode, 1, False)
+        e, t, d = await load_player(txt_allyCode, 1, False)
         if e != 0:
             #error wile loading guild data
             return "", 'ERR: joueur non trouvé pour code allié ' + txt_allyCode
@@ -1036,13 +1037,13 @@ def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, e
             
     elif compute_guild==1:
         #Get data for the guild and associated players
-        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
         if err_code != 0:
             goutils.log2("WAR", "cannot get guild data from SWGOH.HELP API. Using previous data.")
         collection_name = guild["name"]
     else:
         player_shard = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
-        err_code, err_txt = load_shard(player_shard, shard_type, True)
+        err_code, err_txt = await load_shard(player_shard, shard_type, True)
         if err_code != 0:
             goutils.log2("WAR", "cannot get shard data from SWGOH.HELP API. Using previous data.")
             return "", err_txt
@@ -1238,11 +1239,11 @@ def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, e
 
     return collection_name, ret_get_team_progress
 
-def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
+async def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
 
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id, False)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
         if ec != 0:
             return ec, et
 
@@ -1254,7 +1255,7 @@ def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
         dict_def_toon_player = {}
         list_active_players = None
 
-    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
+    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
                                               server_id, 1, list_active_players, 0, dict_def_toon_player)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
@@ -1315,10 +1316,10 @@ def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
 
     return 0, ret_print_vtx
 
-def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
+async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id, False)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
         if ec != 0:
             return ec, et
 
@@ -1329,7 +1330,7 @@ def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
         dict_def_toon_player = {}
         list_active_players = None
 
-    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, 
+    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
                                               server_id, 0, list_active_players, 0, dict_def_toon_player)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
@@ -1377,7 +1378,7 @@ def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
                         image_mode = "TW"
                     else:
                         image_mode = ""
-                    e, t, images = get_character_image(list_char_allycodes, True, False, image_mode, server_id)
+                    e, t, images = await get_character_image(list_char_allycodes, True, False, image_mode, server_id)
 
     #In case of several teams, don't display images
     if len(ret_get_team_progress) > 1:
@@ -1437,10 +1438,10 @@ def print_fegv(txt_allyCode):
 
     return 0, ret_print_fegv
 
-def print_ftj(txt_allyCode, team, server_id):
+async def print_ftj(txt_allyCode, team, server_id):
     ret_print_ftj = ""
 
-    player_name, ret_get_team_progress = get_team_progress([team], txt_allyCode, server_id, 0, None, 2, {})
+    player_name, ret_get_team_progress = await get_team_progress([team], txt_allyCode, server_id, 0, None, 2, {})
     #print(team)
     #print(ret_get_team_progress)
     if type(ret_get_team_progress) == str:
@@ -1465,10 +1466,10 @@ def print_ftj(txt_allyCode, team, server_id):
 
     return 0, ret_print_ftj
 
-def print_gvj(list_team_names, txt_allyCode):
+async def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
 
-    player_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {})
+    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {})
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
@@ -1526,10 +1527,10 @@ def print_gvj(list_team_names, txt_allyCode):
 
     return 0, ret_print_gvj
                         
-def print_gvg(list_team_names, txt_allyCode):
+async def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
 
-    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 1, None, 1, {})
+    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 1, None, 1, {})
 
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -1572,10 +1573,10 @@ def print_gvg(list_team_names, txt_allyCode):
         
     return 0, ret_print_gvg
 
-def print_gvs(list_team_names, txt_allyCode):
+async def print_gvs(list_team_names, txt_allyCode):
     ret_print_gvs = ""
 
-    guild_name, ret_get_team_progress = get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 2, None, 1, {})
+    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 2, None, 1, {})
 
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -1621,7 +1622,7 @@ def print_gvs(list_team_names, txt_allyCode):
 #########################################"
 # IN tw_zone: name of the TW zone to filter the players (other guild) - only for compute_guild=True
 #########################################"
-def print_character_stats(characters, options, txt_allyCode, compute_guild, server_id, tw_zone):
+async def print_character_stats(characters, options, txt_allyCode, compute_guild, server_id, tw_zone):
     dict_unitsList = godata.get("unitsList_dict.json")
     ret_print_character_stats = ''
 
@@ -1729,7 +1730,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
                     return "ERR: la syntaxe "+character+" est incorrecte"
         
         #Get data for this player
-        e, t, dict_player = load_player(txt_allyCode, 1, False)
+        e, t, dict_player = await load_player(txt_allyCode, 1, False)
         player_name = dict_player["name"]
         list_player_names = [player_name]
 
@@ -1807,7 +1808,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
             if not server_id in connect_rpc.get_dict_bot_accounts():
                 return "ERR: cannot detect TW opponent in this server"
 
-            rpc_data = connect_rpc.get_tw_status(server_id, True)
+            rpc_data = await connect_rpc.get_tw_status(server_id, True)
             tw_ongoing = rpc_data[0]
             if not tw_ongoing:
                 return "ERR: no TW ongoing"
@@ -1836,7 +1837,7 @@ def print_character_stats(characters, options, txt_allyCode, compute_guild, serv
                         dict_tw_zone_players[team_player_name] = zone
 
         #Get data for the guild and associated players
-        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
         if err_code != 0:
             return "ERR: cannot get guild data from SWGOH.HELP API"
                             
@@ -2021,10 +2022,10 @@ def get_distribution_graph(values, values_2, bin_count, title, x_title, y_title,
 
     return image
 
-def get_gp_distribution(txt_allyCode):
+async def get_gp_distribution(txt_allyCode):
     #Load or update data for the guild
     #use only the guild data from the API
-    err_code, err_txt, dict_guild = load_guild(txt_allyCode, False, True)
+    err_code, err_txt, dict_guild = await load_guild(txt_allyCode, False, True)
     if err_code != 0:
         return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
 
@@ -2051,7 +2052,7 @@ def get_gp_distribution(txt_allyCode):
 # IN: game_mode: 'TW', 'TB', ... or '' for undefined
 # return: err_code, err_txt, image
 #################################
-def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mode, server_id):
+async def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mode, server_id):
     err_code = 0
     err_txt = ''
 
@@ -2076,7 +2077,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mo
     for [characters, txt_allyCode, tw_terr] in list_characters_allyCode:
         # refresh_player = True  > load_player(force_update=1)
         # refresh_player = False > load_player(force_update=-1)
-        e, t, dict_player = load_player(txt_allyCode, 2*int(refresh_player)-1, False)
+        e, t, dict_player = await load_player(txt_allyCode, 2*int(refresh_player)-1, False)
 
         #Tag reserved characters
         if game_mode == "TW":
@@ -2122,7 +2123,7 @@ def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mo
 # Function: get_tw_battle_images
 # return: err_code, err_txt, list of images
 #################################
-def get_tw_battle_image(list_char_attack, allyCode_attack, \
+async def get_tw_battle_image(list_char_attack, allyCode_attack, \
                         character_defense, server_id):
     war_txt = ""
 
@@ -2143,7 +2144,7 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = connect_rpc.get_tw_status(server_id, True)
+    rpc_data = await connect_rpc.get_tw_status(server_id, True)
     tw_ongoing = rpc_data[0]
     if not tw_ongoing:
         return 1, "ERR: aucune GT en cours\n", None
@@ -2208,16 +2209,16 @@ def get_tw_battle_image(list_char_attack, allyCode_attack, \
             list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
-    ec, et, images = get_character_image(list_char_allycodes, True, False, 'TW', server_id)
+    ec, et, images = await get_character_image(list_char_allycodes, True, False, 'TW', server_id)
     if ec != 0:
         return 1, et, None
 
     return 0, war_txt, images
 
-def get_stat_graph(txt_allyCode, character_alias, stat_name):
+async def get_stat_graph(txt_allyCode, character_alias, stat_name):
     err_txt = ""
 
-    e, t, d = load_player(txt_allyCode, 1, False)
+    e, t, d = await load_player(txt_allyCode, 1, False)
     if e != 0:
         return 1, "ERR: cannot get player data from SWGOH.HELP API", None
         
@@ -2316,7 +2317,7 @@ def get_stat_graph(txt_allyCode, character_alias, stat_name):
     return 0, err_txt, image
 
 ###############################
-def print_lox(txt_allyCode, characters, compute_guild):
+async def print_lox(txt_allyCode, characters, compute_guild):
     war_txt = ""
 
     dict_capa = godata.get("unit_capa_list.json")
@@ -2381,12 +2382,12 @@ def print_lox(txt_allyCode, characters, compute_guild):
 
     #GET DATA FROM PLAYER OR GUILD
     if compute_guild:
-        err_code, err_txt, guild = load_guild(txt_allyCode, True, True)
+        err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
         if err_code != 0:
             return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, []
     else:
         #Get data for this player
-        e, t, d = load_player(txt_allyCode, 1, False)
+        e, t, d = await load_player(txt_allyCode, 1, False)
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
 
@@ -2819,7 +2820,7 @@ def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
 # Function: print_tb_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
+async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
     list_tb_teams = connect_gsheets.load_tb_teams(server_id, False)
     tb_team_names = list(set(sum(sum([list(x.values()) for x in list_tb_teams], []), [])))
     tb_team_names.remove('')
@@ -2834,7 +2835,7 @@ def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: Guide non déclarée dans le bot", ""
 
-    guild_name, dict_teams = get_team_progress(tb_team_names, txt_allyCode, server_id, 1, None, 0, {})
+    guild_name, dict_teams = await get_team_progress(tb_team_names, txt_allyCode, server_id, 1, None, 0, {})
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -3048,7 +3049,7 @@ def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 # OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
 #                                      territory2: alert_territory2...}]
 ############################################
-def get_tw_alerts(server_id, use_cache_data):
+async def get_tw_alerts(server_id, use_cache_data):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
@@ -3066,7 +3067,7 @@ def get_tw_alerts(server_id, use_cache_data):
     if twChannel_id == 0:
         return []
 
-    rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
+    rpc_data = await connect_rpc.get_tw_status(server_id, use_cache_data)
     tw_ongoing = rpc_data[0]
     if not tw_ongoing:
         return []
@@ -3350,13 +3351,13 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 # IN: compute_guild (True/False)
 # OUT: err_code, err_txt, dict_best_teams {'Gui On': ['JKR', 'DR'], ...}
 ################################################################
-def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_guild):
+async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_guild):
     if compute_guild:
-        err_code, err_txt, dict_guild = load_guild(txt_allyCode, True, True)
+        err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
         if err_code != 0:
             return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, {}
     else:
-        e, t, d = load_player(txt_allyCode, 1, False)
+        e, t, d = await load_player(txt_allyCode, 1, False)
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, {}
 
@@ -3421,13 +3422,13 @@ def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_guild):
 # IN: tw_mode (True if the bot shall count defense-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
-    err_code, err_txt, dict_guild = load_guild(txt_allyCode, True, True)
+async def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
+    err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = connect_rpc.get_tw_active_players(server_id, False)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
         if ec != 0:
             return ec, et
 
@@ -3806,7 +3807,7 @@ def get_modq_graph(txt_allyCode):
 
     return 0, "", image
 
-def get_tw_defense_toons(server_id, use_cache_data):
+async def get_tw_defense_toons(server_id, use_cache_data):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
@@ -3824,7 +3825,7 @@ def get_tw_defense_toons(server_id, use_cache_data):
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = connect_rpc.get_tw_status(server_id, use_cache_data)
+    rpc_data = await connect_rpc.get_tw_status(server_id, use_cache_data)
     tw_ongoing = rpc_data[0]
     if not tw_ongoing:
         return 1, "ERR: aucune GT en cours\n", None
@@ -4003,9 +4004,9 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data):
+async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data):
     dict_tb=godata.dict_tb
-    ec, et, tb_data = connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data)
+    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data)
     if ec!=0:
         return 1, et, None
 
@@ -4264,10 +4265,10 @@ def print_events(fevent_name, fguild_name):
 
     return
 
-def get_tb_alerts(server_id, force_latest):
+async def get_tb_alerts(server_id, force_latest):
     #Check if the guild can use RPC
     if server_id in connect_rpc.get_dict_bot_accounts():
-        territory_scores, active_round = connect_rpc.get_tb_guild_scores(server_id, not force_latest)
+        territory_scores, active_round = await connect_rpc.get_tb_guild_scores(server_id, not force_latest)
     else:
         return []
     goutils.log2("DBG", "["+str(server_id)+"] territory_scores="+str(territory_scores))
@@ -4379,7 +4380,7 @@ def get_tw_def_player(fevents_name, player_name):
         for element in dict_def[leader]:
             print("   "+str(element))
 
-def deploy_bot_tb(server_id, zone_shortname, characters):
+async def deploy_bot_tb(server_id, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Manage request for all characters
@@ -4392,7 +4393,7 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
     dict_tb=godata.dict_tb
-    ec, et, tb_data = connect_rpc.get_tb_status(server_id, "", False, True)
+    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, True)
     if ec!=0:
         return 1, et
     [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
@@ -4419,11 +4420,11 @@ def deploy_bot_tb(server_id, zone_shortname, characters):
                 filtered_list_character_ids.append(unit_id)
         list_character_ids = filtered_list_character_ids
 
-    ec, txt = connect_rpc.deploy_tb(server_id, zone_name, list_character_ids)
+    ec, txt = await connect_rpc.deploy_tb(server_id, zone_name, list_character_ids)
 
     return ec, txt
 
-def deploy_bot_tw(server_id, zone_shortname, characters):
+async def deploy_bot_tw(server_id, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
@@ -4438,7 +4439,7 @@ def deploy_bot_tw(server_id, zone_shortname, characters):
     else:
         return 1, "Zone GT inconnue"
 
-    ec, txt = connect_rpc.deploy_tw(server_id, zone_name, list_character_ids)
+    ec, txt = await connect_rpc.deploy_tw(server_id, zone_name, list_character_ids)
 
     return ec, txt
 
