@@ -15,3 +15,4 @@ elif [ "$1" = "noloop" ]; then
 else
 	python guionbot_discord.py | while read line; do echo "$line" >> /home/pi/GuionBot/LOGS/guionbot.log; done
 fi
+disown -a
