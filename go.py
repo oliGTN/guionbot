@@ -496,6 +496,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
             del dict_roles[member["playerId"]]
         else:
             goutils.log2('WAR', str(id)+" found in RPC but not found in DB while updating guild")
+
     #manage  remaining players
     for id in dict_roles:
         goutils.log2('WAR', str(id)+" found in DB but not found in RPC while updating guild")
@@ -594,7 +595,7 @@ async def load_shard(shard_id, shard_type, cmd_request):
 
     return 0, ""
 
-def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
+async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
     dict_unitsList = godata.get("unitsList_dict.json")
     line = ''
 
@@ -627,6 +628,8 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
         dict_char_subobj = objectifs[i_subobj][2]
 
         for character_id in dict_char_subobj:
+            await asyncio.sleep(0)
+
             goutils.log2("DBG", "character_id: "+character_id)
             progress = 0
             progress_100 = 0
@@ -789,7 +792,7 @@ def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode,
                 if gv_mode:
                     character_id_team = character_id + '-GV'
                     if character_id_team in dict_teams[player_name][1]:
-                        score, unlocked, character_display, nogo, list_char = get_team_line_from_player(team_name_path+'/'+character_id_team,
+                        score, unlocked, character_display, nogo, list_char = await get_team_line_from_player(team_name_path+'/'+character_id_team,
                             dict_teams, dict_team_gt, gv_mode, player_name)
 
                         #Unlocking a chatacter only gives the rarity so by default 50%
@@ -1040,7 +1043,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
         err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
         if err_code != 0:
             goutils.log2("WAR", "cannot get guild data from SWGOH.HELP API. Using previous data.")
-        collection_name = guild["name"]
+        collection_name = guild["profile"]["name"]
     else:
         player_shard = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
         err_code, err_txt = await load_shard(player_shard, shard_type, True)
@@ -1214,7 +1217,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
                 player_allyCode = dict_teams[player_name][0]
 
                 #resultats par joueur
-                score, unlocked, line, nogo, list_char = get_team_line_from_player(team_name,
+                score, unlocked, line, nogo, list_char = await get_team_line_from_player(team_name,
                     dict_teams, dict_team_gt, gv_mode>0, player_name)
                 tab_lines.append([score, unlocked, line, nogo, player_name, list_char])
 
@@ -4005,7 +4008,7 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
     return 0, "", ret_db
 
 async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data):
-    dict_tb=godata.dict_tb
+    dict_tb = godata.dict_tb
     ec, et, tb_data = await connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data)
     if ec!=0:
         return 1, et, None
@@ -4256,7 +4259,10 @@ def print_events(fevent_name, fguild_name):
             elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
                 zone_data = activity["zoneData"]
                 zone_id = zone_data["zoneId"]
-                zone_name = dict_tb[zone_id]["name"]
+                if zone_id in dict_tb:
+                    zone_name = dict_tb[zone_id]["name"]
+                else:
+                    zone_name = zone_id
                 points = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
                 print(str(time)+" DEPLOIEMENT: "+author+" déploie "+str(points)+" en "+zone_name)
 
@@ -4392,12 +4398,14 @@ async def deploy_bot_tb(server_id, zone_shortname, characters):
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
-    dict_tb=godata.dict_tb
+    dict_tb = godata.dict_tb
     ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, True)
     if ec!=0:
         return 1, et
     [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
     tb_type = dict_phase["type"]
+    if not tb_type in dict_tb:
+        return 1, "TB inconnue du bot"
 
     if zone_shortname in dict_tb[tb_type]["zoneNames"]:
         conflict = dict_tb[tb_type]["zoneNames"][zone_shortname]

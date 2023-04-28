@@ -7,6 +7,8 @@ from mysql.connector import MySQLConnection, Error
 import datetime
 import time
 import wcwidth
+import asyncio
+
 def wc_ljust(text, length):
     return text + ' ' * max(0, length - wcwidth.wcswidth(text))
 

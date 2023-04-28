@@ -673,7 +673,7 @@ async def update_gwarstats(server_id):
         feuille=file.worksheet("BT graphs")
     except:
         goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
-        return
+        return 1, "Erreur inconnue"
 
     now = datetime.datetime.now()
 

@@ -255,8 +255,7 @@ async def bot_loop_60secs():
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
                     goutils.log2("DBG", "before get_rpc_update: "+str(server_id))
-                    #await start_thread( connect_rpc.get_rpc_data, server_id, True, False)
-                    await connect_rpc.get_rpc_data( server_id, True, False)
+                    await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], False)
                     goutils.log2("DBG", "before update_gwarstats: "+str(server_id))
                     await connect_gsheets.update_gwarstats( server_id)
                     goutils.log2("DBG", "before get_guildChat: "+str(server_id))
@@ -1052,7 +1051,7 @@ def manage_me(ctx, alias):
 # Purpose: affecte le code allié de l'auteur si "me"
 # OUT: err_code (0 = OK), err_txt
 ##############################################################
-def read_gsheets(server_id):
+async def read_gsheets(server_id):
     err_code = 0
     err_txt = ""
 
@@ -1110,9 +1109,14 @@ async def on_ready():
     ip = get('https://api.ipify.org').text
     
     msg = bot.user.name+" has connected to Discord from ip "+ip
-    goutils.log("INFO", "guionbot_discord.on_ready", msg)
+    goutils.log2("INFO", msg)
     if not bot_test_mode:
         await send_alert_to_admins(None, msg)
+
+@bot.event
+async def on_resumed():
+    msg = bot.user.name+" has reconnected to Discord"
+    goutils.log2("INFO", msg)
 
 
 ##############################################################
@@ -1149,7 +1153,8 @@ async def on_reaction_add(reaction, user):
     # Manage the thumb up to messages sent to admins
     if message.content in list_alerts_sent_to_admin \
         and emoji == '\N{THUMBS UP SIGN}' \
-        and author == bot.user:
+        and message.author == bot.user:
+
         list_alerts_sent_to_admin.remove(message.content)
         await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
         goutils.log2("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admin))
@@ -1931,7 +1936,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
         data.reset_data()
-        err_code, err_txt = read_gsheets(ctx.guild.id)
+        err_code, err_txt = await read_gsheets(ctx.guild.id)
 
         if err_code == 1:
             await ctx.send(err_txt)
