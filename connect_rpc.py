@@ -316,6 +316,7 @@ async def get_player_data(ac_or_id, use_cache_data):
     if not use_cache_data:
         process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getplayer.sh", ac_or_id)
         while process.returncode == None:
+            goutils.log2("DBG", "waiting getplayer...")
             await asyncio.sleep(1)
         await process.wait()
         goutils.log2("DBG", "getplayer code="+str(process.returncode))
