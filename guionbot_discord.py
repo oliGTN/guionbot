@@ -2203,9 +2203,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         else:
             tw_mode = False
 
-        if len(args) == 2:
+        if len(args) >= 2:
             allyCode = args[0]
-            character_alias = args[1]
+            character_list = args[1:]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
             await ctx.message.add_reaction(emoji_error)
@@ -2217,7 +2217,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, errtxt, ret_cmd = await go.tag_players_with_character(allyCode, character_alias,
+            err, errtxt, ret_cmd = await go.tag_players_with_character(allyCode, character_list,
                                                                  ctx.guild.id, tw_mode)
             if err != 0:
                 await ctx.send(errtxt)
