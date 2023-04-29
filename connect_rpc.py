@@ -145,80 +145,135 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
                 await asyncio.sleep(1)
             await process.wait()
             goutils.log2("DBG", "getevents code="+str(process.returncode))
+
         if os.path.exists(events_file):
             events_json = json.load(open(events_file, "r"))
             if "event" in events_json:
-                list_new_events = events_json["event"]
+                list_rpc_events = events_json["event"]
             else:
-                list_new_events = []
+                list_rpc_events = []
         else:
-            list_new_events = []
+            list_rpc_events = []
         await release_sem(events_file)
 
-        dict_events = {}
-        dict_event_counts = {}
-        goutils.log2("DBG", "start loop list_new_events")
-        sys.stdout.flush()
-        for event in list_new_events:
-            event_id = event["id"]
+        # GET latest ts for events
+        query = "SELECT eventLatest_ts "
+        query+= "FROM guild_bot_infos "
+        query+= "WHERE server_id="+str(server_id)
+        goutils.log2("DBG", query)
+        eventLatest_ts = connect_mysql.get_value(query)
+
+        goutils.log2("DBG", "start loop list_rpc_events")
+        max_event_ts = 0
+        dict_new_events = {}
+        dict_event_counts = {"chat":0, "tb":0, "tw":0}
+        chat_file_ids = []
+        tb_file_ids = []
+        tw_file_ids = []
+        for event in list_rpc_events:
             channel_id = event["channelId"]
             event_ts = int(event["timestamp"])
+
             if channel_id.startswith("guild-{"):
                 event_day_ts = int(event_ts/1000/86400)*86400*1000
                 event_file_id = "GUILD_CHAT:"+str(event_day_ts)
-            else:
+                if not event_file_id in chat_file_ids:
+                    chat_file_ids.append(event_file_id)
+                event_type = "chat"
+
+            elif "TB_EVENT" in channel_id:
                 ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
                 event_file_id = ret_re.group(1)
+                if not event_file_id in tb_file_ids:
+                    tb_file_ids.append(event_file_id)
+                event_type = "tb"
 
-            if not event_file_id in dict_events:
-                fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
-                if os.path.exists(fevents):
-                    goutils.log2("DBG", "get previous events from "+fevents)
-                    await acquire_sem(fevents)
-                    f = open(fevents, "r")
-                    try:
-                        dict_events[event_file_id]=json.load(f)
-                    except:
-                        goutils.log2("WAR", "error while reading "+fevents+" ... ignoring")
-                        dict_events[event_file_id]={}
-                    f.close()
-                    await release_sem(fevents)
-                else:
-                    dict_events[event_file_id]={}
+            elif "TERRITORY_WAR" in channel_id:
+                ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
+                event_file_id = ret_re.group(1)
+                if not event_file_id in tw_file_ids:
+                    tw_file_ids.append(event_file_id)
+                event_type = "tw"
 
-                dict_event_counts[event_file_id]=0
+            else:
+                continue
 
-            if not event_id in dict_events[event_file_id]:
-                dict_event_counts[event_file_id]+=1
-                dict_events[event_file_id][event_id] = event
+            if event_ts <= eventLatest_ts:
+                continue
 
-            # give way to other tasks
-            await asyncio.sleep(0)
+            if event_ts > max_event_ts:
+                max_event_ts = event_ts
 
-        goutils.log2("DBG", "end loop list_new_events")
-        sys.stdout.flush()
-        if max(dict_event_counts.values()) > 0:
-            goutils.log2("INFO", "New events: "+str(dict_event_counts))
+            dict_event_counts[event_type]+=1
+            if not event_file_id in dict_new_events:
+                dict_new_events[event_file_id] = []
+            dict_new_events[event_file_id].append(event)
 
-        goutils.log2("DBG", "start writing events files")
-        for event_file_id in dict_events:
-            fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
-            await acquire_sem(fevents)
-            f=open(fevents, "w")
-            f.write(json.dumps(dict_events[event_file_id], indent=4))
-            f.close()
-            await release_sem(fevents)
-            goutils.log2("DBG", str(fevents)+" succesfully written")
-        goutils.log2("DBG", "end writing events files")
-    else:
-        dict_events = {}
+        goutils.log2("DBG", "end loop list_rpc_events")
 
-    if not use_cache_data:
-        #log update time in DB - rounded to fix times (eg: always 00:05, 00:10 for 5 min period)
-        query = "UPDATE guild_bot_infos SET bot_latestUpdate=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
+        # SET latest ts for events
+        if max_event_ts == 0:
+            max_event_ts = eventLatest_ts
+        query = "UPDATE guild_bot_infos "
+        query+= "SET eventLatest_ts="+str(max_event_ts)+" "
         query+= "WHERE server_id="+str(server_id)
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
+
+        #if max(dict_event_counts.values()) > 0:
+        goutils.log2("INFO", "New events: "+str(dict_event_counts))
+
+        #PREPARE dict_events to return
+        goutils.log2("DBG", "start loop dict_new_events")
+        dict_events = {}
+
+        #CHAT events
+        for [event_type, file_ids] in [["CHAT", chat_file_ids],
+                                       ["TB", tb_file_ids],
+                                       ["TW", tw_file_ids]]:
+            if event_type in event_types:
+                for event_file_id in file_ids:
+                    fevents = "EVENTS/"+guildName+"_"+event_file_id+"_events.json"
+                    await acquire_sem(fevents)
+
+                    #Get previous events
+                    if os.path.exists(fevents):
+                        goutils.log2("DBG", "get previous events from "+fevents)
+                        f = open(fevents, "r")
+                        try:
+                            file_events=json.load(f)
+                        except:
+                            goutils.log2("WAR", "error while reading "+fevents+" ... ignoring")
+                            file_events={}
+                        f.close()
+                    else:
+                        file_events={}
+
+                    #Add new events
+                    if event_file_id in dict_new_events:
+                        for event in dict_new_events[event_file_id]:
+                            event_id = event["id"]
+                            file_events[event_id] = event
+
+                        #And write file
+                        f = open(fevents, "w")
+                        f.write(json.dumps(file_events, indent=4))
+                    await release_sem(fevents)
+
+                    #Add all events to dict_events
+                    dict_events[event_file_id] = file_events
+
+            await asyncio.sleep(0)
+
+        if not use_cache_data:
+            #log update time in DB - rounded to fix times (eg: always 00:05, 00:10 for 5 min period)
+            query = "UPDATE guild_bot_infos SET bot_latestUpdate=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
+            query+= "WHERE server_id="+str(server_id)
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+    else:
+        dict_events = {}
 
     goutils.log2("DBG", "END get_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
@@ -290,7 +345,11 @@ async def get_bot_player_data(server_id, use_cache_data):
     await acquire_sem(server_id)
     
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
+        #process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
+        process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId)
+        while process.returncode == None:
+            await asyncio.sleep(1)
+        await process.wait()
         goutils.log2("DBG", "getplayerbot code="+str(process.returncode))
 
     dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_androidId+".json", "r"))
@@ -359,7 +418,7 @@ async def parse_tb_platoons(server_id, use_cache_data):
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
     list_open_territories = [0, 0, 0] # [4, 3, 3]
 
-    dict_tb = data.dict_tb
+    dict_tb = godata.dict_tb
 
     err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["TB"], use_cache_data)
 
@@ -1152,7 +1211,7 @@ async def deploy_tb(server_id, zone, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_guild = rpc_data[0]
 
-    err_code, err_txt, rpc_data = get_bot_player_data(server_id, True)
+    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, True)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1188,7 +1247,7 @@ async def deploy_tw(server_id, zone, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_guild = rpc_data[0]
 
-    err_code, err_txt, rpc_data = get_bot_player_data(server_id, True)
+    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, True)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
