@@ -3425,7 +3425,7 @@ async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_g
 # IN: tw_mode (True if the bot shall count defense-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-async def tag_players_with_character(txt_allyCode, character, server_id, tw_mode):
+async def tag_players_with_character(txt_allyCode, list_characters, server_id, tw_mode):
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
@@ -3435,135 +3435,146 @@ async def tag_players_with_character(txt_allyCode, character, server_id, tw_mode
         if ec != 0:
             return ec, et
 
-    opposite_search = (character[0]=="-")
+    opposite_search = (list_characters[0][0]=="-")
     if opposite_search and tw_mode:
-        return 1, "ERR: impossible de chercher un perso non présent (avec le '-') avec l'option -TW", None
+        return 1, "ERR: impossible de chercher un perso non présent (avec le '-' avant le premier/seul perso) avec l'option -TW", None
 
-    tab_virtual_character = character.split(':')
+    #prepare basic query
+    query = "SELECT guildName, name FROM players " \
+          + "WHERE guildName=(" \
+          + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") "
+    intro_txt = "Ceux"
 
-    char_rarity = 0
-    char_gear = 0
-    char_relic = -2
-    char_omicron = False
+    first_char = True #to store the char_id of the first char in the command
+    for character in list_characters:
+        tab_virtual_character = character.split(':')
 
-    if len(tab_virtual_character) == 1:
-        #regular character, not virtual
-        char_alias = tab_virtual_character[0]
-        simple_search = True
-    else:
-        char_alias = tab_virtual_character[0]
-        simple_search = False
+        char_rarity = 0
+        char_gear = 0
+        char_relic = -2
+        char_omicron = False
 
-        for character_option in tab_virtual_character[1:]:
-            if len(character_option)==1 and character_option in "1234567":
-                char_rarity = int(character_option)
+        opposite_search = (character[0]=="-")
+        if len(tab_virtual_character) == 1:
+            #regular character, not virtual
+            char_alias = tab_virtual_character[0]
+            simple_search = True
+        else:
+            char_alias = tab_virtual_character[0]
+            simple_search = False
 
-            elif character_option[0] in "gG":
-                if character_option[1:].isnumeric():
-                    char_gear = int(character_option[1:])
-                    char_relic = -2
-                    if (char_gear<1) or (char_gear>13):
+            for character_option in tab_virtual_character[1:]:
+                if len(character_option)==1 and character_option in "1234567":
+                    char_rarity = int(character_option)
+
+                elif character_option[0] in "gG":
+                    if character_option[1:].isnumeric():
+                        char_gear = int(character_option[1:])
+                        char_relic = -2
+                        if (char_gear<1) or (char_gear>13):
+                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+                    else:
                         return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+
+                elif character_option[0] in "rR":
+                    if character_option[1:].isnumeric():
+                        char_relic = int(character_option[1:])
+                        char_gear = 13
+                        if (char_relic<0) or (char_relic>9):
+                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+                    else:
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+
+                elif character_option == "omicron":
+                    char_omicron = True
                 else:
                     return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+                
+        #Get character_id
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+        if txt != '':
+            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+        character_id = list_character_ids[0]
+        if first_char:
+            first_char_id = character_id
 
-            elif character_option[0] in "rR":
-                if character_option[1:].isnumeric():
-                    char_relic = int(character_option[1:])
-                    char_gear = 13
-                    if (char_relic<0) or (char_relic>9):
-                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-                else:
-                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-
-            elif character_option == "omicron":
-                char_omicron = True
+        goutils.log2("DBG", character_id)
+        goutils.log2("DBG", opposite_search)
+        goutils.log2("DBG", simple_search)
+        if opposite_search and simple_search:
+            intro_txt+= " qui n'ont pas "+character_id
+            query+= "AND NOT allyCode IN ( "
+        else:
+            if opposite_search:
+                intro_txt = " qui ont ("+character_id+ " mais pas "+character_id
             else:
-                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-            
-    #Get character_id
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
-    if txt != '':
-        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
-    character_id = list_character_ids[0]
+                intro_txt+= " qui ont "+character_id
 
-    if opposite_search and simple_search:
-        intro_txt = "Ceux qui n'ont pas "+character_id
-        query = "SELECT guildName, name FROM players " \
-              + "WHERE guildName=(" \
-              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
-              + "AND NOT allyCode IN (" \
-              + "   SELECT players.allyCode FROM players " \
-              + "   JOIN roster ON roster.allyCode = players.allyCode " \
-              + "   WHERE guildName=(" \
-              + "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
-              + "      AND defId = '"+character_id+"')"
-    else:
-        query = "SELECT guildName, players.name FROM players " \
-              + "JOIN roster ON roster.allyCode = players.allyCode "
+            if not simple_search:
+                if char_rarity>0:
+                    intro_txt += ":"+str(char_rarity)+"*"
+                if char_relic>-2:
+                    intro_txt += ":R"+str(char_relic)
+                elif char_gear>0:
+                    intro_txt += ":G"+str(char_gear)
+                if char_omicron:
+                    intro_txt += ":omicron"
+
+            if opposite_search:
+                intro_txt += ")"
+
+            query+= "AND allyCode IN ( "
+
+        query+= "   SELECT players.allyCode FROM players "
+        query+= "   JOIN roster ON roster.allyCode = players.allyCode "
 
         if char_omicron:
-            query+= "JOIN roster_skills ON roster_id = roster.id "
+            query+= "   JOIN roster_skills ON roster_id = roster.id "
 
-        query+= "WHERE guildName=(" \
-              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
-              + "AND defId = '"+character_id+"' "
+        query+= "   WHERE guildName=(" 
+        query+= "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " 
+        query+= "      AND defId = '"+character_id+"' "
 
         if opposite_search:
-            intro_txt = "Ceux qui ont "+character_id+ " mais pas "+character_id
-            if char_rarity>0:
-                intro_txt += ":"+str(char_rarity)+"*"
-            if char_relic>-2:
-                intro_txt += ":R"+str(char_relic)
-            elif char_gear>0:
-                intro_txt += ":G"+str(char_gear)
-            if char_omicron:
-                intro_txt += ":omicron"
+            if not simple_search:
+                query +="      AND (rarity < "+str(char_rarity)+" "
+                query+= "      OR gear < "+str(char_gear)+" "
+                query+= "      OR relic_currentTier < "+str(char_relic+2)+" "
 
-            query +="AND (rarity < "+str(char_rarity)+" "\
-                  + "OR gear < "+str(char_gear)+" "\
-                  + "OR relic_currentTier < "+str(char_relic+2)+" "
+                if char_omicron:
+                    query += "      OR (roster_skills.omicron_tier>0 AND roster_skills.level<roster_skills.omicron_tier) "
 
-            if char_omicron:
-                query += "OR (roster_skills.omicron_tier>0 AND roster_skills.level<roster_skills.omicron_tier) "
-
-            query += ") GROUP BY guildName, players.name"
+                query+= "      ) "
 
         else:
-            intro_txt = "Ceux qui ont "+character_id
-            if char_rarity>0:
-                intro_txt += ":"+str(char_rarity)+"*"
-            if char_relic>-2:
-                intro_txt += ":R"+str(char_relic)
-            elif char_gear>0:
-                intro_txt += ":G"+str(char_gear)
-            if char_omicron:
-                intro_txt += ":omicron"
-
-            if tw_mode:
-                intro_txt += ", qui sont inscrits à la GT, et qui ne l'ont pas mis en défense"
-
-            query +="AND rarity >= "+str(char_rarity)+" "\
-                  + "AND gear >= "+str(char_gear)+" "\
-                  + "AND relic_currentTier >= "+str(char_relic+2)+" "
+            query+= "      AND rarity >= "+str(char_rarity)+" "
+            query+= "      AND gear >= "+str(char_gear)+" "
+            query+= "      AND relic_currentTier >= "+str(char_relic+2)+" "
 
             if char_omicron:
-                query += "AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
+                query += "      AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
+        query += ") "
+        intro_txt += " et"
+        first_char = False
 
-            if tw_mode:
-                query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+"\n"
-
-            query += "GROUP BY guildName, players.name "
+    intro_txt = intro_txt[:-3]
+    if tw_mode:
+        intro_txt += ", qui sont inscrits à la GT, et qui ne l'ont pas mis en défense"
+        query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+"\n"
+    query += "GROUP BY guildName, players.name "
 
     goutils.log2('DBG', query)
     allyCodes_in_DB = connect_mysql.get_table(query)
+
+    if allyCodes_in_DB == None:
+        allyCodes_in_DB = []
 
     guildName = allyCodes_in_DB[0][0]
     dict_players = connect_mysql.load_config_players()[0]
 
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, True)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, True)
         if ec != 0:
             return ec, et, None
 
@@ -3579,7 +3590,7 @@ async def tag_players_with_character(txt_allyCode, character, server_id, tw_mode
         goutils.log2('DBG', 'player_name: '+player_name)
 
         if character_id in dict_def_toon_player and \
-            player_name in dict_def_toon_player[character_id]:
+            player_name in dict_def_toon_player[first_char_id]:
 
             goutils.log2('DBG', "toon used in TW defense, no tag")
         else:
