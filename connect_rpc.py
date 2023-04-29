@@ -297,7 +297,11 @@ async def get_guild_data(txt_allyCode, use_cache_data):
 async def get_guild_data_from_id(guild_id, use_cache_data):
     await acquire_sem(guild_id)
     if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getextguild.sh", guild_id])
+        #process = subprocess.run(["/home/pi/GuionBot/warstats/getextguild.sh", guild_id])
+        process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getextguild.sh", guild_id)
+        while process.returncode == None:
+            await asyncio.sleep(1)
+        await process.wait()
         goutils.log2("DBG", "getextguild code="+str(process.returncode))
 
     guild_json = "/home/pi/GuionBot/warstats/GUILDS/"+guild_id+".json"
