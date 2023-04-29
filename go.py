@@ -40,13 +40,6 @@ SCORE_ALMOST_GREEN = 95
 SCORE_AMBER = 80
 SCORE_RED = 50
 
-#login password sur https://api.swgoh.help/profile
-if config.SWGOHAPI_LOGIN != "":
-    creds = settings(config.SWGOHAPI_LOGIN, config.SWGOHAPI_PASSWORD, '123', 'abc')
-    client = SWGOHhelp(creds)
-else:
-    client = None
-
 #Clean temp files
 parallel_work.clean_cache()
 
@@ -4364,6 +4357,9 @@ async def get_tb_alerts(server_id, force_latest):
     return tb_trigger_messages
     
 def get_tw_player_def(fevents_name, player_name):
+    dict_units = godata.get("unitsList_dict.json")
+    dict_tw = godata.dict_tw
+
     tw_events = json.load(open(fevents_name, 'r'))
     if "event" in tw_events:
         #events from rpc, not in EVENTS
@@ -4392,11 +4388,13 @@ def get_tw_player_def(fevents_name, player_name):
             leader = cur_def[1][0]
             dict_def[leader] = cur_def
 
-
     for leader in dict_def:
-        print("---\n"+leader)
-        for element in dict_def[leader]:
-            print("   "+str(element))
+        zone_id = dict_def[leader][0]
+        txt_cmd = "go.bot.deftw "+dict_tw[zone_id]
+        for element in dict_def[leader][1:]:
+            unit_id = element[0].split(":")[0]
+            txt_cmd += " \""+dict_units[unit_id]["name"]+"\""
+        print(txt_cmd)
 
 async def deploy_bot_tb(server_id, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
