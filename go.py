@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from swgohhelp import SWGOHhelp, settings
 import sys
 import time
 import datetime
