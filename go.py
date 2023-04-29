@@ -4183,7 +4183,7 @@ def print_events(fevent_name, fguild_name):
     g=json.load(open(fguild_name,"r"))
     guildId = g["guild"]["profile"]["id"]
     dict_tb = godata.dict_tb
-
+    dict_tw = godata.dict_tw
 
     d=json.load(open(fevent_name,"r"))
     sorted_d=dict(sorted(d.items(), key=lambda x:int(x[1]["timestamp"])))
@@ -4198,10 +4198,12 @@ def print_events(fevent_name, fguild_name):
         #TW
         if data["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
             activity=data["activity"]
+            zone_id=activity["zoneData"]["zoneId"]
+            zone_name = dict_tw[zone_id]
             if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
                 if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
                     leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
-                    print(str(time)+" DEFENSE: "+author+" "+leader)
+                    print(str(time)+" DEFENSE@"+zone_name+": "+author+" "+leader)
             else:
                 if activity["zoneData"]["guildId"] == guildId:
                     if "warSquad" in activity:
@@ -4228,7 +4230,7 @@ def print_events(fevent_name, fguild_name):
                                         and cell["unitState"]["turnPercent"] != "0":
                                         remaining_tm=True
 
-                            sys.stdout.write(str(time)+" DEFAITE: "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
+                            sys.stdout.write(str(time)+" DEFAITE@"+zone_name+": "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
                             if count_dead==0 and remaining_tm:
                                 sys.stdout.write(" >>> TM !!!\n")
                             else:
@@ -4236,7 +4238,7 @@ def print_events(fevent_name, fguild_name):
 
                         elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
                             if "squad" in activity["warSquad"]:
-                                print(str(time)+" VICTOIRE: "+author+" "+leader_opponent)
+                                print(str(time)+" VICTOIRE@"+zone_name+": "+author+" "+leader_opponent)
                         elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
                             if "squad" in activity["warSquad"]:
                                 print(str(time)+" DEBUT: "+author+" "+leader_opponent)
@@ -4351,7 +4353,7 @@ async def get_tb_alerts(server_id, force_latest):
 
     return tb_trigger_messages
     
-def get_tw_def_player(fevents_name, player_name):
+def get_tw_player_def(fevents_name, player_name):
     tw_events = json.load(open(fevents_name, 'r'))
     if "event" in tw_events:
         #events from rpc, not in EVENTS

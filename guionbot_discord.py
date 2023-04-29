@@ -1759,7 +1759,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botdeftw(self, ctx, zone, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = go.deploy_bot_tw(ctx.guild.id, zone, characters)
+        ec, et = await go.deploy_bot_tw(ctx.guild.id, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -1779,7 +1779,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botdeploytb(self, ctx, zone, characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = go.deploy_bot_tb(ctx.guild.id, zone, characters)
+        ec, et = await go.deploy_bot_tb(ctx.guild.id, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
