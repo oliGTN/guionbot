@@ -141,7 +141,6 @@ list_tw_opponent_msgIDs = []
 
 dict_platoons_previously_done = {} #Empy set
 dict_tb_alerts_previously_done = {}
-dict_tw_alerts_previously_done = {}
 
 ##############################################################
 #                                                            #
@@ -362,7 +361,6 @@ def compute_territory_progress(dict_platoons, territory):
 async def bot_loop_5minutes():
     global dict_platoons_previously_done
     global dict_tb_alerts_previously_done
-    global dict_tw_alerts_previously_done
     global first_bot_loop_5minutes
 
     await bot.wait_until_ready()
@@ -372,85 +370,92 @@ async def bot_loop_5minutes():
         dict_tw_alerts = {}
         for guild in bot.guilds:
             try:
-                if not guild.id in dict_tw_alerts_previously_done:
-                    dict_tw_alerts_previously_done[guild.id] = [0, {}]
-
                 #CHECK ALERTS FOR TERRITORY WAR
                 list_tw_alerts = await go.get_tw_alerts(guild.id, True)
                 if len(list_tw_alerts) > 0:
-                    [channel_id, dict_messages] = list_tw_alerts
+                    [channel_id, dict_messages, tw_ts] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
 
                     if len(dict_messages) == 0:
                         #No TW started, reset prev_alerts per territory
-                        dict_tw_alerts_previously_done[guild.id][1] = {}
+                        query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)
+                        goutils.log2("DBG", query)
+                        connect_mysql.simple_execute(query)
 
+                    #sort dict_messages
+                    # orders then defense then lost territories then attack
+                    d_ordres = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Ordres:")]}
+                    d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placements:")]}
+                    d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
+                    d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
+                    dict_messages = {**d_ordres, **d_placements, **d_home, **d_attack}
                     for territory in dict_messages:
                         msg_txt = dict_messages[territory]
                         goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg_txt)
 
-                        if not territory in dict_tw_alerts_previously_done[guild.id][1]:
-                            if not first_bot_loop_5minutes:
-                                #Short message to admins
-                                if territory.startswith('Home:'):
-                                    await send_alert_to_admins(guild, territory+" is lost")
-                                elif territory.startswith('Placement:'):
-                                    await send_alert_to_admins(guild, territory+" is filled")
-                                elif territory.startswith('Ordres:'):
-                                    await send_alert_to_admins(guild, territory+" has new orders")
-                                else:
-                                    await send_alert_to_admins(guild, territory+" is open")
+                        #get msg_id for this TW / zone
+                        query = "SELECT msg_id FROM tw_messages "
+                        query+= "WHERE server_id="+str(guild.id)+" "
+                        query+= "AND zone='"+territory+"'"
+                        goutils.log2("DBG", query)
+                        old_msg_id = connect_mysql.get_value(query)
 
-                                if not bot_test_mode:
-                                    #Full message to TW guild channel
-                                    new_msg = await tw_bot_channel.send(msg_txt)
-                                    dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
+                        if old_msg_id == None:
+                            #First time this zone has a message
 
-                                goutils.log2("DBG", "["+guild.name+"] New TW alert sent to admins " \
-                                            +"and channel "+str(channel_id))
+                            #Short message to admins
+                            if territory.startswith('Home:'):
+                                await send_alert_to_admins(guild, territory+" is lost")
+                            elif territory.startswith('Placement:'):
+                                await send_alert_to_admins(guild, territory+" is filled")
+                            elif territory.startswith('Ordres:'):
+                                await send_alert_to_admins(guild, territory+" has orders")
                             else:
-                                dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, 0]
-                                goutils.log2("DBG", "["+guild.name+"] TW alert not sent during 1st 5minute loop")
-                        elif not territory.startswith('Placement:') \
-                             and not territory.startswith('Ordres:'):
+                                await send_alert_to_admins(guild, territory+" is open")
 
-                            #Placement alerts are only sent once, never modified
-                            #Home: may be modified
-                            #<None> (new open territory in attack) may be modified
-                            #Ordres: re-sent every time they change
+                            #Full message to TW guild channel
+                            if not bot_test_mode:
+                                new_msg = await tw_bot_channel.send(msg_txt)
+                                query = "INSERT INTO tw_messages(server_id, tw_ts, zone, msg_id) "
+                                query+= "VALUES("+str(guild.id)+", "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
+                                goutils.log2("DBG", query)
+                                connect_mysql.simple_execute(query)
+                        else:
+                            #This zone already has a message
 
-                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
-                            if old_msg_txt != msg_txt:
-                                #Short message to admins
-                                await send_alert_to_admins(guild, territory+" is modified")
+                            #Home and Placements messages are not modified
 
+                            #Ordres are re-sent when modified
+                            if territory.startswith('Ordres:'):
+                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                                old_msg_txt = old_msg.content
+                                if old_msg_txt != msg_txt:
+                                    #Short message to admins
+                                    await send_alert_to_admins(guild, territory+" has new orders")
 
-                                if not bot_test_mode:
                                     #Full message modified in TW guild channel
-                                    if old_msg_id != 0:
-                                        old_msg = await tw_bot_channel.fetch_message(old_msg_id)
-                                        await old_msg.edit(content=msg_txt)
-                                        dict_tw_alerts_previously_done[guild.id][1][territory][0] = msg_txt
-                                    else:
-                                        #TW alert detected but not sent because during the first bot loop
-                                        # because it is modified, it is now sent
+                                    if not bot_test_mode:
                                         new_msg = await tw_bot_channel.send(msg_txt)
-                                        dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
+                                        query = "UPDATE tw_messages "
+                                        query+= "SET msg_id ="+str(new_msg.id)+" "
+                                        query+= "WHERE server_id="+str(guild.id)+" "
+                                        query+= "AND tw_ts="+tw_ts+" "
+                                        query+= "AND zone='"+territory+"'"
+                                        goutils.log2("DBG", query)
+                                        connect_mysql.simple_execute(query)
 
-                                goutils.log2("DBG", "["+guild.name+"] Modified TW alert sent to admins " \
-                                            +"and channel "+str(channel_id))
+                            #Attack messages are updated when modified
+                            elif not ":" in territory:
+                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                                old_msg_txt = old_msg.content
+                                if old_msg_txt != msg_txt:
+                                    #Short message to admins
+                                    await send_alert_to_admins(guild, territory+" is modified")
 
-                        elif territory.startswith('Ordres:'):
-                            #Ordres: re-sent every time they change
+                                    #Full message modified in TW guild channel
+                                    if not bot_test_mode:
+                                        await old_msg.edit(content=msg_txt)
 
-                            [old_msg_txt, old_msg_id] = dict_tw_alerts_previously_done[guild.id][1][territory]
-                            if old_msg_txt != msg_txt:
-                                if not bot_test_mode:
-                                    new_msg = await tw_bot_channel.send(msg_txt)
-                                    dict_tw_alerts_previously_done[guild.id][1][territory] = [msg_txt, new_msg.id]
-
-                                goutils.log2("DBG", "["+guild.name+"] New orders for TW sent to admins " \
-                                            +"and channel "+str(channel_id))
                 else:
                     goutils.log2("DBG", "["+guild.name+"] TW alerts could not be detected")
 
@@ -703,8 +708,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     tbs_name = tbs_round[:-1]
     
     async for message in tb_channel.history(limit=500):
-        print(message.author.name)
-        print(message.author.id)
+        #print(message.author.name)
+        #print(message.author.id)
         #common EchoStation
         #KangooLegends Echobot
         #Padawans Echobot
@@ -739,9 +744,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         platoon_name] = {}
 
                                 #transform the name into French
-                                print(char_name)
+                                #print(char_name)
                                 perso_id = dict_alias[char_name.lower()][1]
-                                print(perso_id)
+                                #print(perso_id)
                                 char_name = dict_units[perso_id]["name"]
 
                                 if not char_name in dict_platoons_allocation[
@@ -776,9 +781,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[platoon_name] = {}
 
                                     #transform the name into French
-                                    print(char_name)
+                                    #print(char_name)
                                     perso_id = dict_alias[char_name.lower()][1]
-                                    print(perso_id)
+                                    #print(perso_id)
                                     char_name = dict_units[perso_id]["name"]
 
                                     if not char_name in dict_platoons_allocation[
@@ -816,9 +821,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             platoon_name] = {}
 
                                     #transform the name into French
-                                    print(char_name)
+                                    #print(char_name)
                                     perso_id = dict_alias[char_name.lower()][1]
-                                    print(perso_id)
+                                    #print(perso_id)
                                     char_name = dict_units[perso_id]["name"]
 
                                     if not char_name in dict_platoons_allocation[
@@ -852,9 +857,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         platoon_name] = {}
 
                                 #transform the name into French
-                                print(char_name)
+                                #print(char_name)
                                 perso_id = dict_alias[char_name.lower()][1]
-                                print(perso_id)
+                                #print(perso_id)
                                 char_name = dict_units[perso_id]["name"]
 
                                 if not char_name in dict_platoons_allocation[
@@ -1622,12 +1627,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 phase_name = platoon_name.split('-')[0][:-1]
                 if not phase_name in phase_names_already_displayed:
                     phase_names_already_displayed.append(phase_name)
-                print("---"+platoon_name)
-                print(dict_platoons_done[platoon_name])
+                #print("---"+platoon_name)
+                #print(dict_platoons_done[platoon_name])
                 for perso in dict_platoons_done[platoon_name]:
                     if '' in dict_platoons_done[platoon_name][perso]:
                         if platoon_name in dict_platoons_allocation:
-                            print(dict_platoons_allocation[platoon_name])
+                            #print(dict_platoons_allocation[platoon_name])
                             if perso in dict_platoons_allocation[platoon_name]:
                                 for allocated_player in dict_platoons_allocation[
                                         platoon_name][perso]:
@@ -1661,7 +1666,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             full_txt = ''
             cur_phase = 0
-            print(list_txt)
+            #print(list_txt)
 
             for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
                 platoon_name = txt[1]
@@ -3099,8 +3104,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, err_txt, image = await start_thread(
-                    go.get_stat_graph, allyCode, alias, stat)
+        e, err_txt, image = await go.get_stat_graph( allyCode, alias, stat)
         if e == 0:
             with BytesIO() as image_binary:
                 image.save(image_binary, 'PNG')

@@ -1119,18 +1119,19 @@ async def get_tw_opponent_leader(server_id):
 ########################################
 # get_tw_status
 # get statues of territories in attack and def
-# tw_ongoing: True/False
+# tw_id: None / "TERRITORY_WAR_EVENT_C:01681236000000"
 # list_teams: [["T1", "Karcot", ["General Skywalker", "CT-5555 Fives", ...], <is_beaten>, <fights>],
 #              ["T1", "JeanLuc"...
 # list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>], ...]
 # opp_guild: [name, id]
+# tw_id: "TERRITORY_WAR_EVENT_C:01681236000000"
 ########################################
 async def get_tw_status(server_id, use_cache_data):
     dict_tw=godata.dict_tw
 
     ec, et, rpc_data = await get_rpc_data(server_id, [], use_cache_data)
     if ec!=0:
-        return False, [[], []], [[], []], None
+        return None, [[], []], [[], []], None
 
     dict_guild=rpc_data[0]
     mapstats=rpc_data[1]
@@ -1139,15 +1140,15 @@ async def get_tw_status(server_id, use_cache_data):
     for member in dict_guild["member"]:
         dict_members_by_id[member["playerId"]] = member["playerName"]
 
-    tw_ongoing=False
+    tw_id=None
     if "territoryWarStatus" in dict_guild:
         for battleStatus in dict_guild["territoryWarStatus"]:
             if "awayGuild" in battleStatus:
-                tw_ongoing = True
+                tw_id = battleStatus["instanceId"]
                 cur_tw = battleStatus
 
-    if not tw_ongoing:
-        return False, [[], []], [[], []], None
+    if tw_id == None:
+        return None, [[], []], [[], []], None
 
     opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
     opp_guildId = battleStatus["awayGuild"]["profile"]["id"]
@@ -1186,7 +1187,7 @@ async def get_tw_status(server_id, use_cache_data):
                     commandMsg = None
                 list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg])
 
-    return True, [list_teams["homeGuild"], list_territories["homeGuild"]], \
+    return tw_id, [list_teams["homeGuild"], list_territories["homeGuild"]], \
                  [list_teams["awayGuild"], list_territories["awayGuild"]], \
                  [opp_guildName, opp_guildId]
 

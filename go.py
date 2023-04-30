@@ -1804,8 +1804,8 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                 return "ERR: cannot detect TW opponent in this server"
 
             rpc_data = await connect_rpc.get_tw_status(server_id, True)
-            tw_ongoing = rpc_data[0]
-            if not tw_ongoing:
+            tw_id = rpc_data[0]
+            if tw_id == None:
                 return "ERR: no TW ongoing"
 
             list_opponent_squads = rpc_data[2][0]
@@ -2140,8 +2140,8 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
     rpc_data = await connect_rpc.get_tw_status(server_id, True)
-    tw_ongoing = rpc_data[0]
-    if not tw_ongoing:
+    tw_id = rpc_data[0]
+    if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
 
     list_opponent_squads = rpc_data[2][0]
@@ -3042,7 +3042,8 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 # get_tw_alerts
 # IN - server_id (equivalent to guild id)
 # OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
-#                                      territory2: alert_territory2...}]
+#                                      territory2: alert_territory2...},
+#                       tw_timestamp]]
 ############################################
 async def get_tw_alerts(server_id, use_cache_data):
     dict_unitsList = godata.get("unitsList_dict.json")
@@ -3063,11 +3064,13 @@ async def get_tw_alerts(server_id, use_cache_data):
         return []
 
     rpc_data = await connect_rpc.get_tw_status(server_id, use_cache_data)
-    tw_ongoing = rpc_data[0]
-    if not tw_ongoing:
+    tw_id = rpc_data[0]
+    if tw_id == None:
         return []
 
-    list_tw_alerts = [twChannel_id, {}]
+    tw_timestamp = tw_id.split(":")[1][1:]
+
+    list_tw_alerts = [twChannel_id, {}, tw_timestamp]
 
     list_opponent_squads = rpc_data[2][0]
     list_opp_territories = rpc_data[2][1]
@@ -3079,7 +3082,9 @@ async def get_tw_alerts(server_id, use_cache_data):
 
         for territory in list_open_tw_territories:
             list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
+            list_opp_remaining_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0 and not x[3])]
             counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
+            counter_remaining_leaders = Counter([x[2][0] for x in list_opp_remaining_squads_terr])
 
             n_territory = int(territory[1])
             if territory[0] == "T" and int(territory[1]) > 2:
@@ -3105,7 +3110,11 @@ async def get_tw_alerts(server_id, use_cache_data):
                     leader_name = dict_unitsList[leader]["name"]
                 else:
                     leader_name = leader
-                msg += "\n - "+leader_name+": "+str(counter_leaders[leader])
+                msgleader = " - "+leader_name+": "+str(counter_remaining_leaders[leader])+"/"+str(counter_leaders[leader])
+                if counter_remaining_leaders[leader] == 0:
+                    msg += "\n~~"+msgleader+"~~"
+                else:
+                    msg += "\n"+msgleader
 
             list_tw_alerts[1][territory] = msg
 
@@ -3154,7 +3163,7 @@ async def get_tw_alerts(server_id, use_cache_data):
 
             if orders != None:
                 msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+") "
-                msg+= "a de nouveaux ordres : "+orders
+                msg+= "a de nouveaux ordres : "+orders.strip()
                 list_tw_alerts[1]["Ordres:"+territory_name] = msg
 
         #Alert for defense lost
@@ -3832,8 +3841,8 @@ async def get_tw_defense_toons(server_id, use_cache_data):
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
     rpc_data = await connect_rpc.get_tw_status(server_id, use_cache_data)
-    tw_ongoing = rpc_data[0]
-    if not tw_ongoing:
+    tw_id = rpc_data[0]
+    if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
 
     list_defense_squads = rpc_data[1][0]
