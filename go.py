@@ -215,7 +215,6 @@ async def load_player(ac_or_id, force_update, no_db):
 
         if dict_player == None:
             goutils.log2("ERR", 'Cannot get player data for '+ac_or_id)
-            #sys.stdout.flush()
             return 1, 'ERR: cannot get player data for '+ac_or_id, None
 
         #Add mandatory elements to compute stats
@@ -242,7 +241,6 @@ async def load_player(ac_or_id, force_update, no_db):
         player_name = dict_player["name"]
 
         goutils.log2("INFO", "success retrieving "+player_name+" from RPC")
-        #sys.stdout.flush()
         
         if not no_db:
             # compute differences
@@ -261,16 +259,12 @@ async def load_player(ac_or_id, force_update, no_db):
             else:
                 goutils.log2('ERR', 'update_player '+ac_or_id+' returned an error')
                 return 1, 'ERR: update_player '+ac_or_id+' returned an error', None
-            #sys.stdout.flush()
-            goutils.log2('DBG', "after flush...")
                 
     else:
         dict_player = prev_dict_player
         player_name = dict_player["name"]
         goutils.log2('INFO', player_name + ' loaded from existing XML OK')
     
-    goutils.log2('DBG', "before flush...")
-    #sys.stdout.flush()
     goutils.log2('DBG', "END")
     return 0, "", dict_player
 
@@ -401,7 +395,6 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
                             + guild_loading_status + "), waiting 30 seconds...")
                     await asyncio.sleep(30)
                     guild_loading_status = parallel_work.get_guild_loading_status(guildName)
-                    #sys.stdout.flush()
             else:
                 #Ensure only one guild loading at a time
                 #while len(dict_loading_guilds) > 1:
@@ -411,7 +404,6 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
                     await asyncio.sleep(30)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
-                    #sys.stdout.flush()
 
                 #Request to load this guild
                 parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
@@ -540,7 +532,6 @@ async def load_shard(shard_id, shard_type, cmd_request):
                         + guild_loading_status + "), waiting 30 seconds...")
                 await asyncio.sleep(30)
                 guild_loading_status = parallel_work.get_guild_loading_status(guildName)
-                #sys.stdout.flush()
         else:
             #Ensure only one guild loading at a time
             #while len(dict_loading_guilds) > 1:
@@ -550,7 +541,6 @@ async def load_shard(shard_id, shard_type, cmd_request):
                             +"will start after loading of "+str(list_other_guilds_loading_status))
                 await asyncio.sleep(30)
                 list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
-                #sys.stdout.flush()
 
             #Request to load this guild
             parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
@@ -2416,7 +2406,7 @@ async def print_lox(txt_allyCode, characters, compute_guild):
     return 0, war_txt, db_lines
 
 ###############################
-def print_erx(txt_allyCode, days, compute_guild):
+async def print_erx(txt_allyCode, days, compute_guild):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_categoryList = godata.get("categoryList_dict.json")
 
@@ -2511,6 +2501,8 @@ def print_erx(txt_allyCode, days, compute_guild):
         stats_categories = {} #id: [name, count]
         stats_gv = {} #id: [name, count]
         for line in db_data_evo:
+            await asyncio.sleep(0)
+
             player_name = line[1]
             unit_id = line[2]
             if unit_id != "all":
@@ -2623,7 +2615,7 @@ def print_erx(txt_allyCode, days, compute_guild):
 # Function: print_raid_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
+async def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
     dict_raids = connect_gsheets.load_config_raids(server_id, False)
     dict_raid_tiers = godata.dict_raid_tiers
     if raid_alias in dict_raids:
@@ -2631,7 +2623,7 @@ def print_raid_progress(txt_allyCode, server_id, raid_alias, use_mentions):
     else:
         return 1, "ERR: unknown raid "+raid_alias+" among "+str(list(dict_raids.keys())), ""
 
-    ec, et, dict_teams_by_player = find_best_teams_for_raid(txt_allyCode, server_id, raid_alias, True)
+    ec, et, dict_teams_by_player = await find_best_teams_for_raid(txt_allyCode, server_id, raid_alias, True)
     if ec != 0:
         return 1, et, ""
     dict_players_by_team = {}
@@ -3232,7 +3224,7 @@ def develop_teams(dict_teams):
 #                  'JMK-RANCOR': [[...]]}
 # OUT - error_code, error_text, list_best_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13, 24]
 ############################################
-def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score, dict_teams):
+async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score, dict_teams):
     list_best_teams_score = ["", 0, []]
 
     list_toon_player = [x[1] for x in list_allyCode_toon if x[0]==int(txt_allyCode)]
@@ -3246,6 +3238,8 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 
     list_scoring_teams = [] #[['PADME', [padme, gk, snips]], ['PADME', [padme GK CAT]], ...]
     for scoring_team_name in dict_team_score:
+        await asyncio.sleep(0)
+
         if scoring_team_name in dict_teams:
             dict_scoring_teams_by_required_toons = {}
             for [required_toons, important_toons] in dict_teams[scoring_team_name]:
@@ -3284,6 +3278,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
             goutils.log2('ERR', err_txt)
             return 1, err_txt, None
 
+
     goutils.log2('INFO', "List of teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
     goutils.log2('DBG', str(len(list_scoring_teams))+" list to permute...")
     max_permutable_teams = 9
@@ -3297,6 +3292,8 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
     list_txt_scores = []
     i_permutation = 0
     for permutation in permutations_scoring_teams:
+        await asyncio.sleep(0)
+
         i_permutation += 1
         if (i_permutation % 100000) == 0:
             goutils.log2('INFO', "Current permutation: "+str(i_permutation))
@@ -3341,6 +3338,7 @@ def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score
 
         if cur_team_list_score[1] > list_best_teams_score[1]:
             list_best_teams_score = list(cur_team_list_score)
+
 
     #if txt_allyCode == '419576861':
     #    for txt_score in list_txt_scores:
@@ -3410,7 +3408,7 @@ async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_g
     #list_acs = ['513353354']
     dict_best_teams = {}
     for ac in list_acs:
-        ec, et, lbts = find_best_teams_for_player(allyCode_toon, ac, dts, ddt)
+        ec, et, lbts = await find_best_teams_for_player(allyCode_toon, ac, dts, ddt)
         if ec != 0:
             return 1, et, {}
         pname = [x[1] for x in ac_name if x[0]==int(ac)][0]

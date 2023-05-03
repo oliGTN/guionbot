@@ -97,6 +97,7 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
         #process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_androidId])
         process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getguild.sh", bot_androidId)
         while process.returncode == None:
+            goutils.log2("DBG", "waiting getguild...")
             await asyncio.sleep(1)
         await process.wait()
         goutils.log2("DBG", "getguild code="+str(process.returncode))
@@ -142,6 +143,7 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
             goutils.log2("DBG", "process_params="+process_cmd)
             process = await asyncio.create_subprocess_shell(process_cmd)
             while process.returncode == None:
+                goutils.log2("DBG", "waiting getevents...")
                 await asyncio.sleep(1)
             await process.wait()
             goutils.log2("DBG", "getevents code="+str(process.returncode))
@@ -300,6 +302,7 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
         #process = subprocess.run(["/home/pi/GuionBot/warstats/getextguild.sh", guild_id])
         process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getextguild.sh", guild_id)
         while process.returncode == None:
+            goutils.log2("DBG", "waiting getextguild...")
             await asyncio.sleep(1)
         await process.wait()
         goutils.log2("DBG", "getextguild code="+str(process.returncode))
@@ -353,6 +356,7 @@ async def get_bot_player_data(server_id, use_cache_data):
         #process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
         process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId)
         while process.returncode == None:
+            goutils.log2("DBG", "waiting getplayerbot...")
             await asyncio.sleep(1)
         await process.wait()
         goutils.log2("DBG", "getplayerbot code="+str(process.returncode))
@@ -418,6 +422,7 @@ async def join_tw(server_id):
 
     return 0, "Le bot a rejoint la GT"
 
+# OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
 async def parse_tb_platoons(server_id, use_cache_data):
     active_round = "" # GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
@@ -479,7 +484,7 @@ async def parse_tb_platoons(server_id, use_cache_data):
                         platoon_num_corrected = platoon_num
 
                     platoon_num_txt = str(platoon_num_corrected)
-                    platoon_name = dict_tb[zone_name] + "-" + platoon_num_txt
+                    platoon_name = dict_tb[zone_name]["name"] + "-" + platoon_num_txt
                     dict_platoons[platoon_name] = {}
 
                     for squad in platoon["squad"]:
@@ -612,7 +617,7 @@ async def get_guildChat_messages(server_id, use_cache_data):
 
 async def tag_tb_undeployed_players(server_id, use_cache_data):
     dict_tb=godata.dict_tb
-    ec, et, tb_data = get_tb_status(server_id, "", False, use_cache_data)
+    ec, et, tb_data = await get_tb_status(server_id, "", False, use_cache_data)
     if ec!=0:
         return 1, et, None
 
@@ -634,6 +639,8 @@ async def tag_tb_undeployed_players(server_id, use_cache_data):
     #count remaining players
     lines_player = []
     for playerName in dict_tb_players:
+        await asyncio.sleep(0)
+
         player = dict_tb_players[playerName]
         undeployed_player = False
 

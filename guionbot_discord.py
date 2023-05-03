@@ -161,48 +161,6 @@ def set_id_lastseen(event_name, server_id, player_id):
     else:
         goutils.log2("WAR", "unknown guild="+str(server_id))
 
-async def start_thread(func, *args):
-    func_name = func.__name__
-    goutils.log2("DBG", "START: "+func_name)
-    print(args)
-
-    if len(args)==0:
-        ret = await bot.loop.run_in_executor(None, func)
-    elif len(args)==1:
-        ret = await bot.loop.run_in_executor(None, func, args[0])
-    elif len(args)==2:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1])
-    elif len(args)==3:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1], args[2])
-    elif len(args)==4:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1], args[2],
-                                                         args[3])
-    elif len(args)==5:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1], args[2],
-                                                         args[3], args[4])
-    elif len(args)==6:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1], args[2],
-                                                         args[3], args[4], args[5])
-    elif len(args)==7:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1], args[2],
-                                                         args[3], args[4], args[5],
-                                                         args[6])
-    elif len(args)==8:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1], args[2],
-                                                         args[3], args[4], args[5],
-                                                         args[6], args[7])
-    elif len(args)==9:
-        ret = await bot.loop.run_in_executor(None, func, args[0], args[1], args[2],
-                                                         args[3], args[4], args[5],
-                                                         args[6], args[7], args[8])
-    else:
-        goutils.log2("ERR", "too many args")
-        ret = None
-
-    goutils.log2("DBG", "END: "+func_name)
-
-    return ret
-
 ##############################################################
 # Function: bot_loop_60secs
 # Parameters: none
@@ -212,6 +170,7 @@ async def start_thread(func, *args):
 async def bot_loop_60secs():
     await bot.wait_until_ready()
     while not bot.is_closed():
+        goutils.log2("DBG", "START loop")
         t_start = time.time()
 
         try:
@@ -283,13 +242,13 @@ async def bot_loop_60secs():
                     if not bot_test_mode:
                         await send_alert_to_admins(None, "Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
 
+        goutils.log2("DBG", "END loop")
+
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 60 - (t_end - t_start))
+        goutils.log2("DBG", "WAIT "+str(waiting_time))
         await asyncio.sleep(waiting_time)
-
-        #Ensure writing in logs
-        sys.stdout.flush()
 
 ##############################################################
 # Function: bot_loop_10minutes
@@ -302,6 +261,7 @@ async def bot_loop_10minutes():
 
     await bot.wait_until_ready()
     while not bot.is_closed():
+        goutils.log2("DBG", "START loop")
         t_start = time.time()
 
         if not first_bot_loop_10minutes:
@@ -316,41 +276,24 @@ async def bot_loop_10minutes():
                 if not bot_test_mode:
                     await send_alert_to_admins(None, "Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
+            goutils.log2("DBG", "END loop")
+
             # Wait 600 seconds before next loop
             t_end = time.time()
             waiting_time = max(0, 60*10 - (t_end - t_start))
+            goutils.log2("DBG", "WAIT "+str(waiting_time))
             await asyncio.sleep(waiting_time)
         else:
             first_bot_loop_10minutes = False
+
+            goutils.log2("DBG", "END loop")
+
             # Wait 60 seconds before next loop
             # Just have a first shortloop without refresh to ensure bot connection to discord
             t_end = time.time()
             waiting_time = max(0, 60 - (t_end - t_start))
+            goutils.log2("DBG", "WAIT "+str(waiting_time))
             await asyncio.sleep(waiting_time)
-
-async def bot_loop_60minutes():
-    await bot.wait_until_ready()
-    while not bot.is_closed():
-        t_start = time.time()
-
-        # Wait X seconds before next loop
-        t_end = time.time()
-        waiting_time = max(0, 60*60 - (t_end - t_start))
-        await asyncio.sleep(waiting_time)
-
-def compute_platoon_progress(platoon_content):
-    all_allocations = [item for sublist in platoon_content.values() for item in sublist]
-    real_allocations = [x for x in all_allocations if x != '']
-    return len(real_allocations) / len(all_allocations)
-
-def compute_territory_progress(dict_platoons, territory):
-    count = 0
-    for i_platoon in range(1,7):
-        platoon = territory + str(i_platoon)
-        platoon_progress = compute_platoon_progress(dict_platoons[platoon])
-        if platoon_progress == 1:
-            count += 1
-    return count
 
 ##############################################################
 # Function: bot_loop_5minutes
@@ -365,6 +308,7 @@ async def bot_loop_5minutes():
 
     await bot.wait_until_ready()
     while not bot.is_closed():
+        goutils.log2("DBG", "START loop")
         t_start = time.time()
 
         dict_tw_alerts = {}
@@ -588,13 +532,13 @@ async def bot_loop_5minutes():
 
         first_bot_loop_5minutes = False
 
+        goutils.log2("DBG", "END loop")
+
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 60*5 - (t_end - t_start))
+        goutils.log2("DBG", "WAIT "+str(waiting_time))
         await asyncio.sleep(waiting_time)
-
-        #Ensure writing in logs
-        sys.stdout.flush()
 
 ##############################################################
 # Function: bot_loop_6hours
@@ -605,6 +549,7 @@ async def bot_loop_5minutes():
 async def bot_loop_6hours():
     await bot.wait_until_ready()
     while not bot.is_closed():
+        goutils.log2("DBG", "START loop")
         t_start = time.time()
 
         try:
@@ -621,13 +566,36 @@ async def bot_loop_6hours():
             if not bot_test_mode:
                 await send_alert_to_admins(None, "Exception in bot_loop_6hours:"+str(sys.exc_info()[0]))
 
+        goutils.log2("DBG", "END loop")
+
         # Wait X seconds before next loop
         t_end = time.time()
         waiting_time = max(0, 3600*6 - (t_end - t_start))
+        goutils.log2("DBG", "WAIT "+str(waiting_time))
         await asyncio.sleep(waiting_time)
 
-        #Ensure writing in logs
-        sys.stdout.flush()
+################################################
+# IN: platoon_content = {'Greef Karga': ['Dark Cds'], 'Yoda Ermite': ['Dark Cds', 'Toto234'], ...}
+# OUT: % of progress
+################################################
+def compute_platoon_progress(platoon_content):
+    all_allocations = [item for sublist in platoon_content.values() for item in sublist]
+    real_allocations = [x for x in all_allocations if x != '']
+    return len(real_allocations) / len(all_allocations)
+
+################################################
+# IN: dict_platoons = {"ROTE1-LS-1": {'Greef Karga': ['Dark Cds'],...}, "ROTE1-DS-1": ...}
+# IN: territory = "ROTE1-LS-"
+# OUT: [0 - 6]
+################################################
+def compute_territory_progress(dict_platoons, territory):
+    count = 0
+    for i_platoon in range(1,7):
+        platoon = territory + str(i_platoon)
+        platoon_progress = compute_platoon_progress(dict_platoons[platoon])
+        if platoon_progress == 1:
+            count += 1
+    return count
 
 ##############################################################
 # Function: send_alert_to_admins
@@ -1121,6 +1089,11 @@ async def on_ready():
 @bot.event
 async def on_resumed():
     msg = bot.user.name+" has reconnected to Discord"
+    goutils.log2("INFO", msg)
+
+@bot.event
+async def on_disconnect():
+    msg = bot.user.name+" has disconnected from Discord"
     goutils.log2("INFO", msg)
 
 
@@ -2041,8 +2014,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, txt, dict_best_teams = await start_thread(
-                                                    go.find_best_teams_for_raid,
+            err, txt, dict_best_teams = await go.find_best_teams_for_raid(
                                                     allyCode, ctx.guild.id, raid_name, True)
             if err !=0:
                 await ctx.send(txt)
@@ -2509,7 +2481,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err_code, ret_cmd = await start_thread( go.print_fegv, allyCode)
+            err_code, ret_cmd = go.print_fegv( allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2534,7 +2506,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err_code, ret_cmd = await start_thread( go.print_ftj, allyCode, team, ctx.guild.id)
+            err_code, ret_cmd = await go.print_ftj( allyCode, team, ctx.guild.id)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
@@ -2655,41 +2627,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             else:
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emoji_error)
-
-    ##############################################################
-    # Command: scg
-    # Parameters: code allié (string) ou "me"
-    # Purpose: Score de Counter de la Guilde
-    # Display: Un premier tableau donnant la dispo des équipes utilisées en counter
-    #          Un 2e tableau donnant les possibilités de counter contre des équipes données
-    ##############################################################
-    @commands.check(member_command)
-    @commands.command(name='scg',
-                 brief="Capacité de contre de la guilde",
-                 help="Capacité de contre de la guilde\n\n"\
-                      "Exemple: go.scg 192126111\n"\
-                      "Exemple: go.scg me")
-    async def scg(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        allyCode = manage_me(ctx, allyCode)
-
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
-        else:
-            ret_cmd = await start_thread(
-                go.guild_counter_score, allyCode)
-            if ret_cmd[0:3] == 'ERR':
-                await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
-            else:
-                #texte classique
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send(txt)
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: spj
@@ -2877,10 +2814,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
         
         #Seoncd, display the graph
-        err_code, err_txt, image = await start_thread(
-                                                                  go.get_gv_graph,
-                                                                  allyCode,
-                                                                  characters)
+        err_code, err_txt, image = go.get_gv_graph( allyCode, characters)
         if err_code != 0:
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
@@ -2916,7 +2850,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            e, err_txt, image = await start_thread( go.get_modq_graph, allyCode)
+            e, err_txt, image = go.get_modq_graph( allyCode)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -3137,8 +3071,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, ret_cmd = await start_thread(
-                    go.print_erx, allyCode, days, False)
+        e, ret_cmd = await go.print_erx( allyCode, days, False)
         if e == 0:
             #texte classique
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
@@ -3170,8 +3103,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, ret_cmd = await start_thread(
-                    go.print_erx, allyCode, days, True)
+        e, ret_cmd = await go.print_erx( allyCode, days, True)
         if e == 0:
             #texte classique
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
@@ -3216,8 +3148,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, err_txt, txt_lines = await start_thread(
-                                      go.print_lox, allyCode, list_characters, False)
+        e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, False)
         if e == 0 and len(txt_lines) >0:
             if err_txt != "":
                 await ctx.send(err_txt)
@@ -3268,8 +3199,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, err_txt, txt_lines = await start_thread(
-                    go.print_lox, allyCode, list_characters, True)
+        e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, True)
         if e == 0 and len(txt_lines) >0:
             if err_txt != "":
                 await ctx.send(err_txt)
@@ -3399,8 +3329,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            err, txt, dict_best_teams = await start_thread(
-                                                    go.find_best_teams_for_raid,
+            err, txt, dict_best_teams = await go.find_best_teams_for_raid(
                                                     allyCode, ctx.guild.id, raid_name, False)
             if err !=0:
                 await ctx.send(txt)
@@ -3598,7 +3527,6 @@ def main():
         bot.loop.create_task(bot_loop_60secs())
         bot.loop.create_task(bot_loop_5minutes())
         bot.loop.create_task(bot_loop_10minutes())
-        bot.loop.create_task(bot_loop_60minutes())
         bot.loop.create_task(bot_loop_6hours())
 
     #Ajout des commandes groupées par catégorie
@@ -3610,7 +3538,7 @@ def main():
 
     #Lancement du bot
     goutils.log2("INFO", "Run bot...")
-    bot.run(TOKEN)
+    bot.run(TOKEN, reconnect=True)
 
 if __name__ == "__main__":
     main()
