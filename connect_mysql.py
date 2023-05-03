@@ -22,20 +22,17 @@ def db_connect():
     #global mysql_db
     mysql_db = None
     if mysql_db == None or not mysql_db.is_connected():
-        # if mysql_db == None:
-            # print("First connection to mysql")
-        # else:
-            # print("New connection to mysql")
+        if mysql_db == None:
+            goutils.log2("INFO", "First connection to mysql")
+        else:
+            goutils.log2("INFO", "Close connection to mysql")
+            mysql_db.close()
+            goutils.log2("INFO", "New connection to mysql")
             
         # Recover DB information from URL
         urllib.parse.uses_netloc.append('mysql')
         try:
             url = urllib.parse.urlparse(config.MYSQL_DATABASE_URL)
-            # 'NAME': url.path[1:],
-            # 'USER': url.username,
-            # 'PASSWORD': url.password,
-            # 'HOST': url.hostname,
-            # 'PORT': url.port,
         except Exception:
             goutils.log2("ERR", 'Unexpected error in connect:', sys.exc_info())
             return
@@ -43,7 +40,7 @@ def db_connect():
         # Connect to DB
         mysql_db = None
         try:
-            # print('Connecting to MySQL database...')
+            goutils.log2("INFO", 'Connecting to MySQL database...')
             mysql_db = mysql.connector.connect(host=url.hostname,
                                            database=url.path[1:],
                                            user=url.username,
