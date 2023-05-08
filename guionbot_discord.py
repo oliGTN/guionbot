@@ -320,12 +320,6 @@ async def bot_loop_5minutes():
                     [channel_id, dict_messages, tw_ts] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
 
-                    if len(dict_messages) == 0:
-                        #No TW started, reset prev_alerts per territory
-                        query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)
-                        goutils.log2("DBG", query)
-                        connect_mysql.simple_execute(query)
-
                     #sort dict_messages
                     # orders then defense then lost territories then attack
                     d_ordres = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Ordres:")]}
@@ -402,6 +396,11 @@ async def bot_loop_5minutes():
 
                 else:
                     goutils.log2("DBG", "["+guild.name+"] TW alerts could not be detected")
+
+                    #Delete potential previous tw_messages
+                    query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))
