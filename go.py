@@ -1748,18 +1748,11 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                         dict_player["rosterUnit"][character_id]["level"] = 85
                         if virtual_rarity != None:
                             dict_player["rosterUnit"][character_id]["rarity"] = virtual_rarity
-                        if dict_player["rosterUnit"][character_id]["combatType"] == 1:
+                        if dict_unitsList[character_id]["combatType"] == 1:
                             if virtual_gear != None:
                                     dict_player["rosterUnit"][character_id]["gear"] = virtual_gear
                             if virtual_relic != None:
                                 dict_player["rosterUnit"][character_id]["relic"]["currentTier"] = virtual_relic +2
-                
-                #Filter on useful only characters
-                del dict_player["arena"]
-                del dict_player["grandArena"]
-                del dict_player["portraits"]
-                del dict_player["stats"]
-                del dict_player["titles"]
                 
                 #Recompute stats with Crinolo API
                 dict_player = goutils.roster_from_dict_to_list(dict_player)
@@ -3898,36 +3891,13 @@ def allocate_platoons(txt_allyCode, list_zones):
                   + "LIMIT "+ str(count)
         else:
             #SHIP
-            crew_list = [x['unitId'] for x in unit['crewList']]
-            crew_list=[]
-            if len(crew_list)==0:
-                #NO PILOT
-                query = "SELECT name, roster.allyCode, gp " \
-                      + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
-                      + "WHERE players.guildName = " \
-                      + "(SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \
-                      + "AND defId='"+defId+"' AND rarity=7 " \
-                      + "ORDER BY gp, rand() " \
-                      + "LIMIT "+ str(count)
-            else:
-                query = "SELECT name, roster.allyCode, " \
-                      + "sum(CASE combatType " \
-                      + "        WHEN 1 THEN 0 " \
-                      + "        ELSE gp " \
-                      + "        END) as gp, " \
-                      + "min(CASE combatType " \
-                      + "        WHEN 1 THEN relic_currentTier-2 " \
-                      + "        ELSE 9 " \
-                      + "        END) as min_relic " \
-                      + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
-                      + "WHERE players.guildName = " \
-                      + "(SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \
-                      + "AND defId IN "+str(tuple([defId]+crew_list))+" " \
-                      + "GROUP BY roster.allyCode " \
-                      + "HAVING min(rarity)=7 AND min_relic>=5 AND gp>0 " \
-                      + "ORDER BY gp, rand() " \
-                      + "LIMIT "+str(count)
-        #print(query)
+            query = "SELECT name, roster.allyCode, gp " \
+                  + "FROM roster JOIN players ON players.allyCode = roster.allyCode " \
+                  + "WHERE players.guildName = " \
+                  + "(SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \
+                  + "AND defId='"+defId+"' AND rarity=7 " \
+                  + "ORDER BY gp, rand() " \
+                  + "LIMIT "+ str(count)
         goutils.log2("DBG", query)
         ret_db = connect_mysql.get_table(query)
         if ret_db==None:
