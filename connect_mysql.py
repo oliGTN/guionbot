@@ -19,8 +19,8 @@ import data
 mysql_db = None
 
 def db_connect():
-    #global mysql_db
-    mysql_db = None
+    global mysql_db
+    #mysql_db = None
     if mysql_db == None or not mysql_db.is_connected():
         if mysql_db == None:
             goutils.log2("INFO", "First connection to mysql")
