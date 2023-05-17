@@ -60,61 +60,61 @@ dict_BT_missions={}
 dict_BT_missions['HLS']={}
 dict_BT_missions['HLS']['Rebel Base Mission']='HLS1-top'
 dict_BT_missions['HLS']['Ion Cannon Mission']='HLS2-top'
-dict_BT_missions['HLS']['Overlook Mission']='HLS2-bottom'
+dict_BT_missions['HLS']['Overlook Mission']='HLS2-bot'
 dict_BT_missions['HLS']['Rear Airspace Mission']='HLS3-top'
 dict_BT_missions['HLS']['Rear Trench Mission']='HLS3-mid'
-dict_BT_missions['HLS']['Power Generator Mission']='HLS3-bottom'
+dict_BT_missions['HLS']['Power Generator Mission']='HLS3-bot'
 dict_BT_missions['HLS']['Forward Airspace Mission']='HLS4-top'
 dict_BT_missions['HLS']['Forward Trench Mission']='HLS4-mid'
-dict_BT_missions['HLS']['Outer Pass Mission']='HLS4-bottom'
+dict_BT_missions['HLS']['Outer Pass Mission']='HLS4-bot'
 dict_BT_missions['HLS']['Contested Airspace Mission']='HLS5-top'
 dict_BT_missions['HLS']['Snowfields Mission']='HLS5-mid'
-dict_BT_missions['HLS']['Forward Stronghold Mission']='HLS5-bottom'
+dict_BT_missions['HLS']['Forward Stronghold Mission']='HLS5-bot'
 dict_BT_missions['HLS']['Imperial Fleet Mission']='HLS6-top'
 dict_BT_missions['HLS']['Imperial Flank Mission']='HLS6-mid'
-dict_BT_missions['HLS']['Imperial Landing Mission']='HLS6-bottom'
+dict_BT_missions['HLS']['Imperial Landing Mission']='HLS6-bot'
 dict_BT_missions['HDS']={}
 dict_BT_missions['HDS']['Imperial Flank Mission']='HDS1-top'
-dict_BT_missions['HDS']['Imperial Landing Mission']='HDS1-bottom'
+dict_BT_missions['HDS']['Imperial Landing Mission']='HDS1-bot'
 dict_BT_missions['HDS']['Snowfields Mission']='HDS2-top'
-dict_BT_missions['HDS']['Forward Stronghold Mission']='HDS2-bottom'
+dict_BT_missions['HDS']['Forward Stronghold Mission']='HDS2-bot'
 dict_BT_missions['HDS']['Imperial Fleet']='HDS3-top'
 dict_BT_missions['HDS']['Ion Cannon Mission']='HDS3-mid'
-dict_BT_missions['HDS']['Outer Pass Mission']='HDS3-bottom'
+dict_BT_missions['HDS']['Outer Pass Mission']='HDS3-bot'
 dict_BT_missions['HDS']['Contested Airspace']='HDS4-top'
 dict_BT_missions['HDS']['Power Generator Mission']='HDS4-mid'
-dict_BT_missions['HDS']['Rear Trench Mission']='HDS4-bottom'
+dict_BT_missions['HDS']['Rear Trench Mission']='HDS4-bot'
 dict_BT_missions['HDS']['Forward Airspace Fleet']='HDS5-top'
 dict_BT_missions['HDS']['Forward Trenches Mission']='HDS5-mid'
-dict_BT_missions['HDS']['Overlook Mission Mission']='HDS5-bottom'
+dict_BT_missions['HDS']['Overlook Mission Mission']='HDS5-bot'
 dict_BT_missions['HDS']['Rear Airspace']='HDS6-top'
 dict_BT_missions['HDS']['Rebel Base (Main Entrance) Mission']='HDS6-mid'
-dict_BT_missions['HDS']['Rebel Base (South Entrance) Mission']='HDS6-bottom'
+dict_BT_missions['HDS']['Rebel Base (South Entrance) Mission']='HDS6-bot'
 dict_BT_missions['GLS']={}
 dict_BT_missions['GLS']['Republic Fleet Mission']='GLS1-top'
 dict_BT_missions['GLS']['Count Dooku\'s Hangar Mission']='GLS1-mid'
-dict_BT_missions['GLS']['Rear Flank Mission']='GLS1-bottom'
+dict_BT_missions['GLS']['Rear Flank Mission']='GLS1-bot'
 dict_BT_missions['GLS']['Contested Airspace (Republic) Mission']='GLS2-top'
 dict_BT_missions['GLS']['Battleground Mission']='GLS2-mid'
-dict_BT_missions['GLS']['Sand Dunes Mission']='GLS2-bottom'
+dict_BT_missions['GLS']['Sand Dunes Mission']='GLS2-bot'
 dict_BT_missions['GLS']['Contested Airspace (Separatist) Mission']='GLS3-top'
 dict_BT_missions['GLS']['Separatist Command Mission']='GLS3-mid'
-dict_BT_missions['GLS']['Petranaki Arena Mission']='GLS3-bottom'
+dict_BT_missions['GLS']['Petranaki Arena Mission']='GLS3-bot'
 dict_BT_missions['GLS']['Separatist Armada Mission']='GLS4-top'
 dict_BT_missions['GLS']['Factory Waste Mission']='GLS4-mid'
-dict_BT_missions['GLS']['Canyons Mission']='GLS4-bottom'
+dict_BT_missions['GLS']['Canyons Mission']='GLS4-bot'
 dict_BT_missions['GDS']={}
 dict_BT_missions['GDS']['Droid Factory Mission']='GDS1-top'
-dict_BT_missions['GDS']['Canyons Mission']='GDS1-bottom'
+dict_BT_missions['GDS']['Canyons Mission']='GDS1-bot'
 dict_BT_missions['GDS']['Core Ship Yards Mission']='GDS2-top'
 dict_BT_missions['GDS']['Separatist Command Mission']='GDS2-mid'
-dict_BT_missions['GDS']['Petranaki Arena Mission']='GDS2-bottom'
+dict_BT_missions['GDS']['Petranaki Arena Mission']='GDS2-bot'
 dict_BT_missions['GDS']['Contested Airspace Mission']='GDS3-top'
 dict_BT_missions['GDS']['Battleground Mission']='GDS3-mid'
-dict_BT_missions['GDS']['Sand Dunes Mission']='GDS3-bottom'
+dict_BT_missions['GDS']['Sand Dunes Mission']='GDS3-bot'
 dict_BT_missions['GDS']['Republic Fleet Mission']='GDS4-top'
 dict_BT_missions['GDS']['Count Dooku\'s Hangar Mission']='GDS4-mid'
-dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bottom'
+dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bot'
 dict_BT_missions['ROTE']={}
 dict_BT_missions['ROTE']['Mustafar']='ROTE1-DS'
 dict_BT_missions['ROTE']['Corellia']='ROTE1-MS'
@@ -323,7 +323,7 @@ async def bot_loop_5minutes():
                     #sort dict_messages
                     # orders then defense then lost territories then attack
                     d_ordres = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Ordres:")]}
-                    d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placements:")]}
+                    d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placement:")]}
                     d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
                     d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
                     dict_messages = {**d_ordres, **d_placements, **d_home, **d_attack}
@@ -846,6 +846,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                         if ret_re != None:
                             territory_name = ret_re.group(1)
                             territory_position = ret_re.group(2) #top, bottom, mid
+                            if territory_position == 'bottom':
+                                territory_position = 'bot'
                             
                             if territory_name in dict_BT_missions[tbs_name]:
                                 territory_name_position = dict_BT_missions[
@@ -1648,11 +1650,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
 
                 position = platoon_name.split('-')[1]
+                if position == "bottom":
+                    position = "bot"
+
                 if position == 'top' or position == 'DS':
                     open_for_position = list_open_territories[0]
                 elif position == 'mid' or position == 'MS':
                     open_for_position = list_open_territories[1]
-                else:  #bottom or 'LS'
+                else:  #bot or 'LS'
                     open_for_position = list_open_territories[2]
                 if cur_phase < open_for_position:
                     full_txt += txt[2] + ' -- *et c\'est trop tard*\n'

@@ -1070,10 +1070,8 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
             rarity, gear, relic_currentTier, gp \
             ORDER BY players.name, guild_teams.name"
     goutils.log2("DBG", query)
-    
-    # print(query)
     player_data = connect_mysql.get_table(query)
-    goutils.log2("DBG", player_data)
+    #goutils.log2("DBG", player_data)
     
     if gv_mode==0:
         # Need the zetas to compute the progress of a regular team
@@ -1308,7 +1306,7 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
         if ec != 0:
             return ec, et
 
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, True)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, True)
         if ec != 0:
             return ec, et, None
     else:
@@ -1317,6 +1315,7 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
 
     player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
                                               server_id, 0, list_active_players, 0, dict_def_toon_player)
+    print("eeee", flush=True)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
@@ -1365,6 +1364,7 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
                         image_mode = ""
                     e, t, images = await get_character_image(list_char_allycodes, True, False, image_mode, server_id)
 
+    print("eeee", flush=True)
     #In case of several teams, don't display images
     if len(ret_get_team_progress) > 1:
         images = None
@@ -2040,7 +2040,7 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
 
     #Get reserved TW toons
     if game_mode == "TW":
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, False)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, False)
         if ec != 0:
             return 1, et, None
     
@@ -2824,8 +2824,9 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
             player_name = line[4]
             dict_teams_by_player[team][player_name] = not nogo
 
-    active_round, dict_player_scores, list_open_territories = \
-            connect_warstats.parse_tb_player_scores(server_id, tb_alias, True)
+    # TODO move to RPC data
+    #active_round, dict_player_scores, list_open_territories = \
+    #        connect_warstats.parse_tb_player_scores(server_id, tb_alias, True)
 
     if tb_alias[0] == "H":
         tb_day_count = 6
