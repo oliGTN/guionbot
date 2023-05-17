@@ -3766,19 +3766,29 @@ def get_gv_graph(txt_allyCode, characters):
 
     return 0, "", image
 
-def get_modq_graph(txt_allyCode):
-    query = "SELECT date, modq, name FROM gp_history " \
+###############################
+# is_modq = True  >> ModQ graph
+# is_modq = False >> StatQ graph
+###############################
+def get_modqstatq_graph(txt_allyCode, is_modq):
+    if is_modq:
+        kpi_name = "modq"
+    else:
+        kpi_name = "statq"
+
+    query = "SELECT date, "+kpi_name+", name FROM gp_history " \
           + "JOIN players ON players.allyCode = gp_history.allyCode " \
           + "WHERE gp_history.allyCode="+txt_allyCode+" " \
           + "AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
+          + "AND NOT isnull("+kpi_name+") " \
           + "ORDER BY date DESC"
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
     if ret_db == None:
-        return 1, "WAR: aucun modq connu de "+character_id+" pour "+txt_allyCode+" dans les 30 derniers jours", None
+        return 1, "WAR: aucun "+kpi_name+" connu de "+character_id+" pour "+txt_allyCode+" dans les 30 derniers jours", None
 
-    d_modq = []
-    v_modq = []
+    d_kpi = []
+    v_kpi = []
     min_date = None
     max_date = None
     for line in ret_db:
@@ -3787,20 +3797,20 @@ def get_modq_graph(txt_allyCode):
         if max_date==None or line[0]>max_date:
             max_date = line[0]
 
-        d_modq.append(line[0])
-        v_modq.append(line[1])
+        d_kpi.append(line[0])
+        v_kpi.append(line[1])
 
         player_name = line[2]
 
     #create plot
     fig, ax = plt.subplots()
     #add series
-    ax.plot(d_modq, v_modq, label='modq')
+    ax.plot(d_kpi, v_kpi, label=kpi_name)
     #format dates on X axis
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
     #add title
-    title = "Progrès MODQ de "+player_name
+    title = "Progrès "+kpi_name+" de "+player_name
     fig.suptitle(title)
     #set min/max on X axis
     if min_date == max_date:

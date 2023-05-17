@@ -443,6 +443,45 @@ async def update_player(dict_player):
 
         p_poUTCOffsetMinutes = dict_player['localTimeZoneOffsetMinutes']
 
+        #Compute ModQ from DB data
+        query = "SELECT count(mods.id)/(char_gp/100000) " \
+              + "FROM mods " \
+              + "JOIN roster ON mods.roster_id = roster.id " \
+              + "JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE roster.allyCode="+str(p_allyCode)+" " \
+              + "AND ( " \
+              + "(sec1_stat=5 AND sec1_value>=15) OR " \
+              + "(sec2_stat=5 AND sec2_value>=15) OR " \
+              + "(sec3_stat=5 AND sec3_value>=15) OR " \
+              + "(sec4_stat=5 AND sec4_value>=15)) "
+        #goutils.log2("DBG", query)
+        p_modq = get_value(query)
+
+        #Compute StatQ from DB data
+        query = "SELECT " \
+              + "sum(CASE " \
+              + "WHEN stat_ratio>=1.02 THEN 4 " \
+              + "WHEN stat_ratio>=0.98 THEN 3 " \
+              + "WHEN stat_ratio>=0.95 THEN 2 " \
+              + "WHEN stat_ratio>=0.92 THEN 1 " \
+              + "ELSE 0 " \
+              + "END) / sum(coef) " \
+              + "FROM( " \
+	          + "    SELECT my_roster.allyCode, " \
+	          + "    CASE " \
+	          + "    WHEN stat_name='health' THEN ROUND(stat1 /100000000) / (select ROUND(avg(stat1 )/100000000) from roster where defId=my_roster.defId) " \
+	          + "    WHEN stat_name='speed'  THEN ROUND(stat5 /100000000) / (select ROUND(avg(stat5 )/100000000) from roster where defId=my_roster.defId) " \
+	          + "    WHEN stat_name='pd'     THEN ROUND(stat6 /100000000) / (select ROUND(avg(stat6 )/100000000) from roster where defId=my_roster.defId) " \
+	          + "    WHEN stat_name='protec' THEN ROUND(stat28/100000000) / (select ROUND(avg(stat28)/100000000) from roster where defId=my_roster.defId) " \
+	          + "    END AS `stat_ratio`, " \
+	          + "    coef " \
+	          + "    FROM roster AS my_roster " \
+	          + "    JOIN statq_table ON my_roster.defId=statq_table.defId " \
+	          + "    WHERE allyCode = "+str(p_allyCode)+" " \
+              + ") ratios "
+        goutils.log2("DBG", query)
+        p_statq = get_value(query)
+
         query = "INSERT IGNORE INTO players(allyCode) "\
                +"VALUES("+str(p_allyCode)+")"
         #goutils.log2("DBG", query)
@@ -454,12 +493,14 @@ async def update_player(dict_player):
                +"    lastActivity = '"+p_lastActivity+"', "\
                +"    level = "+str(p_level)+", "\
                +"    name = '"+str(p_name).replace("'", "''")+"', "\
+               +"    char_gp = "+str(p_char_gp)+", "\
+               +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    arena_char_rank = "+ p_arena_char_rank_txt +", "\
                +"    arena_ship_rank = "+ p_arena_ship_rank_txt +", "\
                +"    grand_arena_rank = '"+ p_grand_arena_rank +"', "\
-               +"    char_gp = "+str(p_char_gp)+", "\
-               +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
+               +"    modq = "+str(p_modq)+", "\
+               +"    statq = "+str(p_statq)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
         #goutils.log2("DBG", query)
@@ -684,20 +725,6 @@ async def update_player(dict_player):
             #SLEEP at the end of character loop
             await asyncio.sleep(0)
                 
-        #Compute ModQ from DB data
-        query = "SELECT count(mods.id)/(char_gp/100000) " \
-              + "FROM mods " \
-              + "JOIN roster ON mods.roster_id = roster.id " \
-              + "JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE roster.allyCode="+str(p_allyCode)+" " \
-              + "AND ( " \
-              + "(sec1_stat=5 AND sec1_value>=15) OR " \
-              + "(sec2_stat=5 AND sec2_value>=15) OR " \
-              + "(sec3_stat=5 AND sec3_value>=15) OR " \
-              + "(sec4_stat=5 AND sec4_value>=15)) "
-        #goutils.log2("DBG", query)
-        p_modq = get_value(query)
-
         #Manage GP history
         # Define delta minutes versus po time
         time_now = datetime.datetime.now()
@@ -722,7 +749,8 @@ async def update_player(dict_player):
                +"    grand_arena_rank = '"+ p_grand_arena_rank + "',"\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+", "\
-               +"    modq = "+str(p_modq)+" "\
+               +"    modq = "+str(p_modq)+", "\
+               +"    statq = "+str(p_statq)+" "\
                +"WHERE date = CURDATE() "\
                +"AND allyCode = "+str(p_allyCode)
         #goutils.log2("DBG", query)

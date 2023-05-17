@@ -1089,12 +1089,12 @@ async def on_ready():
 
 @bot.event
 async def on_resumed():
-    msg = bot.user.name+" has reconnected to Discord"
+    msg = "Bot has reconnected to Discord"
     goutils.log2("INFO", msg)
 
 @bot.event
 async def on_disconnect():
-    msg = bot.user.name+" has disconnected from Discord"
+    msg = "Bot has disconnected from Discord"
     goutils.log2("INFO", msg)
 
 
@@ -2854,7 +2854,39 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            e, err_txt, image = go.get_modq_graph( allyCode)
+            e, err_txt, image = go.get_modqstatq_graph( allyCode, True)
+            if e != 0:
+                await ctx.send(err_txt)
+                await ctx.message.add_reaction(emoji_error)
+            else:
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = "",
+                           file=File(fp=image_binary, filename='image.png'))
+                await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: gsj
+    # Parameters: code allié (string) ou "me"
+    # Purpose: graph de progrès de statq du joueur
+    # Display: graph
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='gsj',
+                 brief="Graphique de StatQ d'un Joueur",
+                 help="Graphique de StatQ d'un Joueur\n\n"\
+                      "Exemple: go.gsj me")
+    async def gsj(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            e, err_txt, image = go.get_modqstatq_graph( allyCode, False)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -2866,7 +2898,111 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            file=File(fp=image_binary, filename='image.png'))
 
                 await ctx.message.add_reaction(emoji_check)
-                
+
+    ##############################################################
+    # Command: statqj
+    # Parameters: code allié (string) ou "me"
+    # Purpose: affiche le statqq d'un joueur
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='statqj',
+                 brief="Affiche le StatQ d'un Joueur",
+                 help="Affiche le StatQ d'un Joueur\n\n"\
+                      "Exemple: go.statqj me")
+    async def statqj(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            e, t, player_before = await go.load_player( allyCode, 1, True)
+            if e!=0:
+                await ctx.send(t)
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            query = "SELECT " \
+                  + "defId,stat_name,stat_value, stat_avg, " \
+                  + "CASE WHEN stat_ratio>=1.02 THEN 4 WHEN stat_ratio>=0.98 THEN 3 WHEN stat_ratio>=0.95 THEN 2 WHEN stat_ratio>=0.92 THEN 1 ELSE 0 END as score " \
+                  + "FROM( " \
+                  + "     SELECT my_roster.allyCode, my_roster.defId,stat_name, " \
+                  + "     CASE " \
+                  + "     WHEN stat_name='health' THEN ROUND(stat1 /100000000) " \
+                  + "     WHEN stat_name='speed'  THEN ROUND(stat5 /100000000) " \
+                  + "     WHEN stat_name='pd'     THEN ROUND(stat6 /100000000) " \
+                  + "     WHEN stat_name='protec' THEN ROUND(stat28/100000000) " \
+                  + "     END AS `stat_value`, " \
+                  + "     CASE " \
+                  + "     WHEN stat_name='health' THEN (select ROUND(avg(stat1 )/100000000) from roster where defId=my_roster.defId) " \
+                  + "     WHEN stat_name='speed'  THEN (select ROUND(avg(stat5 )/100000000) from roster where defId=my_roster.defId) " \
+                  + "     WHEN stat_name='pd'     THEN (select ROUND(avg(stat6 )/100000000) from roster where defId=my_roster.defId) " \
+                  + "     WHEN stat_name='protec' THEN (select ROUND(avg(stat28)/100000000) from roster where defId=my_roster.defId) " \
+                  + "     END AS `stat_avg`, " \
+                  + "     CASE " \
+                  + "     WHEN stat_name='health' THEN ROUND(stat1 /100000000) / (select ROUND(avg(stat1 )/100000000) from roster where defId=my_roster.defId) " \
+                  + "     WHEN stat_name='speed'  THEN ROUND(stat5 /100000000) / (select ROUND(avg(stat5 )/100000000) from roster where defId=my_roster.defId) " \
+                  + "     WHEN stat_name='pd'     THEN ROUND(stat6 /100000000) / (select ROUND(avg(stat6 )/100000000) from roster where defId=my_roster.defId) " \
+                  + "     WHEN stat_name='protec' THEN ROUND(stat28/100000000) / (select ROUND(avg(stat28)/100000000) from roster where defId=my_roster.defId) " \
+                  + "     END AS `stat_ratio`,     coef " \
+                  + "     FROM roster AS my_roster " \
+                  + "     JOIN statq_table ON my_roster.defId=statq_table.defId " \
+                  + ") ratios " \
+                  + "JOIN players ON players.allyCode = ratios.allyCode " \
+                  + "WHERE players.allyCode = "+allyCode
+
+            goutils.log2("DBG", query)
+            output = connect_mysql.text_query(query)
+
+            output_txt=''
+            for row in output:
+                output_txt+=str(row)+'\n'
+            goutils.log2('INFO', output_txt)
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+
+            query = "SELECT name, statq FROM players WHERE allyCode="+allyCode
+            goutils.log2("DBG", query)
+            output = connect_mysql.get_line(query)
+            await ctx.send("Le StatQ de "+output[0]+" est "+str(output[1]))
+
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: statqg
+    # Parameters: code allié (string) ou "me"
+    # Purpose: affiche le statq de la guilde
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='statqg',
+                 brief="Affiche le StatQ de la guilde",
+                 help="Affiche le StatQ de la guilde\n\n"\
+                      "Exemple: go.statqg me")
+    async def statqg(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+
+            query = "SELECT name, statq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY statq DESC, name"
+            goutils.log2("DBG", query)
+            output = connect_mysql.text_query(query)
+
+            output_txt=''
+            for row in output:
+                output_txt+=str(row)+'\n'
+            goutils.log2('INFO', output_txt)
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+
+
+            await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: ppj
