@@ -460,19 +460,19 @@ async def update_player(dict_player):
         #Compute StatQ from DB data
         query = "SELECT " \
               + "sum(CASE " \
-              + "WHEN stat_ratio>=1.02 THEN 4 " \
-              + "WHEN stat_ratio>=0.98 THEN 3 " \
-              + "WHEN stat_ratio>=0.95 THEN 2 " \
-              + "WHEN stat_ratio>=0.92 THEN 1 " \
+              + "WHEN stat_ratio>=1.02 THEN 100 " \
+              + "WHEN stat_ratio>=0.98 THEN 75 " \
+              + "WHEN stat_ratio>=0.95 THEN 50 " \
+              + "WHEN stat_ratio>=0.92 THEN 25 " \
               + "ELSE 0 " \
               + "END) / sum(coef) " \
               + "FROM( " \
 	          + "    SELECT my_roster.allyCode, " \
 	          + "    CASE " \
-	          + "    WHEN stat_name='health' THEN ROUND(stat1 /100000000) / (select ROUND(avg(stat1 )/100000000) from roster where defId=my_roster.defId) " \
-	          + "    WHEN stat_name='speed'  THEN ROUND(stat5 /100000000) / (select ROUND(avg(stat5 )/100000000) from roster where defId=my_roster.defId) " \
-	          + "    WHEN stat_name='pd'     THEN ROUND(stat6 /100000000) / (select ROUND(avg(stat6 )/100000000) from roster where defId=my_roster.defId) " \
-	          + "    WHEN stat_name='protec' THEN ROUND(stat28/100000000) / (select ROUND(avg(stat28)/100000000) from roster where defId=my_roster.defId) " \
+	          + "    WHEN stat_name='health' THEN stat1 /stat_avg " \
+	          + "    WHEN stat_name='speed'  THEN stat5 /stat_avg " \
+	          + "    WHEN stat_name='pd'     THEN stat6 /stat_avg " \
+	          + "    WHEN stat_name='protec' THEN stat28/stat_avg " \
 	          + "    END AS `stat_ratio`, " \
 	          + "    coef " \
 	          + "    FROM roster AS my_roster " \

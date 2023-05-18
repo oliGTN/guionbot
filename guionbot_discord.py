@@ -558,6 +558,16 @@ async def bot_loop_6hours():
             if err_code > 0:
                 await send_alert_to_admins(None, err_txt)
 
+            #Compute stat_avg for statq_table, from KYBER1 players
+            query = "UPDATE statq_table SET stat_avg = CASE " \
+                  + "WHEN stat_name='health' THEN (select avg(stat1 ) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='speed'  THEN (select avg(stat5 ) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='pd'     THEN (select avg(stat6 ) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='protec' THEN (select avg(stat28) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "END"
+            goutils.log2("DBG", query)
+            connect_mysql.simple_execute(query)
+
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_6hours", str(sys.exc_info()[0]))
             goutils.log("ERR", "guionbot_discord.bot_loop_6hours", e)
@@ -2926,7 +2936,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             query = "SELECT " \
                   + "defId,stat_name,stat_value, stat_avg, " \
-                  + "CASE WHEN stat_ratio>=1.02 THEN 4 WHEN stat_ratio>=0.98 THEN 3 WHEN stat_ratio>=0.95 THEN 2 WHEN stat_ratio>=0.92 THEN 1 ELSE 0 END as score " \
+                  + "CASE WHEN stat_ratio>=1.02 THEN 100 WHEN stat_ratio>=0.98 THEN 75 WHEN stat_ratio>=0.95 THEN 50 WHEN stat_ratio>=0.92 THEN 25 ELSE 0 END as score " \
                   + "FROM( " \
                   + "     SELECT my_roster.allyCode, my_roster.defId,stat_name, " \
                   + "     CASE " \
@@ -2935,17 +2945,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                   + "     WHEN stat_name='pd'     THEN ROUND(stat6 /100000000) " \
                   + "     WHEN stat_name='protec' THEN ROUND(stat28/100000000) " \
                   + "     END AS `stat_value`, " \
+                  + "     ROUND(stat_avg/100000000) AS `stat_avg`, " \
                   + "     CASE " \
-                  + "     WHEN stat_name='health' THEN (select ROUND(avg(stat1 )/100000000) from roster where defId=my_roster.defId) " \
-                  + "     WHEN stat_name='speed'  THEN (select ROUND(avg(stat5 )/100000000) from roster where defId=my_roster.defId) " \
-                  + "     WHEN stat_name='pd'     THEN (select ROUND(avg(stat6 )/100000000) from roster where defId=my_roster.defId) " \
-                  + "     WHEN stat_name='protec' THEN (select ROUND(avg(stat28)/100000000) from roster where defId=my_roster.defId) " \
-                  + "     END AS `stat_avg`, " \
-                  + "     CASE " \
-                  + "     WHEN stat_name='health' THEN ROUND(stat1 /100000000) / (select ROUND(avg(stat1 )/100000000) from roster where defId=my_roster.defId) " \
-                  + "     WHEN stat_name='speed'  THEN ROUND(stat5 /100000000) / (select ROUND(avg(stat5 )/100000000) from roster where defId=my_roster.defId) " \
-                  + "     WHEN stat_name='pd'     THEN ROUND(stat6 /100000000) / (select ROUND(avg(stat6 )/100000000) from roster where defId=my_roster.defId) " \
-                  + "     WHEN stat_name='protec' THEN ROUND(stat28/100000000) / (select ROUND(avg(stat28)/100000000) from roster where defId=my_roster.defId) " \
+                  + "     WHEN stat_name='health' THEN stat1 /stat_avg " \
+                  + "     WHEN stat_name='speed'  THEN stat5 /stat_avg " \
+                  + "     WHEN stat_name='pd'     THEN stat6 /stat_avg " \
+                  + "     WHEN stat_name='protec' THEN stat28/stat_avg " \
                   + "     END AS `stat_ratio`,     coef " \
                   + "     FROM roster AS my_roster " \
                   + "     JOIN statq_table ON my_roster.defId=statq_table.defId " \
