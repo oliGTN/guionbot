@@ -99,7 +99,7 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
         while process.returncode == None:
             goutils.log2("DBG", "waiting getguild...")
             await asyncio.sleep(1)
-        await process.wait()
+        #await process.wait()
         goutils.log2("DBG", "getguild code="+str(process.returncode))
     guild_json = json.load(open(guild_file, "r"))
     if "guild" in guild_json:
@@ -145,7 +145,7 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
             while process.returncode == None:
                 goutils.log2("DBG", "waiting getevents...")
                 await asyncio.sleep(1)
-            await process.wait()
+            #await process.wait()
             goutils.log2("DBG", "getevents code="+str(process.returncode))
 
         if os.path.exists(events_file):
@@ -304,7 +304,7 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
         while process.returncode == None:
             goutils.log2("DBG", "waiting getextguild...")
             await asyncio.sleep(1)
-        await process.wait()
+        #await process.wait()
         goutils.log2("DBG", "getextguild code="+str(process.returncode))
 
     guild_json = "/home/pi/GuionBot/warstats/GUILDS/"+guild_id+".json"
@@ -325,7 +325,7 @@ async def get_player_data(ac_or_id, use_cache_data):
         while process.returncode == None:
             goutils.log2("DBG", "waiting getplayer...")
             await asyncio.sleep(1)
-        await process.wait()
+        #await process.wait()
         goutils.log2("DBG", "getplayer code="+str(process.returncode))
 
     player_json = "/home/pi/GuionBot/warstats/PLAYERS/"+ac_or_id+".json"
@@ -358,7 +358,7 @@ async def get_bot_player_data(server_id, use_cache_data):
         while process.returncode == None:
             goutils.log2("DBG", "waiting getplayerbot...")
             await asyncio.sleep(1)
-        await process.wait()
+        #await process.wait()
         goutils.log2("DBG", "getplayerbot code="+str(process.returncode))
 
     dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_androidId+".json", "r"))
