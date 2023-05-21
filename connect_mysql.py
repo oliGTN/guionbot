@@ -540,12 +540,19 @@ async def update_player(dict_player):
                    +"    relic_currentTier = "+str(c_relic_currentTier)+" "
 
             if "stats" in character:
-                for stat_id in ['1', '5', '6', '7', '14', '16', '17', '18', '28']:
+                for stat_id in ['1', '5', '6', '7', '14', '15', '16', '17', '18', '28']:
                     stat_value = 0
                     if stat_id in character["stats"]["final"]:
                         stat_value = character["stats"]["final"][stat_id]
                     
                     query += ",stat"+stat_id+" = "+str(stat_value)+" "
+
+                for stat_id in ['1', '5', '6', '7', '16', '17', '18', '28']:
+                    stat_value = 0
+                    if stat_id in character["stats"]["mods"]:
+                        stat_value = character["stats"]["mods"][stat_id]
+                    
+                    query += ",mod"+stat_id+" = "+str(stat_value)+" "
 
             query +="WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"

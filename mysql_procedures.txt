@@ -47,7 +47,7 @@ CREATE TABLE `gp_history` (
   `arena_char_po_delta_minutes` smallint(6) DEFAULT 9999,
   `arena_ship_po_delta_minutes` smallint(6) DEFAULT 9999,
   `modq` float DEFAULT NULL,
-  `gearq` float DEFAULT NULL,
+  `statq` float DEFAULT NULL,
   UNIQUE KEY `gp_history_key` (`date`,`allyCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -154,7 +154,7 @@ CREATE TABLE `guild_evolutions` (
   `playerId` varchar(24) COLLATE utf8_bin DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12417 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=633019 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -170,7 +170,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3289 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3290 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -195,7 +195,7 @@ CREATE TABLE `guild_team_roster` (
   `zetaList` varchar(255) DEFAULT NULL,
   `omicronList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16400 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=16440 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -330,6 +330,21 @@ SET character_set_client = utf8;
 SET character_set_client = @saved_cs_client;
 
 --
+-- Table structure for table `player_discord`
+--
+
+DROP TABLE IF EXISTS `player_discord`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `player_discord` (
+  `allyCode` int(11) NOT NULL,
+  `discord_id` bigint(20) DEFAULT NULL,
+  `main` tinyint(4) DEFAULT 1,
+  PRIMARY KEY (`allyCode`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `players`
 --
 
@@ -344,12 +359,14 @@ CREATE TABLE `players` (
   `lastActivity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `level` int(11) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
+  `char_gp` int(11) DEFAULT NULL,
+  `ship_gp` int(11) DEFAULT NULL,
   `arena_char_rank` int(11) DEFAULT NULL,
   `arena_ship_rank` int(11) DEFAULT NULL,
   `grand_arena_rank` varchar(10) DEFAULT NULL,
-  `char_gp` int(11) DEFAULT NULL,
-  `ship_gp` int(11) DEFAULT NULL,
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
+  `modq` float DEFAULT NULL,
+  `statq` float DEFAULT NULL,
   `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
   `shipShard_id` int(11) DEFAULT NULL,
   `charShard_id` int(11) DEFAULT NULL,
@@ -378,25 +395,27 @@ CREATE TABLE `roster` (
   `rarity` tinyint(4) DEFAULT NULL,
   `relic_currentTier` tinyint(4) DEFAULT NULL,
   `zeta_count` tinyint(4) DEFAULT NULL,
-  `eqpt1` varchar(45) DEFAULT NULL,
-  `eqpt2` varchar(45) DEFAULT NULL,
-  `eqpt3` varchar(45) DEFAULT NULL,
-  `eqpt4` varchar(45) DEFAULT NULL,
-  `eqpt5` varchar(45) DEFAULT NULL,
-  `eqpt6` varchar(45) DEFAULT NULL,
-  `stat1` bigint(20) DEFAULT 0,
-  `stat5` bigint(20) DEFAULT 0,
-  `stat6` bigint(20) DEFAULT 0,
-  `stat7` bigint(20) DEFAULT 0,
-  `stat14` bigint(20) DEFAULT 0,
-  `stat15` bigint(20) DEFAULT 0,
-  `stat16` bigint(20) DEFAULT 0,
-  `stat17` bigint(20) DEFAULT 0,
-  `stat18` bigint(20) DEFAULT 0,
-  `stat28` bigint(20) DEFAULT 0,
+  `stat1` bigint(20) DEFAULT NULL,
+  `stat5` bigint(20) DEFAULT NULL,
+  `stat6` bigint(20) DEFAULT NULL,
+  `stat7` bigint(20) DEFAULT NULL,
+  `stat14` bigint(20) DEFAULT NULL,
+  `stat15` bigint(20) DEFAULT NULL,
+  `stat16` bigint(20) DEFAULT NULL,
+  `stat17` bigint(20) DEFAULT NULL,
+  `stat18` bigint(20) DEFAULT NULL,
+  `stat28` bigint(20) DEFAULT NULL,
+  `mod1` bigint(20) DEFAULT NULL,
+  `mod5` bigint(20) DEFAULT NULL,
+  `mod6` bigint(20) DEFAULT NULL,
+  `mod7` bigint(20) DEFAULT NULL,
+  `mod16` bigint(20) DEFAULT NULL,
+  `mod17` bigint(20) DEFAULT NULL,
+  `mod18` bigint(20) DEFAULT NULL,
+  `mod28` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=4484731 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=4649090 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -413,7 +432,7 @@ CREATE TABLE `roster_evolutions` (
   `defId` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=403734 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=432674 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -434,7 +453,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=32626498 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=33327759 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -463,6 +482,21 @@ CREATE TABLE `stat_list` (
   `id` int(11) NOT NULL,
   `name` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `statq_table`
+--
+
+DROP TABLE IF EXISTS `statq_table`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `statq_table` (
+  `defId` varchar(45) DEFAULT NULL,
+  `stat_name` varchar(45) DEFAULT NULL,
+  `coef` int(11) DEFAULT 1,
+  `stat_avg` bigint(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1149,4 +1183,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-04-30 14:16:27
+-- Dump completed on 2023-05-22  1:39:03
