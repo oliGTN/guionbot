@@ -857,6 +857,14 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                         goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
                         goutils.log2("WAR", "("+str(dict_tb_players[playerName]["score"]["deployedMix"])+" vs "+str(dict_tb_players[playerName]["score"]["deployed"])+")")
                         dict_tb_players[playerName]["score"]["deployedMix"] = dict_tb_players[playerName]["score"]["deployed"]
+                        #Estimate ships / chars score from total score and current ship / char
+                        not_deployed_ships = dict_tb_players[playerName]["ship_gp"] - dict_tb_players[playerName]["score"]["deployedShips"]
+                        not_deployed_chars = dict_tb_players[playerName]["char_gp"] - dict_tb_players[playerName]["score"]["deployedChars"]
+                        bonus_deployment = dict_tb_players[playerName]["score"]["deployed"] - dict_tb_players[playerName]["score"]["deployedMix"]
+                        bonus_ships = bonus_deployment * not_deployed_ships / (not_deployed_ships + not_deployed_chars)
+                        bonus_chars = bonus_deployment * not_deployed_chars / (not_deployed_ships + not_deployed_chars)
+                        dict_tb_players[playerName]["score"]["deployedShips"] += bonus_ships
+                        dict_tb_players[playerName]["score"]["deployedChars"] += bonus_chars
 
     dict_remaining_deploy = {"ships": 0, "chars": 0, "mix": 0}
     for playerName in dict_tb_players:
