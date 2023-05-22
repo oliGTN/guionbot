@@ -547,12 +547,15 @@ async def update_player(dict_player):
                     
                     query += ",stat"+stat_id+" = "+str(stat_value)+" "
 
-                for stat_id in ['1', '5', '6', '7', '16', '17', '18', '28']:
-                    stat_value = 0
-                    if stat_id in character["stats"]["mods"]:
-                        stat_value = character["stats"]["mods"][stat_id]
-                    
-                    query += ",mod"+stat_id+" = "+str(stat_value)+" "
+                if "mods" in character["stats"]:
+                    for stat_id in ['1', '5', '6', '7', '16', '17', '18', '28']:
+                        stat_value = None
+                        if stat_id in character["stats"]["mods"]:
+                            stat_value = character["stats"]["mods"][stat_id]
+                        if stat_value==None:
+                            stat_value="NULL"
+                        
+                        query += ",mod"+stat_id+" = "+str(stat_value)+" "
 
             query +="WHERE allyCode = "+str(p_allyCode)+" "\
                    +"AND   defId = '"+c_defId+"'"

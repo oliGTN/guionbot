@@ -972,7 +972,7 @@ def manage_me(ctx, alias):
 
     else:
         # Look for the name among known player names
-        results = connect_mysql.get_table("SELECT name, allyCode FROM players")
+        results = connect_mysql.get_table("SELECT name, allyCode FROM players WHERE NOT isnull(name)")
         list_names = [x[0] for x in results]
         closest_names_db=difflib.get_close_matches(alias, list_names, 1)
         if len(closest_names_db) == 0:
