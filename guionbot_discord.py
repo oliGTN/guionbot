@@ -17,6 +17,7 @@ import discord
 from io import BytesIO
 from requests import get
 import traceback
+from texttable import Texttable
 
 import go
 import goutils
@@ -673,7 +674,6 @@ async def send_alert_to_echocommanders(server, message):
 ##############################################################
 async def get_eb_allocation(tbChannel_id, tbs_round):
     dict_alias = data.get("unitsAlias_dict.json")
-    dict_units = data.get("unitsList_dict.json")
 
     # Lecture des affectation ECHOBOT
     tb_channel = bot.get_channel(tbChannel_id)
@@ -3501,14 +3501,33 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Display: un tableau
     ##############################################################
     @commands.check(member_command)
-    @commands.command(name='cpg', help="Compte les GLs d'une Guilde")
-    async def info(self, ctx, *args):
+    @commands.command(name='cpg', brief="Compte les persos d'une Guilde",
+                      help="Compte les persos d'une Guilde" \
+                              "Exemple : go.cpg me > les GL par défaut" \
+                              "Exemple : go.cpg me SEE Maul GAS > une liste spécifique" \
+                              "Exemple : go.cpg me SEE Maul GAS -TW > compare avec la guilde adverse en TW")
+    async def cpg(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        if len(args) != 1:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help cpg")
-            await ctx.message.add_reaction(emoji_error)
-            return
+        #Check arguments
+        args = list(args)
+        if "-TW" in args:
+            tw_mode = True
+            args.remove("-TW")
+
+            ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
+            if ec != 0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emoji_error)
+                return
+        else:
+            tw_mode = False
+
+        if len(args) == 1:
+            #default list
+            unit_list = ['executor', 'profundity', 'GLrey', 'SLKR', 'JML', 'SEE', 'JMK', 'LV', 'Jabba']
+        else:
+            unit_list = args[1:]
 
         allyCode = args[0]
         allyCode = manage_me(ctx, allyCode)
@@ -3518,37 +3537,114 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        # get the DB information
-        query = "SELECT defId AS `Perso`, " \
-              + "CASE WHEN gear=1 THEN CONCAT(rarity, '*') " \
-              + "     WHEN gear<=12 THEN CONCAT(rarity, '*G', gear) " \
-              + "     ELSE CONCAT(rarity, '*R', relic_currentTier-2) " \
-              + "END AS `gear`, " \
-              + "count(*) AS `Nombre` " \
-              + "FROM players " \
-              + "JOIN roster ON players.allyCode = roster.allyCode " \
-              + "WHERE defId IN ('CAPITALEXECUTOR', " \
-              + "                'CAPITALPROFUNDITY', " \
-              + "                'GLREY', " \
-              + "                'SUPREMELEADERKYLOREN', " \
-              + "                'GRANDMASTERLUKE', " \
-              + "                'SITHPALPATINE', " \
-              + "                'JEDIMASTERKENOBI', " \
-              + "                'LORDVADER', " \
-              + "                'JABBATHEHUTT') " \
-              + "AND guildName=(SELECT guildName FROM players WHERE allyCode='"+str(allyCode)+"') " \
-              + "GROUP BY defId, gear"
-        goutils.log2("DBG", query)
-        output = connect_mysql.text_query(query)
-        if len(output) >0:
-            output_txt=''
-            for row in output:
-                output_txt+=str(row)+'\n'
-            goutils.log2('INFO', output_txt)
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+        # get the DB information for home guild
+        ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, ctx.guild.id, tw_mode)
+        dict_units = data.get("unitsList_dict.json")
+
+        if not tw_mode:
+            output_table = [["Perso", "Gear", "Total"]]
+            for unit_id in output_dict:
+                unit_name = dict_units[unit_id]['name']
+                unit_gear=''
+                unit_total=''
+                for gear in output_dict[unit_id]:
+                    total = output_dict[unit_id][gear][0]
+
+                    if dict_units[unit_id]['combatType'] == 2:
+                        gear = ''
+
+                    unit_gear += gear+"\n"
+                    unit_total += str(total)+"\n"
+                output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip()])
+
+            t = Texttable()
+            t.add_rows(output_table)
+
+            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
         else:
-            await ctx.send('*aucun perso trouvé dans cette guilde*')
+            #display first the home stats
+            output_table = [["Perso", "Gear", "Inscrits", "Défense", "Adversaire"]]
+            for unit_id in output_dict:
+                unit_name = dict_units[unit_id]['name']
+                unit_gear=''
+                unit_total=''
+                unit_def=''
+                for gear in output_dict[unit_id]:
+                    total = output_dict[unit_id][gear][0]
+                    def_count = output_dict[unit_id][gear][1]
+
+                    if dict_units[unit_id]['combatType'] == 2:
+                        gear = ''
+                    if def_count == None:
+                        def_count=''
+
+                    unit_gear += gear+"\n"
+                    unit_total += str(total)+"\n"
+                    unit_def += str(def_count)+"\n"
+                output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip(), unit_def.rstrip(), '?'])
+
+            t = Texttable()
+            t.add_rows(output_table)
+
+            list_msg = []
+            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
+                new_msg = await ctx.send('`' + txt + '`')
+                list_msg.append(new_msg)
+
+            #Icône d'attente
+            await new_msg.add_reaction(emoji_hourglass)
+
+            # Now load all players from the guild
+            await go.load_guild(opp_allyCode, True, True)
+
+            ec, et, opp_dict = await go.count_players_with_character(opp_allyCode, unit_list, None, False)
+            for unit_id in opp_dict:
+                if not unit_id in output_dict:
+                    output_dict[unit_id] = {}
+                for gear in opp_dict[unit_id]:
+                    if not gear in output_dict[unit_id]:
+                        output_dict[unit_id][gear] = ['', '']
+                    opp_total = opp_dict[unit_id][gear][0]
+                    output_dict[unit_id][gear].append(opp_total)
+
+            #Remove previous table
+            for msg in list_msg:
+                await msg.delete()
+
+            #display the home + away stats
+            output_table = [["Perso", "Gear", "Inscrits", "Défense", "Adversaire"]]
+            for unit_id in output_dict:
+                unit_name = dict_units[unit_id]['name']
+                unit_gear=''
+                unit_total=''
+                unit_def=''
+                opp_total=''
+                for gear in output_dict[unit_id]:
+                    total = output_dict[unit_id][gear][0]
+                    def_count = output_dict[unit_id][gear][1]
+                    if len(output_dict[unit_id][gear])==3:
+                        opp_count = output_dict[unit_id][gear][2]
+                    else:
+                        opp_count = ""
+
+                    if dict_units[unit_id]['combatType'] == 2:
+                        gear = ''
+                    if def_count == None:
+                        def_count=''
+
+                    unit_gear += gear+"\n"
+                    unit_total += str(total)+"\n"
+                    unit_def += str(def_count)+"\n"
+                    opp_total += str(opp_count)+"\n"
+                output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip(), unit_def.rstrip(), opp_total.rstrip()])
+
+            t = Texttable()
+            t.add_rows(output_table)
+
+            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+
 
         await ctx.message.add_reaction(emoji_check)
 

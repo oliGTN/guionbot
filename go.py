@@ -3596,6 +3596,87 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
 
     return 0, "", list_discord_ids
 
+################################################################
+# count_players_with_character
+# IN: txt_allyCode (to identify the guild)
+# IN: list_characters alias
+# IN: server_id (discord server id)
+# IN: tw_mode (True if the bot shall manage registered players and display count for adversary
+# OUT: err_code, err_txt, {'unit name': [total, in TW defense], ...}
+################################################################
+async def count_players_with_character(txt_allyCode, list_characters, server_id, tw_mode):
+    err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
+    if err_code != 0:
+        return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
+
+    if tw_mode:
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
+        if ec != 0:
+            return ec, et
+
+    #get units from alias
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_characters)
+
+    #prepare basic query
+    query = "SELECT defId, " \
+          + "CASE WHEN gear<10 THEN CONCAT('G0', gear) " \
+          + "WHEN gear<13 THEN CONCAT('G', gear) " \
+          + "ELSE CONCAT('R', relic_currentTier-2) END, " \
+          + "count(*) FROM players " \
+          + "JOIN roster ON roster.allyCode = players.allyCode " \
+          + "WHERE guildName=(" \
+          + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+          + "AND defId in "+str(tuple(list_character_ids)).replace(",)", ")")+" " 
+
+    if tw_mode:
+        query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+" "
+
+    query +="GROUP BY defId, gear, relic_currentTier " \
+          + "ORDER BY defId, gear, relic_currentTier"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+
+    output_dict = {}
+    for line in db_data:
+        unit_id = line[0]
+        unit_gear = line[1]
+        if not unit_id in output_dict:
+            output_dict[unit_id] = {}
+        output_dict[unit_id][unit_gear] = [line[2], None]
+
+    print(output_dict)
+    #Manage -TW option
+    if tw_mode:
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, True)
+        if ec != 0:
+            return ec, et, None
+
+        for unit_id in output_dict:
+            if unit_id in dict_def_toon_player:
+                list_def_players = dict_def_toon_player[unit_id]
+
+                query = "SELECT defId, " \
+                      + "CASE WHEN gear<10 THEN CONCAT('G0', gear) " \
+                      + "WHEN gear<13 THEN CONCAT('G', gear) " \
+                      + "ELSE CONCAT('R', relic_currentTier-2) END, " \
+                      + "count(*) FROM players " \
+                      + "JOIN roster ON roster.allyCode = players.allyCode " \
+                      + "WHERE guildName=(" \
+                      + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
+                      + "AND defId='"+unit_id+"' " \
+                      + "AND name in "+str(tuple(list_def_players)).replace(",)", ")")+" " \
+                      + "GROUP BY defId, gear, relic_currentTier "
+                goutils.log2("DBG", query)
+                db_data = connect_mysql.get_table(query)
+
+                for line in db_data:
+                    unit_id = line[0]
+                    unit_gear = line[1]
+                    unit_count = line[2]
+                    output_dict[unit_id][unit_gear][1] = unit_count
+
+    return 0, "", output_dict
+
 #######################################################
 # get_gv_graph
 # IN txt_allyCode: identifier of the player
