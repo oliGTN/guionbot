@@ -443,45 +443,6 @@ async def update_player(dict_player):
 
         p_poUTCOffsetMinutes = dict_player['localTimeZoneOffsetMinutes']
 
-        #Compute ModQ from DB data
-        query = "SELECT count(mods.id)/(char_gp/100000) " \
-              + "FROM mods " \
-              + "JOIN roster ON mods.roster_id = roster.id " \
-              + "JOIN players ON players.allyCode = roster.allyCode " \
-              + "WHERE roster.allyCode="+str(p_allyCode)+" " \
-              + "AND ( " \
-              + "(sec1_stat=5 AND sec1_value>=15) OR " \
-              + "(sec2_stat=5 AND sec2_value>=15) OR " \
-              + "(sec3_stat=5 AND sec3_value>=15) OR " \
-              + "(sec4_stat=5 AND sec4_value>=15)) "
-        #goutils.log2("DBG", query)
-        p_modq = get_value(query)
-
-        #Compute StatQ from DB data
-        query = "SELECT " \
-              + "sum(CASE " \
-              + "WHEN stat_ratio>=1.02 THEN 100 " \
-              + "WHEN stat_ratio>=0.98 THEN 75 " \
-              + "WHEN stat_ratio>=0.95 THEN 50 " \
-              + "WHEN stat_ratio>=0.92 THEN 25 " \
-              + "ELSE 0 " \
-              + "END) / sum(coef) " \
-              + "FROM( " \
-	          + "    SELECT my_roster.allyCode, " \
-	          + "    CASE " \
-	          + "    WHEN stat_name='health' THEN stat1 /stat_avg " \
-	          + "    WHEN stat_name='speed'  THEN stat5 /stat_avg " \
-	          + "    WHEN stat_name='pd'     THEN stat6 /stat_avg " \
-	          + "    WHEN stat_name='protec' THEN stat28/stat_avg " \
-	          + "    END AS `stat_ratio`, " \
-	          + "    coef " \
-	          + "    FROM roster AS my_roster " \
-	          + "    JOIN statq_table ON my_roster.defId=statq_table.defId " \
-	          + "    WHERE allyCode = "+str(p_allyCode)+" " \
-              + ") ratios "
-        goutils.log2("DBG", query)
-        p_statq = get_value(query)
-
         query = "INSERT IGNORE INTO players(allyCode) "\
                +"VALUES("+str(p_allyCode)+")"
         #goutils.log2("DBG", query)
@@ -499,8 +460,6 @@ async def update_player(dict_player):
                +"    arena_ship_rank = "+ p_arena_ship_rank_txt +", "\
                +"    grand_arena_rank = '"+ p_grand_arena_rank +"', "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
-               +"    modq = "+str(p_modq)+", "\
-               +"    statq = "+str(p_statq)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
         #goutils.log2("DBG", query)
@@ -735,6 +694,56 @@ async def update_player(dict_player):
             #SLEEP at the end of character loop
             await asyncio.sleep(0)
                 
+        #Compute ModQ from DB data
+        query = "SELECT count(mods.id)/(char_gp/100000) " \
+              + "FROM mods " \
+              + "JOIN roster ON mods.roster_id = roster.id " \
+              + "JOIN players ON players.allyCode = roster.allyCode " \
+              + "WHERE roster.allyCode="+str(p_allyCode)+" " \
+              + "AND ( " \
+              + "(sec1_stat=5 AND sec1_value>=15) OR " \
+              + "(sec2_stat=5 AND sec2_value>=15) OR " \
+              + "(sec3_stat=5 AND sec3_value>=15) OR " \
+              + "(sec4_stat=5 AND sec4_value>=15)) "
+        #goutils.log2("DBG", query)
+        p_modq = get_value(query)
+        if p_modq==None:
+            p_modq = "NULL"
+
+        #Compute StatQ from DB data
+        query = "SELECT " \
+              + "sum(CASE " \
+              + "WHEN stat_ratio>=1.02 THEN 100 " \
+              + "WHEN stat_ratio>=0.98 THEN 75 " \
+              + "WHEN stat_ratio>=0.95 THEN 50 " \
+              + "WHEN stat_ratio>=0.92 THEN 25 " \
+              + "ELSE 0 " \
+              + "END) / sum(coef) " \
+              + "FROM( " \
+	          + "    SELECT my_roster.allyCode, " \
+	          + "    CASE " \
+	          + "    WHEN stat_name='health' THEN stat1 /stat_avg " \
+	          + "    WHEN stat_name='speed'  THEN stat5 /stat_avg " \
+	          + "    WHEN stat_name='pd'     THEN stat6 /stat_avg " \
+	          + "    WHEN stat_name='protec' THEN stat28/stat_avg " \
+	          + "    END AS `stat_ratio`, " \
+	          + "    coef " \
+	          + "    FROM roster AS my_roster " \
+	          + "    JOIN statq_table ON my_roster.defId=statq_table.defId " \
+	          + "    WHERE allyCode = "+str(p_allyCode)+" " \
+              + ") ratios "
+        goutils.log2("DBG", query)
+        p_statq = get_value(query)
+        if p_statq==None:
+            p_statq = "NULL"
+
+        query = "UPDATE players "\
+               +"SET modq = "+str(p_modq)+", "\
+               +"    statq = "+str(p_statq)+" "\
+               +"WHERE allyCode = "+str(p_allyCode)
+        #goutils.log2("DBG", query)
+        cursor.execute(query)
+
         #Manage GP history
         # Define delta minutes versus po time
         time_now = datetime.datetime.now()
