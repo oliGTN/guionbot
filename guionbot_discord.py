@@ -365,6 +365,7 @@ async def bot_loop_5minutes():
                             #Home and Placements messages are not modified
 
                             #Ordres are re-sent when modified
+                            # and the previous gets removed
                             if territory.startswith('Ordres:'):
                                 old_msg = await tw_bot_channel.fetch_message(old_msg_id)
                                 old_msg_txt = old_msg.content
@@ -372,9 +373,12 @@ async def bot_loop_5minutes():
                                     #Short message to admins
                                     await send_alert_to_admins(guild, territory+" has new orders")
 
-                                    #Full message modified in TW guild channel
+                                    #remove old_msg, add new_msg, update DB
                                     if not bot_test_mode:
+                                        await old_msg.delete()
+
                                         new_msg = await tw_bot_channel.send(msg_txt)
+
                                         query = "UPDATE tw_messages "
                                         query+= "SET msg_id ="+str(new_msg.id)+" "
                                         query+= "WHERE server_id="+str(guild.id)+" "
@@ -674,6 +678,7 @@ async def send_alert_to_echocommanders(server, message):
 ##############################################################
 async def get_eb_allocation(tbChannel_id, tbs_round):
     dict_alias = data.get("unitsAlias_dict.json")
+    dict_units = data.get("unitsList_dict.json")
 
     # Lecture des affectation ECHOBOT
     tb_channel = bot.get_channel(tbChannel_id)
@@ -1657,17 +1662,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 phase_num = int(platoon_name.split('-')[0][-1])
                 if cur_phase != phase_num:
                     cur_phase = phase_num
-                    full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
+                    #full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
 
                 position = platoon_name.split('-')[1]
                 if position == "bottom":
                     position = "bot"
 
-                if position == 'top' or position == 'DS':
+                if position == 'top' or position == 'LS':
                     open_for_position = list_open_territories[0]
-                elif position == 'mid' or position == 'MS':
+                elif position == 'mid' or position == 'DS':
                     open_for_position = list_open_territories[1]
-                else:  #bot or 'LS'
+                else:  #bot or 'MS'
                     open_for_position = list_open_territories[2]
                 if cur_phase < open_for_position:
                     full_txt += txt[2] + ' -- *et c\'est trop tard*\n'
@@ -1752,6 +1757,21 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emoji_thumb)
 
         ec, et = await go.deploy_bot_tw(ctx.guild.id, zone, characters)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.command(name='bot.platoons',
+            brief="Déploie des persos en pelotons de TB",
+            help="Déploie des persos en pelotons de TB")
+    async def botplatoons(self, ctx, platoon, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -3593,7 +3613,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 list_msg.append(new_msg)
 
             #Icône d'attente
-            await new_msg.add_reaction(emoji_hourglass)
+            await ctx.message.add_reaction(emoji_hourglass)
 
             # Now load all players from the guild
             await go.load_guild(opp_allyCode, True, True)
@@ -3645,6 +3665,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
 
+            await ctx.message.remove_reaction(emoji_hourglass)
 
         await ctx.message.add_reaction(emoji_check)
 

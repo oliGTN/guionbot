@@ -612,7 +612,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
         for character_id in dict_char_subobj:
             await asyncio.sleep(0)
 
-            goutils.log2("DBG", "character_id: "+character_id)
+            #goutils.log2("DBG", "character_id: "+character_id)
             progress = 0
             progress_100 = 0
             
@@ -768,7 +768,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 tab_progress_player[i_subobj][i_character - 1][3] = character_id
                 tab_progress_player[i_subobj][i_character - 1][4] = 1
 
-                goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
+                #goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
 
             else:
                 if gv_mode:
@@ -1168,6 +1168,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
         list_team_names = filtered_list_team_gt
     
     for team_name in list_team_names:
+        await asyncio.sleep(0)
         if not (team_name in dict_team_gt) and not ('all' in list_team_names):
             if gv_mode==1:
                 ret_get_team_progress[team_name] = \
@@ -4527,6 +4528,32 @@ async def deploy_bot_tw(server_id, zone_shortname, characters):
         return 1, "Zone GT inconnue"
 
     ec, txt = await connect_rpc.deploy_tw(server_id, zone_name, list_character_ids)
+
+    return ec, txt
+
+async def deploy_platoons_tb(server_id, platoon_name, characters):
+    dict_unitsList = godata.get("unitsList_dict.json")
+
+    #specific list of characters for one player
+    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+
+    dict_tb = godata.dict_tb
+    tb_name = platoon_name.split('-')[0][:-1]
+    tb_phase = platoon_name.split('-')[0][-1]
+    platoon_side = platoon_name.split('-')[1]
+    platoon_position = platoon_name.split('-')[2]
+    tb_id = dict_tb[tb_name]["id"]
+    tb_prefix = dict_tb[tb_id]["prefix"]
+    side_name = dict_tb[tb_id]["zoneNames"][platoon_side]
+    zone_name = tb_prefix+"_phase0"+tb_phase+"_"+side_name+"_recon01"
+
+    if tb_name == "ROTE":
+        platoon_id = "tb3-platoon-"+str(7-int(platoon_position))
+    else:
+        platoon_id = "hoth-platoon-"+platoon_position
+    ec, txt = await connect_rpc.platoon_tb(server_id, zone_name, platoon_id, list_character_ids)
 
     return ec, txt
 

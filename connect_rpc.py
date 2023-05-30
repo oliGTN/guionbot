@@ -8,6 +8,7 @@ import time
 import datetime
 import inspect
 import asyncio
+import aiohttp
 
 import goutils
 import data as godata
@@ -91,22 +92,21 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
-    guild_file = "/home/pi/GuionBot/warstats/guild_"+bot_androidId+".json"
-    await acquire_sem(guild_file)
-    if not use_cache_data:
-        #process = subprocess.run(["/home/pi/GuionBot/warstats/getguild.sh", bot_androidId])
-        process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getguild.sh", bot_androidId)
-        while process.returncode == None:
-            goutils.log2("DBG", "waiting getguild...")
-            await asyncio.sleep(1)
-        #await process.wait()
-        goutils.log2("DBG", "getguild code="+str(process.returncode))
-    guild_json = json.load(open(guild_file, "r"))
+    url = "http://localhost:8000/guild"
+    params = {"android_id": bot_androidId}
+    req_data = json.dumps(params)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=req_data) as resp:
+            goutils.log2("DBG", "getplayer status="+str(resp.status))
+            if resp.status==200:
+                guild_json = await(resp.json())
+            else:
+                return 1, "Cannot player data from RPC", None
+
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
     else:
         dict_guild = {}
-    await release_sem(guild_file)
 
     tbmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"
     await acquire_sem(tbmap_file)
@@ -297,44 +297,32 @@ async def get_guild_data(txt_allyCode, use_cache_data):
     return ec, et, dict_guild
 
 async def get_guild_data_from_id(guild_id, use_cache_data):
-    await acquire_sem(guild_id)
-    if not use_cache_data:
-        #process = subprocess.run(["/home/pi/GuionBot/warstats/getextguild.sh", guild_id])
-        process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getextguild.sh", guild_id)
-        while process.returncode == None:
-            goutils.log2("DBG", "waiting getextguild...")
-            await asyncio.sleep(1)
-        #await process.wait()
-        goutils.log2("DBG", "getextguild code="+str(process.returncode))
+    url = "http://localhost:8000/extguild"
+    params = {"guild_id": guild_id}
+    req_data = json.dumps(params)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=req_data) as resp:
+            goutils.log2("DBG", "getextguild status="+str(resp.status))
+            if resp.status==200:
+                guild_json = await(resp.json())
+            else:
+                return 1, "Cannot player data from RPC", None
 
-    guild_json = "/home/pi/GuionBot/warstats/GUILDS/"+guild_id+".json"
-    if os.path.exists(guild_json):
-        dict_guild = json.load(open(guild_json, "r"))["guild"]
-    else:
-        return 1, "ERR: impossible de trouver les données pour la guilde "+guild_id, None
-
-    await release_sem(guild_id)
+    dict_guild = guild_json["guild"]
 
     return 0, "", dict_guild
 
 async def get_player_data(ac_or_id, use_cache_data):
-    await acquire_sem(ac_or_id)
-    
-    if not use_cache_data:
-        process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getplayer.sh", ac_or_id)
-        while process.returncode == None:
-            goutils.log2("DBG", "waiting getplayer...")
-            await asyncio.sleep(1)
-        #await process.wait()
-        goutils.log2("DBG", "getplayer code="+str(process.returncode))
-
-    player_json = "/home/pi/GuionBot/warstats/PLAYERS/"+ac_or_id+".json"
-    if os.path.exists(player_json):
-        dict_player = json.load(open(player_json, "r"))
-    else:
-        return 1, "ERR: impossible de trouver les données pour le joueur "+ac_or_id, None
-
-    await release_sem(ac_or_id)
+    url = "http://localhost:8000/player"
+    params = {"player_id": ac_or_id}
+    req_data = json.dumps(params)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=req_data) as resp:
+            goutils.log2("DBG", "getplayer status="+str(resp.status))
+            if resp.status==200:
+                dict_player = await(resp.json())
+            else:
+                return 1, "Cannot player data from RPC", None
 
     return 0, "", dict_player
 
@@ -1293,5 +1281,36 @@ async def deploy_tw(server_id, zone, list_defId):
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
     if process.returncode!=0:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
+
+    return 0, "Le bot a posé "+str(list_defId)+" en " + zone
+
+async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
+    dict_bot_accounts = get_dict_bot_accounts()
+    if not server_id in dict_bot_accounts:
+        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+    dict_guild = rpc_data[0]
+
+    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+    dict_player = rpc_data
+
+    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+
+    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ bot_androidId+" "+ zone_name+" "+ platoon_id+" "+" ".join(list_defId)
+    goutils.log2("DBG", "process_params="+process_cmd)
+    process = await asyncio.create_subprocess_shell(process_cmd)
+    while process.returncode == None:
+        goutils.log2("DBG", "waiting platoons_tb...")
+        await asyncio.sleep(1)
+    goutils.log2("DBG", "platoons_tb code="+str(process.returncode))
+    if process.returncode!=0:
+        return 1, "Erreur en déployant les pelotons en BT - code="+str(process.returncode)
 
     return 0, "Le bot a posé "+str(list_defId)+" en " + zone
