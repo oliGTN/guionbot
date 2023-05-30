@@ -804,7 +804,7 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
         cursor = mysql_db.cursor()
 
         if txt_allyCode == '':
-            query = "SELECT allyCode FROM players WHERE name = '"+player_name+"'"
+            query = "SELECT allyCode FROM players WHERE name = '"+player_name.replace("'", "''")+"'"
             goutils.log2("DBG", query)
             list_players = get_column(query)
             if len(list_players) != 1:
