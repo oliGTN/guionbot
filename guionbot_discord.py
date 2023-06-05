@@ -3772,6 +3772,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 # MAIN EXECUTION
 ##############################################################
 def main():
+    #Init bot
     bot_noloop_mode = False
     global bot_test_mode
     goutils.log2("INFO", "Starting...")

@@ -403,9 +403,11 @@ async def update_player(dict_player):
         # Update basic player information
         p_allyCode = dict_player["allyCode"]
         p_playerId = dict_player["playerId"]
-        if "guildName" in dict_player:
+        if "guildId" in dict_player:
+            p_guildId = dict_player["guildId"]
             p_guildName = dict_player["guildName"]
         else:
+            p_guildId = ""
             p_guildName = ""
 
         p_lastActivity_player = int(dict_player["lastActivityTime"])
@@ -449,7 +451,8 @@ async def update_player(dict_player):
         cursor.execute(query)
 
         query = "UPDATE players "\
-               +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
+               +"SET guildId = '"+p_guildId+"', "\
+               +"    guildName = '"+p_guildName.replace("'", "''")+"', "\
                +"    playerId = '"+p_playerId+"', "\
                +"    lastActivity = '"+p_lastActivity+"', "\
                +"    level = "+str(p_level)+", "\
@@ -462,7 +465,7 @@ async def update_player(dict_player):
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
-        #goutils.log2("DBG", query)
+        goutils.log2("DBG", query)
         cursor.execute(query)
 
         # Update the roster

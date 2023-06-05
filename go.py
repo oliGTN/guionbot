@@ -96,7 +96,7 @@ def manage_disk_usage():
 async def refresh_cache():
     # Get the guilds to be refreshed
     # the query gets one allyCode by guild in the DB
-    query = "SELECT guilds.name, allyCode "\
+    query = "SELECT guilds.name, id, allyCode "\
            +"FROM guilds "\
            +"JOIN players on players.guildName = guilds.name "\
            +"WHERE guilds.update=1 "\
@@ -107,15 +107,16 @@ async def refresh_cache():
     if ret_table != None:
         for line in ret_table:
             guild_name = line[0]
-            guild_allyCode = line[1]
+            guild_id = line[1]
+            guild_allyCode = line[2]
             goutils.log2('INFO', "refresh guild " + guild_name \
                        +" with allyCode " + str(guild_allyCode))
             e, t, dict_guild = await load_guild(str(guild_allyCode), False, False)
-            if e == 0 and dict_guild["profile"]['name'] == guild_name:
+            if e == 0 and dict_guild["profile"]['id'] == guild_id:
                 e, t, dict_guild = await load_guild(str(guild_allyCode), True, False)
                 break
             elif e == 0:
-                goutils.log2('WAR', "load_guild("+str(guild_allyCode)+") returned guild "+guild_name)
+                goutils.log2('WAR', " Error during load_guild("+str(guild_allyCode)+"):"+t)
             else:
                 goutils.log2('ERR', 1)
                 return 1
@@ -208,7 +209,7 @@ async def load_player(ac_or_id, force_update, no_db):
 
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting RPC data for player ' + ac_or_id + '...')
-        ec, et, dict_player = await connect_rpc.get_player_data(ac_or_id, False)
+        ec, et, dict_player = await connect_rpc.get_player_data(ac_or_id)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
             dict_player = prev_dict_player
@@ -314,16 +315,18 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
     fjson.close()
 
     #Get guild data from DB
-    query = "SELECT lastUpdated FROM guilds "\
-           +"WHERE name = '"+guildName.replace("'", "''")+"'"
+    query = "SELECT name, lastUpdated FROM guilds "\
+           +"WHERE id = '"+guild_id+"'"
     goutils.log2('DBG', query)
-    lastUpdated = connect_mysql.get_value(query)
+    ret_line = connect_mysql.get_line(query)
+    db_guild_name = ret_line[0]
+    lastUpdated = ret_line[1]
 
     if lastUpdated == None:
         is_new_guild = True
 
         #Create guild in DB
-        query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guildName.replace("'", "''")+"', '"+guild_id+"')"
+        query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guild_name+"', '"+guild_id+"')"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
@@ -333,6 +336,18 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
         connect_mysql.simple_execute(query)
     else:
         is_new_guild = False
+
+    if not is_new_guild and (guildName != db_guild_name):
+        #update the name
+        query = "UPDATE guilds SET name='"+guildName.replace("'", "''")+"' "
+        query+= "WHERE id='"+guild_id+"'"
+        goutils.log2('DBG', query)
+        connect_mysql.simple_execute(query)
+
+        query = "INSERT INTO guild_evolutions(guild_id, description) "
+        query+= "VALUES('"+guild_id+"', 'new name for the guild: "+guildName.replace("'", "''")+"')"
+        goutils.log2('DBG', query)
+        connect_mysql.simple_execute(query)
 
 
     query = "SELECT playerId FROM players "\
@@ -1092,7 +1107,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
         if compute_guild==0:
             query += "WHERE roster.allyCode = '"+txt_allyCode+"'\n"
         elif compute_guild==1:
-            query += "WHERE players.guildName = "+collection_name.replace("'", "''") +"\n"
+            query += "WHERE players.guildName = '"+collection_name.replace("'", "''") +"'\n"
         else:
             query += "WHERE players."+shard_type+"Shard_id = \
                     (SELECT "+shard_type+"Shard_id FROM players WHERE allyCode='"+txt_allyCode+"')\n"

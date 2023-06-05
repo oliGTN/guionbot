@@ -466,7 +466,7 @@ def delta_dict_player(dict1, dict2):
     delta_dict['rosterUnit'] = {}
 
     #compare player information
-    for info in ["playerId", "guildName", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes"]:
+    for info in ["playerId", "guildName", "guildId", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes"]:
         if not info in dict2:
             dict2[info] = None
         if not info in dict1:

@@ -18,21 +18,21 @@ dict_sem={}
 async def acquire_sem(id):
     id=str(id)
     calling_func = inspect.stack()[2][3]
-    goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
+    #goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
     if not id in dict_sem:
         dict_sem[id] = threading.Semaphore()
 
     while not dict_sem[id].acquire(blocking=False):
         await asyncio.sleep(1)
 
-    goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
+    #goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
 
 async def release_sem(id):
     id=str(id)
     calling_func = inspect.stack()[2][3]
-    goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
+    #goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
     dict_sem[id].release()
-    goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
+    #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
     query = "SELECT server_id, bot_android_id, bot_locked_until FROM guild_bot_infos where bot_android_id != ''"
@@ -93,15 +93,15 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
     url = "http://localhost:8000/guild"
-    params = {"android_id": bot_androidId}
+    params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=req_data) as resp:
-            goutils.log2("DBG", "getplayer status="+str(resp.status))
+        async with session.post(url, data=req_data, timeout=10) as resp:
+            goutils.log2("DBG", "getguild status="+str(resp.status))
             if resp.status==200:
                 guild_json = await(resp.json())
             else:
-                return 1, "Cannot player data from RPC", None
+                return 1, "Cannot get guild data from RPC", None
 
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
@@ -281,7 +281,7 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
 async def get_guild_data(txt_allyCode, use_cache_data):
-    ec, et, dict_player = await get_player_data(txt_allyCode, use_cache_data)
+    ec, et, dict_player = await get_player_data(txt_allyCode)
     if ec != 0:
         return 1, et, None
 
@@ -301,7 +301,7 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
     params = {"guild_id": guild_id}
     req_data = json.dumps(params)
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=req_data) as resp:
+        async with session.post(url, data=req_data, timeout=10) as resp:
             goutils.log2("DBG", "getextguild status="+str(resp.status))
             if resp.status==200:
                 guild_json = await(resp.json())
@@ -312,12 +312,12 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
 
     return 0, "", dict_guild
 
-async def get_player_data(ac_or_id, use_cache_data):
+async def get_player_data(ac_or_id):
     url = "http://localhost:8000/player"
     params = {"player_id": ac_or_id}
     req_data = json.dumps(params)
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=req_data) as resp:
+        async with session.post(url, data=req_data, timeout=10) as resp:
             goutils.log2("DBG", "getplayer status="+str(resp.status))
             if resp.status==200:
                 dict_player = await(resp.json())
@@ -1111,7 +1111,7 @@ async def get_tw_opponent_leader(server_id):
         if member["memberLevel"] == 4:
             leader_id = member["playerId"]
 
-    ec, et, dict_player = await get_player_data(leader_id, False)
+    ec, et, dict_player = await get_player_data(leader_id)
     if ec != 0:
         return ec, et, None
 
@@ -1220,7 +1220,7 @@ async def deploy_tb(server_id, zone, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_guild = rpc_data[0]
 
-    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, True)
+    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1256,7 +1256,7 @@ async def deploy_tw(server_id, zone, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_guild = rpc_data[0]
 
-    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, True)
+    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1295,7 +1295,7 @@ async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_guild = rpc_data[0]
 
-    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, True)
+    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
