@@ -194,32 +194,36 @@ async def load_player(ac_or_id, force_update, no_db):
                     #empty file, delete it
                     os.remove(json_file)
                     prev_dict_player = None
+                    prev_dict_player_list = None
                 else:
                     goutils.log2("DBG", "... correct file")
                     prev_dict_player = json.load(open(json_file, 'r'))
-                    prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
+                    prev_dict_player_list = goutils.roster_from_dict_to_list(prev_dict_player)
             else:
                 goutils.log2("DBG", "... the file does not exist")
                 prev_dict_player = None
+                prev_dict_player_list = None
         else:
             goutils.log2("DBG", "Player "+ac_or_id+" unknown. Need to get whole data")
             recent_player = 0
             prev_dict_player = None
+            prev_dict_player_list = None
 
 
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting RPC data for player ' + ac_or_id + '...')
-        ec, et, dict_player = await connect_rpc.get_player_data(ac_or_id)
+        ec, et, dict_player_list = await connect_rpc.get_player_data(ac_or_id)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
-            dict_player = prev_dict_player
+            dict_player_list = prev_dict_player_list
 
-        if dict_player == None:
+        if dict_player_list == None:
             goutils.log2("ERR", 'Cannot get player data for '+ac_or_id)
             return 1, 'ERR: cannot get player data for '+ac_or_id, None
 
+        goutils.log2("DBG", "after getplayer")
         #Add mandatory elements to compute stats
-        for unit in dict_player["rosterUnit"]:
+        for unit in dict_player_list["rosterUnit"]:
             if not "equipment" in unit:
                 unit["equipment"] = []
             if not "skill" in unit:
@@ -233,10 +237,10 @@ async def load_player(ac_or_id, force_update, no_db):
 
 
         #Add statistics
-        err_code, err_txt, dict_player = connect_crinolo.add_stats(dict_player)
+        err_code, err_txt, dict_player_list = connect_crinolo.add_stats(dict_player_list)
 
         #Transform the roster into dictionary with key = defId
-        dict_player = goutils.roster_from_list_to_dict(dict_player)
+        dict_player = goutils.roster_from_list_to_dict(dict_player_list)
 
         playerId = dict_player["playerId"]
         player_name = dict_player["name"]
@@ -300,12 +304,12 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
         goutils.log2("ERR", "Cannot get guild data for "+txt_allyCode)
         return 1, "ERR Cannot get guild data for "+txt_allyCode, None
 
-    guildName = dict_guild["profile"]['name']
+    guild_name = dict_guild["profile"]['name']
     guild_id = dict_guild["profile"]['id']
     total_players = len(dict_guild["member"])
     playerId_in_API = [x['playerId'] for x in dict_guild["member"]]
     guild_gp = sum([int(x['galacticPower']) for x in dict_guild["member"]])
-    goutils.log2("INFO", "success retrieving "+guildName+" ("\
+    goutils.log2("INFO", "success retrieving "+guild_name+" ("\
                 +str(total_players)+" players, "+str(guild_gp)+" GP) from RPC")
                 
     # store json file
@@ -319,12 +323,15 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
            +"WHERE id = '"+guild_id+"'"
     goutils.log2('DBG', query)
     ret_line = connect_mysql.get_line(query)
-    db_guild_name = ret_line[0]
-    lastUpdated = ret_line[1]
-
-    if lastUpdated == None:
+    if ret_line != None:
+        is_new_guild = False
+        db_guild_name = ret_line[0]
+        lastUpdated = ret_line[1]
+    else:
         is_new_guild = True
+        lastUpdated = None
 
+    if is_new_guild:
         #Create guild in DB
         query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guild_name+"', '"+guild_id+"')"
         goutils.log2('DBG', query)
@@ -334,24 +341,22 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
         query+= "VALUES('"+guild_id+"', 'creation of the guild')"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
-    else:
-        is_new_guild = False
 
-    if not is_new_guild and (guildName != db_guild_name):
+    if not is_new_guild and (guild_name != db_guild_name):
         #update the name
-        query = "UPDATE guilds SET name='"+guildName.replace("'", "''")+"' "
+        query = "UPDATE guilds SET name='"+guild_name.replace("'", "''")+"' "
         query+= "WHERE id='"+guild_id+"'"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
         query = "INSERT INTO guild_evolutions(guild_id, description) "
-        query+= "VALUES('"+guild_id+"', 'new name for the guild: "+guildName.replace("'", "''")+"')"
+        query+= "VALUES('"+guild_id+"', 'new name for the guild: "+guild_name.replace("'", "''")+"')"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
 
     query = "SELECT playerId FROM players "\
-           +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
+           +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
     goutils.log2('DBG', query)
     playerId_in_DB = connect_mysql.get_column(query)
     while None in playerId_in_DB:
@@ -393,7 +398,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
 
         if is_new_guild or need_refresh_due_to_time or need_to_add_players:
             #The guild is not defined yet, add it
-            guild_loading_status = parallel_work.get_guild_loading_status(guildName)
+            guild_loading_status = parallel_work.get_guild_loading_status(guild_name)
 
             if is_new_guild or need_refresh_due_to_time:
                 #add all players
@@ -406,22 +411,22 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
             if guild_loading_status != None:
                 #The guild is already being loaded
                 while guild_loading_status != None:
-                    goutils.log2('INFO', "Guild "+guildName+" already loading ("\
+                    goutils.log2('INFO', "Guild "+guild_name+" already loading ("\
                             + guild_loading_status + "), waiting 30 seconds...")
                     await asyncio.sleep(30)
-                    guild_loading_status = parallel_work.get_guild_loading_status(guildName)
+                    guild_loading_status = parallel_work.get_guild_loading_status(guild_name)
             else:
                 #Ensure only one guild loading at a time
                 #while len(dict_loading_guilds) > 1:
-                list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
+                list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
                 while len(list_other_guilds_loading_status) > 0:
-                    goutils.log2('INFO', "Guild "+guildName+" loading "\
+                    goutils.log2('INFO', "Guild "+guild_name+" loading "\
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
                     await asyncio.sleep(30)
-                    list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guildName)
+                    list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
 
                 #Request to load this guild
-                parallel_work.set_guild_loading_status(guildName, "0/"+str(total_players))
+                parallel_work.set_guild_loading_status(guild_name, "0/"+str(total_players))
 
                 #add player data
                 i_player = 0
@@ -431,34 +436,34 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
                     
                     e, t, d = await load_player(str(playerId), 0, False)
                     goutils.log2("DBG", "after load_player...")
-                    parallel_work.set_guild_loading_status(guildName, str(i_player)+"/"+str(total_players))
+                    parallel_work.set_guild_loading_status(guild_name, str(i_player)+"/"+str(total_players))
                     goutils.log2("DBG", "after set_guild_loading_status...")
                     await asyncio.sleep(1)
                     goutils.log2("DBG", "after sleep...")
 
-                parallel_work.set_guild_loading_status(guildName, None)
+                parallel_work.set_guild_loading_status(guild_name, None)
 
                 #Update dates in DB
                 query = "UPDATE guilds "\
                        +"SET id = '"+guild_id+"', "\
                        +"lastUpdated = CURRENT_TIMESTAMP "\
-                       +"WHERE name = '"+guildName.replace("'", "''") + "'"
+                       +"WHERE name = '"+guild_name.replace("'", "''") + "'"
                 goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
 
         else:
             lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
-            goutils.log2('INFO', "Guild "+guildName+" last update is "+lastUpdated_txt)
+            goutils.log2('INFO', "Guild "+guild_name+" last update is "+lastUpdated_txt)
 
     #Update dates in DB
     if cmd_request:
         query = "UPDATE guilds "\
                +"SET lastRequested = CURRENT_TIMESTAMP "\
-               +"WHERE name = '"+guildName.replace("'", "''") + "'"
+               +"WHERE name = '"+guild_name.replace("'", "''") + "'"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
-    #Erase guildName for alyCodes not detected from API
+    #Erase guild_name for alyCodes not detected from API
     if len(playerId_to_remove) > 0:
         query = "UPDATE players "\
                +"SET guildName = '', guildMemberLevel = 2 "\
@@ -468,7 +473,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
 
     #Manage guild roles (leader, officers)
     query = "SELECT playerId, guildMemberLevel FROM players "\
-           +"WHERE guildName = '"+guildName.replace("'", "''")+"'"
+           +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
     goutils.log2('DBG', query)
     roles_in_DB = connect_mysql.get_table(query)
     dict_roles = {}
@@ -1042,7 +1047,8 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
             goutils.log2("WAR", "cannot get guild data from SWGOH.HELP API. Using previous data.")
         collection_name = guild["profile"]["name"]
     else:
-        player_shard = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
+        shard_info = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
+        player_shard = shard_info[0]
         err_code, err_txt = await load_shard(player_shard, shard_type, True)
         if err_code != 0:
             goutils.log2("WAR", "cannot get shard data from SWGOH.HELP API. Using previous data.")
@@ -3112,11 +3118,11 @@ async def get_tw_alerts(server_id, use_cache_data):
                     leader_name = dict_unitsList[leader]["name"]
                 else:
                     leader_name = leader
-                msgleader = " - "+leader_name+": "+str(counter_remaining_leaders[leader])+"/"+str(counter_leaders[leader])
+                msgleader = leader_name+": "+str(counter_remaining_leaders[leader])+"/"+str(counter_leaders[leader])
                 if counter_remaining_leaders[leader] == 0:
-                    msg += "\n~~"+msgleader+"~~"
+                    msg += "\n- ~~"+msgleader+"~~"
                 else:
-                    msg += "\n"+msgleader
+                    msg += "\n- "+msgleader
 
             list_tw_alerts[1][territory] = msg
 
@@ -3442,7 +3448,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
     if tw_mode:
         ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
         if ec != 0:
-            return ec, et
+            return ec, et, None
 
     opposite_search = (list_characters[0][0]=="-")
     if opposite_search and tw_mode:
@@ -3873,11 +3879,11 @@ def get_modqstatq_graph(txt_allyCode, is_modq):
     else:
         kpi_name = "statq"
 
-    query = "SELECT date, "+kpi_name+", name FROM gp_history " \
+    query = "SELECT date, gp_history."+kpi_name+", name FROM gp_history " \
           + "JOIN players ON players.allyCode = gp_history.allyCode " \
           + "WHERE gp_history.allyCode="+txt_allyCode+" " \
           + "AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
-          + "AND NOT isnull("+kpi_name+") " \
+          + "AND NOT isnull(gp_history."+kpi_name+") " \
           + "ORDER BY date DESC"
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
