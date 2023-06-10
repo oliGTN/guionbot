@@ -608,7 +608,8 @@ def roster_from_list_to_dict(dict_player):
 
     return dict_player
 
-def roster_from_dict_to_list(dict_player):
+def roster_from_dict_to_list(dict_player_in):
+    dict_player = dict_player_in.copy()
     txt_allyCode = str(dict_player['allyCode'])
 
     if type(dict_player['rosterUnit']) == list:
