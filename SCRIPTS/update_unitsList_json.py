@@ -16,6 +16,17 @@ materialList_dict = {}
 for material in game_data["material"]:
     materialList_dict[material["id"]] = material
 
+#add custom data
+my_unit = {"baseId": "LEVIATHAN",
+           "nameKey":"UNIT_LEVIATHAN_NAME",
+           "combatType":2,
+           "rarity":1,
+           "obtainableTime":"0",
+           "categoryId":["any_obtainable"]}
+game_data["units"].append(my_unit)
+FRE_FR["UNIT_LEVIATHAN_NAME"] = "Leviathan"
+ENG_US["UNIT_LEVIATHAN_NAME"] = "Leviathan"
+
 unitsList_dict = {}
 for unit in game_data["units"]:
     if not "any_obtainable" in unit["categoryId"]:
