@@ -343,14 +343,14 @@ async def bot_loop_5minutes():
                             #First time this zone has a message
 
                             #Short message to admins
-                            if territory.startswith('Home:'):
-                                await send_alert_to_admins(guild, territory+" is lost")
-                            elif territory.startswith('Placement:'):
-                                await send_alert_to_admins(guild, territory+" is filled")
-                            elif territory.startswith('Ordres:'):
-                                await send_alert_to_admins(guild, territory+" has orders")
-                            else:
-                                await send_alert_to_admins(guild, territory+" is open")
+                            #if territory.startswith('Home:'):
+                                #await send_alert_to_admins(guild, territory+" is lost")
+                            #elif territory.startswith('Placement:'):
+                                #await send_alert_to_admins(guild, territory+" is filled")
+                            #elif territory.startswith('Ordres:'):
+                                #await send_alert_to_admins(guild, territory+" has orders")
+                            #else:
+                                #await send_alert_to_admins(guild, territory+" is open")
 
                             #Full message to TW guild channel
                             if not bot_test_mode:
@@ -371,8 +371,8 @@ async def bot_loop_5minutes():
                                 old_msg_txt = old_msg.content
                                 if old_msg_txt != msg_txt:
                                     #Short message to admins
-                                    await send_alert_to_admins(guild, territory+" has new orders")
-
+                                    #await send_alert_to_admins(guild, territory+" has new orders")
+#
                                     #remove old_msg, add new_msg, update DB
                                     if not bot_test_mode:
                                         await old_msg.delete()
@@ -393,7 +393,7 @@ async def bot_loop_5minutes():
                                 old_msg_txt = old_msg.content
                                 if old_msg_txt != msg_txt:
                                     #Short message to admins
-                                    await send_alert_to_admins(guild, territory+" is modified")
+                                    #await send_alert_to_admins(guild, territory+" is modified")
 
                                     #Full message modified in TW guild channel
                                     if not bot_test_mode:
@@ -3522,26 +3522,40 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='cpg', brief="Compte les persos d'une Guilde",
-                      help="Compte les persos d'une Guilde" \
-                              "Exemple : go.cpg me > les GL par défaut" \
-                              "Exemple : go.cpg me SEE Maul GAS > une liste spécifique" \
-                              "Exemple : go.cpg me SEE Maul GAS -TW > compare avec la guilde adverse en TW")
+                      help="Compte les persos d'une Guilde\n" \
+                              "Exemple : go.cpg me > les GL par défaut\n" \
+                              "Exemple : go.cpg me SEE Maul GAS > une liste spécifique\n" \
+                              "Exemple : go.cpg -TW SEE Maul GAS > compare avec la guilde adverse en TW")
     async def cpg(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
         #Check arguments
         args = list(args)
-        if "-TW" in args:
+
+        if args[0] == "-TW":
             tw_mode = True
-            args.remove("-TW")
 
             ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emoji_error)
                 return
+
+            ec, et, bot_player = await connect_rpc.get_bot_player_data(ctx.guild.id, False)
+            if ec != 0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emoji_error)
+                return
+            allyCode = str(bot_player["allyCode"])
         else:
             tw_mode = False
+            allyCode = args[0]
+            allyCode = manage_me(ctx, allyCode)
+
+        if "-TW" in args[1:]:
+            await ctx.send("ERR: l'option -TW doit être utilisée en première position. Consulter go.help cpg pour plus d'infos.")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         if len(args) == 1:
             #default list
@@ -3549,8 +3563,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             unit_list = args[1:]
 
-        allyCode = args[0]
-        allyCode = manage_me(ctx, allyCode)
                 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3678,9 +3690,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.check(member_command)
     @commands.command(name='shard', brief="Gère les shards du joueur",
                  help="Gère les shards du joueur\n"\
-                      "Exemple : go.shard me char 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de persos"\
-                      "Exemple : go.shard me ship 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de vaisseaux"\
-                      "Exemple : go.shard me ship -123456789 > retire le joueur 123456789 de la liste des joueurs  de l'arène de vaisseaux"\
+                      "Exemple : go.shard me char 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de persos\n"\
+                      "Exemple : go.shard me ship 123456789 > ajoute le joueur 123456789 à la liste des joueurs  de l'arène de vaisseaux\n"\
+                      "Exemple : go.shard me ship -123456789 > retire le joueur 123456789 de la liste des joueurs  de l'arène de vaisseaux\n"\
                       "Exemple : go.shard me char > affiche la liste des joueurs connus de l'arène de persos")
     async def shard(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
