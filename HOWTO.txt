@@ -1,5 +1,5 @@
 # ajouter un perso au guide de voyage
-- ajouter ID et nameKey dans unitsList_custom.json
+- ajouter ID et nameKey dans update_unnits_list
 - ajouter forceAlignment
 - ajouter categoryIdList potentiellement vide, mais avec autant que possible
 - ajouter ID et Name dans GuiOnBot.doc / units
