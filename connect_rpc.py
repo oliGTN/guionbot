@@ -95,13 +95,20 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
     url = "http://localhost:8000/guild"
     params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=req_data, timeout=10) as resp:
-            goutils.log2("DBG", "getguild status="+str(resp.status))
-            if resp.status==200:
-                guild_json = await(resp.json())
-            else:
-                return 1, "Cannot get guild data from RPC", None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "getguild status="+str(resp.status))
+                if resp.status==200:
+                    guild_json = await(resp.json())
+                else:
+                    return 1, "Cannot get guild data from RPC", None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
 
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
@@ -300,13 +307,19 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
     url = "http://localhost:8000/extguild"
     params = {"guild_id": guild_id}
     req_data = json.dumps(params)
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=req_data, timeout=10) as resp:
-            goutils.log2("DBG", "getextguild status="+str(resp.status))
-            if resp.status==200:
-                guild_json = await(resp.json())
-            else:
-                return 1, "Cannot player data from RPC", None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "getextguild status="+str(resp.status))
+                if resp.status==200:
+                    guild_json = await(resp.json())
+                else:
+                    return 1, "Cannot player data from RPC", None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     dict_guild = guild_json["guild"]
 
@@ -316,14 +329,21 @@ async def get_player_data(ac_or_id):
     url = "http://localhost:8000/player"
     params = {"player_id": ac_or_id}
     req_data = json.dumps(params)
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, data=req_data, timeout=10) as resp:
-            goutils.log2("DBG", "getplayer status="+str(resp.status))
-            if resp.status==200:
-                dict_player = await(resp.json())
-            else:
-                return 1, "Cannot player data from RPC", None
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "getplayer status="+str(resp.status))
+                if resp.status==200:
+                    dict_player = await(resp.json())
+                else:
+                    return 1, "Cannot player data from RPC", None
 
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    goutils.log2("DBG", "END")
     return 0, "", dict_player
 
 async def get_bot_player_data(server_id, use_cache_data):

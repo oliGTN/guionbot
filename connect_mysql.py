@@ -476,6 +476,8 @@ async def update_player(dict_player):
             c_combatType = dict_unitsList[character_id]['combatType']
             c_forceAlignment = dict_unitsList[c_defId]['forceAlignment']
             c_gear = character['currentTier']
+            if not "gp" in character:
+                goutils.log2("ERR", p_playerId+":"+character_id)
             c_gp = character['gp']
             c_level = character['currentLevel']
             c_rarity = character['currentRarity']
