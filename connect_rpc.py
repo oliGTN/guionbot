@@ -35,14 +35,14 @@ async def release_sem(id):
     #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
-    query = "SELECT server_id, bot_android_id, bot_locked_until FROM guild_bot_infos where bot_android_id != ''"
+    query = "SELECT server_id, bot_android_id, bot_locked_until, priority_cache FROM guild_bot_infos where bot_android_id != ''"
     #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
     ret_dict = {}
     if db_data != None:
         for line in db_data:
-            ret_dict[line[0]] = {"AndroidId": line[1], "LockedUntil": line[2]}
+            ret_dict[line[0]] = {"AndroidId": line[1], "LockedUntil": line[2], "priority_cache":line[3]}
 
     return ret_dict
 
@@ -75,8 +75,9 @@ def islocked_bot_account(guildName):
     is_locked = int(locked_until_ts) > int(time.time())
     return is_locked
 
-async def get_rpc_data(server_id, event_types, use_cache_data):
-    goutils.log2("DBG", "START get_rpc_data("+str(server_id)+", "+str(event_types)+", "+str(use_cache_data)+")")
+#force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
+async def get_rpc_data(server_id, event_types, force_update):
+    goutils.log2("DBG", "START get_rpc_data("+str(server_id)+", "+str(event_types)+", "+str(force_update)+")")
     calling_func = inspect.stack()[1][3]
 
     dict_bot_accounts = get_dict_bot_accounts()
@@ -88,9 +89,17 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
 
     guildName = get_guildName_from_id(server_id)
 
+    #locking bot has priority. Cannot be overriden
     if islocked_bot_account(server_id):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
+    else:
+        if force_update == 1:
+            use_cache_data = False
+        elif force_update == -1:
+            use_cache_data = True
+        else: #force_update==0
+            use_cache_data = bool(dict_bot_accounts[server_id]["priority_cache"])
 
     url = "http://localhost:8000/guild"
     params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
@@ -274,6 +283,8 @@ async def get_rpc_data(server_id, event_types, use_cache_data):
 
             await asyncio.sleep(0)
 
+        goutils.log2("DBG", "end loop dict_new_events")
+
         if not use_cache_data:
             #log update time in DB - rounded to fix times (eg: always 00:05, 00:10 for 5 min period)
             query = "UPDATE guild_bot_infos SET bot_latestUpdate=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
@@ -380,7 +391,7 @@ async def join_raids(server_id):
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], True)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], -1)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -408,7 +419,7 @@ async def join_tw(server_id):
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], True)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], -1)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -431,14 +442,14 @@ async def join_tw(server_id):
     return 0, "Le bot a rejoint la GT"
 
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
-async def parse_tb_platoons(server_id, use_cache_data):
+async def parse_tb_platoons(server_id, force_update):
     active_round = "" # GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
     list_open_territories = [0, 0, 0] # [4, 3, 3]
 
     dict_tb = godata.dict_tb
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["TB"], use_cache_data)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["TB"], force_update)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -516,7 +527,7 @@ async def parse_tb_platoons(server_id, use_cache_data):
 
     return active_round, dict_platoons, list_open_territories
 
-async def parse_tw_opponent_teams(server_id, use_cache_data):
+async def parse_tw_opponent_teams(server_id, force_update):
     ######### THIS FUNCTION IS NOT READY ##############
     dict_unitsList = godata.get("unitsList_dict.json")
 
@@ -524,7 +535,7 @@ async def parse_tw_opponent_teams(server_id, use_cache_data):
                     #  ['T1', 'E80', [...]]]
     list_territories = [] # [['T1', <size>, <filled>, <victories>, <fails>], ...],
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], use_cache_data)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], force_update)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -535,7 +546,7 @@ async def parse_tw_opponent_teams(server_id, use_cache_data):
 
     return 0, "", [list_teams, list_territories]
 
-async def get_guildChat_messages(server_id, use_cache_data):
+async def get_guildChat_messages(server_id):
     FRE_FR = godata.get('FRE_FR.json')
 
     query = "SELECT bot_android_id, chatChan_id, chatLatest_ts FROM guild_bot_infos WHERE server_id="+str(server_id)
@@ -553,7 +564,7 @@ async def get_guildChat_messages(server_id, use_cache_data):
     if chatChan_id == 0:
         return 1, "ERR: no discord chat channel for guild "+str(server_id), None
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["CHAT"], use_cache_data)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["CHAT"], -1)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -623,9 +634,9 @@ async def get_guildChat_messages(server_id, use_cache_data):
 
     return 0, "", [chatChan_id, list_chat_events]
 
-async def tag_tb_undeployed_players(server_id, use_cache_data):
+async def tag_tb_undeployed_players(server_id, force_update):
     dict_tb=godata.dict_tb
-    ec, et, tb_data = await get_tb_status(server_id, "", False, use_cache_data)
+    ec, et, tb_data = await get_tb_status(server_id, "", False, force_update)
     if ec!=0:
         return 1, et, None
 
@@ -681,10 +692,10 @@ async def tag_tb_undeployed_players(server_id, use_cache_data):
 
     return 0, "", lines_player
 
-async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data):
+async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, force_update):
     dict_tb = godata.dict_tb
 
-    ec, et, rpc_data = await get_rpc_data(server_id, ["TB"], use_cache_data)
+    ec, et, rpc_data = await get_rpc_data(server_id, ["TB"], force_update)
     if ec!=0:
         return 1, et, None
 
@@ -1078,9 +1089,9 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 # OUT: dict_territory_scores = {"GLS-P3-top": 24500000, ...}
 # OUT: tb_active_round = 3
 ##########################################"
-async def get_tb_guild_scores(server_id, use_cache_data):
+async def get_tb_guild_scores(server_id, force_update):
     dict_tb = godata.dict_tb
-    ec, et, tb_data = await get_tb_status(server_id, "", False, use_cache_data)
+    ec, et, tb_data = await get_tb_status(server_id, "", False, force_update)
     if ec!=0:
         return {}, ""
 
@@ -1104,7 +1115,7 @@ async def get_tb_guild_scores(server_id, use_cache_data):
 # get an allyCode of the opponent TW guild
 ########################################
 async def get_tw_opponent_leader(server_id):
-    ec, et, rpc_data = await get_rpc_data(server_id, [], True)
+    ec, et, rpc_data = await get_rpc_data(server_id, [], -1)
     if ec!=0:
         return 1, et, None
 
@@ -1149,10 +1160,10 @@ async def get_tw_opponent_leader(server_id):
 # opp_guild: [name, id]
 # tw_id: "TERRITORY_WAR_EVENT_C:01681236000000"
 ########################################
-async def get_tw_status(server_id, use_cache_data):
+async def get_tw_status(server_id, force_update):
     dict_tw=godata.dict_tw
 
-    ec, et, rpc_data = await get_rpc_data(server_id, [], use_cache_data)
+    ec, et, rpc_data = await get_rpc_data(server_id, [], force_update)
     if ec!=0:
         return None, [[], []], [[], []], None
 
@@ -1214,8 +1225,8 @@ async def get_tw_status(server_id, use_cache_data):
                  [list_teams["awayGuild"], list_territories["awayGuild"]], \
                  [opp_guildName, opp_guildId]
 
-async def get_tw_active_players(server_id, use_cache_data):
-    ec, et, rpc_data = await get_rpc_data(server_id, [], use_cache_data)
+async def get_tw_active_players(server_id, force_update):
+    ec, et, rpc_data = await get_rpc_data(server_id, [], force_update)
     if ec!=0:
         return 1, et, None
 
@@ -1234,7 +1245,7 @@ async def deploy_tb(server_id, zone, list_defId):
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], True)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], -1)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1270,7 +1281,7 @@ async def deploy_tw(server_id, zone, list_defId):
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], True)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], -1)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1309,7 +1320,7 @@ async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], True)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], -1)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1330,7 +1341,17 @@ async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
         goutils.log2("DBG", "waiting platoons_tb...")
         await asyncio.sleep(1)
     goutils.log2("DBG", "platoons_tb code="+str(process.returncode))
-    if process.returncode!=0:
+    if process.returncode==2:
+        return 1, "Erreur en déployant les pelotons en BT - (usage)"
+    elif process.returncode==100:
+        return 1, "Erreur en déployant les pelotons en BT - (pas de BT en cours)"
+    elif process.returncode==103:
+        return 1, "Erreur en déployant les pelotons en BT - (emplacement déjà occupé)"
+    elif process.returncode==101:
+        return 1, "Erreur en déployant les pelotons en BT - (toon déjà déployé)"
+    elif process.returncode==102:
+        return 1, "Erreur en déployant les pelotons en BT - (rien à déployer)"
+    elif process.returncode!=0:
         return 1, "Erreur en déployant les pelotons en BT - code="+str(process.returncode)
 
     return 0, "Le bot a posé "+str(list_defId)+" en " + zone

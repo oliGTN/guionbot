@@ -131,6 +131,7 @@ CREATE TABLE `guild_bot_infos` (
   `bot_LatestUpdate` timestamp NULL DEFAULT current_timestamp(),
   `bot_period_min` smallint(6) DEFAULT 15,
   `bot_locked_until` timestamp NULL DEFAULT current_timestamp(),
+  `priority_cache` tinyint(4) DEFAULT 0,
   `chatChan_id` bigint(20) DEFAULT 0,
   `chatLatest_ts` bigint(20) DEFAULT 0,
   `twLatest_ts` bigint(20) DEFAULT 0,
@@ -154,7 +155,7 @@ CREATE TABLE `guild_evolutions` (
   `playerId` varchar(24) COLLATE utf8_bin DEFAULT NULL,
   `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=633019 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=971349 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -170,7 +171,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3290 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3298 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -195,7 +196,7 @@ CREATE TABLE `guild_team_roster` (
   `zetaList` varchar(255) DEFAULT NULL,
   `omicronList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16440 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=16526 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -243,7 +244,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=587 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=589 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -254,12 +255,12 @@ DROP TABLE IF EXISTS `guilds`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guilds` (
-  `name` varchar(255) NOT NULL DEFAULT 'noname',
+  `name` varchar(255) NOT NULL DEFAULT '',
   `id` varchar(24) NOT NULL DEFAULT '',
   `lastUpdated` timestamp NOT NULL DEFAULT current_timestamp(),
   `lastRequested` timestamp NOT NULL DEFAULT current_timestamp(),
   `update` tinyint(4) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`name`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -354,6 +355,7 @@ DROP TABLE IF EXISTS `players`;
 CREATE TABLE `players` (
   `allyCode` int(11) NOT NULL,
   `playerId` varchar(24) DEFAULT NULL,
+  `guildId` varchar(24) DEFAULT NULL,
   `guildName` varchar(255) DEFAULT NULL,
   `guildMemberLevel` tinyint(4) DEFAULT 2,
   `lastActivity` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -415,7 +417,7 @@ CREATE TABLE `roster` (
   `mod28` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=4649090 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=7580475 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -432,7 +434,7 @@ CREATE TABLE `roster_evolutions` (
   `defId` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=432674 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=3221464 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -453,7 +455,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=33327759 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=45146542 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -468,7 +470,7 @@ CREATE TABLE `shards` (
   `type` varchar(4) NOT NULL,
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -493,10 +495,11 @@ DROP TABLE IF EXISTS `statq_table`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `statq_table` (
-  `defId` varchar(45) DEFAULT NULL,
-  `stat_name` varchar(45) DEFAULT NULL,
+  `defId` varchar(45) NOT NULL,
+  `stat_name` varchar(45) NOT NULL,
   `coef` int(11) DEFAULT 1,
-  `stat_avg` bigint(20) DEFAULT NULL
+  `stat_avg` float DEFAULT NULL,
+  PRIMARY KEY (`defId`,`stat_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1183,4 +1186,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-05-22  1:39:03
+-- Dump completed on 2023-06-14  0:18:19

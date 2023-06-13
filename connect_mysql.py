@@ -727,10 +727,11 @@ async def update_player(dict_player):
               + "FROM( " \
 	          + "    SELECT my_roster.allyCode, " \
 	          + "    CASE " \
-	          + "    WHEN stat_name='health' THEN stat1 /stat_avg " \
-	          + "    WHEN stat_name='speed'  THEN stat5 /stat_avg " \
-	          + "    WHEN stat_name='pd'     THEN stat6 /stat_avg " \
-	          + "    WHEN stat_name='protec' THEN stat28/stat_avg " \
+	          + "    WHEN stat_name='health' THEN (mod1 /(stat1 -mod1 ))/stat_avg " \
+	          + "    WHEN stat_name='speed'  THEN (mod5 /(stat5 -mod5 ))/stat_avg " \
+	          + "    WHEN stat_name='pd'     THEN (mod6 /(stat6 -mod6 ))/stat_avg " \
+	          + "    WHEN stat_name='cd'     THEN (mod16/(stat16-mod16))/stat_avg " \
+	          + "    WHEN stat_name='protec' THEN (mod18/(stat28-mod28))/stat_avg " \
 	          + "    END AS `stat_ratio`, " \
 	          + "    coef " \
 	          + "    FROM roster AS my_roster " \

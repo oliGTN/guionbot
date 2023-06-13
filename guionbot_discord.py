@@ -202,9 +202,12 @@ async def bot_loop_60secs():
                 await send_alert_to_admins(None, "Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
         
         #UPDATE RPC data
+        # update when the time since last update is greater than the period and the time is rounded
+        # (15 min bots are updated only at :00, :15, :30...)
         query = "SELECT server_id FROM guild_bot_infos "
-        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=bot_period_min "
+        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=(bot_period_min-1) "
         query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
+        query+= "AND mod(minute(CURRENT_TIMESTAMP),bot_period_min)=0 "
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_column(query)
         goutils.log2("DBG", "db_data: "+str(db_data))
@@ -214,11 +217,11 @@ async def bot_loop_60secs():
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
                     goutils.log2("DBG", "before get_rpc_update: "+str(server_id))
-                    await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], False)
+                    await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], 0)
                     goutils.log2("DBG", "before update_gwarstats: "+str(server_id))
                     await connect_gsheets.update_gwarstats( server_id)
                     goutils.log2("DBG", "before get_guildChat: "+str(server_id))
-                    ec, et, ret_data = await connect_rpc.get_guildChat_messages( server_id, True)
+                    ec, et, ret_data = await connect_rpc.get_guildChat_messages( server_id)
                     goutils.log2("DBG", "after get_guildChat: "+str(server_id))
                     if ec!=0:
                         goutils.log2("ERR", et)
@@ -316,7 +319,7 @@ async def bot_loop_5minutes():
         for guild in bot.guilds:
             try:
                 #CHECK ALERTS FOR TERRITORY WAR
-                list_tw_alerts = await go.get_tw_alerts(guild.id, True)
+                list_tw_alerts = await go.get_tw_alerts(guild.id, -1)
                 if len(list_tw_alerts) > 0:
                     [channel_id, dict_messages, tw_ts] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
@@ -361,13 +364,17 @@ async def bot_loop_5minutes():
                                 connect_mysql.simple_execute(query)
                         else:
                             #This zone already has a message
+                            try:
+                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                            except discord.errors.NotFound as e:
+                                goutils.log2("ERR", "msg not found id="+str(old_msg_id))
+                                raise(e)
 
                             #Home and Placements messages are not modified
 
                             #Ordres are re-sent when modified
                             # and the previous gets removed
                             if territory.startswith('Ordres:'):
-                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
                                 old_msg_txt = old_msg.content
                                 if old_msg_txt != msg_txt:
                                     #Short message to admins
@@ -389,7 +396,6 @@ async def bot_loop_5minutes():
 
                             #Attack messages are updated when modified
                             elif not ":" in territory:
-                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
                                 old_msg_txt = old_msg.content
                                 if old_msg_txt != msg_txt:
                                     #Short message to admins
@@ -419,7 +425,7 @@ async def bot_loop_5minutes():
                     dict_tb_alerts_previously_done[guild.id] = []
 
                 #CHECK ALERTS FOR BT
-                list_tb_alerts = await go.get_tb_alerts(guild.id, False)
+                list_tb_alerts = await go.get_tb_alerts(guild.id, -1)
                 for tb_alert in list_tb_alerts:
                     if not tb_alert in dict_tb_alerts_previously_done[guild.id]:
                         if not first_bot_loop_5minutes:
@@ -445,7 +451,7 @@ async def bot_loop_5minutes():
                     if not guild.id in dict_platoons_previously_done:
                         dict_platoons_previously_done[guild.id] = {}
 
-                    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(guild.id, True)
+                    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(guild.id, -1)
 
                     if tbs_round == '':
                         goutils.log2("DBG", "["+guild.name+"] No TB in progress")
@@ -565,10 +571,11 @@ async def bot_loop_6hours():
 
             #Compute stat_avg for statq_table, from KYBER1 players
             query = "UPDATE statq_table SET stat_avg = CASE " \
-                  + "WHEN stat_name='health' THEN (select avg(stat1 ) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "WHEN stat_name='speed'  THEN (select avg(stat5 ) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "WHEN stat_name='pd'     THEN (select avg(stat6 ) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "WHEN stat_name='protec' THEN (select avg(stat28) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='health' THEN (select avg(mod1 /(stat1 -mod1 )) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='speed'  THEN (select avg(mod5 /(stat5 -mod5 )) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='pd'     THEN (select avg(mod6 /(stat6 -mod6 )) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='cd'     THEN (select avg(mod16/(stat16-mod16)) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
+                  + "WHEN stat_name='protec' THEN (select avg(mod28/(stat28-mod28)) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
                   + "END"
             goutils.log2("DBG", query)
             connect_mysql.simple_execute(query)
@@ -1585,7 +1592,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         if ctx.guild.id in connect_rpc.get_dict_bot_accounts():
             goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
 
-            tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(ctx.guild.id, False)
+            tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(ctx.guild.id, 0)
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
         else:
             await ctx.send('ERR: commande non utilisable sur ce serveur')
@@ -1822,7 +1829,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             display_mentions=False
             output_channel = ctx.message.channel
 
-        err_code, ret_txt, lines = await connect_rpc.tag_tb_undeployed_players( ctx.guild.id, False)
+        err_code, ret_txt, lines = await connect_rpc.tag_tb_undeployed_players( ctx.guild.id, 0)
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
@@ -1860,7 +1867,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         else:
             tb_phase_target = options[0]
 
-        err_code, ret_txt, images = await go.print_tb_status( ctx.guild.id, tb_phase_target, estimate_fights, False)
+        err_code, ret_txt, images = await go.print_tb_status( ctx.guild.id, tb_phase_target, estimate_fights, 0)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
@@ -2960,17 +2967,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                   + "FROM( " \
                   + "     SELECT my_roster.allyCode, my_roster.defId,stat_name, " \
                   + "     CASE " \
-                  + "     WHEN stat_name='health' THEN ROUND(stat1 /100000000) " \
-                  + "     WHEN stat_name='speed'  THEN ROUND(stat5 /100000000) " \
-                  + "     WHEN stat_name='pd'     THEN ROUND(stat6 /100000000) " \
-                  + "     WHEN stat_name='protec' THEN ROUND(stat28/100000000) " \
+                  + "     WHEN stat_name='health' THEN CONCAT(ROUND(stat1 /100000000), ' (', ROUND(mod1 /100000000), ')') " \
+                  + "     WHEN stat_name='speed'  THEN CONCAT(ROUND(stat5 /100000000), ' (', ROUND(mod5 /100000000), ')') " \
+                  + "     WHEN stat_name='pd'     THEN CONCAT(ROUND(stat6 /100000000), ' (', ROUND(mod6 /100000000), ')') " \
+                  + "     WHEN stat_name='cd'     THEN CONCAT(ROUND(stat16/1000000), '% (' , ROUND(mod16/1000000), '%)' ) " \
+                  + "     WHEN stat_name='protec' THEN CONCAT(ROUND(stat28/100000000), ' (', ROUND(mod28/100000000), ')') " \
                   + "     END AS `stat_value`, " \
-                  + "     ROUND(stat_avg/100000000) AS `stat_avg`, " \
+                  + "     ROUND(stat_avg, 2) AS `stat_avg`, " \
                   + "     CASE " \
-                  + "     WHEN stat_name='health' THEN stat1 /stat_avg " \
-                  + "     WHEN stat_name='speed'  THEN stat5 /stat_avg " \
-                  + "     WHEN stat_name='pd'     THEN stat6 /stat_avg " \
-                  + "     WHEN stat_name='protec' THEN stat28/stat_avg " \
+                  + "     WHEN stat_name='health' THEN (mod1 /(stat1 -mod1 )) /stat_avg " \
+                  + "     WHEN stat_name='speed'  THEN (mod5 /(stat5 -mod5 )) /stat_avg " \
+                  + "     WHEN stat_name='pd'     THEN (mod6 /(stat6 -mod6 )) /stat_avg " \
+                  + "     WHEN stat_name='cd'     THEN (mod16/(stat16-mod16)) /stat_avg " \
+                  + "     WHEN stat_name='protec' THEN (mod28/(stat28-mod28)) /stat_avg " \
                   + "     END AS `stat_ratio`,     coef " \
                   + "     FROM roster AS my_roster " \
                   + "     JOIN statq_table ON my_roster.defId=statq_table.defId " \

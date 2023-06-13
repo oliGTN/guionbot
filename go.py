@@ -625,6 +625,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
         tab_progress_player[i_subobj] = [[0, '.     ', True, '', 1] for i in range(nb_chars)]
 
     goutils.log2("DBG", "player: "+player_name)
+    d_stars = {0:0, 1:10, 2:25, 3:50, 4:80, 5:145, 6: 230, 7:330}
     # Loop on categories within the goals
     for i_subobj in range(0, nb_subobjs):
         dict_char_subobj = objectifs[i_subobj][2]
@@ -650,7 +651,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 req_rarity_reco = character_obj[3]
                 player_rarity = dict_player[character_id]['rarity']
                 progress_100 = progress_100 + 1
-                progress = progress + min(1, player_rarity / req_rarity_reco)
+                progress = progress + min(1, d_stars[player_rarity] / d_stars[req_rarity_reco])
                 if player_rarity < req_rarity_min:
                     character_nogo = True
                 
@@ -1248,11 +1249,11 @@ async def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
 
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
         if ec != 0:
             return ec, et
 
-        ec, et, dict_def_toon_player = get_tw_defense_toons(server_id, True)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
         if ec != 0:
             return ec, et
 
@@ -1324,11 +1325,11 @@ async def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
 async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
         if ec != 0:
             return ec, et
 
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, True)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
         if ec != 0:
             return ec, et, None
     else:
@@ -1808,7 +1809,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             if not server_id in connect_rpc.get_dict_bot_accounts():
                 return "ERR: cannot detect TW opponent in this server"
 
-            rpc_data = await connect_rpc.get_tw_status(server_id, True)
+            rpc_data = await connect_rpc.get_tw_status(server_id, -1)
             tw_id = rpc_data[0]
             if tw_id == None:
                 return "ERR: no TW ongoing"
@@ -2062,7 +2063,7 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
 
     #Get reserved TW toons
     if game_mode == "TW":
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, False)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, 0)
         if ec != 0:
             return 1, et, None
     
@@ -2144,7 +2145,7 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = await connect_rpc.get_tw_status(server_id, True)
+    rpc_data = await connect_rpc.get_tw_status(server_id, -1)
     tw_id = rpc_data[0]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
@@ -3053,7 +3054,7 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 #                                      territory2: alert_territory2...},
 #                       tw_timestamp]]
 ############################################
-async def get_tw_alerts(server_id, use_cache_data):
+async def get_tw_alerts(server_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
@@ -3071,7 +3072,7 @@ async def get_tw_alerts(server_id, use_cache_data):
     if twChannel_id == 0:
         return []
 
-    rpc_data = await connect_rpc.get_tw_status(server_id, use_cache_data)
+    rpc_data = await connect_rpc.get_tw_status(server_id, force_update)
     tw_id = rpc_data[0]
     if tw_id == None:
         return []
@@ -3446,7 +3447,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
         if ec != 0:
             return ec, et, None
 
@@ -3589,7 +3590,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
 
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, True)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
         if ec != 0:
             return ec, et, None
 
@@ -3632,7 +3633,7 @@ async def count_players_with_character(txt_allyCode, list_characters, server_id,
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, False)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
         if ec != 0:
             return ec, et
 
@@ -3669,7 +3670,7 @@ async def count_players_with_character(txt_allyCode, list_characters, server_id,
     print(output_dict)
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, True)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
         if ec != 0:
             return ec, et, None
 
@@ -3927,7 +3928,7 @@ def get_modqstatq_graph(txt_allyCode, is_modq):
 
     return 0, "", image
 
-async def get_tw_defense_toons(server_id, use_cache_data):
+async def get_tw_defense_toons(server_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
@@ -3945,7 +3946,7 @@ async def get_tw_defense_toons(server_id, use_cache_data):
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = await connect_rpc.get_tw_status(server_id, use_cache_data)
+    rpc_data = await connect_rpc.get_tw_status(server_id, force_update)
     tw_id = rpc_data[0]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
@@ -4101,9 +4102,9 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data):
+async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, force_update):
     dict_tb = godata.dict_tb
-    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, use_cache_data)
+    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, force_update)
     if ec!=0:
         return 1, et, None
 
@@ -4367,10 +4368,10 @@ def print_events(fevent_name, fguild_name):
 
     return
 
-async def get_tb_alerts(server_id, force_latest):
+async def get_tb_alerts(server_id, force_update):
     #Check if the guild can use RPC
     if server_id in connect_rpc.get_dict_bot_accounts():
-        territory_scores, active_round = await connect_rpc.get_tb_guild_scores(server_id, not force_latest)
+        territory_scores, active_round = await connect_rpc.get_tb_guild_scores(server_id, force_update)
     else:
         return []
     goutils.log2("DBG", "["+str(server_id)+"] territory_scores="+str(territory_scores))
@@ -4500,7 +4501,7 @@ async def deploy_bot_tb(server_id, zone_shortname, characters):
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
     dict_tb = godata.dict_tb
-    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, True)
+    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, -1)
     if ec!=0:
         return 1, et
     [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
