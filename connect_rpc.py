@@ -1354,4 +1354,4 @@ async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
     elif process.returncode!=0:
         return 1, "Erreur en déployant les pelotons en BT - code="+str(process.returncode)
 
-    return 0, "Le bot a posé "+str(list_defId)+" en " + zone
+    return 0, "Le bot a posé "+str(list_defId)+" en " + zone_name
