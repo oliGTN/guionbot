@@ -13,6 +13,6 @@ if [ "$1" = "test" ]; then
 elif [ "$1" = "noloop" ]; then
 	python guionbot_discord.py noloop
 else
-	python guionbot_discord.py | while read line; do echo "$line" >> /home/pi/GuionBot/LOGS/guionbot.log; done
+	python guionbot_discord.py 2>&1 | while read line; do echo "$line" >> /home/pi/GuionBot/LOGS/guionbot.log; done
 fi
 disown -a
