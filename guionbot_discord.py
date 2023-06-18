@@ -11,7 +11,7 @@ import datetime
 from pytz import timezone
 import difflib
 import re
-from discord.ext import commands
+from discord.ext import tasks, commands
 from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
 import discord
 from io import BytesIO
@@ -168,9 +168,7 @@ def set_id_lastseen(event_name, server_id, player_id):
 # Purpose: cette fonction est exécutée toutes les 60 secondes
 # Output: none
 ##############################################################
-async def bot_loop_60secs():
-    await bot.wait_until_ready()
-    while not bot.is_closed():
+async def bot_loop_60secs(bot):
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
@@ -248,23 +246,15 @@ async def bot_loop_60secs():
 
         goutils.log2("DBG", "END loop")
 
-        # Wait X seconds before next loop
-        t_end = time.time()
-        waiting_time = max(0, 60 - (t_end - t_start))
-        goutils.log2("DBG", "WAIT "+str(waiting_time))
-        await asyncio.sleep(waiting_time)
-
 ##############################################################
 # Function: bot_loop_10minutes
 # Parameters: none
 # Purpose: cette fonction est exécutée toutes les 600 secondes
 # Output: none
 ##############################################################
-async def bot_loop_10minutes():
-    global first_bot_loop_10minutes
+async def bot_loop_10minutes(bot):
+        global first_bot_loop_10minutes
 
-    await bot.wait_until_ready()
-    while not bot.is_closed():
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
@@ -282,22 +272,11 @@ async def bot_loop_10minutes():
 
             goutils.log2("DBG", "END loop")
 
-            # Wait 600 seconds before next loop
-            t_end = time.time()
-            waiting_time = max(0, 60*10 - (t_end - t_start))
-            goutils.log2("DBG", "WAIT "+str(waiting_time))
-            await asyncio.sleep(waiting_time)
         else:
             first_bot_loop_10minutes = False
 
             goutils.log2("DBG", "END loop")
 
-            # Wait 60 seconds before next loop
-            # Just have a first shortloop without refresh to ensure bot connection to discord
-            t_end = time.time()
-            waiting_time = max(0, 60 - (t_end - t_start))
-            goutils.log2("DBG", "WAIT "+str(waiting_time))
-            await asyncio.sleep(waiting_time)
 
 ##############################################################
 # Function: bot_loop_5minutes
@@ -305,13 +284,11 @@ async def bot_loop_10minutes():
 # Purpose: executed every 5 minutes
 # Output: none
 ##############################################################
-async def bot_loop_5minutes():
-    global dict_platoons_previously_done
-    global dict_tb_alerts_previously_done
-    global first_bot_loop_5minutes
+async def bot_loop_5minutes(bot):
+        global dict_platoons_previously_done
+        global dict_tb_alerts_previously_done
+        global first_bot_loop_5minutes
 
-    await bot.wait_until_ready()
-    while not bot.is_closed():
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
@@ -544,21 +521,13 @@ async def bot_loop_5minutes():
 
         goutils.log2("DBG", "END loop")
 
-        # Wait X seconds before next loop
-        t_end = time.time()
-        waiting_time = max(0, 60*5 - (t_end - t_start))
-        goutils.log2("DBG", "WAIT "+str(waiting_time))
-        await asyncio.sleep(waiting_time)
-
 ##############################################################
 # Function: bot_loop_6hours
 # Parameters: none
 # Purpose: high level monitoring, every 6 hours
 # Output: none
 ##############################################################
-async def bot_loop_6hours():
-    await bot.wait_until_ready()
-    while not bot.is_closed():
+async def bot_loop_6hours(bot):
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
@@ -589,11 +558,6 @@ async def bot_loop_6hours():
 
         goutils.log2("DBG", "END loop")
 
-        # Wait X seconds before next loop
-        t_end = time.time()
-        waiting_time = max(0, 3600*6 - (t_end - t_start))
-        goutils.log2("DBG", "WAIT "+str(waiting_time))
-        await asyncio.sleep(waiting_time)
 
 ################################################
 # IN: platoon_content = {'Greef Karga': ['Dark Cds'], 'Yoda Ermite': ['Dark Cds', 'Toto234'], ...}
@@ -708,8 +672,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
-
+            print("############################")
             if message.content.startswith('```prolog'):
+                print('prolog')
                 #EB message by territory
                 ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
                 territory_position = ret_re.group(1)
@@ -724,16 +689,19 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                         platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
                         for dict_player in dict_embed['fields']:
                             player_name = dict_player['name']
+                            print(player_name)
                             for character in dict_player['value'].split('\n'):
                                 char_name = character[1:-1]
                                 if char_name[0:4]=='*` *':
                                     char_name=char_name[4:]
+                                if "* `" in char_name:
+                                    char_name=char_name[:char_name.index("* `")]
                                 if not platoon_name in dict_platoons_allocation:
                                     dict_platoons_allocation[
                                         platoon_name] = {}
 
                                 #transform the name into French
-                                #print(char_name)
+                                print("   "+char_name)
                                 perso_id = dict_alias[char_name.lower()][1]
                                 #print(perso_id)
                                 char_name = dict_units[perso_id]["name"]
@@ -1358,6 +1326,42 @@ def officer_command(ctx):
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
     return (ret_is_officer and (not bot_test_mode)) or is_owner
+
+class BackgroundCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.loop_60secs.start()
+        self.loop_5minutes.start()
+        self.loop_10minutes.start()
+        self.loop_6hours.start()
+
+    @tasks.loop(seconds=60)
+    async def loop_60secs(self):
+        await bot_loop_60secs(self.bot)
+    @loop_60secs.before_loop
+    async def before_loop_60secs(self):
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(minutes=5)
+    async def loop_5minutes(self):
+        await bot_loop_5minutes(self.bot)
+    @loop_5minutes.before_loop
+    async def before_loop_5minutes(self):
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(minutes=10)
+    async def loop_10minutes(self):
+        await bot_loop_10minutes(self.bot)
+    @loop_10minutes.before_loop
+    async def before_loop_10minutes(self):
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(hours=6)
+    async def loop_6hours(self):
+        await bot_loop_6hours(self.bot)
+    @loop_6hours.before_loop
+    async def before_loop_6hours(self):
+        await self.bot.wait_until_ready()
 
 ##############################################################
 # Class: AdminCog
@@ -3805,20 +3809,15 @@ def main():
             goutils.log2("INFO", "Disable loops")
             bot_noloop_mode = True
 
-    #Create periodic tasks
-    goutils.log2("INFO", "Create tasks...")
-    if not bot_noloop_mode:
-        bot.loop.create_task(bot_loop_60secs())
-        bot.loop.create_task(bot_loop_5minutes())
-        bot.loop.create_task(bot_loop_10minutes())
-        bot.loop.create_task(bot_loop_6hours())
-
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
     bot.add_cog(AdminCog(bot))
     bot.add_cog(ServerCog(bot))
     bot.add_cog(OfficerCog(bot))
     bot.add_cog(MemberCog(bot))
+
+    #Create periodic tasks
+    bot.add_cog(BackgroundCog(bot))
 
     #Lancement du bot
     goutils.log2("INFO", "Run bot...")
