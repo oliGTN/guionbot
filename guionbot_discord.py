@@ -215,7 +215,7 @@ async def bot_loop_60secs(bot):
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
                     goutils.log2("DBG", "before get_rpc_update: "+str(server_id))
-                    await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], 0)
+                    await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], 1)
                     goutils.log2("DBG", "before update_gwarstats: "+str(server_id))
                     await connect_gsheets.update_gwarstats( server_id)
                     goutils.log2("DBG", "before get_guildChat: "+str(server_id))
@@ -3584,8 +3584,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         # get the DB information for home guild
         ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, ctx.guild.id, tw_mode)
-        dict_units = data.get("unitsList_dict.json")
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
 
+        dict_units = data.get("unitsList_dict.json")
         if not tw_mode:
             output_table = [["Perso", "Gear", "Total"]]
             for unit_id in output_dict:
@@ -3690,7 +3694,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
 
-            await ctx.message.remove_reaction(emoji_hourglass)
+            await ctx.message.remove_reaction(emoji_hourglass, bot.user)
 
         await ctx.message.add_reaction(emoji_check)
 
