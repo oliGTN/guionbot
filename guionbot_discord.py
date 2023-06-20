@@ -214,13 +214,10 @@ async def bot_loop_60secs(bot):
             for server_id in db_data:
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
-                    goutils.log2("DBG", "before get_rpc_update: "+str(server_id))
                     await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], 1)
-                    goutils.log2("DBG", "before update_gwarstats: "+str(server_id))
-                    await connect_gsheets.update_gwarstats( server_id)
-                    goutils.log2("DBG", "before get_guildChat: "+str(server_id))
-                    ec, et, ret_data = await connect_rpc.get_guildChat_messages( server_id)
-                    goutils.log2("DBG", "after get_guildChat: "+str(server_id))
+                    await connect_gsheets.update_gwarstats(server_id)
+
+                    ec, et, ret_data = await connect_rpc.get_guildChat_messages(server_id)
                     if ec!=0:
                         goutils.log2("ERR", et)
                     else:
@@ -302,12 +299,11 @@ async def bot_loop_5minutes(bot):
                     tw_bot_channel = bot.get_channel(channel_id)
 
                     #sort dict_messages
-                    # orders then defense then lost territories then attack
-                    d_ordres = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Ordres:")]}
+                    # defense then lost territories then attack
                     d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placement:")]}
                     d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
                     d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
-                    dict_messages = {**d_ordres, **d_placements, **d_home, **d_attack}
+                    dict_messages = {**d_placements, **d_home, **d_attack}
                     for territory in dict_messages:
                         msg_txt = dict_messages[territory]
                         goutils.log2("DBG", "["+guild.name+"] TW alert: "+msg_txt)
@@ -321,16 +317,6 @@ async def bot_loop_5minutes(bot):
 
                         if old_msg_id == None:
                             #First time this zone has a message
-
-                            #Short message to admins
-                            #if territory.startswith('Home:'):
-                                #await send_alert_to_admins(guild, territory+" is lost")
-                            #elif territory.startswith('Placement:'):
-                                #await send_alert_to_admins(guild, territory+" is filled")
-                            #elif territory.startswith('Ordres:'):
-                                #await send_alert_to_admins(guild, territory+" has orders")
-                            #else:
-                                #await send_alert_to_admins(guild, territory+" is open")
 
                             #Full message to TW guild channel
                             if not bot_test_mode:
@@ -347,16 +333,16 @@ async def bot_loop_5minutes(bot):
                                 goutils.log2("ERR", "msg not found id="+str(old_msg_id))
                                 raise(e)
 
-                            #Home and Placements messages are not modified
+                            #Home messages are not modified
 
-                            #Ordres are re-sent when modified
+                            #Placement are re-sent when modified
                             # and the previous gets removed
-                            if territory.startswith('Ordres:'):
+                            if territory.startswith('Placement:'):
                                 old_msg_txt = old_msg.content
                                 if old_msg_txt != msg_txt:
-                                    #Short message to admins
-                                    #await send_alert_to_admins(guild, territory+" has new orders")
-#
+                                    goutils.log2("WAR", "old_msg_txt>"+old_msg_txt+"<")
+                                    goutils.log2("WAR", "msg_txt>"+msg_txt+"<")
+
                                     #remove old_msg, add new_msg, update DB
                                     if not bot_test_mode:
                                         await old_msg.delete()
@@ -375,9 +361,6 @@ async def bot_loop_5minutes(bot):
                             elif not ":" in territory:
                                 old_msg_txt = old_msg.content
                                 if old_msg_txt != msg_txt:
-                                    #Short message to admins
-                                    #await send_alert_to_admins(guild, territory+" is modified")
-
                                     #Full message modified in TW guild channel
                                     if not bot_test_mode:
                                         await old_msg.edit(content=msg_txt)
@@ -3812,6 +3795,12 @@ def main():
         if sys.argv[1] == "noloop":
             goutils.log2("INFO", "Disable loops")
             bot_noloop_mode = True
+
+    #Clean tmp files
+    list_cache_files = os.listdir("CACHE")
+    for cache_file in list_cache_files:
+        if cache_file.endswith(".tmp"):
+            os.remove("CACHE/"+cache_file)
 
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
