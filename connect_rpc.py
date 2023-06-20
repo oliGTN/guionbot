@@ -1214,7 +1214,7 @@ async def get_tw_status(server_id, force_update):
                             fails+=fights
 
                 zone_size = zone["squadCapacity"]
-                filled = zone["squadCount"]
+                filled = zone["squadCount"] + victories
                 if "commandMessage" in zone["zoneStatus"]:
                     commandMsg = zone["zoneStatus"]["commandMessage"]
                 else:
