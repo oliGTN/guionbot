@@ -312,11 +312,12 @@ async def bot_loop_5minutes(bot):
                         query = "SELECT msg_id FROM tw_messages "
                         query+= "WHERE server_id="+str(guild.id)+" "
                         query+= "AND zone='"+territory+"'"
-                        goutils.log2("DBG", query)
+                        goutils.log2("INFO", query)
                         old_msg_id = connect_mysql.get_value(query)
 
                         if old_msg_id == None:
                             #First time this zone has a message
+                            goutils.log2("INFO", "first time this zone has this message")
 
                             #Full message to TW guild channel
                             if not bot_test_mode:
