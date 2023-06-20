@@ -9,10 +9,12 @@ import datetime
 import inspect
 import asyncio
 import aiohttp
+import random
 
 import goutils
 import data as godata
 import connect_mysql
+import go
 
 dict_sem={}
 async def acquire_sem(id):
@@ -116,6 +118,8 @@ async def get_rpc_data(server_id, event_types, force_update):
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
 
@@ -331,6 +335,8 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     dict_guild = guild_json["guild"]
 
@@ -352,6 +358,8 @@ async def get_player_data(ac_or_id):
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     goutils.log2("DBG", "END")
@@ -1355,3 +1363,29 @@ async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
         return 1, "Erreur en déployant les pelotons en BT - code="+str(process.returncode)
 
     return 0, "Le bot a posé "+str(list_defId)+" en " + zone_name
+
+async def update_K1_players():
+    url = "http://localhost:8000/leaderboard"
+    params = {"ga_rank": "KYBER1"}
+    req_data = json.dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "leaderboard status="+str(resp.status))
+                if resp.status==200:
+                    leaderboard_json = await(resp.json())
+                else:
+                    return 1, "Cannot get leaderboard data from RPC", None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    #Loop through plalers and add/update them
+    for player in leaderboard_json["player"]:
+        await go.load_player(player["id"], 0, False)
+
+
