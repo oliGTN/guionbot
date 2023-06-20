@@ -370,7 +370,8 @@ async def bot_loop_5minutes(bot):
                     goutils.log2("DBG", "["+guild.name+"] TW alerts could not be detected")
 
                     #Delete potential previous tw_messages
-                    query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)
+                    query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)+" "
+                    query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
                     goutils.log2("DBG", query)
                     connect_mysql.simple_execute(query)
 
