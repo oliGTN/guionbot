@@ -3157,23 +3157,21 @@ async def get_tw_alerts(server_id, force_update):
             else:
                 territory_fullname += "du bas__"
 
-            if size == filled:
-                if orders == None:
-                    txt_orders = ""
-                else:
-                    txt_orders = " - " + orders
-                msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+txt_orders+") "
-                msg+= "est rempli ("+str(nb_full)+"/10)."
+            if orders == None:
+                txt_orders = ""
+            else:
+                txt_orders = " - " + orders
+            msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)
 
-                if nb_full==10:
-                    msg = '\N{WHITE HEAVY CHECK MARK}'+msg
+            list_tw_alerts[1]["Placement:"+territory_name] = msg
 
-                list_tw_alerts[1]["Placement:"+territory_name] = msg
+        #Global Defense filling message
+        if nb_full==10:
+            msg = '\N{WHITE HEAVY CHECK MARK} défense complète'
+        else:
+            msg = "Progrès de la défense : "+str(nb_full)+"/10"
+        list_tw_alerts[1]["Placement:G"] = msg
 
-            if orders != None:
-                msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+") "
-                msg+= "a de nouveaux ordres : "+orders.strip()
-                list_tw_alerts[1]["Ordres:"+territory_name] = msg
 
         #Alert for defense lost
         list_lost_territories = [t for t in list_def_territories if t[1]==t[3]]
