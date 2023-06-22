@@ -1138,9 +1138,9 @@ async def get_tw_opponent_leader(server_id):
                 opp_guild_id = battleStatus["awayGuild"]["profile"]["id"]
 
     if not tw_ongoing:
-        return 0, "Pas de GT en cours", None
+        return 1, "Pas de GT en cours", None
     if opp_guild_id == None:
-        return 0, "Adversaire de GT pas encore connu", None
+        return 1, "Adversaire de GT pas encore connu", None
 
     ec, et, dict_guild = await get_guild_data_from_id(opp_guild_id, False)
     if ec != 0:
