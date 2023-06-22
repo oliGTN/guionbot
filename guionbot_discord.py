@@ -222,17 +222,18 @@ async def bot_loop_60secs(bot):
                         goutils.log2("ERR", et)
                     else:
                         channel_id = ret_data[0]
-                        output_channel = bot.get_channel(channel_id)
-                        output_txt = ""
-                        for line in ret_data[1]:
-                            ts = line[0]
-                            txt = line[1]
-                            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
-                            output_txt+=ts_txt+" - "+txt+"\n"
-                        if output_txt != "":
-                            output_txt = output_txt[:-1]
-                            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                                await output_channel.send("`"+txt+"`")
+                        if channel_id != 0:
+                            output_channel = bot.get_channel(channel_id)
+                            output_txt = ""
+                            for line in ret_data[1]:
+                                ts = line[0]
+                                txt = line[1]
+                                ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+                                output_txt+=ts_txt+" - "+txt+"\n"
+                            if output_txt != "":
+                                output_txt = output_txt[:-1]
+                                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                                    await output_channel.send("`"+txt+"`")
 
                 except Exception as e:
                     goutils.log2("ERR", str(sys.exc_info()[0]))

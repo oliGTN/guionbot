@@ -569,8 +569,6 @@ async def get_guildChat_messages(server_id):
 
     if bot_android_id == '':
         return 1, "ERR: no RPC bot for guild "+str(server_id), None
-    if chatChan_id == 0:
-        return 1, "ERR: no discord chat channel for guild "+str(server_id), None
 
     err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["CHAT"], -1)
 
