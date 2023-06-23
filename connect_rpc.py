@@ -119,7 +119,7 @@ async def get_rpc_data(server_id, event_types, force_update):
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectError as e:
+    except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
 
@@ -335,7 +335,7 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectError as e:
+    except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     dict_guild = guild_json["guild"]
@@ -359,7 +359,7 @@ async def get_player_data(ac_or_id):
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectError as e:
+    except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     goutils.log2("DBG", "END")
@@ -1379,7 +1379,7 @@ async def update_K1_players():
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-    except aiohttp.client_exceptions.ClientConnectError as e:
+    except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     #Loop through plalers and add/update them
