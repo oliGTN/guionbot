@@ -590,6 +590,7 @@ async def get_guildLog_messages(server_id):
     list_chat_events = []
     list_tw_logs = []
     list_tb_logs = []
+    dict_squads={}
     for event_group_id in dict_events:
         event_group = dict_events[event_group_id]
         for event_id in event_group:
