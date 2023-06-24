@@ -817,7 +817,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                                 if event[0][3:] == 'L':
                                     color_emoji = "\N{Large Yellow Circle}"
                                 elif event[0][3:] == 'D':
-                                    color_emoji = "\N{Large Red Circle}"
+                                    color_emoji = "\N{Large Yellow Circle}"
                                 elif event[0][3:] == 'H':
                                     color_emoji = "\N{LARGE RED CIRCLE}"
                                 elif event[0][3:] == 'SP':
