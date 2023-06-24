@@ -122,7 +122,6 @@ async def get_rpc_data(server_id, event_types, force_update):
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
-
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
     else:
@@ -554,10 +553,13 @@ async def parse_tw_opponent_teams(server_id, force_update):
 
     return 0, "", [list_teams, list_territories]
 
-async def get_guildChat_messages(server_id):
+async def get_guildLog_messages(server_id):
     FRE_FR = godata.get('FRE_FR.json')
+    dict_tw = godata.dict_tw
+    dict_tb = godata.dict_tb
 
-    query = "SELECT bot_android_id, chatChan_id, chatLatest_ts FROM guild_bot_infos WHERE server_id="+str(server_id)
+    query = "SELECT bot_android_id, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
+            "FROM guild_bot_infos WHERE server_id="+str(server_id)
     goutils.log2("DBG", query)
     line = connect_mysql.get_line(query)
     if line == None:
@@ -565,80 +567,166 @@ async def get_guildChat_messages(server_id):
     
     bot_android_id = line[0]
     chatChan_id = line[1]
-    chatLatest_ts = line[2]
+    twlogChan_id = line[2]
+    tblogChan_id = line[3]
+    chatLatest_ts = line[4]
 
     if bot_android_id == '':
         return 1, "ERR: no RPC bot for guild "+str(server_id), None
 
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["CHAT"], -1)
+    err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["CHAT", "TW", "TB"], -1)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return '', None, None, 0
+        return 1, err_txt, None
 
     dict_guild = rpc_data[0]
     mapstats_json = rpc_data[1]
     dict_events = rpc_data[2]
 
+    guildId = dict_guild["profile"]["id"]
+
     list_chat_events = []
+    list_tw_logs = []
+    list_tb_logs = []
     for event_group_id in dict_events:
-        if not event_group_id.startswith("GUILD_CHAT"):
-            continue
         event_group = dict_events[event_group_id]
         for event_id in event_group:
             event = event_group[event_id]
             event_ts = int(event["timestamp"])
             if event_ts > chatLatest_ts:
-                if "message" in event:
+                if event_group_id.startswith("GUILD_CHAT"):
+                    if "message" in event:
+                        author = event["authorName"]
+                        message = event["message"]
+                        list_chat_events.append([event_ts, "\N{SPEECH BALLOON} "+author+" : "+message])
+                    else:
+                        for data in event["data"]:
+                            activity = data["activity"]
+                            txt_activity = FRE_FR[activity["key"]].replace("\\n", "\n")
+
+                            #remove formating tags
+                            while "[" in txt_activity:
+                                pos_open = txt_activity.find("[")
+                                pos_close = txt_activity.find("]")
+                                txt_activity = txt_activity[:pos_open] + txt_activity[pos_close+1:]
+
+                            #add parameters
+                            if "param" in activity:
+                                for i_param in range(len(activity["param"])):
+                                    tag_param="{"+str(i_param)+"}"
+                                    if tag_param in txt_activity:
+                                        pos_open = txt_activity.find(tag_param)
+                                        pos_close = pos_open + len(tag_param) - 1
+                                        param = activity["param"][i_param]
+                                        if "paramValue" in param:
+                                            val_param = param["paramValue"][0]
+                                        else:
+                                            val_param = FRE_FR[param["key"]]
+                                        txt_activity = txt_activity[:pos_open] + val_param + txt_activity[pos_close+1:]
+
+                            if "UNIT_PROMOTED" in activity["key"]:
+                                txt_activity = "\N{WHITE MEDIUM STAR} "+txt_activity
+                            if "UNIT_ACTIVATED" in activity["key"]:
+                                txt_activity = "\N{OPEN LOCK} "+txt_activity
+                            if activity["key"].endswith("_JOIN") or "_PROMOTE_TO_" in activity["key"]:
+                                txt_activity = "\N{SLIGHTLY SMILING FACE}"+txt_activity
+                            if activity["key"].endswith("_LEFT") or activity["key"].endswith("_REMOVED") \
+                               or activity["key"].endswith("_DEMOTE"):
+                                txt_activity = "\N{SLIGHTLY FROWNING FACE}"+txt_activity
+
+                            list_chat_events.append([event_ts, txt_activity])
+
+                elif event_group_id.startswith("TERRITORY_WAR_EVENT"):
                     author = event["authorName"]
-                    message = event["message"]
-                    list_chat_events.append([event_ts, "\N{SPEECH BALLOON} "+author+" : "+message])
-                else:
-                    for data in event["data"]:
-                        activity = data["activity"]
-                        txt_activity = FRE_FR[activity["key"]].replace("\\n", "\n")
+                    data=event["data"][0]
+                    activity=data["activity"]
+                    zone_id=activity["zoneData"]["zoneId"]
+                    zone_name = dict_tw[zone_id]
+                    if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+                        if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
+                            leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                            activity_txt = "DEFENSE@"+zone_name+": "+author+" "+leader
 
-                        #remove formating tags
-                        while "[" in txt_activity:
-                            pos_open = txt_activity.find("[")
-                            pos_close = txt_activity.find("]")
-                            txt_activity = txt_activity[:pos_open] + txt_activity[pos_close+1:]
-
-                        #add parameters
-                        if "param" in activity:
-                            for i_param in range(len(activity["param"])):
-                                tag_param="{"+str(i_param)+"}"
-                                if tag_param in txt_activity:
-                                    pos_open = txt_activity.find(tag_param)
-                                    pos_close = pos_open + len(tag_param) - 1
-                                    param = activity["param"][i_param]
-                                    if "paramValue" in param:
-                                        val_param = param["paramValue"][0]
+                            list_tw_logs.append([event_ts, activity_txt])
+                    else:
+                        if activity["zoneData"]["guildId"] == guildId:
+                            if "warSquad" in activity:
+                                squad_id = activity["warSquad"]["squadId"]
+                                if "squad" in activity["warSquad"]:
+                                    opponent=activity["warSquad"]["playerName"]
+                                    leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                                    leader_opponent = leader+"@"+opponent
+                                    dict_squads[squad_id]=leader_opponent
+                                else:
+                                    if squad_id in dict_squads:
+                                        leader_opponent=dict_squads[squad_id]
                                     else:
-                                        val_param = FRE_FR[param["key"]]
-                                    txt_activity = txt_activity[:pos_open] + val_param + txt_activity[pos_close+1:]
+                                        leader_opponent="UNKNOWN_LEADER"
 
-                        if "UNIT_PROMOTED" in activity["key"]:
-                            txt_activity = "\N{WHITE MEDIUM STAR} "+txt_activity
-                        if "UNIT_ACTIVATED" in activity["key"]:
-                            txt_activity = "\N{OPEN LOCK} "+txt_activity
-                        if activity["key"].endswith("_JOIN") or "_PROMOTE_TO_" in activity["key"]:
-                            txt_activity = "\N{SLIGHTLY SMILING FACE}"+txt_activity
-                        if activity["key"].endswith("_LEFT") or activity["key"].endswith("_REMOVED") \
-                           or activity["key"].endswith("_DEMOTE"):
-                            txt_activity = "\N{SLIGHTLY FROWNING FACE}"+txt_activity
+                                if activity["warSquad"]["squadStatus"]=="SQUADAVAILABLE":
+                                    count_dead=0
+                                    remaining_tm=False
+                                    if "squad" in activity["warSquad"]:
+                                        for cell in activity["warSquad"]["squad"]["cell"]:
+                                            if cell["unitState"]["healthPercent"] == "0":
+                                                count_dead+=1
+                                            if cell["unitState"]["turnPercent"] != "100" \
+                                                and cell["unitState"]["turnPercent"] != "0":
+                                                remaining_tm=True
 
-                        list_chat_events.append([event_ts, txt_activity])
+                                    activity_txt = "DEFAITE@"+zone_name+": "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)"
+                                    if count_dead==0 and remaining_tm:
+                                        activity_txt += " >>> TM !!!"
 
-    if len(list_chat_events)>0:
-        list_chat_events = sorted(list_chat_events, key=lambda x:x[0])
+                                elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
+                                    if "squad" in activity["warSquad"]:
+                                        activity_txt = "VICTOIRE@"+zone_name+": "+author+" "+leader_opponent
 
-        max_ts = list_chat_events[-1][0]
+                                elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
+                                    if "squad" in activity["warSquad"]:
+                                        activity_txt = "DEBUT: "+author+" "+leader_opponent
+                                else:
+                                    activity_txt = activity["warSquad"]["squadStatus"]
+                            else:
+                                scoretotal = activity["zoneData"]["scoreTotal"]
+                                activity_txt = "Score: "+scoretotal
+
+                            list_tw_logs.append([event_ts, activity_txt])
+
+                elif event_group_id.startswith("TB_EVENT"):
+                    author = event["authorName"]
+                    data=event["data"][0]
+                    activity=data["activity"]
+                    if "CONFLICT_CONTRIBUTION" in activity["zoneData"]["activityLogMessage"]["key"]:
+                        zone_data = activity["zoneData"]
+                        zone_id = zone_data["zoneId"]
+                        zone_name = dict_tb[zone_id]["name"]
+                        phases_ok = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
+                        phases_tot = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
+                        print(str(time)+" COMBAT: "+author+" "+str(phases_ok)+"/"+str(phases_tot)+" en "+zone_name)
+                    elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+                        zone_data = activity["zoneData"]
+                        zone_id = zone_data["zoneId"]
+                        if zone_id in dict_tb:
+                            zone_name = dict_tb[zone_id]["name"]
+                        else:
+                            zone_name = zone_id
+                        points = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
+                        print(str(time)+" DEPLOIEMENT: "+author+" déploie "+str(points)+" en "+zone_name)
+
+    list_all_logs = list_chat_events+list_tw_logs+list_tb_logs
+    if len(list_all_logs)>0:
+        list_all_logs = sorted(list_all_logs, key=lambda x:x[0])
+
+        max_ts = list_all_logs[-1][0]
         query = "UPDATE guild_bot_infos SET chatLatest_ts="+str(max_ts)+" WHERE server_id="+str(server_id)
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
-    return 0, "", [chatChan_id, list_chat_events]
+    return 0, "", {"CHAT": [chatChan_id, list_chat_events],
+                   "TW": [twlogChan_id, list_tw_logs],
+                   "TB": [tblogChan_id, list_tb_logs],}
 
 async def tag_tb_undeployed_players(server_id, force_update):
     dict_tb=godata.dict_tb
@@ -1385,5 +1473,6 @@ async def update_K1_players():
     #Loop through plalers and add/update them
     for player in leaderboard_json["player"]:
         await go.load_player(player["id"], 0, False)
+
 
 
