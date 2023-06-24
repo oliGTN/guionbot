@@ -555,6 +555,7 @@ async def parse_tw_opponent_teams(server_id, force_update):
 
 async def get_guildLog_messages(server_id):
     FRE_FR = godata.get('FRE_FR.json')
+    dict_unitsList = godata.get("unitsList_dict.json")
     dict_tw = godata.dict_tw
     dict_tb = godata.dict_tb
 
@@ -645,7 +646,8 @@ async def get_guildLog_messages(server_id):
                     zone_name = dict_tw[zone_id]
                     if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
                         if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
-                            leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                            leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                            leader = dict_unitsList[leader_id]["name"]
                             activity_txt = "DEFENSE@"+zone_name+": "+author+" "+leader
 
                             list_tw_logs.append([event_ts, activity_txt])
@@ -655,7 +657,8 @@ async def get_guildLog_messages(server_id):
                                 squad_id = activity["warSquad"]["squadId"]
                                 if "squad" in activity["warSquad"]:
                                     opponent=activity["warSquad"]["playerName"]
-                                    leader = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                                    leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                                    leader = dict_unitsList[leader_id]["name"]
                                     leader_opponent = leader+"@"+opponent
                                     dict_squads[squad_id]=leader_opponent
                                 else:

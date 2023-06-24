@@ -3443,6 +3443,8 @@ async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_g
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
 async def tag_players_with_character(txt_allyCode, list_characters, server_id, tw_mode):
+    dict_unitsList = godata.get("unitsList_dict.json")
+
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
@@ -3512,6 +3514,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
         character_id = list_character_ids[0]
+        character_name = dict_unitsList[character_id]["name"]
         if first_char:
             first_char_id = character_id
 
@@ -3523,9 +3526,9 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
             query+= "AND NOT allyCode IN ( "
         else:
             if opposite_search:
-                intro_txt = " qui ont ("+character_id+ " mais pas "+character_id
+                intro_txt = " qui ont ("+character_name+ " mais pas "+character_name
             else:
-                intro_txt+= " qui ont "+character_id
+                intro_txt+= " qui ont "+character_name
 
             if not simple_search:
                 if char_rarity>0:
