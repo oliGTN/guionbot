@@ -648,7 +648,7 @@ async def get_guildLog_messages(server_id):
                         if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
                             leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
                             leader = dict_unitsList[leader_id]["name"]
-                            activity_txt = "DEFENSE@"+zone_name+": "+author+" "+leader
+                            activity_txt = "DEFENSE@"+zone_name+": "+author+" a posé une team "+leader
 
                             list_tw_logs.append([event_ts, activity_txt])
                     else:
@@ -678,17 +678,17 @@ async def get_guildLog_messages(server_id):
                                                 and cell["unitState"]["turnPercent"] != "0":
                                                 remaining_tm=True
 
-                                    activity_txt = "DEFAITE@"+zone_name+": "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)"
+                                    activity_txt = "DEFAITE@"+zone_name+": "+author+" a perdu contre "+leader_opponent+" ("+str(count_dead)+" morts)"
                                     if count_dead==0 and remaining_tm:
                                         activity_txt += " >>> TM !!!"
 
                                 elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
                                     if "squad" in activity["warSquad"]:
-                                        activity_txt = "VICTOIRE@"+zone_name+": "+author+" "+leader_opponent
+                                        activity_txt = "VICTOIRE@"+zone_name+": "+author+" a gagné contre "+leader_opponent
 
                                 elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
                                     if "squad" in activity["warSquad"]:
-                                        activity_txt = "DEBUT: "+author+" "+leader_opponent
+                                        activity_txt = "DEBUT: "+author+" commence un combat contre "+leader_opponent
                                 else:
                                     activity_txt = activity["warSquad"]["squadStatus"]
                             else:
