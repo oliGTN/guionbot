@@ -3514,7 +3514,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
         character_id = list_character_ids[0]
-        character_name = dict_unitsList[character_id]["name"]
+        character_name = "**"+dict_unitsList[character_id]["name"]+"**"
         if first_char:
             first_char_id = character_id
 
