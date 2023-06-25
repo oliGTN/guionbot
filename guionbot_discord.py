@@ -3815,7 +3815,8 @@ def main():
     bot.add_cog(MemberCog(bot))
 
     #Create periodic tasks
-    bot.add_cog(BackgroundCog(bot))
+    if not bot_noloop_mode:
+        bot.add_cog(BackgroundCog(bot))
 
     #Lancement du bot
     goutils.log2("INFO", "Run bot...")
