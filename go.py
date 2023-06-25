@@ -1007,9 +1007,9 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
-    list_team_bot, dict_team_bot = connect_gsheets.load_config_teams(BOT_GFILE, False)
+    ec, list_team_bot, dict_team_bot = connect_gsheets.load_config_teams(BOT_GFILE, False)
     if server_id != BOT_GFILE:
-        list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(server_id, False)
+        ec, list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(server_id, False)
         list_team_gt = list_team_guild + list_team_bot
         dict_team_gt = {**dict_team_guild , **dict_team_bot}
     else:
@@ -2427,7 +2427,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
     dict_categoryList = godata.get("categoryList_dict.json")
 
     #Recuperation des dernieres donnees sur gdrive
-    list_teams, dict_teams = connect_gsheets.load_config_teams(BOT_GFILE, False)
+    ec, list_teams, dict_teams = connect_gsheets.load_config_teams(BOT_GFILE, False)
 
     if not compute_guild:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
@@ -3392,7 +3392,10 @@ async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_g
         dts[team_name] = dict_raids[raid_name][1][team_name]
     goutils.log2("DBG", dts)
 
-    l, d = connect_gsheets.load_config_teams(server_id, True)
+    ec, l, d = connect_gsheets.load_config_teams(server_id, True)
+    if ec != 0:
+        return 1, "ERR: aucune team connue pour cette guilde", {}
+
     d_raid = {k: d[k] for k in dts.keys()}
     ec, et, ddt = develop_teams(d_raid)
 
