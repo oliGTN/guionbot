@@ -999,7 +999,7 @@ def manage_me(ctx, alias):
 
 ##############################################################
 # Function: read_gsheets
-# IN: guild_name (= discord server name)
+# IN: server_id (= discord server)
 # Purpose: affecte le code allié de l'auteur si "me"
 # OUT: err_code (0 = OK), err_txt
 ##############################################################
@@ -1034,7 +1034,7 @@ async def read_gsheets(server_id):
 
     l = connect_gsheets.load_tb_teams(server_id, True)
     if l == None:
-        err_txt += "ERR: erreur en mettant à jour les BT teams\n"
+        err_txt += "ERR: erreur en mettant à jour les teams BT\n"
         err_code = 1
 
     return err_code, err_txt

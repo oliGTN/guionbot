@@ -97,6 +97,8 @@ def load_config_raids(server_id, force_load):
             file = client.open(gfile_name)
             feuille=file.worksheet("Raids")
             list_list_sheet=feuille.get_all_values()
+        except SpreadsheetNotFound:
+            return {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
@@ -155,12 +157,14 @@ def load_config_teams(server_id, force_load):
             feuille=file.worksheet("teams")
     
             list_dict_sheet=feuille.get_all_records()
+        except SpreadsheetNotFound:
+            return 0, [], {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
             goutils.log2("WAR", "Cannot connect to Google API")
-            return None, None
+            return 1, [], {}
 
         #Extract all aliases and get associated ID+nameKey
         list_alias=[x['Nom'] for x in list_dict_sheet]
@@ -215,67 +219,7 @@ def load_config_teams(server_id, force_load):
     else:
         dict_teams = json.load(open(json_file, "r"))
 
-    #print('DBG: dict_teams='+str(dict_teams))
-    #return liste_teams, dict_teams
-    return list(dict_teams.keys()), dict_teams
-
-##############################################################
-# Function: load_config_gt
-# Parameters: none
-# Purpose: lit l'onglet "GT" du fichier Sheets
-# Output:  liste_territoires [index=priorité-1 value=[territoire, [[team, nombre, score]...]], ...]
-##############################################################
-def load_config_gt(server_id):
-    gfile_name = get_gfile_name(server_id)
-    global client    
-    get_gapi_client()
-    file = client.open(gfile_name)
-    feuille=file.worksheet("GT")
-
-    list_dict_sheet=feuille.get_all_records()
-    liste_priorites=set([(lambda x:0 if x['Priorité']=='' else x['Priorité'])(x) for x in list_dict_sheet])
-
-    liste_territoires=[['', []] for x in range(0,max(liste_priorites))] # index=priorité-1, value=[territoire, [[team, nombre, score]...]]
-    
-    for ligne in list_dict_sheet:
-        #print(ligne)
-        priorite=ligne['Priorité']
-        if priorite != '':
-            liste_territoires[priorite-1][0]=ligne['Territoire']
-            liste_territoires[priorite-1][1].append([ligne['Team'], ligne['Nombre'], ligne['Score mini']])
-
-    return liste_territoires
-    
-##############################################################
-# Function: load_config_counter
-# Parameters: none
-# Purpose: lit l'onglet "COUNTER" du fichier Sheets
-# Output:  list_counter_teams [[nom équipe à contrer, [liste équipes qui peuvent contrer], nombre nécessaire], ...]
-##############################################################
-def load_config_counter(server_id):
-    gfile_name = get_gfile_name(server_id)
-
-    global client    
-    get_gapi_client()
-    file = client.open(gfile_name)
-    feuille=file.worksheet("COUNTER")
-
-    list_dict_sheet=feuille.get_all_records()
-    list_counter_teams=[]
-    
-    for ligne in list_dict_sheet:
-        counter_team=['', [], 0]
-        for key in ligne.keys():
-            if key=='Adversaire':
-                counter_team[0]=ligne[key]
-            elif key=='Quantité souhaitée':
-                counter_team[2]=ligne[key]
-            elif key.startswith('Counter'):
-                if ligne[key]!='':
-                    counter_team[1].append(ligne[key])
-        if counter_team[0]!='':
-            list_counter_teams.append(counter_team)
-    return list_counter_teams
+    return 0, list(dict_teams.keys()), dict_teams
 
 ##############################################################
 # Function: load_config_units
@@ -293,6 +237,8 @@ def load_config_units(force_load):
             feuille=file.worksheet("units")
 
             list_dict_sheet=feuille.get_all_values()
+        except SpreadsheetNotFound:
+            return {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
