@@ -1012,13 +1012,13 @@ async def read_gsheets(server_id):
         err_txt += "ERR: erreur en mettant à jour les UNITS\n"
         err_code = 1
 
-    l, d = connect_gsheets.load_config_teams(0, True)
-    if d == None:
+    ec, l, d = connect_gsheets.load_config_teams(0, True)
+    if ec != 0:
         err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
         err_code = 1
 
-    l, d = connect_gsheets.load_config_teams(server_id, True)
-    if d == None:
+    ec, l, d = connect_gsheets.load_config_teams(server_id, True)
+    if ec != 0:
         err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
         err_code = 1
 
