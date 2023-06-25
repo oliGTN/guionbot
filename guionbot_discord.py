@@ -223,7 +223,7 @@ async def bot_loop_60secs(bot):
                     else:
                         for logType in ret_data:
                             channel_id = ret_data[logType][0]
-                            list_logs = ret_data[logType][1]
+                            list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
                             if channel_id != 0:
                                 output_channel = bot.get_channel(channel_id)
                                 output_txt = ""
