@@ -680,16 +680,21 @@ async def get_guildLog_messages(server_id):
                                                 remaining_tm=True
 
                                     activity_txt = "DEFAITE@"+zone_name+": "+author+" a perdu contre "+leader_opponent+" ("+str(count_dead)+" morts)"
+
                                     if count_dead==0 and remaining_tm:
-                                        activity_txt += " >>> TM !!!"
+                                        activity_txt = "\N{WARNING SIGN}"+activity_txt+" >>> TM !!!"
+                                    else:
+                                        activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt
 
                                 elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
                                     if "squad" in activity["warSquad"]:
                                         activity_txt = "VICTOIRE@"+zone_name+": "+author+" a gagné contre "+leader_opponent
+                                        activity_txt = "\N{Thumbs Up Sign}"+activity_txt
 
                                 elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
                                     if "squad" in activity["warSquad"]:
                                         activity_txt = "DEBUT: "+author+" commence un combat contre "+leader_opponent
+                                        activity_txt = "\N{White Right Pointing Backhand Index}"+activity_txt
                                 else:
                                     activity_txt = activity["warSquad"]["squadStatus"]
                             else:
