@@ -682,7 +682,7 @@ async def get_guildLog_messages(server_id):
                                     activity_txt = "DEFAITE@"+zone_name+": "+author+" a perdu contre "+leader_opponent+" ("+str(count_dead)+" morts)"
 
                                     if count_dead==0 and remaining_tm:
-                                        activity_txt = "\N{WARNING SIGN}"+activity_txt+" >>> TM !!!"
+                                        activity_txt = "\N{CROSS MARK}"+activity_txt+" >>> TM !!!"
                                     else:
                                         activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt
 
