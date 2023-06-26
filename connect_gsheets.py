@@ -97,7 +97,7 @@ def load_config_raids(server_id, force_load):
             file = client.open(gfile_name)
             feuille=file.worksheet("Raids")
             list_list_sheet=feuille.get_all_values()
-        except SpreadsheetNotFound:
+        except gspread.exceptions.WorksheetNotFound:
             return {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
@@ -157,7 +157,7 @@ def load_config_teams(server_id, force_load):
             feuille=file.worksheet("teams")
     
             list_dict_sheet=feuille.get_all_records()
-        except SpreadsheetNotFound:
+        except gspread.exceptions.WorksheetNotFound:
             return 0, [], {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
@@ -237,7 +237,7 @@ def load_config_units(force_load):
             feuille=file.worksheet("units")
 
             list_dict_sheet=feuille.get_all_values()
-        except SpreadsheetNotFound:
+        except gspread.exceptions.WorksheetNotFound:
             return {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
@@ -543,6 +543,8 @@ def load_tb_teams(server_id, force_load):
             feuille=file.worksheet("BT teams")
 
             list_dict_sheet=feuille.get_all_records()
+        except gspread.exceptions.WorksheetNotFound:
+            return [{}, {}, {}, {}]
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
