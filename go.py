@@ -691,6 +691,9 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
                 #Zetas
                 req_zetas = character_obj[5].split(',')
+                while '' in req_zetas:
+                    req_zetas.remove('')
+
                 req_zeta_ids = [goutils.get_capa_id_from_short(character_id, x) for x in req_zetas]
                 req_zeta_ids = list(filter(lambda x: x != '', req_zeta_ids))
                         
@@ -706,6 +709,9 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
                 #Omicrons
                 req_omicrons = character_obj[6].split(',')
+                while '' in req_omicrons:
+                    req_omicrons.remove('')
+
                 req_omicron_ids = [goutils.get_capa_id_from_short(character_id, x) for x in req_omicrons]
                 req_omicron_ids = list(filter(lambda x: x != '', req_omicron_ids))
                         
@@ -990,8 +996,14 @@ def get_team_header(team_name, objectifs):
 
                     #Zetas
                     req_zetas = objectifs[i_level][2][perso][5].split(',')
+                    while '' in req_zetas:
+                        req_zetas.remove('')
+
                     req_zeta_names = [x[1] for x in goutils.get_capa_from_shorts(perso, req_zetas)]
                     req_omicrons = objectifs[i_level][2][perso][6].split(',')
+                    while '' in req_omicrons:
+                        req_omicrons.remove('')
+
                     req_omicron_names = [x[1] for x in goutils.get_capa_from_shorts(perso, req_omicrons)]
                     
                     perso_name = objectifs[i_level][2][perso][7]
@@ -1667,6 +1679,9 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
         for character in characters:
             if not character.startswith("tag:"):
                 tab_virtual_character = character.split(':')
+                while '' in tab_virtual_character:
+                    tab_virtual_character.remove('')
+
                 if len(tab_virtual_character) == 3:
                     char_alias = tab_virtual_character[0]
                     if char_alias == "all":
@@ -2226,6 +2241,9 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
     #get the relic filter if any
     if ":" in character_alias:
         tab_alias = character_alias.split(":")
+        while '' in tab_alias:
+            tab_alias.remove('')
+
         character_alias = tab_alias[0]
         relic_txt = tab_alias[1]
         if relic_txt[0].lower() != "r":
@@ -2345,6 +2363,9 @@ async def print_lox(txt_allyCode, characters, compute_guild):
             print(unit)
             if unit.startswith("mode:"):
                 unit_tab = unit.split(":")
+                while '' in unit_tab:
+                    unit_tab.remove('')
+
                 if len(unit_tab)>2:
                     return 1, "ERR: syntax incorrecte pour le mode omicron "+unit, None
                 mode = unit_tab[1]
@@ -3470,6 +3491,8 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
     first_char = True #to store the char_id of the first char in the command
     for character in list_characters:
         tab_virtual_character = character.split(':')
+        while '' in tab_virtual_character:
+            tab_virtual_character.remove('')
 
         char_rarity = 0
         char_gear = 0
