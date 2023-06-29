@@ -3552,7 +3552,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
             query+= "AND NOT allyCode IN ( "
         else:
             if opposite_search:
-                intro_txt = " qui ont ("+character_name+ " mais pas "+character_name
+                intro_txt+= " qui ont ("+character_name+ " mais pas "+character_name
             else:
                 intro_txt+= " qui ont "+character_name
 
@@ -3614,8 +3614,10 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
 
     if allyCodes_in_DB == None:
         allyCodes_in_DB = []
+        guildName = ""
+    else:
+        guildName = allyCodes_in_DB[0][0]
 
-    guildName = allyCodes_in_DB[0][0]
     dict_players = connect_mysql.load_config_players()[0]
 
     #Manage -TW option
