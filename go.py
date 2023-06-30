@@ -1350,7 +1350,6 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
 
     player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
                                               server_id, 0, list_active_players, 0, dict_def_toon_player)
-    print("eeee", flush=True)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
@@ -4708,3 +4707,55 @@ def print_ability(unit_id, ability_id, ability_type):
         output_txt+= " : "+ability_desc+"\n"
 
     return output_txt
+
+async def detect_fulldef(server_id):
+    focus_player='dark nicarta'
+
+    dict_unitsList = godata.get("unitsList_dict.json")
+    ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
+    if ec != 0:
+        return ec, et, None
+
+    query = "SELECT defId, count(*) FROM roster " \
+            "JOIN players ON players.allyCode=roster.allyCode " \
+            "WHERE guildName='Kangoo Legends' " \
+            "AND ((combatType=1 AND gear>=12) OR (combatType=2 AND defId like 'CAPITAL%')) " \
+            "GROUP BY defId "
+    goutils.log2("DBG", query)
+    data_db = connect_mysql.get_table(query)
+
+    dict_char_ratio = {}
+    for [unit_id, unit_count] in data_db:
+        if unit_id in dict_def_toon_player:
+            dict_char_ratio[unit_id] = len(dict_def_toon_player[unit_id]) / unit_count
+
+    print(dict_char_ratio)
+
+    dict_def_player_toon = {}
+    for unit_id in dict_def_toon_player:
+        for player in dict_def_toon_player[unit_id]:
+            if not player in dict_def_player_toon:
+                dict_def_player_toon[player] = []
+            dict_def_player_toon[player].append(unit_id)
+    print(dict_def_player_toon[focus_player])
+
+    dict_player_fulldef_ratio = {}
+    for player in dict_def_player_toon:
+        list_ratio = []
+        for unit_id in dict_def_player_toon[player]:
+            if unit_id in dict_char_ratio:
+                list_ratio.append(dict_char_ratio[unit_id])
+                if player == focus_player:
+                    print(unit_id+": "+str(dict_char_ratio[unit_id]))
+        if len(list_ratio)==0:
+            ratio=1
+            print(player+": nothing")
+        else:
+            ratio = sum(list_ratio)/len(list_ratio)
+        dict_player_fulldef_ratio[player] = ratio
+    print(dict_player_fulldef_ratio[focus_player])
+
+    dict_player_fulldef_ratio = sorted(dict_player_fulldef_ratio.items(), key=lambda x:x[1])
+
+    print(dict_player_fulldef_ratio)
+
