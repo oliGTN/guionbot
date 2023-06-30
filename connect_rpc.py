@@ -713,7 +713,10 @@ async def get_guildLog_messages(server_id):
                         zone_name = dict_tb[zone_id]["name"]
                         phases_ok = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
                         phases_tot = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
-                        print(str(time)+" COMBAT: "+author+" "+str(phases_ok)+"/"+str(phases_tot)+" en "+zone_name)
+
+                        activity_txt = "COMBAT: "+author+" "+str(phases_ok)+"/"+str(phases_tot)+" en "+zone_name
+                        list_tb_logs.append([event_ts, activity_txt])
+
                     elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
                         zone_data = activity["zoneData"]
                         zone_id = zone_data["zoneId"]
@@ -722,7 +725,10 @@ async def get_guildLog_messages(server_id):
                         else:
                             zone_name = zone_id
                         points = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
-                        print(str(time)+" DEPLOIEMENT: "+author+" déploie "+str(points)+" en "+zone_name)
+
+                        activity_txt = "DEPLOIEMENT: "+author+" déploie "+str(points)+" en "+zone_name
+
+                        list_tb_logs.append([event_ts, activity_txt])
 
     list_all_logs = list_chat_events+list_tw_logs+list_tb_logs
     if len(list_all_logs)>0:
