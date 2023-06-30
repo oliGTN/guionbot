@@ -688,11 +688,11 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     dict_platoons_allocation[
                                         platoon_name] = {}
 
-                                #transform the name into French
-                                print("   "+char_name)
-                                perso_id = dict_alias[char_name.lower()][1]
-                                #print(perso_id)
-                                char_name = dict_units[perso_id]["name"]
+                                #as the name may be in English, or approximative, best to go through the alias search
+                                list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
+                                char_name = dict_id_name[char_name][0][1]
+                                if char_name.startsWith("Ini"):
+                                    print(char_name)
 
                                 if not char_name in dict_platoons_allocation[
                                         platoon_name]:
@@ -718,18 +718,15 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     platoon_num = line.split(" ")[2][1]
                                     platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
                                 else:
-                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
-                                                        line)
+                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
                                     player_name = ret_re.group(3).strip()
                                     
                                     if not platoon_name in dict_platoons_allocation:
                                         dict_platoons_allocation[platoon_name] = {}
 
-                                    #transform the name into French
-                                    #print(char_name)
-                                    perso_id = dict_alias[char_name.lower()][1]
-                                    #print(perso_id)
-                                    char_name = dict_units[perso_id]["name"]
+                                    #as the name may be in English, or approximative, best to go through the alias search
+                                    list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
+                                    char_name = dict_id_name[char_name][0][1]
 
                                     if not char_name in dict_platoons_allocation[
                                             platoon_name]:
@@ -755,8 +752,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                                 "-" + dict_platoon['name'][-1]
                                     
                                 for line in dict_platoon['value'].split('\n'):
-                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)( (:crown:|:cop:)?( `\[G[0-9]*\]`)?)?$",
-                                                    line)
+                                    print(line)
+                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
                                     player_name = ret_re.group(3).strip()
                                         
                                     if char_name[0:4]=='*` *':
@@ -765,11 +762,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[
                                             platoon_name] = {}
 
-                                    #transform the name into French
-                                    #print(char_name)
-                                    perso_id = dict_alias[char_name.lower()][1]
-                                    #print(perso_id)
-                                    char_name = dict_units[perso_id]["name"]
+                                    #as the name may be in English, or approximative, best to go through the alias search
+                                    list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
+                                    char_name = dict_id_name[char_name][0][1]
 
                                     if not char_name in dict_platoons_allocation[
                                             platoon_name]:
@@ -801,18 +796,13 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     dict_platoons_allocation[
                                         platoon_name] = {}
 
-                                #transform the name into French
-                                #print(char_name)
-                                perso_id = dict_alias[char_name.lower()][1]
-                                #print(perso_id)
-                                char_name = dict_units[perso_id]["name"]
+                                #as the name may be in English, or approximative, best to go through the alias search
+                                list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
+                                char_name = dict_id_name[char_name][0][1]
 
-                                if not char_name in dict_platoons_allocation[
-                                        platoon_name]:
-                                    dict_platoons_allocation[platoon_name][
-                                        char_name] = []
-                                dict_platoons_allocation[platoon_name][
-                                    char_name].append(player_name)
+                                if not char_name in dict_platoons_allocation[platoon_name]:
+                                    dict_platoons_allocation[platoon_name][char_name] = []
+                                dict_platoons_allocation[platoon_name][char_name].append(player_name)
 
             elif message.content.startswith(":information_source: **Overview**"):
                 #Overview of the EB posts. Gives the territory names
