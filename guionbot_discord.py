@@ -691,8 +691,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                 #as the name may be in English, or approximative, best to go through the alias search
                                 list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
                                 char_name = dict_id_name[char_name][0][1]
-                                if char_name.startsWith("Ini"):
-                                    print(char_name)
+                                #if char_name.startswith("Ini"):
+                                #    print(char_name)
 
                                 if not char_name in dict_platoons_allocation[
                                         platoon_name]:
