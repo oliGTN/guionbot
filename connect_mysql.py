@@ -15,6 +15,7 @@ def wc_ljust(text, length):
 import goutils
 import connect_crinolo
 import data
+import go
 
 mysql_db = None
 
@@ -512,7 +513,7 @@ async def update_player(dict_player):
                     query += ",stat"+stat_id+" = "+str(stat_value)+" "
 
                 if "mods" in character["stats"]:
-                    for stat_id in ['1', '5', '6', '7', '16', '17', '18', '28']:
+                    for stat_id in ['1', '5', '6', '7', '14', '15', '16', '17', '18', '28']:
                         stat_value = None
                         if stat_id in character["stats"]["mods"]:
                             stat_value = character["stats"]["mods"][stat_id]
@@ -715,32 +716,9 @@ async def update_player(dict_player):
         if p_modq==None:
             p_modq = "NULL"
 
-        #Compute StatQ from DB data
-        query = "SELECT " \
-              + "sum(CASE " \
-              + "WHEN stat_ratio>=1.02 THEN 100 " \
-              + "WHEN stat_ratio>=0.98 THEN 75 " \
-              + "WHEN stat_ratio>=0.95 THEN 50 " \
-              + "WHEN stat_ratio>=0.92 THEN 25 " \
-              + "ELSE 0 " \
-              + "END) / sum(coef) " \
-              + "FROM( " \
-	          + "    SELECT my_roster.allyCode, " \
-	          + "    CASE " \
-	          + "    WHEN stat_name='health' THEN (mod1 /(stat1 -mod1 ))/stat_avg " \
-	          + "    WHEN stat_name='speed'  THEN (mod5 /(stat5 -mod5 ))/stat_avg " \
-	          + "    WHEN stat_name='pd'     THEN (mod6 /(stat6 -mod6 ))/stat_avg " \
-	          + "    WHEN stat_name='cd'     THEN (mod16/(stat16-mod16))/stat_avg " \
-	          + "    WHEN stat_name='protec' THEN (mod18/(stat28-mod28))/stat_avg " \
-	          + "    END AS `stat_ratio`, " \
-	          + "    coef " \
-	          + "    FROM roster AS my_roster " \
-	          + "    JOIN statq_table ON my_roster.defId=statq_table.defId " \
-	          + "    WHERE allyCode = "+str(p_allyCode)+" " \
-              + ") ratios "
-        goutils.log2("DBG", query)
-        p_statq = get_value(query)
-        if p_statq==None:
+        #Compute StatQ
+        ec, et, p_statq, l_statq = await get_player_statq(str(p_allyCode))
+        if ec!=0:
             p_statq = "NULL"
 
         query = "UPDATE players "\
@@ -989,3 +967,95 @@ def load_config_players():
     return dict_players_by_IG, dict_players_by_ID
 
 
+##############################################################
+# Command: get_player_statqj
+# IN: allyCode
+# IN: load_player: True if need to load player data
+# Output: statq, list_unit_stats
+##############################################################
+async def get_player_statq(txt_allyCode):
+    list_statq_stats = []
+    list_statq_stats.append(["health", 1, False])
+    list_statq_stats.append(["speed", 5, False])
+    list_statq_stats.append(["pd", 6, False])
+    list_statq_stats.append(["sd", 7, False])
+    list_statq_stats.append(["cc", 14, True])
+    list_statq_stats.append(["cd", 16, True])
+    list_statq_stats.append(["potency", 17, True])
+    list_statq_stats.append(["tenacity", 18, True])
+    list_statq_stats.append(["protec", 28, False])
+
+    query = "SELECT " \
+          + "defId,stat_name,stat_value, stat_avg, " \
+          + "CASE WHEN stat_ratio>=1.02 THEN 100 WHEN stat_ratio>=0.98 THEN 75 WHEN stat_ratio>=0.95 THEN 50 WHEN stat_ratio>=0.92 THEN 25 ELSE 0 END as score " \
+          + "FROM( " \
+          + "     SELECT my_roster.allyCode, my_roster.defId,stat_name, " \
+          + "     CASE "
+
+    for stat in list_statq_stats:
+        s_name = stat[0]
+        s_id = stat[1]
+        s_percent = stat[2]
+
+        query += "     WHEN stat_name='"+s_name+"'   THEN CONCAT(ROUND(stat"+str(s_id)
+
+        if s_percent:
+            query+="/1000000), '% (' , ROUND(mod"+str(s_id)+" /1000000), '%)' ) "
+        else:
+            query+="/100000000), ' (', ROUND(mod"+str(s_id)+" /100000000), ')') "
+
+    query +="     END AS `stat_value`, " \
+          + "     ROUND(stat_avg, 2) AS `stat_avg`, " \
+          + "     CASE "
+
+    for stat in list_statq_stats:
+        s_name = stat[0]
+        s_id = stat[1]
+
+        query += "     WHEN stat_name='"+s_name+"'   THEN (mod"+str(s_id)+" /(stat"+str(s_id)+" -mod"+str(s_id)+" )) /stat_avg "
+
+
+    query +="     END AS `stat_ratio`,     coef " \
+          + "     FROM roster AS my_roster " \
+          + "     JOIN statq_table ON my_roster.defId=statq_table.defId AND NOT isnull(statq_table.stat_avg)" \
+          + ") ratios " \
+          + "JOIN players ON players.allyCode = ratios.allyCode " \
+          + "WHERE players.allyCode = "+txt_allyCode
+
+    goutils.log2("DBG", query)
+    db_data = get_table(query)
+
+    list_scores = [x[4] for x in db_data]
+    statq = sum(list_scores)/len(list_scores)
+
+    return 0, "", statq, db_data
+
+##############################################################
+# Function: compute_statq_avg
+# IN: none
+# OUT: none
+##############################################################
+def compute_statq_avg():
+    list_statq_stats = []
+    list_statq_stats.append(["health", 1, False])
+    list_statq_stats.append(["speed", 5, False])
+    list_statq_stats.append(["pd", 6, False])
+    list_statq_stats.append(["sd", 7, False])
+    list_statq_stats.append(["cc", 14, True])
+    list_statq_stats.append(["cd", 16, True])
+    list_statq_stats.append(["potency", 17, True])
+    list_statq_stats.append(["tenacity", 18, True])
+    list_statq_stats.append(["protec", 28, False])
+
+    #Compute stat_avg for statq_table, from KYBER1 players
+    query = "UPDATE statq_table SET stat_avg = CASE "
+
+    for stat in list_statq_stats:
+        s_name = stat[0]
+        s_id = stat[1]
+
+        query += "WHEN stat_name='"+s_name+"'   THEN (select avg(mod"+str(s_id)+" /(stat"+str(s_id)+" -mod"+str(s_id)+" )) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') "
+
+    query+= "END"
+    goutils.log2("DBG", query)
+    simple_execute(query)

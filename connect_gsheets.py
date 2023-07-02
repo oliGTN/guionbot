@@ -292,90 +292,140 @@ def load_config_units(force_load):
     return dict_units
 
 ##############################################################
-# Function: update_online_dates
-# Parameters: gfile_name (used for the file name)
-#             dict_lastseen
-#             {key=discord id,
-#              value=[discord name, date last seen (idle or online)]}
-# Purpose: met à jour la colonne "Last Online" de l'onglet "players"
-# Output:  none
+# Function: load_config_statq
+# Parameters: none
+# Purpose: lit l'onglet "statq" du fichier CONFIG
+# Output:  None
 ##############################################################
-def update_online_dates(server_id, dict_lastseen):
-    gfile_name = get_gfile_name(server_id)
+def load_config_statq():
+    err_code = 0
+    err_txt = ""
 
+    #GET GSHEETS table
     try:
         get_gapi_client()
-        file = client.open(gfile_name)
-        feuille=file.worksheet("players")
-    except:
-        goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
-        return
+        file = client.open("GuiOnBot config")
+        feuille=file.worksheet("statq")
 
-    #parsing title row
-    col_id=0
-    col_date=0
-    id_column_title='Discord ID'
-    date_column_title='Last Online'
+        list_dict_sheet=feuille.get_all_values()
+    except gspread.exceptions.WorksheetNotFound:
+        return 0, ""
+    except Exception as e:
+        goutils.log2("ERR", sys.exc_info()[0])
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
+        goutils.log2("ERR", "Cannot connect to Google API")
+        return 1, "Erreur de connexion au gsheet"
 
-    c = 1
-    first_row=feuille.row_values(1)
-    for value in first_row:
-        if value==id_column_title:
-            col_id=c
-        elif value==date_column_title:
-            col_date=c
-        c+=1
+    dict_unit_stats_gs = {}
+    for line in list_dict_sheet[1:]:
+        unit_alias=line[0]
 
-    if (col_date > 0) and (col_id > 0):
-        ids=feuille.col_values(col_id)
-        online_dates=feuille.col_values(col_date)
+        #cleanup "omicron"
+        if unit_alias.endswith("omicron"):
+            unit_alias = unit_alias[:unit_alias.index("omicron")]
+        stat1=line[1]
+        stat2=line[2]
 
-        #Looping through lines, through the ID column
-        l = 1
-        for str_id in ids:
-            if l > 1:
-                if str_id=='':
-                    #no Discord ID > empty date
-                    if l > len(online_dates):
-                        online_dates.append([''])
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([unit_alias])
+        if txt != '':
+            goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
+            err_txt += "Perso inconnu : "+txt+"\n"
+            continue
+
+        unit_id = list_character_ids[0]
+        if unit_id in dict_unit_stats_gs:
+            goutils.log2('WAR', "Unit listed twice: "+unit_id)
+            err_txt += "Perso configuré 2 fois : "+unit_id+"\n"
+            continue
+
+        dict_unit_stats_gs[unit_id] = {stat1: 1}
+        if stat2!="":
+            dict_unit_stats_gs[unit_id][stat2] = 1
+
+    print(dict_unit_stats_gs)
+
+    #Get DB table
+    query = "SELECT * from statq_table"
+    db_data = connect_mysql.get_table(query)
+
+    dict_unit_stats_db = {}
+    for line in db_data:
+        unit_id=line[0]
+        stat=line[1]
+        coef=line[2]
+
+        if not unit_id in dict_unit_stats_db:
+            dict_unit_stats_db[unit_id] = {}
+
+        dict_unit_stats_db[unit_id][stat] = coef
+
+    print(dict_unit_stats_db)
+
+    #Process DIFF and update table
+    for unit_id in dict_unit_stats_gs:
+        if unit_id in dict_unit_stats_db:
+            #The unit is alredy in the DB table
+            unit_gs = dict_unit_stats_gs[unit_id]
+            unit_db = dict_unit_stats_db[unit_id]
+
+            for stat in unit_gs:
+                if stat in unit_db:
+                    #The stat is already in DB
+                    coef_gs = unit_gs[stat]
+                    coef_db = unit_db[stat]
+
+                    if coef_gs == coef_db:
+                        #Coef is identical, nothing to do
+                        query = None
                     else:
-                        online_dates[l-1] = ['']
+                        #Need to update the coef
+                        query = "UPDATE statq_table SET coef="+str(coef_gs)+" WHERE defIf='"+unit_id+"' AND stat_name='"+stat+"'"
                 else:
-                    id=int(str_id)
-                    if id in dict_lastseen:
-                        last_date=dict_lastseen[id][1]
-                        if last_date == None:
-                            # Not seen recently > no change
-                            if l > len(online_dates):
-                                # Yet if the table did not contain this ID,
-                                # create an empty cell so that next ID can be added properly
-                                online_dates.append([''])
-                            else:
-                                online_dates[l-1] = [online_dates[l-1]]
-                        else:
-                            last_date_value=last_date.strftime("%Y-%m-%d %H:%M:%S")
-                            if l > len(online_dates):
-                                online_dates.append([last_date_value])
-                            else:
-                                online_dates[l-1] = [last_date_value]
-                    else:
-                        # ID is gsheets does not match an ID in Discord
-                        if l > len(online_dates):
-                            online_dates.append(['Not a guild member'])
-                        else:
-                            online_dates[l-1] = ['Not a guild member']
-                        
-                    # print('id='+str(id)+' '+str(online_dates[l-1]))
-            else:
-                # Title line. Need to keep it, changing the format to a list
-                online_dates[l-1]=[online_dates[l-1]]
-            l+=1
-        
-        column_letter='ABCDEFGHIJKLMNOP'[col_date-1]
-        range_name=column_letter+'1:'+column_letter+str(l-1)
-        feuille.update(range_name, online_dates, value_input_option='USER_ENTERED')
-    else:
-        goutils.log2("ERR", 'At least one column among "'+id_column_title+'" and "'+date_column_title+'" is not found >> online date not updated')
+                    #The stat is not in the DB, add it
+                    coef = unit_gs[stat]
+                    query = "INSERT INTO statq_table(defId, stat_name, coef) VALUES('"+unit_id+"', '"+stat+"', "+str(coef)+")" 
+
+                if query != None:
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
+
+            #remove stats that are not used anymore
+            for stat in unit_db:
+                if not stat in unit_gs:
+                    #remove it
+                    query = "DELETE FROM statq_table WHERE defId='"+unit_id+"' AND stat_name='"+stat+"'"
+                else:
+                    query = None
+
+                if query != None:
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
+
+        else:
+            #The unit is not in the DB table, insert it
+            for stat in unit_gs:
+                coef = unit_gs[stat]
+                query = "INSERT INTO statq_table(defId, stat_name, coef) VALUES('"+unit_id+"', '"+stat+"', "+str(coef)+")" 
+                goutils.log2("DBG", query)
+                connect_mysql.simple_execute(query)
+
+    #remove units that are not used anymore
+    for unit_id in dict_unit_stats_db:
+        if not unit_id in dict_unit_stats_gs:
+            #remove it
+            query = "DELETE FROM statq_table WHERE defId='"+unit_id+"'"
+        else:
+            query=None
+
+        if query != None:
+            goutils.log2("DBG", query)
+            connect_mysql.simple_execute(query)
+
+    #update stat average
+    connect_mysql.compute_statq_avg()
+
+    return err_code, err_txt
 
 ##############################################################
 # Function: get_tb_triggers
@@ -574,37 +624,6 @@ def load_tb_teams(server_id, force_load):
 
     return tb_teams
 
-##############################################################
-# Function: load_new_tb
-# Parameters: none
-# Purpose: lit les operations de la nouvelle BT
-# Output:  dict_zones= {zone_name: {defId: [count, relic_min], ...}}
-##############################################################
-def load_new_tb():
-    global client    
-    get_gapi_client()
-    file = client.open('NewTB_operations')
-    feuille=file.worksheet("long_format")
-
-    list_dict_sheet=feuille.get_all_records()
-    
-    dict_zones={}
-    dict_toons={}
-    for ligne in list_dict_sheet:
-        zone_name = 'ROTE'+str(ligne['phase'])+'-'+ligne['alignment']+'-'+str(ligne['operation'])
-        if not zone_name in dict_zones:
-            dict_zones[zone_name] = {}
-        baseId = ligne['baseId']
-        if not baseId in dict_zones[zone_name]:
-            dict_zones[zone_name][baseId] = [0, min(ligne['phase']+4, 9)]
-        dict_zones[zone_name][baseId][0] +=1
-
-        if not baseId in dict_toons:
-            dict_toons[baseId] = []
-        dict_toons[baseId].append(zone_name)
-
-    return dict_zones, dict_toons
-    
 ##############################################################
 async def update_gwarstats(server_id):
     gfile_name = get_gfile_name(server_id)

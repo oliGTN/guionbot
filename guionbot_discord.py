@@ -1029,6 +1029,11 @@ async def read_gsheets(server_id):
         err_txt += "ERR: erreur en mettant à jour les teams BT\n"
         err_code = 1
 
+    ec, et = connect_gsheets.load_config_statq()
+    if ec != 0:
+        err_txt += "ERR: erreur en mettant à jour les persos statq\n"
+        err_code = 1
+
     return err_code, err_txt
 
 ##############################################################
@@ -2769,52 +2774,27 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            e, t, player_before = await go.load_player( allyCode, 1, True)
+            e, t, player_now = await go.load_player( allyCode, 1, False)
             if e!=0:
                 await ctx.send(t)
                 await ctx.message.add_reaction(emoji_error)
                 return
+            
+            ec, et, statq, list_statq = await connect_mysql.get_player_statq(allyCode)
+            if ec!=0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emoji_error)
+                return
 
-            query = "SELECT " \
-                  + "defId,stat_name,stat_value, stat_avg, " \
-                  + "CASE WHEN stat_ratio>=1.02 THEN 100 WHEN stat_ratio>=0.98 THEN 75 WHEN stat_ratio>=0.95 THEN 50 WHEN stat_ratio>=0.92 THEN 25 ELSE 0 END as score " \
-                  + "FROM( " \
-                  + "     SELECT my_roster.allyCode, my_roster.defId,stat_name, " \
-                  + "     CASE " \
-                  + "     WHEN stat_name='health' THEN CONCAT(ROUND(stat1 /100000000), ' (', ROUND(mod1 /100000000), ')') " \
-                  + "     WHEN stat_name='speed'  THEN CONCAT(ROUND(stat5 /100000000), ' (', ROUND(mod5 /100000000), ')') " \
-                  + "     WHEN stat_name='pd'     THEN CONCAT(ROUND(stat6 /100000000), ' (', ROUND(mod6 /100000000), ')') " \
-                  + "     WHEN stat_name='cd'     THEN CONCAT(ROUND(stat16/1000000), '% (' , ROUND(mod16/1000000), '%)' ) " \
-                  + "     WHEN stat_name='protec' THEN CONCAT(ROUND(stat28/100000000), ' (', ROUND(mod28/100000000), ')') " \
-                  + "     END AS `stat_value`, " \
-                  + "     ROUND(stat_avg, 2) AS `stat_avg`, " \
-                  + "     CASE " \
-                  + "     WHEN stat_name='health' THEN (mod1 /(stat1 -mod1 )) /stat_avg " \
-                  + "     WHEN stat_name='speed'  THEN (mod5 /(stat5 -mod5 )) /stat_avg " \
-                  + "     WHEN stat_name='pd'     THEN (mod6 /(stat6 -mod6 )) /stat_avg " \
-                  + "     WHEN stat_name='cd'     THEN (mod16/(stat16-mod16)) /stat_avg " \
-                  + "     WHEN stat_name='protec' THEN (mod28/(stat28-mod28)) /stat_avg " \
-                  + "     END AS `stat_ratio`,     coef " \
-                  + "     FROM roster AS my_roster " \
-                  + "     JOIN statq_table ON my_roster.defId=statq_table.defId " \
-                  + ") ratios " \
-                  + "JOIN players ON players.allyCode = ratios.allyCode " \
-                  + "WHERE players.allyCode = "+allyCode
+            output_table = [['Perso', "Stat", "Valeur (mod)", "Moyenne", "Score"]] + list_statq
+            t = Texttable()
+            t.add_rows(output_table)
+            t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
 
-            goutils.log2("DBG", query)
-            output = connect_mysql.text_query(query)
-
-            output_txt=''
-            for row in output:
-                output_txt+=str(row)+'\n'
-            goutils.log2('INFO', output_txt)
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
 
-            query = "SELECT name, statq FROM players WHERE allyCode="+allyCode
-            goutils.log2("DBG", query)
-            output = connect_mysql.get_line(query)
-            await ctx.send("Le StatQ de "+output[0]+" est "+str(output[1]))
+            await ctx.send("StatQ = "+str(round(statq, 2)))
 
             await ctx.message.add_reaction(emoji_check)
 
