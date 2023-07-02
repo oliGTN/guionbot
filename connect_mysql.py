@@ -1042,9 +1042,12 @@ async def get_player_statq(txt_allyCode):
 
     goutils.log2("DBG", query)
     db_data = get_table(query)
-
-    list_scores = [x[4] for x in db_data]
-    statq = sum(list_scores)/len(list_scores)
+    if db_data==None:
+        db_data=[]
+        statq = 0
+    else:
+        list_scores = [x[4] for x in db_data]
+        statq = sum(list_scores)/len(list_scores)
 
     return 0, "", statq, db_data
 
