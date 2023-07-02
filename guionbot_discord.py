@@ -528,17 +528,6 @@ async def bot_loop_6hours(bot):
             if err_code > 0:
                 await send_alert_to_admins(None, err_txt)
 
-            #Compute stat_avg for statq_table, from KYBER1 players
-            query = "UPDATE statq_table SET stat_avg = CASE " \
-                  + "WHEN stat_name='health' THEN (select avg(mod1 /(stat1 -mod1 )) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "WHEN stat_name='speed'  THEN (select avg(mod5 /(stat5 -mod5 )) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "WHEN stat_name='pd'     THEN (select avg(mod6 /(stat6 -mod6 )) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "WHEN stat_name='cd'     THEN (select avg(mod16/(stat16-mod16)) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "WHEN stat_name='protec' THEN (select avg(mod28/(stat28-mod28)) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') " \
-                  + "END"
-            goutils.log2("DBG", query)
-            connect_mysql.simple_execute(query)
-
         except Exception as e:
             goutils.log("ERR", "guionbot_discord.bot_loop_6hours", str(sys.exc_info()[0]))
             goutils.log("ERR", "guionbot_discord.bot_loop_6hours", e)
@@ -2786,7 +2775,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
                 return
 
-            output_table = [['Perso', "Stat", "Valeur (mod)", "Moyenne", "Score"]] + list_statq
+            #get real unit names
+            dict_units = data.get("unitsList_dict.json")
+            list_statq_with_names = [[dict_units[x[0]]["name"]]+list(x[1:]) for x in list_statq]
+
+            output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif", "Score"]] + list_statq_with_names
             t = Texttable()
             t.add_rows(output_table)
             t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
