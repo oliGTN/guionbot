@@ -1294,12 +1294,19 @@ def member_command(ctx):
     return (not bot_test_mode) or is_owner
 def officer_command(ctx):
     ret_is_officer = False
-    dict_players_by_ID = connect_mysql.load_config_players()[1]
-    #print(dict_players_by_ID)
-    #print(ctx.author.id)
-    if str(ctx.author.id) in dict_players_by_ID:
-        if dict_players_by_ID[str(ctx.author.id)][1]:
-            ret_is_officer = True
+    query = "SELECT discord_id FROM players " \
+            "WHERE guildId=( " \
+            "    SELECT guild_id FROM guild_bot_infos WHERE server_id="+str(ctx.guild.id)+" " \
+            ") AND discord_id<>'' AND guildMemberLevel>=3 "
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_column(query)
+    if db_data == None:
+        list_did = []
+    else:
+        list_did = db_data
+
+    if str(ctx.author.id) in list_did:
+        ret_is_officer = True
 
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
