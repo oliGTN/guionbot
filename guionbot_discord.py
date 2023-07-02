@@ -158,9 +158,11 @@ def set_id_lastseen(event_name, server_id, player_id):
             alias = dict_member_lastseen[server_id][player_id][0]
             #goutils.log2("DBG", event_name+": guild="+str(server_id)+" user="+str(player_id)+" ("+alias+")")
         else:
-            goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+str(server_id))
+            pass
+            #goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+str(server_id))
     else:
-        goutils.log2("WAR", "unknown guild="+str(server_id))
+        pass
+        #goutils.log2("WAR", "unknown guild="+str(server_id))
 
 ##############################################################
 # Function: bot_loop_60secs
@@ -1931,6 +1933,62 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     def __init__(self, bot):
         self.bot = bot
+
+    ##############################################################
+    # Command: tagcount
+    # Parameters: channel
+    # Purpose: count player tags in a specific channel (for instance in player-warning channel)
+    # Display: list of player tags with counter
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='tagcount', brief="Compte les tags de joueurs dans un channel",
+                                       help ="Compte les tags de joueurs dans un channel")
+    async def tagcount(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        args = list(args)
+        print(args, flush=True)
+        if len(args) != 1:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tagcount")
+            await ctx.message.add_reaction(emoji_error)
+
+        channel_param = args[0]
+        print(channel_param, flush=True)
+        if not channel_param.startswith("<#") and not channel_param.endswith(">"):
+            await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
+            await ctx.message.add_reaction(emoji_error)
+
+        channel_id = channel_param[2:-1]
+        if not channel_id.isnumeric():
+            await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
+            await ctx.message.add_reaction(emoji_error)
+
+        channel_id = int(channel_id)
+        channel = bot.get_channel(channel_id)
+
+        print("channel_id="+str(channel_id), flush=True)
+        dict_tag_count = {}
+        async for message in channel.history(limit=500):
+            message_txt = message.content
+            print(message_txt)
+            while "<@" in message_txt:
+                start_tag_pos = message_txt.index("<@")
+                message_txt = message_txt[start_tag_pos:]
+                end_tag_pos = message_txt.index(">")
+                user_tag = message_txt[0:end_tag_pos+1]
+                if not user_tag in dict_tag_count:
+                    dict_tag_count[user_tag] = 0
+                dict_tag_count[user_tag] += 1
+
+                if end_tag_pos+1 == len(message_txt):
+                    message_txt = ""
+                else:
+                    message_txt = message_txt[end_tag_pos+1:]
+
+        for user_tag in dict_tag_count:
+            await ctx.send(user_tag+": "+str(dict_tag_count[user_tag]))
+
+        await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: lgs
