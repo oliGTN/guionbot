@@ -989,7 +989,7 @@ async def get_player_statq(txt_allyCode):
 
     query = "SELECT \n" \
           + "defId,stat_name,stat_value, stat_target, \n" \
-          + "CASE WHEN stat_ratio>=1.02 THEN 100 WHEN stat_ratio>=0.98 THEN 75 WHEN stat_ratio>=0.95 THEN 50 WHEN stat_ratio>=0.90 THEN 25 ELSE 0 END as score \n" \
+          + "CASE WHEN stat_ratio>=1.02 THEN 4 WHEN stat_ratio>=0.98 THEN 3 WHEN stat_ratio>=0.95 THEN 2 WHEN stat_ratio>=0.90 THEN 1 ELSE 0 END as score \n" \
           + "FROM( \n" \
           + "     SELECT my_roster.allyCode, my_roster.defId, stat_name, \n" \
           + "     CASE \n"
