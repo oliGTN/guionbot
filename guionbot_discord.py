@@ -1936,35 +1936,52 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     @commands.check(officer_command)
     @commands.command(name='tagcount', brief="Compte les tags de joueurs dans un channel",
-                                       help ="Compte les tags de joueurs dans un channel")
+                                       help ="Compte les tags de joueurs dans un channel\n" \
+                                             "Exemple: go.tagcount #avertos\n" \
+                                             "Exemple: go.tagcount #avertos -pédagogique")
     async def tagcount(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
         args = list(args)
-        print(args, flush=True)
-        if len(args) != 1:
+        if len(args) == 0 or len(args)>2:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tagcount")
             await ctx.message.add_reaction(emoji_error)
+            return
 
         channel_param = args[0]
-        print(channel_param, flush=True)
         if not channel_param.startswith("<#") and not channel_param.endswith(">"):
             await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
             await ctx.message.add_reaction(emoji_error)
+            return
 
         channel_id = channel_param[2:-1]
         if not channel_id.isnumeric():
             await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
             await ctx.message.add_reaction(emoji_error)
+            return
+
+        if len(args)==2:
+            filter_txt = args[1]
+            if not filter_txt[0]=="-":
+                await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
+                await ctx.message.add_reaction(emoji_error)
+                return
+            filter_txt = filter_txt[1:]
+        else:
+            filter_txt = ""
+
 
         channel_id = int(channel_id)
         channel = bot.get_channel(channel_id)
 
-        print("channel_id="+str(channel_id), flush=True)
         dict_tag_count = {}
         async for message in channel.history(limit=500):
             message_txt = message.content
-            print(message_txt)
+
+            #use message filter
+            if filter_txt!="" and filter_txt in message_txt:
+                continue
+
             while "<@" in message_txt:
                 start_tag_pos = message_txt.index("<@")
                 message_txt = message_txt[start_tag_pos:]
@@ -1979,8 +1996,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 else:
                     message_txt = message_txt[end_tag_pos+1:]
 
-        for user_tag in dict_tag_count:
-            await ctx.send(user_tag+": "+str(dict_tag_count[user_tag]))
+        output_txt = ""
+        sorted_count = sorted(dict_tag_count.items(), key=lambda x:-x[1])
+        for (user_tag, count) in sorted_count:
+            output_txt += user_tag+": "+str(count)+"\n"
+
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+             await ctx.send(txt)
 
         await ctx.message.add_reaction(emoji_check)
 
