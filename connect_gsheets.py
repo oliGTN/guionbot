@@ -423,7 +423,7 @@ def load_config_statq():
             connect_mysql.simple_execute(query)
 
     #update stat average
-    connect_mysql.compute_statq_avg()
+    connect_mysql.compute_statq_avg(False)
 
     return err_code, err_txt
 

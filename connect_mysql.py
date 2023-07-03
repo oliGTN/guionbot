@@ -1053,19 +1053,23 @@ async def get_player_statq(txt_allyCode):
 
 ##############################################################
 # Function: compute_statq_avg
-# IN: none
+# IN: force_all (True: reset all stats / False: compute only null stats)
 # OUT: none
 ##############################################################
-def compute_statq_avg():
+def compute_statq_avg(force_all):
     #Compute stat_avg for statq_table, from KYBER1 players
-    query = "UPDATE statq_table SET stat_avg = CASE "
+    query = "UPDATE statq_table SET stat_avg = CASE \n"
 
     for stat in list_statq_stats:
         s_name = stat[0]
         s_id = stat[1]
 
-        query += "WHEN stat_name='"+s_name+"' THEN (select avg(mod"+str(s_id)+"/(stat"+str(s_id)+"-mod"+str(s_id)+")) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') "
+        query += "WHEN stat_name='"+s_name+"' THEN (select avg(mod"+str(s_id)+"/(stat"+str(s_id)+"-mod"+str(s_id)+")) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') \n"
 
-    query+= "END"
+    query+= "END \n"
+
+    if not force_all:
+        query+= "WHERE isnull(stat_avg)"
+
     goutils.log2("DBG", query)
     simple_execute(query)
