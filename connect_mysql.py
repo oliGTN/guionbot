@@ -515,8 +515,18 @@ async def update_player(dict_player):
                 if "mods" in character["stats"]:
                     for stat_id in ['1', '5', '6', '7', '14', '15', '16', '17', '18', '28']:
                         stat_value = None
-                        if stat_id in character["stats"]["mods"]:
-                            stat_value = character["stats"]["mods"][stat_id]
+
+                        if stat_id in ['14', '15']:
+                            #mod stats for 14 and 15 are actually 21 and 22
+                            stat_mod_id = str(int(stat_id)+7)
+                        elif stat_id in ['39', '40']:
+                            #mod stats for 39 and 40 are actually 35 and 36
+                            stat_mod_id = str(int(stat_id)-4)
+                        else:
+                            stat_mod_id = stat_id
+
+                        if stat_mod_id in character["stats"]["mods"]:
+                            stat_value = character["stats"]["mods"][stat_mod_id]
                         if stat_value==None:
                             stat_value="0"
                         
@@ -987,6 +997,9 @@ list_statq_stats.append(["protec", 28, False])
 ##############################################################
 async def get_player_statq(txt_allyCode):
 
+    query = "select count(*) from statq_table"
+    statq_count = get_value(query)
+
     query = "SELECT \n" \
           + "defId,stat_name,stat_value, stat_target, \n" \
           + "CASE WHEN stat_ratio>=1.02 THEN 4 WHEN stat_ratio>=0.98 THEN 3 WHEN stat_ratio>=0.95 THEN 2 WHEN stat_ratio>=0.90 THEN 1 ELSE 0 END as score \n" \
@@ -1002,7 +1015,7 @@ async def get_player_statq(txt_allyCode):
         query += "     WHEN stat_name='"+s_name+"'   THEN CONCAT(ROUND(stat"+str(s_id)
 
         if s_percent:
-            query+="/1000000), '% (' , ROUND(mod"+str(s_id)+" /1000000), '%)' ) \n"
+            query+="/1000000, 1), '% (' , ROUND(mod"+str(s_id)+" /1000000), '%)' ) \n"
         else:
             query+="/100000000), ' (', ROUND(mod"+str(s_id)+" /100000000), ')') \n"
 
@@ -1017,9 +1030,9 @@ async def get_player_statq(txt_allyCode):
         query += "     WHEN stat_name='"+s_name+"' THEN ROUND((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)"
 
         if s_percent:
-            query+="/1000000) \n"
+            query+="/1000000, 1) \n"
         else:
-            query+="/100000000) \n"
+            query+="/100000000, 1) \n"
 
 
     query +="     END AS `stat_target`, \n" \
@@ -1035,7 +1048,7 @@ async def get_player_statq(txt_allyCode):
     query +="     END AS `stat_ratio`, coef \n" \
           + "     FROM roster AS my_roster \n" \
           + "     JOIN statq_table ON my_roster.defId=statq_table.defId AND NOT isnull(statq_table.stat_avg) \n" \
-          + "     WHERE gear>=12 AND allyCode="+txt_allyCode+" \n" \
+          + "     WHERE stat_avg>0 AND gear>=12 AND allyCode="+txt_allyCode+" \n" \
           + ") ratios \n" \
           + "JOIN players ON players.allyCode = ratios.allyCode \n" \
           + "WHERE players.allyCode = "+txt_allyCode
@@ -1047,7 +1060,15 @@ async def get_player_statq(txt_allyCode):
         statq = 0
     else:
         list_scores = [x[4] for x in db_data]
-        statq = sum(list_scores)/len(list_scores)
+        statq = sum(list_scores)*statq_count/len(list_scores)
+
+        #update staq for player
+        query = "UPDATE players SET statq="+str(statq)+" WHERE allyCode="+txt_allyCode
+        simple_execute(query)
+
+        #update daily staq for player
+        query = "UPDATE gp_history SET statq="+str(statq)+" WHERE allyCode="+txt_allyCode+" AND date=DATE(current_timestamp)"
+        simple_execute(query)
 
     return 0, "", statq, db_data
 
@@ -1069,7 +1090,7 @@ def compute_statq_avg(force_all):
     query+= "END \n"
 
     if not force_all:
-        query+= "WHERE isnull(stat_avg)"
+        query+= "WHERE (isnull(stat_avg) OR stat_avg=0)"
 
     goutils.log2("DBG", query)
     simple_execute(query)

@@ -2799,7 +2799,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             #get real unit names
             dict_units = data.get("unitsList_dict.json")
-            list_statq_with_names = [[dict_units[x[0]]["name"]]+list(x[1:]) for x in list_statq]
+            list_statq_with_names = sorted([[dict_units[x[0]]["name"]]+list(x[1:]) for x in list_statq])
 
             output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif", "Score"]] + list_statq_with_names
             t = Texttable()
