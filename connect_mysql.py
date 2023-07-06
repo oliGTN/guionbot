@@ -1007,6 +1007,7 @@ async def get_player_statq(txt_allyCode):
           + "     SELECT my_roster.allyCode, my_roster.defId, stat_name, \n" \
           + "     CASE \n"
 
+    #stat_value
     for stat in list_statq_stats:
         s_name = stat[0]
         s_id = stat[1]
@@ -1022,22 +1023,25 @@ async def get_player_statq(txt_allyCode):
     query +="     END AS `stat_value`, \n" \
           + "     CASE \n"
 
+    #stat_target
     for stat in list_statq_stats:
         s_name = stat[0]
         s_id = stat[1]
         s_percent = stat[2]
 
-        query += "     WHEN stat_name='"+s_name+"' THEN ROUND((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)"
+        query += "     WHEN stat_name='"+s_name+"' THEN CONCAT(ROUND((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)"
 
         if s_percent:
-            query+="/1000000, 1) \n"
+            query+="/1000000, 1), '%' "
         else:
-            query+="/100000000, 1) \n"
+            query+="/100000000) "
+        query += ", ' (',ROUND(stat"+str(s_id)+"*100/(stat"+str(s_id)+"-mod"+str(s_id)+")/(stat_avg*1.02+1)),'%)')"
 
 
     query +="     END AS `stat_target`, \n" \
           + "     CASE \n"
 
+    #stat_ratio
     for stat in list_statq_stats:
         s_name = stat[0]
         s_id = stat[1]

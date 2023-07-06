@@ -2801,7 +2801,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             dict_units = data.get("unitsList_dict.json")
             list_statq_with_names = sorted([[dict_units[x[0]]["name"]]+list(x[1:]) for x in list_statq])
 
-            output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif", "Score"]] + list_statq_with_names
+            output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif (progrès)", "Score"]] + list_statq_with_names
             t = Texttable()
             t.add_rows(output_table)
             t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
