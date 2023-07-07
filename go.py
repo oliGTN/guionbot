@@ -333,7 +333,8 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
 
     if is_new_guild:
         #Create guild in DB
-        query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guild_name+"', '"+guild_id+"')"
+        guild_name_txt = guild_name.replace("'", "''")
+        query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guild_name_txt+"', '"+guild_id+"')"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
