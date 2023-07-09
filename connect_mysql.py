@@ -1035,7 +1035,7 @@ async def get_player_statq(txt_allyCode):
             query+="/1000000, 1), '%' "
         else:
             query+="/100000000) "
-        query += ", ' (',ROUND(stat"+str(s_id)+"*100/(stat"+str(s_id)+"-mod"+str(s_id)+")/(stat_avg*1.02+1)),'%)')"
+        query += ", ' (',ROUND(mod"+str(s_id)+"*100/((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)-(stat"+str-s_id)+"-mod"+str-s_id)+"))),'%)') \n"
 
 
     query +="     END AS `stat_target`, \n" \
