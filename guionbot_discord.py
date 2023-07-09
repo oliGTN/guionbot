@@ -1834,6 +1834,58 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
 
     @commands.check(officer_command)
+    @commands.command(name='twrappel',
+            brief="Tag les joueurs qui n'ont pas assez attaqué en GT",
+            help="go.twrappel 3 2 > tag les joueurs qui ont fait moins de 3 attaques au sol et moins de 2 en vaisseaux")
+    async def twrappel(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        #Sortie sur un autre channel si donné en paramètre
+        args = list(args)
+        output_channel = ctx.message.channel
+        for arg in args:
+            if arg.startswith('<#'):
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+                args.remove(arg)
+
+        if len(args) != 2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help twrappel")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        min_char = int(args[0])
+        min_ship = int(args[1])
+
+        err_code, err_txt, d_attacks = await go.get_tw_insufficient_attacks(ctx.guild.id, min_char, min_ship)
+        if err_code == 0:
+            dict_players_by_IG = connect_mysql.load_config_players()[0]
+            output_txt="Joueurs n'ayant pas assez attaqué en GT : \n"
+            for [p, values] in sorted(d_attacks.items(), key=lambda x: x[1][2]):
+                fulldef = values[2]
+                if (p in dict_players_by_IG) and fulldef!=1:
+                    p_name = dict_players_by_IG[p][1]
+                else:
+                    p_name= "**" + p + "**"
+                output_txt += p_name+": "+str(values[0])+" toons et "+str(values[1])+" vaisseaux"
+                if fulldef==1:
+                    output_txt += " >> détecté full def"
+                elif fulldef==0:
+                    output_txt += " >> peut-être full def"
+                output_txt += "\n"
+
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await output_channel.send(txt)
+
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    @commands.check(officer_command)
     @commands.command(name='tbs',
             brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
             help="TB status \"2:1 3:3 1:2\" [-estime]")
@@ -1870,6 +1922,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         else:
             await ctx.send(ret_txt)
             await ctx.message.add_reaction(emoji_error)
+
 
     ##############################################################
     # Command: spgt

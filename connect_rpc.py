@@ -1261,7 +1261,7 @@ async def get_tw_opponent_leader(server_id):
 
 ########################################
 # get_tw_status
-# get statues of territories in attack and def
+# get status of territories in attack and def
 # tw_id: None / "TERRITORY_WAR_EVENT_C:01681236000000"
 # list_teams: [["T1", "Karcot", ["General Skywalker", "CT-5555 Fives", ...], <is_beaten>, <fights>],
 #              ["T1", "JeanLuc"...
@@ -1277,7 +1277,6 @@ async def get_tw_status(server_id, force_update):
         return None, [[], []], [[], []], None
 
     dict_guild=rpc_data[0]
-    mapstats=rpc_data[1]
 
     dict_members_by_id={}
     for member in dict_guild["member"]:
@@ -1490,4 +1489,59 @@ async def update_K1_players():
         await go.load_player(player["id"], 0, False)
 
 
+async def get_tw_leaderboard(server_id, force_update):
+    dict_tw = godata.dict_tw
 
+    ec, et, rpc_data = await get_rpc_data(server_id, ["TW"], force_update)
+    if ec!=0:
+        return 1, et, None
+
+    dict_guild=rpc_data[0]
+    dict_events=rpc_data[2]
+    guildId = dict_guild["profile"]["id"]
+
+    dict_leaderboard = {} # {"player name": [gnd attacks, gnd victories, ship attacks, ship victories, defense], ...}
+
+    for tw_id in dict_events:
+        tw_events = dict_events[tw_id]
+        for event_id in tw_events:
+            event = tw_events[event_id]
+            player_name = event["authorName"]
+
+            data = event["data"][0]
+            if data["activity"]["zoneData"]["guildId"] != guildId:
+                continue
+
+            if not player_name in dict_leaderboard:
+                dict_leaderboard[player_name] = [0, 0, 0, 0, 0]
+
+            if data["activityType"]=="TERRITORY_WAR_CONFLICT_ACTIVITY":
+                activity=data["activity"]
+                zone_id=activity["zoneData"]["zoneId"]
+                zone_name = dict_tw[zone_id]
+                if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+                    if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
+                        dict_leaderboard[player_name][4] += 1
+                else:
+                    zone_id = activity["zoneData"]["zoneId"]
+                    if dict_tw[zone_id][0] == "F":
+                        is_ship_fight = True
+                    else:
+                        is_ship_fight = False
+
+                    if "warSquad" in activity:
+                        if activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
+                            if "squad" in activity["warSquad"]:
+                                if is_ship_fight:
+                                    dict_leaderboard[player_name][3] += 1
+                                else:
+                                    dict_leaderboard[player_name][1] += 1
+                        elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
+                            if "squad" in activity["warSquad"]:
+                                if is_ship_fight:
+                                    dict_leaderboard[player_name][2] += 1
+                                else:
+                                    dict_leaderboard[player_name][0] += 1
+
+
+    return 0, "", dict_leaderboard

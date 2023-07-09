@@ -4607,11 +4607,15 @@ def print_ability(unit_id, ability_id, ability_type):
 
     return output_txt
 
-async def detect_fulldef(server_id):
-    focus_player='dark nicarta'
-
+###########################################
+#FUNCTION: detect_fulldef(server_id)
+#IN: server ID
+#OUT: dict_player_status {"Vince":1, "Gui":1, "HB":0, "Darak":-1}
+#with 1=fulldef / -1=normal / 0=unknown
+###########################################
+async def detect_fulldef(server_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
-    ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
+    ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, force_update)
     if ec != 0:
         return ec, et, None
 
@@ -4628,15 +4632,12 @@ async def detect_fulldef(server_id):
         if unit_id in dict_def_toon_player:
             dict_char_ratio[unit_id] = len(dict_def_toon_player[unit_id]) / unit_count
 
-    print(dict_char_ratio)
-
     dict_def_player_toon = {}
     for unit_id in dict_def_toon_player:
         for player in dict_def_toon_player[unit_id]:
             if not player in dict_def_player_toon:
                 dict_def_player_toon[player] = []
             dict_def_player_toon[player].append(unit_id)
-    print(dict_def_player_toon[focus_player])
 
     dict_player_fulldef_ratio = {}
     for player in dict_def_player_toon:
@@ -4644,17 +4645,56 @@ async def detect_fulldef(server_id):
         for unit_id in dict_def_player_toon[player]:
             if unit_id in dict_char_ratio:
                 list_ratio.append(dict_char_ratio[unit_id])
-                if player == focus_player:
-                    print(unit_id+": "+str(dict_char_ratio[unit_id]))
         if len(list_ratio)==0:
             ratio=1
-            print(player+": nothing")
         else:
             ratio = sum(list_ratio)/len(list_ratio)
         dict_player_fulldef_ratio[player] = ratio
-    print(dict_player_fulldef_ratio[focus_player])
 
-    dict_player_fulldef_ratio = sorted(dict_player_fulldef_ratio.items(), key=lambda x:x[1])
+    dict_fulldef = {}
+    for player in dict_player_fulldef_ratio:
+        ratio = dict_player_fulldef_ratio[player]
+        if ratio >= 0.5:
+            dict_fulldef[player] = -1
+        elif ratio >= 0.4:
+            dict_fulldef[player] = 0
+        else:
+            dict_fulldef[player] = 1
 
-    print(dict_player_fulldef_ratio)
+    return 0, "", dict_fulldef
 
+async def get_tw_insufficient_attacks(server_id, min_char_attacks, min_ship_attacks):
+    ec, et, dict_leaderboard = await connect_rpc.get_tw_leaderboard(server_id, -1)
+    if ec != 0:
+        return ec, et, None
+
+    ec, et, dict_fulldef = await detect_fulldef(server_id, -1)
+    if ec != 0:
+        return ec, et, None
+
+    ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, -1)
+    if ec != 0:
+        return ec, et, None
+
+    rpc_data = await connect_rpc.get_tw_status(server_id, -1)
+    tw_id = rpc_data[0]
+    if tw_id == None:
+        return "ERR: no TW ongoing"
+
+    dict_players = connect_mysql.load_config_players()[0]
+
+    dict_insufficient_attacks = {}
+    for player in list_active_players:
+        if player in dict_leaderboard:
+            scores = dict_leaderboard[player]
+            char_attacks = dict_leaderboard[player][0]
+            ship_attacks = dict_leaderboard[player][2]
+        else:
+            char_attacks = 0
+            ship_attacks = 0
+
+        fulldef = dict_fulldef[player]
+        if char_attacks < min_char_attacks and ship_attacks < min_ship_attacks:
+            dict_insufficient_attacks[player] = [char_attacks, ship_attacks, fulldef]
+
+    return 0, "", dict_insufficient_attacks
