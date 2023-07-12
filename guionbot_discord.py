@@ -632,12 +632,15 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
 
     # Lecture des affectation ECHOBOT
     tb_channel = bot.get_channel(tbChannel_id)
-    dict_platoons_allocation = {}  #key=platton_name, value={key=perso, value=[player...]}
+    dict_platoons_allocation = {}  #key=platoon_name, value={key=perso, value=[player...]}
     eb_phases = []
     eb_missions_full = []
     eb_missions_tmp = []
     
     tbs_name = tbs_round[:-1]
+
+    current_tb_phase = [None, None, None] # DS/MS/LS or top/mid/bot, gives the number [1,6] of the phase
+    detect_previous_BT = False
     
     async for message in tb_channel.history(limit=500):
         #print(message.author.name)
@@ -651,9 +654,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
             if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
                 #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
                 break
-            print("############################")
+            #print("############################")
             if message.content.startswith('```prolog'):
-                print('prolog')
+                #print('prolog')
                 #EB message by territory
                 ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
                 territory_position = ret_re.group(1)
@@ -668,7 +671,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                         platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
                         for dict_player in dict_embed['fields']:
                             player_name = dict_player['name']
-                            print(player_name)
+                            #print(player_name)
                             for character in dict_player['value'].split('\n'):
                                 char_name = character[1:-1]
                                 if char_name[0:4]=='*` *':
@@ -743,7 +746,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                                 "-" + dict_platoon['name'][-1]
                                     
                                 for line in dict_platoon['value'].split('\n'):
-                                    print(line)
                                     ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
                                     player_name = ret_re.group(3).strip()
                                         
@@ -764,7 +766,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
 
-            elif message.content.startswith("<@"):
+            elif message.content.startswith("<@") or message.content.startswith("Filled in another phase"):
                 #EB message by player
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
@@ -811,7 +813,18 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                             if territory_name in dict_BT_missions[tbs_name]:
                                 territory_name_position = dict_BT_missions[
                                                         tbs_name][territory_name]
-                            
+                                territory_phase = territory_name_position.split("-")[0][-1]
+                                if territory_position in ["left", "top"]:
+                                    territory_pos = 0
+                                elif territory_position in ["mid"]:
+                                    territory_pos = 1
+                                else: #if territory_position in ["right", "bot"]:
+                                    territory_pos = 2
+                                if current_tb_phase[territory_pos]!=None and current_tb_phase[territory_pos]<territory_phase:
+                                    detect_previous_BT = True
+                                    break
+                                current_tb_phase[territory_pos] = territory_phase
+
                                 #Check if this mission/territory has been allocated in previous message
                                 existing_platoons = [i for i in dict_platoons_allocation.keys()
                                                 if i.startswith(territory_name_position)]
@@ -853,6 +866,17 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             
                             else:
                                 goutils.log2("WAR", 'Mission \"'+territory_name+'\" inconnue')
+
+                if detect_previous_BT:
+                    #out of the main message reading loop
+                    break
+
+    #cleanup btX platoons
+    tmp_d = dict_platoons_allocation.copy()
+    for platoon in dict_platoons_allocation:
+        if platoon.split("-")[0][-1] == "X":
+            del tmp_d[platoon]
+    dict_platoons_allocation = tmp_d
 
     return dict_platoons_allocation
 
@@ -1593,7 +1617,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
 
             dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
-            goutils.log2("DBG", "Platoon allocation: "+str(dict_platoons_allocation))
+            for platoon in dict_platoons_allocation:
+                goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
             
             #Comparaison des dictionnaires
             #Recherche des persos non-affectés
@@ -1642,7 +1667,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                 erreur_detectee = True
                                 list_err.append('ERR: ' + perso +
                                                 ' n\'a pas été affecté ('+platoon_name+')')
-                                goutils.log2('ERR', perso + ' n\'a pas été affecté')
+                                goutils.log2("ERR", perso + " n\'a pas été affecté ("+platoon_name+")")
                                 goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
 
             full_txt = ''
