@@ -643,20 +643,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     detect_previous_BT = False
     
     async for message in tb_channel.history(limit=500):
-        #print(message.author.name)
-        #print(message.author.id)
-        #common EchoStation
-        #KangooLegends Echobot
-        #Padawans Echobot
-        if message.author.id == 416767534528987137 \
-        or message.author.id == 1067119357529960510 \
-        or message.author.id == 1092026153885253722:
-            if (datetime.datetime.now(guild_timezone) - message.created_at.astimezone(guild_timezone)).days > 7:
-                #On considère que si un message echobot a plus de 7 jours c'est une ancienne BT
-                break
-            #print("############################")
+        if message.author.name == "EchoStation":
             if message.content.startswith('```prolog'):
-                #print('prolog')
                 #EB message by territory
                 ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
                 territory_position = ret_re.group(1)
