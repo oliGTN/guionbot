@@ -4314,6 +4314,10 @@ async def get_tb_alerts(server_id, force_update):
         tb_trigger_messages=[]
         tb_name = list(territory_scores.keys())[0].split("-")[0]
         round_number = int(active_round[-1])
+        if round_number > len(daily_targets[tb_name]):
+            #virtual round, after the end of TB
+            return []
+
         current_targets = daily_targets[tb_name][round_number-1]
 
         if tb_name == "ROTE":

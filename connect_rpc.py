@@ -988,8 +988,14 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                         not_deployed_ships = dict_tb_players[playerName]["ship_gp"] - dict_tb_players[playerName]["score"]["deployedShips"]
                         not_deployed_chars = dict_tb_players[playerName]["char_gp"] - dict_tb_players[playerName]["score"]["deployedChars"]
                         bonus_deployment = dict_tb_players[playerName]["score"]["deployed"] - dict_tb_players[playerName]["score"]["deployedMix"]
-                        bonus_ships = bonus_deployment * not_deployed_ships / (not_deployed_ships + not_deployed_chars)
-                        bonus_chars = bonus_deployment * not_deployed_chars / (not_deployed_ships + not_deployed_chars)
+
+                        if (not_deployed_ships + not_deployed_chars) == 0:
+                            #if everything is deployed, no need for bonus
+                            bonus_ships = 0
+                            bonus_chars = 0
+                        else:
+                            bonus_ships = bonus_deployment * not_deployed_ships / (not_deployed_ships + not_deployed_chars)
+                            bonus_chars = bonus_deployment * not_deployed_chars / (not_deployed_ships + not_deployed_chars)
                         dict_tb_players[playerName]["score"]["deployedShips"] += bonus_ships
                         dict_tb_players[playerName]["score"]["deployedChars"] += bonus_chars
                         dict_tb_players[playerName]["score"]["deployedMix"] = dict_tb_players[playerName]["score"]["deployed"]
