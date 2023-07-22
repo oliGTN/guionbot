@@ -1212,6 +1212,11 @@ async def on_command_error(ctx, error):
         cmd_name = ctx.command.name
         await ctx.send("ERR: argument manquant. Consultez l'aide avec go.help "+cmd_name)
         await ctx.message.add_reaction(emoji_error)
+    elif isinstance(error, commands.errors.UnexpectedQuoteError) \
+      or isinstance(error, commands.errors.InvalidEndOfQuotedStringError):
+        cmd_name = ctx.command.name
+        await ctx.send("ERR: erreur de guillemets. Les guillemets vont pas paires et doivent être précédés ou suivis d'un espace.")
+        await ctx.message.add_reaction(emoji_error)
     elif isinstance(error, commands.CheckFailure):
         if not bot_test_mode:
             await ctx.send("ERR: commande interdite")
