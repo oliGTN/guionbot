@@ -3109,9 +3109,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.check(member_command)
     @commands.command(name='erj',
                  brief="Evolution du Roster d'un Joueur",
-                 help="Evolution du roster d'un joueur sur X jours\n"\
-                      "Exemple: go.erj me 30")
-    async def erj(self, ctx, allyCode, days=30):
+                 help="Evolution du roster d'un joueur sur 30 jours\n"\
+                      "Exemple: go.erj me")
+    async def erj(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode= manage_me(ctx, allyCode)
@@ -3120,7 +3120,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, ret_cmd = await go.print_erx( allyCode, days, False)
+        e, ret_cmd = await go.print_erx( allyCode, 30, False)
         if e == 0:
             #texte classique
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
@@ -3141,9 +3141,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.check(member_command)
     @commands.command(name='erg',
                  brief="Evolution du Roster d'un Joueur",
-                 help="Evolution du roster d'un joueur sur X jours\n"\
-                      "Exemple: go.erg me 30")
-    async def erg(self, ctx, allyCode, days=30):
+                 help="Evolution du roster d'un joueur sur 30 jours\n"\
+                      "Exemple: go.erg me")
+    async def erg(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode= manage_me(ctx, allyCode)
@@ -3152,7 +3152,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, ret_cmd = await go.print_erx( allyCode, days, True)
+        e, ret_cmd = await go.print_erx( allyCode, 30, True)
         if e == 0:
             #texte classique
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
