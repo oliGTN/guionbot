@@ -9,6 +9,7 @@ import sys
 import re
 import json
 from html.parser import HTMLParser
+import copy #deepcopy
 
 import config
 import goutils
@@ -158,20 +159,12 @@ class ModOptimizerListParser(HTMLParser):
 #############
 # MAIN
 #############
-modopti_parser = ModOptimizerListParser()
-modopti_parser.feed(open(sys.argv[1], 'r').read())
-allocations = modopti_parser.get_allocations()
-
-dict_player = json.load(open(sys.argv[2], 'r'))
-dict_player = goutils.roster_from_list_to_dict(dict_player)
-dict_alias = json.load(open("DATA/unitsAlias_dict.json", "r"))
-mod_list = json.load(open("DATA/modList_dict.json", "r"))
-dict_shape_by_slot = {2: "square",
-                      3: "arrow",
-                      4: "diamond",
-                      5: "triangle",
-                      6: "circle",
-                      7: "cross"}
+dict_slot_by_shape = {"square": 2,
+                      "arrow": 3,
+                      "diamond": 4,
+                      "triangle": 5,
+                      "circle": 6,
+                      "cross":7}
 dict_stat_by_set = {'1': "health",
                     '2': "offense",
                     '3': "defense",
@@ -180,30 +173,44 @@ dict_stat_by_set = {'1': "health",
                     '6': "critdamage",
                     '7': "potency",
                     '8': "tenacity"}
-for a in allocations:
-    print("---------------------")
-    char_name = a["character"]
-    char_id = dict_alias[char_name.lower()][1]
-    print(char_name+" - "+char_id)
+dict_alias = json.load(open("DATA/unitsAlias_dict.json", "r"))
+mod_list = json.load(open("DATA/modList_dict.json", "r"))
 
+
+modopti_parser = ModOptimizerListParser()
+modopti_parser.feed(open(sys.argv[1], 'r').read())
+allocations = modopti_parser.get_allocations()
+
+initial_dict_player = json.load(open(sys.argv[2], 'r'))
+initial_dict_player = goutils.roster_from_list_to_dict(initial_dict_player)
+cur_dict_player = copy.deepcopy(initial_dict_player)
+
+for a in allocations:
+    #print("---------------------")
+    target_char_name = a["character"]
+    target_char_defId = dict_alias[target_char_name.lower()][1]
+    target_char_id = initial_dict_player["rosterUnit"][target_char_defId]["id"]
+
+    equipped_mods = {} #key: id, value: slot
+    unequipped_mods = {} #key: id, value: char_defId
     for allocated_mod_shape in a["mods"]:
         allocated_mod = a["mods"][allocated_mod_shape]
+        allocated_mod_slot = dict_slot_by_shape[allocated_mod_shape]
 
-        char_name = allocated_mod["character"]
-        char_id = dict_alias[char_name.lower()][1]
+        source_char_name = allocated_mod["character"]
+        source_char_defId = dict_alias[source_char_name.lower()][1]
         char_mods = {}
-        for roster_mod in dict_player["rosterUnit"][char_id]["equippedStatMod"]:
+        for roster_mod in initial_dict_player["rosterUnit"][source_char_defId]["equippedStatMod"]:
             mod_defId = roster_mod["definitionId"] #string
             mod_rarity = mod_list[mod_defId]["rarity"]
             mod_setId = mod_list[mod_defId]["setId"]
             mod_slot = mod_list[mod_defId]["slot"]
-            mod_shape = dict_shape_by_slot[mod_slot]
             mod_id = roster_mod["id"]
-            char_mods[mod_shape] = {"pips": mod_rarity,
-                                    "set": dict_stat_by_set[mod_setId],
-                                    "id": mod_id}
+            char_mods[mod_slot] = {"pips": mod_rarity,
+                                  "set": dict_stat_by_set[mod_setId],
+                                  "id": mod_id}
 
-        replacement_mod = char_mods[allocated_mod_shape]
+        replacement_mod = char_mods[allocated_mod_slot]
         if    replacement_mod["pips"] != allocated_mod["pips"] \
            or replacement_mod["set"] != allocated_mod["set"]:
             print("\t"+allocated_mod_shape+": "+str(allocated_mod))
@@ -212,5 +219,56 @@ for a in allocations:
             sys.exit(1)
 
         allocated_mod["id"] = replacement_mod["id"]
-        print("\t"+allocated_mod_shape+": "+str(allocated_mod))
+        #print("\t"+allocated_mod_shape+": "+str(allocated_mod))
+
+        # add the new mode to equipped_mods, then add the existing to unequipped_mods
+        if not allocated_mod["color"].endswith("no-move"):
+            equipped_mods[allocated_mod["id"]] = allocated_mod_slot
+
+            unequipped_mods[allocated_mod["id"]] = source_char_defId
+
+            #look for existing mod to be unequipped
+            #print(cur_dict_player["rosterUnit"][target_char_defId])
+            if "equippedStatMod" in cur_dict_player["rosterUnit"][target_char_defId]:
+                for roster_mod in cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"]:
+                    if "slot" in roster_mod:
+                        mod_slot = roster_mod["slot"]
+                    else:
+                        mod_defId = roster_mod["definitionId"] #string
+                        mod_slot = mod_list[mod_defId]["slot"]
+                    mod_id = roster_mod["id"]
+                    if allocated_mod_slot == mod_slot:
+                        unequipped_mods[mod_id] = target_char_defId
+
+    #write update request
+    mods_txt = ""
+    for id in equipped_mods:
+        mods_txt += " +"+id
+    for id in unequipped_mods:
+        #print(unequipped_mods[id]+" - "+target_char_defId)
+        if unequipped_mods[id] == target_char_defId:
+            mods_txt += " -"+id
+    print("python updateMods.py 24ec0905bac61a77 "+target_char_id+mods_txt+" #"+target_char_name)
+
+
+    #update current dict_player
+    # remove unequipped mods from the target char
+    # remove equipped mods from the source char
+    for id in unequipped_mods:
+        unit_id = unequipped_mods[id]
+
+        if "equippedStatMod" in cur_dict_player["rosterUnit"][unit_id]:
+            player_mods = cur_dict_player["rosterUnit"][unit_id]["equippedStatMod"].copy()
+            for roster_mod in cur_dict_player["rosterUnit"][unit_id]["equippedStatMod"]:
+                if roster_mod["id"]==id:
+                    player_mods.remove(roster_mod)
+        else:
+            player_mods = []
+        cur_dict_player["rosterUnit"][unit_id]["equippedStatMod"] = player_mods
+
+    for id in equipped_mods:
+        if not "equippedStatMod" in cur_dict_player["rosterUnit"][target_char_defId]:
+            cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"] = []
+        cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"].append({"id": id, "slot": equipped_mods[id]})
+
 
