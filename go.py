@@ -4579,7 +4579,10 @@ def print_ability(unit_id, ability_id, ability_type):
     dict_capas = godata.get("unit_capa_list.json")
     FRE_FR = godata.get("FRE_FR.json")
 
-    ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+    if dict_abilities[ability_id]["nameKey"] in FRE_FR:
+        ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+    else:
+        ability_name = dict_abilities[ability_id]["nameKey"]
     ability_name = goutils.remove_format_from_desc(ability_name)
 
     ability_desc = FRE_FR[dict_abilities[ability_id]["descKey"]]
@@ -4702,3 +4705,42 @@ async def get_tw_insufficient_attacks(server_id, min_char_attacks, min_ship_atta
             dict_insufficient_attacks[player] = [char_attacks, ship_attacks, fulldef]
 
     return 0, "", dict_insufficient_attacks
+
+
+##############################
+# IN: dict_platoons_done
+# IN: dict_platoons_allocation
+# OUT: list_missing_platoons - [["Jerome342", "ROTE1-DS-3", "General Kenobi"], ["Tartufe du 75", "ROTE2-LS-6", "Lobot], ...]
+# OUT: list_err - ["ERR - ça va pas", "ERR - perso manquant", ...]
+##############################
+def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
+    list_platoon_names = sorted(dict_platoons_done.keys())
+    phase_names_already_displayed = []
+    list_missing_platoons = []
+    list_err = []
+    # print(dict_platoons_done["GDS1-top-5"])
+    # print(dict_platoons_allocation["GDS1-top-5"])
+    for platoon_name in dict_platoons_done:
+        phase_name = platoon_name.split('-')[0][:-1]
+        if not phase_name in phase_names_already_displayed:
+            phase_names_already_displayed.append(phase_name)
+        #print("---"+platoon_name)
+        #print(dict_platoons_done[platoon_name])
+        for perso in dict_platoons_done[platoon_name]:
+            if '' in dict_platoons_done[platoon_name][perso]:
+                if platoon_name in dict_platoons_allocation:
+                    #print(dict_platoons_allocation[platoon_name])
+                    if perso in dict_platoons_allocation[platoon_name]:
+                        for allocated_player in dict_platoons_allocation[
+                                platoon_name][perso]:
+                            if not allocated_player in dict_platoons_done[
+                                    platoon_name][perso] and allocated_player \
+                                    != "Filled in another phase":
+                                list_missing_platoons.append([allocated_player, platoon_name, perso])
+                    else:
+                        list_err.append('ERR: ' + perso +
+                                        ' n\'a pas été affecté ('+platoon_name+')')
+                        goutils.log2("ERR", perso + " n\'a pas été affecté ("+platoon_name+")")
+                        goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
+
+    return list_missing_platoons, list_err

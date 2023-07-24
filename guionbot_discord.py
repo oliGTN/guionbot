@@ -1615,60 +1615,52 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             
             #Comparaison des dictionnaires
             #Recherche des persos non-affectés
-            erreur_detectee = False
             list_platoon_names = sorted(dict_platoons_done.keys())
             phase_names_already_displayed = []
-            list_txt = []  #[[joueur, peloton, txt], ...]
-            list_err = []
-            # print(dict_platoons_done["GDS1-top-5"])
-            # print(dict_platoons_allocation["GDS1-top-5"])
-            for platoon_name in dict_platoons_done:
-                phase_name = platoon_name.split('-')[0][:-1]
-                if not phase_name in phase_names_already_displayed:
-                    phase_names_already_displayed.append(phase_name)
-                #print("---"+platoon_name)
-                #print(dict_platoons_done[platoon_name])
-                for perso in dict_platoons_done[platoon_name]:
-                    if '' in dict_platoons_done[platoon_name][perso]:
-                        if platoon_name in dict_platoons_allocation:
-                            #print(dict_platoons_allocation[platoon_name])
-                            if perso in dict_platoons_allocation[platoon_name]:
-                                for allocated_player in dict_platoons_allocation[
-                                        platoon_name][perso]:
-                                    if not allocated_player in dict_platoons_done[
-                                            platoon_name][perso] and allocated_player \
-                                            != "Filled in another phase":
-                                        erreur_detectee = True
-                                        if (allocated_player in dict_players_by_IG) and display_mentions:
-                                            list_txt.append([
-                                                allocated_player, platoon_name,
-                                                '**' +
-                                                dict_players_by_IG[allocated_player][1] +
-                                                '** n\'a pas affecté ' + perso +
-                                                ' en ' + platoon_name
-                                            ])
-                                        else:
-                                            #joueur non-défini dans gsheets ou mentions non autorisées,
-                                            # on l'affiche quand même
-                                            list_txt.append([
-                                                allocated_player, platoon_name,
-                                                '**' + allocated_player +
-                                                '** n\'a pas affecté ' + perso +
-                                                ' en ' + platoon_name
-                                            ])
-                            else:
-                                erreur_detectee = True
-                                list_err.append('ERR: ' + perso +
-                                                ' n\'a pas été affecté ('+platoon_name+')')
-                                goutils.log2("ERR", perso + " n\'a pas été affecté ("+platoon_name+")")
-                                goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
+            list_missing_platoons, list_err = go.get_missing_platoons(
+                                                    dict_platoons_done, 
+                                                    dict_platoons_allocation)
 
+
+            #pose auto du bot
+            ec, et, dict_player_bot = await connect_rpc.get_bot_player_data(ctx.guild.id, True)
+            if ec != 0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emoji_error)
+
+            bot_name = dict_player_bot["name"]
+
+            #Affichage des deltas ET auto pose par le bot
             full_txt = ''
             cur_phase = 0
-            #print(list_txt)
 
-            for txt in sorted(list_txt, key=lambda x: (x[1][:4], x[0], x[1])):
-                platoon_name = txt[1]
+            for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x[1][:4], x[0], x[1])):
+                allocated_player = missing_platoon[0]
+                platoon_name = missing_platoon[1]
+                perso = missing_platoon[2]
+
+                #write the displayed text
+                if (allocated_player in dict_players_by_IG) and display_mentions:
+                    txt = '**' + \
+                          dict_players_by_IG[allocated_player][1] + \
+                          '** n\'a pas affecté ' + perso + \
+                          ' en ' + platoon_name
+                else:
+                    #joueur non-défini dans gsheets ou mentions non autorisées,
+                    # on l'affiche quand même
+                    txt = '**' + allocated_player + \
+                          '** n\'a pas affecté ' + perso + \
+                          ' en ' + platoon_name
+
+                #Pose auto du bot
+                if allocated_player == bot_name:
+                    ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon_name, [perso])
+                    if ec == 0:
+                        #on n'affiche pas le nom du territoire
+                        txt += " > " + ' '.join(et.split()[:-2])
+                    else:
+                        txt += " > "+et
+
                 phase_num = int(platoon_name.split('-')[0][-1])
                 if cur_phase != phase_num:
                     cur_phase = phase_num
@@ -1685,13 +1677,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 else:  #bot or 'MS'
                     open_for_position = list_open_territories[2]
                 if cur_phase < open_for_position:
-                    full_txt += txt[2] + ' -- *et c\'est trop tard*\n'
+                    full_txt += txt + ' -- *et c\'est trop tard*\n'
                 else:
-                    full_txt += txt[2] + '\n'
-
-            if erreur_detectee:
-                for txt in sorted(set(list_err)):
                     full_txt += txt + '\n'
+
+            if len(list_missing_platoons)>0 or len(list_err)>0:
+                for err in sorted(set(list_err)):
+                    full_txt += err + '\n'
             else:
                 full_txt = "Aucune erreur de peloton\n"
 
@@ -1781,11 +1773,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botplatoons(self, ctx, platoon, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon, characters)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
-            return
+        if platoon == "all":
+            pass
+        else:
+            ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon, characters)
+            if ec != 0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emoji_error)
+                return
 
         await ctx.send(et)
         await ctx.message.add_reaction(emoji_check)
