@@ -1773,14 +1773,11 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botplatoons(self, ctx, platoon, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        if platoon == "all":
-            pass
-        else:
-            ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon, characters)
-            if ec != 0:
-                await ctx.send(et)
-                await ctx.message.add_reaction(emoji_error)
-                return
+        ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon, characters)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         await ctx.send(et)
         await ctx.message.add_reaction(emoji_check)
