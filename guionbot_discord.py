@@ -1575,6 +1575,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 if output_channel == None:
                     await ctx.send('**ERR**: '+err_msg)
                     output_channel = ctx.message.channel
+                else:
+                    display_mentions=False
         elif len(args) > 1:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help vdp")
             await ctx.message.add_reaction(emoji_error)
