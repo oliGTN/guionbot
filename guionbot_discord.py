@@ -1556,25 +1556,29 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='vdp',
                  brief="Vérification de Déploiement des Pelotons en BT",
                  help="Vérification de Déploiement des Pelotons en BT\n\n"\
-                      "Exemple : go.vdp #batailles-des-territoires\n"\
-                      "Exemple : go.vdp no-mentions")
+                      "Exemple : go.vdp > liste les déploiements dans le salon courant\n"\
+                      "Exemple : go.vdp #batailles-des-territoires > liste les déploiements dans le salon spécifié\n"\
+                      "Exemple : go.vdp deploybot")
     async def vdp(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
+        #Gestion des paramètres : "deploybot" ou le nom d'un salon
+        display_mentions=False
+        output_channel = ctx.message.channel
+        deploy_bot=False
+
         if len(args) == 1:
-            if args[0].startswith('no'):
-                display_mentions=False
-                output_channel = ctx.message.channel
+            if args[0] == "deploybot":
+                deploy_bot=True
             else:
                 output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
                 if output_channel == None:
                     await ctx.send('**ERR**: '+err_msg)
                     output_channel = ctx.message.channel
-        else:
-            display_mentions=False
-            output_channel = ctx.message.channel
+        elif len(args) > 1:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help vdp")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         #get bot config from DB
         query = "SELECT tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
@@ -1622,13 +1626,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                                     dict_platoons_allocation)
 
 
-            #pose auto du bot
-            ec, et, dict_player_bot = await connect_rpc.get_bot_player_data(ctx.guild.id, True)
-            if ec != 0:
-                await ctx.send(et)
-                await ctx.message.add_reaction(emoji_error)
+            #récupération du nom du compte bot e cas de pose auto du bot
+            if deploy_bot:
+                ec, et, dict_player_bot = await connect_rpc.get_bot_player_data(ctx.guild.id, True)
+                if ec != 0:
+                    await ctx.send(et)
+                    await ctx.message.add_reaction(emoji_error)
 
-            bot_name = dict_player_bot["name"]
+                bot_name = dict_player_bot["name"]
 
             #Affichage des deltas ET auto pose par le bot
             full_txt = ''
@@ -1653,13 +1658,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                           ' en ' + platoon_name
 
                 #Pose auto du bot
-                if allocated_player == bot_name:
-                    ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon_name, [perso])
-                    if ec == 0:
-                        #on n'affiche pas le nom du territoire
-                        txt += " > " + ' '.join(et.split()[:-2])
-                    else:
-                        txt += " > "+et
+                if deploy_bot:
+                    if allocated_player == bot_name:
+                        ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon_name, [perso])
+                        if ec == 0:
+                            #on n'affiche pas le nom du territoire
+                            txt += " > " + ' '.join(et.split()[:-2])
+                        else:
+                            txt += " > "+et
 
                 phase_num = int(platoon_name.split('-')[0][-1])
                 if cur_phase != phase_num:
