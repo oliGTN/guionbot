@@ -249,6 +249,7 @@ def load_config_units(force_load):
         dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
     
         for ligne in list_dict_sheet[1:]:
+            print(ligne)
             full_name=ligne[1]
             id=ligne[2]
 
