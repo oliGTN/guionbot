@@ -4049,7 +4049,7 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
     ret_print_tb_status = ""
     sheet_url = connect_gsheets.get_sheet_url(server_id, "BT graphs")
     if sheet_url != None:
-        ret_print_tb_status += "More details, including players \u2013 "+sheet_url+"\n"
+        ret_print_tb_status += "More details, including players: "+sheet_url+"\n"
 
     ret_print_tb_status+="---------------\n"
     available_ship_deploy = dict_phase["availableShipDeploy"]
@@ -4078,7 +4078,7 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
         ret_print_tb_status+="**"+dict_tb[zone_name]["name"]+"**\n"
 
         current_score = dict_open_zones[zone_name]["score"]
-        ret_print_tb_status+="Current score \u2013 "+str(round(current_score/1000000, 1))+"M "
+        ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"M "
 
         cur_strike_score = dict_open_zones[zone_name]["strikeScore"]
         cur_strike_fights = sum(dict_open_zones[zone_name]["strikeFights"].values())
@@ -4090,15 +4090,15 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
 
         score_with_estimated_strikes = current_score + estimated_strike_score
         if compute_estimated_fights:
-            ret_print_tb_status+="Estimated fights \u2013 "+str(round(estimated_strike_score/1000000, 1))+"M "
+            ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"M "
             ret_print_tb_status+="(in "+str(estimated_strike_fights)+" fights)\n"
 
         deploy_consumption = dict_open_zones[zone_name]["deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
-        ret_print_tb_status+="Deployment \u2013 "+str(round(deploy_consumption/1000000, 1))+"M\n"
+        ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
         star_for_score = dict_open_zones[zone_name]["estimatedStars"]
-        ret_print_tb_status+="\u27a1 Zone result \u2013 "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
+        ret_print_tb_status+="\u27a1 Zone result: "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
         img = draw_tb_previsions(dict_tb[zone_name]["name"], dict_tb[zone_name]["scores"],
@@ -4108,11 +4108,11 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
 
     ret_print_tb_status += "----------------------------\n"
     if "ships" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment ships \u2013 "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
+        ret_print_tb_status += "Unused deployment ships: "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
     if "chars" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment squads \u2013 "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
+        ret_print_tb_status += "Unused deployment squads: "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
     if "mix" in list_deployment_types:
-        ret_print_tb_status += "Unused deployment mix \u2013 "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
+        ret_print_tb_status += "Unused deployment mix: "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
     ret_print_tb_status += "----------------------------\n"
 
     return 0, ret_print_tb_status, list_images
