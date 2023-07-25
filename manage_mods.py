@@ -185,6 +185,8 @@ initial_dict_player = json.load(open(sys.argv[2], 'r'))
 initial_dict_player = goutils.roster_from_list_to_dict(initial_dict_player)
 cur_dict_player = copy.deepcopy(initial_dict_player)
 
+unallocated_mods = []
+max_unallocated = 0
 for a in allocations:
     #print("---------------------")
     target_char_name = a["character"]
@@ -199,6 +201,8 @@ for a in allocations:
 
         source_char_name = allocated_mod["character"]
         source_char_defId = dict_alias[source_char_name.lower()][1]
+
+        #get a dict (char_mods) with existing mods for the source character (before any move)
         char_mods = {}
         for roster_mod in initial_dict_player["rosterUnit"][source_char_defId]["equippedStatMod"]:
             mod_defId = roster_mod["definitionId"] #string
@@ -210,6 +214,7 @@ for a in allocations:
                                   "set": dict_stat_by_set[mod_setId],
                                   "id": mod_id}
 
+        #compare replacement mod characteristics with the mod from the source character
         replacement_mod = char_mods[allocated_mod_slot]
         if    replacement_mod["pips"] != allocated_mod["pips"] \
            or replacement_mod["set"] != allocated_mod["set"]:
@@ -223,8 +228,10 @@ for a in allocations:
 
         # add the new mode to equipped_mods, then add the existing to unequipped_mods
         if not allocated_mod["color"].endswith("no-move"):
+            #the allocated (new) mod has to be equipped on the target character
             equipped_mods[allocated_mod["id"]] = allocated_mod_slot
 
+            #the allocated (new) mod has to be unequipped from the source character
             unequipped_mods[allocated_mod["id"]] = source_char_defId
 
             #look for existing mod to be unequipped
@@ -239,6 +246,7 @@ for a in allocations:
                     mod_id = roster_mod["id"]
                     if allocated_mod_slot == mod_slot:
                         unequipped_mods[mod_id] = target_char_defId
+                        unallocated_mods.append(mod_id)
 
     #write update request
     mods_txt = ""
@@ -267,8 +275,14 @@ for a in allocations:
         cur_dict_player["rosterUnit"][unit_id]["equippedStatMod"] = player_mods
 
     for id in equipped_mods:
+        if id in unallocated_mods:
+            unallocated_mods.remove(id)
         if not "equippedStatMod" in cur_dict_player["rosterUnit"][target_char_defId]:
             cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"] = []
         cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"].append({"id": id, "slot": equipped_mods[id]})
 
+    #manage max size required in mod inventory
+    if len(unallocated_mods)>max_unallocated:
+        max_unallocated = len(unallocated_mods)
 
+print("============\nMax unallocated: "+str(max_unallocated))
