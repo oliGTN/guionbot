@@ -1571,12 +1571,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             if args[0] == "deploybot":
                 deploy_bot=True
             else:
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-                if output_channel == None:
+                got_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                if got_channel == None:
                     await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
                 else:
-                    display_mentions=False
+                    output_channel = got_channel
+                    display_mentions=True
         elif len(args) > 1:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help vdp")
             await ctx.message.add_reaction(emoji_error)
