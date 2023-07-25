@@ -17,27 +17,37 @@ for material in game_data["material"]:
     materialList_dict[material["id"]] = material
 
 #add custom data
-my_unit = {"baseId": "LEVIATHAN",
-           "nameKey":"UNIT_LEVIATHAN_NAME",
-           "combatType":2,
-           "rarity":1,
-           "obtainableTime":"0",
-           "categoryId":["any_obtainable"]}
-game_data["units"].append(my_unit)
-FRE_FR["UNIT_LEVIATHAN_NAME"] = "Leviathan"
-ENG_US["UNIT_LEVIATHAN_NAME"] = "Leviathan"
+#my_unit = {"baseId": "LEVIATHAN",
+#           "nameKey":"UNIT_LEVIATHAN_NAME",
+#           "combatType":2,
+#           "rarity":1,
+#           "obtainableTime":"0",
+#           "categoryId":["any_obtainable"]}
+#game_data["units"].append(my_unit)
+#FRE_FR["UNIT_LEVIATHAN_NAME"] = "Leviathan"
+#ENG_US["UNIT_LEVIATHAN_NAME"] = "Leviathan"
 
 unitsList_dict = {}
 for unit in game_data["units"]:
-    if not "any_obtainable" in unit["categoryId"]:
+    if unit["rarity"] != unit["maxRarity"]:
         continue
-    if unit["rarity"] != 1:
+
+    #Following filter to remove PVE units - same filter above for unitsAlias
+    if not "any_obtainable" in unit["categoryId"]:
         continue
     if unit["obtainableTime"] != "0":
         continue
+    if not unit["obtainable"]:
+        continue
 
     unit_id = unit['baseId']
-    unit['name'] = FRE_FR[unit['nameKey']]
+
+    if unit['nameKey'] in FRE_FR:
+        unit['name'] = FRE_FR[unit['nameKey']]
+    else:
+        print("WAR: "+unit['nameKey']+" not found in FRE_FR")
+        unit['name'] = unit['nameKey']
+
     unit_name = unit['name']
     if unit_id in unitsList_dict:
         #could be if ship has been detected before
@@ -80,15 +90,27 @@ fnew.close()
 unitsAlias_dict = {}
 priority_names = ["CT210408"]
 for unit in game_data["units"]:
-    if not "any_obtainable" in unit["categoryId"]:
+    if unit["rarity"] != unit["maxRarity"]:
         continue
-    if unit["rarity"] != 1:
+
+    #Following filter to remove PVE units - same filter above for unitsList
+    playable_unit=True
+    if not "any_obtainable" in unit["categoryId"]:
+        playable_unit=False
         continue
     if unit["obtainableTime"] != "0":
+        playable_unit=False
+        continue
+    if not unit["obtainable"]:
+        playable_unit=False
         continue
 
     for loc in [FRE_FR, ENG_US]:
-        loc_name = loc[unit["nameKey"]]
+        if unit["nameKey"] in loc:
+            loc_name = loc[unit["nameKey"]]
+        else:
+            loc_name = unit["nameKey"]
+
         names = [loc_name]
         if '"' in loc_name:
             names += loc_name.split('"')
@@ -98,21 +120,33 @@ for unit in game_data["units"]:
             name = name.lower()
             if name in unitsAlias_dict:
                 if unitsAlias_dict[name][1] != unit['baseId']:
-                    prio_found = False
-                    for prio in priority_names:
-                        if prio in unit['baseId']:
-                            unitsAlias_dict[name] = [loc[unitsList_dict[unit['baseId']]['nameKey']], unit['baseId']]
-                            prio_found = True
-                        elif prio in unitsAlias_dict[name][1]:
-                            prio_found = True
-                    if not prio_found:
-                        print('WAR: double definition of '+name)
-                        print(unitsAlias_dict[name][1] + " is kept")
-                        print(unit['baseId'] + " is ignored")
+                    #if playable_unit:
+                    #    #New unit is playable and then gets automatic priority
+                    #    unitsAlias_dict[name] = [loc[unitsList_dict[unit['baseId']]['nameKey']], unit['baseId']]
+                    #    print('WAR: double definition of '+name)
+                    #    print(unitsAlias_dict[name][1] + " is removed")
+                    #    print(unit['baseId'] + " is playable and then kept")
+
+                    #else:
+                        prio_found = False
+                        for prio in priority_names:
+                            if prio in unit['baseId']:
+                                unitsAlias_dict[name] = [loc[unitsList_dict[unit['baseId']]['nameKey']], unit['baseId']]
+                                prio_found = True
+                            elif prio in unitsAlias_dict[name][1]:
+                                prio_found = True
+                        if not prio_found:
+                            print('WAR: double definition of '+name)
+                            print(unitsAlias_dict[name][1] + " is kept")
+                            print(unit['baseId'] + " is ignored")
                 else:
                     pass
             else:
-                unitsAlias_dict[name] = [loc[unitsList_dict[unit['baseId']]['nameKey']], unit['baseId']]
+                if unitsList_dict[unit['baseId']]['nameKey'] in loc:
+                    unit_name = loc[unitsList_dict[unit['baseId']]['nameKey']]
+                else:
+                    unit_name = unitsList_dict[unit['baseId']]['nameKey']
+                unitsAlias_dict[name] = [unit_name, unit['baseId']]
 
 fnew = open('DATA'+os.path.sep+'unitsAlias_dict.json', 'w')
 fnew.write(json.dumps(unitsAlias_dict, sort_keys=True, indent=4))
