@@ -103,13 +103,14 @@ async def get_rpc_data(server_id, event_types, force_update):
         else: #force_update==0
             use_cache_data = bool(dict_bot_accounts[server_id]["priority_cache"])
 
+    # RPC REQUEST for guild
     url = "http://localhost:8000/guild"
     params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
-                goutils.log2("DBG", "getguild status="+str(resp.status))
+                goutils.log2("DBG", "POST guild status="+str(resp.status))
                 if resp.status==200:
                     guild_json = await(resp.json())
                 else:
@@ -127,33 +128,86 @@ async def get_rpc_data(server_id, event_types, force_update):
     else:
         dict_guild = {}
 
-    tbmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"
-    await acquire_sem(tbmap_file)
-    if not use_cache_data:
-        process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId,])
-        goutils.log2("DBG", "getmapstats code="+str(process.returncode))
-    if os.path.exists(tbmap_file):
-        TBmapstats_json = json.load(open(tbmap_file, "r"))
-        if "currentStat" in TBmapstats_json:
-            dict_TBmapstats = TBmapstats_json["currentStat"]
-        else:
-            dict_TBmapstats = {}
+    # RPC REQUEST for TBmapstats
+    url = "http://localhost:8000/TBmapstats"
+    params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
+    req_data = json.dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "POST TBmapstats status="+str(resp.status))
+                if resp.status==200:
+                    TBmapstats_json = await(resp.json())
+                else:
+                    return 1, "Cannot get TBmapstats data from RPC", None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if "currentStat" in TBmapstats_json:
+        dict_TBmapstats = TBmapstats_json["currentStat"]
     else:
         dict_TBmapstats = {}
-    await release_sem(tbmap_file)
 
-    twmap_file = "/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json"
-    await acquire_sem(twmap_file)
-    if os.path.exists(twmap_file):
-        TWmapstats_json = json.load(open(twmap_file, "r"))
-        if "currentStat" in TWmapstats_json:
-            dict_TWmapstats = TWmapstats_json["currentStat"]
-        else:
-            dict_TWmapstats = {}
+    # RPC SCRIPT for TBmapstats
+    #tbmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"
+    #await acquire_sem(tbmap_file)
+    #if not use_cache_data:
+    #    process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId,])
+    #    goutils.log2("DBG", "getmapstats code="+str(process.returncode))
+    #if os.path.exists(tbmap_file):
+    #    TBmapstats_json = json.load(open(tbmap_file, "r"))
+    #    if "currentStat" in TBmapstats_json:
+    #        dict_TBmapstats = TBmapstats_json["currentStat"]
+    #    else:
+    #        dict_TBmapstats = {}
+    #else:
+    #    dict_TBmapstats = {}
+    #await release_sem(tbmap_file)
+
+    # RPC REQUEST for TWmapstats
+    url = "http://localhost:8000/TWmapstats"
+    params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
+    req_data = json.dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "POST TWmapstats status="+str(resp.status))
+                if resp.status==200:
+                    TWmapstats_json = await(resp.json())
+                else:
+                    return 1, "Cannot get TWmapstats data from RPC", None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if "currentStat" in TWmapstats_json:
+        dict_TWmapstats = TWmapstats_json["currentStat"]
     else:
         dict_TWmapstats = {}
-    await release_sem(twmap_file)
 
+    # RPC SCRIPT for TWmapstats
+    #twmap_file = "/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json"
+    #await acquire_sem(twmap_file)
+    #if os.path.exists(twmap_file):
+    #    TWmapstats_json = json.load(open(twmap_file, "r"))
+    #    if "currentStat" in TWmapstats_json:
+    #        dict_TWmapstats = TWmapstats_json["currentStat"]
+    #    else:
+    #        dict_TWmapstats = {}
+    #else:
+    #    dict_TWmapstats = {}
+    #await release_sem(twmap_file)
+
+    # RPC SCRIPT for events
     if len(event_types) > 0:
         events_file = "/home/pi/GuionBot/warstats/events_"+bot_androidId+".json"
         await acquire_sem(events_file)
