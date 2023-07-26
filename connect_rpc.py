@@ -138,6 +138,10 @@ async def get_rpc_data(server_id, event_types, force_update):
                 goutils.log2("DBG", "POST TBmapstats status="+str(resp.status))
                 if resp.status==200:
                     TBmapstats_json = await(resp.json())
+                elif resp.status==201:
+                    TBmapstats_json = {}
+                elif resp.status==204:
+                    TBmapstats_json = {}
                 else:
                     return 1, "Cannot get TBmapstats data from RPC", None
 
@@ -179,6 +183,10 @@ async def get_rpc_data(server_id, event_types, force_update):
                 goutils.log2("DBG", "POST TWmapstats status="+str(resp.status))
                 if resp.status==200:
                     TWmapstats_json = await(resp.json())
+                elif resp.status==201:
+                    TWmapstats_json = {}
+                elif resp.status==204:
+                    TWmapstats_json = {}
                 else:
                     return 1, "Cannot get TWmapstats data from RPC", None
 
