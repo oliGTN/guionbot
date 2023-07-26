@@ -294,8 +294,15 @@ async def bot_loop_5minutes(bot):
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
+        query = "SELECT server_id FROM guild_bot_infos "
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+
         dict_tw_alerts = {}
         for guild in bot.guilds:
+            if not guild.id in db_data:
+                #discord server without warbot
+                continue
             try:
                 #CHECK ALERTS FOR TERRITORY WAR
                 list_tw_alerts = await go.get_tw_alerts(guild.id, -1)
