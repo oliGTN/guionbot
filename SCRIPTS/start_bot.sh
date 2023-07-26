@@ -10,6 +10,8 @@ fi
 rm CACHE/*.tmp 2>/dev/null
 if [ "$1" = "test" ]; then
 	python guionbot_discord.py test
+elif [ "$1" = "testlog" ]; then
+	python guionbot_discord.py test 2>&1 | while read line; do echo "$line" >> /home/pi/GuionBot/LOGS/guionbot.log; done
 elif [ "$1" = "noloop" ]; then
 	python guionbot_discord.py noloop
 else
