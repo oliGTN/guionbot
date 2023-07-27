@@ -2587,8 +2587,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='spj',
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
-                      "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
-                      "Exemple: go.spj 123456789 JKR\n"\
+                      "Potentiellement trié par étoiles, gear ou une stat (ex: vitesse)\n"\
+                      "Exemple: go.spg 123456789 JKR\n"\
+                      "Exemple: go.spg me JKR -étoiles\n"\
                       "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
                       "Exemple: go.spj me -p all")
     async def spj(self, ctx, allyCode, *characters):
@@ -2638,8 +2639,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='spg',
                  brief="Stats de Perso d'une Guilde",
                  help="Stats de Perso d'une Guilde\n\n"\
-                      "Potentiellement trié par vitesse (-v), les dégâts (-d), la santé (-s), le pouvoir (-p)\n"\
+                         "Potentiellement trié par étoiles, gear ou une stat (ex: vitesse)\n"\
                       "Exemple: go.spg 123456789 JKR\n"\
+                      "Exemple: go.spg me JKR -étoiles\n"\
                       "Exemple: go.spg me -v \"Dark Maul\"")
     async def spg(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)

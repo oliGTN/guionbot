@@ -1646,6 +1646,8 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
     dict_unitsList = godata.get("unitsList_dict.json")
     ret_print_character_stats = ''
 
+    #list of stats used as columns (full name, column title)
+    #This is not the list used for sorting with options
     list_stats_for_display=[['speed', "Vit"],
                             ['physical damages', "DegPhy"],
                             ['special damages', "DegSpé"],
@@ -1654,21 +1656,29 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                             ['potency', "Pouvoir"],
                             ['tenacity', "Ténacité"],
                             ['critical damages', "DegCrit"],
-                            ['physical critical chance', "PhyCdC "]]
+                            ['physical critical chance', "PhyCdC"]]
 
     #manage sorting options
     sort_option_id=0 # sort by name
     if len(options) == 1:
         sort_option_alias = options[0][1:].lower()
-        closest_names = difflib.get_close_matches(sort_option_alias,
-                                                  dict_stat_names.keys(),
-                                                  1)
-        if len(closest_names) < 1:
-            return "ERR: "+options[0]+" ne fait pas partie des stats connues "+\
-                    str(list(dict_stat_names.keys()))
-        sort_option_name = closest_names[0]
-        sort_option_id = dict_stat_names[sort_option_name][0]
 
+        #Check if sorting by gear or rarity
+        if sort_option_alias in ["étoiles", "etoiles", "rarity", "stars"]:
+            sort_option_id = -1
+        elif sort_option_alias in ["gear", "relic"]:
+            sort_option_id = -2
+        else:
+            #then, look for the sorting statistic
+            sort_option_alias = options[0][1:].lower()
+            closest_names = difflib.get_close_matches(sort_option_alias,
+                                                      dict_stat_names.keys(),
+                                                      1)
+            if len(closest_names) < 1:
+                return "ERR: "+options[0]+" ne fait pas partie des stats connues "+\
+                        str(list(dict_stat_names.keys()))
+            sort_option_name = closest_names[0]
+            sort_option_id = dict_stat_names[sort_option_name][0]
         
     dict_virtual_characters={} #{key=alias or ID, value=[gear, relic, nameKey]}
 
@@ -1803,6 +1813,10 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
         ret_print_character_stats += "Statistiques pour "+player_name
         if sort_option_id == 0:
             ret_print_character_stats += " (tri par nom)\n"
+        elif sort_option_id == -1:
+            ret_print_character_stats += " (tri par étoiles)\n"
+        elif sort_option_id == -2:
+            ret_print_character_stats += " (tri par gear/relic)\n"
         else:
             sort_option_full_name = dict_stat_names[sort_option_name][2]
             ret_print_character_stats += " (tri par "+sort_option_full_name+")\n"
@@ -1893,6 +1907,10 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
 
         if sort_option_id == 0:
             ret_print_character_stats += " (tri par nom)\n"
+        elif sort_option_id == -1:
+            ret_print_character_stats += " (tri par étoiles)\n"
+        elif sort_option_id == -2:
+            ret_print_character_stats += " (tri par gear/relic)\n"
         else:
             sort_option_full_name = dict_stat_names[sort_option_name][2]
             ret_print_character_stats += " (tri par "+sort_option_full_name+")\n"
@@ -1958,12 +1976,26 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             list_print_stats = sorted(list_print_stats, key=lambda x: x[0].lower())
             
         # Sort by specified stat
-        if sort_option_id != 0:
+        if sort_option_id > 0:
             stat_txt = str(sort_option_id)
             list_print_stats = sorted(list_print_stats,
                 key=lambda x: -x[2][stat_txt] if stat_txt in x[2] else 0)
+        elif sort_option_id == -1:
+            #by rarity
+            list_print_stats = sorted(list_print_stats,
+                    key=lambda x: [-int(x[1].split('*')[0]),
+                                   -ord(x[1].split('*')[1][0])-int(x[1].split('*')[1][1:])] \
+                                   if len(x[1])>2 else [-int(x[1].split('*')[0]), 0] )
+        elif sort_option_id == -2:
+            #by gear/relic
+            list_print_stats = sorted(list_print_stats,
+                    key=lambda x: [-ord(x[1].split('*')[1][0])-int(x[1].split('*')[1][1:]),
+                                   -int(x[1].split('*')[0])] \
+                                   if len(x[1])>2 else [0, -int(x[1].split('*')[0])] )
         
         ret_print_character_stats += "=====================================\n"
+
+        ### Title line
         max_size_char = max([len(x[0]) for x in list_print_stats])
         if compute_guild:
             ret_print_character_stats += ("{0:"+str(max_size_char)+"}: {1:5} ").format("Joueur", "*+G")
@@ -1976,6 +2008,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             ret_print_character_stats += stat[1]+' '
         ret_print_character_stats += "\n"
 
+        ### value lines
         for print_stat_row in list_print_stats:
             ret_print_character_stats += ("{0:"+str(max_size_char)+"}: ").format(print_stat_row[0])
             ret_print_character_stats += ("{0:5} ").format(print_stat_row[1])
