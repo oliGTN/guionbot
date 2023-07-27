@@ -1212,14 +1212,25 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
         while '  ' in targets_zone_stars:
             targets_zone_stars = targets_zone_stars.replace('  ', ' ')
 
+        already_computed_zones = []
         for target_zone_stars in targets_zone_stars.split(" "):
             target_zone_name = target_zone_stars.split(":")[0]
             target_stars = int(target_zone_stars.split(":")[1])
+
+            #Targeting 0 stars or 1 is the same target (having the star or just below it)
+            if target_stars == 0:
+                target_stars = 1
 
             if target_zone_name in dict_tb[tb_type]["zoneNames"]:
                 conflict = dict_tb[tb_type]["zoneNames"][target_zone_name]
             else:
                 return 1, "zone inconnue: " + target_zone_name + " " + str(list(dict_tb[tb_type]["zoneNames"].keys())), None
+
+            #Check if the zone is not used twice in the option
+            if target_zone_name in already_computed_zones:
+                return 1, "zone utilisée 2 fois : " + target_zone_name, None
+            already_computed_zones.append(target_zone_name)
+
 
             for zone_name in dict_open_zones:
                 if zone_name.endswith(conflict):
