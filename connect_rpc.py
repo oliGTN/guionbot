@@ -1170,7 +1170,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 
     if targets_zone_stars == "":
         #original warstats logic: closest star, then next closest star...
-        #split the zoes by type
+        #split the zones by type
         dict_zones_by_type = {"ships": [], "chars": [], "mix": []}
         for zone_name in dict_open_zones:
             zone_type = dict_tb[zone_name]["type"]
@@ -1214,21 +1214,30 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 
         already_computed_zones = []
         for target_zone_stars in targets_zone_stars.split(" "):
+            if not ":" in target_zone_stars:
+                return 1, target_zone_stars + " --> chaque objectif de zone doit être de la forme <zone>:<étoiles> (ex: top:3)", None
+
+            # get and check target zone name
             target_zone_name = target_zone_stars.split(":")[0]
-            target_stars = int(target_zone_stars.split(":")[1])
+            if not target_zone_name in dict_tb[tb_type]["zoneNames"]:
+                return 1, target_zone_stars+" --> zone inconnue: " + target_zone_name + " " + str(list(dict_tb[tb_type]["zoneNames"].keys())), None
+            conflict = dict_tb[tb_type]["zoneNames"][target_zone_name]
+
+            #get and check target zone stars
+            target_stars_txt = target_zone_stars.split(":")[1]
+            if not target_stars_txt.isnumeric():
+                return 1, target_zone_stars+" --> le nombre d'étoiles doit être... un nombre", None
+            target_stars = int(target_stars_txt)
+            if target_stars <0 or target_stars > 3:
+                return 1, target_zone_stars + " --> la cible d'étoiles doit être entre 0 et 3", None
 
             #Targeting 0 stars or 1 is the same target (having the star or just below it)
             if target_stars == 0:
                 target_stars = 1
 
-            if target_zone_name in dict_tb[tb_type]["zoneNames"]:
-                conflict = dict_tb[tb_type]["zoneNames"][target_zone_name]
-            else:
-                return 1, "zone inconnue: " + target_zone_name + " " + str(list(dict_tb[tb_type]["zoneNames"].keys())), None
-
             #Check if the zone is not used twice in the option
             if target_zone_name in already_computed_zones:
-                return 1, "zone utilisée 2 fois : " + target_zone_name, None
+                return 1, target_zone_stars+" --> zone utilisée 2 fois : " + target_zone_name, None
             already_computed_zones.append(target_zone_name)
 
 
