@@ -433,7 +433,7 @@ async def update_player(dict_player):
         if "playerRating" in dict_player and "playerRankStatus" in dict_player["playerRating"]:
             p_grand_arena_league = dict_player['playerRating']["playerRankStatus"]['leagueId']
             p_grand_arena_division = 6 - int(dict_player['playerRating']["playerRankStatus"]['divisionId']/5)
-            p_grand_arena_rating = int(dict_player['playerRating']["playerSkillRating"]['SkillRating'])
+            p_grand_arena_rating = int(dict_player['playerRating']["playerSkillRating"]['skillRating'])
         else:
             p_grand_arena_league = ""
             p_grand_arena_division = 0
