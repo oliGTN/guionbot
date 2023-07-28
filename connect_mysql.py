@@ -433,9 +433,11 @@ async def update_player(dict_player):
         if "playerRating" in dict_player and "playerRankStatus" in dict_player["playerRating"]:
             p_grand_arena_league = dict_player['playerRating']["playerRankStatus"]['leagueId']
             p_grand_arena_division = 6 - int(dict_player['playerRating']["playerRankStatus"]['divisionId']/5)
+            p_grand_arena_rating = int(dict_player['playerRating']["playerSkillRating"]['SkillRating'])
         else:
             p_grand_arena_league = ""
             p_grand_arena_division = 0
+            p_grand_arena_rating = None
         p_grand_arena_rank = p_grand_arena_league + str(p_grand_arena_division)
 
         for stat in dict_player["profileStat"]:
@@ -463,6 +465,7 @@ async def update_player(dict_player):
                +"    arena_char_rank = "+ p_arena_char_rank_txt +", "\
                +"    arena_ship_rank = "+ p_arena_ship_rank_txt +", "\
                +"    grand_arena_rank = '"+ p_grand_arena_rank +"', "\
+               +"    grand_arena_rating = "+ str(p_grand_arena_rating) +", "\
                +"    poUTCOffsetMinutes = "+str(p_poUTCOffsetMinutes)+", "\
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
@@ -760,6 +763,7 @@ async def update_player(dict_player):
                +"    arena_ship_rank = "+ p_arena_ship_rank_txt + ","\
                +"    arena_ship_po_delta_minutes = "+ str(delta_time_po_ship) + ", "\
                +"    grand_arena_rank = '"+ p_grand_arena_rank + "',"\
+               +"    grand_arena_rating = "+ str(p_grand_arena_rating) + ","\
                +"    char_gp = "+str(p_char_gp)+", "\
                +"    ship_gp = "+str(p_ship_gp)+", "\
                +"    modq = "+str(p_modq)+", "\

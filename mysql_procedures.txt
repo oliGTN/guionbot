@@ -1,8 +1,8 @@
--- MariaDB dump 10.19  Distrib 10.5.15-MariaDB, for debian-linux-gnueabihf (armv8l)
+-- MariaDB dump 10.19  Distrib 10.5.19-MariaDB, for debian-linux-gnueabihf (armv7l)
 --
 -- Host: localhost    Database: guionbotdb
 -- ------------------------------------------------------
--- Server version	10.5.15-MariaDB-0+deb11u1
+-- Server version	10.5.19-MariaDB-0+deb11u2
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -25,7 +25,7 @@ DROP TABLE IF EXISTS `debug`;
 CREATE TABLE `debug` (
   `timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
   `txt` mediumtext DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -38,12 +38,13 @@ DROP TABLE IF EXISTS `gp_history`;
 CREATE TABLE `gp_history` (
   `date` date DEFAULT NULL,
   `allyCode` int(11) DEFAULT NULL,
-  `guildName` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  `guildName` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
   `char_gp` int(11) DEFAULT NULL,
   `ship_gp` int(11) DEFAULT NULL,
   `arena_char_rank` int(11) DEFAULT 999999,
   `arena_ship_rank` int(11) DEFAULT 999999,
-  `grand_arena_rank` varchar(10) COLLATE utf8_bin DEFAULT NULL,
+  `grand_arena_rank` varchar(10) DEFAULT NULL,
+  `grand_arena_rating` int(11) DEFAULT NULL,
   `arena_char_po_delta_minutes` smallint(6) DEFAULT 9999,
   `arena_ship_po_delta_minutes` smallint(6) DEFAULT 9999,
   `modq` float DEFAULT NULL,
@@ -60,11 +61,10 @@ DROP TABLE IF EXISTS `guild_GL_count`;
 /*!50001 DROP VIEW IF EXISTS `guild_GL_count`*/;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-/*!50001 CREATE TABLE `guild_GL_count` (
-  `name` tinyint NOT NULL,
-  `nb_GL` tinyint NOT NULL,
-  `PG` tinyint NOT NULL
-) ENGINE=MyISAM */;
+/*!50001 CREATE VIEW `guild_GL_count` AS SELECT
+ 1 AS `name`,
+  1 AS `nb_GL`,
+  1 AS `PG` */;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -75,11 +75,10 @@ DROP TABLE IF EXISTS `guild_GL_list`;
 /*!50001 DROP VIEW IF EXISTS `guild_GL_list`*/;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-/*!50001 CREATE TABLE `guild_GL_list` (
-  `Joueur` tinyint NOT NULL,
-  `Perso` tinyint NOT NULL,
-  `gear` tinyint NOT NULL
-) ENGINE=MyISAM */;
+/*!50001 CREATE VIEW `guild_GL_list` AS SELECT
+ 1 AS `Joueur`,
+  1 AS `Perso`,
+  1 AS `gear` */;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -90,12 +89,11 @@ DROP TABLE IF EXISTS `guild_arena_evolution`;
 /*!50001 DROP VIEW IF EXISTS `guild_arena_evolution`*/;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-/*!50001 CREATE TABLE `guild_arena_evolution` (
-  `Joueur` tinyint NOT NULL,
-  `J-5` tinyint NOT NULL,
-  `Maintenant` tinyint NOT NULL,
-  `Evo` tinyint NOT NULL
-) ENGINE=MyISAM */;
+/*!50001 CREATE VIEW `guild_arena_evolution` AS SELECT
+ 1 AS `Joueur`,
+  1 AS `J-5`,
+  1 AS `Maintenant`,
+  1 AS `Evo` */;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -106,10 +104,9 @@ DROP TABLE IF EXISTS `guild_arena_ranks`;
 /*!50001 DROP VIEW IF EXISTS `guild_arena_ranks`*/;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-/*!50001 CREATE TABLE `guild_arena_ranks` (
-  `niveau` tinyint NOT NULL,
-  `nb` tinyint NOT NULL
-) ENGINE=MyISAM */;
+/*!50001 CREATE VIEW `guild_arena_ranks` AS SELECT
+ 1 AS `niveau`,
+  1 AS `nb` */;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -120,25 +117,27 @@ DROP TABLE IF EXISTS `guild_bot_infos`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `guild_bot_infos` (
-  `server_id` bigint(20) NOT NULL DEFAULT 0,
+  `server_id` bigint(20) NOT NULL,
   `guild_id` varchar(24) NOT NULL DEFAULT '',
   `gfile_name` varchar(45) DEFAULT '',
-  `tbChanRead_id` bigint(20) NOT NULL DEFAULT 0,
-  `tbChanOut_id` bigint(20) NOT NULL DEFAULT 0,
-  `tbRoleOut` varchar(45) NOT NULL,
-  `twChanOut_id` bigint(20) NOT NULL DEFAULT 0,
-  `bot_android_id` varchar(16) DEFAULT '',
+  `tbChanRead_id` bigint(20) DEFAULT 0,
+  `tbChanOut_id` bigint(20) DEFAULT 0,
+  `tbRoleOut` varchar(45) DEFAULT '',
+  `twChanOut_id` bigint(20) DEFAULT 0,
+  `bot_android_id` varchar(16) NOT NULL,
   `bot_LatestUpdate` timestamp NULL DEFAULT current_timestamp(),
   `bot_period_min` smallint(6) DEFAULT 15,
   `bot_locked_until` timestamp NULL DEFAULT current_timestamp(),
   `priority_cache` tinyint(4) DEFAULT 0,
   `chatChan_id` bigint(20) DEFAULT 0,
+  `twlogChan_id` bigint(20) DEFAULT 0,
+  `tblogChan_id` bigint(20) DEFAULT 0,
   `chatLatest_ts` bigint(20) DEFAULT 0,
   `twLatest_ts` bigint(20) DEFAULT 0,
   `tbLatest_ts` bigint(20) DEFAULT 0,
   `eventLatest_ts` bigint(20) DEFAULT 0,
   PRIMARY KEY (`server_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -151,11 +150,11 @@ DROP TABLE IF EXISTS `guild_evolutions`;
 CREATE TABLE `guild_evolutions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `timestamp` timestamp NULL DEFAULT current_timestamp(),
-  `guild_id` varchar(24) COLLATE utf8_bin DEFAULT NULL,
-  `playerId` varchar(24) COLLATE utf8_bin DEFAULT NULL,
-  `description` varchar(255) COLLATE utf8_bin DEFAULT NULL,
+  `guild_id` varchar(24) DEFAULT NULL,
+  `playerId` varchar(24) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=971349 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=972903 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -171,7 +170,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3298 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=3317 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -196,7 +195,7 @@ CREATE TABLE `guild_team_roster` (
   `zetaList` varchar(255) DEFAULT NULL,
   `omicronList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16526 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=16716 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -211,7 +210,7 @@ CREATE TABLE `guild_team_roster_omicrons` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1454 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1454 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -226,7 +225,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1898 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=1898 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -244,7 +243,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=589 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=596 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -261,7 +260,7 @@ CREATE TABLE `guilds` (
   `lastRequested` timestamp NOT NULL DEFAULT current_timestamp(),
   `update` tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -274,10 +273,10 @@ DROP TABLE IF EXISTS `gv_history`;
 CREATE TABLE `gv_history` (
   `date` date DEFAULT NULL,
   `allyCode` int(11) DEFAULT NULL,
-  `defId` varchar(255) CHARACTER SET utf8 DEFAULT NULL,
+  `defId` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
   `progress` float DEFAULT NULL,
   `complete` tinyint(4) DEFAULT NULL,
-  `source` varchar(6) COLLATE utf8_bin DEFAULT NULL,
+  `source` varchar(6) DEFAULT NULL,
   UNIQUE KEY `gv_history_key` (`date`,`allyCode`,`defId`,`source`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -310,7 +309,7 @@ CREATE TABLE `mods` (
   `sec4_value` float DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `mod_roster_id` (`roster_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -321,13 +320,12 @@ DROP TABLE IF EXISTS `omicron_report`;
 /*!50001 DROP VIEW IF EXISTS `omicron_report`*/;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-/*!50001 CREATE TABLE `omicron_report` (
-  `PG` tinyint NOT NULL,
-  `defId` tinyint NOT NULL,
-  `N omicrons` tinyint NOT NULL,
-  `Joueurs` tinyint NOT NULL,
-  `%` tinyint NOT NULL
-) ENGINE=MyISAM */;
+/*!50001 CREATE VIEW `omicron_report` AS SELECT
+ 1 AS `PG`,
+  1 AS `defId`,
+  1 AS `N omicrons`,
+  1 AS `Joueurs`,
+  1 AS `%` */;
 SET character_set_client = @saved_cs_client;
 
 --
@@ -342,7 +340,7 @@ CREATE TABLE `player_discord` (
   `discord_id` bigint(20) DEFAULT NULL,
   `main` tinyint(4) DEFAULT 1,
   PRIMARY KEY (`allyCode`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -366,6 +364,7 @@ CREATE TABLE `players` (
   `arena_char_rank` int(11) DEFAULT NULL,
   `arena_ship_rank` int(11) DEFAULT NULL,
   `grand_arena_rank` varchar(10) DEFAULT NULL,
+  `grand_arena_rating` int(11) DEFAULT NULL,
   `poUTCOffsetMinutes` int(11) DEFAULT NULL,
   `modq` float DEFAULT NULL,
   `statq` float DEFAULT NULL,
@@ -374,7 +373,7 @@ CREATE TABLE `players` (
   `charShard_id` int(11) DEFAULT NULL,
   `discord_id` varchar(20) DEFAULT '',
   PRIMARY KEY (`allyCode`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -411,13 +410,15 @@ CREATE TABLE `roster` (
   `mod5` bigint(20) DEFAULT NULL,
   `mod6` bigint(20) DEFAULT NULL,
   `mod7` bigint(20) DEFAULT NULL,
+  `mod14` bigint(20) DEFAULT NULL,
+  `mod15` bigint(20) DEFAULT NULL,
   `mod16` bigint(20) DEFAULT NULL,
   `mod17` bigint(20) DEFAULT NULL,
   `mod18` bigint(20) DEFAULT NULL,
   `mod28` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=7580475 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=8009354 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -431,10 +432,10 @@ CREATE TABLE `roster_evolutions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `timestamp` timestamp NULL DEFAULT current_timestamp(),
   `allyCode` int(11) DEFAULT NULL,
-  `defId` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
-  `description` varchar(255) CHARACTER SET utf8mb4 DEFAULT NULL,
+  `defId` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3221464 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=3294032 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -455,7 +456,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=45146542 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=46961536 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -470,7 +471,7 @@ CREATE TABLE `shards` (
   `type` varchar(4) NOT NULL,
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -484,7 +485,7 @@ CREATE TABLE `stat_list` (
   `id` int(11) NOT NULL,
   `name` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -500,7 +501,7 @@ CREATE TABLE `statq_table` (
   `coef` int(11) DEFAULT 1,
   `stat_avg` float DEFAULT NULL,
   PRIMARY KEY (`defId`,`stat_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -515,12 +516,14 @@ CREATE TABLE `tw_messages` (
   `tw_ts` bigint(20) NOT NULL,
   `zone` varchar(15) NOT NULL,
   `msg_id` bigint(20) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping routines for database 'guionbotdb'
 --
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP FUNCTION IF EXISTS `arena_rank2int` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -528,8 +531,6 @@ CREATE TABLE `tw_messages` (
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` FUNCTION `arena_rank2int`(p_arena_rank_txt text) RETURNS int(11)
 BEGIN
@@ -548,6 +549,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `clean_lost_links` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -555,8 +558,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `clean_lost_links`()
 BEGIN
@@ -579,6 +580,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_db_size` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -586,8 +589,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_db_size`()
 BEGIN
@@ -601,6 +602,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_guild_gp` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -608,8 +611,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_guild_gp`(
 	IN delta_days INT)
@@ -630,6 +631,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_player_cristals` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -637,8 +640,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_player_cristals`()
 BEGIN
@@ -685,6 +686,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_unknown_units` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -692,8 +695,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `get_unknown_units`()
 BEGIN
@@ -707,6 +708,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `Pivot` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -714,8 +717,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `Pivot`(
     IN tbl_name VARCHAR(99),       
@@ -774,6 +775,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `remove_guild` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -781,8 +784,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `remove_guild`(
 	IN p_guildName VARCHAR(255) CHARSET utf8
@@ -799,6 +800,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `remove_player` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -806,8 +809,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `remove_player`(
 	IN p_allyCode INT
@@ -822,6 +823,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `update_guild_subteams` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -829,8 +832,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_subteams`(
     IN p_team_id INT,
@@ -877,6 +878,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `update_guild_subteam_toons` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -884,8 +887,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_subteam_toons`(
     IN p_subteam_id INT,
@@ -935,6 +936,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `update_guild_teams` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -942,8 +945,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_teams`(
     IN guild_name VARCHAR(255),
@@ -999,6 +1000,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `update_guild_team_omicrons` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -1006,8 +1009,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_team_omicrons`(
     IN p_roster_id INT,
@@ -1030,6 +1031,8 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `update_guild_team_zetas` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -1037,8 +1040,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `update_guild_team_zetas`(
     IN p_roster_id INT,
@@ -1086,7 +1087,6 @@ DELIMITER ;
 -- Final view structure for view `guild_GL_count`
 --
 
-/*!50001 DROP TABLE IF EXISTS `guild_GL_count`*/;
 /*!50001 DROP VIEW IF EXISTS `guild_GL_count`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
@@ -1096,7 +1096,7 @@ DELIMITER ;
 /*!50001 SET collation_connection      = utf8mb4_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`guionbot`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `guild_GL_count` AS select `guionbotdb`.`players`.`name` AS `name`,ifnull(`T`.`nb_GL`,0) AS `nb_GL`,round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000,1) AS `PG` from (`guionbotdb`.`players` left join (select `guionbotdb`.`players`.`name` AS `name`,count(0) AS `nb_GL` from (`guionbotdb`.`players` join `guionbotdb`.`roster` on(`guionbotdb`.`players`.`allyCode` = `guionbotdb`.`roster`.`allyCode` and `guionbotdb`.`roster`.`defId` in (select `guionbotdb`.`roster`.`defId` from (`guionbotdb`.`roster_skills` join `guionbotdb`.`roster` on(`guionbotdb`.`roster`.`id` = `guionbotdb`.`roster_skills`.`roster_id`)) where `guionbotdb`.`roster_skills`.`name` = 'GL' group by `guionbotdb`.`roster`.`defId`))) group by `guionbotdb`.`players`.`name`) `T` on(`T`.`name` = `guionbotdb`.`players`.`name`)) where `guionbotdb`.`players`.`guildName` = 'Kangoo Legends' order by ifnull(`T`.`nb_GL`,0) desc,`guionbotdb`.`players`.`name` */;
+/*!50001 VIEW `guild_GL_count` AS select `players`.`name` AS `name`,ifnull(`T`.`nb_GL`,0) AS `nb_GL`,round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000,1) AS `PG` from (`players` left join (select `players`.`name` AS `name`,count(0) AS `nb_GL` from (`players` join `roster` on(`players`.`allyCode` = `roster`.`allyCode` and `roster`.`defId` in (select `roster`.`defId` from (`roster_skills` join `roster` on(`roster`.`id` = `roster_skills`.`roster_id`)) where `roster_skills`.`name` = 'GL' group by `roster`.`defId`))) group by `players`.`name`) `T` on(`T`.`name` = `players`.`name`)) where `players`.`guildName` = 'Kangoo Legends' order by ifnull(`T`.`nb_GL`,0) desc,`players`.`name` */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -1105,7 +1105,6 @@ DELIMITER ;
 -- Final view structure for view `guild_GL_list`
 --
 
-/*!50001 DROP TABLE IF EXISTS `guild_GL_list`*/;
 /*!50001 DROP VIEW IF EXISTS `guild_GL_list`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
@@ -1124,7 +1123,6 @@ DELIMITER ;
 -- Final view structure for view `guild_arena_evolution`
 --
 
-/*!50001 DROP TABLE IF EXISTS `guild_arena_evolution`*/;
 /*!50001 DROP VIEW IF EXISTS `guild_arena_evolution`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
@@ -1143,7 +1141,6 @@ DELIMITER ;
 -- Final view structure for view `guild_arena_ranks`
 --
 
-/*!50001 DROP TABLE IF EXISTS `guild_arena_ranks`*/;
 /*!50001 DROP VIEW IF EXISTS `guild_arena_ranks`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
@@ -1162,7 +1159,6 @@ DELIMITER ;
 -- Final view structure for view `omicron_report`
 --
 
-/*!50001 DROP TABLE IF EXISTS `omicron_report`*/;
 /*!50001 DROP VIEW IF EXISTS `omicron_report`*/;
 /*!50001 SET @saved_cs_client          = @@character_set_client */;
 /*!50001 SET @saved_cs_results         = @@character_set_results */;
@@ -1172,7 +1168,7 @@ DELIMITER ;
 /*!50001 SET collation_connection      = utf8mb4_general_ci */;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `omicron_report` AS select round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG`,`guionbotdb`.`roster`.`defId` AS `defId`,count(0) AS `N omicrons`,`T`.`c_pg` AS `Joueurs`,100 * count(0) / `T`.`c_pg` AS `%` from (((`guionbotdb`.`players` join `guionbotdb`.`roster` on(`guionbotdb`.`roster`.`allyCode` = `guionbotdb`.`players`.`allyCode`)) join `guionbotdb`.`roster_skills` on(`guionbotdb`.`roster_skills`.`roster_id` = `guionbotdb`.`roster`.`id`)) join (select count(0) AS `c_pg`,round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG` from `guionbotdb`.`players` where to_days(curdate()) - to_days(`guionbotdb`.`players`.`lastUpdated`) < 100 group by round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2) `T` on(`T`.`PG` = round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2)) where `guionbotdb`.`roster_skills`.`omicron_tier` > 0 and `guionbotdb`.`roster_skills`.`level` >= `guionbotdb`.`roster_skills`.`omicron_tier` and to_days(curdate()) - to_days(`guionbotdb`.`players`.`lastUpdated`) < 100 group by `T`.`PG`,`guionbotdb`.`roster`.`defId` order by `guionbotdb`.`roster`.`defId`,round((`guionbotdb`.`players`.`char_gp` + `guionbotdb`.`players`.`ship_gp`) / 1000000 * 2,0) / 2 */;
+/*!50001 VIEW `omicron_report` AS select round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG`,`roster`.`defId` AS `defId`,count(0) AS `N omicrons`,`T`.`c_pg` AS `Joueurs`,100 * count(0) / `T`.`c_pg` AS `%` from (((`players` join `roster` on(`roster`.`allyCode` = `players`.`allyCode`)) join `roster_skills` on(`roster_skills`.`roster_id` = `roster`.`id`)) join (select count(0) AS `c_pg`,round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG` from `players` where to_days(curdate()) - to_days(`players`.`lastUpdated`) < 100 group by round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2) `T` on(`T`.`PG` = round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2)) where `roster_skills`.`omicron_tier` > 0 and `roster_skills`.`level` >= `roster_skills`.`omicron_tier` and to_days(curdate()) - to_days(`players`.`lastUpdated`) < 100 group by `T`.`PG`,`roster`.`defId` order by `roster`.`defId`,round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2 */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -1186,4 +1182,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-06-14  0:18:19
+-- Dump completed on 2023-07-28 16:52:06
