@@ -3153,11 +3153,19 @@ async def get_tw_alerts(server_id, force_update):
             if territory[0] == "T" and int(territory[1]) > 2:
                 n_territory -= 2
 
-            if n_territory == 1:
-                msg = "__Le 1er territoire "
+            #Display an emoji depending on done or in progress
+            if counter_remaining_leaders[leader] == 0:
+                msg = "\N{WHITE HEAVY CHECK MARK}"
             else:
-                msg = "__Le "+str(n_territory)+"e territoire "
+                msg = "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
 
+            #Display position of territory
+            if n_territory == 1:
+                msg += "__Le 1er territoire "
+            else:
+                msg += "__Le "+str(n_territory)+"e territoire "
+
+            #Display short name of territory then char/ship
             if territory[0] == "T" and int(territory[1]) < 3:
                 msg += "du haut__"
             elif territory[0] == "T":
@@ -3167,7 +3175,13 @@ async def get_tw_alerts(server_id, force_update):
             else:
                 msg += "du bas__"
 
-            msg += " ("+territory+") est ouvert. Avec ces adversaires :"
+            #Display the status depending on done or in progress
+            if counter_remaining_leaders[leader] == 0:
+                msg += " ("+territory+") est ouvert. Avec ces adversaires :"
+            else:
+                msg += " ("+territory+") est fini. Avec ces adversaires :"
+
+            #Display the leaders
             for leader in counter_leaders:
                 if leader in dict_unitsList:
                     leader_name = dict_unitsList[leader]["name"]
