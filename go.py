@@ -3201,6 +3201,7 @@ async def get_tw_alerts(server_id, force_update):
     nb_full = len(list_full_territories)
     if len(list_def_territories) > 0:
         #Alert for defense fully set OR new orders
+        msg = ""
         for territory in list_def_territories:
             territory_name = territory[0]
             size = territory[1]
@@ -3229,18 +3230,19 @@ async def get_tw_alerts(server_id, force_update):
                 txt_orders = ""
             else:
                 txt_orders = " - " + orders
-            msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)
 
             if filled == size:
-                msg = '\N{WHITE HEAVY CHECK MARK}'+msg
+                msg += '\N{WHITE HEAVY CHECK MARK}'
 
-            list_tw_alerts[1]["Placement:"+territory_name] = msg
+            msg += "**DEFENSE** - "+territory_fullname+"("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
+
+            #list_tw_alerts[1]["Placement:"+territory_name] = msg
 
         #Global Defense filling message
         if nb_full==10:
-            msg = '\N{WHITE HEAVY CHECK MARK} défense complète'
+            msg += '\N{WHITE HEAVY CHECK MARK} défense complète'
         else:
-            msg = "Progrès de la défense : "+str(nb_full)+"/10"
+            msg += "Progrès de la défense : "+str(nb_full)+"/10"
         list_tw_alerts[1]["Placement:G"] = msg
 
 
