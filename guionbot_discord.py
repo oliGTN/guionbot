@@ -348,30 +348,33 @@ async def bot_loop_5minutes(bot):
 
                             #Home messages are not modified
 
+                            # TEST of no resent, rather modify
                             #Placement are re-sent when modified
                             # and the previous gets removed
-                            if territory.startswith('Placement:'):
-                                old_msg_txt = old_msg.content
-                                if old_msg_txt != msg_txt:
-                                    goutils.log2("WAR", "old_msg_txt>"+old_msg_txt+"<")
-                                    goutils.log2("WAR", "msg_txt>"+msg_txt+"<")
+                            #if territory.startswith('Placement:'):
+                            #    old_msg_txt = old_msg.content
+                            #    if old_msg_txt != msg_txt:
+                            #        goutils.log2("WAR", "old_msg_txt>"+old_msg_txt+"<")
+                            #        goutils.log2("WAR", "msg_txt>"+msg_txt+"<")
 
-                                    #remove old_msg, add new_msg, update DB
-                                    if not bot_test_mode:
-                                        await old_msg.delete()
+                            #        #remove old_msg, add new_msg, update DB
+                            #        if not bot_test_mode:
+                            #            await old_msg.delete()
 
-                                        new_msg = await tw_bot_channel.send(msg_txt)
+                            #            new_msg = await tw_bot_channel.send(msg_txt)
 
-                                        query = "UPDATE tw_messages "
-                                        query+= "SET msg_id ="+str(new_msg.id)+" "
-                                        query+= "WHERE server_id="+str(guild.id)+" "
-                                        query+= "AND tw_ts="+tw_ts+" "
-                                        query+= "AND zone='"+territory+"'"
-                                        goutils.log2("DBG", query)
-                                        connect_mysql.simple_execute(query)
+                            #            query = "UPDATE tw_messages "
+                            #            query+= "SET msg_id ="+str(new_msg.id)+" "
+                            #            query+= "WHERE server_id="+str(guild.id)+" "
+                            #            query+= "AND tw_ts="+tw_ts+" "
+                            #            query+= "AND zone='"+territory+"'"
+                            #            goutils.log2("DBG", query)
+                            #            connect_mysql.simple_execute(query)
 
+                            #Placement messages are updated when modified
                             #Attack messages are updated when modified
-                            elif not ":" in territory:
+                            if territory.startswith('Placement:') \
+                               or not ":" in territory:
                                 old_msg_txt = old_msg.content
                                 if old_msg_txt != msg_txt:
                                     #Full message modified in TW guild channel
