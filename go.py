@@ -3232,7 +3232,7 @@ async def get_tw_alerts(server_id, force_update):
             msg = "**DEFENSE** - "+territory_fullname+"("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)
 
             if filled == size:
-                msg += ' \N{WHITE HEAVY CHECK MARK}'
+                msg = '\N{WHITE HEAVY CHECK MARK}'+msg
 
             list_tw_alerts[1]["Placement:"+territory_name] = msg
 
