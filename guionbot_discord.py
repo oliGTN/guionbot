@@ -3414,7 +3414,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         if len(args) == 1:
             #default list
-            unit_list = ['executor', 'profundity', 'GLrey', 'SLKR', 'JML', 'SEE', 'JMK', 'LV', 'Jabba']
+            unit_list = ['executor', 'profundity', 'leviathan', 'GLrey', 'SLKR', 'JML', 'SEE', 'JMK', 'LV', 'Jabba']
         else:
             unit_list = args[1:]
 
