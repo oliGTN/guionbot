@@ -337,10 +337,12 @@ def load_config_statq():
         unit_id = list_character_ids[0]
         if unit_id in dict_unit_stats_gs:
             goutils.log2('WAR', "Unit listed twice: "+unit_id)
-            err_txt += "Perso configuré 2 fois : "+unit_id+"\n"
-            continue
+            #err_txt += "Perso configuré 2 fois : "+unit_id+"\n"
+            #continue
 
-        dict_unit_stats_gs[unit_id] = {stat1: 1}
+        if not unit_id in dict_unit_stats_gs:
+            dict_unit_stats_gs[unit_id] = {}
+        dict_unit_stats_gs[unit_id][stat1] = 1
         if stat2!="":
             dict_unit_stats_gs[unit_id][stat2] = 1
 
