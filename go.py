@@ -3153,17 +3153,11 @@ async def get_tw_alerts(server_id, force_update):
             if territory[0] == "T" and int(territory[1]) > 2:
                 n_territory -= 2
 
-            #Display an emoji depending on done or in progress
-            if counter_remaining_leaders[leader] == 0:
-                msg = "\N{WHITE HEAVY CHECK MARK}"
-            else:
-                msg = "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-
             #Display position of territory
             if n_territory == 1:
-                msg += "__Le 1er territoire "
+                msg = "__Le 1er territoire "
             else:
-                msg += "__Le "+str(n_territory)+"e territoire "
+                msg = "__Le "+str(n_territory)+"e territoire "
 
             #Display short name of territory then char/ship
             if territory[0] == "T" and int(territory[1]) < 3:
@@ -3175,13 +3169,10 @@ async def get_tw_alerts(server_id, force_update):
             else:
                 msg += "du bas__"
 
-            #Display the status depending on done or in progress
-            if counter_remaining_leaders[leader] == 0:
-                msg += " ("+territory+") est ouvert. Avec ces adversaires :"
-            else:
-                msg += " ("+territory+") est fini. Avec ces adversaires :"
+            msg += " ("+territory+") est ouvert. Avec ces adversaires :"
 
             #Display the leaders
+            territory_done = True
             for leader in counter_leaders:
                 if leader in dict_unitsList:
                     leader_name = dict_unitsList[leader]["name"]
@@ -3192,8 +3183,14 @@ async def get_tw_alerts(server_id, force_update):
                     msg += "\n- ~~"+msgleader+"~~"
                 else:
                     msg += "\n- "+msgleader
+                    territory_done = False
 
-            list_tw_alerts[1][territory] = msg
+            #Display an emoji depending on done or in progress
+            if territory_done:
+                list_tw_alerts[1][territory] = "\N{WHITE HEAVY CHECK MARK}"+msg.replace("ouvert", "terminé")
+            else:
+                list_tw_alerts[1][territory] = "\N{WHITE RIGHT POINTING BACKHAND INDEX}"+msg
+
 
     list_defense_squads = rpc_data[1][0]
     list_def_territories = rpc_data[1][1]
@@ -3686,7 +3683,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
 
         goutils.log2('DBG', 'player_name: '+player_name)
 
-        if character_id in dict_def_toon_player and \
+        if first_char_id in dict_def_toon_player and \
             player_name in dict_def_toon_player[first_char_id]:
 
             goutils.log2('DBG', "toon used in TW defense, no tag")
