@@ -4301,7 +4301,7 @@ def print_events(fevent_name, fguild_name):
                                         and cell["unitState"]["turnPercent"] != "0":
                                         remaining_tm=True
 
-                            sys.stdout.write(str(time)+" DEFAITE@"+zone_name+": "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
+                            sys.stdout.write(str(time)+" DEFAITE@"+zone_name+" : "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
                             if count_dead==0 and remaining_tm:
                                 sys.stdout.write(" >>> TM !!!\n")
                             else:
@@ -4312,7 +4312,7 @@ def print_events(fevent_name, fguild_name):
                                 print(str(time)+" VICTOIRE@"+zone_name+": "+author+" "+leader_opponent)
                         elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
                             if "squad" in activity["warSquad"]:
-                                print(str(time)+" DEBUT: "+author+" "+leader_opponent)
+                                print(str(time)+" DEBUT@"+zone_name+"   : "+author+" "+leader_opponent)
                         else:
                             print(str(time)+" "+activity["warSquad"]["squadStatus"])
                     else:
@@ -4747,7 +4747,7 @@ async def get_tw_insufficient_attacks(server_id, min_char_attacks, min_ship_atta
             ship_attacks = 0
 
         fulldef = dict_fulldef[player]
-        if char_attacks < min_char_attacks and ship_attacks < min_ship_attacks:
+        if char_attacks < min_char_attacks or ship_attacks < min_ship_attacks:
             dict_insufficient_attacks[player] = [char_attacks, ship_attacks, fulldef]
 
     return 0, "", dict_insufficient_attacks

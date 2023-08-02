@@ -1864,7 +1864,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.check(officer_command)
     @commands.command(name='twrappel',
             brief="Tag les joueurs qui n'ont pas assez attaqué en GT",
-            help="go.twrappel 3 2 > tag les joueurs qui ont fait moins de 3 attaques au sol et moins de 2 en vaisseaux")
+            help="go.twrappel 3 2 > tag les joueurs qui ont fait moins de 3 attaques au sol ou moins de 2 en vaisseaux")
     async def twrappel(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 

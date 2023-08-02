@@ -741,7 +741,7 @@ async def get_guildLog_messages(server_id):
                                                 and cell["unitState"]["turnPercent"] != "0":
                                                 remaining_tm=True
 
-                                    activity_txt = "DEFAITE@"+zone_name+": "+author+" a perdu contre "+leader_opponent+" ("+str(count_dead)+" morts)"
+                                    activity_txt = "DEFAITE@"+zone_name+" : "+author+" a perdu contre "+leader_opponent+" ("+str(count_dead)+" morts)"
 
                                     if count_dead==0 and remaining_tm:
                                         activity_txt = "\N{CROSS MARK}"+activity_txt+" >>> TM !!!"
@@ -755,7 +755,7 @@ async def get_guildLog_messages(server_id):
 
                                 elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
                                     if "squad" in activity["warSquad"]:
-                                        activity_txt = "DEBUT: "+author+" commence un combat contre "+leader_opponent
+                                        activity_txt = "DEBUT@"+zone_name+"   : "+author+" commence un combat contre "+leader_opponent
                                         activity_txt = "\N{White Right Pointing Backhand Index}"+activity_txt
                                 else:
                                     activity_txt = activity["warSquad"]["squadStatus"]
