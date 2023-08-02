@@ -185,6 +185,8 @@ initial_dict_player = json.load(open(sys.argv[2], 'r'))
 initial_dict_player = goutils.roster_from_list_to_dict(initial_dict_player)
 cur_dict_player = copy.deepcopy(initial_dict_player)
 
+user_auth_id = sys.argv[3]
+
 unallocated_mods = []
 max_unallocated = 0
 for a in allocations:
@@ -256,7 +258,7 @@ for a in allocations:
         #print(unequipped_mods[id]+" - "+target_char_defId)
         if unequipped_mods[id] == target_char_defId:
             mods_txt += " -"+id
-    print("python updateMods.py 24ec0905bac61a77 "+target_char_id+mods_txt+" #"+target_char_name)
+    print("python updateMods.py "+user_auth_id+" "+target_char_id+mods_txt+" #"+target_char_name)
 
 
     #update current dict_player
