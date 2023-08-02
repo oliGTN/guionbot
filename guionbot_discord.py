@@ -1892,17 +1892,32 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             output_txt="Joueurs n'ayant pas assez attaqué en GT : \n"
             for [p, values] in sorted(d_attacks.items(), key=lambda x: x[1][2]):
+                char_attacks = values[0]
+                ship_attacks = values[1]
                 fulldef = values[2]
+
                 if (p in dict_players_by_IG) and fulldef!=1:
                     p_name = dict_players_by_IG[p][1]
                 else:
+                    #No tag for full defs
                     p_name= "**" + p + "**"
-                output_txt += p_name+": "+str(values[0])+" toons et "+str(values[1])+" vaisseaux"
+
+                if char_attacks==None and ship_attacks==None:
+                    #Nothing to report
+                    continue
+                elif char_attacks!=None and ship_attacks!=None:
+                    output_txt_player = p_name+": "+str(char_attacks)+" toons et "+str(ship_attacks)+" vaisseaux"
+                elif char_attacks==None and ship_attacks!=None:
+                    output_txt_player = p_name+": "+str(ship_attacks)+" vaisseaux"
+                else: #char_attacks!=None and ship_attacks==None:
+                    output_txt_player = p_name+": "+str(char_attacks)+" toons"
+
                 if fulldef==1:
-                    output_txt += " >> détecté full def"
+                    output_txt_player += " >> détecté full def"
                 elif fulldef==0:
-                    output_txt += " >> peut-être full def"
-                output_txt += "\n"
+                    output_txt_player += " >> peut-être full def"
+
+                output_txt += output_txt_player+"\n"
 
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
