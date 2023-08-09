@@ -1430,7 +1430,11 @@ def print_fegv(txt_allyCode):
         gv_target_name = dict_unitsList[gv_target_id]['name']
         character_id = line[1]
         character_name = dict_unitsList[character_id]['name']
-        character_display = "["+gv_target_name+"] "+character_name+" "+str(line[3])+"/"+str(line[2])+" étoiles"
+
+        if line[3] == None:
+            character_display = "["+gv_target_name+"] "+character_name+" non-débloqué"
+        else:
+            character_display = "["+gv_target_name+"] "+character_name+" "+str(line[3])+"/"+str(line[2])+" étoiles"
 
         for event in dict_unitsList[character_id]['farmingInfo']:
             if event[0].startswith('C01'):
