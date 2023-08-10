@@ -1206,9 +1206,11 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
         await asyncio.sleep(0)
         if not (team_name in dict_team_gt) and not ('all' in list_team_names):
             if gv_mode==1:
+                team_name_txt = dict_unitsList[team_name[:-3]]["name"]
+                list_team_txt = [dict_unitsList[x[:-3]]["name"] for x in filtered_list_team_gt]
                 ret_get_team_progress[team_name] = \
-                        'ERREUR: Guide de Voyage inconnu pour ' + \
-                        team_name + '. Liste=' + str(filtered_list_team_gt)
+                        "ERREUR: Guide de Voyage inconnu pour **" + \
+                        team_name_txt + "**. Liste=" + str(list_team_txt)
             else:
                 ret_get_team_progress[team_name] = 'ERREUR: team ' + \
                         team_name + ' inconnue. Liste=' + str(filtered_list_team_gt)
