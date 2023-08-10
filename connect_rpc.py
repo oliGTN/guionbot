@@ -1218,10 +1218,19 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                 return 1, target_zone_stars + " --> chaque objectif de zone doit être de la forme <zone>:<étoiles> (ex: top:3)", None
 
             # get and check target zone name
-            target_zone_name = target_zone_stars.split(":")[0]
-            if not target_zone_name in dict_tb[tb_type]["zoneNames"]:
-                return 1, target_zone_stars+" --> zone inconnue: " + target_zone_name + " " + str(list(dict_tb[tb_type]["zoneNames"].keys())), None
-            conflict = dict_tb[tb_type]["zoneNames"][target_zone_name]
+            target_zone_shortname = target_zone_stars.split(":")[0]
+
+            zone_found = False
+            list_zone_names = []
+            for zone_name in dict_open_zones:
+                list_zone_names.append(dict_tb[zone_name]["name"])
+                if dict_tb[zone_name]["name"].endswith("-"+target_zone_shortname):
+                    target_zone_name = dict_tb[zone_name]["name"]
+                    zone_found = True
+                    break
+
+            if not zone_found:
+                return 1, target_zone_stars+" --> zone inconnue: " + target_zone_shortname + " " + str(list_zone_names), None
 
             #get and check target zone stars
             target_stars_txt = target_zone_stars.split(":")[1]
@@ -1241,9 +1250,6 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             already_computed_zones.append(target_zone_name)
 
 
-            for zone_name in dict_open_zones:
-                if zone_name.endswith(conflict):
-                    break
 
             current_score = dict_open_zones[zone_name]["score"]
             estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]

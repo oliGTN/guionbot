@@ -4495,14 +4495,17 @@ async def deploy_bot_tb(server_id, zone_shortname, characters):
     if not tb_type in dict_tb:
         return 1, "TB inconnue du bot"
 
-    if zone_shortname in dict_tb[tb_type]["zoneNames"]:
-        conflict = dict_tb[tb_type]["zoneNames"][zone_shortname]
-    else:
-        return 1, "Zone inconnue pour cette BT"
-
+    zone_found = False
+    list_zone_names = []
     for zone_name in dict_open_zones:
-        if zone_name.endswith(conflict):
+        list_zone_names.append(dict_tb[zone_name]["name"])
+        if dict_tb[zone_name]["name"].endswith("-"+zone_shortname):
+            target_zone_name = dict_tb[zone_name]["name"]
+            zone_found = True
             break
+
+    if not zone_found:
+        return 1, "zone inconnue: " + zone_shortname + " " + str(list_zone_names), None
 
     zone_type = dict_tb[zone_name]["type"]
     if zone_type != "mix":
@@ -4554,8 +4557,23 @@ async def deploy_platoons_tb(server_id, platoon_name, characters):
     platoon_position = platoon_name.split('-')[2]
     tb_id = dict_tb[tb_name]["id"]
     tb_prefix = dict_tb[tb_id]["prefix"]
-    side_name = dict_tb[tb_id]["zoneNames"][platoon_side]
-    zone_name = tb_prefix+"_phase0"+tb_phase+"_"+side_name+"_recon01"
+    #side_name = dict_tb[tb_id]["zoneNames"][platoon_side]
+    #zone_name = tb_prefix+"_phase0"+tb_phase+"_"+side_name+"_recon01"
+
+    zone_found = False
+    list_zone_names = []
+    for key in dict_tb[tb_id]:
+        if not key.startswith(tb_prefix):
+            continue
+        zone_name = key
+        list_zone_names.append(dict_tb[zone_name]["name"])
+        if dict_tb[zone_name]["name"] == platoon_name:
+            zone_name = zone_name+"_recon01"
+            zone_found = True
+            break
+
+    if not zone_found:
+        return 1, "zone inconnue: " + platoon_name + " " + str(list_zone_names)
 
     if tb_name == "ROTE":
         platoon_id = "tb3-platoon-"+str(7-int(platoon_position))
