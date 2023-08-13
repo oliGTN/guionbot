@@ -356,32 +356,34 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
         connect_mysql.simple_execute(query)
 
 
-    query = "SELECT playerId FROM players "\
-           +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
-    goutils.log2('DBG', query)
-    playerId_in_DB = connect_mysql.get_column(query)
-    while None in playerId_in_DB:
-        playerId_in_DB.remove(None)
-
-    playerId_to_add = []
-    for id in playerId_in_API:
-        if not id in playerId_in_DB:
-            playerId_to_add.append(id)
-            query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-            query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'added')"
-            goutils.log2('DBG', query)
-            connect_mysql.simple_execute(query)
-
-    playerId_to_remove = []
-    for id in playerId_in_DB:
-        if not id in playerId_in_API:
-            playerId_to_remove.append(id)
-            query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-            query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'removed')"
-            goutils.log2('DBG', query)
-            connect_mysql.simple_execute(query)
-
     if load_players:
+        #Get the list of players to detect which to add or remove
+        query = "SELECT playerId FROM players "\
+               +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
+        goutils.log2('DBG', query)
+        playerId_in_DB = connect_mysql.get_column(query)
+        while None in playerId_in_DB:
+            playerId_in_DB.remove(None)
+
+        playerId_to_add = []
+        for id in playerId_in_API:
+            if not id in playerId_in_DB:
+                playerId_to_add.append(id)
+                query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+                query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'added')"
+                goutils.log2('DBG', query)
+                connect_mysql.simple_execute(query)
+
+        playerId_to_remove = []
+        for id in playerId_in_DB:
+            if not id in playerId_in_API:
+                playerId_to_remove.append(id)
+                query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+                query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'removed')"
+                goutils.log2('DBG', query)
+                connect_mysql.simple_execute(query)
+
+        #Check if pleyer data needs to be loaded from RPC
         if lastUpdated != None:
             delta_lastUpdated = datetime.datetime.now() - lastUpdated
             if cmd_request:
@@ -456,6 +458,48 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
             lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
             goutils.log2('INFO', "Guild "+guild_name+" last update is "+lastUpdated_txt)
 
+        #Erase guild_name for alyCodes not detected from API
+        if len(playerId_to_remove) > 0:
+            query = "UPDATE players "\
+                   +"SET guildName = '', guildMemberLevel = 2 "\
+                   +"WHERE playerId IN "+str(tuple(playerId_to_remove)).replace(",)", ")")
+            goutils.log2('DBG', query)
+            connect_mysql.simple_execute(query)
+
+        #Manage guild roles (leader, officers)
+        query = "SELECT playerId, guildMemberLevel FROM players "\
+               +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
+        goutils.log2('DBG', query)
+        roles_in_DB = connect_mysql.get_table(query)
+        dict_roles = {}
+        if roles_in_DB != None:
+            for role in roles_in_DB:
+                dict_roles[role[0]] = role[1]
+
+        for member in dict_guild["member"]:
+            id = member["playerId"]
+            if id in dict_roles:
+                if member["memberLevel"] != dict_roles[id]:
+                    #change the role
+                    query = "UPDATE players SET guildMemberLevel = "+str(member["memberLevel"])+" " \
+                           +"WHERE playerId = '"+str(id)+"'"
+                    goutils.log2('DBG', query)
+                    connect_mysql.simple_execute(query)
+                    
+                    #log it in guild_evolutions
+                    description = "guildMemberLevel changed from "+str(dict_roles[id])+" to "+str(member["memberLevel"])
+                    query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+                    query+= "VALUES('"+guild_id+"', '"+str(id)+"', '"+description+"')"
+                    goutils.log2('DBG', query)
+                    connect_mysql.simple_execute(query)
+                del dict_roles[member["playerId"]]
+            else:
+                goutils.log2('WAR', str(id)+" found in RPC but not found in DB while updating guild")
+
+        #manage  remaining players
+        for id in dict_roles:
+            goutils.log2('WAR', str(id)+" found in DB but not found in RPC while updating guild")
+
     #Update dates in DB
     if cmd_request:
         query = "UPDATE guilds "\
@@ -463,48 +507,6 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
                +"WHERE name = '"+guild_name.replace("'", "''") + "'"
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
-
-    #Erase guild_name for alyCodes not detected from API
-    if len(playerId_to_remove) > 0:
-        query = "UPDATE players "\
-               +"SET guildName = '', guildMemberLevel = 2 "\
-               +"WHERE playerId IN "+str(tuple(playerId_to_remove)).replace(",)", ")")
-        goutils.log2('DBG', query)
-        connect_mysql.simple_execute(query)
-
-    #Manage guild roles (leader, officers)
-    query = "SELECT playerId, guildMemberLevel FROM players "\
-           +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
-    goutils.log2('DBG', query)
-    roles_in_DB = connect_mysql.get_table(query)
-    dict_roles = {}
-    if roles_in_DB != None:
-        for role in roles_in_DB:
-            dict_roles[role[0]] = role[1]
-
-    for member in dict_guild["member"]:
-        id = member["playerId"]
-        if id in dict_roles:
-            if member["memberLevel"] != dict_roles[id]:
-                #change the role
-                query = "UPDATE players SET guildMemberLevel = "+str(member["memberLevel"])+" " \
-                       +"WHERE playerId = '"+str(id)+"'"
-                goutils.log2('DBG', query)
-                connect_mysql.simple_execute(query)
-                
-                #log it in guild_evolutions
-                description = "guildMemberLevel changed from "+str(dict_roles[id])+" to "+str(member["memberLevel"])
-                query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-                query+= "VALUES('"+guild_id+"', '"+str(id)+"', '"+description+"')"
-                goutils.log2('DBG', query)
-                connect_mysql.simple_execute(query)
-            del dict_roles[member["playerId"]]
-        else:
-            goutils.log2('WAR', str(id)+" found in RPC but not found in DB while updating guild")
-
-    #manage  remaining players
-    for id in dict_roles:
-        goutils.log2('WAR', str(id)+" found in DB but not found in RPC while updating guild")
 
     return 0, "", dict_guild
 
