@@ -2169,7 +2169,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             else:
                 intro_txt = ret_cmd[0]
                 if len(ret_cmd) > 1:
-                    await ctx.send(intro_txt +" :\n" +' / '.join(ret_cmd[1:]))
+                    await ctx.send(intro_txt +" :\n" +' / '.join(ret_cmd[1:])+"\n--> "+str(len(ret_cmd)-1)+" joueur(s)")
                 else:
                     await ctx.send(intro_txt +" : aucun joueur")
 
