@@ -392,6 +392,7 @@ def insert_roster_evo(allyCode, defId, evo_txt):
             cursor.close()
     
 async def update_player(dict_player):
+    print(str(dict_player)[:300])
     dict_unitsList = data.get("unitsList_dict.json")
     dict_modList = data.get("modList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
@@ -1093,7 +1094,14 @@ def compute_statq_avg(force_all):
         s_name = stat[0]
         s_id = stat[1]
 
-        query += "WHEN stat_name='"+s_name+"' THEN (select avg(mod"+str(s_id)+"/(stat"+str(s_id)+"-mod"+str(s_id)+")) from roster join players on players.allyCode=roster.allyCode where statq_table.defId=roster.defId and grand_arena_rank='KYBER1') \n"
+        query += "WHEN stat_name='"+s_name+"' THEN ( " \
+                 "   select avg(mod"+str(s_id)+"/(stat"+str(s_id)+"-mod"+str(s_id)+")) " \
+                 "   from roster " \
+                 "   join players on players.allyCode=roster.allyCode " \
+                 "   where statq_table.defId=roster.defId " \
+                 "   and grand_arena_rank='KYBER1' " \
+                 "   and timestampdiff(DAY,lastUpdated,CURRENT_TIMESTAMP)<30 " \
+                 ") \n"
 
     query+= "END \n"
 
