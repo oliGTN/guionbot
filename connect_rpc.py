@@ -1479,6 +1479,8 @@ async def deploy_tb(server_id, zone, list_defId):
     return 0, "Le bot a déployé en " + zone
 
 async def deploy_tw(server_id, zone, list_defId):
+    dict_unitsList = godata.get("unitsList_dict.json")
+
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
@@ -1504,13 +1506,31 @@ async def deploy_tw(server_id, zone, list_defId):
         dict_roster[defId] = unit
 
     list_char_id = []
+    team_combatType = None
     for defId in list_defId:
         list_char_id.append(dict_roster[defId]["id"])
-    if len(list_char_id) != 5:
+        unit_combatType = dict_unitsList[defId]["combatType"]
+        if team_combatType==None or team_combatType==unit_combatType:
+            team_combatType=unit_combatType
+        else:
+            goutils.log2("ERR", "Mixing chars and ships")
+            return 1, "ERR: ne pas mélanger toons et vaisseaux svp"
+            
+    if team_combatType == 1 and len(list_char_id) != 5:
         goutils.log2("ERR", "Need 5 units but found "+str(list_char_id))
         return 1, "ERR: il faut exactement 5 persos"
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
+    if team_combatType == 2 and len(list_char_id) < 4:
+        goutils.log2("ERR", "Need at least 4 units but found "+str(list_char_id))
+        return 1, "ERR: il faut au moins 4 vaisseaux"
+
+    if team_combatType==2:
+        #Fleet
+        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone, '-s']+list_char_id)
+    else:
+        #Ground
+        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
+
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
     if process.returncode!=0:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
