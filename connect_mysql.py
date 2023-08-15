@@ -438,7 +438,7 @@ async def update_player(dict_player):
         else:
             p_grand_arena_league = ""
             p_grand_arena_division = 0
-            p_grand_arena_rating = None
+            p_grand_arena_rating = 0
         p_grand_arena_rank = p_grand_arena_league + str(p_grand_arena_division)
 
         for stat in dict_player["profileStat"]:
