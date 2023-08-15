@@ -3515,12 +3515,12 @@ async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_g
 ################################################################
 # tag_players_with_character
 # IN: txt_allyCode (to identify the guild)
-# IN: character ("SEE" or "SEE:7:G8" or "SEE:R5")
+# IN: list_list_character ([["SEE"], ["Mara", "+SK"], ["SEE:7:G8"], ["SEE:R5"]])
 # IN: server_id (discord server id)
 # IN: tw_mode (True if the bot shall count defense-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-async def tag_players_with_character(txt_allyCode, list_characters, server_id, tw_mode):
+async def tag_players_with_character(txt_allyCode, list_list_characters, server_id, tw_mode):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
@@ -3532,146 +3532,7 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
         if ec != 0:
             return ec, et, None
 
-    opposite_search = (list_characters[0][0]=="-")
-    if opposite_search and tw_mode:
-        return 1, "ERR: impossible de chercher un perso non présent (avec le '-' avant le premier/seul perso) avec l'option -TW", None
-
-    #prepare basic query
-    query = "SELECT guildName, name FROM players " \
-          + "WHERE guildName=(" \
-          + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") "
-    intro_txt = "Ceux"
-
-    first_char = True #to store the char_id of the first char in the command
-    for character in list_characters:
-        tab_virtual_character = character.split(':')
-        while '' in tab_virtual_character:
-            tab_virtual_character.remove('')
-
-        char_rarity = 0
-        char_gear = 0
-        char_relic = -2
-        char_omicron = False
-
-        opposite_search = (character[0]=="-")
-        if len(tab_virtual_character) == 1:
-            #regular character, not virtual
-            char_alias = tab_virtual_character[0]
-            simple_search = True
-        else:
-            char_alias = tab_virtual_character[0]
-            simple_search = False
-
-            for character_option in tab_virtual_character[1:]:
-                if len(character_option)==1 and character_option in "1234567":
-                    char_rarity = int(character_option)
-
-                elif character_option[0] in "gG":
-                    if character_option[1:].isnumeric():
-                        char_gear = int(character_option[1:])
-                        char_relic = -2
-                        if (char_gear<1) or (char_gear>13):
-                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-                    else:
-                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-
-                elif character_option[0] in "rR":
-                    if character_option[1:].isnumeric():
-                        char_relic = int(character_option[1:])
-                        char_gear = 13
-                        if (char_relic<0) or (char_relic>9):
-                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-                    else:
-                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-
-                elif character_option == "omicron":
-                    char_omicron = True
-                else:
-                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-                
-        #Get character_id
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
-        if txt != '':
-            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
-        character_id = list_character_ids[0]
-        character_name = "**"+dict_unitsList[character_id]["name"]+"**"
-        if first_char:
-            first_char_id = character_id
-
-        goutils.log2("DBG", character_id)
-        goutils.log2("DBG", opposite_search)
-        goutils.log2("DBG", simple_search)
-        if opposite_search and simple_search:
-            intro_txt+= " qui n'ont pas "+character_id
-            query+= "AND NOT allyCode IN ( "
-        else:
-            if opposite_search:
-                intro_txt+= " qui ont ("+character_name+ " mais pas "+character_name
-            else:
-                intro_txt+= " qui ont "+character_name
-
-            if not simple_search:
-                if char_rarity>0:
-                    intro_txt += ":"+str(char_rarity)+"*"
-                if char_relic>-2:
-                    intro_txt += ":R"+str(char_relic)
-                elif char_gear>0:
-                    intro_txt += ":G"+str(char_gear)
-                if char_omicron:
-                    intro_txt += ":omicron"
-
-            if opposite_search:
-                intro_txt += ")"
-
-            query+= "AND allyCode IN ( "
-
-        query+= "   SELECT players.allyCode FROM players "
-        query+= "   JOIN roster ON roster.allyCode = players.allyCode "
-
-        if char_omicron:
-            query+= "   JOIN roster_skills ON roster_id = roster.id "
-
-        query+= "   WHERE guildName=(" 
-        query+= "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " 
-        query+= "      AND defId = '"+character_id+"' "
-
-        if opposite_search:
-            if not simple_search:
-                query +="      AND (rarity < "+str(char_rarity)+" "
-                query+= "      OR gear < "+str(char_gear)+" "
-                query+= "      OR relic_currentTier < "+str(char_relic+2)+" "
-
-                if char_omicron:
-                    query += "      OR (roster_skills.omicron_tier>0 AND roster_skills.level<roster_skills.omicron_tier) "
-
-                query+= "      ) "
-
-        else:
-            query+= "      AND rarity >= "+str(char_rarity)+" "
-            query+= "      AND gear >= "+str(char_gear)+" "
-            query+= "      AND relic_currentTier >= "+str(char_relic+2)+" "
-
-            if char_omicron:
-                query += "      AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
-        query += ") "
-        intro_txt += " et"
-        first_char = False
-
-    intro_txt = intro_txt[:-3]
-    if tw_mode:
-        intro_txt += ", qui sont inscrits à la GT, et qui ne l'ont pas mis en défense"
-        query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+"\n"
-    query += "GROUP BY guildName, players.name "
-
-    goutils.log2('DBG', query)
-    allyCodes_in_DB = connect_mysql.get_table(query)
-
-    if allyCodes_in_DB == None:
-        allyCodes_in_DB = []
-        guildName = ""
-    else:
-        guildName = allyCodes_in_DB[0][0]
-
+    #get list of allyCodes and player tags
     dict_players = connect_mysql.load_config_players()[0]
 
     #Manage -TW option
@@ -3679,31 +3540,171 @@ async def tag_players_with_character(txt_allyCode, list_characters, server_id, t
         ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
         if ec != 0:
             return ec, et, None
-
     else:
         dict_def_toon_player = {}
 
-    #Build the list of tags
-    list_discord_ids = [intro_txt]
-    for [guildName, player_name] in allyCodes_in_DB:
-        if player_name == "":
-            continue
+    list_list_discord_ids=[]
+    for list_characters in list_list_characters:
+        opposite_search = (list_characters[0][0]=="-")
+        if opposite_search and tw_mode:
+            return 1, "ERR: impossible de chercher un perso non présent (avec le '-' avant le premier/seul perso) avec l'option -TW", None
 
-        goutils.log2('DBG', 'player_name: '+player_name)
+        #prepare basic query
+        query = "SELECT guildName, name FROM players " \
+              + "WHERE guildName=(" \
+              + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") "
+        intro_txt = "Ceux"
 
-        if first_char_id in dict_def_toon_player and \
-            player_name in dict_def_toon_player[first_char_id]:
+        first_char = True #to store the char_id of the first char in the command
+        for character in list_characters:
+            tab_virtual_character = character.split(':')
+            while '' in tab_virtual_character:
+                tab_virtual_character.remove('')
 
-            goutils.log2('DBG', "toon used in TW defense, no tag")
-        else:
-            if player_name in dict_players:
-                player_mention = dict_players[player_name][1]
+            char_rarity = 0
+            char_gear = 0
+            char_relic = -2
+            char_omicron = False
+
+            opposite_search = (character[0]=="-")
+            if len(tab_virtual_character) == 1:
+                #regular character, not virtual
+                char_alias = tab_virtual_character[0]
+                simple_search = True
             else:
-                player_mention = player_name
+                char_alias = tab_virtual_character[0]
+                simple_search = False
 
-            list_discord_ids.append(player_mention)
+                for character_option in tab_virtual_character[1:]:
+                    if len(character_option)==1 and character_option in "1234567":
+                        char_rarity = int(character_option)
 
-    return 0, "", list_discord_ids
+                    elif character_option[0] in "gG":
+                        if character_option[1:].isnumeric():
+                            char_gear = int(character_option[1:])
+                            char_relic = -2
+                            if (char_gear<1) or (char_gear>13):
+                                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+                        else:
+                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+
+                    elif character_option[0] in "rR":
+                        if character_option[1:].isnumeric():
+                            char_relic = int(character_option[1:])
+                            char_gear = 13
+                            if (char_relic<0) or (char_relic>9):
+                                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+                        else:
+                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+
+                    elif character_option == "omicron":
+                        char_omicron = True
+                    else:
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+                    
+            #Get character_id
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+            if txt != '':
+                return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+            character_id = list_character_ids[0]
+            character_name = "**"+dict_unitsList[character_id]["name"]+"**"
+            if first_char:
+                first_char_id = character_id
+
+            goutils.log2("DBG", character_id)
+            goutils.log2("DBG", opposite_search)
+            goutils.log2("DBG", simple_search)
+            if opposite_search and simple_search:
+                intro_txt+= " qui n'ont pas "+character_id
+                query+= "AND NOT allyCode IN ( "
+            else:
+                if opposite_search:
+                    intro_txt+= " qui ont ("+character_name+ " mais pas "+character_name
+                else:
+                    intro_txt+= " qui ont "+character_name
+
+                if not simple_search:
+                    if char_rarity>0:
+                        intro_txt += ":"+str(char_rarity)+"*"
+                    if char_relic>-2:
+                        intro_txt += ":R"+str(char_relic)
+                    elif char_gear>0:
+                        intro_txt += ":G"+str(char_gear)
+                    if char_omicron:
+                        intro_txt += ":omicron"
+
+                if opposite_search:
+                    intro_txt += ")"
+
+                query+= "AND allyCode IN ( "
+
+            query+= "   SELECT players.allyCode FROM players "
+            query+= "   JOIN roster ON roster.allyCode = players.allyCode "
+
+            if char_omicron:
+                query+= "   JOIN roster_skills ON roster_id = roster.id "
+
+            query+= "   WHERE guildName=(" 
+            query+= "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " 
+            query+= "      AND defId = '"+character_id+"' "
+
+            if opposite_search:
+                if not simple_search:
+                    query +="      AND (rarity < "+str(char_rarity)+" "
+                    query+= "      OR gear < "+str(char_gear)+" "
+                    query+= "      OR relic_currentTier < "+str(char_relic+2)+" "
+
+                    if char_omicron:
+                        query += "      OR (roster_skills.omicron_tier>0 AND roster_skills.level<roster_skills.omicron_tier) "
+
+                    query+= "      ) "
+
+            else:
+                query+= "      AND rarity >= "+str(char_rarity)+" "
+                query+= "      AND gear >= "+str(char_gear)+" "
+                query+= "      AND relic_currentTier >= "+str(char_relic+2)+" "
+
+                if char_omicron:
+                    query += "      AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
+            query += ") "
+            intro_txt += " et"
+            first_char = False
+
+        intro_txt = intro_txt[:-3]
+        if tw_mode:
+            intro_txt += ", qui sont inscrits à la GT, et qui ne l'ont pas mis en défense"
+            query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+"\n"
+        query += "GROUP BY guildName, players.name "
+        goutils.log2('DBG', query)
+        allyCodes_in_DB = connect_mysql.get_table(query)
+        if allyCodes_in_DB == None:
+            allyCodes_in_DB = []
+            guildName = ""
+        else:
+            guildName = allyCodes_in_DB[0][0]
+
+        #Build the list of tags
+        list_discord_ids = [intro_txt]
+        for [guildName, player_name] in allyCodes_in_DB:
+            if player_name == "":
+                continue
+
+            goutils.log2('DBG', 'player_name: '+player_name)
+
+            if first_char_id in dict_def_toon_player and \
+                player_name in dict_def_toon_player[first_char_id]:
+
+                goutils.log2('DBG', "toon used in TW defense, no tag")
+            else:
+                if player_name in dict_players:
+                    player_mention = dict_players[player_name][1]
+                else:
+                    player_mention = player_name
+
+                list_discord_ids.append(player_mention)
+        list_list_discord_ids.append(list_discord_ids)
+
+    return 0, "", list_list_discord_ids
 
 ################################################################
 # count_players_with_character
