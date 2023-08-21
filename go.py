@@ -4557,6 +4557,7 @@ async def deploy_platoons_tb(server_id, platoon_name, characters):
     tb_name = platoon_name.split('-')[0][:-1]
     tb_phase = platoon_name.split('-')[0][-1]
     platoon_side = platoon_name.split('-')[1]
+    platoon_zone_name = platoon_name[:-2]
     platoon_position = platoon_name.split('-')[2]
     tb_id = dict_tb[tb_name]["id"]
     tb_prefix = dict_tb[tb_id]["prefix"]
@@ -4565,12 +4566,13 @@ async def deploy_platoons_tb(server_id, platoon_name, characters):
 
     zone_found = False
     list_zone_names = []
-    for key in dict_tb[tb_id]:
+    for key in dict_tb:
+        print(key)
         if not key.startswith(tb_prefix):
             continue
         zone_name = key
         list_zone_names.append(dict_tb[zone_name]["name"])
-        if dict_tb[zone_name]["name"] == platoon_name:
+        if dict_tb[zone_name]["name"] == platoon_zone_name:
             zone_name = zone_name+"_recon01"
             zone_found = True
             break
