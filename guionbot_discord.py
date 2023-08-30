@@ -1890,7 +1890,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         err_code, err_txt, d_attacks = await go.get_tw_insufficient_attacks(ctx.guild.id, min_char, min_ship)
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
-            output_txt="Joueurs n'ayant pas assez attaqué en GT : \n"
+            output_txt="La guilde a besoin de vous pour la GT svp : \n"
             for [p, values] in sorted(d_attacks.items(), key=lambda x: x[1][2]):
                 char_attacks = values[0]
                 ship_attacks = values[1]
