@@ -392,7 +392,6 @@ def insert_roster_evo(allyCode, defId, evo_txt):
             cursor.close()
     
 async def update_player(dict_player):
-    print(str(dict_player)[:300])
     dict_unitsList = data.get("unitsList_dict.json")
     dict_modList = data.get("modList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
