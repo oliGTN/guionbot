@@ -11,9 +11,9 @@ import datetime
 from pytz import timezone
 import difflib
 import re
+import nextcord
 from nextcord.ext import tasks, commands
 from nextcord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
-import nextcord
 from io import BytesIO
 from requests import get
 import traceback
@@ -31,6 +31,7 @@ TOKEN = config.DISCORD_BOT_TOKEN
 intents = Intents.default()
 intents.members = True
 intents.presences = True
+intents.message_content = True
 bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 
 guild_timezone=timezone(config.GUILD_TIMEZONE)
