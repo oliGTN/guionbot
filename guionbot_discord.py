@@ -11,9 +11,9 @@ import datetime
 from pytz import timezone
 import difflib
 import re
-from discord.ext import tasks, commands
-from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
-import discord
+from nextcord.ext import tasks, commands
+from nextcord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
+import nextcord
 from io import BytesIO
 from requests import get
 import traceback

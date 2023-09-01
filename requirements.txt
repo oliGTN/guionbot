@@ -1,4 +1,4 @@
-discord.py==1.7.3
+nextcord==2.5.0
 requests==2.23.0
 gspread==5.7.2
 oauth2client==4.1.3
