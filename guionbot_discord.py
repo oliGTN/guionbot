@@ -18,6 +18,7 @@ from io import BytesIO
 from requests import get
 import traceback
 from texttable import Texttable
+import zipfile
 
 import go
 import goutils
@@ -1985,7 +1986,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emoji_thumb)
 
         if not tw_zone in ['all']+list(data.dict_tw.keys()):
-            await ctx.send("ERR: zone TW inconnue")
+            await ctx.send("ERR: zone GT inconnue")
             await ctx.message.add_reaction(emoji_error)
             return
 
@@ -2016,6 +2017,48 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: bot.gettwlogs
+    # Parameters: none
+    # Purpose: Tag all players in the guild which own the selected character
+    # Display: One line with all discord tags
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='bot.gettwlogs',
+                 brief="Télécharge le fichier JSON complet des logs de la dernière GT",
+                 help="Télécharge le fichier JSON complet des logs de la dernière GT")
+    async def botgettwlogs(self, ctx):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        #get bot config from DB
+        query = "SELECT name FROM guilds " \
+                "JOIN guild_bot_infos ON id=guild_id " \
+                "WHERE server_id = " + str(ctx.guild.id)
+        goutils.log2("DBG", query)
+        guild_name = connect_mysql.get_value(query)
+
+        if guild_name == None:
+            await ctx.send('ERR: Guilde non déclarée dans le bot')
+            return
+
+        #Look for latest TW evennt file for this guild
+        search_dir = "EVENTS/"
+        files = os.listdir(search_dir)
+        files = [os.path.join(search_dir, f) for f in files] # add path to each file
+        files = list(filter(os.path.isfile, files))
+        files = list(filter(lambda f: guild_name+"_TERRITORY_WAR_EVENT" in f, files))
+        files.sort(key=lambda x: os.path.getmtime(x))
+        latest_log = files[-1]
+
+        #create zip archive
+        archive_path="/tmp/TWlogs_"+guild_name+".zip"
+        with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zipped:
+            zipped.write(latest_log)
+        file = nextcord.File(archive_path)
+        await ctx.send(file=file, content="Dernier fichier trouvé : "+latest_log)
+
+        await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
 # Class: OfficerCog
