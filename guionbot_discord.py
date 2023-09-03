@@ -343,7 +343,7 @@ async def bot_loop_5minutes(bot):
                             #This zone already has a message
                             try:
                                 old_msg = await tw_bot_channel.fetch_message(old_msg_id)
-                            except discord.errors.NotFound as e:
+                            except nextcord.errors.NotFound as e:
                                 goutils.log2("ERR", "msg not found id="+str(old_msg_id))
                                 raise(e)
 
