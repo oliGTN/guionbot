@@ -875,9 +875,10 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
     dict_all_events=rpc_data[2]
     guildName = dict_guild["profile"]["name"]
 
+    #get guild members
     dict_members_by_id={}
     for member in dict_guild["member"]:
-        dict_members_by_id[member["playerId"]] = member["playerName"]
+        dict_members_by_id[member["playerId"]] = member
 
     tb_ongoing=False
     if "territoryBattleStatus" in dict_guild:
@@ -906,27 +907,36 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
     if not tb_ongoing:
         return 1, "No TB on-going", None
 
-    query = "SELECT name, char_gp, ship_gp FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
+    #check members active during TB
+    summary_stats = [x["playerStat"] for x in battleStatus["currentStat"] if x["mapStatId"]=="summary"][0]
+    for member in summary_stats:
+        dict_members_by_id[member["memberId"]]['tb_participant'] = True
+
+    query = "SELECT name, char_gp, ship_gp, playerId FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
     goutils.log2("DBG", query)
-    list_playername_gp = connect_mysql.get_table(query)
+    list_playername_gp_id = connect_mysql.get_table(query)
 
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_open_zones = {}
     dict_phase = {"id": battle_id, "round": tb_round, "type": tb_type, "name": dict_tb[tb_type]["name"]}
 
-    for playername_gp in list_playername_gp:
-        dict_tb_players[playername_gp[0]] = {}
-        dict_tb_players[playername_gp[0]]["char_gp"] = playername_gp[1]
-        dict_tb_players[playername_gp[0]]["ship_gp"] = playername_gp[2]
-        dict_tb_players[playername_gp[0]]["mix_gp"] = playername_gp[1] + playername_gp[2]
-        dict_tb_players[playername_gp[0]]["score"] = {"deployedShips": 0,
+    for playername_gp_id in list_playername_gp_id:
+        #test if player participates to TB
+        if not 'tb_participant' in dict_members_by_id[playername_gp_id[3]]:
+            continue
+
+        dict_tb_players[playername_gp_id[0]] = {}
+        dict_tb_players[playername_gp_id[0]]["char_gp"] = playername_gp_id[1]
+        dict_tb_players[playername_gp_id[0]]["ship_gp"] = playername_gp_id[2]
+        dict_tb_players[playername_gp_id[0]]["mix_gp"] = playername_gp_id[1] + playername_gp_id[2]
+        dict_tb_players[playername_gp_id[0]]["score"] = {"deployedShips": 0,
                                                       "deployedChars": 0,
                                                       "deployedMix": 0,
                                                       "deployed": 0,
                                                       "Platoons": 0,
                                                       "strikes": 0} 
-        dict_tb_players[playername_gp[0]]["strikes"] = []
+        dict_tb_players[playername_gp_id[0]]["strikes"] = []
 
     for zone in battleStatus["conflictZoneStatus"]:
         if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
@@ -1024,7 +1034,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             if "playerStat" in mapstat:
                 for playerstat in mapstat["playerStat"]:
                     member_id = playerstat["memberId"]
-                    playerName = dict_members_by_id[member_id]
+                    playerName = dict_members_by_id[member_id]["playerName"]
                     if not playerName in dict_tb_players:
                         continue
 
@@ -1036,7 +1046,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             if "playerStat" in mapstat:
                 for playerstat in mapstat["playerStat"]:
                     member_id = playerstat["memberId"]
-                    playerName = dict_members_by_id[member_id]
+                    playerName = dict_members_by_id[member_id]["playerName"]
                     if not playerName in dict_tb_players:
                         #should not happen unless new player and until API resynchronizes
                         continue
