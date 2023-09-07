@@ -4508,7 +4508,7 @@ async def deploy_bot_tb(server_id, zone_shortname, characters):
             break
 
     if not zone_found:
-        return 1, "zone inconnue: " + zone_shortname + " " + str(list_zone_names), None
+        return 1, "zone inconnue: " + zone_shortname + " " + str(list_zone_names)
 
     zone_type = dict_tb[zone_name]["type"]
     if zone_type != "mix":
