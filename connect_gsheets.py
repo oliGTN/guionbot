@@ -740,57 +740,63 @@ async def update_gwarstats(server_id):
         cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["availableCharDeploy"]))
 
     #players
+    player_row1 = 35
+    player_col1 = 1
     if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
-        cells.append(gspread.cell.Cell(row=1, col=16, value="Mix deployment"))
-        cells.append(gspread.cell.Cell(row=1, col=19, value=""))
+        cells.append(gspread.cell.Cell(row=player_row1, col=player_col1+3, value="Mix deployment"))
+        cells.append(gspread.cell.Cell(row=player_row1, col=player_col1+6, value=""))
+    else:
+        cells.append(gspread.cell.Cell(row=player_row1, col=player_col1+3, value="Fleet deployment"))
+        cells.append(gspread.cell.Cell(row=player_row1, col=player_col1+6, value="Squad deployment"))
 
     sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["deployed"] + x[1]["score"]["strikes"], reverse=True))
 
-    line = 3
+    line = player_row1 + 2
     for playername in sorted_dict_tb_players:
         player = dict_tb_players[playername]
-        cells.append(gspread.cell.Cell(row=line, col=14, value=playername))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=playername))
         total_score = player["score"]["deployed"] + player["score"]["strikes"]
-        cells.append(gspread.cell.Cell(row=line, col=15, value=total_score))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+2, value=total_score))
 
         if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
-            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["deployedMix"]))
-            cells.append(gspread.cell.Cell(row=line, col=17, value=player["mix_gp"]))
-            cells.append(gspread.cell.Cell(row=line, col=19, value=""))
-            cells.append(gspread.cell.Cell(row=line, col=20, value=""))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=player["score"]["deployedMix"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+4, value=player["mix_gp"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=""))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+7, value=""))
         else:
-            cells.append(gspread.cell.Cell(row=line, col=16, value=player["score"]["deployedShips"]))
-            cells.append(gspread.cell.Cell(row=line, col=17, value=player["ship_gp"]))
-            cells.append(gspread.cell.Cell(row=line, col=19, value=player["score"]["deployedChars"]))
-            cells.append(gspread.cell.Cell(row=line, col=20, value=player["char_gp"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=player["score"]["deployedShips"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+4, value=player["ship_gp"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=player["score"]["deployedChars"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+7, value=player["char_gp"]))
 
         total_strikes = 0
-        player_strikes = 0
         i_zone = 1
         for zone_fullname in dict_open_zones:
             strike_txt = ""
             conflict = zone_fullname.split("_")[-1]
+
+            #loop on all existing strikes in the TB dictionary
             i_strike = 1
             for strike in dict_tb[zone_fullname]["strikes"]:
                 total_strikes += 1
                 conflict_strike = conflict+"_"+strike
                 if conflict_strike in player["strikes"]:
-                    player_strikes += 1
                     strike_txt += "S"+str(i_strike)+" "
                 i_strike+=1
-            cells.append(gspread.cell.Cell(row=line, col=21+i_zone, value=strike_txt))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=strike_txt))
             i_zone += 1
-        cells.append(gspread.cell.Cell(row=line, col=25, value=str(player_strikes)+"/"+str(total_strikes)))
+        player_strikes = len(player["strikes"])
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+12, value=str(player_strikes)+"/"+str(total_strikes)))
 
         line += 1
 
-    while line<53:
-        cells.append(gspread.cell.Cell(row=line, col=14, value=""))
-        cells.append(gspread.cell.Cell(row=line, col=15, value=""))
-        cells.append(gspread.cell.Cell(row=line, col=16, value=""))
-        cells.append(gspread.cell.Cell(row=line, col=17, value=""))
-        cells.append(gspread.cell.Cell(row=line, col=19, value=""))
-        cells.append(gspread.cell.Cell(row=line, col=20, value=""))
+    while line<player_row1+52:
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+2, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+4, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+7, value=""))
         line += 1
 
 
