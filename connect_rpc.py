@@ -897,6 +897,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 
                 tb_round_endTime = int(battleStatus["currentRoundEndTime"])
                 tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
+                tb_startTime = tb_round_endTime - tb_round * dict_tb[tb_type]["PhaseDuration"]
 
                 if battle_id in dict_all_events:
                     dict_events=dict_all_events[battle_id]
@@ -906,11 +907,6 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 
     if not tb_ongoing:
         return 1, "No TB on-going", None
-
-    #check members active during TB
-    summary_stats = [x["playerStat"] for x in battleStatus["currentStat"] if x["mapStatId"]=="summary"][0]
-    for member in summary_stats:
-        dict_members_by_id[member["memberId"]]['tb_participant'] = True
 
     query = "SELECT name, char_gp, ship_gp, playerId FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
     goutils.log2("DBG", query)
@@ -922,8 +918,9 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
     dict_phase = {"id": battle_id, "round": tb_round, "type": tb_type, "name": dict_tb[tb_type]["name"]}
 
     for playername_gp_id in list_playername_gp_id:
-        #test if player participates to TB
-        if not 'tb_participant' in dict_members_by_id[playername_gp_id[3]]:
+        #test if player participates to TB - if joined guild after start of TB
+        guildJoinTime = int(dict_members_by_id[playername_gp_id[3]]["guildJoinTime"]) * 1000
+        if guildJoinTime > tb_startTime:
             continue
 
         dict_tb_players[playername_gp_id[0]] = {}
