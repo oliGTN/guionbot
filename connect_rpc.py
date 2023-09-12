@@ -731,22 +731,27 @@ async def get_guildLog_messages(server_id):
                                         leader_opponent="UNKNOWN_LEADER"
 
                                 if activity["warSquad"]["squadStatus"]=="SQUADAVAILABLE":
-                                    count_dead=0
-                                    remaining_tm=False
+                                    activity_txt = "DEFAITE@"+zone_name+" : "+author+" a perdu contre "+leader_opponent
                                     if "squad" in activity["warSquad"]:
+                                        count_dead=0
+                                        squad_size = len(activity["warSquad"]["squad"]["cell"])
+                                        remaining_tm=False
                                         for cell in activity["warSquad"]["squad"]["cell"]:
                                             if cell["unitState"]["healthPercent"] == "0":
                                                 count_dead+=1
-                                            if cell["unitState"]["turnPercent"] != "100" \
-                                                and cell["unitState"]["turnPercent"] != "0":
+                                            if cell["unitState"]["turnPercent"] != "0":
                                                 remaining_tm=True
+                                        activity_txt += " (reste "+str(squad_size-count_dead)+")"
 
-                                    activity_txt = "DEFAITE@"+zone_name+" : "+author+" a perdu contre "+leader_opponent+" ("+str(count_dead)+" morts)"
+                                        if count_dead==0 and remaining_tm:
+                                            activity_txt = "\N{CROSS MARK}"+activity_txt+" >>> TM !!!"
+                                        else:
+                                            activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt
 
-                                    if count_dead==0 and remaining_tm:
-                                        activity_txt = "\N{CROSS MARK}"+activity_txt+" >>> TM !!!"
                                     else:
+                                        activity_txt += " (mode avion)"
                                         activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt
+
 
                                 elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
                                     if "squad" in activity["warSquad"]:

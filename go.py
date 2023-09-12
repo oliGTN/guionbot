@@ -4300,21 +4300,25 @@ def print_events(fevent_name, fguild_name):
                                 leader_opponent="UNKNOWN_LEADER"
 
                         if activity["warSquad"]["squadStatus"]=="SQUADAVAILABLE":
-                            count_dead=0
-                            remaining_tm=False
                             if "squad" in activity["warSquad"]:
+                                count_dead=0
+                                remaining_tm=False
                                 for cell in activity["warSquad"]["squad"]["cell"]:
                                     if cell["unitState"]["healthPercent"] == "0":
                                         count_dead+=1
-                                    if cell["unitState"]["turnPercent"] != "100" \
+                                    if cell["unitState"]["turnPercent"] != "0" \
                                         and cell["unitState"]["turnPercent"] != "0":
                                         remaining_tm=True
+                                squad_size = len(activity["warSquad"]["squad"]["cell"])
 
-                            sys.stdout.write(str(time)+" DEFAITE@"+zone_name+" : "+author+" "+leader_opponent+" ("+str(count_dead)+" morts)")
-                            if count_dead==0 and remaining_tm:
-                                sys.stdout.write(" >>> TM !!!\n")
+                                sys.stdout.write(str(time)+" DEFAITE@"+zone_name+" : "+author+" "+leader_opponent+" (reste "+str(squad_size - count_dead)+")")
+
+                                if count_dead==0 and remaining_tm:
+                                    sys.stdout.write(" >>> TM !!!\n")
+                                else:
+                                    sys.stdout.write("\n")
                             else:
-                                sys.stdout.write("\n")
+                                sys.stdout.write(str(time)+" DEFAITE@"+zone_name+" : "+author+" "+leader_opponent+" (mode avion)\n")
 
                         elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
                             if "squad" in activity["warSquad"]:
