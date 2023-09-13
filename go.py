@@ -4779,7 +4779,10 @@ async def get_tw_insufficient_attacks(server_id, min_char_attacks, min_ship_atta
             char_attacks = 0
             ship_attacks = 0
 
-        fulldef = dict_fulldef[player]
+        if player in dict_fulldef:
+            fulldef = dict_fulldef[player]
+        else:
+            fulldef = False
         dict_insufficient_attacks[player] = [None, None, fulldef]
         if char_attacks < min_char_attacks:
             dict_insufficient_attacks[player][0] = char_attacks
