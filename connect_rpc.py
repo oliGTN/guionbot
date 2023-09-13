@@ -616,10 +616,6 @@ async def parse_tw_opponent_teams(server_id, force_update):
     return 0, "", [list_teams, list_territories]
 
 async def get_guildLog_messages(server_id):
-    FRE_FR = godata.get('FRE_FR.json')
-    dict_unitsList = godata.get("unitsList_dict.json")
-    dict_tw = godata.dict_tw
-    dict_tb = godata.dict_tb
 
     query = "SELECT bot_android_id, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
             "FROM guild_bot_infos WHERE server_id="+str(server_id)
@@ -648,6 +644,27 @@ async def get_guildLog_messages(server_id):
     dict_events = rpc_data[2]
 
     guildId = dict_guild["profile"]["id"]
+
+    list_chat_events, list_tw_logs, list_tb_logs = await get_logs_from_events(dict_events, guildId, chatLatest_ts)
+
+    list_all_logs = list_chat_events+list_tw_logs+list_tb_logs
+    if len(list_all_logs)>0:
+        list_all_logs = sorted(list_all_logs, key=lambda x:x[0])
+
+        max_ts = list_all_logs[-1][0]
+        query = "UPDATE guild_bot_infos SET chatLatest_ts="+str(max_ts)+" WHERE server_id="+str(server_id)
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+    return 0, "", {"CHAT": [chatChan_id, list_chat_events],
+                   "TW": [twlogChan_id, list_tw_logs],
+                   "TB": [tblogChan_id, list_tb_logs],}
+
+async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
+    FRE_FR = godata.get('FRE_FR.json')
+    dict_unitsList = godata.get("unitsList_dict.json")
+    dict_tw = godata.dict_tw
+    dict_tb = godata.dict_tb
 
     list_chat_events = []
     list_tw_logs = []
@@ -797,18 +814,7 @@ async def get_guildLog_messages(server_id):
 
                         list_tb_logs.append([event_ts, activity_txt])
 
-    list_all_logs = list_chat_events+list_tw_logs+list_tb_logs
-    if len(list_all_logs)>0:
-        list_all_logs = sorted(list_all_logs, key=lambda x:x[0])
-
-        max_ts = list_all_logs[-1][0]
-        query = "UPDATE guild_bot_infos SET chatLatest_ts="+str(max_ts)+" WHERE server_id="+str(server_id)
-        goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
-
-    return 0, "", {"CHAT": [chatChan_id, list_chat_events],
-                   "TW": [twlogChan_id, list_tw_logs],
-                   "TB": [tblogChan_id, list_tb_logs],}
+    return list_chat_events, list_tw_logs, list_tb_logs
 
 async def tag_tb_undeployed_players(server_id, force_update):
     dict_tb=godata.dict_tb
