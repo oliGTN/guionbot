@@ -751,13 +751,13 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                         #Add farming info
                         for event in dict_unitsList[character_id]['farmingInfo']:
                             if event[0].startswith('C01'):
-                                if event[0][3:] == 'L':
+                                if event[0]["campaignId"][3:] == 'L':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0][3:] == 'D':
+                                elif event[0]["campaignId"][3:] == 'D':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0][3:] == 'H':
+                                elif event[0]["campaignId"][3:] == 'H':
                                     color_emoji = "\N{LARGE RED CIRCLE}"
-                                elif event[0][3:] == 'SP':
+                                elif event[0]["campaignId"][3:] == 'SP':
                                     color_emoji = "\N{LARGE BLUE CIRCLE}"
                                 else:
                                     color_emoji = None
@@ -822,14 +822,14 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
                         #Add farming info
                         for event in dict_unitsList[character_id]['farmingInfo']:
-                            if event[0].startswith('C01'):
-                                if event[0][3:] == 'L':
+                            if event[0]["campaignId"].startswith('C01'):
+                                if event[0]["campaignId"][3:] == 'L':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0][3:] == 'D':
+                                elif event[0]["campaignId"][3:] == 'D':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0][3:] == 'H':
+                                elif event[0]["campaignId"][3:] == 'H':
                                     color_emoji = "\N{LARGE RED CIRCLE}"
-                                elif event[0][3:] == 'SP':
+                                elif event[0]["campaignId"][3:] == 'SP':
                                     color_emoji = "\N{LARGE BLUE CIRCLE}"
                                 else:
                                     color_emoji = None
@@ -1442,13 +1442,13 @@ def print_fegv(txt_allyCode):
 
         for event in dict_unitsList[character_id]['farmingInfo']:
             if event[0].startswith('C01'):
-                if event[0][3:] == 'L':
+                if event[0]["campaignId"][3:] == 'L':
                     color_emoji = "\N{Large Yellow Circle}"
-                elif event[0][3:] == 'D':
+                elif event[0]["campaignId"][3:] == 'D':
                     color_emoji = "\N{Large Yellow Circle}"
-                elif event[0][3:] == 'H':
+                elif event[0]["campaignId"][3:] == 'H':
                     color_emoji = "\N{LARGE RED CIRCLE}"
-                elif event[0][3:] == 'SP':
+                elif event[0]["campaignId"][3:] == 'SP':
                     color_emoji = "\N{LARGE BLUE CIRCLE}"
                 else:
                     color_emoji = None
@@ -4731,3 +4731,60 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
                         goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
 
     return list_missing_platoons, list_err
+
+#############################
+# IN: dict_player
+# IN: unit_id
+# OUT: [kyro_energy, shard_energy={"yellow"=23, "red"=30, "blue"=200}]
+#############################
+def get_unit_farm_energy(dict_player, unit_id):
+    dict_unitsList = godata.get("unitsList_dict.json")
+
+    #SHARDS
+    if unit_id in dict_player["rosterUnit"]:
+        unit_rarity = dict_player["rosterUnit"][unit_id]["currentRarity"]
+    else:
+        unit_rarity = 0
+
+    d_stars = {0:0, 1:10, 2:25, 3:50, 4:80, 5:145, 6: 230, 7:330}
+    d_energy = {}
+    d_energy["yellow"] = {"M01":12, "M02":12, "M03":12,
+                          "M04":12, "M05":16, "M06":16,
+                          "M07":20, "M08":20, "M09":20}
+    d_energy["red"] =    {"M01": 8, "M02": 8, "M03":10,
+                          "M04":10, "M05":12, "M06":12,
+                          "M07":16, "M08":16}
+    d_energy["blue"] =   {"M01":16, "M02":20, "M03":20,
+                          "M04":20, "M05":20}
+                          
+    needed_shards = d_stars[7-unit_rarity]
+    shard_energy = {}
+    if "farmingInfo" in dict_unitsList[unit_id]:
+        for farming_location in dict_unitsList[unit_id]['farmingInfo']:
+            campaignId = farming_location[0]["campaignId"]
+            if campaignId.startswith('C01'):
+                if campaignId[3:] == 'L':
+                    energy_color = "yellow"
+                elif campaignId[3:] == 'D':
+                    energy_color = "yellow"
+                elif campaignId[3:] == 'H':
+                    energy_color = "red"
+                elif campaignId[3:] == 'SP':
+                    energy_color = "blue"
+
+            tab = farming_location[0]["campaignMapId"]
+            farming_speed = farming_location[1]
+            shard_cost = d_energy[energy_color][tab]
+            needed_energy = shard_cost * needed_shards / farming_speed
+
+            if not energy_color in shard_energy:
+                shard_energy[energy_color] = needed_energy
+            else:
+                current_energy = shard_energy[energy_color]
+                if current_energy > needed_energy:
+                    shard_energy[energy_color] = needed_energy
+
+    return 0, shard_energy
+
+
+
