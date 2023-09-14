@@ -79,7 +79,7 @@ for unit in game_data["units"]:
         if 'lookupMission' in materialList_dict[shard_name]:
             for event in materialList_dict[shard_name]['lookupMission']:
                 if not event['missionIdentifier']['campaignMapId'] == 'MARQUEE':
-                    farmingLocation = event['missionIdentifier']['campaignId']
+                    farmingLocation = event['missionIdentifier']
                     if not [farmingLocation, farmingSpeed] in unitsList_dict[unit_id]["farmingInfo"]:
                         unitsList_dict[unit_id]["farmingInfo"].append([farmingLocation, farmingSpeed])
 
