@@ -750,14 +750,15 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
                         #Add farming info
                         for event in dict_unitsList[character_id]['farmingInfo']:
-                            if event[0].startswith('C01'):
-                                if event[0]["campaignId"][3:] == 'L':
+                            campaignId = event[0]["campaignId"]
+                            if campaignId.startswith('C01'):
+                                if campaignId[3:] == 'L':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0]["campaignId"][3:] == 'D':
+                                elif campaignId[3:] == 'D':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0]["campaignId"][3:] == 'H':
+                                elif campaignId[3:] == 'H':
                                     color_emoji = "\N{LARGE RED CIRCLE}"
-                                elif event[0]["campaignId"][3:] == 'SP':
+                                elif campaignId[3:] == 'SP':
                                     color_emoji = "\N{LARGE BLUE CIRCLE}"
                                 else:
                                     color_emoji = None
@@ -822,14 +823,15 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
                         #Add farming info
                         for event in dict_unitsList[character_id]['farmingInfo']:
-                            if event[0]["campaignId"].startswith('C01'):
-                                if event[0]["campaignId"][3:] == 'L':
+                            campaignId = event[0]["campaignId"]
+                            if campaignId.startswith('C01'):
+                                if campaignId[3:] == 'L':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0]["campaignId"][3:] == 'D':
+                                elif campaignId[3:] == 'D':
                                     color_emoji = "\N{Large Yellow Circle}"
-                                elif event[0]["campaignId"][3:] == 'H':
+                                elif campaignId[3:] == 'H':
                                     color_emoji = "\N{LARGE RED CIRCLE}"
-                                elif event[0]["campaignId"][3:] == 'SP':
+                                elif campaignId[3:] == 'SP':
                                     color_emoji = "\N{LARGE BLUE CIRCLE}"
                                 else:
                                     color_emoji = None
@@ -1441,14 +1443,15 @@ def print_fegv(txt_allyCode):
             character_display = "["+gv_target_name+"] "+character_name+" "+str(line[3])+"/"+str(line[2])+" étoiles"
 
         for event in dict_unitsList[character_id]['farmingInfo']:
-            if event[0].startswith('C01'):
-                if event[0]["campaignId"][3:] == 'L':
+            campaignId = event[0]["campaignId"]
+            if campaignId.startswith('C01'):
+                if campaignId[3:] == 'L':
                     color_emoji = "\N{Large Yellow Circle}"
-                elif event[0]["campaignId"][3:] == 'D':
+                elif campaignId[3:] == 'D':
                     color_emoji = "\N{Large Yellow Circle}"
-                elif event[0]["campaignId"][3:] == 'H':
+                elif campaignId[3:] == 'H':
                     color_emoji = "\N{LARGE RED CIRCLE}"
-                elif event[0]["campaignId"][3:] == 'SP':
+                elif campaignId[3:] == 'SP':
                     color_emoji = "\N{LARGE BLUE CIRCLE}"
                 else:
                     color_emoji = None
