@@ -18,17 +18,17 @@ for material in game_data["material"]:
 
 ####################
 #add custom data
-my_unit = {"baseId": "GLLEIA",
-           "nameKey":"UNIT_GLLEIA_NAME",    # the key is defined a few lines below
-           "combatType":1,                  # 1: char / 2: ship
-           "rarity":7,
-           "maxRarity":7,
-           "obtainableTime":"0",
-           "obtainable":True,
-           "categoryId":["any_obtainable"]}
-game_data["units"].append(my_unit)
-FRE_FR["UNIT_GLLEIA_NAME"] = "Leia Organa"
-ENG_US["UNIT_GLLEIA_NAME"] = "Leia Organa"
+#my_unit = {"baseId": "GLLEIA",
+#           "nameKey":"UNIT_GLLEIA_NAME",    # the key is defined a few lines below
+#           "combatType":1,                  # 1: char / 2: ship
+#           "rarity":7,
+#           "maxRarity":7,
+#           "obtainableTime":"0",
+#           "obtainable":True,
+#           "categoryId":["any_obtainable"]}
+#game_data["units"].append(my_unit)
+#FRE_FR["UNIT_GLLEIA_NAME"] = "Leia Organa"
+#ENG_US["UNIT_GLLEIA_NAME"] = "Leia Organa"
 ####################
 
 unitsList_dict = {}
