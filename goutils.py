@@ -134,12 +134,18 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
             line_relic_currentTier = line[6]
             line_gp = line[7]
             line_speed = int(line[8])
+            line_equipment = line[9]
+            equipment = []
+            for i_eqpt in range(5):
+                if line_equipment[i_eqpt]=="1":
+                    equipment.append({"equipmentId":"XXX", "slot":i_eqpt})
             line_character={ \
-                "rarity": line_rarity,
-                "gear": line_gear,
-                "relic_currentTier": line_relic_currentTier,
+                "currentRarity": line_rarity,
+                "currentTier": line_gear,
+                "relic": {"currentTier": line_relic_currentTier},
                 "gp": line_gp,
                 "speed": line_speed,
+                "equipment": equipment,
                 "zetas": {},
                 "omicrons": {},
                 "reserved": False}
@@ -219,7 +225,7 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
             dict_players[line_playername][1][line_teamname] = {}
         if not line_defId in dict_players[line_playername][1][line_teamname]:
             dict_players[line_playername][1][line_teamname][line_defId]={ \
-                                                "rarity": line_rarity}
+                                                "currentRarity": line_rarity}
 
     return dict_players
     
@@ -466,7 +472,7 @@ def delta_dict_player(dict1, dict2):
     delta_dict['rosterUnit'] = {}
 
     #compare player information
-    for info in ["playerId", "guildName", "guildId", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes"]:
+    for info in ["playerId", "guildName", "guildId", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes", "equipment"]:
         if not info in dict2:
             dict2[info] = None
         if not info in dict1:

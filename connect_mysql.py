@@ -507,6 +507,19 @@ async def update_player(dict_player):
                    +"    rarity = "+str(c_rarity)+", "\
                    +"    relic_currentTier = "+str(c_relic_currentTier)+" "
 
+            equipment = [False, False, False, False, False, False]
+            if "equipment" in character:
+                for eqpt in character["equipment"]:
+                    equipment[eqpt["slot"]] = True
+            eqpt_txt = ""
+            for i in range(5, -1, -1):
+                if equipment[i]:
+                    eqpt_txt += "1"
+                else:
+                    eqpt_txt += "0"
+
+            query += ",equipment = '"+eqpt_txt+"' "
+
             if "stats" in character:
                 for stat_id in ['1', '5', '6', '7', '14', '15', '16', '17', '18', '28']:
                     stat_value = 0

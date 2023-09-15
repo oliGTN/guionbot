@@ -600,7 +600,8 @@ async def load_shard(shard_id, shard_type, cmd_request):
 
     return 0, ""
 
-async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name):
+#IN: score_type (1: progress % / 2: yellow energy)
+async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv_mode, player_name, score_type):
     dict_unitsList = godata.get("unitsList_dict.json")
     line = ''
 
@@ -618,6 +619,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
         dict_player = dict_teams[player_name][1][team_name]
     else:
         dict_player = {}
+    print(dict_player)
     
     #INIT tableau des resultats
     tab_progress_player = [[] for i in range(nb_subobjs)]
@@ -652,7 +654,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 #Etoiles
                 req_rarity_min = character_obj[1]
                 req_rarity_reco = character_obj[3]
-                player_rarity = dict_player[character_id]['rarity']
+                player_rarity = dict_player[character_id]['currentRarity']
                 progress_100 = progress_100 + 1
                 progress = progress + min(1, d_stars[player_rarity] / d_stars[req_rarity_reco])
                 if player_rarity < req_rarity_min:
@@ -681,11 +683,11 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                         req_relic_reco=int(req_gear_reco[-1])
                         req_gear_reco=13
 
-                player_gear = dict_player[character_id]['gear']
+                player_gear = dict_player[character_id]['currentTier']
                 if player_gear < 13:
                     player_relic = 0
                 else:
-                    player_relic = dict_player[character_id]['relic_currentTier'] - 2
+                    player_relic = dict_player[character_id]['relic']['currentTier'] - 2
 
                 progress_100 = progress_100 + 1
                 progress = progress + min(1, (player_gear+player_relic) / (req_gear_reco+req_relic_reco))
@@ -753,9 +755,9 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                             campaignId = event[0]["campaignId"]
                             if campaignId.startswith('C01'):
                                 if campaignId[3:] == 'L':
-                                    color_emoji = "\N{Large Yellow Circle}"
+                                    color_emoji = "\N{Large Yellow Circle}LS"
                                 elif campaignId[3:] == 'D':
-                                    color_emoji = "\N{Large Yellow Circle}"
+                                    color_emoji = "\N{Large Yellow Circle}DS"
                                 elif campaignId[3:] == 'H':
                                     color_emoji = "\N{LARGE RED CIRCLE}"
                                 elif campaignId[3:] == 'SP':
@@ -790,9 +792,18 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                                             character_name + \
                                             " est OK"
                     character_progress_100 = int(character_progress*100)
-                    character_display += " - " + str(character_progress_100) +"%"
 
-                #print(tab_progress_player)
+                if score_type == 1:
+                    character_display += " - " + str(character_progress_100) +"%"
+                if score_type == 2:
+                    #get required yellow energy for shards and kyros
+                    kyro_energy, shard_energy = get_unit_farm_energy({"rosterUnit":dict_player}, character_id)
+                    yellow_energy = kyro_energy
+                    if "yellow" in shard_energy:
+                        yellow_energy += shard_energy["yellow"]
+                    character_progress = yellow_energy
+                    character_display += " - " + str(int(yellow_energy))
+
                 tab_progress_player[i_subobj][i_character - 1][0] = character_progress
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = character_nogo
@@ -805,8 +816,16 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 if gv_mode:
                     character_id_team = character_id + '-GV'
                     if character_id_team in dict_teams[player_name][1]:
-                        score, unlocked, character_display, nogo, list_char = await get_team_line_from_player(team_name_path+'/'+character_id_team,
-                            dict_teams, dict_team_gt, gv_mode, player_name)
+                        score,  \
+                        unlocked,  \
+                        character_display,  \
+                        nogo,  \
+                        list_char = await get_team_line_from_player(team_name_path+'/'+character_id_team,
+                                                                    dict_teams, 
+                                                                    dict_team_gt, 
+                                                                    gv_mode, 
+                                                                    player_name, 
+                                                                    score_type)
 
                         #Unlocking a chatacter only gives the rarity so by default 50%
                         score = score / 200.0
@@ -814,21 +833,21 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                         weight = 1
                         character_display = "\N{CROSS MARK} "+\
                                             character_name + \
-                                            " n'est pas débloqué - "+str(int(score*100))+"%"
+                                            " n'est pas débloqué"
                     else:
                         score = 0
                         character_display = "\N{CROSS MARK} "+\
                                             character_name + \
-                                            " n'est pas débloqué - 0%"
+                                            " n'est pas débloqué"
 
                         #Add farming info
                         for event in dict_unitsList[character_id]['farmingInfo']:
                             campaignId = event[0]["campaignId"]
                             if campaignId.startswith('C01'):
                                 if campaignId[3:] == 'L':
-                                    color_emoji = "\N{Large Yellow Circle}"
+                                    color_emoji = "\N{Large Yellow Circle}LS"
                                 elif campaignId[3:] == 'D':
-                                    color_emoji = "\N{Large Yellow Circle}"
+                                    color_emoji = "\N{Large Yellow Circle}DS"
                                 elif campaignId[3:] == 'H':
                                     color_emoji = "\N{LARGE RED CIRCLE}"
                                 elif campaignId[3:] == 'SP':
@@ -854,6 +873,17 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                     nogo = True
                     weight = 1
 
+                if score_type == 1:
+                    character_display += " - " + str(score*100) +"%"
+                if score_type == 2:
+                    #get required yellow energy for shards and kyros
+                    kyro_energy, shard_energy = get_unit_farm_energy({"rosterUnit":dict_player}, character_id)
+                    yellow_energy = kyro_energy
+                    if "yellow" in shard_energy:
+                        yellow_energy += shard_energy["yellow"]
+                    score = yellow_energy
+                    character_display += " - " + str(int(yellow_energy))
+
                 tab_progress_player[i_subobj][i_character - 1][0] = score
                 tab_progress_player[i_subobj][i_character - 1][1] = character_display
                 tab_progress_player[i_subobj][i_character - 1][2] = nogo
@@ -863,16 +893,24 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
 
 
+
     #calcul du score global
     score = 0
     score100 = 0
     score_nogo = False
+    yellow_energy = 0
     list_char_id = []
     sorted_tab_progress = [[]] * len(tab_progress_player)
     for i_subobj in range(0, nb_subobjs):
         #Sort best characters first
         min_perso = objectifs[i_subobj][1] #Minimum characters to be ready for this sub objective
-        sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((-x[0] * (not x[2])), -x[0]))
+
+        if score_type == 1:
+            #sort by %, descending (higher score on top)
+            sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((-x[0] * (not x[2])), -x[0]))
+        else:
+            #sort by yellow energy, ascending (higher score on top)
+            sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((x[0] * (not x[2])), -x[0]))
 
         #remove already used characters
         for char in sorted_tab_progress[i_subobj]:
@@ -881,8 +919,10 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
         #Compute scores on the best characters
         top_tab_progress = sorted_tab_progress[i_subobj][:min_perso]
-        top_scores_weighted = [x[0] * (not x[2]) * x[4] for x in top_tab_progress]
-        sum_scores = sum(top_scores_weighted)
+        top_scores = [x[0] for x in top_tab_progress]
+        sum_scores = sum(top_scores)
+        top_weighted_scores = [x[0] * (not x[2]) * x[4] for x in top_tab_progress]
+        sum_weighted_scores = sum(top_weighted_scores)
         top_weights = [x[4] for x in top_tab_progress]
         sum_weights = sum(top_weights)
 
@@ -893,10 +933,13 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
             if char_id in top_chars:
                 list_char_id.append(char_id)
 
-        score += sum_scores
-        score100 += sum_weights
+        if score_type==1:
+            score += sum_weighted_scores
+            score100 += sum_weights
+        else:
+            score += sum_scores
         
-        if 0.0 in top_scores_weighted:
+        if 0.0 in top_weighted_scores:
             score_nogo = True
 
         #Display the header of team requirements, for this category
@@ -912,7 +955,8 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 line += subobj_char_display + "\n"
 
     #pourcentage sur la moyenne
-    score = score / score100 * 100
+    if score_type == 1:
+        score = score / score100 * 100
 
     goutils.log2("DBG", "list_char_id = " + str(list_char_id))
         
@@ -923,7 +967,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
         target_character = team_name[:-3]
         target_rarity = dict_team["rarity"]
         if target_character in dict_player:
-            if dict_player[target_character]["rarity"] >= target_rarity:
+            if dict_player[target_character]["currentRarity"] >= target_rarity:
                 unlocked = True
 
     #affichage du score
@@ -1019,7 +1063,7 @@ def get_team_header(team_name, objectifs):
     return entete
 
 #IN: gv_mode (0: VTJ, 1: GVJ, 2: FTJ)
-async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, exclusive_player_list, gv_mode, dict_tw_def):
+async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, exclusive_player_list, gv_mode, dict_tw_def, score_type):
     dict_unitsList = godata.get("unitsList_dict.json")
     ret_get_team_progress = {}
 
@@ -1083,7 +1127,8 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
            +"gear, "\
            +"relic_currentTier, "\
            +"gp, "\
-           +"stat5 as speed "\
+           +"stat5 as speed, "\
+           +"equipment "\
            +"FROM players " \
            +"JOIN guild_teams " \
            +"JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id "\
@@ -1240,7 +1285,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
 
                 #resultats par joueur
                 score, unlocked, line, nogo, list_char = await get_team_line_from_player(team_name,
-                    dict_teams, dict_team_gt, gv_mode>0, player_name)
+                    dict_teams, dict_team_gt, gv_mode>0, player_name, score_type)
                 tab_lines.append([score, unlocked, line, nogo, player_name, list_char])
 
                 if score >= SCORE_GREEN and not nogo:
@@ -1281,7 +1326,7 @@ async def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
         list_active_players = None
 
     guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
-                                              server_id, 1, list_active_players, 0, dict_def_toon_player)
+                                              server_id, 1, list_active_players, 0, dict_def_toon_player, 1)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
         return 1, ret_get_team_progress
@@ -1356,7 +1401,7 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
         list_active_players = None
 
     player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
-                                              server_id, 0, list_active_players, 0, dict_def_toon_player)
+                                              server_id, 0, list_active_players, 0, dict_def_toon_player, 1)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
@@ -1446,9 +1491,9 @@ def print_fegv(txt_allyCode):
             campaignId = event[0]["campaignId"]
             if campaignId.startswith('C01'):
                 if campaignId[3:] == 'L':
-                    color_emoji = "\N{Large Yellow Circle}"
+                    color_emoji = "\N{Large Yellow Circle}LS"
                 elif campaignId[3:] == 'D':
-                    color_emoji = "\N{Large Yellow Circle}"
+                    color_emoji = "\N{Large Yellow Circle}DS"
                 elif campaignId[3:] == 'H':
                     color_emoji = "\N{LARGE RED CIRCLE}"
                 elif campaignId[3:] == 'SP':
@@ -1472,7 +1517,7 @@ def print_fegv(txt_allyCode):
 async def print_ftj(txt_allyCode, team, server_id):
     ret_print_ftj = ""
 
-    player_name, ret_get_team_progress = await get_team_progress([team], txt_allyCode, server_id, 0, None, 2, {})
+    player_name, ret_get_team_progress = await get_team_progress([team], txt_allyCode, server_id, 0, None, 2, {}, 1)
     #print(team)
     #print(ret_get_team_progress)
     if type(ret_get_team_progress) == str:
@@ -1500,7 +1545,7 @@ async def print_ftj(txt_allyCode, team, server_id):
 async def print_gvj(list_team_names, txt_allyCode):
     ret_print_gvj = ""
 
-    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {})
+    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {}, 1)
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
@@ -1561,7 +1606,7 @@ async def print_gvj(list_team_names, txt_allyCode):
 async def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
 
-    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 1, None, 1, {})
+    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 1, None, 1, {}, 1)
 
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -1607,7 +1652,7 @@ async def print_gvg(list_team_names, txt_allyCode):
 async def print_gvs(list_team_names, txt_allyCode):
     ret_print_gvs = ""
 
-    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 2, None, 1, {})
+    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 2, None, 1, {}, 1)
 
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -2903,7 +2948,7 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: Guide non déclarée dans le bot", ""
 
-    guild_name, dict_teams = await get_team_progress(tb_team_names, txt_allyCode, server_id, 1, None, 0, {})
+    guild_name, dict_teams = await get_team_progress(tb_team_names, txt_allyCode, server_id, 1, None, 0, {}, 1)
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -4742,14 +4787,25 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
 #############################
 def get_unit_farm_energy(dict_player, unit_id):
     dict_unitsList = godata.get("unitsList_dict.json")
+    dict_eqpt = godata.get("eqpt_dict.json")
+    FRE_FR = godata.get("FRE_FR.json")
+    shard_droprate = 0.3
+    kyro_droprate = 0.2
 
     #SHARDS
     if unit_id in dict_player["rosterUnit"]:
+        print(dict_player["rosterUnit"][unit_id])
         unit_rarity = dict_player["rosterUnit"][unit_id]["currentRarity"]
+        unit_gear = dict_player["rosterUnit"][unit_id]["currentTier"]
+        unit_eqpt = [None, None, None, None, None, None]
+        for eqpt in dict_player["rosterUnit"][unit_id]["equipment"]:
+            unit_eqpt[eqpt["slot"]] = eqpt["equipmentId"]
     else:
         unit_rarity = 0
+        unit_gear = 1
+        unit_eqpt = [None, None, None, None, None, None]
 
-    d_stars = {0:0, 1:10, 2:25, 3:50, 4:80, 5:145, 6: 230, 7:330}
+    d_stars = {0:330, 1:320, 2:305, 3:280, 4:230, 5:185, 6: 100, 7:0}
     d_energy = {}
     d_energy["yellow"] = {"M01":12, "M02":12, "M03":12,
                           "M04":12, "M05":16, "M06":16,
@@ -4760,7 +4816,7 @@ def get_unit_farm_energy(dict_player, unit_id):
     d_energy["blue"] =   {"M01":16, "M02":20, "M03":20,
                           "M04":20, "M05":20}
                           
-    needed_shards = d_stars[7-unit_rarity]
+    needed_shards = d_stars[unit_rarity]
     shard_energy = {}
     if "farmingInfo" in dict_unitsList[unit_id]:
         for farming_location in dict_unitsList[unit_id]['farmingInfo']:
@@ -4774,11 +4830,18 @@ def get_unit_farm_energy(dict_player, unit_id):
                     energy_color = "red"
                 elif campaignId[3:] == 'SP':
                     energy_color = "blue"
+            else:
+                #not a energy node, go to next farming location
+                continue
 
+            print(farming_location)
             tab = farming_location[0]["campaignMapId"]
             farming_speed = farming_location[1]
             shard_cost = d_energy[energy_color][tab]
-            needed_energy = shard_cost * needed_shards / farming_speed
+            needed_energy = shard_cost * needed_shards / farming_speed / shard_droprate
+            #print("farming_speed="+str(farming_speed))
+            #print("needed_shards="+str(needed_shards))
+            #print("shard_cost="+str(shard_cost))
 
             if not energy_color in shard_energy:
                 shard_energy[energy_color] = needed_energy
@@ -4787,7 +4850,57 @@ def get_unit_farm_energy(dict_player, unit_id):
                 if current_energy > needed_energy:
                     shard_energy[energy_color] = needed_energy
 
-    return 0, shard_energy
+    # Kyros
+    needed_eqpt = {} #key=eqpt_id, value=count
+    kyro_energy = 0
+    if unit_gear < 13 and dict_unitsList[unit_id]["combatType"]==1:
+        # current tier
+        tier_eqpt = dict_unitsList[unit_id]["unitTier"][unit_gear-1]["equipmentSet"]
+        for pos_eqpt in [0, 1, 2, 3, 4, 5]:
+            if unit_eqpt[pos_eqpt]==None:
+                if not tier_eqpt[pos_eqpt] in needed_eqpt:
+                    needed_eqpt[tier_eqpt[pos_eqpt]] = 0
+                needed_eqpt[tier_eqpt[pos_eqpt]] += 1
+            #print(needed_eqpt)
+
+        # other tiers
+        for i_gear in range(unit_gear, 12):
+            tier_eqpt = dict_unitsList[unit_id]["unitTier"][i_gear]["equipmentSet"]
+            #print(str(i_gear+1)+": "+str(tier_eqpt))
+            for eqpt in tier_eqpt:
+                if not eqpt in needed_eqpt:
+                    needed_eqpt[eqpt] = 0
+                needed_eqpt[eqpt] += 1
+            #print(needed_eqpt)
+
+        #loop to breakdown equipments
+        continue_loop = True
+        while(continue_loop):
+            continue_loop = False
+            eqpt_id_list = list(needed_eqpt.keys())
+            for eqpt_id in eqpt_id_list:
+                if eqpt_id in dict_eqpt and "recipe" in dict_eqpt[eqpt_id]:
+                    continue_loop = True
+                    eqpt_count = needed_eqpt[eqpt_id]
+                    recipe = dict_eqpt[eqpt_id]["recipe"]
+                    for ingredient in recipe:
+                        if not ingredient["id"] in needed_eqpt:
+                            needed_eqpt[ingredient["id"]] = 0
+                        needed_eqpt[ingredient["id"]] += eqpt_count * ingredient["maxQuantity"]
+                    del needed_eqpt[eqpt_id]
+
+        #for eqpt_id in needed_eqpt:
+        #    if eqpt_id == "GRIND":
+        #        print("Credits: "+str(needed_eqpt[eqpt_id]))
+        #    else:
+        #        print("["+eqpt_id+"]"+FRE_FR[dict_eqpt[eqpt_id]["nameKey"]]+": "+str(needed_eqpt[eqpt_id]))
+
+        if "172Salvage" in needed_eqpt:
+            kyro_energy += needed_eqpt["172Salvage"] * 10 / kyro_droprate
+        if "173Salvage" in needed_eqpt:
+            kyro_energy += needed_eqpt["173Salvage"] * 10 / kyro_droprate
+
+    return kyro_energy, shard_energy
 
 
 

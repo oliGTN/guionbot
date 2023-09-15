@@ -50,7 +50,6 @@ for material in game_data["material"]:
     material_id = material["id"]
     if not material_id.startswith("unitshard_"):
         continue
-    print(material_id)
     accelerated = (material["sellValue"]["quantity"]==15)
     dict_eqpt[material_id] = []
     if "lookupMission" in material:
@@ -64,6 +63,15 @@ for material in game_data["material"]:
             if accelerated:
                 cost = str(int(int(cost[:-1])/2))+cost[-1]
             dict_eqpt[material_id].append(cost)
+
+dict_recipes = {}
+for recipe in game_data["recipe"]:
+    dict_recipes[recipe["id"]] = recipe
+
+for equipment in game_data["equipment"]:
+    dict_eqpt[equipment["id"]] = equipment
+    if "recipeId" in equipment and equipment["recipeId"] in dict_recipes:
+        dict_eqpt[equipment["id"]]["recipe"] = dict_recipes[equipment["recipeId"]]["ingredients"]
 
 
 f=open("DATA/eqpt_dict.json", "w")
