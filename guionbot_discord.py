@@ -1863,6 +1863,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.send(ret_txt)
             await ctx.message.add_reaction(emoji_error)
 
+    #######################################################
+    # twrappel: creates a reminder for players not enough active in TW
+    # IN (optional): channel ID to post the reminder, with discord tags
+    #######################################################
     @commands.check(officer_command)
     @commands.command(name='twrappel',
             brief="Tag les joueurs qui n'ont pas assez attaqué en GT",
@@ -1921,6 +1925,60 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
                 output_txt += output_txt_player+"\n"
 
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await output_channel.send(txt)
+
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    #######################################################
+    # raidrappel: creates a reminder for players not enough active in raid
+    # IN (optional): channel ID to post the reminder, with discord tags
+    #######################################################
+    @commands.check(officer_command)
+    @commands.command(name='raidrappel',
+            brief="Tag les joueurs qui n'ont pas assez attaqué en raid (score = 0)",
+            help="go.raidrappel")
+    async def raidrappel(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        #Sortie sur un autre channel si donné en paramètre
+        args = list(args)
+        output_channel = ctx.message.channel
+        use_tags = False
+        for arg in args:
+            if arg.startswith('<#'):
+                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                use_tags = True
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+                    use_tags = True
+                args.remove(arg)
+
+        if len(args) != 0:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help raidrappel")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        raid_id, expire_time, list_inactive_players = await connect_rpc.get_raid_status(ctx.guild.id, True)
+        if raid_id != None:
+            dict_players_by_IG = connect_mysql.load_config_players()[0]
+            expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
+            output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp : \n"
+            if len(list_inactive_players) > 0 :
+                for p in sorted(list_inactive_players):
+                    if use_tags and p in dict_players_by_IG:
+                        p_name = dict_players_by_IG[p][1]
+                    else:
+                        p_name= p
+    
+                    output_txt += p_name+"\n"
+            else:
+                output_txt += "Tout le monde a joué\n"
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)

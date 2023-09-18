@@ -1701,3 +1701,55 @@ async def get_tw_leaderboard(server_id, force_update):
 
 
     return 0, "", dict_leaderboard
+
+########################################
+# get_raid_status
+# get status of current raid
+# raid_id: None / "kraytdragon"
+# expire_time: 169123456000
+# list_inactive_players: ["Karcot", "MolEliza", ...]
+########################################
+async def get_raid_status(server_id, force_update):
+    ec, et, rpc_data = await get_rpc_data(server_id, [], force_update)
+    if ec!=0:
+        return None, None, []
+
+    dict_guild=rpc_data[0]
+
+    dict_members_by_id={}
+    for member in dict_guild["member"]:
+        dict_members_by_id[member["playerId"]] = member
+
+    raid_id=None
+    if "raidStatus" in dict_guild:
+        for raidStatus in dict_guild["raidStatus"]:
+            raid_id = raidStatus["raidId"]
+            cur_raid = raidStatus
+
+    if raid_id == None:
+        return None, None, []
+
+    expire_time = int(raidStatus["expireTime"])
+    raid_join_time = raidStatus["joinPeriodEndTimeMs"]
+
+    dict_raid_members_by_id={}
+    for member in raidStatus["raidMember"]:
+        dict_raid_members_by_id[member["playerId"]] = member
+
+    list_inactive_players = []
+    for member_id in dict_members_by_id:
+        member = dict_members_by_id[member_id]
+        if member["guildJoinTime"]*1000 >= raid_join_time:
+            #player joined after start of raid
+            continue
+
+        if member_id in dict_raid_members_by_id:
+            score = int(dict_raid_members_by_id[member_id]["memberProgress"])
+            if score == 0:
+                #this is not enough
+                list_inactive_players.append(member["playerName"])
+        else:
+            #player has not played
+            list_inactive_players.append(member["playerName"])
+
+    return raid_id, expire_time, list_inactive_players
