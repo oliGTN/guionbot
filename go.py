@@ -1567,7 +1567,7 @@ async def print_gvj(list_team_names, txt_allyCode):
                                                 player_score, unlocked, "go.bot")
 
     else:
-        #Several tams
+        #Several teams
         player_name = ''
         for team in ret_get_team_progress:
             ret_team = ret_get_team_progress[team]
