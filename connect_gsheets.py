@@ -228,6 +228,7 @@ def load_config_teams(server_id, force_load):
 # Output:  dict_units {key=alias, value=[name, id]}
 ##############################################################
 def load_config_units(force_load):
+    dict_unitsList = data.get("unitsList_dict.json")
     json_file = "CACHE"+os.path.sep+"config_units.json"
 
     if force_load or not os.path.isfile(json_file):
@@ -250,14 +251,10 @@ def load_config_units(force_load):
     
         for ligne in list_dict_sheet[1:]:
             print(ligne)
-            full_name=ligne[1]
-            id=ligne[2]
+            id=ligne[1]
+            full_name = dict_unitsList[id]["name"]
 
-        #Full Name from file is not used as alias, because it is already read from json file
             if not full_name.lower() in dict_units:
-            #if dict_units[full_name.lower()][0] != full_name:
-                #print('ERR: double définition de '+full_name.lower()+': '+full_name+' et '+dict_units[full_name.lower()][0])
-        #else:
                 dict_units[full_name.lower()]=[full_name, id]
 
         # Char ID cannot be used as alias because of Rey
