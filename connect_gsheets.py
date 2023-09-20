@@ -788,9 +788,9 @@ async def update_gwarstats(server_id):
                 total_strikes += 1
                 conflict_strike = conflict+"_"+strike
                 if conflict_strike in player["strikes"]:
-                    strike_txt += player["strikes"][conflict_strike]+"\n"
+                    strike_txt += player["strikes"][conflict_strike]+" "
                 else:
-                    strike_txt += "?/"+str(max_waves)+"\n"
+                    strike_txt += "?/"+str(max_waves)+" "
             cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=strike_txt.strip()))
             i_zone += 1
         player_strikes = player["strike_attempts"]
