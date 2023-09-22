@@ -3872,7 +3872,7 @@ def get_gv_graph(txt_allyCode, characters):
 
     query = "SELECT date, defId, progress, source, name FROM gv_history " \
           + "JOIN players ON players.allyCode = gv_history.allyCode " \
-          + "WHERE gv_history.allyCode="+txt_allyCode+" "
+          + "WHERE gv_history.allyCode="+txt_allyCode+" " \
           + "AND progress<=100 " # to filter out entries from RAF command
     if "FARM" in characters:
           query += "AND defId='FARM' "
