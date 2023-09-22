@@ -736,7 +736,11 @@ async def update_gwarstats(server_id):
         cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["availableShipDeploy"]))
         cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["availableCharDeploy"]))
 
+    ######################
     #players
+    ######################
+
+    #title line
     player_row1 = 35
     player_col1 = 1
     if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
@@ -748,13 +752,18 @@ async def update_gwarstats(server_id):
 
     sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["deployed"] + x[1]["score"]["strikes"], reverse=True))
 
+    #loop on each player
     line = player_row1 + 2
     for playername in sorted_dict_tb_players:
+        # player name
         player = dict_tb_players[playername]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=playername))
+
+        # player score
         total_score = player["score"]["deployed"] + player["score"]["strikes"]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+2, value=total_score))
 
+        # deployments
         if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
             cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=player["score"]["deployedMix"]))
             cells.append(gspread.cell.Cell(row=line, col=player_col1+4, value=player["mix_gp"]))
@@ -766,6 +775,7 @@ async def update_gwarstats(server_id):
             cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=player["score"]["deployedChars"]))
             cells.append(gspread.cell.Cell(row=line, col=player_col1+7, value=player["char_gp"]))
 
+        # strikes
         total_strikes = 0
         i_zone = 1
         for zone_fullname in dict_open_zones:
@@ -773,20 +783,22 @@ async def update_gwarstats(server_id):
             conflict = zone_fullname.split("_")[-1]
 
             #loop on all existing strikes in the TB dictionary
-            i_strike = 1
             for strike in dict_tb[zone_fullname]["strikes"]:
+                max_waves = dict_tb[zone_fullname]["strikes"][strike][0]
                 total_strikes += 1
                 conflict_strike = conflict+"_"+strike
                 if conflict_strike in player["strikes"]:
-                    strike_txt += "S"+str(i_strike)+" "
-                i_strike+=1
-            cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=strike_txt))
+                    strike_txt += player["strikes"][conflict_strike]+" "
+                else:
+                    strike_txt += "?/"+str(max_waves)+" "
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=strike_txt.strip()))
             i_zone += 1
-        player_strikes = len(player["strikes"])
+        player_strikes = player["strike_attempts"]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+12, value=str(player_strikes)+"/"+str(total_strikes)))
 
         line += 1
 
+    # erase the table up to 50th line
     while line<player_row1+52:
         cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=""))
         cells.append(gspread.cell.Cell(row=line, col=player_col1+2, value=""))

@@ -968,7 +968,8 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                                                       "deployed": 0,
                                                       "Platoons": 0,
                                                       "strikes": 0} 
-        dict_tb_players[playername_gp_id[0]]["strikes"] = []
+        dict_tb_players[playername_gp_id[0]]["strikes"] = {} # "conflixtX_strikeY": "1/4"
+        dict_tb_players[playername_gp_id[0]]["strike_attempts"] = 0
 
     for zone in battleStatus["conflictZoneStatus"]:
         if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
@@ -1004,8 +1005,6 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             dict_strike_zones[strike_name]["maxPossibleScore"] = remaining_fight
             dict_strike_zones[strike_name]["estimatedStrikes"] = 0
             dict_strike_zones[strike_name]["estimatedScore"] = 0
-            dict_strike_zones[strike_name]["estimatedScore"] = 0
-            dict_strike_zones[strike_name]["estimatedScore"] = 0
             dict_strike_zones[strike_name]["eventStrikes"] = 0
             dict_strike_zones[strike_name]["eventStrikeScore"] = 0
 
@@ -1040,7 +1039,10 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                     dict_strike_zones[strike_name]["eventStrikeScore"] += score
 
                     strike_shortname="_".join(strike_name.split("_")[-2:])
-                    dict_tb_players[playerName]["strikes"].append(strike_shortname)
+
+                    done_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][2]["paramValue"][0]
+                    total_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][3]["paramValue"][0]
+                    dict_tb_players[playerName]["strikes"][strike_shortname] = done_waves+"/"+total_waves
 
             elif "RECON_CONTRIBUTION" in event_key:
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
@@ -1071,8 +1073,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                         continue
 
                     attempts = int(playerstat["score"])
-                    while len(dict_tb_players[playerName]["strikes"]) < attempts:
-                        dict_tb_players[playerName]["strikes"].append("?")
+                    dict_tb_players[playerName]["strike_attempts"] = attempts
 
         elif mapstat["mapStatId"] == "power_round_"+str(tb_round):
             if "playerStat" in mapstat:
@@ -1515,8 +1516,13 @@ async def deploy_tb(server_id, zone, list_defId):
 
     process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_androidId, zone]+list_char_id)
     goutils.log2("DBG", "deploy_tb code="+str(process.returncode))
-    if process.returncode!=0 and process.returncode<10:
-        return 1, "Erreur en déployant en TB - code="+str(process.returncode)
+    if process.returncode!=0:
+        if process.returncode == 202:
+            return 1, "Erreur en déployant en TB - pas de TB en cours"
+        elif process.returncode == 203:
+            return 1, "Erreur en déployant en TB - rien à déployer"
+        else:
+            return 1, "Erreur en déployant en TB - code="+str(process.returncode)
 
     return 0, "Le bot a déployé en " + zone
 

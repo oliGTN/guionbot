@@ -780,7 +780,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                             platoon_pos = dict_platoon['name'].split(" ")[0]
                             platoon_num = dict_platoon['name'][-1]
                             platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
-                                
+
                             for character in dict_platoon['value'].split('\n'):
                                 char_name = character[1:-1]
                                 if char_name[0:4]=='*` *':
@@ -811,8 +811,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                 territory_position = 'bot'
                             
                             if territory_name in dict_BT_missions[tbs_name]:
-                                territory_name_position = dict_BT_missions[
-                                                        tbs_name][territory_name]
+                                territory_name_position = dict_BT_missions[tbs_name][territory_name]
                                 territory_phase = territory_name_position.split("-")[0][-1]
                                 if territory_position in ["left", "top"]:
                                     territory_pos = 0
@@ -820,6 +819,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     territory_pos = 1
                                 else: #if territory_position in ["right", "bot"]:
                                     territory_pos = 2
+
                                 if current_tb_phase[territory_pos]!=None and current_tb_phase[territory_pos]<territory_phase:
                                     detect_previous_BT = True
                                     break
@@ -827,8 +827,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
 
                                 #Check if this mission/territory has been allocated in previous message
                                 existing_platoons = [i for i in dict_platoons_allocation.keys()
-                                                if i.startswith(territory_name_position)]
-                                                
+                                                     if i.startswith(territory_name_position)]
+
                                 if True: #len(existing_platoons) == 0:                    
                                 #TODO risk of regression here. Check kept for provision
                                 #necessary to remove the check when same zone has different allocations among several days
@@ -841,28 +841,34 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             keys_to_rename.append(platoon_name)
                                     for key in keys_to_rename:
                                         new_key = territory_name_position+key[-2:]
-                                        ################
-                                        ## TODO remove the if False when ready
-                                        ################
-                                        if False: #new_key in dict_platoons_allocation:
+                                        if new_key in dict_platoons_allocation:
                                             #Case of a platoon allocated twice
                                             # - either part day1 and part day 2
                                             # - or day2 replaces day1
-                                            #Anyway the logic is to add, in the day2 allocations,
-                                            # all allocations from day1 that are not in conflict
+                                            #Anyway the logic is to add, in the day2 allocations (key),
+                                            # all allocations from day1 (new_key) that are not in conflict
                                             # (day2 has priority)
-                                            for charname in dict_platoons_allocation[key]:
-                                                if charname in dict_platoons_allocation[newkey]:
-                                                    players = dict_platoons_allocation[newkey][charname]
-                                                    added_players = dict_platoons_allocation[key][charname]
-                                                    for player in added_players:
-                                                        players.append(player)
-                                                    dict_platoons_allocation[newkey][charname] = players
 
-                                        else:
-                                            dict_platoons_allocation[new_key] = \
-                                                    dict_platoons_allocation[key]
-                                            del dict_platoons_allocation[key]
+                                            for charname in dict_platoons_allocation[new_key]:
+                                                if charname in dict_platoons_allocation[key]:
+                                                    added_players = [i for i in dict_platoons_allocation[new_key][charname] if i != 'Filled in another phase']
+                                                    players = dict_platoons_allocation[key][charname]
+                                                    for player in added_players:
+                                                        if "Filled in another phase" in players:
+                                                            players.remove("Filled in another phase")
+                                                            players.append(player)
+                                                        else:
+                                                            #platoon already full, previous player is ignored
+                                                            pass
+                                                    dict_platoons_allocation[key][charname] = players
+                                                else:
+                                                    #should not happen, but just in case...
+                                                    dict_platoons_allocation[key][charname] = dict_platoons_allocation[new_key][charname]
+
+                                        # Now that the key is well defined, rename it
+                                        dict_platoons_allocation[new_key] = \
+                                                dict_platoons_allocation[key]
+                                        del dict_platoons_allocation[key]
                                             
                             else:
                                 goutils.log2("WAR", 'Mission \"'+territory_name+'\" inconnue')
@@ -1640,7 +1646,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                                     dict_platoons_allocation)
 
 
-            #récupération du nom du compte bot e cas de pose auto du bot
+            #récupération du nom du compte bot en cas de pose auto du bot
             if deploy_bot:
                 ec, et, dict_player_bot = await connect_rpc.get_bot_player_data(ctx.guild.id, True)
                 if ec != 0:
