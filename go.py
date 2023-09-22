@@ -643,6 +643,35 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
             progress_100 = 0
             
             character_obj = dict_char_subobj[character_id]
+
+            #Rarity
+            req_rarity_min = character_obj[1]
+            req_rarity_reco = character_obj[3]
+
+            #Gear
+            req_gear_min = character_obj[2]
+            req_gear_reco = character_obj[4]
+            req_relic_min=0
+            if req_gear_min == '':
+                req_gear_min = 1
+            elif type(req_gear_min) == str:
+                if req_gear_min[0] == 'G':
+                    req_gear_min=int(req_gear_min[1:])
+                else: #assumed to be 'R'
+                    req_relic_min=int(req_gear_min[-1])
+                    req_gear_min=13
+                
+            req_relic_reco=0
+            if req_gear_reco == '':
+                req_gear_reco = 1
+            elif type(req_gear_reco) == str:
+                if req_gear_reco[0] == 'G':
+                    req_gear_reco=int(req_gear_reco[1:])
+                else: #assumed to be 'R'
+                    req_relic_reco=int(req_gear_reco[-1])
+                    req_gear_reco=13
+
+
             i_character = character_obj[0]
             character_name = character_obj[7]
             if character_id in dict_player:
@@ -652,37 +681,12 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                     character_nogo = False
 
                 #Etoiles
-                req_rarity_min = character_obj[1]
-                req_rarity_reco = character_obj[3]
                 player_rarity = dict_player[character_id]['currentRarity']
                 progress_100 = progress_100 + 1
                 progress = progress + min(1, d_stars[player_rarity] / d_stars[req_rarity_reco])
                 if player_rarity < req_rarity_min:
                     character_nogo = True
                 
-                #Gear
-                req_gear_min = character_obj[2]
-                req_relic_min=0
-                if req_gear_min == '':
-                    req_gear_min = 1
-                elif type(req_gear_min) == str:
-                    if req_gear_min[0] == 'G':
-                        req_gear_min=int(req_gear_min[1:])
-                    else: #assumed to be 'R'
-                        req_relic_min=int(req_gear_min[-1])
-                        req_gear_min=13
-                    
-                req_gear_reco = character_obj[4]
-                req_relic_reco=0
-                if req_gear_reco == '':
-                    req_gear_reco = 1
-                elif type(req_gear_reco) == str:
-                    if req_gear_reco[0] == 'G':
-                        req_gear_reco=int(req_gear_reco[1:])
-                    else: #assumed to be 'R'
-                        req_relic_reco=int(req_gear_reco[-1])
-                        req_gear_reco=13
-
                 player_gear = dict_player[character_id]['currentTier']
                 if player_gear < 13:
                     player_relic = 0
@@ -797,7 +801,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                     character_display += " - " + str(character_progress_100) +"%"
                 if score_type == 2:
                     #get required yellow energy for shards and kyros
-                    kyro_energy, shard_energy = get_unit_farm_energy({"rosterUnit":dict_player}, character_id)
+                    kyro_energy, shard_energy = get_unit_farm_energy({"rosterUnit":dict_player}, character_id, req_gear_reco)
                     yellow_energy = kyro_energy
                     if "yellow" in shard_energy:
                         yellow_energy += shard_energy["yellow"]
@@ -877,7 +881,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                     character_display += " - " + str(score*100) +"%"
                 if score_type == 2:
                     #get required yellow energy for shards and kyros
-                    kyro_energy, shard_energy = get_unit_farm_energy({"rosterUnit":dict_player}, character_id)
+                    kyro_energy, shard_energy = get_unit_farm_energy({"rosterUnit":dict_player}, character_id, req_gear_reco)
                     yellow_energy = kyro_energy
                     if "yellow" in shard_energy:
                         yellow_energy += shard_energy["yellow"]
@@ -910,7 +914,8 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
             sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((-x[0] * (not x[2])), -x[0]))
         else:
             #sort by yellow energy, ascending (higher score on top)
-            sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((x[0] * (not x[2])), -x[0]))
+            sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((x[0] * (not x[2])), x[0]))
+        print(sorted_tab_progress)
 
         #remove already used characters
         for char in sorted_tab_progress[i_subobj]:
@@ -1062,7 +1067,11 @@ def get_team_header(team_name, objectifs):
 
     return entete
 
+####################################################
+#IN: compute_guild (0: player, 1: guild, 2: shard)
 #IN: gv_mode (0: VTJ, 1: GVJ, 2: FTJ)
+#IN: score_type (1: progress % / 2: yellow energy)
+####################################################
 async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, exclusive_player_list, gv_mode, dict_tw_def, score_type):
     dict_unitsList = godata.get("unitsList_dict.json")
     ret_get_team_progress = {}
@@ -1542,10 +1551,10 @@ async def print_ftj(txt_allyCode, team, server_id):
 
     return 0, ret_print_ftj
 
-async def print_gvj(list_team_names, txt_allyCode):
+async def print_gvj(list_team_names, txt_allyCode, score_type):
     ret_print_gvj = ""
 
-    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {}, 1)
+    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {}, score_type)
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
@@ -1562,7 +1571,11 @@ async def print_gvj(list_team_names, txt_allyCode):
             for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+character_id+"\n"
                 ret_print_gvj += "(Les persos avec -- ne sont pas pris en compte pour le score)\n"
-                ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))+"%"
+                ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))
+
+                if score_type == 1:
+                    ret_print_gvj += "%"
+
                 connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
                                                 player_score, unlocked, "go.bot")
 
@@ -1578,7 +1591,12 @@ async def print_gvj(list_team_names, txt_allyCode):
             else:
                 for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                     new_line = character_id + " - "+ player_name + ": " + \
-                                    str(int(player_score)) + "%\n"
+                                    str(int(player_score))
+                    if score_type == 1:
+                        new_line += "%\n"
+                    else:
+                        new_line += "\n"
+
                     list_lines.append([player_score, new_line, player_unlocked])
                     connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
                                                     player_score, player_unlocked, "go.bot")
@@ -3855,6 +3873,7 @@ def get_gv_graph(txt_allyCode, characters):
     query = "SELECT date, defId, progress, source, name FROM gv_history " \
           + "JOIN players ON players.allyCode = gv_history.allyCode " \
           + "WHERE gv_history.allyCode="+txt_allyCode+" "
+          + "AND progress<=100 " # to filter out entries from RAF command
     if "FARM" in characters:
           query += "AND defId='FARM' "
     elif not "all" in characters:
@@ -4785,7 +4804,9 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
 # IN: unit_id
 # OUT: [kyro_energy, shard_energy={"yellow"=23, "red"=30, "blue"=200}]
 #############################
-def get_unit_farm_energy(dict_player, unit_id):
+def get_unit_farm_energy(dict_player, unit_id, target_gear):
+    #target_rarity = 7 by default
+
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_eqpt = godata.get("eqpt_dict.json")
     FRE_FR = godata.get("FRE_FR.json")
@@ -4853,7 +4874,7 @@ def get_unit_farm_energy(dict_player, unit_id):
     # Kyros
     needed_eqpt = {} #key=eqpt_id, value=count
     kyro_energy = 0
-    if unit_gear < 13 and dict_unitsList[unit_id]["combatType"]==1:
+    if unit_gear < target_gear and dict_unitsList[unit_id]["combatType"]==1:
         # current tier
         tier_eqpt = dict_unitsList[unit_id]["unitTier"][unit_gear-1]["equipmentSet"]
         for pos_eqpt in [0, 1, 2, 3, 4, 5]:
@@ -4864,7 +4885,7 @@ def get_unit_farm_energy(dict_player, unit_id):
             #print(needed_eqpt)
 
         # other tiers
-        for i_gear in range(unit_gear, 12):
+        for i_gear in range(unit_gear, target_gear-1):
             tier_eqpt = dict_unitsList[unit_id]["unitTier"][i_gear]["equipmentSet"]
             #print(str(i_gear+1)+": "+str(tier_eqpt))
             for eqpt in tier_eqpt:
@@ -4889,6 +4910,7 @@ def get_unit_farm_energy(dict_player, unit_id):
                         needed_eqpt[ingredient["id"]] += eqpt_count * ingredient["maxQuantity"]
                     del needed_eqpt[eqpt_id]
 
+        #DEBUG
         #for eqpt_id in needed_eqpt:
         #    if eqpt_id == "GRIND":
         #        print("Credits: "+str(needed_eqpt[eqpt_id]))

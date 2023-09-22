@@ -2632,6 +2632,43 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
 
     ##############################################################
+    # Command: raf
+    # Parameters: code allié (string), une liste de persos séparées par des espaces ou "all"
+    # Purpose: Reste à Farm dans le guide de voyage pour un perso
+    # Display: Une ligne par requis du guide de voyage
+    #          un score global à la fin
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='raf',
+                 brief="Donne le reste-à-farm (éclats et kyros) dans le guide de voyage pour un perso chez un joueur",
+                 help="Donne le reste-à-farm (éclats de personnage, et kyrotech) dans le guide de voyage pour un perso chez un joueur\n\n"\
+                      "Exemple: go.raf 192126111 all\n"\
+                      "Exemple: go.raf me SEE\n"\
+                      "Exemple: go.raf me thrawn JKL")
+    async def raf(self, ctx, allyCode, *characters):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = manage_me(ctx, allyCode)
+
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            if len(characters) == 0:
+                characters = ["all"]
+                
+            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 2)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emoji_check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emoji_error)
+
+    ##############################################################
     # Command: gvg
     # Parameters: code allié (string),
     #               une liste de persos séparées par des espaces ou "all"
@@ -2887,7 +2924,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             characters = ["all"]
 
         #First run a GVJ to ensure at least on result
-        err_code, ret_cmd = await go.print_gvj( characters, allyCode)
+        err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
         if err_code != 0:
             await ctx.send(ret_cmd)
             await ctx.message.add_reaction(emoji_error)
