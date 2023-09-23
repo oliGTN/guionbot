@@ -4840,36 +4840,46 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
     needed_shards = d_stars[unit_rarity]
     shard_energy = {}
     if "farmingInfo" in dict_unitsList[unit_id]:
-        for farming_location in dict_unitsList[unit_id]['farmingInfo']:
-            campaignId = farming_location[0]["campaignId"]
-            if campaignId.startswith('C01'):
-                if campaignId[3:] == 'L':
-                    energy_color = "yellow"
-                elif campaignId[3:] == 'D':
-                    energy_color = "yellow"
-                elif campaignId[3:] == 'H':
-                    energy_color = "red"
-                elif campaignId[3:] == 'SP':
-                    energy_color = "blue"
-            else:
-                #not a energy node, go to next farming location
-                continue
+        if len(dict_unitsList[unit_id]['farmingInfo']) > 0:
+            for farming_location in dict_unitsList[unit_id]['farmingInfo']:
+                campaignId = farming_location[0]["campaignId"]
+                if campaignId.startswith('C01'):
+                    if campaignId[3:] == 'L':
+                        energy_color = "yellow"
+                    elif campaignId[3:] == 'D':
+                        energy_color = "yellow"
+                    elif campaignId[3:] == 'H':
+                        energy_color = "red"
+                    elif campaignId[3:] == 'SP':
+                        energy_color = "blue"
+                else:
+                    #not a energy node, go to next farming location
+                    continue
 
-            print(farming_location)
-            tab = farming_location[0]["campaignMapId"]
-            farming_speed = farming_location[1]
-            shard_cost = d_energy[energy_color][tab]
-            needed_energy = shard_cost * needed_shards / farming_speed / shard_droprate
-            #print("farming_speed="+str(farming_speed))
-            #print("needed_shards="+str(needed_shards))
-            #print("shard_cost="+str(shard_cost))
+                shard_location_found = True
+                tab = farming_location[0]["campaignMapId"]
+                farming_speed = farming_location[1]
+                shard_cost = d_energy[energy_color][tab]
+                needed_energy = shard_cost * needed_shards / farming_speed / shard_droprate
 
-            if not energy_color in shard_energy:
-                shard_energy[energy_color] = needed_energy
-            else:
-                current_energy = shard_energy[energy_color]
-                if current_energy > needed_energy:
+                #DEBUG
+                print("farming_speed="+str(farming_speed))
+                print("needed_shards="+str(needed_shards))
+                print("shard_cost="+str(shard_cost))
+
+                if not energy_color in shard_energy:
                     shard_energy[energy_color] = needed_energy
+                else:
+                    current_energy = shard_energy[energy_color]
+                    if current_energy > needed_energy:
+                        shard_energy[energy_color] = needed_energy
+
+        else:
+            #cas des persos farmables nulle-part
+            # on prend la cas pire : énergie jaune 20 énergies par éclat
+            needed_energy = 20 * needed_shards / 1 / shard_droprate
+            shard_energy["yellow"] = needed_energy
+
 
     # Kyros
     needed_eqpt = {} #key=eqpt_id, value=count
