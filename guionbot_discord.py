@@ -2620,7 +2620,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(characters) == 0:
                 characters = ["all"]
                 
-            err_code, ret_cmd = await go.print_gvj( characters, allyCode)
+            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
