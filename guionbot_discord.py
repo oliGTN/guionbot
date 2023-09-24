@@ -2307,7 +2307,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         if re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", ac) != None:
             # 123-456-789 >> allyCode
-            allyCode = alias.replace("-", "")
+            allyCode = ac.replace("-", "")
 
         elif ac.isnumeric():
             # number >> allyCode
