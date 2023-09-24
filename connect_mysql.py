@@ -512,7 +512,7 @@ async def update_player(dict_player):
                 for eqpt in character["equipment"]:
                     equipment[eqpt["slot"]] = True
             eqpt_txt = ""
-            for i in range(5, -1, -1):
+            for i in range(6):
                 if equipment[i]:
                     eqpt_txt += "1"
                 else:
