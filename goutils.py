@@ -136,7 +136,7 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
             line_speed = int(line[8])
             line_equipment = line[9]
             equipment = []
-            for i_eqpt in range(5):
+            for i_eqpt in range(6):
                 if line_equipment[i_eqpt]=="1":
                     equipment.append({"equipmentId":"XXX", "slot":i_eqpt})
             line_character={ \
