@@ -1608,10 +1608,10 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
                                             
         if score_type == 1:
             #Teams are sorted with the best progress on top, unlocked first
-            list_lines = sorted(list_lines, key=lambda x: (int(x[2]), -x[0]))
+            list_lines = sorted(list_lines, key=lambda x: (int(x[2], -x[0])))
         else:
             #Teams are sorted with the lowest RAF, unlocked first
-            list_lines = sorted(list_lines, key=lambda x: (int(x[2], )x[0]))
+            list_lines = sorted(list_lines, key=lambda x: (int(x[2], x[0])))
         if player_name != '':
             if score_type == 1:
                 ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+"\n"
