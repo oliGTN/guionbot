@@ -1568,16 +1568,21 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
             #error
             ret_print_gvj += ret_team
         else:
-            for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
+            # Get data for unique player
+            [player_score, unlocked, player_txt, player_nogo, player_name, list_char] = ret_team[0][0]
+
+            if score_type == 1:
                 ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+" - "+character_id+"\n"
-                ret_print_gvj += "(Les persos avec -- ne sont pas pris en compte pour le score)\n"
-                ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))
+            else:
+                ret_print_gvj += "Reste-à-farmer dans le Guide de Voyage pour "+player_name+" - "+character_id+"\n"
+            ret_print_gvj += "(Les persos avec -- ne sont pas pris en compte pour le score)\n"
+            ret_print_gvj += player_txt + "> Global: "+ str(int(player_score))
 
-                if score_type == 1:
-                    ret_print_gvj += "%"
+            if score_type == 1:
+                ret_print_gvj += "%"
 
-                connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
-                                                player_score, unlocked, "go.bot")
+            connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+                                            player_score, unlocked, "go.bot")
 
     else:
         #Several teams
@@ -1601,22 +1606,38 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
                     connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
                                                     player_score, player_unlocked, "go.bot")
                                             
-        #Teams are sorted with the best progress on top
-        list_lines = sorted(list_lines, key=lambda x: -x[0])
+        if score_type == 1:
+            #Teams are sorted with the best progress on top, unlocked first
+            list_lines = sorted(list_lines, key=lambda x: (int(x[2]), -x[0]))
+        else:
+            #Teams are sorted with the lowest RAF, unlocked first
+            list_lines = sorted(list_lines, key=lambda x: (int(x[2], )x[0]))
         if player_name != '':
-            ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+"\n"
+            if score_type == 1:
+                ret_print_gvj += "Progrès dans le Guide de Voyage pour "+player_name+"\n"
+            else:
+                ret_print_gvj += "Reste-à-farmer dans le Guide de Voyage pour "+player_name+"\n"
         for line in list_lines:
             score = line[0]
             txt = line[1]
             unlocked = line[2]
-            if unlocked:
-                ret_print_gvj += "\N{WHITE HEAVY CHECK MARK}"
-            elif score > 95:
-                ret_print_gvj += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-            elif score > 80:
-                ret_print_gvj += "\N{CONFUSED FACE}"
-            else:
-                ret_print_gvj += "\N{UP-POINTING RED TRIANGLE}"
+            if score_type == 1:
+                #progress in %
+                if unlocked:
+                    ret_print_gvj += "\N{WHITE HEAVY CHECK MARK}"
+                elif score > 95:
+                    ret_print_gvj += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                elif score > 80:
+                    ret_print_gvj += "\N{CONFUSED FACE}"
+                else:
+                    ret_print_gvj += "\N{UP-POINTING RED TRIANGLE}"
+            else: # score in yellow energy
+                if unlocked:
+                    ret_print_gvj += "\N{WHITE HEAVY CHECK MARK}"
+                elif score == 0:
+                    ret_print_gvj += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                else:
+                    ret_print_gvj += "\N{UP-POINTING RED TRIANGLE}"
             ret_print_gvj += txt
 
     return 0, ret_print_gvj
