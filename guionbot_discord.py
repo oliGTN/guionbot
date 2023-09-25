@@ -1970,7 +1970,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        raid_id, expire_time, list_inactive_players, cur_score = await connect_rpc.get_raid_status(ctx.guild.id, True)
+        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(ctx.guild.id, True)
         if raid_id != None:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
