@@ -1718,7 +1718,7 @@ async def get_tw_leaderboard(server_id, force_update):
 async def get_raid_status(server_id, force_update):
     ec, et, rpc_data = await get_rpc_data(server_id, [], force_update)
     if ec!=0:
-        return None, None, []
+        return None, None, [], 0
 
     dict_guild=rpc_data[0]
 
@@ -1733,10 +1733,11 @@ async def get_raid_status(server_id, force_update):
             cur_raid = raidStatus
 
     if raid_id == None:
-        return None, None, []
+        return None, None, [], 0
 
     expire_time = int(raidStatus["expireTime"])
     raid_join_time = raidStatus["joinPeriodEndTimeMs"]
+    guild_score = int(raidStatus["guildRewardScore"])
 
     dict_raid_members_by_id={}
     for member in raidStatus["raidMember"]:
@@ -1758,4 +1759,4 @@ async def get_raid_status(server_id, force_update):
             #player has not played
             list_inactive_players.append(member["playerName"])
 
-    return raid_id, expire_time, list_inactive_players
+    return raid_id, expire_time, list_inactive_players, guild_score
