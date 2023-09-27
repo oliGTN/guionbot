@@ -575,14 +575,22 @@ def detect_delta_roster_element(allyCode, char1, char2):
     #ZETAS
     for skill2 in char2['skill']:
         skill_id = skill2['id']
-        skill2_isZeta = ( (skill2['tier']+2) >= dict_capas[defId][skill_id]["zetaTier"] )
-        skill2_isOmicron = ( (skill2['tier']+2) >= dict_capas[defId][skill_id]["omicronTier"] )
+        if skill_id in dict_capas[defId]:
+            skill2_isZeta = ( (skill2['tier']+2) >= dict_capas[defId][skill_id]["zetaTier"] )
+            skill2_isOmicron = ( (skill2['tier']+2) >= dict_capas[defId][skill_id]["omicronTier"] )
+        else:
+            skill2_isZeta = False
+            skill2_isOmicron = False
 
         skill1_matchID = [x for x in char1['skill'] if x['id'] == skill_id]
         if len(skill1_matchID)>0:
             skill1 = skill1_matchID[0]
-            skill1_isZeta = ( (skill1['tier']+2) >= dict_capas[defId][skill_id]["zetaTier"] )
-            skill1_isOmicron = ( (skill1['tier']+2) >= dict_capas[defId][skill_id]["omicronTier"] )
+            if skill_id in dict_capas[defId]:
+                skill1_isZeta = ( (skill1['tier']+2) >= dict_capas[defId][skill_id]["zetaTier"] )
+                skill1_isOmicron = ( (skill1['tier']+2) >= dict_capas[defId][skill_id]["omicronTier"] )
+            else:
+                skill1_isZeta = False
+                skill1_isOmicron = False
         else:
             skill1 = None
 
