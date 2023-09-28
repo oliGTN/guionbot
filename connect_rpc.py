@@ -1422,7 +1422,10 @@ async def get_tw_status(server_id, force_update):
     tw_id=None
     if "territoryWarStatus" in dict_guild:
         for battleStatus in dict_guild["territoryWarStatus"]:
-            if "awayGuild" in battleStatus:
+            # the TW is considered on-going during
+            # - defense phase (round=0, awayGuild is defined)
+            # - attack phase (round=1)
+            if "awayGuild" in battleStatus and battleStatus["currentRound"]<2:
                 tw_id = battleStatus["instanceId"]
                 cur_tw = battleStatus
 
