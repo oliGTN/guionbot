@@ -1583,7 +1583,13 @@ async def deploy_tw(server_id, zone, list_defId):
         process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
 
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
-    if process.returncode!=0:
+    if process.returncode==202:
+        return 1, "Erreur en déployant en GT - pas de GT en cours"
+    elif process.returncode==203:
+        return 1, "Erreur en déployant en GT - le bot n'a pas tous les persos demandés"
+    elif process.returncode==204:
+        return 1, "Erreur en déployant en GT - au moins un perso est déjà déployé"
+    else:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
 
     return 0, "Le bot a posé "+str(list_defId)+" en " + zone
