@@ -3702,7 +3702,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, server_
             goutils.log2("DBG", opposite_search)
             goutils.log2("DBG", simple_search)
             if opposite_search and simple_search:
-                intro_txt+= " qui n'ont pas "+character_id
+                intro_txt+= " qui n'ont pas "+character_name
                 query+= "AND NOT allyCode IN ( "
             else:
                 if opposite_search:
