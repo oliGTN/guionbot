@@ -878,7 +878,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                     weight = 1
 
                 if score_type == 1:
-                    character_display += " - " + str(score*100) +"%"
+                    character_display += " - " + str(int(score*100)) +"%"
                 if score_type == 2:
                     #get required yellow energy for shards and kyros
                     kyro_energy, shard_energy = get_unit_farm_energy({"rosterUnit":dict_player}, character_id, req_gear_reco)
