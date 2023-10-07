@@ -138,8 +138,6 @@ dict_BT_missions['ROTE']['Death Star']='ROTE6-DS'
 dict_BT_missions['ROTE']['Hoth']='ROTE6-MS'
 dict_BT_missions['ROTE']['Scarif']='ROTE6-LS'
 
-dict_member_lastseen={} #{guild discord id: {player discord id: [discord displayname, date last seen (idle or online)]}
-
 list_tw_opponent_msgIDs = []
 
 dict_platoons_previously_done = {} #Empy set
@@ -151,21 +149,6 @@ dict_tb_alerts_previously_done = {}
 #                                                            #
 ##############################################################
 
-def set_id_lastseen(event_name, server_id, player_id):
-    global dict_member_lastseen
-
-    if server_id in dict_member_lastseen:
-        if player_id in dict_member_lastseen[server_id]:
-            dict_member_lastseen[server_id][player_id][1]=datetime.datetime.now(guild_timezone)
-            alias = dict_member_lastseen[server_id][player_id][0]
-            #goutils.log2("DBG", event_name+": guild="+str(server_id)+" user="+str(player_id)+" ("+alias+")")
-        else:
-            pass
-            #goutils.log2("WAR", "unknown id "+str(player_id)+" for guild="+str(server_id))
-    else:
-        pass
-        #goutils.log2("WAR", "unknown guild="+str(server_id))
-
 ##############################################################
 # Function: bot_loop_60secs
 # Parameters: none
@@ -176,33 +159,6 @@ async def bot_loop_60secs(bot):
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
-        try:
-            #GET ONLINE AND MOBILE STATUS
-            for guild in bot.guilds:
-                if not guild.id in dict_member_lastseen:
-                    dict_member_lastseen[guild.id] = {}
-
-                list_members=[]
-                for role in guild.roles:
-                    for member in role.members:
-                        #Ensure all guild members are in the dict, so that other events
-                        #  know which users to update
-                        if not member.id in dict_member_lastseen[guild.id]:
-                            dict_member_lastseen[guild.id][member.id]= [member.display_name, None]
-                            
-                        if not(str(member.status) == 'offline' and
-                                str(member.mobile_status) == 'offline'):
-                            dict_member_lastseen[guild.id][member.id]=[member.display_name, datetime.datetime.now(guild_timezone)]
-                                
-                        list_members.append([member.display_name,str(member.status),str(member.mobile_status)])
-            
-        except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
-        
         #UPDATE RPC data
         # update when the time since last update is greater than the period and the time is rounded
         # (15 min bots are updated only at :00, :15, :30...)
@@ -962,7 +918,7 @@ def manage_me(ctx, alias):
             closest_name_db_score = difflib.SequenceMatcher(None, alias, closest_name_db).ratio()
 
         #check among discord names
-        if ctx != None and (closest_name_db != alias):
+        if ctx != None and ctx.guild != None and (closest_name_db != alias):
             #Remove text in [] and in ()
             guild_members_clean = [[x.id, re.sub(r'\([^)]*\)', '',
                                     re.sub(r'\[[^)]*\]', '',x.display_name)).strip()]
@@ -1112,7 +1068,6 @@ async def on_reaction_add(reaction, user):
         guild_name = "DM"
     else:
         guild_name = message.channel.guild.name
-        set_id_lastseen("on_reaction_add", reaction.message.channel.guild.id, user.id)
 
     author = message.author.display_name
     emoji = reaction.emoji
@@ -1169,9 +1124,6 @@ async def on_reaction_add(reaction, user):
 ##############################################################
 @bot.event
 async def on_message(message):
-    if not isinstance(message.channel, DMChannel):
-        set_id_lastseen("on_message", message.channel.guild.id, message.author.id)
-
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
         command_name = lower_msg.split(" ")[0].split(".")[1]
@@ -1250,10 +1202,6 @@ async def on_command_error(ctx, error):
 # Other events used only to monitor the activity of guild members
 ##############################################################
 @bot.event
-async def on_typing(channel, user, when):
-    set_id_lastseen("on_typing", channel.guild.id, user.id)
-
-@bot.event
 async def on_message_delete(message):
     #Unable to detect who is deleting a message
     if isinstance(message.channel, DMChannel):
@@ -1274,21 +1222,9 @@ async def on_message_edit(before, after):
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                          "BEFORE:\n" + before.content + "\n" +\
                          "AFTER:\n" + after.content)
-    guild_id = before.channel.guild.id
-    set_id_lastseen("on_message_edit", guild_id, before.author.id)
-
-@bot.event
-async def on_reaction_remove(reaction, user):
-    guild_id = reaction.message.channel.guild.id
-    set_id_lastseen("on_reaction_remove", guild_id, user.id)
-
-@bot.event
-async def on_member_join(member):
-    set_id_lastseen("on_member_join", member.guild.id, member.id)
 
 @bot.event
 async def on_member_update(before, after):
-    set_id_lastseen("on_member_update", before.guild.id, before.id)
     if before.avatar != after.avatar:
         goutils.log2("INFO", "Avatar change  for "+after.display_name)
     if before.display_name != after.display_name:
@@ -1300,10 +1236,6 @@ async def on_user_update(before, after):
         goutils.log2("INFO", "Avatar change  for "+after.display_name)
     if before.display_name != after.display_name:
         goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
-
-@bot.event
-async def on_voice_state_update(member, before, after):
-    set_id_lastseen("on_voice_state_update", member.guild.id, member.id)
 
 ##############################################################
 #                                                            #
@@ -1320,24 +1252,29 @@ async def on_voice_state_update(member, before, after):
 ##############################################################
 def admin_command(ctx):
     return str(ctx.author.id) in config.GO_ADMIN_IDS.split(' ')
+
 def member_command(ctx):
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
     return (not bot_test_mode) or is_owner
+
 def officer_command(ctx):
     ret_is_officer = False
-    query = "SELECT discord_id FROM players " \
-            "WHERE guildId=( " \
-            "    SELECT guild_id FROM guild_bot_infos WHERE server_id="+str(ctx.guild.id)+" " \
-            ") AND discord_id<>'' AND guildMemberLevel>=3 "
-    goutils.log2("DBG", query)
-    db_data = connect_mysql.get_column(query)
-    if db_data == None:
-        list_did = []
-    else:
-        list_did = db_data
 
-    if str(ctx.author.id) in list_did:
-        ret_is_officer = True
+    if ctx.guild != None:
+        # Can be an officer only if in a discord server, not in a DM
+        query = "SELECT discord_id FROM players " \
+                "WHERE guildId=( " \
+                "    SELECT guild_id FROM guild_bot_infos WHERE server_id="+str(ctx.guild.id)+" " \
+                ") AND discord_id<>'' AND guildMemberLevel>=3 "
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+        if db_data == None:
+            list_did = []
+        else:
+            list_did = db_data
+
+        if str(ctx.author.id) in list_did:
+            ret_is_officer = True
 
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
@@ -1600,6 +1537,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         #get bot config from DB
         query = "SELECT tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
         goutils.log2("DBG", query)
@@ -1607,11 +1550,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         if result == None:
             await ctx.send('ERR: Guilde non déclarée dans le bot')
+            await ctx.message.add_reaction(emoji_error)
             return
 
         tbChannel_id = result
         if tbChannel_id==0:
-            await ctx.send('ERR: commande non utilisable sur ce serveur')
+            await ctx.send('ERR: commande mal configurée (tbChannel_id=0)')
+            await ctx.message.add_reaction(emoji_error)
             return
 
         #Check if guild can use RPC
@@ -1622,6 +1567,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
         else:
             await ctx.send('ERR: commande non utilisable sur ce serveur')
+            await ctx.message.add_reaction(emoji_error)
             return
 
         #Recuperation des dernieres donnees sur gdrive
@@ -1724,6 +1670,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botenable(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         ec, et = await connect_rpc.unlock_bot_account(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
@@ -1738,6 +1690,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="Désactive le compte bot pour permettre de le jouer")
     async def botdisable(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         ec, et = await connect_rpc.lock_bot_account(ctx.guild.id)
         if ec != 0:
@@ -1754,6 +1712,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botjoinraids(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         ec, et = await connect_rpc.join_raids(ctx.guild.id)
         if ec != 0:
             await ctx.send(et)
@@ -1768,6 +1732,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="Inscrit le bot à la GT en cours")
     async def botjointw(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         ec, et = await connect_rpc.join_tw(ctx.guild.id)
         if ec != 0:
@@ -1784,6 +1754,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botdeftw(self, ctx, zone, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         ec, et = await go.deploy_bot_tw(ctx.guild.id, zone, characters)
         if ec != 0:
             await ctx.send(et)
@@ -1798,6 +1774,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="Déploie des persos en pelotons de TB")
     async def botplatoons(self, ctx, platoon, *characters):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon, characters)
         if ec != 0:
@@ -1819,6 +1801,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def botdeploytb(self, ctx, zone, characters):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         ec, et = await go.deploy_bot_tb(ctx.guild.id, zone, characters)
         if ec != 0:
             await ctx.send(et)
@@ -1834,6 +1822,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="go.tbrappel")
     async def tbrappel(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         display_mentions=True
         #Sortie sur un autre channel si donné en paramètre
@@ -1879,6 +1873,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="go.twrappel 3 2 > tag les joueurs qui ont fait moins de 3 attaques au sol ou moins de 2 en vaisseaux")
     async def twrappel(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         #Sortie sur un autre channel si donné en paramètre
         args = list(args)
@@ -1951,6 +1951,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def raidrappel(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         #Sortie sur un autre channel si donné en paramètre
         args = list(args)
         output_channel = ctx.message.channel
@@ -2002,6 +2008,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         options = list(args)
         estimate_fights = False
         for arg in options:
@@ -2050,6 +2062,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def spgt(self, ctx, tw_zone, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         if not tw_zone in ['all']+list(data.dict_tw.keys()):
             await ctx.send("ERR: zone GT inconnue")
             await ctx.message.add_reaction(emoji_error)
@@ -2095,6 +2113,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                  help="Télécharge le fichier JSON complet des logs de la dernière GT")
     async def botgettwlogs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         #get bot config from DB
         query = "SELECT name FROM guilds " \
@@ -2222,6 +2246,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                              help="Lit les dernières infos du google sheet")
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         data.reset_data()
         err_code, err_txt = await read_gsheets(ctx.guild.id)
 
@@ -2253,10 +2284,18 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         #Check arguments
         args = list(args)
         if "-TW" in args:
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
             tw_mode = True
             args.remove("-TW")
+            server_id = ctx.guild.id
         else:
             tw_mode = False
+            server_id = None
 
         if len(args) >= 2:
             allyCode = args[0]
@@ -2273,7 +2312,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
         else:
             err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
-                                                                             ctx.guild.id, tw_mode)
+                                                                             server_id, tw_mode)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
@@ -2467,6 +2506,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def vtg(self, ctx, allyCode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        server_id = ctx.guild.id
         allyCode = manage_me(ctx, allyCode)
                 
         if allyCode[0:3] == 'ERR':
@@ -2475,6 +2521,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             teams = list(teams)
             if "-TW" in teams:
+                #Ensure command is launched from a server, not a DM
+                if ctx.guild == None:
+                    await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                    await ctx.message.add_reaction(emoji_error)
+                    return
+
                 tw_mode = True
                 teams.remove("-TW")
             else:
@@ -2483,7 +2535,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(teams) == 0:
                 teams = ["all"]
 
-            err, ret_cmd = await go.print_vtg( teams, allyCode, ctx.guild.id, tw_mode)
+            err, ret_cmd = await go.print_vtg( teams, allyCode, server_id, tw_mode)
             if err == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send(txt)
@@ -2513,6 +2565,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def vtj(self, ctx, allyCode, *teams):
         await ctx.message.add_reaction(emoji_thumb)
 
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        server_id = ctx.guild.id
         allyCode = manage_me(ctx, allyCode)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2528,7 +2587,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if len(teams) == 0:
                 teams = ["all"]
 
-            err, txt, images = await go.print_vtj( teams, allyCode, ctx.guild.id, tw_mode)
+            err, txt, images = await go.print_vtj( teams, allyCode, server_id, tw_mode)
             if err != 0:
                 await ctx.send(txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -2578,6 +2637,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ftj me ROTE")
     async def ftj(self, ctx, allyCode, team):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         allyCode = manage_me(ctx, allyCode)
 
@@ -2864,6 +2929,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await ctx.message.add_reaction(emoji_thumb)
 
         if allyCode == "-TW":
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
             ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
             if ec != 0:
                 await ctx.send(et)
@@ -3074,6 +3145,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await ctx.message.add_reaction(emoji_thumb)
 
         if allyCode == "-TW":
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
             ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
             if ec != 0:
                 await ctx.send(et)
@@ -3122,7 +3199,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             if len(characters) > 0:
                 e, ret_cmd, images = await go.get_character_image( [[list(characters),
-                                                    allyCode, '']], False, True, '', ctx.guild.id)
+                                                    allyCode, '']], False, True, '', None)
                     
                 if e == 0:
                     for image in images:
@@ -3162,6 +3239,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.rgt me GAS echo cra fives rex VS DR\n")
     async def rgt(self, ctx, *options):
         await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send("ERR: commande non autorisée depuis un DM")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         # Extract command options
         if not ("VS" in options):
@@ -3557,6 +3640,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         args = list(args)
 
         if args[0] == "-TW":
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
             tw_mode = True
 
             ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
@@ -3571,10 +3660,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
                 return
             allyCode = str(bot_player["allyCode"])
+            server_id = ctx.guild.id
         else:
             tw_mode = False
             allyCode = args[0]
             allyCode = manage_me(ctx, allyCode)
+            server_id = None
 
         if "-TW" in args[1:]:
             await ctx.send("ERR: l'option -TW doit être utilisée en première position. Consulter go.help cpg pour plus d'infos.")
@@ -3594,7 +3685,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         # get the DB information for home guild
-        ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, ctx.guild.id, tw_mode)
+        ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, server_id, tw_mode)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
