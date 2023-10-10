@@ -674,6 +674,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
             i_character = character_obj[0]
             character_name = character_obj[7]
+
             if character_id in dict_player:
                 if dict_player[character_id]['reserved']:
                     character_nogo = True
@@ -795,7 +796,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                         character_display += "\N{WHITE HEAVY CHECK MARK} "+\
                                             character_name + \
                                             " est OK"
-                    character_progress_100 = int(character_progress*100)
+                character_progress_100 = int(character_progress*100)
 
                 if score_type == 1:
                     character_display += " - " + str(character_progress_100) +"%"
