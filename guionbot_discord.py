@@ -2484,7 +2484,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             txt+= "- pseudo IG : "+player_name+"\n"
             txt+= "- guilde : "+guildName+"\n"
 
-            if len(display_names)>0:
+            if len(discord_display_names)>0:
                 for discord_name in discord_display_names:
                     if discord_name[0] == ctx.guild.name:
                         txt+= "- pseudo Discord chez **"+discord_name[0]+"** : "+discord_name[1]+"\n"
