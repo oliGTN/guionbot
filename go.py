@@ -916,7 +916,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
         else:
             #sort by yellow energy, ascending (higher score on top)
             sorted_tab_progress[i_subobj] = sorted(tab_progress_player[i_subobj], key=lambda x: ((x[0] * (not x[2])), x[0]))
-        print(sorted_tab_progress)
+        #print(sorted_tab_progress)
 
         #remove already used characters
         for char in sorted_tab_progress[i_subobj]:
@@ -1000,6 +1000,8 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
 
 def get_team_header(team_name, objectifs):
+    dict_capa = godata.get("unit_capa_list.json")
+
     entete = ''
 
     nb_levels = len(objectifs)
@@ -1054,7 +1056,8 @@ def get_team_header(team_name, objectifs):
                     while '' in req_zetas:
                         req_zetas.remove('')
 
-                    req_zeta_names = [x[1] for x in goutils.get_capa_from_shorts(perso, req_zetas)]
+                    print(goutils.get_capa_from_shorts(perso, req_zetas))
+                    req_zeta_names = [dict_capa[perso][x[1]]["name"]+" ("+x[0]+")" for x in goutils.get_capa_from_shorts(perso, req_zetas)]
                     req_omicrons = objectifs[i_level][2][perso][6].split(',')
                     while '' in req_omicrons:
                         req_omicrons.remove('')
@@ -1111,6 +1114,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
             return "", 'ERR: joueur non trouvé pour code allié ' + txt_allyCode
 
         collection_name = d["name"]
+        guild_name = d["guildName"]
             
     elif compute_guild==1:
         #Get data for the guild and associated players
@@ -1118,6 +1122,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
         if err_code != 0:
             goutils.log2("WAR", "cannot get guild data from SWGOH.HELP API. Using previous data.")
         collection_name = guild["profile"]["name"]
+        guild_name = collection_name
     else:
         shard_info = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
         player_shard = shard_info[0]
@@ -1191,7 +1196,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
             query += "WHERE players."+shard_type+"Shard_id = \
                     (SELECT "+shard_type+"Shard_id FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND NOT guild_teams.name LIKE '%-GV'\n"
-        query += "AND guild_teams.GuildName = '"+collection_name.replace("'", "''")+"'\n"
+        query += "AND guild_teams.GuildName = '"+guild_name.replace("'", "''")+"'\n"
            
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
         goutils.log2("DBG", query)
@@ -1460,7 +1465,6 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
                         image_mode = ""
                     e, t, images = await get_character_image(list_char_allycodes, True, False, image_mode, server_id)
 
-    print("eeee", flush=True)
     #In case of several teams, don't display images
     if len(ret_get_team_progress) > 1:
         images = None
