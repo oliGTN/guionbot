@@ -29,7 +29,7 @@ import portraits
 import data
 
 TOKEN = config.DISCORD_BOT_TOKEN
-intents = Intents.default()
+intents = Intents.all()
 intents.members = True
 intents.presences = True
 intents.message_content = True
@@ -2449,14 +2449,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
-                try:
-                    discord_id = ret_re.group(1)
-                    discord_user = await ctx.guild.fetch_member(discord_id)
-                    discord_name = discord_user.display_name
-                except:
-                    discord_name = "???"
+                discord_id = ret_re.group(1)
+
+                discord_display_names = []
+                for guild in bot.guilds:
+                    try:
+                        discord_user = await guild.fetch_member(discord_id)
+                        display_name = discord_user.display_name
+                        discord_display_names.append([guild.name, display_name])
+                    except:
+                        continue
+
             else:
-                discord_name = "???"
+                discord_display_names = []
 
             swgohgg_url = "https://swgoh.gg/p/" + allyCode
             try:
@@ -2477,8 +2482,17 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             txt = "Qui est **"+full_alias+"** ?\n"
             txt+= "- code allié : "+str(allyCode)+"\n"
             txt+= "- pseudo IG : "+player_name+"\n"
-            txt+= "- pseudo Discord : "+discord_name+"\n"
             txt+= "- guilde : "+guildName+"\n"
+
+            if len(display_names)>0:
+                for discord_name in discord_display_names:
+                    if discord_name[0] == ctx.guild.name:
+                        txt+= "- pseudo Discord chez **"+discord_name[0]+"** : "+discord_name[1]+"\n"
+                    else:
+                        txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
+            else:
+                txt+= "- pseudo Discord : ???\n"
+
             txt+= "- dernier refresh du bot : "+lastUpdated_txt+"\n"
             txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">\n"
             txt+= "- lien WARSTATS : <"+warstats_url + ">"
