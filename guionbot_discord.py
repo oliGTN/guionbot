@@ -1129,14 +1129,14 @@ async def on_message(message):
         command_name = lower_msg.split(" ")[0].split(".")[1]
         goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name)
 
-    try:
-        await bot.process_commands(message)
-    except Exception as e:
-        goutils.log2("ERR", sys.exc_info()[0])
-        goutils.log2("ERR", e)
-        goutils.log2("ERR", traceback.format_exc())
-        if not bot_test_mode:
-            await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
+        try:
+            await bot.process_commands(message)
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
     #Read messages from Juke's bot
     if message.author.id == config.JBOT_DISCORD_ID:
