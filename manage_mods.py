@@ -2,7 +2,8 @@
 # This code takes as input the HTML from <div class="mods-list">
 # extracted from mod optimizer (chrome, dev tab) in a file
 # input 1: txt file with html content (one line)
-# input 2: PLAYERS/bot_xxx.json
+# input 2: PLAYERS/bot_xxx.json ou PLAYERS/<playerId>.json
+# input 3: authentication token (1234abcd5678efef or user@gmail.com)
 ##########################################################
 import string
 import sys
