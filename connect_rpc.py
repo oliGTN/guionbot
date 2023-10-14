@@ -1524,7 +1524,7 @@ async def deploy_tb(server_id, zone, list_defId):
             return 1, "Erreur en déployant en TB - pas de TB en cours"
         elif process.returncode == 203:
             return 1, "Erreur en déployant en TB - rien à déployer"
-        else:
+        elif process.returncode != 0:
             return 1, "Erreur en déployant en TB - code="+str(process.returncode)
 
     return 0, "Le bot a déployé en " + zone
@@ -1589,7 +1589,7 @@ async def deploy_tw(server_id, zone, list_defId):
         return 1, "Erreur en déployant en GT - le bot n'a pas tous les persos demandés"
     elif process.returncode==204:
         return 1, "Erreur en déployant en GT - au moins un perso est déjà déployé"
-    else:
+    elif process.returncode!=0:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
 
     return 0, "Le bot a posé "+str(list_defId)+" en " + zone
