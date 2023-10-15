@@ -174,9 +174,15 @@ dict_stat_by_set = {'1': "health",
                     '6': "critdamage",
                     '7': "potency",
                     '8': "tenacity"}
-dict_alias = json.load(open("DATA/unitsAlias_dict.json", "r"))
-mod_list = json.load(open("DATA/modList_dict.json", "r"))
 
+dict_units = json.load(open("DATA/unitsList_dict.json", "r"))
+ENG_US = json.load(open("DATA/ENG_US.json", "r"))
+dict_names = {}
+for unit_id in dict_units:
+    unit_name = ENG_US[dict_units[unit_id]["nameKey"]]
+    dict_names[unit_name] = unit_id
+
+mod_list = json.load(open("DATA/modList_dict.json", "r"))
 
 modopti_parser = ModOptimizerListParser()
 modopti_parser.feed(open(sys.argv[1], 'r').read())
@@ -193,7 +199,7 @@ max_unallocated = 0
 for a in allocations:
     #print("---------------------")
     target_char_name = a["character"]
-    target_char_defId = dict_alias[target_char_name.lower()][1]
+    target_char_defId = dict_names[target_char_name]
     target_char_id = initial_dict_player["rosterUnit"][target_char_defId]["id"]
 
     equipped_mods = {} #key: id, value: slot
@@ -203,7 +209,7 @@ for a in allocations:
         allocated_mod_slot = dict_slot_by_shape[allocated_mod_shape]
 
         source_char_name = allocated_mod["character"]
-        source_char_defId = dict_alias[source_char_name.lower()][1]
+        source_char_defId = dict_names[source_char_name]
 
         #get a dict (char_mods) with existing mods for the source character (before any move)
         char_mods = {}
