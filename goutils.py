@@ -736,8 +736,8 @@ def print_tw_best_teams(list_teams, intro_txt):
         for [beaten, label] in [[False, "invaincue"], [True, "vaincue"]]:
             log2('DBG', [beaten, label])
             filtered_teams = [x for x in list_teams if (x[0][0] in terr_prefixes and x[3]==beaten)]
-            log2('DBG', "list_teams="+str(list_teams))
-            log2('DBG', "filtered_teams="+str(filtered_teams))
+            #log2('DBG', "list_teams="+str(list_teams))
+            #log2('DBG', "filtered_teams="+str(filtered_teams))
             if len(filtered_teams) > 0:
                 max_fights = max(filtered_teams, key=lambda x: x[4])[4]
                 log2('DBG', "max_fights="+str(max_fights))
