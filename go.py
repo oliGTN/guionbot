@@ -2130,7 +2130,17 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
 
     return ret_print_character_stats
 
-def get_distribution_graph(values, values_2, bin_count, title, x_title, y_title, legend, legend_2, highlight_value):
+def get_distribution_graph(values,           #list of values to distribute
+                           values_2,         #Optional 2nd list of values to put on top of first one
+                           bin_count,        #Amount of bons for the distribution
+                           bin_list,         #ONLY of bin_count=None, to force the bins
+                           bin_names,        #ONLY of bin_count=None, to give names to bins
+                           title,            #Title of the graph
+                           x_title,          #Name of X axis
+                           y_title,          #Name of Y axis
+                           legend,           #Optional name of 1st serie
+                           legend_2,         #Optional name of 2nd serie
+                           highlight_value): #Optional value for which create a red virtual bin
     fig, ax = plt.subplots()
 
     #pre-calculate bins to align histograms
@@ -2187,7 +2197,7 @@ async def get_gp_distribution(txt_allyCode):
     graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
-    image = get_distribution_graph(guild_stats, None, 20, graph_title, "PG du joueur", "nombre de joueurs", "", "", None)
+    image = get_distribution_graph(guild_stats, None, 20, None, None, graph_title, "PG du joueur", "nombre de joueurs", "", "", None)
     logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
     image.paste(logo_img, (10,10), logo_img)
     
@@ -2464,7 +2474,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
     title = stat_frName + " de " + character_name + " (" + str(player_value) + ") pour "+player_name+"\n"
     title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " "+relic_txt+" connus"
 
-    image = get_distribution_graph(stat_g13_values, guild_values, 50, title, "valeur de la stat", "nombre de persos", "tous", guild_name, player_value)
+    image = get_distribution_graph(stat_g13_values, guild_values, 50, None, None, title, "valeur de la stat", "nombre de persos", "tous", guild_name, player_value)
 
     return 0, err_txt, image
 

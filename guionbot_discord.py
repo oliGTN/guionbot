@@ -875,7 +875,7 @@ async def get_channel_from_channelname(ctx, channel_name):
 # Purpose: affecte le code allié de l'auteur si "me"
 # Output: code allié (string)
 ##############################################################
-def manage_me(ctx, alias):
+async def manage_me(ctx, alias, allow_tw):
     #Special case of 'me' as allyCode
     if alias == 'me':
         dict_players_by_ID = connect_mysql.load_config_players()[1]
@@ -884,13 +884,27 @@ def manage_me(ctx, alias):
             ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
         else:
             ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot"
+    elif alias == "-TW":
+        if not allow_tw:
+            return "ERR: l'option -TW n'est pas utilisable avec cette commande"
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            return "ERR: commande non autorisée depuis un DM avec l'option -TW"
+
+        ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
+        if ec != 0:
+            return "ERR: "+et
+
+        ret_allyCode_txt = allyCode
+
     elif alias.startswith('<@'):
         # discord @mention
         if alias.startswith('<@!'):
             discord_id_txt = alias[3:-1]
         else: # '<@ without the !
             discord_id_txt = alias[2:-1]
-        goutils.log("INFO", "guionbot_discord.manage_me", "command launched with discord @mention "+alias)
+        goutils.log2("INFO", "command launched with discord @mention "+alias)
         dict_players_by_ID = connect_mysql.load_config_players()[1]
         if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
@@ -1431,7 +1445,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def fsj(self, ctx, allyCode, *options):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2374,7 +2388,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
                 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2488,7 +2502,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await ctx.message.add_reaction(emoji_thumb)
 
         full_alias = " ".join(alias)
-        allyCode = manage_me(ctx, full_alias)
+        allyCode = await manage_me(ctx, full_alias, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
@@ -2596,7 +2610,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         server_id = ctx.guild.id
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, True)
                 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2655,7 +2669,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         server_id = ctx.guild.id
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
@@ -2696,7 +2710,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def fegv(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2727,7 +2741,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2760,7 +2774,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def gvj(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2797,7 +2811,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def raf(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2835,7 +2849,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def gvg(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, True)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2870,7 +2884,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def gvs(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2910,7 +2924,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def spj(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -2961,7 +2975,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def spg(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, True)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3011,27 +3025,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def gdp(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        if allyCode == "-TW":
-            #Ensure command is launched from a server, not a DM
-            if ctx.guild == None:
-                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
-                return
+        allyCode = await manage_me(ctx, allyCode, True)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+            return
 
-            ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
-            if ec != 0:
-                await ctx.send(et)
-                await ctx.message.add_reaction(emoji_error)
-                return
-        else:
-            allyCode = manage_me(ctx, allyCode)
-            if allyCode[0:3] == 'ERR':
-                await ctx.send(allyCode)
-                await ctx.message.add_reaction(emoji_error)
-                return
-
-        # First call to display the chart quickly, without the inactive players
-        e, err_txt, image = await go.get_gp_distribution( allyCode)
+        # Display the chart
+        e, err_txt, image = await go.get_gp_distribution(allyCode)
         if e != 0:
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
@@ -3068,7 +3069,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def ggv(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3116,7 +3117,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def gmj(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3148,7 +3149,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def gsj(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3180,7 +3181,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def statqj(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3227,24 +3228,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def statqg(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        if allyCode == "-TW":
-            #Ensure command is launched from a server, not a DM
-            if ctx.guild == None:
-                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
-                return
-
-            ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
-            if ec != 0:
-                await ctx.send(et)
-                await ctx.message.add_reaction(emoji_error)
-                return
-        else:
-            allyCode = manage_me(ctx, allyCode)
-            if allyCode[0:3] == 'ERR':
-                await ctx.send(allyCode)
-                await ctx.message.add_reaction(emoji_error)
-                return
+        allyCode = await manage_me(ctx, allyCode, True)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         query = "SELECT name, statq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY statq DESC, name"
         goutils.log2("DBG", query)
@@ -3274,7 +3262,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def ppj(self, ctx, allyCode, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3344,7 +3332,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         allyCode_attack = options[0]
         list_char_attack = options[1:pos_vs]
 
-        allyCode_attack = manage_me(ctx, allyCode_attack)
+        allyCode_attack = await manage_me(ctx, allyCode_attack, False)
         if allyCode_attack[0:3] == 'ERR':
             await ctx.send(allyCode_attack)
             await ctx.message.add_reaction(emoji_error)
@@ -3433,7 +3421,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         alias = options[1]
         stat = options[2]
             
-        allyCode= manage_me(ctx, allyCode)
+        allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
@@ -3466,7 +3454,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def erj(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode= manage_me(ctx, allyCode)
+        allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
@@ -3498,7 +3486,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def erg(self, ctx, allyCode):
         await ctx.message.add_reaction(emoji_thumb)
 
-        allyCode= manage_me(ctx, allyCode)
+        allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
@@ -3543,7 +3531,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        allyCode= manage_me(ctx, allyCode)
+        allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
@@ -3594,7 +3582,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        allyCode= manage_me(ctx, allyCode)
+        allyCode= await manage_me(ctx, allyCode, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
@@ -3638,7 +3626,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
         else:
-            ac_guild = manage_me(ctx, args[0])
+            ac_guild = await manage_me(ctx, args[0], True)
             if ac_guild[0:3] == 'ERR':
                 await ctx.send(ac_guild)
                 await ctx.message.add_reaction(emoji_error)
@@ -3653,7 +3641,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             list_ac_nonplayers = []
             for player in args[2:]:
-                ac = manage_me(ctx, player)
+                ac = await manage_me(ctx, player, False)
                 if ac[0:3] == 'ERR':
                     await ctx.send(ac)
                     await ctx.message.add_reaction(emoji_error)
@@ -3747,7 +3735,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         else:
             tw_mode = False
             allyCode = args[0]
-            allyCode = manage_me(ctx, allyCode)
+            allyCode = await manage_me(ctx, allyCode, False)
             server_id = None
 
         if "-TW" in args[1:]:
@@ -3905,7 +3893,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         allyCode = args[0]
-        allyCode = manage_me(ctx, allyCode)
+        allyCode = await manage_me(ctx, allyCode, False)
                 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
@@ -3942,7 +3930,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 force_merge = True
                 shardmate_ac = shardmate_ac[1:]
 
-            shardmate_ac = manage_me(ctx, shardmate_ac)
+            shardmate_ac = await manage_me(ctx, shardmate_ac, False)
 
             if shardmate_ac[0:3] == 'ERR':
                 await ctx.send(shardmate_ac)
