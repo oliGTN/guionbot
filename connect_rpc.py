@@ -596,26 +596,7 @@ async def parse_tb_platoons(server_id, force_update):
 
     return active_round, dict_platoons, list_open_territories
 
-async def parse_tw_opponent_teams(server_id, force_update):
-    ######### THIS FUNCTION IS NOT READY ##############
-    dict_unitsList = godata.get("unitsList_dict.json")
-
-    list_teams = [] # [['T1', 'Karcot', ['General Skywalker', 'CT-555 Fives, ...], <beaten>, <fights>],
-                    #  ['T1', 'E80', [...]]]
-    list_territories = [] # [['T1', <size>, <filled>, <victories>, <fails>], ...],
-
-    err_code, err_txt, rpc_data = await get_rpc_data(server_id, [], force_update)
-
-    if err_code != 0:
-        goutils.log2("ERR", err_txt)
-        return '', None, None, 0
-
-    dict_guild = rpc_data[0]
-    mapstats_json = rpc_data[1]
-
-    return 0, "", [list_teams, list_territories]
-
-async def get_guildLog_messages(server_id):
+async def get_guildLog_messages(server_id, onlyLatest):
 
     query = "SELECT bot_android_id, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
             "FROM guild_bot_infos WHERE server_id="+str(server_id)
@@ -628,7 +609,11 @@ async def get_guildLog_messages(server_id):
     chatChan_id = line[1]
     twlogChan_id = line[2]
     tblogChan_id = line[3]
-    chatLatest_ts = line[4]
+
+    if onlyLatest:
+        chatLatest_ts = line[4]
+    else:
+        chatLatest_ts = 0
 
     if bot_android_id == '':
         return 1, "ERR: no RPC bot for guild "+str(server_id), None
@@ -657,8 +642,8 @@ async def get_guildLog_messages(server_id):
         connect_mysql.simple_execute(query)
 
     return 0, "", {"CHAT": [chatChan_id, list_chat_events],
-                   "TW": [twlogChan_id, list_tw_logs],
-                   "TB": [tblogChan_id, list_tb_logs],}
+                   "TW":   [twlogChan_id, list_tw_logs],
+                   "TB":   [tblogChan_id, list_tb_logs]}
 
 async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
     FRE_FR = godata.get('FRE_FR.json')
@@ -1404,14 +1389,13 @@ async def get_tw_opponent_leader(server_id):
 #              ["T1", "JeanLuc"...
 # list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>], ...]
 # opp_guild: [name, id]
-# tw_id: "TERRITORY_WAR_EVENT_C:01681236000000"
 ########################################
 async def get_tw_status(server_id, force_update):
     dict_tw=godata.dict_tw
 
     ec, et, rpc_data = await get_rpc_data(server_id, [], force_update)
     if ec!=0:
-        return None, [[], []], [[], []], None
+        return {"tw_id": None}
 
     dict_guild=rpc_data[0]
 
@@ -1425,12 +1409,14 @@ async def get_tw_status(server_id, force_update):
             # the TW is considered on-going during
             # - defense phase (round=0, awayGuild is defined)
             # - attack phase (round=1)
-            if "awayGuild" in battleStatus and battleStatus["currentRound"]<2:
+            # - analyse phase (round=2)
+            if "awayGuild" in battleStatus:
                 tw_id = battleStatus["instanceId"]
                 cur_tw = battleStatus
+                tw_round = battleStatus["currentRound"]
 
     if tw_id == None:
-        return None, [[], []], [[], []], None
+        return {"tw_id": None}
 
     opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
     opp_guildId = battleStatus["awayGuild"]["profile"]["id"]
@@ -1469,9 +1455,14 @@ async def get_tw_status(server_id, force_update):
                     commandMsg = None
                 list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg])
 
-    return tw_id, [list_teams["homeGuild"], list_territories["homeGuild"]], \
-                 [list_teams["awayGuild"], list_territories["awayGuild"]], \
-                 [opp_guildName, opp_guildId]
+    return {"tw_id": tw_id, \
+            "tw_round": tw_round, \
+            "homeGuild": {"list_teams": list_teams["homeGuild"], \
+                         "list_territories": list_territories["homeGuild"]}, \
+            "awayGuild": {"list_teams": list_teams["awayGuild"], \
+                         "list_territories": list_territories["awayGuild"]}, \
+            "opp_guildName": opp_guildName, \
+            "opp_guildId": opp_guildId}
 
 async def get_tw_active_players(server_id, force_update):
     ec, et, rpc_data = await get_rpc_data(server_id, [], force_update)
