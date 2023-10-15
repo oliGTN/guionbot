@@ -3293,7 +3293,7 @@ async def get_tw_alerts(server_id, force_update):
 
 
     list_defense_squads = rpc_data["homeGuild"]["list_teams"]
-    list_def_territories = rpc_data["homeGuild"][list_territories]
+    list_def_territories = rpc_data["homeGuild"]["list_territories"]
     list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
     nb_full = len(list_full_territories)
     if len(list_def_territories) > 0:
