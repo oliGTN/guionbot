@@ -177,7 +177,7 @@ async def bot_loop_60secs(bot):
                     await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], 1)
                     await connect_gsheets.update_gwarstats(server_id)
 
-                    ec, et, ret_data = await connect_rpc.get_guildLog_messages(server_id)
+                    ec, et, ret_data = await connect_rpc.get_guildLog_messages(server_id, True)
                     if ec!=0:
                         goutils.log2("ERR", et)
                     else:
@@ -1501,6 +1501,74 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         self.bot = bot
 
     ##############################################################
+    # Command: logs
+    # Parameters: "grep" text
+    # Purpose: list guild events over the latest 48h, and filter with a text
+    # Display: list of events with time
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='logs', brief="Affiche les logs de guilds",
+                                   help ="Affiche les logs de guilde\n" \
+                                         "Exemple: go.logs\n" \
+                                         "Exemple: go.logs Chaton72\n" \
+                                         "Exemple: go.logs -i chaton72\n" \
+                                         "Exemple: go.logs a perdu\n" \
+                                         "Exemple: go.logs TM")
+    async def logs(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        args = list(args)
+        if "-i" in args:
+            case_sensitive = False
+            args.remove("-i")
+        else:
+            case_sensitive = True
+
+        text_grep = " ".join(args)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        ec, et, ret_data = await connect_rpc.get_guildLog_messages(ctx.guild.id, False)
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        list_chat_events = ret_data["CHAT"][1]
+        list_tw_events = ret_data["TW"][1]
+        list_tb_events = ret_data["TB"][1]
+
+        list_logs = list_chat_events + list_tw_events + list_tb_events
+
+        #Sort by time
+        list_logs = sorted(list_logs)
+
+        if case_sensitive:
+            list_logs = [x for x in list_logs if text_grep in x[1]]
+        else:
+            list_logs = [x for x in list_logs if text_grep.lower() in x[1].lower()]
+
+        #Keep max 100 latest
+        list_logs = list_logs[-100:]
+
+        #display
+        output_txt = ""
+        for line in list_logs:
+            ts = line[0]
+            txt = line[1]
+            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+            output_txt+=ts_txt+" - "+txt+"\n"
+
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            await ctx.send('`'+txt+'`')
+
+        await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
     # Command: vdp
     # Parameters: [optionnel] nom du channel où écrire les résultats (sous forme "#nom_du_channel")
     # Purpose: Vérification du déploiements de Pelotons
@@ -1598,6 +1666,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 if ec != 0:
                     await ctx.send(et)
                     await ctx.message.add_reaction(emoji_error)
+                    return
 
                 bot_name = dict_player_bot["name"]
 
