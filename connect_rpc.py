@@ -1160,7 +1160,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             if ratio_deploy_mix >= 0.99:
                 finished_players["mix"].append(playerName)
 
-    print(finished_players)
+    #print(finished_players)
 
     # Loop by zone then by strike in the zone
     for zone in dict_open_zones:
@@ -1203,10 +1203,10 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                         dict_strike_zones[strike_name]["estimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["estimatedScore"] += strike_average_score
 
-                        print(playerName+","+strike_shortname+","+str(strike_fights)+","+str(strike_score)+","+str(strike_average_score))
+                        #print(playerName+","+strike_shortname+","+str(strike_fights)+","+str(strike_score)+","+str(strike_average_score))
 
-    for i in dict_strike_zones:
-        print(i+": "+str(dict_strike_zones[i]))
+    #for i in dict_strike_zones:
+    #    print(i+": "+str(dict_strike_zones[i]))
 
     dict_phase["shipPlayers"] = remaining_to_play_ships
     dict_phase["charPlayers"] = remaining_to_play_chars

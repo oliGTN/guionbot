@@ -2572,9 +2572,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             if len(discord_display_names)>0:
                 for discord_name in discord_display_names:
-                    if discord_name[0] == ctx.guild.name:
+                    if ctx.guild == None:
+                        # in a DM
+                        txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
+                    elif discord_name[0] == ctx.guild.name:
+                        # in the right guild
                         txt+= "- pseudo Discord chez **"+discord_name[0]+"** : "+discord_name[1]+"\n"
                     else:
+                        # in a guild, but nott the right one
                         txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
             else:
                 txt+= "- pseudo Discord : ???\n"
