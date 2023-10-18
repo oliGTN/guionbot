@@ -729,6 +729,8 @@ def get_characters_from_alias(list_alias):
     return list_ids, dict_id_name, txt_not_found_characters
 
 def print_tw_best_teams(list_teams, intro_txt):
+    dict_unitsList = data.get("unitsList_dict.json")
+
     output_txt = ""
 
     for [terr_prefixes, label_terr] in [["TB", "terrestre"], ["F", "vaisseaux"]]:
@@ -746,6 +748,7 @@ def print_tw_best_teams(list_teams, intro_txt):
                     log2('DBG', "best_teams="+str(best_teams))
                     output_txt += intro_txt+" "+label_terr+" "+label+" après "+str(max_fights)+" combats :\n"
                     for t in best_teams:
+                        t[2] = [dict_unitsList[x]["name"] for x in t[2]]
                         output_txt += t[1] + ": " + str(t[2]).replace("'", '"')\
                                                              .replace(", ", " ")\
                                                              .replace("]", "")\
