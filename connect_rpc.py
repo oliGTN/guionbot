@@ -894,7 +894,7 @@ async def tag_tb_undeployed_players(server_id, force_update):
         if undeployed_player:
             lines_player.append([playerName, ret_print_player])
 
-    return 0, "", lines_player
+    return 0, "", {"lines_player": lines_player, "round_endTime": dict_phase["round_endTime"]}
 
 async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, force_update):
     dict_tb = godata.dict_tb

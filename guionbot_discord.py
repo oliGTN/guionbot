@@ -1927,10 +1927,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             display_mentions=False
             output_channel = ctx.message.channel
 
-        err_code, ret_txt, lines = await connect_rpc.tag_tb_undeployed_players( ctx.guild.id, 0)
+        err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players( ctx.guild.id, 0)
+        lines = ret_data["lines_player"]
+        endTime = ret_data["round_endTime"]
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
-            output_txt="Joueurs n'ayant pas tout déployé en BT : \n"
+            expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
+            output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
             for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
                 if (p in dict_players_by_IG) and display_mentions:
                     p_name = dict_players_by_IG[p][1]
