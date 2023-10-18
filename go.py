@@ -832,8 +832,13 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                                                                     player_name, 
                                                                     score_type)
 
-                        #Unlocking a chatacter only gives the rarity so by default 50%
-                        score = score / 200.0
+                        if dict_unitsList[character_id]['combatType']==1:
+                            #Unlocking a character only gives the rarity so by default 50%
+                            score = score / 200.0
+                        else:
+                            #But for a ship the rarity is mostly everything
+                            score = score / 100.0
+
                         #weight = len(list_char)
                         weight = 1
                         character_display = "\N{CROSS MARK} "+\
