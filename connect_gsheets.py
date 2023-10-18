@@ -632,7 +632,10 @@ async def update_gwarstats(server_id):
     if ec != 0:
         return 1, et
 
-    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+    dict_phase = tb_data["phase"]
+    dict_strike_zones = tb_data["strike_zones"]
+    dict_tb_players = tb_data["players"]
+    dict_open_zones = tb_data["open_zones"]
 
     try:
         get_gapi_client()

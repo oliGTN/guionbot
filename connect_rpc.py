@@ -841,7 +841,10 @@ async def tag_tb_undeployed_players(server_id, force_update):
     if ec!=0:
         return 1, et, None
 
-    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+    dict_phase = tb_data["phase"]
+    dict_strike_zones = tb_data["strike_zones"]
+    dict_tb_players = tb_data["players"]
+    dict_open_zones = tb_data["open_zones"]
 
     dict_deployment_types = {}
     for zone_name in dict_open_zones:
@@ -945,7 +948,11 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_open_zones = {}
-    dict_phase = {"id": battle_id, "round": tb_round, "type": tb_type, "name": dict_tb[tb_type]["name"]}
+    dict_phase = {"id": battle_id, 
+                  "round": tb_round, 
+                  "round_endTime": tb_round_endTime, 
+                  "type": tb_type, 
+                  "name": dict_tb[tb_type]["name"]}
 
     for playername_gp_id in list_playername_gp_id:
         #test if player participates to TB - if joined guild after start of TB
@@ -1353,7 +1360,10 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                 star_for_score += 1
         dict_open_zones[zone_name]["estimatedStars"] = star_for_score
 
-    return 0, "", [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones]
+    return 0, "", {"phase": dict_phase, 
+                   "strike_zones": dict_strike_zones, 
+                   "players": dict_tb_players, 
+                   "open_zones": dict_open_zones}
 
 ##########################################"
 # OUT: dict_territory_scores = {"GLS-P3-top": 24500000, ...}
@@ -1365,7 +1375,11 @@ async def get_tb_guild_scores(server_id, force_update):
     if ec!=0:
         return {}, ""
 
-    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+    dict_phase = tb_data["phase"]
+    dict_strike_zones = tb_data["strike_zones"]
+    dict_tb_players = tb_data["players"]
+    dict_open_zones = tb_data["open_zones"]
+
     active_round = dict_tb[dict_phase["type"]]["shortname"]+str(dict_phase["round"])
     dict_territory_scores = {}
     for zone in dict_open_zones:

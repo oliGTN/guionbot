@@ -4196,7 +4196,11 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
     if ec!=0:
         return 1, et, None
 
-    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+    dict_phase = tb_data["phase"]
+    dict_strike_zones = tb_data["strike_zones"]
+    dict_tb_players = tb_data["players"]
+    dict_open_zones = tb_data["open_zones"]
+ 
     list_deployment_types = []
     for zone_name in dict_open_zones:
         zone_deployment_type = dict_tb[zone_name]["type"]
@@ -4502,7 +4506,12 @@ async def deploy_bot_tb(server_id, zone_shortname, characters):
     ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, -1)
     if ec!=0:
         return 1, et
-    [dict_phase, dict_strike_zones, dict_tb_players, dict_open_zones] = tb_data
+
+    dict_phase = tb_data["phase"]
+    dict_strike_zones = tb_data["strike_zones"]
+    dict_tb_players = tb_data["players"]
+    dict_open_zones = tb_data["open_zones"]
+
     tb_type = dict_phase["type"]
     if not tb_type in dict_tb:
         return 1, "TB inconnue du bot"
@@ -4969,6 +4978,3 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
             kyro_energy += needed_eqpt["173Salvage"] * 10 / kyro_droprate
 
     return kyro_energy, shard_energy
-
-
-
