@@ -1136,65 +1136,70 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
     remaining_to_play_mix = 0
     lines_player = []
 
-    #Loop on all TB players
+    #Loop on all TB players to assess the list of who has finished playing
+    finished_players = {"ships": [], "chars": [], "mix": []}
     for playerName in dict_tb_players:
 
         #depending on the TB, playing in ships/chars, or in mix,
         # detect if the player has finished playing, by checking if all is deployed
-        # If the player has deployed 99%, he is considered not finished 
+        # If the player has deployed < 99%, he is considered not finished 
         # and count as +1 in the remaining players to fight
-        # I deployment is 99% and more, it rounded to 100%
 
         if "ships" in list_deployment_types:
             ratio_deploy_ships = dict_tb_players[playerName]["score"]["deployedShips"] / dict_tb_players[playerName]["ship_gp"]
-            if ratio_deploy_ships < 0.99:
-                remaining_to_play_ships += 1
-            else:
-                ratio_deploy_ships = 1
+            if ratio_deploy_ships >= 0.99:
+                finished_players["ships"].append(playerName)
 
         if "chars" in list_deployment_types:
             ratio_deploy_chars = dict_tb_players[playerName]["score"]["deployedChars"] / dict_tb_players[playerName]["char_gp"]
-            if ratio_deploy_chars < 0.99:
-                remaining_to_play_chars += 1
-            else:
-                ratio_deploy_chars = 1
+            if ratio_deploy_chars >= 0.99:
+                finished_players["chars"].append(playerName)
 
         if "mix" in list_deployment_types:
             ratio_deploy_mix = dict_tb_players[playerName]["score"]["deployedMix"] / dict_tb_players[playerName]["mix_gp"]
-            if ratio_deploy_mix < 0.99:
-                remaining_to_play_mix += 1
+            if ratio_deploy_mix >= 0.99:
+                finished_players["mix"].append(playerName)
+
+    print(finished_players)
+
+    # Loop by zone then by strike in the zone
+    for zone in dict_open_zones:
+        for strike in dict_tb[zone]["strikes"]:
+            strike_shortname = "conflict0"+zone[-1]+"_"+strike
+            strike_name = zone+"_"+strike
+
+            #strike_fights = dict_strike_zones[strike_name]["participation"]
+            #actually not the real ammount of fights, but the amount of tries
+            # which is estimated to the amount of players who have finished
+            # playing in that type of fight
+            # LIMIT: if a player has fought and not finished, the result is biased
+            # The method to count actual fights + finished players is TBD
+            strike_fights = len(finished_players[dict_tb[zone]["type"]])
+
+            strike_score = dict_strike_zones[strike_name]["eventStrikeScore"]
+            if strike_fights > 0:
+                strike_average_score = strike_score / strike_fights
             else:
-                ratio_deploy_mix = 1
+                strike_average_score = 0
 
-        # Loop by zone then by strike in the zone
-        for zone in dict_open_zones:
-            for strike in dict_tb[zone]["strikes"]:
-                strike_shortname = "conflict0"+zone[-1]+"_"+strike
-                strike_name = zone+"_"+strike
-
+            #Loop on all TB players to get estimated score
+            for playerName in dict_tb_players:
                 #If the player has not fought for this strike, his potential score
                 # is estimated by giving him the average done score from other players
-                # which is (total score for the strike) / (players who participated on this strike)
+                # which is (total score for the strike) / (players who participated on this strike + players who has finished and not participated)
                 # If no player has tried this strike, then estimated score is 0
                 # The estimated score is used only of the player has not finished playing
                 if not strike_shortname in dict_tb_players[playerName]["strikes"]:
-                    strike_fights = dict_strike_zones[strike_name]["participation"]
-                    strike_score = dict_strike_zones[strike_name]["eventStrikeScore"]
 
-                    if strike_fights > 0:
-                        strike_average_score = strike_score / strike_fights
-                    else:
-                        strike_average_score = 0
-
-                    if   dict_tb[zone]["type"]=="ships" and ratio_deploy_ships<1:
+                    if   dict_tb[zone]["type"]=="ships" and not playerName in finished_players["ships"]:
                         dict_strike_zones[strike_name]["estimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["estimatedScore"] += strike_average_score
 
-                    elif dict_tb[zone]["type"]=="chars" and ratio_deploy_chars<1:
+                    elif dict_tb[zone]["type"]=="chars" and not playerName in finished_players["chars"]:
                         dict_strike_zones[strike_name]["estimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["estimatedScore"] += strike_average_score
 
-                    elif dict_tb[zone]["type"]=="mix"   and ratio_deploy_mix  <1:
+                    elif dict_tb[zone]["type"]=="mix"   and not playerName in finished_players["mix"]:
                         dict_strike_zones[strike_name]["estimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["estimatedScore"] += strike_average_score
 
