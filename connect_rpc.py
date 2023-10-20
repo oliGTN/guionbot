@@ -947,6 +947,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 
     dict_tb_players = {}
     dict_strike_zones = {}
+    dict_covert_zones = {}
     dict_open_zones = {}
     dict_phase = {"id": battle_id, 
                   "round": tb_round, 
@@ -978,6 +979,8 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                                                       "strikes": 0} 
         dict_tb_players[playername_gp_id[0]]["strikes"] = {} # "conflixtX_strikeY": "1/4"
         dict_tb_players[playername_gp_id[0]]["strike_attempts"] = 0
+        dict_tb_players[playername_gp_id[0]]["coverts"] = {} # "conflixtX_covertY": True
+        dict_tb_players[playername_gp_id[0]]["covert_attempts"] = 0
 
     for zone in battleStatus["conflictZoneStatus"]:
         if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
@@ -1016,6 +1019,19 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             dict_strike_zones[strike_name]["eventStrikes"] = 0
             dict_strike_zones[strike_name]["eventStrikeScore"] = 0
 
+    for zone in battleStatus["covertZoneStatus"]:
+        if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
+            covert_name = zone["zoneStatus"]["zoneId"]
+            covert_shortname = covert_name.split("_")[-1]
+
+            zone_name = covert_name[:-len(covert_shortname)-1]
+
+            done_coverts = zone["playersParticipated"]
+            if not covert_name in dict_covert_zones:
+                dict_covert_zones[covert_name] = {}
+
+            dict_covert_zones[covert_name]["participation"] = done_coverts
+
     for event_id in dict_events:
         event=dict_events[event_id]
         event_time = int(event["timestamp"])
@@ -1037,6 +1053,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 
             event_key = event_data["activity"][zoneData_key]["activityLogMessage"]["key"]
             if "CONFLICT_CONTRIBUTION" in event_key:
+                # Strike partially or completely succesful
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 strike_name = event_data["activity"][zoneData_key]["sourceZoneId"]
                 if zone_name in dict_open_zones:
@@ -1053,12 +1070,14 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                     dict_tb_players[playerName]["strikes"][strike_shortname] = done_waves+"/"+total_waves
 
             elif "RECON_CONTRIBUTION" in event_key:
+                #Complete a platoon
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 if zone_name in dict_open_zones:
                     score = int(event_data["activity"][zoneData_key]["scoreDelta"])
                     dict_tb_players[playerName]["score"]["Platoons"] += score
 
             elif "DEPLOY" in event_key:
+                #Deployment (strike or platoon)
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 if zone_name in dict_open_zones:
                     score = int(event_data["activity"][zoneData_key]["scoreDelta"])
@@ -1071,6 +1090,15 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                     else:
                         dict_tb_players[playerName]["score"]["deployedMix"] += score
 
+            elif "COVERT_COMPLETE" in event_key:
+                # Special mission
+                zone_name = event_data["activity"][zoneData_key]["zoneId"]
+                strike_name = event_data["activity"][zoneData_key]["sourceZoneId"]
+                if zone_name in dict_open_zones:
+                    dict_covert_zones[covert_name]["eventCoverts"] += 1
+                    strike_shortname="_".join(strike_name.split("_")[-2:])
+                    dict_tb_players[playerName]["coverts"][strike_shortname] = True
+
     for mapstat in mapstats:
         if mapstat["mapStatId"] == "strike_attempt_round_"+str(tb_round):
             if "playerStat" in mapstat:
@@ -1082,6 +1110,17 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
 
                     attempts = int(playerstat["score"])
                     dict_tb_players[playerName]["strike_attempts"] = attempts
+
+        elif mapstat["mapStatId"] == "covert_attempt_round_"+str(tb_round):
+            if "playerStat" in mapstat:
+                for playerstat in mapstat["playerStat"]:
+                    member_id = playerstat["memberId"]
+                    playerName = dict_members_by_id[member_id]["playerName"]
+                    if not playerName in dict_tb_players:
+                        continue
+
+                    attempts = int(playerstat["score"])
+                    dict_tb_players[playerName]["covert_attempts"] = attempts
 
         elif mapstat["mapStatId"] == "power_round_"+str(tb_round):
             if "playerStat" in mapstat:
@@ -1221,6 +1260,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
         max_strike_score = 0
         cur_strike_score = 0
         cur_strike_fights = {}
+        cur_covert_fights = {}
         for strike in dict_tb[zone_name]["strikes"]:
             strike_name = zone_name + "_" + strike
             if compute_estimated_fights:
@@ -1231,8 +1271,13 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             cur_strike_fights[strike] = dict_strike_zones[strike_name]["participation"]
             cur_strike_score += dict_strike_zones[strike_name]["eventStrikeScore"]
 
+        for covert in dict_tb[zone_name]["coverts"]:
+            covert_name = zone_name + "_" + covert
+            cur_covert_fights[covert] = dict_covert_zones[covert_name]["participation"]
+
         dict_open_zones[zone_name]["strikeScore"] = cur_strike_score
         dict_open_zones[zone_name]["strikeFights"] = cur_strike_fights
+        dict_open_zones[zone_name]["covertFights"] = cur_covert_fights
         dict_open_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
         dict_open_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
         dict_open_zones[zone_name]["maxStrikeScore"] = max_strike_score

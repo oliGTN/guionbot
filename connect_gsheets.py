@@ -710,9 +710,12 @@ async def update_gwarstats(server_id):
         cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=zone["maxStrikeScore"]))
 
         i_covert = 1
-        for strike in dict_tb[zone_fullname]["coverts"]:
+        total_coverts=0
+        for covert in dict_tb[zone_fullname]["coverts"]:
             cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value="Special "+str(i_covert)))
-            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value="inconnu"))
+            covert_val = str(zone["covertFights"][covert])+"/"+str(dict_phase["TotalPlayers"])
+            total_coverts += zone["covertFights"][covert]
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=covert_val))
             i_covert+=1
             line+=1
 
@@ -724,6 +727,7 @@ async def update_gwarstats(server_id):
         else:
             cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=zone["strikeScore"]/total_strikes_zone))
         
+        # Prepare next loop
         i_zone+=1
 
     #global stats
@@ -786,19 +790,51 @@ async def update_gwarstats(server_id):
             conflict = zone_fullname.split("_")[-1]
 
             #loop on all existing strikes in the TB dictionary
+            zone_total_strikes=0
+            zone_player_strikes=0
             for strike in dict_tb[zone_fullname]["strikes"]:
                 max_waves = dict_tb[zone_fullname]["strikes"][strike][0]
                 total_strikes += 1
+                zone_total_strikes += 1
                 conflict_strike = conflict+"_"+strike
                 if conflict_strike in player["strikes"]:
                     strike_txt += player["strikes"][conflict_strike]+" "
+                    zone_player_strikes+=1
                 else:
                     strike_txt += "?/"+str(max_waves)+" "
+            if zone_player_strikes == zone_total_strikes:
+                #everything is done, so we know what is failed
+                strike_txt = strike_txt.replace("?", "0")
             cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=strike_txt.strip()))
             i_zone += 1
         player_strikes = player["strike_attempts"]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+12, value=str(player_strikes)+"/"+str(total_strikes)))
 
+        #coverts / special missions
+        total_coverts = 0
+        covert_txt = ""
+        i_zone = 1
+        for zone_fullname in dict_open_zones:
+            conflict = zone_fullname.split("_")[-1]
+
+            #loop on all existing coverts in the TB dictionary
+            for covert in dict_tb[zone_fullname]["coverts"]:
+                total_coverts += 1
+                conflict_covert = conflict+"_"+covert
+                if conflict_covert in player["coverts"]:
+                    covert_txt += "Y "
+                else:
+                    covert_txt += "? "
+            i_zone += 1
+        player_coverts = player["covert_attempts"]
+        if player_coverts == total_coverts:
+            #everything is done, so we know what is failed
+            covert_txt = covert_txt.replace("?", "n")
+        #Write the attemps, then the details by attempt
+        covert_txt = str(player_coverts)+"/"+str(total_coverts)+" ("+covert_txt.strip()+")"
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+13, value=covert_txt))
+
+        # Prepare next loop
         line += 1
 
     # erase the table up to 50th line
