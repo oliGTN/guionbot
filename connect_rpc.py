@@ -1095,7 +1095,6 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 strike_name = event_data["activity"][zoneData_key]["sourceZoneId"]
                 if zone_name in dict_open_zones:
-                    dict_covert_zones[covert_name]["eventCoverts"] += 1
                     strike_shortname="_".join(strike_name.split("_")[-2:])
                     dict_tb_players[playerName]["coverts"][strike_shortname] = True
 
