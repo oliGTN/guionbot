@@ -1112,7 +1112,7 @@ def compute_statq_avg(force_all):
                  "   join players on players.allyCode=roster.allyCode " \
                  "   where statq_table.defId=roster.defId " \
                  "   and gear>=12 " \
-                 "   and mod1>stat1 " \
+                 "   and stat"+str(s_id)+" > mod"+str(s_id)+" " \
                  "   and grand_arena_rank='KYBER1' " \
                  "   and timestampdiff(DAY,lastUpdated,CURRENT_TIMESTAMP)<30 " \
                  ") \n"
