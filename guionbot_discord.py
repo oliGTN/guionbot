@@ -3021,7 +3021,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Command: gdp
     # Parameters: code allié (string) ou "me"
     # Purpose: graph de distribution des PG des membres de la guilde
-    # Display: graph (#=actif, .=inactif depuis 36 heures)
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='gdp',
@@ -3041,6 +3040,48 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         # Display the chart
         e, err_txt, image = await go.get_gp_distribution(allyCode)
+        if e != 0:
+            await ctx.send(err_txt)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(content = "",
+                       file=File(fp=image_binary, filename='image.png'))
+
+            await ctx.message.add_reaction(emoji_hourglass)
+
+            # Now load all players from the guild
+            await go.load_guild( allyCode, True, True)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.remove_reaction(emoji_hourglass, bot.user)
+            await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: ggac
+    # Parameters: code allié (string) ou "me"
+    # Purpose: graph de distribution des rangs de GAC des membres de la guilde
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='ggac',
+                 brief="Graphique des rangs de GAC d'une guilde",
+                 help="Graphique des rangs de GAC d'une guilde\n\n"\
+                      "Exemple: go.ggac me\n"\
+                      "Exemple: go.ggac 123456789\n"\
+                      "Exemple: go.ggac -TW")
+    async def ggac(self, ctx, allyCode):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        allyCode = await manage_me(ctx, allyCode, True)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        # Display the chart
+        e, err_txt, image = await go.get_gac_distribution(allyCode)
         if e != 0:
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)

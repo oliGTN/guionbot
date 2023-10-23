@@ -383,7 +383,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
                 goutils.log2('DBG', query)
                 connect_mysql.simple_execute(query)
 
-        #Check if pleyer data needs to be loaded from RPC
+        #Check if player data needs to be loaded from RPC
         if lastUpdated != None:
             delta_lastUpdated = datetime.datetime.now() - lastUpdated
             if cmd_request:
@@ -458,10 +458,10 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
             lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
             goutils.log2('INFO', "Guild "+guild_name+" last update is "+lastUpdated_txt)
 
-        #Erase guild_name for alyCodes not detected from API
+        #Erase guildName and guildId for alyCodes not detected from API
         if len(playerId_to_remove) > 0:
             query = "UPDATE players "\
-                   +"SET guildName = '', guildMemberLevel = 2 "\
+                   +"SET guildName = '', guildMemberLevel = 2, guildId = '' "\
                    +"WHERE playerId IN "+str(tuple(playerId_to_remove)).replace(",)", ")")
             goutils.log2('DBG', query)
             connect_mysql.simple_execute(query)
@@ -2135,11 +2135,12 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
 
     return ret_print_character_stats
 
+##############################################
 def get_distribution_graph(values,           #list of values to distribute
                            values_2,         #Optional 2nd list of values to put on top of first one
                            bin_count,        #Amount of bons for the distribution
                            bin_list,         #ONLY of bin_count=None, to force the bins
-                           bin_names,        #ONLY of bin_count=None, to give names to bins
+                           bin_labels,       #ONLY of bin_count=None, to give names to bins
                            title,            #Title of the graph
                            x_title,          #Name of X axis
                            y_title,          #Name of Y axis
@@ -2149,11 +2150,16 @@ def get_distribution_graph(values,           #list of values to distribute
     fig, ax = plt.subplots()
 
     #pre-calculate bins to align histograms
-    if values_2 != None:
-        bins=np.histogram(np.hstack((values, values_2)), bins=bin_count)[1]
-        bin_count = len(bins)
+    if bin_count != None:
+        #Automatic bons, from a count
+        if values_2 != None:
+            bins=np.histogram(np.hstack((values, values_2)), bins=bin_count)[1]
+            bin_count = len(bins)
+        else:
+            bins = bin_count
     else:
-        bins = bin_count
+        #Fixed bins as input
+        bins = bin_list
 
     # 1st hist
     ax.hist(values, bins=bins, color='blue', label=legend)
@@ -2161,6 +2167,11 @@ def get_distribution_graph(values,           #list of values to distribute
     # 2nd hist
     if values_2 != None:
         ax.hist(values_2, bins=bins, label=legend_2, color='lightblue')
+
+    # bin labels in X axis
+    if bin_labels != None:
+        ax.set_xticks(list(bin_labels.keys()))
+        ax.set_xticklabels(list(bin_labels.values()), ha="left")
 
     # legend
     if legend!='' or legend_2!='':
@@ -2203,6 +2214,47 @@ async def get_gp_distribution(txt_allyCode):
 
     #compute ASCII graphs
     image = get_distribution_graph(guild_stats, None, 20, None, None, graph_title, "PG du joueur", "nombre de joueurs", "", "", None)
+    logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
+    image.paste(logo_img, (10,10), logo_img)
+    
+    return 0, "", image
+
+#################################
+# Function: get_gac_distribution
+# IN: txt_allyCode: an allyCode in the target guild
+# return: err_code, err_txt, image
+#################################
+async def get_gac_distribution(txt_allyCode):
+    #Load or update data for the guild
+    #use only the guild data from the API
+    err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
+    if err_code != 0:
+        return 1, "ERR: cannot get guild data from RPC", None
+
+    #Get GAC level in numbers
+    query = "select " \
+            "case left(grand_arena_rank,2) " \
+            "when 'KY' then 20 " \
+            "when 'AU' then 15 " \
+            "when 'CH' then 10 " \
+            "when 'BR' then 5 " \
+            "else 0 end + 5 - right(grand_arena_rank,1) " \
+            "from players where guildId = (select guildId from players where allyCode="+txt_allyCode+") "
+    goutils.log2("DBG", query)
+    guild_stats = connect_mysql.get_column(query)
+    guild_name = dict_guild["profile"]["name"]
+
+    graph_title = "Classement GAC " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
+
+    #compute graph
+    image = get_distribution_graph(guild_stats, None, None, 
+                                   list(range(25)),
+                                   {0:'Carbonite',
+                                    5:'Bronzium',
+                                    10:'Chromium',
+                                    15:'Aurodium',
+                                    20:'Kyber'},
+                                   graph_title, "Classement GAC", "nombre de joueurs", "", "", None)
     logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
     image.paste(logo_img, (10,10), logo_img)
     
