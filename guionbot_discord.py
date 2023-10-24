@@ -3180,6 +3180,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             elif "-y" in list_params:
                 list_params.remove("-y")
                 is_year = True
+            if len(list_params)<1:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
             parameter = list_params[0]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
@@ -3232,6 +3237,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             elif "-y" in list_params:
                 list_params.remove("-y")
                 is_year = True
+            if len(list_params)<1:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphg")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
             parameter = list_params[0]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphg")
