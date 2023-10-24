@@ -3153,18 +3153,38 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         
 
     ##############################################################
-    # Command: gmj
-    # Parameters: code allié (string) ou "me"
-    # Purpose: graph de progrès de modq du joueur
+    # Command: graphj
+    # IN: code allié (string) ou "me"
+    # IN: nom du paramètre à afficher
+    # Purpose: graph de progrès du paramètre chez le joueur
     # Display: graph
     ##############################################################
     @commands.check(member_command)
-    @commands.command(name='gmj',
-                 brief="Graphique de Modq d'un Joueur",
-                 help="Graphique de Modq d'un Joueur\n\n"\
-                      "Exemple: go.gmj me")
-    async def gmj(self, ctx, allyCode):
+    @commands.command(name='graphj',
+                 brief="Graphique dans le temps chez un Joueur",
+                 help="Graphique dans le temps chez un Joueur\n\n"\
+                      "Exemple: go.graphj me modq #graph sur 12 mois\n" \
+                      "Exemple: go.graphj me -Y modq #graph sur un an")
+    async def graphj(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        args = list(args)
+        if len(args) >= 2:
+            allyCode = args[0]
+            list_params = args[1:]
+
+            is_year = False
+            if "-Y" in list_params:
+                list_params.remove("-Y")
+                is_year = True
+            elif "-y" in list_params:
+                list_params.remove("-y")
+                is_year = True
+            parameter = list_params[0]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         allyCode = await manage_me(ctx, allyCode, False)
 
@@ -3172,7 +3192,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            e, err_txt, image = go.get_modqstatq_graph( allyCode, True)
+            e, err_txt, image = go.get_player_time_graph( allyCode, False, parameter, is_year)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -3185,18 +3205,38 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
-    # Command: gsj
-    # Parameters: code allié (string) ou "me"
-    # Purpose: graph de progrès de statq du joueur
+    # Command: graphg
+    # IN: code allié (string) ou "me"
+    # IN: nom du paramètre à afficher
+    # Purpose: graph de progrès du paramètre chez la guilde du joueur
     # Display: graph
     ##############################################################
     @commands.check(member_command)
-    @commands.command(name='gsj',
-                 brief="Graphique de StatQ d'un Joueur",
-                 help="Graphique de StatQ d'un Joueur\n\n"\
-                      "Exemple: go.gsj me")
-    async def gsj(self, ctx, allyCode):
+    @commands.command(name='graphg',
+                 brief="Graphique dans le temps dans une guilde",
+                 help="Graphique dans le temps dans une guilde\n\n"\
+                      "Exemple: go.graphg me modq #graph sur 12 mois\n" \
+                      "Exemple: go.graphg me -Y modq #graph sur un an")
+    async def graphg(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
+
+        args = list(args)
+        if len(args) >= 2:
+            allyCode = args[0]
+            list_params = args[1:]
+
+            is_year = False
+            if "-Y" in list_params:
+                list_params.remove("-Y")
+                is_year = True
+            elif "-y" in list_params:
+                list_params.remove("-y")
+                is_year = True
+            parameter = list_params[0]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphg")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
         allyCode = await manage_me(ctx, allyCode, False)
 
@@ -3204,7 +3244,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
-            e, err_txt, image = go.get_modqstatq_graph( allyCode, False)
+            e, err_txt, image = go.get_player_time_graph( allyCode, True, parameter, is_year)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emoji_error)
@@ -3214,7 +3254,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     image_binary.seek(0)
                     await ctx.send(content = "",
                            file=File(fp=image_binary, filename='image.png'))
-
                 await ctx.message.add_reaction(emoji_check)
 
     ##############################################################

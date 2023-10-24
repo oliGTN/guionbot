@@ -4118,31 +4118,60 @@ def get_gv_graph(txt_allyCode, characters):
     return 0, "", image
 
 ###############################
-# is_modq = True  >> ModQ graph
-# is_modq = False >> StatQ graph
+# txt_allyCode >> allyCode of the player, or one player of the guild
+# guild_graph (boolean) >> True if the graph is for the guild
+# parameter >> ["gp", "arena_char_rank", "arena_ship_rank", "gac_rating", "modq", "statq"]
+# is_year = True >> graph one 12 months, instead of 30 days (default)
 ###############################
-def get_modqstatq_graph(txt_allyCode, is_modq):
-    if is_modq:
-        kpi_name = "modq"
-    else:
-        kpi_name = "statq"
+def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
+    dict_params = {"gp": ["ship_gp+char_gp", "sum"],
+                   "arena_char_rank": ["arena_char_rank", "avg"],
+                   "arena_ship_rank": ["arena_ship_rank", "avg"],
+                   "gac_rating": ["grand_arena_rating", "avg"],
+                   "modq": ["modq", "avg"],
+                   "statq": ["statq", "avg"]}
 
-    query = "SELECT date, gp_history."+kpi_name+", name FROM gp_history " \
-          + "JOIN players ON players.allyCode = gp_history.allyCode " \
-          + "WHERE gp_history.allyCode="+txt_allyCode+" " \
-          + "AND timestampdiff(DAY, date, CURRENT_TIMESTAMP)<=30 " \
-          + "AND NOT isnull(gp_history."+kpi_name+") " \
-          + "ORDER BY date DESC"
+    if not parameter in dict_params:
+        return 1, "ERR: le paramètre "+parameter+" est inconnu dans la liste "+str(list(dict_params.keys())), None
+
+    #get basic player info
+    query = "SELECT name, guildName FROM players WHERE allyCode="+txt_allyCode
+    db_data = connect_mysql.get_line(query)
+    if db_data == None:
+        return 1, "ERR: aucun joueur connu pour le code "+txt_allyCode, None
+    playerName = db_data[0]
+    guildName = db_data[1]
+
+    if guild_graph:
+        if guildName == None or guildName == '':
+            return 1, "ERR: aucune guilde connue pour le joueur "+txt_allyCode, None
+
+        txt_param = dict_params[parameter][1]+"("+dict_params[parameter][0]+")"
+        query = "SELECT date, "+txt_param+" AS pp FROM gp_history " \
+              + "WHERE guildName=(SELECT guildName FROM players WHERE allyCode = "+txt_allyCode+") " \
+              + "GROUP BY date "
+    else:
+        txt_param = dict_params[parameter][0]
+        query = "SELECT date, "+txt_param+" AS pp FROM gp_history " \
+              + "WHERE allyCode = "+txt_allyCode+" "
+
+    if is_year:
+        query = "SELECT max(date), pp FROM ( " \
+              + query \
+              + ") T GROUP BY year(date), month(date) ORDER BY DATE DESC LIMIT 12"
+    else:
+        query = query + "ORDER BY DATE DESC LIMIT 30"
+
     goutils.log2("DBG", query)
-    ret_db = connect_mysql.get_table(query)
-    if ret_db == None:
-        return 1, "WAR: aucun "+kpi_name+" connu de "+character_id+" pour "+txt_allyCode+" dans les 30 derniers jours", None
+    db_data = connect_mysql.get_table(query)
+    if db_data == None:
+        return 1, "ERR: aucun "+parameter+" connu pour "+txt_allyCode, None
 
     d_kpi = []
     v_kpi = []
     min_date = None
     max_date = None
-    for line in ret_db:
+    for line in db_data:
         if min_date==None or line[0]<min_date:
             min_date = line[0]
         if max_date==None or line[0]>max_date:
@@ -4151,17 +4180,19 @@ def get_modqstatq_graph(txt_allyCode, is_modq):
         d_kpi.append(line[0])
         v_kpi.append(line[1])
 
-        player_name = line[2]
-
-    #create plot
+    #Create plot
     fig, ax = plt.subplots()
     #add series
-    ax.plot(d_kpi, v_kpi, label=kpi_name)
+    ax.plot(d_kpi, v_kpi, label=parameter)
     #format dates on X axis
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
+
     #add title
-    title = "Progrès "+kpi_name+" de "+player_name
+    if guild_graph:
+        title = "Progrès "+parameter+" pour la guilde "+guildName
+    else:
+        title = "Progrès "+parameter+" pour le joueur "+playerName
     fig.suptitle(title)
     #set min/max on X axis
     if min_date == max_date:
