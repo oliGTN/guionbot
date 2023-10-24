@@ -2089,12 +2089,12 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             #by rarity
             list_print_stats = sorted(list_print_stats,
                     key=lambda x: [-int(x[1].split('*')[0]),
-                                   -ord(x[1].split('*')[1][0])-int(x[1].split('*')[1][1:])] \
+                                   -10*ord(x[1].split('*')[1][0])-int(x[1].split('*')[1][1:])] \
                                    if len(x[1])>2 else [-int(x[1].split('*')[0]), 0] )
         elif sort_option_id == -2:
             #by gear/relic
             list_print_stats = sorted(list_print_stats,
-                    key=lambda x: [-ord(x[1].split('*')[1][0])-int(x[1].split('*')[1][1:]),
+                    key=lambda x: [-10*ord(x[1].split('*')[1][0])-int(x[1].split('*')[1][1:]),
                                    -int(x[1].split('*')[0])] \
                                    if len(x[1])>2 else [0, -int(x[1].split('*')[0])] )
         
