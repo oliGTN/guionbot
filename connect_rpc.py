@@ -727,7 +727,10 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                                 leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
                                 leader = dict_unitsList[leader_id]["name"]
                                 leader_opponent = leader+"@"+opponent
-                                dict_squads[squad_id]={"leader": leader_opponent}
+
+                                if not squad_id in dict_squads:
+                                    dict_squads[squad_id]={}
+                                dict_squads[squad_id]["leader"] = leader_opponent
                             else:
                                 if squad_id in dict_squads:
                                     leader_opponent=dict_squads[squad_id]["leader"]
@@ -750,7 +753,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                                     if count_dead==0 and remaining_tm:
                                         if "tm_ts" in dict_squads[squad_id]:
                                             #already a TM registered for this squad
-                                            if dict_squads[squad_id] < event_ts:
+                                            if dict_squads[squad_id]["tm_ts"] < event_ts:
                                                 #this is a 2nd TM, not critical
                                                 activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt+" (TM sur un TM)"
                                             else:
