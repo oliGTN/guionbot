@@ -1,9 +1,11 @@
-import config
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from oauth2client.service_account import ServiceAccountCredentials
 import json
 import sys
+sys.path.append("/home/pi/GuionBot/guionbot-dev")
+print(sys.path)
+import config
 
 gauth = GoogleAuth()
 scope = ["https://www.googleapis.com/auth/drive"]
