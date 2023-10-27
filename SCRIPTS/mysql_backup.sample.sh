@@ -1,3 +1,6 @@
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+echo SCRIPT_DIR=$SCRIPT_DIR
+
 rm -rf /home/pi/GuionBot/SQLBACKUP/
 mkdir /home/pi/GuionBot/SQLBACKUP
 for table in gp_history gv_history roster_evolutions guilds guild_bot_infos players shards stat_list guild_evolutions
@@ -21,5 +24,5 @@ tar -zcvf /home/pi/GuionBot/all_tables.gz /home/pi/GuionBot/SQLBACKUP
 mv /home/pi/GuionBot/all_tables.gz /home/pi/GuionBot/SQLBACKUP
 
 echo Upload...
-python /home/pi/GuionBot/guionbot-dev/SCRIPTS/upload_sqlbackup.py $1
+python $SCRIPT_DIR/upload_sqlbackup.py $1
 
