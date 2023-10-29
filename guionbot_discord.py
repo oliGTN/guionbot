@@ -2456,10 +2456,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     discord_id_txt = mention[2:-1]
                 goutils.log2("INFO", "command launched with discord @mention "+mention)
 
+        #Ensure the allyCode is registered in DB
+        e, t, dict_player = await go.load_player(allyCode, -1, False)
+        if e != 0:
+            await ctx.send(t)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        player_name = dict_player["name"]
+
+        #Add discord id in DB
         query = "UPDATE players SET discord_id='"+discord_id_txt+"' WHERE allyCode="+ac
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
+        await ctx.send("Enregitrement de "+player_name+" réussi")
         await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
