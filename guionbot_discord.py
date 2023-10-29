@@ -263,8 +263,8 @@ async def bot_loop_5minutes(bot):
                 continue
             try:
                 #CHECK ALERTS FOR TERRITORY WAR
-                list_tw_alerts = await go.get_tw_alerts(guild.id, -1)
-                if len(list_tw_alerts) > 0:
+                ec, et, list_tw_alerts = await go.get_tw_alerts(guild.id, -1)
+                if ec == 0:
                     [channel_id, dict_messages, tw_ts] = list_tw_alerts
                     tw_bot_channel = bot.get_channel(channel_id)
 
@@ -341,12 +341,15 @@ async def bot_loop_5minutes(bot):
 
                 else:
                     goutils.log2("INFO", "["+guild.name+"] TW alerts could not be detected")
+                    goutils.log2("ERR", "["+guild.name+"] "+et)
 
-                    #Delete potential previous tw_messages
-                    query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)+" "
-                    query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
-                    goutils.log2("INFO", query)
-                    connect_mysql.simple_execute(query)
+                    if ec == 2:
+                        #TW is over
+                        #Delete potential previous tw_messages
+                        query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)+" "
+                        query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
+                        goutils.log2("INFO", query)
+                        connect_mysql.simple_execute(query)
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))

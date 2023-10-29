@@ -3274,13 +3274,14 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 # OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
 #                                      territory2: alert_territory2...},
 #                       tw_timestamp]]
+# Err Code: 0 = OK / 1 = config error / 2 = no TW ongoing
 ############################################
 async def get_tw_alerts(server_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
     if not server_id in connect_rpc.get_dict_bot_accounts():
-        return []
+        return 1, "ERR: serveur discord inconnu du bot", []
 
     query = "SELECT name, twChanOut_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
@@ -3291,12 +3292,12 @@ async def get_tw_alerts(server_id, force_update):
     guildName = db_data[0]
     twChannel_id = db_data[1]
     if twChannel_id == 0:
-        return []
+        return 1, "ERR: salon discord non configuré", []
 
     rpc_data = await connect_rpc.get_tw_status(server_id, force_update)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
-        return []
+        return 2, "ERR: pas de GT en cours", []
 
     tw_timestamp = tw_id.split(":")[1][1:]
 
@@ -3438,7 +3439,7 @@ async def get_tw_alerts(server_id, force_update):
 
             list_tw_alerts[1]["Home:"+territory_name] = msg
 
-    return list_tw_alerts
+    return 0, "", list_tw_alerts
 
 ############################################
 # develop_teams
