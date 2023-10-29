@@ -37,14 +37,14 @@ async def release_sem(id):
     #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
-    query = "SELECT server_id, bot_android_id, bot_locked_until, priority_cache FROM guild_bot_infos where bot_android_id != ''"
+    query = "SELECT server_id, bot_allyCode, bot_locked_until, priority_cache FROM guild_bot_infos where bot_allyCode != ''"
     #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
     ret_dict = {}
     if db_data != None:
         for line in db_data:
-            ret_dict[line[0]] = {"AndroidId": line[1], "LockedUntil": line[2], "priority_cache":line[3]}
+            ret_dict[line[0]] = {"allyCode": str(line[1]), "LockedUntil": line[2], "priority_cache":line[3]}
 
     return ret_dict
 
@@ -86,8 +86,8 @@ async def get_rpc_data(server_id, event_types, force_update):
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
-    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_allyCode)
 
     guildName = get_guildName_from_id(server_id)
 
@@ -105,7 +105,7 @@ async def get_rpc_data(server_id, event_types, force_update):
 
     # RPC REQUEST for guild
     url = "http://localhost:8000/guild"
-    params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
+    params = {"allyCode": bot_allyCode, "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -130,7 +130,7 @@ async def get_rpc_data(server_id, event_types, force_update):
 
     # RPC REQUEST for TBmapstats
     url = "http://localhost:8000/TBmapstats"
-    params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
+    params = {"allyCode": bot_allyCode, "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -158,10 +158,10 @@ async def get_rpc_data(server_id, event_types, force_update):
         dict_TBmapstats = {}
 
     # RPC SCRIPT for TBmapstats
-    #tbmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_androidId+".json"
+    #tbmap_file = "/home/pi/GuionBot/warstats/TBmapstats_"+bot_allyCode+".json"
     #await acquire_sem(tbmap_file)
     #if not use_cache_data:
-    #    process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_androidId,])
+    #    process = subprocess.run(["/home/pi/GuionBot/warstats/getmapstats.sh", bot_allyCode,])
     #    goutils.log2("DBG", "getmapstats code="+str(process.returncode))
     #if os.path.exists(tbmap_file):
     #    TBmapstats_json = json.load(open(tbmap_file, "r"))
@@ -175,7 +175,7 @@ async def get_rpc_data(server_id, event_types, force_update):
 
     # RPC REQUEST for TWmapstats
     url = "http://localhost:8000/TWmapstats"
-    params = {"android_id": bot_androidId, "use_cache_data":use_cache_data}
+    params = {"android_id": bot_allyCode, "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -203,7 +203,7 @@ async def get_rpc_data(server_id, event_types, force_update):
         dict_TWmapstats = {}
 
     # RPC SCRIPT for TWmapstats
-    #twmap_file = "/home/pi/GuionBot/warstats/TWmapstats_"+bot_androidId+".json"
+    #twmap_file = "/home/pi/GuionBot/warstats/TWmapstats_"+bot_allyCode+".json"
     #await acquire_sem(twmap_file)
     #if os.path.exists(twmap_file):
     #    TWmapstats_json = json.load(open(twmap_file, "r"))
@@ -217,10 +217,10 @@ async def get_rpc_data(server_id, event_types, force_update):
 
     # RPC SCRIPT for events
     if len(event_types) > 0:
-        events_file = "/home/pi/GuionBot/warstats/events_"+bot_androidId+".json"
+        events_file = "/home/pi/GuionBot/warstats/events_"+bot_allyCode+".json"
         await acquire_sem(events_file)
         if not use_cache_data:
-            process_cmd = "/home/pi/GuionBot/warstats/getevents.sh "+ bot_androidId+" "+" ".join(event_types)
+            process_cmd = "/home/pi/GuionBot/warstats/getevents.sh "+ bot_allyCode+" "+" ".join(event_types)
             goutils.log2("DBG", "process_params="+process_cmd)
             process = await asyncio.create_subprocess_shell(process_cmd)
             while process.returncode == None:
@@ -431,8 +431,8 @@ async def get_bot_player_data(server_id, use_cache_data):
     if not server_id in dict_bot_accounts:
         return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
 
-    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
-    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_allyCode)
 
     if islocked_bot_account(server_id):
         use_cache_data = True
@@ -441,15 +441,15 @@ async def get_bot_player_data(server_id, use_cache_data):
     await acquire_sem(server_id)
     
     if not use_cache_data:
-        #process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId])
-        process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getplayerbot.sh", bot_androidId)
+        #process = subprocess.run(["/home/pi/GuionBot/warstats/getplayerbot.sh", bot_allyCode])
+        process = await asyncio.create_subprocess_exec("/home/pi/GuionBot/warstats/getplayerbot.sh", bot_allyCode)
         while process.returncode == None:
             goutils.log2("DBG", "waiting getplayerbot...")
             await asyncio.sleep(1)
         #await process.wait()
         goutils.log2("DBG", "getplayerbot code="+str(process.returncode))
 
-    dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_androidId+".json", "r"))
+    dict_player = json.load(open("/home/pi/GuionBot/warstats/PLAYERS/bot_"+bot_allyCode+".json", "r"))
 
     await release_sem(server_id)
 
@@ -473,10 +473,10 @@ async def join_raids(server_id):
     else:
         return 0, "Le bot a déjà rejoint tous les raids possibles"
 
-    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
-    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_allyCode)
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/joinraids.sh", bot_androidId])
+    process = subprocess.run(["/home/pi/GuionBot/warstats/joinraids.sh", bot_allyCode])
     goutils.log2("DBG", "joinraids code="+str(process.returncode))
     if process.returncode!=0:
         return 1, "Erreur en rejoignant les raids - code="+str(process.returncode)
@@ -500,10 +500,10 @@ async def join_tw(server_id):
     else:
         return 0, "Aucune GT en cours"
 
-    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
-    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_androidId)
+    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
+    goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_allyCode)
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/join_tw.sh", bot_androidId])
+    process = subprocess.run(["/home/pi/GuionBot/warstats/join_tw.sh", bot_allyCode])
     goutils.log2("DBG", "join_tw code="+str(process.returncode))
     if process.returncode!=0:
         return 1, "Erreur en rejoignant la GT - code="+str(process.returncode)
@@ -598,14 +598,14 @@ async def parse_tb_platoons(server_id, force_update):
 
 async def get_guildLog_messages(server_id, onlyLatest):
 
-    query = "SELECT bot_android_id, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
+    query = "SELECT bot_allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
             "FROM guild_bot_infos WHERE server_id="+str(server_id)
     goutils.log2("DBG", query)
     line = connect_mysql.get_line(query)
     if line == None:
         return 1, "INFO: no DB data for server "+str(server_id), None
     
-    bot_android_id = line[0]
+    bot_allyCode = line[0]
     chatChan_id = line[1]
     twlogChan_id = line[2]
     tblogChan_id = line[3]
@@ -615,7 +615,7 @@ async def get_guildLog_messages(server_id, onlyLatest):
     else:
         chatLatest_ts = 0
 
-    if bot_android_id == '':
+    if bot_allyCode == '':
         return 1, "ERR: no RPC bot for guild "+str(server_id), None
 
     err_code, err_txt, rpc_data = await get_rpc_data(server_id, ["CHAT", "TW", "TB"], -1)
@@ -1601,7 +1601,7 @@ async def deploy_tb(server_id, zone, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_player = rpc_data
 
-    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
 
     list_char_id = []
     for unit in dict_player["rosterUnit"]:
@@ -1613,7 +1613,7 @@ async def deploy_tb(server_id, zone, list_defId):
     if len(list_char_id) == 0:
         return 1, "Plus rien à déployer"
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_androidId, zone]+list_char_id)
+    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_allyCode, zone]+list_char_id)
     goutils.log2("DBG", "deploy_tb code="+str(process.returncode))
     if process.returncode!=0:
         if process.returncode == 202:
@@ -1644,7 +1644,7 @@ async def deploy_tw(server_id, zone, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_player = rpc_data
 
-    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
 
     dict_roster = {}
     for unit in dict_player["rosterUnit"]:
@@ -1673,10 +1673,10 @@ async def deploy_tw(server_id, zone, list_defId):
 
     if team_combatType==2:
         #Fleet
-        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone, '-s']+list_char_id)
+        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_allyCode, zone, '-s']+list_char_id)
     else:
         #Ground
-        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_androidId, zone]+list_char_id)
+        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_allyCode, zone]+list_char_id)
 
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
     if process.returncode==202:
@@ -1707,9 +1707,9 @@ async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
         return 1, "Erreur en se connectant au bot"
     dict_player = rpc_data
 
-    bot_androidId = dict_bot_accounts[server_id]["AndroidId"]
+    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
 
-    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ bot_androidId+" "+ zone_name+" "+ platoon_id+" "+" ".join(list_defId)
+    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ bot_allyCode+" "+ zone_name+" "+ platoon_id+" "+" ".join(list_defId)
     goutils.log2("DBG", "process_params="+process_cmd)
     process = await asyncio.create_subprocess_shell(process_cmd)
     while process.returncode == None:
