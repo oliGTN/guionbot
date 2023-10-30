@@ -1089,6 +1089,12 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
     ec, list_team_bot, dict_team_bot = connect_gsheets.load_config_teams(BOT_GFILE, False)
     if server_id != BOT_GFILE:
         ec, list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(server_id, False)
+        if ec == 2:
+            return "", "ERR: pas de fichier de config pour ce serveur"
+        elif ec == 3:
+            return "", "ERR: pas d'onglet 'teams' dans le fichier de config"
+        elif ec != 0:
+            return "", "ERR: erreur en lisant le fichier de config"
         list_team_gt = list_team_guild + list_team_bot
         dict_team_gt = {**dict_team_guild , **dict_team_bot}
     else:
@@ -1545,7 +1551,7 @@ async def print_ftj(txt_allyCode, team, server_id):
     list_lines = []
 
     if not team in ret_get_team_progress:
-        return 1, "Team "+team+" not defined"
+        return 1, "Team "+team+" not defined "+str(list(ret_get_team_progress.keys()))
 
     ret_team = ret_get_team_progress[team]
     #print(ret_get_team_progress)
@@ -2649,6 +2655,12 @@ async def print_erx(txt_allyCode, days, compute_guild):
 
     #Recuperation des dernieres donnees sur gdrive
     ec, list_teams, dict_teams = connect_gsheets.load_config_teams(BOT_GFILE, False)
+    if ec == 2:
+        return 1, "ERR: pas de fichier de config pour ce serveur"
+    elif ec == 3:
+        return 1, "ERR: pas d'onglet 'teams' dans le fichier de config"
+    elif ec != 0:
+        return 1, "ERR: erreur en lisant le fichier de config"
 
     if not compute_guild:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
@@ -3628,8 +3640,12 @@ async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_g
     goutils.log2("DBG", dts)
 
     ec, l, d = connect_gsheets.load_config_teams(server_id, True)
-    if ec != 0:
-        return 1, "ERR: aucune team connue pour cette guilde", {}
+    if ec == 2:
+        return 1, "ERR: pas de fichier de config pour ce serveur", {}
+    elif ec == 3:
+        return 1, "ERR: pas d'onglet 'teams' dans le fichier de config", {}
+    elif ec != 0:
+        return 1, "ERR: erreur en lisant le fichier de config", {}
 
     d_raid = {k: d[k] for k in dts.keys()}
     ec, et, ddt = develop_teams(d_raid)

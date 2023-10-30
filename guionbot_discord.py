@@ -1002,7 +1002,13 @@ async def read_gsheets(server_id):
         err_code = 1
 
     ec, l, d = connect_gsheets.load_config_teams(server_id, True)
-    if ec != 0:
+    if ec == 2:
+        err_txt += "ERR: pas de fichier de config pour ce serveur\n"
+        err_code = 1
+    elif ec == 2:
+        err_txt += "ERR: pas d'onglet 'teams' dans le fichier de config\n"
+        err_code = 1
+    elif ec != 1:
         err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
         err_code = 1
 

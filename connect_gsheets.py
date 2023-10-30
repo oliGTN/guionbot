@@ -148,6 +148,10 @@ def load_config_teams(server_id, force_load):
     else:
         gfile_name = get_gfile_name(server_id)
 
+    if gfile_name==None:
+        goutils.log2("WAR", "No gfile for this server")
+        return 2, [], {}
+
     json_file = "CACHE"+os.path.sep+gfile_name+"_config_teams.json"
 
     if force_load or not os.path.isfile(json_file):
@@ -158,7 +162,8 @@ def load_config_teams(server_id, force_load):
     
             list_dict_sheet=feuille.get_all_records()
         except gspread.exceptions.WorksheetNotFound:
-            return 0, [], {}
+            goutils.log2("WAR", "teams sheet not found")
+            return 3, [], {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
