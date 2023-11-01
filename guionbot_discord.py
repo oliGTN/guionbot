@@ -1005,10 +1005,10 @@ async def read_gsheets(server_id):
     if ec == 2:
         err_txt += "ERR: pas de fichier de config pour ce serveur\n"
         err_code = 1
-    elif ec == 2:
+    elif ec == 3:
         err_txt += "ERR: pas d'onglet 'teams' dans le fichier de config\n"
         err_code = 1
-    elif ec != 1:
+    else: # ec == 1
         err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
         err_code = 1
 
@@ -1017,9 +1017,9 @@ async def read_gsheets(server_id):
         err_txt += "ERR: erreur en mettant à jour les RAIDS\n"
         err_code = 1
 
-    [ts, dt, m] = connect_gsheets.get_tb_triggers(server_id, True)
-    if ts == None:
-        err_txt += "ERR: erreur en mettant à jour la BT\n"
+    [dt, m] = connect_gsheets.get_tb_triggers(server_id, True)
+    if dt == None:
+        err_txt += "ERR: erreur en mettant à jour les objectifs de BT\n"
         err_code = 1
 
     l = connect_gsheets.load_tb_teams(server_id, True)
@@ -1514,6 +1514,11 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.check(admin_command)
     async def test(self, ctx, *args):
         await ctx.message.add_reaction(emoji_check)
+
+    @bot.slash_command(guild_ids=[1168990607474184242])
+    async def ping(self, interaction: nextcord.Interaction):
+        """Simple command that responds with Pong!"""
+        await interaction.response.send_message("Pong!")
 
 ##############################################################
 # Class: ServerCog
