@@ -1008,7 +1008,7 @@ async def read_gsheets(server_id):
     elif ec == 3:
         err_txt += "ERR: pas d'onglet 'teams' dans le fichier de config\n"
         err_code = 1
-    else: # ec == 1
+    elif ec == 1:
         err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
         err_code = 1
 
