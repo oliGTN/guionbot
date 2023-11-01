@@ -4520,7 +4520,7 @@ async def get_tb_alerts(server_id, force_update):
         for zone in current_targets:
             zone_short_name = dict_tb[zone]["name"]
             if not zone in territory_scores:
-                tb_trigger_messages.append("ERREUR: phase "+zone_name+" non atteinte")
+                tb_trigger_messages.append("ERREUR: phase "+zone_short_name+" non atteinte")
             else:
                 current_target_stars = current_targets[zone]
                 current_score = territory_scores[zone]
