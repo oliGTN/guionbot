@@ -452,20 +452,13 @@ def get_tb_triggers(server_id, force_load):
             feuille=file.worksheet("BT")
         except:
             goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
-            return [None, None, 0]
+            return [None, 0]
         
         #parsing title row
-        col_territory=0
-        col_star1=0
-        col_star2=0
-        col_star3=0
         col_top=0
         col_mid=0
         col_bot=0
-        territory_column_title='Territoire'
-        star1_column_title='Etoile 1'
-        star2_column_title='Etoile 2'
-        star3_column_title='Etoile 3'
+        col_margin=0
         top_column_title='Top'
         mid_column_title='Mid'
         bot_column_title='Bot'
@@ -475,15 +468,7 @@ def get_tb_triggers(server_id, force_load):
         c = 1
         first_row=feuille.row_values(1)
         for value in first_row:
-            if value==territory_column_title:
-                col_territory=c
-            elif value==star1_column_title:
-                col_star1=c
-            elif value==star2_column_title:
-                col_star2=c
-            elif value==star3_column_title:
-                col_star3=c
-            elif value==top_column_title:
+            if value==top_column_title:
                 col_top=c
             elif value==mid_column_title:
                 col_mid=c
@@ -493,47 +478,12 @@ def get_tb_triggers(server_id, force_load):
                 col_margin=c
             c+=1
 
-        if (col_territory > 0) \
-            and (col_star1 > 0) \
-            and (col_star2 > 0) \
-            and (col_star3 > 0) \
-            and (col_top > 0) \
+        if      (col_top > 0) \
             and (col_mid > 0) \
             and (col_bot > 0) \
             and (col_margin > 0):
         
-            #Looping through lines, through the ID column
-            territories=feuille.col_values(col_territory)
-            star1_scores=feuille.col_values(col_star1)
-            star2_scores=feuille.col_values(col_star2)
-            star3_scores=feuille.col_values(col_star3)
-            territory_stars = {}
-            l = 1
-            for territory in territories:
-                if territory!='' and territory != territory_column_title:
-                    star1_score = star1_scores[l-1].replace('\u202f', '')
-                    if star1_score:
-                        star1_score = int(star1_score)
-                    else:
-                        star1_score = -1
-
-                    star2_score = star2_scores[l-1].replace('\u202f', '')
-                    if star2_score:
-                        star2_score = int(star2_score)
-                    else:
-                        star2_score = -1
-
-                    star3_score = star3_scores[l-1].replace('\u202f', '')
-                    if star3_score:
-                        star3_score = int(star3_score)
-                    else:
-                        star3_score = -1
-
-                    territory_stars[territory] = [star1_score, star2_score, star3_score]
-
-                l+=1
-            goutils.log2("DBG", 'territory_stars='+str(territory_stars))
-
+            #detect TB targets per day
             daily_names=feuille.col_values(col_top-1)
             top_stars=feuille.col_values(col_top)
             mid_stars=feuille.col_values(col_mid)
@@ -569,22 +519,19 @@ def get_tb_triggers(server_id, force_load):
             goutils.log2("DBG", 'margin='+str(margin))
 
         else:
-            goutils.log2("ERR", 'At least one column among "'+territory_column_title+'", "' +\
-                    star1_column_title+'", "' +\
-                    star2_column_title+'", "' +\
-                    star3_column_title+'", "' +\
+            goutils.log2("ERR", 'At least one column among "'+
                     top_column_title+'", "' +\
                     mid_column_title+'", "' +\
                     bot_column_comment+'" is not found >> BT alerts not sent')
                 
         # store json file
         fjson = open(json_file, 'w')
-        fjson.write(json.dumps([territory_stars, daily_targets, margin], sort_keys=True, indent=4))
+        fjson.write(json.dumps([daily_targets, margin], sort_keys=True, indent=4))
         fjson.close()
     else:
-        [territory_stars, daily_targets, margin] = json.load(open(json_file, "r"))
+        [daily_targets, margin] = json.load(open(json_file, "r"))
 
-    return [territory_stars, daily_targets, margin]
+    return [daily_targets, margin]
 
 def load_tb_teams(server_id, force_load):
     gfile_name = get_gfile_name(server_id)
