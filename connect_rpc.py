@@ -1172,9 +1172,6 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
             list_deployment_types.append(zone_deployment_type)
 
     #count remaining players
-    remaining_to_play_ships = 0
-    remaining_to_play_chars = 0
-    remaining_to_play_mix = 0
     lines_player = []
 
     #Loop on all TB players to assess the list of who has finished playing
@@ -1249,9 +1246,9 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
     #for i in dict_strike_zones:
     #    print(i+": "+str(dict_strike_zones[i]))
 
-    dict_phase["shipPlayers"] = remaining_to_play_ships
-    dict_phase["charPlayers"] = remaining_to_play_chars
-    dict_phase["mixPlayers"] = remaining_to_play_mix
+    dict_phase["shipPlayers"] = len(dict_tb_players) - len(finished_players["ships"])
+    dict_phase["charPlayers"] = len(dict_tb_players) - len(finished_players["chars"])
+    dict_phase["mixPlayers"] = len(dict_tb_players) - len(finished_players["mix"])
 
     #compute zone stats apart for deployments
     for zone_name in dict_open_zones:
@@ -1418,7 +1415,7 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
                    "open_zones": dict_open_zones}
 
 ##########################################"
-# OUT: dict_territory_scores = {"GLS-P3-top": 24500000, ...}
+# OUT: dict_territory_scores = {"tb3_mixed_phase03_conflit02": 24500000, ...}
 # OUT: tb_active_round = 3
 ##########################################"
 async def get_tb_guild_scores(server_id, force_update):
@@ -1442,7 +1439,7 @@ async def get_tb_guild_scores(server_id, force_update):
         zone_name += "-"
         zone_name += zone_name_tab[1]
         zone_score = dict_open_zones[zone]["score"]
-        dict_territory_scores[zone_name] = zone_score
+        dict_territory_scores[zone] = zone_score
 
     return dict_territory_scores, active_round
 
