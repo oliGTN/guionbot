@@ -4480,76 +4480,90 @@ async def get_tb_alerts(server_id, force_update):
     goutils.log2("DBG", "["+str(server_id)+"] territory_scores="+str(territory_scores))
 
     if active_round != "":
-        [territory_stars, daily_targets, margin] = connect_gsheets.get_tb_triggers(server_id, False)
-        goutils.log2("DBG", "["+str(server_id)+"] tb_triggers="+str([territory_stars, daily_targets, margin]))
+        dict_tb = godata.dict_tb
+        
+        [daily_targets, margin] = connect_gsheets.get_tb_triggers(server_id, False)
+        goutils.log2("DBG", "["+str(server_id)+"] tb_triggers="+str([daily_targets, margin]))
 
         #print(territory_scores)
-        tb_trigger_messages=[]
-        tb_name = list(territory_scores.keys())[0].split("-")[0]
+        tb_name = dict_tb[list(territory_scores.keys())[0]]["name"].split("-")[0][:-1]
+        base_zonename = "_".join(list(territory_scores.keys())[0].split("_")[:-2])
         round_number = int(active_round[-1])
         if round_number > len(daily_targets[tb_name]):
             #virtual round, after the end of TB
             return []
 
-        current_targets = daily_targets[tb_name][round_number-1]
-
+        #transform targets by using zone names
+        zone_daily_targets = [] # list by day
         if tb_name == "ROTE":
-            pos_name = [[0, "DS"], [1, "MS"], [2, "LS"]]
+            pos_conflict = [[0, "02"], [1, "03"], [2, "01"]]
         else:
-            pos_name = [[0, "top"], [1, "mid"], [2, "bot"]]
+            pos_conflict = [[0, "01"], [1, "02"], [2, "03"]]
 
-        for pos, name in pos_name:
-            current_target = current_targets[pos]
-            if current_target == "-":
-                continue
-            current_target_phase = current_target.split('-')[0]
-            current_target_stars = current_target.split('-')[1]
-            full_phase_name = tb_name+"-"+current_target_phase+"-"+name
-            if not full_phase_name in territory_scores:
-                tb_trigger_messages.append("ERREUR: phase "+full_phase_name+" non atteinte en "+name)
+        #loop on days in TB targets
+        for tb_daily_target in daily_targets[tb_name]:
+            zone_daily_target = {}
+            for pos, conflict in pos_conflict:
+                zone_target = tb_daily_target[pos]
+                if zone_target == "-":
+                    continue
+                phase = zone_target.split('-')[0][-1]
+                stars = int(zone_target.split('-')[1])
+                zone_name = base_zonename+"_phase0"+phase+"_conflict"+conflict
+                zone_daily_target[zone_name] = stars
+
+            zone_daily_targets.append(zone_daily_target)
+
+        current_targets = zone_daily_targets[round_number-1]
+
+        tb_trigger_messages=[]
+        for zone in current_targets:
+            zone_short_name = dict_tb[zone]["name"]
+            if not zone in territory_scores:
+                tb_trigger_messages.append("ERREUR: phase "+zone_name+" non atteinte")
             else:
-                current_score = territory_scores[full_phase_name]
-                star1_score = territory_stars[full_phase_name][0]
-                star2_score = territory_stars[full_phase_name][1]
-                star3_score = territory_stars[full_phase_name][2]
-                if current_target_stars == "0":
-                    if current_score >= star1_score:
-                        tb_trigger_messages.append(":x: 1ère étoile atteinte en "+name+" alors qu'il ne fallait pas !")
-                    elif current_score >= (star1_score-margin):
-                        delta_score_M = round((star1_score-current_score)/1000000, 1)
-                        tb_trigger_messages.append(":warning: la 1ère étoile se rapproche en "+name+" et il ne faut pas l'atteindre (il reste "+str(delta_score_M)+"M)")
-                elif current_target_stars == "1":
-                    if current_score >= star3_score:
-                        tb_trigger_messages.append(":heart_eyes: 3e étoile atteinte en "+name+" alors qu'on en visait une seule !")
-                    elif current_score >= star2_score:
-                        tb_trigger_messages.append(":heart_eyes: 2e étoile atteinte en "+name+" alors qu'on en visait une seule !")
-                    elif current_score >= star1_score:
-                        tb_trigger_messages.append(":white_check_mark: 1ère étoile atteinte en "+name+", objectif atteint")
-                    elif current_score >= (star1_score-margin):
-                        delta_score_M = round((star1_score-current_score)/1000000, 1)
-                        tb_trigger_messages.append(":point_right: la 1ère étoile se rapproche en "+name+" (il reste "+str(delta_score_M)+"M)")
-    
-                elif current_target_stars == "2":
-                    if current_score >= star3_score:
-                        tb_trigger_messages.append(":heart_eyes: 3e étoile atteinte en "+name+" alors qu'on en visait seulement deux !")
-                    elif current_score >= star2_score:
-                        tb_trigger_messages.append(":white_check_mark: 2e étoile atteinte en "+name+", objectif atteint")
-                    elif current_score >= (star2_score-margin):
-                        delta_score_M = round((star2_score-current_score)/1000000, 1)
-                        tb_trigger_messages.append(":point_right: la 2e étoile se rapproche en "+name+" (il reste "+str(delta_score_M)+"M)")
-                    elif current_score >= star1_score:
-                        tb_trigger_messages.append(":thumbsup: 1ère étoile atteinte en "+name+", en route vers la 2e")
+                current_target_stars = current_targets[zone]
+                current_score = territory_scores[zone]
+                star_scores = dict_tb[zone]["scores"]
 
-                elif current_target_stars == "3":
-                    if current_score >= star3_score:
-                        tb_trigger_messages.append(":white_check_mark: 3e étoile atteinte en "+name+", objectif atteint")
-                    elif current_score >= (star3_score-margin):
-                        delta_score_M = round((star3_score-current_score)/1000000, 1)
-                        tb_trigger_messages.append(":point_right: la 3e étoile se rapproche en "+name+" (il reste "+str(delta_score_M)+"M)")
-                    elif current_score >= star2_score:
-                        tb_trigger_messages.append(":thumbsup: 2e étoile atteinte en "+name+", en route vers la 3e")
-                    elif current_score >= star1_score:
-                        tb_trigger_messages.append(":thumbsup: 1ère étoile atteinte en "+name+", en route vers la 3e")
+                if current_target_stars == 0:
+                    if current_score >= star_scores[0]:
+                        tb_trigger_messages.append(":x: 1ère étoile atteinte en "+zone_short_name+" alors qu'il ne fallait pas !")
+                    elif current_score >= (star_scores[0]-margin):
+                        delta_score_M = round((star_scores[0]-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":warning: la 1ère étoile se rapproche en "+zone_short_name+" et il ne faut pas l'atteindre (il reste "+str(delta_score_M)+"M)")
+                elif current_target_stars == 1:
+                    if current_score >= star_scores[2]:
+                        tb_trigger_messages.append(":heart_eyes: 3e étoile atteinte en "+zone_short_name+" alors qu'on en visait une seule !")
+                    elif current_score >= star_scores[1]:
+                        tb_trigger_messages.append(":heart_eyes: 2e étoile atteinte en "+zone_short_name+" alors qu'on en visait une seule !")
+                    elif current_score >= star_scores[0]:
+                        tb_trigger_messages.append(":white_check_mark: 1ère étoile atteinte en "+zone_short_name+", objectif atteint")
+                    elif current_score >= (star_scores[0]-margin):
+                        delta_score_M = round((star_scores[0]-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":point_right: la 1ère étoile se rapproche en "+zone_short_name+" (il reste "+str(delta_score_M)+"M)")
+    
+                elif current_target_stars == 2:
+                    if current_score >= star_scores[2]:
+                        tb_trigger_messages.append(":heart_eyes: 3e étoile atteinte en "+zone_short_name+" alors qu'on en visait seulement deux !")
+                    elif current_score >= star_scores[1]:
+                        tb_trigger_messages.append(":white_check_mark: 2e étoile atteinte en "+zone_short_name+", objectif atteint")
+                    elif current_score >= (star_scores[1]-margin):
+                        delta_score_M = round((star_scores[1]-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":point_right: la 2e étoile se rapproche en "+zone_short_name+" (il reste "+str(delta_score_M)+"M)")
+                    elif current_score >= star_scores[0]:
+                        tb_trigger_messages.append(":thumbsup: 1ère étoile atteinte en "+zone_short_name+", en route vers la 2e")
+
+                elif current_target_stars == 3:
+                    if current_score >= star_scores[2]:
+                        tb_trigger_messages.append(":white_check_mark: 3e étoile atteinte en "+zone_short_name+", objectif atteint")
+                    elif current_score >= (star_scores[2]-margin):
+                        delta_score_M = round((star_scores[2]-current_score)/1000000, 1)
+                        tb_trigger_messages.append(":point_right: la 3e étoile se rapproche en "+zone_short_name+" (il reste "+str(delta_score_M)+"M)")
+                    elif current_score >= star_scores[1]:
+                        tb_trigger_messages.append(":thumbsup: 2e étoile atteinte en "+zone_short_name+", en route vers la 3e")
+                    elif current_score >= star_scores[0]:
+                        tb_trigger_messages.append(":thumbsup: 1ère étoile atteinte en "+zone_short_name+", en route vers la 3e")
     else:
         tb_trigger_messages = []
 
