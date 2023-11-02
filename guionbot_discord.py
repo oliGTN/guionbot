@@ -174,7 +174,7 @@ async def bot_loop_60secs(bot):
             for server_id in db_data:
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
-                    await connect_rpc.get_rpc_data( server_id, ["TW", "TB", "CHAT"], 1)
+                    await connect_rpc.get_guild_rpc_data( server_id, ["TW", "TB", "CHAT"], 1)
                     await connect_gsheets.update_gwarstats(server_id)
 
                     ec, et, ret_data = await connect_rpc.get_guildLog_messages(server_id, True)
@@ -1588,7 +1588,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         for line in list_logs:
             ts = line[0]
             txt = line[1]
-            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%d/%m %H:%M")
             output_txt+=ts_txt+" - "+txt+"\n"
 
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
