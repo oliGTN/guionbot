@@ -520,6 +520,8 @@ async def join_tw(server_id):
                 if resp.status==200:
                     #normale case
                     pass
+                elif resp.status==202:
+                    return 0, "Aucune GT en cours"
                 else:
                     return 1, "Erreur en rejoignant la GT - code="+str(resp.status)
 
