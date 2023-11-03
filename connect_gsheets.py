@@ -145,14 +145,20 @@ def load_config_raids(server_id, force_load):
 def load_config_teams(server_id, force_load):
     if server_id == 0:
         gfile_name = "GuiOnBot config"
+        guild_name = gfile_name
     else:
         gfile_name = get_gfile_name(server_id)
+
+        #Get guild name (in case gfile_name is different)
+        query = "SELECT name FROM guilds JOIN guild_bot_infos ON guilds.id = guild_bot_infos.guild_id WHERE server_id="+str(server_id)
+        goutils.log2("DBG", query)
+        guild_name = connect_mysql.get_value(query)
 
     if gfile_name==None:
         goutils.log2("WAR", "No gfile for this server")
         return 2, [], {}
 
-    json_file = "CACHE"+os.path.sep+gfile_name+"_config_teams.json"
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -215,7 +221,7 @@ def load_config_teams(server_id, force_load):
                                                                                 character_name]
     
         #Update DB
-        connect_mysql.update_guild_teams(gfile_name, dict_teams)
+        connect_mysql.update_guild_teams(guild_name, dict_teams)
 
         # store json file
         fjson = open(json_file, 'w')
