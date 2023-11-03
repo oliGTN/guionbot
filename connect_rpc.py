@@ -1009,11 +1009,17 @@ async def get_tb_status(server_id, targets_zone_stars, compute_estimated_fights,
         dict_tb_players[playername_gp_id[0]]["coverts"] = {} # "conflixtX_covertY": True
         dict_tb_players[playername_gp_id[0]]["covert_attempts"] = 0
 
+    completed_stars = 0 # stars on completed (closed) zones
     for zone in battleStatus["conflictZoneStatus"]:
+        zone_name = zone["zoneStatus"]["zoneId"]
+        zone_score = int(zone["zoneStatus"]["score"])
         if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
-            zone_name = zone["zoneStatus"]["zoneId"]
-            zone_score = int(zone["zoneStatus"]["score"])
             dict_open_zones[zone_name] = {"score": zone_score}
+        elif zone["zoneStatus"]["zoneState"] == "ZONECOMPLETE":
+            for star_score in dict_tb[zone_name]["scores"]:
+                if zone_score >= star_score:
+                    completed_stars += 1
+    dict_phase["prev_stars"] = completed_stars
 
     #sort the dict to display zones in the same order as the game
     dict_open_zones = dict(sorted(dict_open_zones.items(), key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x[0]]["name"].split("-")[1]]))

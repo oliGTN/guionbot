@@ -4314,7 +4314,7 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
             list_deployment_types.append(zone_deployment_type)
 
     # START THE DISPLAY PART
-    ret_print_tb_status = ""
+    ret_print_tb_status = "**Territory Battle** - round "+str(dict_phase["round"])+"\n"
     sheet_url = connect_gsheets.get_sheet_url(server_id, "BT graphs")
     if sheet_url != None:
         ret_print_tb_status += "More details, including players: "+sheet_url+"\n"
@@ -4341,6 +4341,7 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
 
     list_images = []
     tb_type = dict_phase["type"]
+    round_estimated_stars = dict_phase["prev_stars"] # stars from previous rounds
     for zone_name in dict_open_zones:
         ret_print_tb_status+="---------------\n"
         ret_print_tb_status+="**"+dict_tb[zone_name]["name"]+"**\n"
@@ -4366,6 +4367,7 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
         ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
         star_for_score = dict_open_zones[zone_name]["estimatedStars"]
+        round_estimated_stars += star_for_score
         ret_print_tb_status+="\u27a1 Zone result: "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
@@ -4375,6 +4377,10 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
         list_images.append(img)
 
     ret_print_tb_status += "----------------------------\n"
+    # total stars estiated at the end of the round
+    ret_print_tb_status += "Round result: "+str(round_estimated_stars)+"\u2729\n"
+
+    # unused depoyments (margin)
     if "ships" in list_deployment_types:
         ret_print_tb_status += "Unused deployment ships: "+str(round(remaining_ship_deploy/1000000, 1))+"M\n"
     if "chars" in list_deployment_types:
