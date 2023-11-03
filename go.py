@@ -1038,9 +1038,9 @@ def get_team_header(team_name, objectifs):
                         perso_gear_min=13
                     perso_min_display = str(perso_rarity_min)
                     if perso_relic_min == 0:
-                        perso_min_display += '.' + "{:02d}".format(perso_gear_min)                        
+                        perso_min_display += '*G' + "{:02d}".format(perso_gear_min)                        
                     else:
-                        perso_min_display += '.R' + str(perso_relic_min)
+                        perso_min_display += '*R' + str(perso_relic_min)
 
                     perso_rarity_reco = objectifs[i_level][2][perso][3]
                     perso_gear_reco = objectifs[i_level][2][perso][4]                    
@@ -1052,9 +1052,9 @@ def get_team_header(team_name, objectifs):
                         perso_gear_reco=13
                     perso_reco_display = str(perso_rarity_reco)
                     if perso_relic_reco == 0:
-                        perso_reco_display += '.' + "{:02d}".format(perso_gear_reco)                        
+                        perso_reco_display += '*G' + "{:02d}".format(perso_gear_reco)                        
                     else:
-                        perso_reco_display += '.R' + str(perso_relic_reco)
+                        perso_reco_display += '*R' + str(perso_relic_reco)
 
                     #Zetas
                     req_zetas = objectifs[i_level][2][perso][5].split(',')
