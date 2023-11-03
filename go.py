@@ -4378,7 +4378,7 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
 
     ret_print_tb_status += "----------------------------\n"
     # total stars estiated at the end of the round
-    ret_print_tb_status += "Round result: "+str(round_estimated_stars)+"\u2729\n"
+    ret_print_tb_status += "Round result: "+str(round_estimated_stars)+"\u2b50\n"
 
     # unused depoyments (margin)
     if "ships" in list_deployment_types:
