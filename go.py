@@ -815,7 +815,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 tab_progress_player[i_subobj][i_character - 1][3] = character_id
                 tab_progress_player[i_subobj][i_character - 1][4] = 1
 
-                #goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
+                goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
 
             else:
                 if gv_mode:
@@ -1172,6 +1172,7 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
         query += "AND guild_teams.name LIKE '%-GV'\n"
     else:
         query += "AND NOT guild_teams.name LIKE '%-GV'\n"
+        query += "AND guild_teams.GuildName = '"+guild_name.replace("'", "''")+"'\n"
 
     if exclusive_player_list != None:
         query += "AND players.name IN "+str(tuple(exclusive_player_list)).replace(",)", ")")+"\n"
