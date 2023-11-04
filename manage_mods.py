@@ -12,8 +12,10 @@ import json
 from html.parser import HTMLParser
 import copy #deepcopy
 
-import config
+import go
 import goutils
+import connect_mysql
+import data as godata
 
 class ModOptimizerListParser(HTMLParser):
     def __init__(self):
@@ -175,16 +177,7 @@ dict_stat_by_set = {'1': "health",
                     '7': "potency",
                     '8': "tenacity"}
 
-#Prepare the dict to transform names into unit ID
-dict_units = json.load(open("DATA/unitsList_dict.json", "r"))
-ENG_US = json.load(open("DATA/ENG_US.json", "r"))
-dict_names = {}
-for unit_id in dict_units:
-    unit_name = ENG_US[dict_units[unit_id]["nameKey"]]
-    dict_names[unit_name] = unit_id
 
-#Get game mod data
-mod_list = json.load(open("DATA/modList_dict.json", "r"))
 
 def get_mod_allocations_from_modoptimizer(html_file, initial_dict_player):
     ##########################
@@ -225,6 +218,18 @@ def get_mod_allocations_from_modoptimizer(html_file, initial_dict_player):
     # {'unit_id': "PRINCESSLEIA",
     #  'mods': ['9Ax0P8ybxxxxx', '8Phsg65trTGxxxx', ...]}
 
+    #Get game mod data
+    mod_list = godata.get("modList_dict.json")
+
+    #Prepare the dict to transform names into unit ID
+    dict_units = godata.get("unitsList_dict.json")
+    ENG_US = godata.get("ENG_US.json")
+    dict_names = {}
+    for unit_id in dict_units:
+        unit_name = ENG_US[dict_units[unit_id]["nameKey"]]
+        dict_names[unit_name] = unit_id
+
+    # loop allocations
     for a in modopti_allocations:
         target_char_name = a["character"]
         target_char_defId = dict_names[target_char_name]
@@ -258,7 +263,8 @@ def get_mod_allocations_from_modoptimizer(html_file, initial_dict_player):
                 print("\t>>> ERREUR incohérence")
                 sys.exit(1)
 
-            mod_allocation['mods'].append(replacement_mod["id"])
+            mod_allocation['mods'].append({"id": replacement_mod["id"], 
+                                           "slot": replacement_mod["slot"]})
 
         mod_allocations.append(mod_allocation)
 
@@ -271,7 +277,10 @@ def get_mod_allocations_from_modoptimizer(html_file, initial_dict_player):
 #  by max size inventory
 # One command per unit, listing all the ods to add and all the mods to remove
 ##########################
-def apply_mod_allocations(mod_allocations, allyCode, initial_dict_player):
+def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
+    #Get game mod data
+    mod_list = godata.get("modList_dict.json")
+
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
     initial_dict_player_mods = {}
@@ -303,15 +312,20 @@ def apply_mod_allocations(mod_allocations, allyCode, initial_dict_player):
 
         mods_to_add = [] # list of mod IDs to be added to this unit
         mods_to_remove = [] # list of mod IDs to be removed from this unit
-        for allocated_mod_id in a["mods"]:
+        for allocated_mod in a["mods"]:
+            allocated_mod_id = allocated_mod["id"]
+            mod_slot = allocated_mod["slot"]
             # add the new mode to mods_to_add, then add the existing to mods_to_remove
 
             # First check if the target unit does not already have it
-            current_mod_unit = cur_dict_player_mods[allocated_mod_id]["unit_id"]
+            if allocated_mod_id in cur_dict_player_mods:
+                current_mod_unit = cur_dict_player_mods[allocated_mod_id]["unit_id"]
+            else:
+                current_mod_unit = None
+                cur_dict_player_mods[allocated_mod_id] = {"unit_id": None, "slot": mod_slot}
             #print(target_char_defId)
             #print(allocated_mod_id)
             #print(current_mod_unit)
-            mod_slot = cur_dict_player_mods[allocated_mod_id]["slot"]
             if current_mod_unit != target_char_defId:
                 if not "equippedStatMod" in cur_dict_player["rosterUnit"][target_char_defId]:
                     cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"] = {}
@@ -351,15 +365,148 @@ def apply_mod_allocations(mod_allocations, allyCode, initial_dict_player):
 
     print("============\nMax unallocated: "+str(max_unallocated))
 
-############################
-# MAIN
-############################
-if __name__ == "__main__":
+async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
+    #Get game mod data
+    mod_list = godata.get("modList_dict.json")
+
+    # Get player data
+    e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
+    if e != 0:
+        return 1, "ERR: "+t
+
+    #Manage request for all characters
+    if 'all' in list_character_alias:
+        list_unit_ids=list(dict_player["rosterUnit"].keys())
+    else:
+        #specific list of characters for one player
+        list_unit_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_character_alias)
+        if txt != '':
+            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+
+    # Check if the config already exists
+    query = "SELECT id\n"
+    query+= "FROM mod_config_list\n"
+    query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
+    goutils.log2("DBG", query)
+    config_id = connect_mysql.get_value(query)
+
+    if config_id == None:
+        # New config, create it
+        query = "INSERT IGNORE INTO mod_config_list(name, allyCode) \n"
+        query+= "VALUES('"+conf_name+"', "+txt_allyCode+")"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+        #Get its ID
+        query = "SELECT id\n"
+        query+= "FROM mod_config_list\n"
+        query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
+        goutils.log2("DBG", query)
+        config_id = connect_mysql.get_value(query)
+
+    else:
+        # Existing config,
+        # Delete previous definition of this configuration
+        query = "DELETE FROM mod_config_content\n"
+        query+= "WHERE config_id = "+str(config_id)
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+    #loop on unit that needs to be saved in the config
+    config_mod_count = 0
+    config_unit_count = 0
+    for unit_id in list_unit_ids:
+        if not unit_id in dict_player["rosterUnit"]:
+            return 1, "ERR: perso "+unit_id+" introuvable pour le joueur "+txt_allyCode
+
+        unit = dict_player["rosterUnit"][unit_id]
+
+        # Create query to add mods to the config
+        if not "equippedStatMod" in unit:
+            #this unit has no mod, go to next
+            continue
+
+        for mod in unit["equippedStatMod"]:
+            mod_id = mod["id"]
+            mod_defId = mod["definitionId"]
+            mod_slot = mod_list[mod_defId]["slot"]
+            query = "INSERT INTO mod_config_content(config_id, unit_id, mod_id, slot)\n"
+            query+= "VALUES("+str(config_id)+", '"+unit_id+"', '"+mod_id+"', "+str(mod_slot)+")"
+            goutils.log2("DBG", query)
+            connect_mysql.simple_execute(query)
+            config_mod_count += 1
+
+        config_unit_count += 1
+            
+    return 0, "Conf "+conf_name+" créée pour "+txt_allyCode+" avec "+str(config_unit_count)+" persos et "+str(config_mod_count)+" mods"
+
+def get_mod_config(conf_name, txt_allyCode):
+    # Check if the config exists
+    query = "SELECT id\n"
+    query+= "FROM mod_config_list\n"
+    query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
+    goutils.log2("DBG", query)
+    config_id = connect_mysql.get_value(query)
+
+    if config_id == None:
+        return 1, "ERR: config "+conf_name+" introuvable pour le joueur "+txt_allyCode, None
+
+    #Get the config content
+    query = "SELECT unit_id, mod_id, slot FROM mod_config_content\n"
+    query+= "WHERE config_id="+str(config_id)+"\n"
+    query+= "ORDER BY unit_id"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+
+    if db_data == None:
+        return 1, "ERR: aucun perso trouvé pour la config "+conf_name+" du joueur "+txt_allyCode, None
+
+    mod_allocations = []
+    cur_unit_allocation = {"unit_id": None}
+    for line in db_data:
+        unit_id = line[0]
+        mod_id = line[1]
+        mod_slot = line[2]
+
+        if cur_unit_allocation["unit_id"] != unit_id:
+            #change of unit in the list
+            if cur_unit_allocation["unit_id"] != None:
+                mod_allocations.append(cur_unit_allocation)
+
+            #create the unit allocation
+            cur_unit_allocation = {"unit_id": unit_id, "mods": []}
+
+        cur_unit_allocation["mods"].append({"id": mod_id, "slot": mod_slot})
+
+    #after las line, need to append the latest unit allocation
+    mod_allocations.append(cur_unit_allocation)
+
+    return 0, "", mod_allocations
+
+async def apply_modoptimizer_allocations(modopti_file, txt_allyCode):
     #Need to have the dict_player, to get mod IDs
-    initial_dict_player = json.load(open(sys.argv[2], 'r'))
-    initial_dict_player = goutils.roster_from_list_to_dict(initial_dict_player)
+    # Get player data
+    e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
+    if e != 0:
+        return 1, "ERR: "+t
 
-    mod_allocations = get_mod_allocations_from_modoptimizer(sys.argv[1], initial_dict_player)
-    allyCode = sys.argv[3]
+    mod_allocations = get_mod_allocations_from_modoptimizer(modopti_file, dict_player)
 
-    apply_mod_allocations(mod_allocations, allyCode, initial_dict_player)
+    print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
+
+    return 0, ""
+
+async def apply_config_allocations(config_name, txt_allyCode):
+    #Need to have the dict_player, to get mod IDs
+    # Get player data
+    e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
+    if e != 0:
+        return 1, "ERR: "+t
+
+    e, t, mod_allocations = get_mod_config(config_name, txt_allyCode)
+    if e!=0:
+        return 1, t
+
+    print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
+
+    return 0, ""
