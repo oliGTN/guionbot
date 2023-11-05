@@ -1564,7 +1564,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
         allyCode = str(connect_mysql.get_value(query))
         if allyCode == "None":
-            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié"
+            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
             return
 
         #Run the function
