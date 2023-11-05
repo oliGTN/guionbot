@@ -1033,7 +1033,7 @@ async def get_player_statq(txt_allyCode):
         query += "     WHEN stat_name='"+s_name+"'   THEN CONCAT(ROUND(stat"+str(s_id)
 
         if s_percent:
-            query+="/1000000, 1), '% (' , ROUND(mod"+str(s_id)+" /1000000), '%)' ) \n"
+            query+="/1000000), '% (' , ROUND(mod"+str(s_id)+" /1000000), '%)' ) \n"
         else:
             query+="/100000000), ' (', ROUND(mod"+str(s_id)+" /100000000), ')') \n"
 
@@ -1049,7 +1049,7 @@ async def get_player_statq(txt_allyCode):
         query += "     WHEN stat_name='"+s_name+"' THEN CONCAT(ROUND((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)"
 
         if s_percent:
-            query+="/1000000, 1), '%' "
+            query+="/1000000), '%' "
         else:
             query+="/100000000) "
         query += ", ' (',ROUND(mod"+str(s_id)+"*100/((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)-(stat"+str(s_id)+"-mod"+str(s_id)+"))),'%)') \n"
@@ -1063,7 +1063,7 @@ async def get_player_statq(txt_allyCode):
         s_name = stat[0]
         s_id = stat[1]
 
-        query += "     WHEN stat_name='"+s_name+"'   THEN (mod"+str(s_id)+" /(stat"+str(s_id)+" -mod"+str(s_id)+" )) /stat_avg \n"
+        query += "     WHEN stat_name='"+s_name+"'   THEN ROUND((mod"+str(s_id)+" /(stat"+str(s_id)+" -mod"+str(s_id)+" )) /stat_avg / 0.02)*0.02 \n"
 
 
     query +="     END AS `stat_ratio`, coef \n" \
