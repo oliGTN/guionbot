@@ -11,9 +11,10 @@ import datetime
 from pytz import timezone
 import difflib
 import re
-import nextcord
-from nextcord.ext import tasks, commands
-from nextcord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
+import discord
+from discord.ext import tasks, commands
+from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
+from discord import app_commands
 from io import BytesIO
 from requests import get
 import traceback
@@ -27,14 +28,11 @@ import connect_mysql
 import connect_rpc
 import portraits
 import data
+import manage_mods
 
+# Generic configuration
 TOKEN = config.DISCORD_BOT_TOKEN
-intents = Intents.all()
-intents.members = True
-intents.presences = True
-intents.message_content = True
-bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
-
+ADMIN_GUILD = discord.Object(id=config.ADMIN_SERVER_ID)
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
@@ -42,6 +40,26 @@ list_alerts_sent_to_admin = []
 bot_test_mode = False
 first_bot_loop_5minutes = True
 first_bot_loop_10minutes = True
+
+##############################################################
+# Class: MyClient
+# Description: the bot client, enabling basic bot and slash commands
+##############################################################
+class MyClient(commands.Bot):
+    def __init__(self, *, command_prefix: list, intents: discord.Intents):
+        super().__init__(command_prefix=command_prefix, intents=intents)
+    async def setup_hook(self):
+        self.tree.copy_global_to(guild=ADMIN_GUILD)
+        await self.tree.sync(guild=ADMIN_GUILD)
+
+#create bot
+intents = Intents.all()
+intents.members = True
+intents.presences = True
+intents.message_content = True
+#bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
+bot = MyClient(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
+
 
 #https://til.secretgeek.net/powershell/emoji_list.html
 emoji_thumb = '\N{THUMBS UP SIGN}'
@@ -300,7 +318,7 @@ async def bot_loop_5minutes(bot):
                             #This zone already has a message
                             try:
                                 old_msg = await tw_bot_channel.fetch_message(old_msg_id)
-                            except nextcord.errors.NotFound as e:
+                            except discord.errors.NotFound as e:
                                 goutils.log2("ERR", "msg not found id="+str(old_msg_id))
                                 raise(e)
 
@@ -1303,6 +1321,11 @@ def officer_command(ctx):
 
     return (ret_is_officer and (not bot_test_mode)) or is_owner
 
+
+##############################################################
+# Class: BackgroundCog
+# Description: contains all background tasks
+##############################################################
 class BackgroundCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -1514,11 +1537,50 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.check(admin_command)
     async def test(self, ctx, *args):
         await ctx.message.add_reaction(emoji_check)
+        for guild in bot.guilds:
+            print(guild.name+": "+str(guild.id))
 
-    @bot.slash_command(guild_ids=[1168990607474184242])
-    async def ping(self, interaction: nextcord.Interaction):
-        """Simple command that responds with Pong!"""
-        await interaction.response.send_message("Pong!")
+##############################################################
+# Class: GooglerCog
+# Description: contains all commands linked to the google connected accounts
+##############################################################
+#@bot.tree.command()
+#async def pang(interaction: discord.Interaction, nb: int):
+#    await interaction.response.send_message("Pong! "+str(nb))
+
+class ModsCog(commands.GroupCog, name="mods"):
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot = bot
+        super().__init__()
+
+    @app_commands.command(name="modoptimizer")
+    async def modoptimizer(self, interaction: discord.Interaction,
+                         fichier: discord.Attachment):
+        await interaction.response.defer(thinking=True)
+
+        channel_id = interaction.channel_id
+
+        #get allyCode
+        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+        allyCode = str(connect_mysql.get_value(query))
+        if allyCode == "None":
+            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié"
+            return
+
+        #Run the function
+        file_content = await fichier.read()
+        try:
+            html_content = file_content.decode('utf-8')
+        except :
+            await interaction.edit_original_response(content=emoji_error+" ERR impossible de lire le contenu du fichier "+fichier.url)
+            return
+
+        ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode)
+
+        if ec == 0:
+            await interaction.edit_original_response(content=emoji_check+" "+et)
+        else:
+            await interaction.edit_original_response(content=emoji_error+" "+et)
 
 ##############################################################
 # Class: ServerCog
@@ -2244,7 +2306,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         archive_path="/tmp/TWlogs_"+guild_name+".zip"
         with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zipped:
             zipped.write(latest_log)
-        file = nextcord.File(archive_path)
+        file = discord.File(archive_path)
         await ctx.send(file=file, content="Dernier fichier trouvé : "+latest_log)
 
         await ctx.message.add_reaction(emoji_check)
@@ -4096,7 +4158,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 ##############################################################
 # MAIN EXECUTION
 ##############################################################
-def main():
+async def main():
     #Init bot
     bot_noloop_mode = False
     global bot_test_mode
@@ -4117,20 +4179,21 @@ def main():
 
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
-    bot.add_cog(AdminCog(bot))
-    bot.add_cog(ServerCog(bot))
-    bot.add_cog(OfficerCog(bot))
-    bot.add_cog(MemberCog(bot))
+    await bot.add_cog(AdminCog(bot))
+    await bot.add_cog(ServerCog(bot))
+    await bot.add_cog(OfficerCog(bot))
+    await bot.add_cog(MemberCog(bot))
+    await bot.add_cog(ModsCog(bot), guilds=[ADMIN_GUILD])
 
     #Create periodic tasks
     if not bot_noloop_mode:
-        bot.add_cog(BackgroundCog(bot))
+        await bot.add_cog(BackgroundCog(bot))
 
     #Lancement du bot
     goutils.log2("INFO", "Run bot...")
-    bot.run(TOKEN, reconnect=True)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
+    bot.run(TOKEN, reconnect=True)
 
 
