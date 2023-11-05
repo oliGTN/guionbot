@@ -1025,28 +1025,31 @@ async def get_player_statq(txt_allyCode):
           + "     CASE \n"
 
     #stat_value
+    # stats values are rounded down, like in the game > FLOOR
     for stat in list_statq_stats:
         s_name = stat[0]
         s_id = stat[1]
         s_percent = stat[2]
 
-        query += "     WHEN stat_name='"+s_name+"'   THEN CONCAT(ROUND(stat"+str(s_id)
+        query += "     WHEN stat_name='"+s_name+"'   THEN CONCAT(FLOOR(stat"+str(s_id)
 
         if s_percent:
-            query+="/1000000), '% (' , ROUND(mod"+str(s_id)+" /1000000), '%)' ) \n"
+            query+="/1000000), '% (' , FLOOR(mod"+str(s_id)+" /1000000), '%)' ) \n"
         else:
-            query+="/100000000), ' (', ROUND(mod"+str(s_id)+" /100000000), ')') \n"
+            query+="/100000000), ' (', FLOOR(mod"+str(s_id)+" /100000000), ')') \n"
 
     query +="     END AS `stat_value`, \n" \
           + "     CASE \n"
 
     #stat_target
+    # stats values are rounded down, like in the game > FLOOR
+    # ratio is rounded to the nearest > ROUND
     for stat in list_statq_stats:
         s_name = stat[0]
         s_id = stat[1]
         s_percent = stat[2]
 
-        query += "     WHEN stat_name='"+s_name+"' THEN CONCAT(ROUND((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)"
+        query += "     WHEN stat_name='"+s_name+"' THEN CONCAT(FLOOR((stat"+str(s_id)+"-mod"+str(s_id)+")*(stat_avg*1.02+1)"
 
         if s_percent:
             query+="/1000000), '%' "
