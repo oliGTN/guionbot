@@ -179,7 +179,7 @@ dict_stat_by_set = {'1': "health",
 
 
 
-def get_mod_allocations_from_modoptimizer(html_file, initial_dict_player):
+def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
     ##########################
     # STEP1
     # Read Mod Optimizer HTM
@@ -203,7 +203,7 @@ def get_mod_allocations_from_modoptimizer(html_file, initial_dict_player):
     #       'arrow': ...
     ##########################
     modopti_parser = ModOptimizerListParser()
-    modopti_parser.feed(open(html_file, 'r').read())
+    modopti_parser.feed(html_content)
     modopti_allocations = modopti_parser.get_allocations()
 
     ##########################
@@ -264,7 +264,7 @@ def get_mod_allocations_from_modoptimizer(html_file, initial_dict_player):
                 sys.exit(1)
 
             mod_allocation['mods'].append({"id": replacement_mod["id"], 
-                                           "slot": replacement_mod["slot"]})
+                                           "slot": allocated_mod_slot})
 
         mod_allocations.append(mod_allocation)
 
@@ -302,6 +302,8 @@ def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
     cur_dict_player_mods = copy.deepcopy(initial_dict_player_mods)
 
     max_unallocated = 0
+    unit_count = 0
+    mod_add_count = 0
     for a in mod_allocations:
         #dbg_mod = "3hS3gxH7Q5mXpFu2oaNWZA"
         #print(cur_dict_player_mods[dbg_mod])
@@ -351,12 +353,13 @@ def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
             mods_txt = ""
             for id in mods_to_add:
                 mods_txt += " +"+id
+                mod_add_count += 1
             for id in mods_to_remove:
                 mods_txt += " -"+id
             print("python updateMods.py "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
+            unit_count += 1
         elif len(mods_to_remove) > 0:
-            print("ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter")
-            sys.exit(1)
+            return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter"
 
         #manage max size required in mod inventory
         unallocated_mods = [id for id in cur_dict_player_mods if cur_dict_player_mods[id]["unit_id"]==None]
@@ -364,6 +367,7 @@ def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
             max_unallocated = len(unallocated_mods)
 
     print("============\nMax unallocated: "+str(max_unallocated))
+    return 0, str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos"
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     #Get game mod data
@@ -483,18 +487,18 @@ def get_mod_config(conf_name, txt_allyCode):
 
     return 0, "", mod_allocations
 
-async def apply_modoptimizer_allocations(modopti_file, txt_allyCode):
+async def apply_modoptimizer_allocations(modopti_html_content, txt_allyCode):
     #Need to have the dict_player, to get mod IDs
     # Get player data
     e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
     if e != 0:
         return 1, "ERR: "+t
 
-    mod_allocations = get_mod_allocations_from_modoptimizer(modopti_file, dict_player)
+    mod_allocations = get_mod_allocations_from_modoptimizer(modopti_html_content, dict_player)
 
-    print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
+    ec, et = print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
 
-    return 0, ""
+    return ec, et
 
 async def apply_config_allocations(config_name, txt_allyCode):
     #Need to have the dict_player, to get mod IDs
@@ -507,6 +511,6 @@ async def apply_config_allocations(config_name, txt_allyCode):
     if e!=0:
         return 1, t
 
-    print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
+    ec, et = print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
 
-    return 0, ""
+    return ec, et
