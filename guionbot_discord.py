@@ -1582,6 +1582,57 @@ class ModsCog(commands.GroupCog, name="mods"):
         else:
             await interaction.edit_original_response(content=emoji_error+" "+et)
 
+    @app_commands.command(name="enregistre-conf")
+    @app_commands.rename(conf_name="nom-conf")
+    @app_commands.rename(list_alias_txt="liste-persos")
+    async def save_conf(self, interaction: discord.Interaction,
+                           conf_name: str,
+                           list_alias_txt: str):
+        await interaction.response.defer(thinking=True)
+
+        channel_id = interaction.channel_id
+
+        #get allyCode
+        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+        allyCode = str(connect_mysql.get_value(query))
+        if allyCode == "None":
+            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            return
+
+        #transform list_alias parameter into list
+        list_alias = list_alias_txt.split(" ")
+
+        #Run the function
+        ec, et = await manage_mods.create_mod_config(conf_name, allyCode, list_alias)
+
+        if ec == 0:
+            await interaction.edit_original_response(content=emoji_check+" "+et)
+        else:
+            await interaction.edit_original_response(content=emoji_error+" "+et)
+
+    @app_commands.command(name="applique-conf")
+    @app_commands.rename(conf_name="nom-conf")
+    async def apply_conf(self, interaction: discord.Interaction,
+                         conf_name: str):
+        await interaction.response.defer(thinking=True)
+
+        channel_id = interaction.channel_id
+
+        #get allyCode
+        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+        allyCode = str(connect_mysql.get_value(query))
+        if allyCode == "None":
+            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            return
+
+        #Run the function
+        ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode)
+
+        if ec == 0:
+            await interaction.edit_original_response(content=emoji_check+" "+et)
+        else:
+            await interaction.edit_original_response(content=emoji_error+" "+et)
+
 ##############################################################
 # Class: ServerCog
 # Description: contains all commands linked to the server and its warbot

@@ -15,6 +15,7 @@ import copy #deepcopy
 import go
 import goutils
 import connect_mysql
+import connect_rpc
 import data as godata
 
 class ModOptimizerListParser(HTMLParser):
@@ -277,7 +278,7 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
 #  by max size inventory
 # One command per unit, listing all the ods to add and all the mods to remove
 ##########################
-def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
+async def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
 
@@ -357,6 +358,12 @@ def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
             for id in mods_to_remove:
                 mods_txt += " -"+id
             print("python updateMods.py "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
+
+            #send the request to RPC
+            ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
+            if ec!=0:
+                return ec, et
+
             unit_count += 1
         elif len(mods_to_remove) > 0:
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter"
@@ -496,7 +503,7 @@ async def apply_modoptimizer_allocations(modopti_html_content, txt_allyCode):
 
     mod_allocations = get_mod_allocations_from_modoptimizer(modopti_html_content, dict_player)
 
-    ec, et = print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
+    ec, et = await print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
 
     return ec, et
 
@@ -511,6 +518,6 @@ async def apply_config_allocations(config_name, txt_allyCode):
     if e!=0:
         return 1, t
 
-    ec, et = print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
+    ec, et = await print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
 
     return ec, et

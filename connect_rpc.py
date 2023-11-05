@@ -1892,3 +1892,30 @@ async def get_raid_status(server_id, force_update):
             list_inactive_players.append(member["playerName"])
 
     return raid_id, expire_time, list_inactive_players, guild_score
+
+async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode):
+    url = "http://localhost:8000/updateMods"
+    params = {"allyCode": txt_allyCode,
+              "unit_id": unit_id, # this the unit ID('sjhf56FTFt'), not the definition ID ('ACKBAR')
+              "equipped_mods": equipped_mods,
+              "unequipped_mods": unequipped_mods}
+    req_data = json.dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "updateMods status="+str(resp.status))
+                if resp.status==200:
+                    guild_json = await(resp.json())
+                elif resp.status==201:
+                    return 1, "ERR: il faut au moins un mod à ajouter"
+                else:
+                    return 1, "ERR during RPC updateMods - code "+str(resp.status)
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    return 0, ""
