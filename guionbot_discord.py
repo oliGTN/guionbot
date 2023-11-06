@@ -38,6 +38,7 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 list_alerts_sent_to_admin = []
 bot_test_mode = False
+bot_background_tasks = True
 first_bot_loop_5minutes = True
 first_bot_loop_10minutes = True
 
@@ -1321,18 +1322,13 @@ def officer_command(ctx):
 
     return (ret_is_officer and (not bot_test_mode)) or is_owner
 
-
 ##############################################################
-# Class: BackgroundCog
 # Description: contains all background tasks
 ##############################################################
-class BackgroundCog(commands.Cog):
+class Loop60secsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.loop_60secs.start()
-        self.loop_5minutes.start()
-        self.loop_10minutes.start()
-        self.loop_6hours.start()
 
     @tasks.loop(seconds=60)
     async def loop_60secs(self):
@@ -1341,6 +1337,11 @@ class BackgroundCog(commands.Cog):
     async def before_loop_60secs(self):
         await self.bot.wait_until_ready()
 
+class Loop5minutes(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.loop_5minutes.start()
+
     @tasks.loop(minutes=5)
     async def loop_5minutes(self):
         await bot_loop_5minutes(self.bot)
@@ -1348,12 +1349,22 @@ class BackgroundCog(commands.Cog):
     async def before_loop_5minutes(self):
         await self.bot.wait_until_ready()
 
+class Loop10minutes(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.loop_10minutes.start()
+
     @tasks.loop(minutes=10)
     async def loop_10minutes(self):
         await bot_loop_10minutes(self.bot)
     @loop_10minutes.before_loop
     async def before_loop_10minutes(self):
         await self.bot.wait_until_ready()
+
+class Loop6hours(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.loop_6hours.start()
 
     @tasks.loop(hours=6)
     async def loop_6hours(self):
@@ -4211,8 +4222,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 ##############################################################
 async def main():
     #Init bot
-    bot_noloop_mode = False
     global bot_test_mode
+    global bot_background_tasks
     goutils.log2("INFO", "Starting...")
     # Use command-line parameters
     if len(sys.argv) > 1:
@@ -4220,7 +4231,7 @@ async def main():
         bot_test_mode = True
         if sys.argv[1] == "noloop":
             goutils.log2("INFO", "Disable loops")
-            bot_noloop_mode = True
+            bot_background_tasks = False
 
     #Clean tmp files
     list_cache_files = os.listdir("CACHE")
@@ -4236,15 +4247,16 @@ async def main():
     await bot.add_cog(MemberCog(bot))
     await bot.add_cog(ModsCog(bot), guilds=[ADMIN_GUILD])
 
-    #Create periodic tasks
-    if not bot_noloop_mode:
-        await bot.add_cog(BackgroundCog(bot))
+    if bot_background_tasks:
+        await bot.add_cog(Loop60secsCog(bot))
+        await bot.add_cog(Loop5minutes(bot))
+        await bot.add_cog(Loop10minutes(bot))
+        await bot.add_cog(Loop6hours(bot))
 
     #Lancement du bot
     goutils.log2("INFO", "Run bot...")
+    await bot.start(TOKEN, reconnect=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
-    bot.run(TOKEN, reconnect=True)
-
 
