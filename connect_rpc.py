@@ -1712,6 +1712,8 @@ async def deploy_tw(server_id, zone, list_defId):
         return 1, "Erreur en déployant en GT - le bot n'a pas tous les persos demandés"
     elif process.returncode==204:
         return 1, "Erreur en déployant en GT - au moins un perso est déjà déployé"
+    elif process.returncode==205:
+        return 1, "Erreur en déployant en GT - le bot n'a pas rejoint la GT"
     elif process.returncode!=0:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
 
