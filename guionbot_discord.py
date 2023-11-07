@@ -1591,7 +1591,10 @@ class ModsCog(commands.GroupCog, name="mods"):
         ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
 
         if ec == 0:
-            await interaction.edit_original_response(content="[SIMULATION]"+emoji_check+" "+et)
+            txt = emoji_check+" "+et
+            if simulation:
+                txt = "[SIMULATION]"+txt
+            await interaction.edit_original_response(content=txt)
         else:
             await interaction.edit_original_response(content=emoji_error+" "+et)
 
@@ -1643,7 +1646,10 @@ class ModsCog(commands.GroupCog, name="mods"):
         ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
 
         if ec == 0:
-            await interaction.edit_original_response(content="[SIMULATION]"+emoji_check+" "+et)
+            txt = emoji_check+" "+et
+            if simulation:
+                txt = "[SIMULATION]"+txt
+            await interaction.edit_original_response(content=txt)
         else:
             await interaction.edit_original_response(content=emoji_error+" "+et)
 
