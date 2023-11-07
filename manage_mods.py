@@ -262,14 +262,14 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
                 print("\t"+allocated_mod_shape+": "+str(allocated_mod))
                 print("\t\t"+str(replacement_mod))
                 print("\t>>> ERREUR incohérence")
-                sys.exit(1)
+                return 1, "ERR: incohérence sur le "+allocated_mod["character"]+" de "+target_char_defId, None
 
             mod_allocation['mods'].append({"id": replacement_mod["id"], 
                                            "slot": allocated_mod_slot})
 
         mod_allocations.append(mod_allocation)
 
-    return mod_allocations
+    return 0, "", mod_allocations
 
 ##########################
 # STEP3
@@ -501,7 +501,9 @@ async def apply_modoptimizer_allocations(modopti_html_content, txt_allyCode):
     if e != 0:
         return 1, "ERR: "+t
 
-    mod_allocations = get_mod_allocations_from_modoptimizer(modopti_html_content, dict_player)
+    ec, et, mod_allocations = get_mod_allocations_from_modoptimizer(modopti_html_content, dict_player)
+    if ec !=0:
+        return ec, et
 
     ec, et = await print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
 
