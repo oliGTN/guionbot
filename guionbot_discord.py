@@ -1591,7 +1591,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
 
         if ec == 0:
-            await interaction.edit_original_response(content=emoji_check+" "+et)
+            await interaction.edit_original_response(content="[SIMULATION]"+emoji_check+" "+et)
         else:
             await interaction.edit_original_response(content=emoji_error+" "+et)
 
@@ -1643,7 +1643,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
 
         if ec == 0:
-            await interaction.edit_original_response(content=emoji_check+" "+et)
+            await interaction.edit_original_response(content="[SIMULATION]"+emoji_check+" "+et)
         else:
             await interaction.edit_original_response(content=emoji_error+" "+et)
 
@@ -3828,7 +3828,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             allyCode = args[0]
             list_characters = args[1:]
         else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help log")
             await ctx.message.add_reaction(emoji_error)
             return
 
