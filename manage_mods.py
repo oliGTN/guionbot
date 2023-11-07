@@ -217,7 +217,10 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
     # mod_allocations - list
     # mod_allocation element - dict
     # {'unit_id': "PRINCESSLEIA",
-    #  'mods': ['9Ax0P8ybxxxxx', '8Phsg65trTGxxxx', ...]}
+    #  'mods': [{'id': '9Ax0P8ybxxxxx', 'slot': 4, 'rarity': 5},
+    #           {'id': '8Phsg65trTGxxxx', ...}
+    #          ]
+    # }
 
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
@@ -258,16 +261,21 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
                                           "id": mod_id}
 
                 #compare replacement mod characteristics with the mod from the source character
-                replacement_mod = char_mods[allocated_mod_slot]
-                if    replacement_mod["pips"] != allocated_mod["pips"] \
-                   or replacement_mod["set"] != allocated_mod["set"]:
-                    print("\t"+allocated_mod_shape+": "+str(allocated_mod))
-                    print("\t\t"+str(replacement_mod))
-                    print("\t>>> ERREUR incohérence")
-                    return 1, "ERR: incohérence sur le "+allocated_mod_shape+" de "+allocated_mod["character"]
+                if allocated_mod_slot in char_mods:
+                    replacement_mod = char_mods[allocated_mod_slot]
+                    if    replacement_mod["pips"] != allocated_mod["pips"] \
+                       or replacement_mod["set"] != allocated_mod["set"]:
+                        #print("\t"+allocated_mod_shape+": "+str(allocated_mod))
+                        #print("\t\t"+str(replacement_mod))
+                        #print("\t>>> ERREUR incohérence")
+                        return 1, "ERR: incohérence sur le "+allocated_mod_shape+" de "+allocated_mod["character"], None
+                else:
+                    return 1, "ERR: pas de "+allocated_mod_shape+" trouvé sur "+source_char_name, None
+
 
             mod_allocation['mods'].append({"id": replacement_mod["id"], 
-                                           "slot": allocated_mod_slot})
+                                           "slot": allocated_mod_slot,
+                                           "rarity": replacement_mod["pips"]})
 
         mod_allocations.append(mod_allocation)
 
@@ -280,7 +288,7 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
 #  by max size inventory
 # One command per unit, listing all the ods to add and all the mods to remove
 ##########################
-async def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
+async def apply_mod_allocations(mod_allocations, allyCode, initial_dict_player, is_simu):
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
 
@@ -298,8 +306,9 @@ async def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
             mod_id = mod["id"]
             mod_defId = mod["definitionId"]
             mod_slot = mod_list[mod_defId]["slot"]
+            mod_rarity = mod_list[mod_defId]["rarity"]
             initial_dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
-            initial_dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot}
+            initial_dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot, "rarity": mod_rarity}
 
     cur_dict_player = copy.deepcopy(initial_dict_player)
     cur_dict_player_mods = copy.deepcopy(initial_dict_player_mods)
@@ -307,9 +316,14 @@ async def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
     max_unallocated = 0
     unit_count = 0
     mod_add_count = 0
+    unequip_cost = 0
+    unequip_cost_by_rarity = {1: 550,
+                              2: 1050,
+                              3: 1900,
+                              4: 3000,
+                              5: 4750,
+                              6: 8000}
     for a in mod_allocations:
-        #dbg_mod = "3hS3gxH7Q5mXpFu2oaNWZA"
-        #print(cur_dict_player_mods[dbg_mod])
         # An allocation is something like
         # "on the unit PRINCESSLEIA, we need to use mods ID1, ID2, ID3"
         target_char_defId = a["unit_id"]
@@ -320,34 +334,59 @@ async def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
         for allocated_mod in a["mods"]:
             allocated_mod_id = allocated_mod["id"]
             mod_slot = allocated_mod["slot"]
+            allocated_mod_rarity = allocated_mod["rarity"]
+            #print(allocated_mod_id)
+
+            ####################
             # add the new mode to mods_to_add, then add the existing to mods_to_remove
 
             # First check if the target unit does not already have it
+            # No need to move a mod if already in place
+
+            # Look for the unit that has this mod
+            # If the mod is not equipped, unit=None
             if allocated_mod_id in cur_dict_player_mods:
                 current_mod_unit = cur_dict_player_mods[allocated_mod_id]["unit_id"]
             else:
                 current_mod_unit = None
                 cur_dict_player_mods[allocated_mod_id] = {"unit_id": None, "slot": mod_slot}
+
             #print(target_char_defId)
             #print(allocated_mod_id)
             #print(current_mod_unit)
             if current_mod_unit != target_char_defId:
+                # The mod is not already equipped
+
+                # If the unit has no mod at all, create its mod dictionary (empty)
                 if not "equippedStatMod" in cur_dict_player["rosterUnit"][target_char_defId]:
                     cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"] = {}
 
                 #Look for potential mod to be removed before adding the new one
                 if mod_slot in cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"]:
                     previous_mod_id = cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot]
+                    previous_mod_rarity = cur_dict_player_mods[previous_mod_id]["rarity"]
+
                     mods_to_remove.append(previous_mod_id)
                     cur_dict_player_mods[previous_mod_id]["unit_id"] = None
                     del cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot]
+
+                    # add the cost of removing the mod in place on the unit
+                    #print("unequip from "+target_char_defId+": "+str(previous_mod_rarity))
+                    unequip_cost += unequip_cost_by_rarity[previous_mod_rarity]
 
                 #the allocated (new) mod has to be equipped on the target character
                 # and removed from previous unit
                 mods_to_add.append(allocated_mod_id)
                 prev_unit = cur_dict_player_mods[allocated_mod_id]["unit_id"]
                 if prev_unit != None:
+                    # if the mod was equipped, remove it from the previous uit's dictionary
                     del cur_dict_player["rosterUnit"][prev_unit]["equippedStatMod"][mod_slot]
+
+                    # and add the cost of moving
+                    #print("unequip from "+prev_unit+": "+str(allocated_mod_rarity))
+                    unequip_cost += unequip_cost_by_rarity[allocated_mod_rarity]
+
+
                 cur_dict_player_mods[allocated_mod_id]["unit_id"] = target_char_defId
                 cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot] = allocated_mod_id
 
@@ -359,12 +398,13 @@ async def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
                 mod_add_count += 1
             for id in mods_to_remove:
                 mods_txt += " -"+id
-            print("python updateMods.py "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
+            goutils.log2("DBG", "updateMods "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
 
-            #send the request to RPC
-            ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
-            if ec!=0:
-                return ec, et
+            # If not simulation mode, send the request to RPC
+            if not is_simu:
+                ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
+                if ec!=0:
+                    return ec, et
 
             unit_count += 1
         elif len(mods_to_remove) > 0:
@@ -375,8 +415,8 @@ async def print_mod_allocations(mod_allocations, allyCode, initial_dict_player):
         if len(unallocated_mods)>max_unallocated:
             max_unallocated = len(unallocated_mods)
 
-    print("============\nMax unallocated: "+str(max_unallocated))
-    return 0, str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos"
+    goutils.log2("INFO", "Max unallocated: "+str(max_unallocated))
+    return 0, str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(max_unallocated)+" places nécessaires dans l'inventaire, et "+str(unequip_cost)+" crédits)"
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     #Get game mod data
@@ -443,8 +483,9 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
             mod_id = mod["id"]
             mod_defId = mod["definitionId"]
             mod_slot = mod_list[mod_defId]["slot"]
-            query = "INSERT INTO mod_config_content(config_id, unit_id, mod_id, slot)\n"
-            query+= "VALUES("+str(config_id)+", '"+unit_id+"', '"+mod_id+"', "+str(mod_slot)+")"
+            mod_rarity = mod_list[mod_defId]["rarity"]
+            query = "INSERT INTO mod_config_content(config_id, unit_id, mod_id, slot, rarity)\n"
+            query+= "VALUES("+str(config_id)+", '"+unit_id+"', '"+mod_id+"', "+str(mod_slot)+", "+str(mod_rarity)+")"
             goutils.log2("DBG", query)
             connect_mysql.simple_execute(query)
             config_mod_count += 1
@@ -465,7 +506,7 @@ def get_mod_config(conf_name, txt_allyCode):
         return 1, "ERR: config "+conf_name+" introuvable pour le joueur "+txt_allyCode, None
 
     #Get the config content
-    query = "SELECT unit_id, mod_id, slot FROM mod_config_content\n"
+    query = "SELECT unit_id, mod_id, slot, rarity FROM mod_config_content\n"
     query+= "WHERE config_id="+str(config_id)+"\n"
     query+= "ORDER BY unit_id"
     goutils.log2("DBG", query)
@@ -480,6 +521,7 @@ def get_mod_config(conf_name, txt_allyCode):
         unit_id = line[0]
         mod_id = line[1]
         mod_slot = line[2]
+        mod_rarity = line[3]
 
         if cur_unit_allocation["unit_id"] != unit_id:
             #change of unit in the list
@@ -489,14 +531,14 @@ def get_mod_config(conf_name, txt_allyCode):
             #create the unit allocation
             cur_unit_allocation = {"unit_id": unit_id, "mods": []}
 
-        cur_unit_allocation["mods"].append({"id": mod_id, "slot": mod_slot})
+        cur_unit_allocation["mods"].append({"id": mod_id, "slot": mod_slot, "rarity": mod_rarity})
 
-    #after las line, need to append the latest unit allocation
+    #after last line, need to append the latest unit allocation
     mod_allocations.append(cur_unit_allocation)
 
     return 0, "", mod_allocations
 
-async def apply_modoptimizer_allocations(modopti_html_content, txt_allyCode):
+async def apply_modoptimizer_allocations(modopti_html_content, txt_allyCode, is_simu):
     #Need to have the dict_player, to get mod IDs
     # Get player data
     e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
@@ -507,11 +549,10 @@ async def apply_modoptimizer_allocations(modopti_html_content, txt_allyCode):
     if ec !=0:
         return ec, et
 
-    ec, et = await print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
-
+    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, dict_player, is_simu)
     return ec, et
 
-async def apply_config_allocations(config_name, txt_allyCode):
+async def apply_config_allocations(config_name, txt_allyCode, is_simu):
     #Need to have the dict_player, to get mod IDs
     # Get player data
     e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
@@ -522,6 +563,5 @@ async def apply_config_allocations(config_name, txt_allyCode):
     if e!=0:
         return 1, t
 
-    ec, et = await print_mod_allocations(mod_allocations, txt_allyCode, dict_player)
-
+    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, dict_player, is_simu)
     return ec, et

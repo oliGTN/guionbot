@@ -20,6 +20,7 @@ from requests import get
 import traceback
 from texttable import Texttable
 import zipfile
+import typing
 
 import go
 import goutils
@@ -1566,7 +1567,8 @@ class ModsCog(commands.GroupCog, name="mods"):
 
     @app_commands.command(name="modoptimizer")
     async def modoptimizer(self, interaction: discord.Interaction,
-                         fichier: discord.Attachment):
+                           fichier: discord.Attachment,
+                           simulation: typing.Optional[bool]=False):
         await interaction.response.defer(thinking=True)
 
         channel_id = interaction.channel_id
@@ -1624,7 +1626,8 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="applique-conf")
     @app_commands.rename(conf_name="nom-conf")
     async def apply_conf(self, interaction: discord.Interaction,
-                         conf_name: str):
+                         conf_name: str,
+                         simulation: typing.Optional[bool]=False):
         await interaction.response.defer(thinking=True)
 
         channel_id = interaction.channel_id
@@ -1637,7 +1640,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             return
 
         #Run the function
-        ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode)
+        ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, is_simu)
 
         if ec == 0:
             await interaction.edit_original_response(content=emoji_check+" "+et)

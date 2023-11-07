@@ -1907,7 +1907,7 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "updateMods status="+str(resp.status))
                 if resp.status==200:
-                    guild_json = await(resp.json())
+                    inventory_delta = await(resp.json())
                 elif resp.status==201:
                     return 1, "ERR: il faut au moins un mod à ajouter"
                 else:
@@ -1919,5 +1919,7 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    #print(inventory_delta)
 
     return 0, ""
