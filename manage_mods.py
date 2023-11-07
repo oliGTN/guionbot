@@ -240,29 +240,31 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
             allocated_mod = a["mods"][allocated_mod_shape]
             allocated_mod_slot = dict_slot_by_shape[allocated_mod_shape]
 
-            source_char_name = allocated_mod["character"]
-            source_char_defId = dict_names[source_char_name]
+            if "character" in allocated_mod:
+                #the consistency can only be done if there is a source character
+                source_char_name = allocated_mod["character"]
+                source_char_defId = dict_names[source_char_name]
 
-            #get a dict (char_mods) with existing mods for the source character (before any move)
-            char_mods = {}
-            for roster_mod in initial_dict_player["rosterUnit"][source_char_defId]["equippedStatMod"]:
-                mod_defId = roster_mod["definitionId"] #string
-                mod_rarity = mod_list[mod_defId]["rarity"]
-                mod_setId = mod_list[mod_defId]["setId"]
-                mod_slot = mod_list[mod_defId]["slot"]
-                mod_id = roster_mod["id"]
-                char_mods[mod_slot] = {"pips": mod_rarity,
-                                      "set": dict_stat_by_set[mod_setId],
-                                      "id": mod_id}
+                #get a dict (char_mods) with existing mods for the source character (before any move)
+                char_mods = {}
+                for roster_mod in initial_dict_player["rosterUnit"][source_char_defId]["equippedStatMod"]:
+                    mod_defId = roster_mod["definitionId"] #string
+                    mod_rarity = mod_list[mod_defId]["rarity"]
+                    mod_setId = mod_list[mod_defId]["setId"]
+                    mod_slot = mod_list[mod_defId]["slot"]
+                    mod_id = roster_mod["id"]
+                    char_mods[mod_slot] = {"pips": mod_rarity,
+                                          "set": dict_stat_by_set[mod_setId],
+                                          "id": mod_id}
 
-            #compare replacement mod characteristics with the mod from the source character
-            replacement_mod = char_mods[allocated_mod_slot]
-            if    replacement_mod["pips"] != allocated_mod["pips"] \
-               or replacement_mod["set"] != allocated_mod["set"]:
-                print("\t"+allocated_mod_shape+": "+str(allocated_mod))
-                print("\t\t"+str(replacement_mod))
-                print("\t>>> ERREUR incohérence")
-                return 1, "ERR: incohérence sur le "+allocated_mod_shape+" de "+allocated_mod["character"]
+                #compare replacement mod characteristics with the mod from the source character
+                replacement_mod = char_mods[allocated_mod_slot]
+                if    replacement_mod["pips"] != allocated_mod["pips"] \
+                   or replacement_mod["set"] != allocated_mod["set"]:
+                    print("\t"+allocated_mod_shape+": "+str(allocated_mod))
+                    print("\t\t"+str(replacement_mod))
+                    print("\t>>> ERREUR incohérence")
+                    return 1, "ERR: incohérence sur le "+allocated_mod_shape+" de "+allocated_mod["character"]
 
             mod_allocation['mods'].append({"id": replacement_mod["id"], 
                                            "slot": allocated_mod_slot})
