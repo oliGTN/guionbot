@@ -262,7 +262,7 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
                 print("\t"+allocated_mod_shape+": "+str(allocated_mod))
                 print("\t\t"+str(replacement_mod))
                 print("\t>>> ERREUR incohérence")
-                return 1, "ERR: incohérence sur le "+allocated_mod["character"]+" de "+target_char_defId, None
+                return 1, "ERR: incohérence sur le "+allocated_mod_shape+" de "+allocated_mod["character"]
 
             mod_allocation['mods'].append({"id": replacement_mod["id"], 
                                            "slot": allocated_mod_slot})
