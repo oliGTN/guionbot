@@ -1640,9 +1640,6 @@ class ModsCog(commands.GroupCog, name="mods"):
             return
 
         #Run the function
-        print(conf_name)
-        print(allyCode)
-        print(simulation)
         ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
 
         if ec == 0:
