@@ -3777,7 +3777,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             allyCode = args[0]
             list_characters = args[1:]
         else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help loj")
             await ctx.message.add_reaction(emoji_error)
             return
 
