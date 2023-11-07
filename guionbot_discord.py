@@ -1568,7 +1568,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="modoptimizer")
     async def modoptimizer(self, interaction: discord.Interaction,
                            fichier: discord.Attachment,
-                           simulation: typing.Optional[bool]=False):
+                           simulation: bool=False):
         await interaction.response.defer(thinking=True)
 
         channel_id = interaction.channel_id
@@ -1588,7 +1588,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             await interaction.edit_original_response(content=emoji_error+" ERR impossible de lire le contenu du fichier "+fichier.url)
             return
 
-        ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode)
+        ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
 
         if ec == 0:
             await interaction.edit_original_response(content=emoji_check+" "+et)
@@ -1627,7 +1627,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.rename(conf_name="nom-conf")
     async def apply_conf(self, interaction: discord.Interaction,
                          conf_name: str,
-                         simulation: typing.Optional[bool]=False):
+                         simulation: bool=False):
         await interaction.response.defer(thinking=True)
 
         channel_id = interaction.channel_id
@@ -1640,7 +1640,10 @@ class ModsCog(commands.GroupCog, name="mods"):
             return
 
         #Run the function
-        ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, is_simu)
+        print(conf_name)
+        print(allyCode)
+        print(simulation)
+        ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
 
         if ec == 0:
             await interaction.edit_original_response(content=emoji_check+" "+et)
