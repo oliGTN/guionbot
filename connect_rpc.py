@@ -779,28 +779,28 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                                             #already a TM registered for this squad
                                             if dict_squads[squad_id]["tm_ts"] < event_ts:
                                                 #this is a 2nd TM, not critical
-                                                activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt+" (TM sur un TM)"
+                                                activity_txt = "\U{CROSS MARK}"+activity_txt+" (TM sur un TM)"
                                             else:
                                                 #This is the first TM (should not happen if events are ordered by time)
-                                                activity_txt = "\N{CROSS MARK}"+activity_txt+" >>> TM !!!"
+                                                activity_txt = "\U0001F4A5"+activity_txt+" >>> TM !!!" #Collision
                                         else:
                                             #no TM registered yet, this is the first TM
-                                            activity_txt = "\N{CROSS MARK}"+activity_txt+" >>> TM !!!"
+                                            activity_txt = "\U0001F4A5"+activity_txt+" >>> TM !!!" #Collision
 
                                         #register TM timestamp
                                         dict_squads[squad_id]["tm_ts"] = event_ts
                                     else:
-                                        activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt
+                                        activity_txt = "\N{CROSS MARK}"+activity_txt
 
                                 else:
                                     activity_txt += " (mode avion)"
-                                    activity_txt = "\N{SLIGHTLY FROWNING FACE}"+activity_txt
+                                    activity_txt = "\N{CROSS MARK}"+activity_txt
 
 
                             elif activity["warSquad"]["squadStatus"]=="SQUADDEFEATED":
                                 if "squad" in activity["warSquad"]:
                                     activity_txt = "VICTOIRE@"+zone_name+": "+author+" a gagné contre "+leader_opponent
-                                    activity_txt = "\N{Thumbs Up Sign}"+activity_txt
+                                    activity_txt = "\N{WHITE HEAVY CHECK MARK}"+activity_txt
 
                             elif activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
                                 if "squad" in activity["warSquad"]:
