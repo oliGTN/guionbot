@@ -779,7 +779,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                                             #already a TM registered for this squad
                                             if dict_squads[squad_id]["tm_ts"] < event_ts:
                                                 #this is a 2nd TM, not critical
-                                                activity_txt = "\U{CROSS MARK}"+activity_txt+" (TM sur un TM)"
+                                                activity_txt = "\N{CROSS MARK}"+activity_txt+" (TM sur un TM)"
                                             else:
                                                 #This is the first TM (should not happen if events are ordered by time)
                                                 activity_txt = "\U0001F4A5"+activity_txt+" >>> TM !!!" #Collision
