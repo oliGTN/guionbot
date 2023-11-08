@@ -2617,7 +2617,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
-        await ctx.send("Enregitrement de "+player_name+" réussi")
+        await ctx.send("Enregistrement de "+player_name+" réussi pour <@"+discord_id_txt+">")
         await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
