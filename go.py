@@ -619,7 +619,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
         dict_player = dict_teams[player_name][1][team_name]
     else:
         dict_player = {}
-    print(dict_player)
+    #print(dict_player)
     
     #INIT tableau des resultats
     tab_progress_player = [[] for i in range(nb_subobjs)]
@@ -1061,7 +1061,7 @@ def get_team_header(team_name, objectifs):
                     while '' in req_zetas:
                         req_zetas.remove('')
 
-                    print(goutils.get_capa_from_shorts(perso, req_zetas))
+                    #print(goutils.get_capa_from_shorts(perso, req_zetas))
                     req_zeta_names = [dict_capa[perso][x[1]]["name"]+" ("+x[0]+")" for x in goutils.get_capa_from_shorts(perso, req_zetas)]
                     req_omicrons = objectifs[i_level][2][perso][6].split(',')
                     while '' in req_omicrons:
@@ -2567,7 +2567,7 @@ async def print_lox(txt_allyCode, characters, compute_guild):
         non_mode_characters = []
         list_modes = []
         for unit in characters:
-            print(unit)
+            #print(unit)
             if unit.startswith("mode:"):
                 unit_tab = unit.split(":")
                 while '' in unit_tab:
@@ -3931,7 +3931,7 @@ async def count_players_with_character(txt_allyCode, list_characters, server_id,
             output_dict[unit_id] = {}
         output_dict[unit_id][unit_gear] = [line[2], None]
 
-    print(output_dict)
+    #print(output_dict)
     #Manage -TW option
     if tw_mode:
         ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
@@ -4614,7 +4614,7 @@ def get_tw_player_def(fevents_name, player_name):
         for element in dict_def[leader][1:]:
             unit_id = element[0].split(":")[0]
             txt_cmd += " \""+dict_units[unit_id]["name"]+"\""
-        print(txt_cmd)
+        #print(txt_cmd)
 
 async def deploy_bot_tb(server_id, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
@@ -4711,7 +4711,7 @@ async def deploy_platoons_tb(server_id, platoon_name, characters):
     zone_found = False
     list_zone_names = []
     for key in dict_tb:
-        print(key)
+        #print(key)
         if not key.startswith(tb_prefix):
             continue
         zone_name = key
@@ -4986,7 +4986,7 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 
     #SHARDS
     if unit_id in dict_player["rosterUnit"]:
-        print(dict_player["rosterUnit"][unit_id])
+        #print(dict_player["rosterUnit"][unit_id])
         unit_rarity = dict_player["rosterUnit"][unit_id]["currentRarity"]
         unit_gear = dict_player["rosterUnit"][unit_id]["currentTier"]
         unit_eqpt = [None, None, None, None, None, None]
@@ -5034,9 +5034,9 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
                 needed_energy = shard_cost * needed_shards / farming_speed / shard_droprate
 
                 #DEBUG
-                print("farming_speed="+str(farming_speed))
-                print("needed_shards="+str(needed_shards))
-                print("shard_cost="+str(shard_cost))
+                #print("farming_speed="+str(farming_speed))
+                #print("needed_shards="+str(needed_shards))
+                #print("shard_cost="+str(shard_cost))
 
                 if not energy_color in shard_energy:
                     shard_energy[energy_color] = needed_energy
