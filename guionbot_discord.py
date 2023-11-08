@@ -37,11 +37,15 @@ ADMIN_GUILD = discord.Object(id=config.ADMIN_SERVER_ID)
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
-list_alerts_sent_to_admin = []
 bot_test_mode = False
 bot_background_tasks = True
+
+#Global variables that may change during execution
 first_bot_loop_5minutes = True
 first_bot_loop_10minutes = True
+list_alerts_sent_to_admin = []
+latestLocalizationBundleVersion = ""
+latestGameDataVersion = ""
 
 ##############################################################
 # Class: MyClient
@@ -525,6 +529,25 @@ async def bot_loop_6hours(bot):
             goutils.log("ERR", "guionbot_discord.bot_loop_6hours", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "Exception in bot_loop_6hours:"+str(sys.exc_info()[0]))
+
+        # Check metadata
+        ec, et, metadata = await connect_rpc.get_metadata()
+        if ec!=0:
+            goutils.log2("ERR", et)
+
+        LocalizationBundleVersion = metadata["latestLocalizationBundleVersion"]
+        if LocalizationBundleVersion != latestLocalizationBundleVersion \
+            and latestLocalizationBundleVersion != "":
+
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "New LocalizationBundle")
+
+        GameDataVersion = metadata["latestGameDataVersion"]
+        if GameDataVersion != latestGameDataVersion \
+            and latestGameDataVersion != "":
+
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "New GameDataVersion")
 
         goutils.log2("DBG", "END loop")
 
