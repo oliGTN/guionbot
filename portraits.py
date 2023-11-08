@@ -288,11 +288,16 @@ def get_image_from_character(character_id, dict_player, game_mode):
             if "crew" in dict_unitsList[character_id] and dict_unitsList[character_id]["crew"]!= None:
                 for crew_element in dict_unitsList[character_id]["crew"]:
                     crew_id = crew_element["unitId"]
-                    crew_image = get_image_from_character(crew_id, dict_player, game_mode)
+
+                    #for crew image, the game_mode is ignored as it serves to display omicrons
+                    crew_image = get_image_from_character(crew_id, dict_player, "")
                     portrait_image = add_vertical(portrait_image, crew_image)
 
         #Orange frame if character unavail
-        if 'reserved' in character:
+        # unavail character is tagged with "reserved" and it is applicable with game_mode="TW" only
+        # this to prevent displaying a crew in orange because the crew is in defense
+        # display of crew is always done with game_mode=""
+        if 'reserved' in character and game_mode=="TW":
             if character['reserved']:
                 orange_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'orange')
                 portrait_image = Image.blend(portrait_image, orange_img, 0.5)
