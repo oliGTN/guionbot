@@ -2614,7 +2614,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         #Add discord id in DB
         query = "UPDATE players SET discord_id='"+discord_id_txt+"' WHERE allyCode="+ac
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         connect_mysql.simple_execute(query)
 
         await ctx.send("Enregistrement de "+player_name+" réussi pour <@"+discord_id_txt+">")
