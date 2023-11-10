@@ -1231,6 +1231,25 @@ async def on_message(message):
                         connect_mysql.update_gv_history("", player_name, character_name, False,
                                                         progress, unlocked, "j.bot")
 
+    #Read messages from WookieBoot
+    print("on_message id="+str(message.id))
+    print("on_message author="+str(message.author.id))
+    if message.author.id == config.WOOKIEBOT_DISCORD_ID:
+        i_embed=1
+        print(len(message.embeds))
+        for embed in message.embeds:
+            print("Embed "+str(i_embed))
+            dict_embed = embed.to_dict()
+            for key in dict_embed:
+                print(key)
+            i_embed+=1
+        i_embed=1
+        print(len(message.attachments))
+        for embed in message.embeds:
+            print("File "+str(i_embed))
+            print(embed.filename)
+            i_embed+=1
+
 ##############################################################
 # Event: on_error_command
 # Parameters: error (error raised by the command)
@@ -1288,6 +1307,15 @@ async def on_message_edit(before, after):
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                          "BEFORE:\n" + before.content + "\n" +\
                          "AFTER:\n" + after.content)
+
+    #Read messages from WookieBoot
+    print("on_message id="+str(after.id))
+    print("on_message author="+str(after.author.id))
+    if after.author.id == config.WOOKIEBOT_DISCORD_ID:
+        for attachment in after.attachments:
+            file_content = await attachment.read().decode('utf-8')
+            print(file_content[:100])
+
 
 @bot.event
 async def on_member_update(before, after):
@@ -2681,12 +2709,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       help="Identifie un joueur et sa guilde\n\n"\
                            "Exemple: go.qui 192126111\n"\
                            "Exemple: go.qui dark Patoche\n"\
-                           "Exemple: go.qui @chaton372")
+                           "Exemple: go.qui @chaton372\n"\
+                           "Exemple: go.qui -TW")
     async def qui(self, ctx, *alias):
         await ctx.message.add_reaction(emoji_thumb)
 
         full_alias = " ".join(alias)
-        allyCode = await manage_me(ctx, full_alias, False)
+        allyCode = await manage_me(ctx, full_alias, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)

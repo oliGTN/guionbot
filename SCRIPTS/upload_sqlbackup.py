@@ -4,7 +4,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import json
 import sys
 sys.path.append("/home/pi/GuionBot/guionbot-dev")
-print(sys.path)
 import config
 
 gauth = GoogleAuth()

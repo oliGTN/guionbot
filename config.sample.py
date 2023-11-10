@@ -27,7 +27,8 @@ DISCORD_BOT_TOKEN=""
 # Channel ID to read EchoBot allocations, and EchoBot Discord name
 EB_PROFILE="EchoStation#0000"
 
-JBOT_DISCORD_ID=
+JBOT_DISCORD_ID=1234567890
+WOOKIEBOTBOT_DISCORD_ID=1234567890
 
 # Discord IDs of bot administrators (allowed to launch speciel commands). Separator=<space>
 GO_ADMIN_IDS=""
