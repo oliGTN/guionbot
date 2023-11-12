@@ -1231,24 +1231,6 @@ async def on_message(message):
                         connect_mysql.update_gv_history("", player_name, character_name, False,
                                                         progress, unlocked, "j.bot")
 
-    #Read messages from WookieBoot
-    print("on_message id="+str(message.id))
-    print("on_message author="+str(message.author.id))
-    if message.author.id == config.WOOKIEBOT_DISCORD_ID:
-        i_embed=1
-        print(len(message.embeds))
-        for embed in message.embeds:
-            print("Embed "+str(i_embed))
-            dict_embed = embed.to_dict()
-            for key in dict_embed:
-                print(key)
-            i_embed+=1
-        i_embed=1
-        print(len(message.attachments))
-        for embed in message.embeds:
-            print("File "+str(i_embed))
-            print(embed.filename)
-            i_embed+=1
 
 ##############################################################
 # Event: on_error_command
@@ -1309,13 +1291,21 @@ async def on_message_edit(before, after):
                          "AFTER:\n" + after.content)
 
     #Read messages from WookieBoot
-    print("on_message id="+str(after.id))
-    print("on_message author="+str(after.author.id))
     if after.author.id == config.WOOKIEBOT_DISCORD_ID:
         for attachment in after.attachments:
-            file_content = await attachment.read().decode('utf-8')
-            print(file_content[:100])
+            raid_shortname = attachment.filename.split("_")[0]
+            if raid_shortname=="krayt":
+                raid_name = "kraytdragon"
+            else:
+                raid_name = raid_shortname
 
+            file_content = await attachment.read()
+            file_txt = file_content.decode('utf-8')
+            print("launch update...")
+            ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
+            print("done - "+str(ec))
+            if ec != 0:
+                goutils.log2("ERR", et)
 
 @bot.event
 async def on_member_update(before, after):
@@ -1444,7 +1434,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #            (c'est pour ça qu'elle est réservée aux développeurs)
     # Display: output de la ligne de commande, comme dans une console
     ##############################################################
-    @commands.command(name='cmd', help='Lance une ligne de commande sur le serveur du bot')
+    @commands.command(name='cmd', help='Shell sur le serveur')
     @commands.check(admin_command)
     async def cmd(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -1504,7 +1494,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #            (c'est pour ça qu'elle est réservée aux développeurs)
     # Display: output de la requête, s'il y en a un
     ##############################################################
-    @commands.command(name='sql', help='Lance une requête SQL dans la database')
+    @commands.command(name='sql', help='Requête SQL dans la database')
     @commands.check(admin_command)
     async def sql(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -1789,7 +1779,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     ##############################################################
     @commands.check(officer_command)
     @commands.command(name='vdp',
-                 brief="Vérification de Déploiement des Pelotons en BT",
+                 brief="Vérification des pelotons en BT",
                  help="Vérification de Déploiement des Pelotons en BT\n\n"\
                       "Exemple : go.vdp > liste les déploiements dans le salon courant\n"\
                       "Exemple : go.vdp #batailles-des-territoires > liste les déploiements dans le salon spécifié\n"\
@@ -1946,7 +1936,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_check)
         
     @commands.command(name='bot.enable',
-            brief="Active le compte bot pour permettre de suivre la guilde",
+            brief="Active le compte warbot",
             help="Active le compte bot pour permettre de suivre la guilde")
     async def botenable(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -1967,7 +1957,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emoji_check)
 
     @commands.command(name='bot.disable',
-            brief="Désactive le compte bot pour permettre de le jouer",
+            brief="Désactive le compte warbot",
             help="Désactive le compte bot pour permettre de le jouer")
     async def botdisable(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -1987,29 +1977,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
         await ctx.message.add_reaction(emoji_check)
 
-    @commands.command(name='bot.joinraids',
-            brief="Inscrit le bot à tous les raids disponibles",
-            help="Inscrit le bot à tous les raids disponibles")
-    async def botjoinraids(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        ec, et = await connect_rpc.join_raids(ctx.guild.id)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        await ctx.send(et)
-        await ctx.message.add_reaction(emoji_check)
-
     @commands.command(name='bot.jointw',
-            brief="Inscrit le bot à la GT en cours",
+            brief="Inscrit le bot à la GT",
             help="Inscrit le bot à la GT en cours")
     async def botjointw(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -2030,8 +1999,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emoji_check)
 
     @commands.command(name='bot.deftw',
-            brief="Déploie des persos en def de GT",
-            help="Déploie des persos en def de GT")
+            brief="Défense GT pour le warbot",
+            help="Pose des teams en défense GT pour le warbot")
     async def botdeftw(self, ctx, zone, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -2050,34 +2019,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.send(et)
         await ctx.message.add_reaction(emoji_check)
 
-    @commands.command(name='bot.platoons',
-            brief="Déploie des persos en pelotons de TB",
-            help="Déploie des persos en pelotons de TB")
-    async def botplatoons(self, ctx, platoon, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
-
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon, characters)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
-            return
-
-        await ctx.send(et)
-        await ctx.message.add_reaction(emoji_check)
-
     #######################################################
     # Deploy the toon(s) represented by caracters in the zone in TB
     # IN: zone (DS, LS, DS or top, mid, bot)
     # IN: characters ("ugnaught" or "tag:s:all" or "all" or "tag:darkside")
     #######################################################
     @commands.command(name='bot.deploytb',
-            brief="Déploie des persos en BT",
+            brief="Déploie le warbot en BT",
             help="Déploie des persos en BT")
     async def botdeploytb(self, ctx, zone, characters):
         await ctx.message.add_reaction(emoji_thumb)
@@ -2099,8 +2047,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
     @commands.check(officer_command)
     @commands.command(name='tbrappel',
-            brief="Tag les joueurs qui n'ont pas tout déployé en BT",
-            help="go.tbrappel")
+            brief="Tag les joueurs en BT",
+            help="go.tbrappel > tag les joueurs qui n'ont pas tout déployé")
     async def tbrappel(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -2287,8 +2235,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
     @commands.check(officer_command)
     @commands.command(name='tbs',
-            brief="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés",
-            help="TB status \"2:1 3:3 1:2\" [-estime]")
+            brief="Statut de la BT",
+            help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
+                 "TB status \"2:1 3:3 1:2\" [-estime]")
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -2984,7 +2933,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='gvj',
-                 brief="Donne le progrès dans le guide de voyage pour un perso chez un joueur",
+                 brief="Progrès Guide de Voyage pour un Joueur",
                  help="Donne le progrès dans le guide de voyage pour un perso chez un joueur\n\n"\
                       "Exemple: go.gvj 192126111 all\n"\
                       "Exemple: go.gvj me SEE\n"\
@@ -3021,7 +2970,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='raf',
-                 brief="Donne le reste-à-farm (éclats et kyros) dans le guide de voyage pour un perso chez un joueur",
+                 brief="Reste-A-Farm pour un joueur",
                  help="Donne le reste-à-farm (éclats de personnage, et kyrotech) dans le guide de voyage pour un perso chez un joueur\n\n"\
                       "Exemple: go.raf 192126111 all\n"\
                       "Exemple: go.raf me SEE\n"\
@@ -3058,8 +3007,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='gvg',
-                 brief="Donne le progrès dans le guide de voyage pour une perso dans la guilde",
-                 help="Donne le progrès dans le guide de voyage pour une perso dans la guilde\n\n"\
+                 brief="Progrès Guide de Voyage pour la Guilde",
+                 help="Donne le progrès dans le guide de voyage pour un perso dans la guilde\n\n"\
                       "Exemple: go.gvg 192126111 all\n"\
                       "Exemple: go.gvg me SEE\n"\
                       "Exemple: go.gvg me thrawn JKL\n"\
@@ -3095,7 +3044,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='gvs',
-                 brief="Donne le progrès dans le guide de voyage pour un perso dans le shard",
+                 brief="Progrès Guide de Voyage pour un Shard",
                  help="Donne le progrès dans le guide de voyage pour un perso dans le shard\n\n"\
                       "Exemple: go.gvs me Profundity\n"\
                       "Exemple: go.gvg 123456789 Jabba")

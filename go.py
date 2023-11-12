@@ -5104,3 +5104,22 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
             kyro_energy += needed_eqpt["173Salvage"] * 10 / kyro_droprate
 
     return kyro_energy, shard_energy
+
+def update_raid_estimates_from_wookiebot(raid_name, file_content):
+    print(file_content[:100])
+    for line in file_content.split("\n")[1:]:
+        fields = line.split('"')
+        if len(fields)<4:
+            print("b")
+            break
+        allyCode_txt = fields[3]
+        columns = line.split(",")
+        score_txt = columns[-4]
+        query = "INSERT INTO raid_estimates (raid_name, allyCode, score)\n"
+        query+= "VALUES('"+raid_name+"', "+allyCode_txt+", "+score_txt+") \n"
+        query+= "ON DUPLICATE KEY UPDATE score="+score_txt
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+    return 0, ""
+
