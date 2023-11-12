@@ -1299,6 +1299,7 @@ async def on_message_edit(before, after):
             else:
                 raid_name = raid_shortname
 
+            goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
             file_content = await attachment.read()
             file_txt = file_content.decode('utf-8')
             print("launch update...")
