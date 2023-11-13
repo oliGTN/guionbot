@@ -286,11 +286,16 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
 # Prepare list of modification commands
 # Manage the global list of mods to ensure not be blocked
 #  by max size inventory
-# One command per unit, listing all the ods to add and all the mods to remove
+# One command per unit, listing all the mods to add and all the mods to remove
 ##########################
-async def apply_mod_allocations(mod_allocations, allyCode, initial_dict_player, is_simu):
+async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
+
+    # Get player data
+    e, t, initial_dict_player = await go.load_player(allyCode, 1, False)
+    if e != 0:
+        return 1, "ERR: "+t
 
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
@@ -538,30 +543,42 @@ def get_mod_config(conf_name, txt_allyCode):
 
     return 0, "", mod_allocations
 
-async def apply_modoptimizer_allocations(modopti_html_content, txt_allyCode, is_simu):
-    #Need to have the dict_player, to get mod IDs
-    # Get player data
-    e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
-    if e != 0:
-        return 1, "ERR: "+t
+async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu):
+    modopti_progress = json.loads(modopti_content)
 
-    ec, et, mod_allocations = get_mod_allocations_from_modoptimizer(modopti_html_content, dict_player)
-    if ec !=0:
-        return ec, et
+    player_mods = {}
+    for mod in modopti_progress["profiles"][0]["mods"]:
+        player_mods[mod["mod_uid"]] = mod
 
-    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, dict_player, is_simu)
+    # mod_allocation element - dict
+    # {'unit_id': "PRINCESSLEIA",
+    #  'mods': [{'id': '9Ax0P8ybxxxxx', 'slot': 4, 'rarity': 5},
+    #           {'id': '8Phsg65trTGxxxx', ...}
+    #          ]
+    # }
+    mod_allocations = []
+    for mod_assignment in modopti_progress["profiles"][0]["modAssignments"]:
+        if mod_assignment == None:
+            continue
+        unit_id = mod_assignment["id"]
+        mod_allocation = {"unit_id": unit_id, "mods": []}
+
+        for mod_id in mod_assignment["assignedMods"]:
+            mod_slot = dict_slot_by_shape[player_mods[mod_id]["slot"]]
+            mod_rarity = player_mods[mod_id]["pips"]
+            mod_allocation["mods"].append({"id": mod_id,
+                                           "slot": mod_slot,
+                                           "rarity": mod_rarity})
+        mod_allocations.append(mod_allocation)
+
+    #Apply modifications
+    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
     return ec, et
 
 async def apply_config_allocations(config_name, txt_allyCode, is_simu):
-    #Need to have the dict_player, to get mod IDs
-    # Get player data
-    e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
-    if e != 0:
-        return 1, "ERR: "+t
-
     e, t, mod_allocations = get_mod_config(config_name, txt_allyCode)
     if e!=0:
         return 1, t
 
-    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, dict_player, is_simu)
+    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
     return ec, et
