@@ -2048,7 +2048,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
     @commands.check(officer_command)
     @commands.command(name='tbrappel',
-            brief="Tag les joueurs en BT",
+            brief="Tag les joueurs qui n'ont pas tout déployé en BT",
             help="go.tbrappel > tag les joueurs qui n'ont pas tout déployé")
     async def tbrappel(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
