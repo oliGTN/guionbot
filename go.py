@@ -5123,3 +5123,86 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
 
     return 0, ""
 
+def store_eb_allocations(guild_id, tb_name, phases, allocations):
+    phase_txt = "/".join(phases)
+
+    #Check if config exists
+    query = "SELECT id FROM platoon_config \n"
+    query+= "WHERE guild_id='"+guild_id+"' \n"
+    query+= "AND tb_name='"+tb_name+"'\n"
+    query+= "AND phases='"+phase_txt+"'"
+    goutils.log2("DBG", query)
+    conf_id = connect_mysql.get_value(query)
+
+    if conf_id == None:
+        #Create config
+        query = "INSERT INTO platoon_config(guild_id, tb_name, phases) \n"
+        query+= "VALUES('"+guild_id+"', '"+tb_name+"', '"+phase_txt+"')"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+    else:
+        #update timestamp
+        query = "UPDATE platoon_config SET timestamp=CURRENT_TIMESTAMP() WHERE id="+str(conf_id)
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+    #Remove previous allocations
+    query = "DELETE FROM platoon_allocations WHERE config_id="+str(conf_id)
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
+    #Prepare the dict to transform names into unit ID
+    dict_units = godata.get("unitsList_dict.json")
+    FRE_FR = godata.get("FRE_FR.json")
+    dict_names = {}
+    for unit_id in dict_units:
+        unit_name = FRE_FR[dict_units[unit_id]["nameKey"]]
+        dict_names[unit_name] = unit_id
+
+    #Prepare the dict to transform player names into allyCodes
+    query = "SELECT name, allyCode FROM players WHERE guildId='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+    dict_players = {}
+    for line in db_data:
+        dict_players[line[0]] = line[1]
+
+    #Prepare the dict to transform platoon names into zone IDs
+    dict_tb = godata.dict_tb
+    tb_id = dict_tb[tb_name]["id"]
+    tb_zone_prefix = dict_tb[tb_id]["prefix"]
+    tb_zones = [k for k in dict_tb.keys() if k.startswith(tb_zone_prefix)]
+    dict_zones = {}
+    for zone in tb_zones:
+        dict_zones[dict_tb[zone]["name"]] = zone
+
+    #Store new allocations
+    for platoon_name in allocations:
+        platoon_zone = platoon_name[:-2]
+        platoon_position = platoon_name[-1]
+        zone_id = dict_zones[platoon_zone]+"_recon01"
+        if tb_name == "ROTE":
+            platoon_id = "tb3-platoon-"+str(7-int(platoon_position))
+        else:
+            platoon_id = "hoth-platoon-"+platoon_position
+
+        allocation = allocations[platoon_name]
+
+        for unit_name in allocation:
+            unit_id = dict_names[unit_name]
+            players = allocation[unit_name]
+
+            for p_name in players:
+                if p_name=='':
+                    ac = "NULL"
+                if p_name=='Filled in another phase':
+                    ac = "-1"
+                else:
+                    ac = str(dict_players[p_name])
+                    query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id) \n"
+                    query+= "VALUES("+str(conf_id)+", "+ac+", '"+unit_id+"', '"+zone_id+"', '"+platoon_id+"')"
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
+
+    return 0, ""
+

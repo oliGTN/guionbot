@@ -638,6 +638,7 @@ async def send_alert_to_echocommanders(server, message):
 # Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
 # Purpose: lit le channel #bateilles de territoire pour retouver
 #          l'affectation des pelotons par Echobot
+# Output: current_tb_phase # ["2", "1", "2"]
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
 async def get_eb_allocation(tbChannel_id, tbs_round):
@@ -832,8 +833,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                                      if i.startswith(territory_name_position)]
 
                                 if True: #len(existing_platoons) == 0:                    
-                                #TODO risk of regression here. Check kept for provision
-                                #necessary to remove the check when same zone has different allocations among several days
+                                    #TODO risk of regression here. Check kept for provision
+                                    #necessary to remove the check when same zone has different allocations among several days
                                     # with the right name for the territory, modify dictionary
                                     keys_to_rename=[]                         
                                     for platoon_name in dict_platoons_allocation:
@@ -886,7 +887,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
             del tmp_d[platoon]
     dict_platoons_allocation = tmp_d
 
-    return dict_platoons_allocation
+    return current_tb_phase, dict_platoons_allocation
 
 
 ##############################################################
@@ -1595,13 +1596,24 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             print(guild.name+": "+str(guild.id))
 
 ##############################################################
-# Class: GooglerCog
-# Description: contains all commands linked to the google connected accounts
+# Class: TbCog - for Google accounts
+# Description: contains all slash commands for Tb
 ##############################################################
-#@bot.tree.command()
-#async def pang(interaction: discord.Interaction, nb: int):
-#    await interaction.response.send_message("Pong! "+str(nb))
+class TbCog(commands.GroupCog, name="bt"):
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot = bot
+        super().__init__()
 
+    @app_commands.command(name="pose-pelotons")
+    async def deploy_platoons(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+
+
+
+##############################################################
+# Class: ModsCog - for Google accounts
+# Description: contains all slash commands for mods
+##############################################################
 class ModsCog(commands.GroupCog, name="mods"):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -1816,16 +1828,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        query = "SELECT tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
+        query = "SELECT guild_id, tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
         goutils.log2("DBG", query)
-        result = connect_mysql.get_value(query)
+        result = connect_mysql.get_line(query)
 
         if result == None:
             await ctx.send('ERR: Guilde non déclarée dans le bot')
             await ctx.message.add_reaction(emoji_error)
             return
 
-        tbChannel_id = result
+        guild_id = result[0]
+        tbChannel_id = result[1]
         if tbChannel_id==0:
             await ctx.send('ERR: commande mal configurée (tbChannel_id=0)')
             await ctx.message.add_reaction(emoji_error)
@@ -1850,8 +1863,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
         else:
             goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
+            tb_name = tbs_round[:-1]
 
-            dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
+            allocation_tb_phases, dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
+            # TODO manage storage only if not every time
+            # and if get_eb_allocations is also not done every time
+            #ec, et = go.store_eb_allocations(guild_id, tb_name, allocation_tb_phases, dict_platoons_allocation)
+            #if ec != 0:
+            #    await ctx.send(et)
+            #    await ctx.message.add_reaction(emoji_error)
+            #    return
+
             for platoon in dict_platoons_allocation:
                 goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
             
