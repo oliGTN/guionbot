@@ -3738,7 +3738,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='erg',
-                 brief="Evolution du Roster d'un Joueur",
+                 brief="Evolution du Roster d'une Guilde",
                  help="Evolution du roster d'un joueur sur 30 jours\n"\
                       "Exemple: go.erg me")
     async def erg(self, ctx, allyCode):
