@@ -2216,7 +2216,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             score_txt = str(int(guild_score/100000)/10)
             output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M) : \n"
             if len(list_inactive_players) > 0 :
-                for p in sorted(list_inactive_players, key=lambda x:x["name"]):
+                for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
                     if use_tags and p in dict_players_by_IG:
                         p_name = dict_players_by_IG[p["name"]][1]
                     else:
