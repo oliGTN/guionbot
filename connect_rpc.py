@@ -1849,17 +1849,31 @@ async def get_tw_leaderboard(server_id, force_update):
 # expire_time: 169123456000
 # list_inactive_players: ["Karcot", "MolEliza", ...]
 ########################################
-async def get_raid_status(server_id, force_update):
+async def get_raid_status(server_id, target_percent, force_update):
     ec, et, rpc_data = await get_guild_rpc_data(server_id, [], force_update)
     if ec!=0:
         return None, None, [], 0
 
     dict_guild=rpc_data[0]
+    guild_id = dict_guild["profile"]["id"]
 
+    #Get raid estimates from WookieBot
+    query = "SELECT playerId, score FROM raid_estimates\n"
+    query+= "JOIN players ON raid_estimates.allyCode = players.allyCode\n"
+    query+= "JOIN guilds ON guilds.id = players.guildId\n"
+    query+= "WHERE guilds.id='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+    dict_estimates = {}
+    for line in db_data:
+        dict_estimates[line[0]] = line[1]
+
+    #Get dict to transform player ID into player object
     dict_members_by_id={}
     for member in dict_guild["member"]:
         dict_members_by_id[member["playerId"]] = member
 
+    #Get raid data
     raid_id=None
     if "raidStatus" in dict_guild:
         for raidStatus in dict_guild["raidStatus"]:
@@ -1869,6 +1883,7 @@ async def get_raid_status(server_id, force_update):
     if raid_id == None:
         return None, None, [], 0
 
+    #Get generic progress about the raid
     expire_time = int(raidStatus["expireTime"])
     raid_join_time = raidStatus["joinPeriodEndTimeMs"]
     guild_score = int(raidStatus["guildRewardScore"])
@@ -1886,12 +1901,21 @@ async def get_raid_status(server_id, force_update):
 
         if member_id in dict_raid_members_by_id:
             score = int(dict_raid_members_by_id[member_id]["memberProgress"])
-            if score == 0:
+
+            if member_id in dict_estimates:
+                estimated_score = dict_estimates[member_id]
+                status_txt = str(int(score/100000)/10)+"/"+str(int(estimated_score/100000)/10)+"M"
+            else:
+                #no estimate, can only check that the player has done something
+                estimated_score = 0
+                status_txt = "Aucun combat"
+
+            if score <= estimated_score*target_percent/100:
                 #this is not enough
-                list_inactive_players.append(member["playerName"])
+                list_inactive_players.append({"name": member["playerName"], "status": status_txt})
         else:
             #player has not played
-            list_inactive_players.append(member["playerName"])
+            list_inactive_players.append({"name": member["playerName"], "status": "Aucun combat"})
 
     return raid_id, expire_time, list_inactive_players, guild_score
 

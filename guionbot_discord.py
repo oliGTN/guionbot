@@ -2179,7 +2179,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     #######################################################
     @commands.check(officer_command)
     @commands.command(name='raidrappel',
-            brief="Tag les joueurs qui n'ont pas assez attaqué en raid (score = 0)",
+            brief="Tag les joueurs qui n'ont pas assez attaqué en raid",
             help="go.raidrappel")
     async def raidrappel(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
@@ -2209,20 +2209,20 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(ctx.guild.id, True)
+        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(ctx.guild.id, 50, True)
         if raid_id != None:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
             score_txt = str(int(guild_score/100000)/10)
             output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M) : \n"
             if len(list_inactive_players) > 0 :
-                for p in sorted(list_inactive_players):
+                for p in sorted(list_inactive_players, key=lambda x:x["name"]):
                     if use_tags and p in dict_players_by_IG:
-                        p_name = dict_players_by_IG[p][1]
+                        p_name = dict_players_by_IG[p["name"]][1]
                     else:
-                        p_name= p
+                        p_name= p["name"]
     
-                    output_txt += p_name+"\n"
+                    output_txt += p_name+" : "+p["status"]+"\n"
             else:
                 output_txt += "Tout le monde a joué\n"
 
