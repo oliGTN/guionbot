@@ -2546,6 +2546,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
 async def print_lox(txt_allyCode, characters, compute_guild):
     war_txt = ""
 
+    dict_unitsList = godata.get("unitsList_dict.json")
     dict_capa = godata.get("unit_capa_list.json")
     all_modes = []
     for unit_id in dict_capa:
@@ -2604,7 +2605,7 @@ async def print_lox(txt_allyCode, characters, compute_guild):
                     has_omicron = True
                     break
             if not has_omicron:
-                war_txt += "WAR: pas d'omicron connu pour "+dict_id_name[unit_id] + "\n"
+                war_txt += "WAR: pas d'omicron connu pour "+dict_unitsList[unit_id]["name"] + "\n"
 
         if len(list_character_ids)==0 and len(list_modes)==0:
             return 1, "ERR: aucun personnage ni aucun mode omicron défini", None
