@@ -1191,10 +1191,15 @@ async def on_reaction_add(reaction, user):
 ##############################################################
 @bot.event
 async def on_message(message):
+    if isinstance(message.channel, DMChannel):
+        channel_name = "DM"
+    else:
+        channel_name = message.guild.name+"/"+message.channel.name
+
     lower_msg = message.content.lower().strip()
     if lower_msg.startswith("go."):
         command_name = lower_msg.split(" ")[0].split(".")[1]
-        goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name)
+        goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
 
         try:
             await bot.process_commands(message)
@@ -1275,7 +1280,7 @@ async def on_message_delete(message):
     if isinstance(message.channel, DMChannel):
         channel_name = "DM"
     else:
-        channel_name = message.channel.name
+        channel_name = message.guild.name+"/"+message.channel.name
 
     goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
                          "BEFORE:\n" + message.content)
@@ -1285,7 +1290,7 @@ async def on_message_edit(before, after):
     if isinstance(before.channel, DMChannel):
         channel_name = "DM"
     else:
-        channel_name = before.channel.name
+        channel_name = before.guild.name+"/"+before.channel.name
 
     goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                          "BEFORE:\n" + before.content + "\n" +\
@@ -1333,7 +1338,7 @@ async def on_user_update(before, after):
 # Function: <role>_allowed
 # Parameters: ctx (objet Contexte)
 # Purpose: check is the user linked to ctx has the right role
-#          in test mode, onluy the admins are allowed to launch commands
+#          in test mode, only the admins are allowed to launch commands
 # Output: True/False
 ##############################################################
 def admin_command(ctx):
@@ -1806,17 +1811,20 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         output_channel = ctx.message.channel
         deploy_bot=False
 
-        if len(args) == 1:
-            if args[0] == "deploybot":
+        args=list(args)
+        if len(args) > 0:
+            if "deploybot" in args:
                 deploy_bot=True
+                args.remove("deploybot")
+
+        if len(args)==1:
+            got_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+            if got_channel == None:
+                await ctx.send('**ERR**: '+err_msg)
             else:
-                got_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-                if got_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                else:
-                    output_channel = got_channel
-                    display_mentions=True
-        elif len(args) > 1:
+                output_channel = got_channel
+                display_mentions=True
+        elif len(args)>1:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help vdp")
             await ctx.message.add_reaction(emoji_error)
             return
@@ -1828,32 +1836,22 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        query = "SELECT guild_id, tbChanRead_id FROM guild_bot_infos WHERE server_id = " + str(ctx.guild.id)
-        goutils.log2("DBG", query)
-        result = connect_mysql.get_line(query)
-
-        if result == None:
-            await ctx.send('ERR: Guilde non déclarée dans le bot')
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emoji_error)
             return
 
-        guild_id = result[0]
-        tbChannel_id = result[1]
+        guild_id = bot_infos["guild_id"]
+        tbChannel_id = bot_infos["tbChanRead_id"]
         if tbChannel_id==0:
-            await ctx.send('ERR: commande mal configurée (tbChannel_id=0)')
+            await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
             await ctx.message.add_reaction(emoji_error)
             return
 
-        #Check if guild can use RPC
-        if ctx.guild.id in connect_rpc.get_dict_bot_accounts():
-            goutils.log2("DBG", "Using RPC data for "+ctx.guild.name)
-
-            tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(ctx.guild.id, 0)
-            goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
-        else:
-            await ctx.send('ERR: commande non utilisable sur ce serveur')
-            await ctx.message.add_reaction(emoji_error)
-            return
+        #Read actual platoons in game
+        tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(ctx.guild.id, 0)
+        goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
 
         #Recuperation des dernieres donnees sur gdrive
         dict_players_by_IG = connect_mysql.load_config_players()[0]
