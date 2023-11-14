@@ -609,9 +609,10 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
     team_name = team_name_path.split('/')[-1]
     if team_name_path.count(team_name) > 1:
         #recurring loop, stop it
-        return 0, False, "", False, []
+        return {"score": 0, "unlocked": False, "line": "", "nogo": False, "list_char": [], "unlock_rarity": 7}
 
     dict_team = dict_team_gt[team_name]
+    unlock_rarity = dict_team["rarity"]
     objectifs = dict_team["categories"]
     nb_subobjs = len(objectifs)
 
@@ -619,7 +620,6 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
         dict_player = dict_teams[player_name][1][team_name]
     else:
         dict_player = {}
-    #print(dict_player)
     
     #INIT tableau des resultats
     tab_progress_player = [[] for i in range(nb_subobjs)]
@@ -821,23 +821,24 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 if gv_mode:
                     character_id_team = character_id + '-GV'
                     if character_id_team in dict_teams[player_name][1]:
-                        score,  \
-                        unlocked,  \
-                        character_display,  \
-                        nogo,  \
-                        list_char = await get_team_line_from_player(team_name_path+'/'+character_id_team,
+                        unit_progress = await get_team_line_from_player(team_name_path+'/'+character_id_team,
                                                                     dict_teams, 
                                                                     dict_team_gt, 
                                                                     gv_mode, 
                                                                     player_name, 
                                                                     score_type)
+                        score = unit_progress["score"]
+                        character_display = unit_progress["line"]
+                        nogo = unit_progress["nogo"]
+                        unlock_rarity = unit_progress["unlock_rarity"]
 
+                        max_rarity_score = min(1, d_stars[unlock_rarity] / d_stars[req_rarity_reco])
                         if dict_unitsList[character_id]['combatType']==1:
                             #Unlocking a character only gives the rarity so by default 50%
-                            score = score / 200.0
+                            score = max_rarity_score * score / 200.0
                         else:
                             #But for a ship the rarity is mostly everything
-                            score = score / 100.0
+                            score = max_rarity_score * score / 100.0
 
                         #weight = len(list_char)
                         weight = 1
@@ -1001,8 +1002,8 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
     if not gv_mode:
         line += '|' + player_name + '\n'
 
-    return score, unlocked, line, score_nogo, list_char_id
-
+    return {"score": score, "unlocked": unlocked, "line": line,
+            "nogo": score_nogo, "list_char": list_char_id, "unlock_rarity": unlock_rarity}
 
 def get_team_header(team_name, objectifs):
     dict_capa = godata.get("unit_capa_list.json")
@@ -1311,8 +1312,14 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
                 player_allyCode = dict_teams[player_name][0]
 
                 #resultats par joueur
-                score, unlocked, line, nogo, list_char = await get_team_line_from_player(team_name,
+                unit_progress = await get_team_line_from_player(team_name,
                     dict_teams, dict_team_gt, gv_mode>0, player_name, score_type)
+                score = unit_progress["score"]
+                unlocked = unit_progress["unlocked"]
+                line = unit_progress["line"]
+                nogo = unit_progress["nogo"]
+                list_char = unit_progress["list_char"]
+
                 tab_lines.append([score, unlocked, line, nogo, player_name, list_char])
 
                 if score >= SCORE_GREEN and not nogo:
