@@ -4697,7 +4697,7 @@ async def deploy_bot_tw(server_id, zone_shortname, characters):
 
     return ec, txt
 
-async def deploy_platoons_tb(server_id, platoon_name, characters):
+async def deploy_platoons_tb(allyCode, platoon_name, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
@@ -4736,7 +4736,8 @@ async def deploy_platoons_tb(server_id, platoon_name, characters):
         platoon_id = "tb3-platoon-"+str(7-int(platoon_position))
     else:
         platoon_id = "hoth-platoon-"+platoon_position
-    ec, txt = await connect_rpc.platoon_tb(server_id, zone_name, platoon_id, list_character_ids)
+
+    ec, txt = await connect_rpc.platoon_tb(allyCode, zone_name, platoon_id, list_character_ids)
 
     return ec, txt
 

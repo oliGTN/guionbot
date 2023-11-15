@@ -535,14 +535,16 @@ async def join_tw(server_id):
     return 0, "Le bot a rejoint la GT"
 
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
-async def parse_tb_platoons(server_id, force_update):
-    active_round = "" # GLS4"
+async def get_actual_tb_platoons(guild_id, force_update):
+    active_round = "" # "GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
     list_open_territories = [0, 0, 0] # [4, 3, 3]
 
     dict_tb = godata.dict_tb
 
-    err_code, err_txt, rpc_data = await get_guild_rpc_data(server_id, ["TB"], force_update)
+    #TO-DO: remove this query once get_guild_rpc_data moves to guild_id
+    server_id = connect_mysql.get_value("SELECT server_id from guild_bot_infos WHERE guild_id='"+guild_id+"'")
+    err_code, err_txt, rpc_data = await get_guild_rpc_data(server_id, [], force_update)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -550,7 +552,6 @@ async def parse_tb_platoons(server_id, force_update):
 
     dict_guild = rpc_data[0]
     mapstats_json = rpc_data[1]
-    dict_events = rpc_data[2]
     guildName = dict_guild["profile"]["name"]
 
     dict_member_by_id = {}
@@ -1719,32 +1720,17 @@ async def deploy_tw(server_id, zone, list_defId):
 
     return 0, "Le bot a posé "+str(list_defId)+" en " + zone
 
-async def platoon_tb(server_id, zone_name, platoon_id, list_defId):
-    dict_bot_accounts = get_dict_bot_accounts()
-    if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
-
-    err_code, err_txt, rpc_data = await get_guild_rpc_data(server_id, [], -1)
-    if err_code != 0:
-        goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au bot"
-    dict_guild = rpc_data[0]
-
-    err_code, err_txt, rpc_data = await get_bot_player_data(server_id, False)
-    if err_code != 0:
-        goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au bot"
-    dict_player = rpc_data
-
-    bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
-
-    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ bot_allyCode+" "+ zone_name+" "+ platoon_id+" "+" ".join(list_defId)
+async def platoon_tb(allyCode, zone_name, platoon_id, list_defId):
+    # Launch RPC command
+    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ str(allyCode)+" "+ zone_name+" "+ platoon_id+" "+" ".join(list_defId)
     goutils.log2("DBG", "process_params="+process_cmd)
+
     process = await asyncio.create_subprocess_shell(process_cmd)
     while process.returncode == None:
         goutils.log2("DBG", "waiting platoons_tb...")
         await asyncio.sleep(1)
     goutils.log2("DBG", "platoons_tb code="+str(process.returncode))
+
     if process.returncode==2:
         return 1, "Erreur en déployant les pelotons en BT - (usage)"
     elif process.returncode==100:

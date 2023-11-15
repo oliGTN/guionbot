@@ -889,6 +889,105 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
 
     return current_tb_phase, dict_platoons_allocation
 
+#####################
+# IN - guild_id: the game guild ID
+# IN - txt_allyCode: the allyCOde of the payer to deploy / None if no deployment
+# IN - display_mentions: True if player names are replaced by @discord_name
+# OUT - full_txt
+#####################
+async def check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_name, display_mentions):
+    #Read actual platoons in game
+    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+    goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+
+    #Recuperation des dernieres donnees sur gdrive
+    dict_players_by_IG = connect_mysql.load_config_players()[0]
+
+    if tbs_round == '':
+        return 1, "Aucune BT en cours"
+    else:
+        goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
+        tb_name = tbs_round[:-1]
+
+        allocation_tb_phases, dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
+        # TODO manage storage only if not every time
+        # and if get_eb_allocations is also not done every time
+        #ec, et = go.store_eb_allocations(guild_id, tb_name, allocation_tb_phases, dict_platoons_allocation)
+        #if ec != 0:
+        #    await ctx.send(et)
+        #    await ctx.message.add_reaction(emoji_error)
+        #    return
+
+        for platoon in dict_platoons_allocation:
+            goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
+        
+        #Comparaison des dictionnaires
+        #Recherche des persos non-affectés
+        list_platoon_names = sorted(dict_platoons_done.keys())
+        phase_names_already_displayed = []
+        list_missing_platoons, list_err = go.get_missing_platoons(
+                                                dict_platoons_done, 
+                                                dict_platoons_allocation)
+
+        #Affichage des deltas ET auto pose par le bot
+        full_txt = ''
+        cur_phase = 0
+
+        for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x[1][:4], x[0], x[1])):
+            allocated_player = missing_platoon[0]
+            platoon_name = missing_platoon[1]
+            perso = missing_platoon[2]
+
+            #write the displayed text
+            if (allocated_player in dict_players_by_IG) and display_mentions:
+                txt = '**' + \
+                      dict_players_by_IG[allocated_player][1] + \
+                      '** n\'a pas affecté ' + perso + \
+                      ' en ' + platoon_name
+            else:
+                #joueur non-défini dans gsheets ou mentions non autorisées,
+                # on l'affiche quand même
+                txt = '**' + allocated_player + \
+                      '** n\'a pas affecté ' + perso + \
+                      ' en ' + platoon_name
+
+            #Pose auto du bot
+            if allyCode!=None:
+                if allocated_player == player_name:
+                    ec, et = await go.deploy_platoons_tb(allyCode, platoon_name, [perso])
+                    if ec == 0:
+                        #on n'affiche pas le nom du territoire
+                        txt += " > " + ' '.join(et.split()[:-2])
+                    else:
+                        txt += " > "+et
+
+            phase_num = int(platoon_name.split('-')[0][-1])
+            if cur_phase != phase_num:
+                cur_phase = phase_num
+                #full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
+
+            position = platoon_name.split('-')[1]
+            if position == "bottom":
+                position = "bot"
+
+            if position == 'top' or position == 'LS':
+                open_for_position = list_open_territories[0]
+            elif position == 'mid' or position == 'DS':
+                open_for_position = list_open_territories[1]
+            else:  #bot or 'MS'
+                open_for_position = list_open_territories[2]
+            if cur_phase < open_for_position:
+                full_txt += txt + ' -- *et c\'est trop tard*\n'
+            else:
+                full_txt += txt + '\n'
+
+        if len(list_missing_platoons)>0 or len(list_err)>0:
+            for err in sorted(set(list_err)):
+                full_txt += err + '\n'
+        else:
+            full_txt = "Aucune erreur de peloton\n"
+
+        return 0, full_txt
 
 ##############################################################
 # Function: get_channel_from_channelname
@@ -1836,7 +1935,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emoji_error)
@@ -1849,114 +1948,24 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        #Read actual platoons in game
-        tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(ctx.guild.id, 0)
-        goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+        if deploy_bot:
+            allyCode = bot_infos["allyCode"]
+            player_name = bot_infos["player_name"]
+        else:
+            allyCode = None
+            player_name = None
 
-        #Recuperation des dernieres donnees sur gdrive
-        dict_players_by_IG = connect_mysql.load_config_players()[0]
-
-        if tbs_round == '':
-            await ctx.send("Aucune BT en cours")
+        ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_name, display_mentions)
+        if ec != 0:
+            await ctx.send('ERR: '+ret_txt)
             await ctx.message.add_reaction(emoji_error)
         else:
-            goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
-            tb_name = tbs_round[:-1]
-
-            allocation_tb_phases, dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
-            # TODO manage storage only if not every time
-            # and if get_eb_allocations is also not done every time
-            #ec, et = go.store_eb_allocations(guild_id, tb_name, allocation_tb_phases, dict_platoons_allocation)
-            #if ec != 0:
-            #    await ctx.send(et)
-            #    await ctx.message.add_reaction(emoji_error)
-            #    return
-
-            for platoon in dict_platoons_allocation:
-                goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
-            
-            #Comparaison des dictionnaires
-            #Recherche des persos non-affectés
-            list_platoon_names = sorted(dict_platoons_done.keys())
-            phase_names_already_displayed = []
-            list_missing_platoons, list_err = go.get_missing_platoons(
-                                                    dict_platoons_done, 
-                                                    dict_platoons_allocation)
-
-
-            #récupération du nom du compte bot en cas de pose auto du bot
-            if deploy_bot:
-                ec, et, dict_player_bot = await connect_rpc.get_bot_player_data(ctx.guild.id, True)
-                if ec != 0:
-                    await ctx.send(et)
-                    await ctx.message.add_reaction(emoji_error)
-                    return
-
-                bot_name = dict_player_bot["name"]
-
-            #Affichage des deltas ET auto pose par le bot
-            full_txt = ''
-            cur_phase = 0
-
-            for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x[1][:4], x[0], x[1])):
-                allocated_player = missing_platoon[0]
-                platoon_name = missing_platoon[1]
-                perso = missing_platoon[2]
-
-                #write the displayed text
-                if (allocated_player in dict_players_by_IG) and display_mentions:
-                    txt = '**' + \
-                          dict_players_by_IG[allocated_player][1] + \
-                          '** n\'a pas affecté ' + perso + \
-                          ' en ' + platoon_name
-                else:
-                    #joueur non-défini dans gsheets ou mentions non autorisées,
-                    # on l'affiche quand même
-                    txt = '**' + allocated_player + \
-                          '** n\'a pas affecté ' + perso + \
-                          ' en ' + platoon_name
-
-                #Pose auto du bot
-                if deploy_bot:
-                    if allocated_player == bot_name:
-                        ec, et = await go.deploy_platoons_tb(ctx.guild.id, platoon_name, [perso])
-                        if ec == 0:
-                            #on n'affiche pas le nom du territoire
-                            txt += " > " + ' '.join(et.split()[:-2])
-                        else:
-                            txt += " > "+et
-
-                phase_num = int(platoon_name.split('-')[0][-1])
-                if cur_phase != phase_num:
-                    cur_phase = phase_num
-                    #full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
-
-                position = platoon_name.split('-')[1]
-                if position == "bottom":
-                    position = "bot"
-
-                if position == 'top' or position == 'LS':
-                    open_for_position = list_open_territories[0]
-                elif position == 'mid' or position == 'DS':
-                    open_for_position = list_open_territories[1]
-                else:  #bot or 'MS'
-                    open_for_position = list_open_territories[2]
-                if cur_phase < open_for_position:
-                    full_txt += txt + ' -- *et c\'est trop tard*\n'
-                else:
-                    full_txt += txt + '\n'
-
-            if len(list_missing_platoons)>0 or len(list_err)>0:
-                for err in sorted(set(list_err)):
-                    full_txt += err + '\n'
-            else:
-                full_txt = "Aucune erreur de peloton\n"
-
-            for txt in goutils.split_txt(full_txt, MAX_MSG_SIZE):
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
 
             await ctx.message.add_reaction(emoji_check)
         
+    #######################################
     @commands.command(name='bot.enable',
             brief="Active le compte warbot",
             help="Active le compte bot pour permettre de suivre la guilde")
