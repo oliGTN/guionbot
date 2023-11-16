@@ -413,7 +413,7 @@ async def bot_loop_5minutes(bot):
                     if not guild.id in dict_platoons_previously_done:
                         dict_platoons_previously_done[guild.id] = {}
 
-                    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.parse_tb_platoons(guild.id, -1)
+                    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.get_actual_tb_platoons(guild.id, -1)
 
                     if tbs_round == '':
                         goutils.log2("DBG", "["+guild.name+"] No TB in progress")
@@ -1712,6 +1712,37 @@ class TbCog(commands.GroupCog, name="bt"):
     async def deploy_platoons(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
 
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        tbChannel_id = bot_infos["tbChanRead_id"]
+        if tbChannel_id==0:
+            txt = emoji_error+" ERR: warbot mal configuré (tbChannel_id=0)"
+            await interaction.edit_original_response(content=txt)
+            return
+
+        allyCode = bot_infos["allyCode"]
+        player_name = bot_infos["player_name"]
+
+        print("before check...")
+        ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_name, False)
+        print("after check... "+str(ec))
+        if ec != 0:
+            txt = emoji_error+" ERR: "+ret_txt
+            await interaction.edit_original_response(content=txt)
+        else:
+            #filter deployment lines
+            lines = ret_txt.split("\n")
+            lines = [l for l in lines if "a posé" in l]
+            txt = "\n".join(lines)
+
+            txt = emoji_check+" succès des déploiements :\n"+txt
+            await interaction.edit_original_response(content=txt)
 
 
 ##############################################################
@@ -4287,6 +4318,7 @@ async def main():
     await bot.add_cog(OfficerCog(bot))
     await bot.add_cog(MemberCog(bot))
     await bot.add_cog(ModsCog(bot), guilds=[ADMIN_GUILD])
+    await bot.add_cog(TbCog(bot), guilds=[ADMIN_GUILD])
 
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
