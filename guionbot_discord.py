@@ -1033,7 +1033,7 @@ async def manage_me(ctx, alias, allow_tw):
         if str(ctx.author.id) in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
         else:
-            ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot"
+            ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`""
     elif alias == "-TW":
         if not allow_tw:
             return "ERR: l'option -TW n'est pas utilisable avec cette commande"
