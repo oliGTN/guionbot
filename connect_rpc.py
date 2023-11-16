@@ -1948,11 +1948,11 @@ async def get_metadata():
                     return 1, "ERR during RPC metadata - code "+str(resp.status), None
 
     except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     return 0, "", metadata
 
