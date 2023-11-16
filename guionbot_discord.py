@@ -409,15 +409,19 @@ async def bot_loop_5minutes(bot):
 
             try:
                 #Check if guild can use RPC
-                if guild.id in connect_rpc.get_dict_bot_accounts():
-                    if not guild.id in dict_platoons_previously_done:
-                        dict_platoons_previously_done[guild.id] = {}
+                #get bot config from DB
+                ec, et, bot_infos = connect_mysql.get_warbot_info(guild.id, None)
+                if ec==0:
+                    guild_id = bot_infos["guild_id"]
 
-                    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.get_actual_tb_platoons(guild.id, -1)
+                    if not guild_id in dict_platoons_previously_done:
+                        dict_platoons_previously_done[guild_id] = {}
+
+                    tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.get_actual_tb_platoons(guild_id, -1)
 
                     if tbs_round == '':
                         goutils.log2("DBG", "["+guild.name+"] No TB in progress")
-                        dict_platoons_previously_done[guild.id] = {}
+                        dict_platoons_previously_done[guild_id] = {}
                     else:
                         goutils.log2("DBG", "["+guild.name+"] Current state of platoon filling: "+str(dict_platoons_done))
                         goutils.log2("INFO", "["+guild.name+"] End of platoon parsing for TB: round " + tbs_round)
@@ -426,7 +430,7 @@ async def bot_loop_5minutes(bot):
                         for territory_platoon in dict_platoons_done:
                             current_progress = compute_platoon_progress(dict_platoons_done[territory_platoon])
                             #goutils.log2("DBG", "["+guild.name+"] Progress of platoon "+territory_platoon+": "+str(current_progress))
-                            if not territory_platoon in dict_platoons_previously_done[guild.id]:
+                            if not territory_platoon in dict_platoons_previously_done[guild_id]:
                                 #If the territory was not already detected, then all allocation within that territory are new
                                 for character in dict_platoons_done[territory_platoon]:
                                     for player in dict_platoons_done[territory_platoon][character]:
@@ -445,19 +449,19 @@ async def bot_loop_5minutes(bot):
 
                             else:
                                 for character in dict_platoons_done[territory_platoon]:
-                                    if not character in dict_platoons_previously_done[guild.id][territory_platoon]:
+                                    if not character in dict_platoons_previously_done[guild_id][territory_platoon]:
                                         for player in dict_platoons_done[territory_platoon][character]:
                                             if player != '':
                                                 #goutils.log2("INFO", "["+guild.name+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                                 new_allocation_detected = True
                                     else:
                                         for player in dict_platoons_done[territory_platoon][character]:
-                                            if not player in dict_platoons_previously_done[guild.id][territory_platoon][character]:
+                                            if not player in dict_platoons_previously_done[guild_id][territory_platoon][character]:
                                                 if player != '':
                                                     #goutils.log2("INFO", "["+guild.name+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                                     new_allocation_detected = True
 
-                                previous_progress = compute_platoon_progress(dict_platoons_previously_done[guild.id][territory_platoon])
+                                previous_progress = compute_platoon_progress(dict_platoons_previously_done[guild_id][territory_platoon])
                                 if current_progress == 1 and previous_progress < 1:
                                     territory = territory_platoon[:-1]
                                     territory_full_count = compute_territory_progress(dict_platoons_done, territory)
@@ -493,7 +497,7 @@ async def bot_loop_5minutes(bot):
                                 goutils.log2("INFO", "["+guild.name+"]"+msg)
                                 await send_alert_to_echocommanders(guild, msg)
 
-                        dict_platoons_previously_done[guild.id] = dict_platoons_done.copy()
+                        dict_platoons_previously_done[guild_id] = dict_platoons_done.copy()
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild.name+"]"+str(sys.exc_info()[0]))
