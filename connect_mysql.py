@@ -1140,16 +1140,19 @@ def get_warbot_info(server_id, channel_id):
     db_data = get_line(query)
 
     if db_data == None:
-        #no warbot found from server, try it from the channel
-        query = "SELECT guildId, allyCode, name, tbChanRead_id FROM guild_bot_infos \n"
-        query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
-        query+= "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bot_infos.guild_id \n"
-        query+= "WHERE channel_id="+str(channel_id)
-        goutils.log2("DBG", query)
-        db_data = get_line(query)
+        if channel_id != None:
+            #no warbot found from server, try it from the channel
+            query = "SELECT guildId, allyCode, name, tbChanRead_id FROM guild_bot_infos \n"
+            query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
+            query+= "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bot_infos.guild_id \n"
+            query+= "WHERE channel_id="+str(channel_id)
+            goutils.log2("DBG", query)
+            db_data = get_line(query)
 
-        if db_data == None:
-            return 1, "Pas de warbot trouvé, ni pour ce serveur, ni pour ce channel", None
+            if db_data == None:
+                return 1, "Pas de warbot trouvé, ni pour ce serveur, ni pour ce channel", None
+        else:
+            return 1, "Pas de warbot trouvé pour ce serveur", None
     
     return 0, "", {"guild_id": db_data[0],
                    "allyCode": db_data[1],
@@ -1161,7 +1164,7 @@ def get_warbot_info(server_id, channel_id):
 #  google account linked to this channel
 ########################################
 def get_google_player_info(channel_id):
-    query = "SELECT guildId, players.allyCode, name FROM user_bot_infos \n"
+    query = "SELECT guildId, players.allyCode, name, tbChanRead_id FROM user_bot_infos \n"
     query+= "JOIN players ON players.allyCode=user_bot_infos.allyCode \n"
     query+= "JOIN guild_bot_infos ON guild_bot_infos.guild_id=players.guildId \n"
     query+= "WHERE channel_id="+str(channel_id)
