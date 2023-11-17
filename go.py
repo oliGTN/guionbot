@@ -258,11 +258,10 @@ async def load_player(ac_or_id, force_update, no_db):
             fjson.close()
 
             # update DB
-            ret = await connect_mysql.update_player(delta_dict_player)
-            if ret == 0:
+            ec, et = await connect_mysql.update_player(delta_dict_player)
+            if ec == 0:
                 goutils.log2("INFO", "success updating "+dict_player['name']+" in DB")
             else:
-                goutils.log2('ERR', 'update_player '+ac_or_id+' returned an error')
                 return 1, 'ERR: update_player '+ac_or_id+' returned an error', None
                 
     else:

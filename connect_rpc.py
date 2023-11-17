@@ -1831,9 +1831,9 @@ async def get_tw_leaderboard(server_id, force_update):
 ########################################
 # get_raid_status
 # get status of current raid
-# raid_id: None / "kraytdragon"
-# expire_time: 169123456000
-# list_inactive_players: ["Karcot", "MolEliza", ...]
+# OUT: raid_id: None / "kraytdragon"
+# OUT: expire_time: 169123456000
+# OUT: list_inactive_players: ["Karcot", "MolEliza", ...]
 ########################################
 async def get_raid_status(server_id, target_percent, force_update):
     ec, et, rpc_data = await get_guild_rpc_data(server_id, [], force_update)

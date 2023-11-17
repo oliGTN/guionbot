@@ -482,6 +482,7 @@ async def update_player(dict_player):
             c_gear = character['currentTier']
             if not "gp" in character:
                 goutils.log2("ERR", p_playerId+":"+character_id)
+                return 1, "ERR", p_playerId+":"+character_id
             c_gp = character['gp']
             c_level = character['currentLevel']
             c_rarity = character['currentRarity']
@@ -790,13 +791,13 @@ async def update_player(dict_player):
     except Error as error:
         goutils.log2("ERR", query)
         goutils.log2("ERR", error)
-        return -1
+        return 1, error
         
     finally:
         if cursor != None:
             cursor.close()
     
-    return 0
+    return 0, ""
 
 #####################################################################
 # update_gv_history
