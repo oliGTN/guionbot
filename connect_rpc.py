@@ -56,7 +56,7 @@ def get_guildName_from_id(server_id):
 async def bot_account_until(server_id, until_seconds):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]"
+        return 1, "Ce serveur discord n'a pas de warbot", None
 
     locked_until_txt = datetime.datetime.fromtimestamp(int(time.time())+until_seconds).strftime("%Y-%m-%d %H:%M:%S")
     query = "UPDATE guild_bot_infos SET bot_locked_until='"+locked_until_txt+"' WHERE server_id="+str(server_id)
@@ -84,7 +84,7 @@ async def get_guild_rpc_data(server_id, event_types, force_update):
 
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+        return 1, "Ce serveur discord n'a pas de warbot", None
 
     bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
     goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_allyCode)
@@ -429,7 +429,7 @@ async def get_player_data(ac_or_id):
 async def get_bot_player_data(server_id, use_cache_data):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+        return 1, "Ce serveur discord n'a pas de warbot", None
 
     bot_allyCode = dict_bot_accounts[server_id]["allyCode"]
     goutils.log2("DBG", "bot account for "+str(server_id)+" is "+bot_allyCode)
@@ -458,7 +458,7 @@ async def get_bot_player_data(server_id, use_cache_data):
 async def join_raids(server_id):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+        return 1, "Ce serveur discord n'a pas de warbot", None
 
     err_code, err_txt, rpc_data = await get_guild_rpc_data(server_id, [], -1)
     if err_code != 0:
@@ -486,7 +486,7 @@ async def join_raids(server_id):
 async def join_tw(server_id):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+        return 1, "Ce serveur discord n'a pas de warbot", None
 
     err_code, err_txt, rpc_data = await get_guild_rpc_data(server_id, [], -1)
     if err_code != 0:
@@ -1615,7 +1615,7 @@ async def get_tw_active_players(server_id, force_update):
 async def deploy_tb(server_id, zone, list_defId):
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+        return 1, "Ce serveur discord n'a pas de warbot", None
 
     err_code, err_txt, rpc_data = await get_guild_rpc_data(server_id, [], -1)
     if err_code != 0:
@@ -1658,7 +1658,7 @@ async def deploy_tw(server_id, zone, list_defId):
 
     dict_bot_accounts = get_dict_bot_accounts()
     if not server_id in dict_bot_accounts:
-        return 1, "Only available for "+str(list(dict_bot_accounts.keys()))+" but not for ["+str(server_id)+"]", None
+        return 1, "Ce serveur discord n'a pas de warbot", None
 
     err_code, err_txt, rpc_data = await get_guild_rpc_data(server_id, [], -1)
     if err_code != 0:

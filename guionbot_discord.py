@@ -2299,6 +2299,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.send(ret_txt)
             await ctx.message.add_reaction(emoji_error)
 
+    ####################################################
+    # Command tbs
+    ####################################################
     @commands.check(officer_command)
     @commands.command(name='tbs',
             brief="Statut de la BT",
@@ -2307,12 +2310,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
-            return
-
+        # Manage command parameters
         options = list(args)
         estimate_fights = False
         for arg in options:
@@ -2325,7 +2323,23 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         else:
             tb_phase_target = options[0]
 
-        err_code, ret_txt, images = await go.print_tb_status( ctx.guild.id, tb_phase_target, estimate_fights, 0)
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Main call
+        err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, estimate_fights, 0)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)

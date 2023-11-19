@@ -4303,8 +4303,11 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fights, force_update):
+async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update):
     dict_tb = godata.dict_tb
+
+    #TO-DO: remove this query once get_tb_status moves to guild_id
+    server_id = connect_mysql.get_value("SELECT server_id from guild_bot_infos WHERE guild_id='"+guild_id+"'")
     ec, et, tb_data = await connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, force_update)
     if ec!=0:
         return 1, et, None
@@ -4401,19 +4404,24 @@ async def print_tb_status(server_id, targets_zone_stars, compute_estimated_fight
 def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, position):
     font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 18)
 
+    end_score = start_score + delta_score
+    if end_score >= max_score:
+        end_score = max_score
+        delta_score = max_score - start_score
+    else:
+        end_score = int(end_score)
     if delta_score == 0:
         return start_score
 
-    end_score = int(start_score + delta_score)
-    if end_score > max_score:
-        end_score = max_score
-        delta_score = max_score - start_score
+    #colored rectangle
     x_start = int(start_score/max_score*(480-20)+20)+1
     x_end = int(end_score/max_score*(480-20)+20)
-    if delta_score > 0:
-        zone_img_draw.rectangle((x_start, 80, x_end, 110), color)
+    zone_img_draw.rectangle((x_start, 80, x_end, 110), color)
+
+    #downward score bar
     zone_img_draw.line([(x_end, 80), (x_end, 120+20*position)], fill="black", width=0)
 
+    #Text for the score bar
     end_score_txt = "{:,}".format(end_score)
     end_score_txt = str(round(end_score/1000000, 1))
     if end_score < max_score/2:
@@ -4432,8 +4440,8 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
     score_3stars = zone_scores[2]
 
     current_score = draw_score_zone(zone_img_draw, 0, current_score, score_3stars, "darkgreen", 1)
-    eststrike_score = draw_score_zone(zone_img_draw, current_score, estimated_strikes, score_3stars, "orange", 3)
-    deployment_score = draw_score_zone(zone_img_draw, eststrike_score, deployments, score_3stars, "yellow", 2)
+    eststrike_score = draw_score_zone(zone_img_draw, current_score, estimated_strikes, score_3stars, "orange", 2)
+    deployment_score = draw_score_zone(zone_img_draw, eststrike_score, deployments, score_3stars, "yellow", 3)
     final_score = draw_score_zone(zone_img_draw, deployment_score, max_strikes-estimated_strikes, score_3stars, "red", 4)
 
     #Draw stars
@@ -4457,7 +4465,7 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
     zone_img_draw.line([(20, 80), (20, 110)], fill="black", width=2)
     zone_img_draw.line([(480, 80), (480, 110)], fill="black", width=2)
 
-    #add ster limits
+    #add star limits
     for score_star in zone_scores:
         x_star = int(score_star / score_3stars * (480-20) + 20)
 
