@@ -2278,28 +2278,28 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(ctx.guild.id, 50, True)
         if raid_id != None:
-            dict_players_by_IG = connect_mysql.load_config_players()[0]
-            expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
-            score_txt = str(int(guild_score/100000)/10)
-            output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M) : \n"
-            if len(list_inactive_players) > 0 :
-                for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
-                    if use_tags and p["name"] in dict_players_by_IG:
-                        p_name = dict_players_by_IG[p["name"]][1]
-                    else:
-                        p_name= p["name"]
-    
-                    output_txt += p_name+" : "+p["status"]+"\n"
-            else:
-                output_txt += "Tout le monde a joué\n"
-
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await output_channel.send(txt)
-
-            await ctx.message.add_reaction(emoji_check)
-        else:
-            await ctx.send(ret_txt)
+            await ctx.send("Aucun raid en cours")
             await ctx.message.add_reaction(emoji_error)
+
+        dict_players_by_IG = connect_mysql.load_config_players()[0]
+        expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
+        score_txt = str(int(guild_score/100000)/10)
+        output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M) : \n"
+        if len(list_inactive_players) > 0 :
+            for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
+                if use_tags and p["name"] in dict_players_by_IG:
+                    p_name = dict_players_by_IG[p["name"]][1]
+                else:
+                    p_name= p["name"]
+
+                output_txt += p_name+" : "+p["status"]+"\n"
+        else:
+            output_txt += "Tout le monde a joué\n"
+
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            await output_channel.send(txt)
+
+        await ctx.message.add_reaction(emoji_check)
 
     ####################################################
     # Command tbs
