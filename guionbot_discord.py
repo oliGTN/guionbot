@@ -1405,6 +1405,8 @@ async def on_message_edit(before, after):
             raid_shortname = attachment.filename.split("_")[0]
             if raid_shortname=="krayt":
                 raid_name = "kraytdragon"
+            elif raid_shortname=="endor":
+                raid_name = "speederbike"
             else:
                 raid_name = raid_shortname
 
