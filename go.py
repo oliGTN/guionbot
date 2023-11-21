@@ -1963,6 +1963,8 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
 
             list_opponent_squads = rpc_data["awayGuild"]["list_teams"]
             tuple_opp_players = tuple(set([x[1] for x in list_opponent_squads]))
+            if len(tuple_opp_players)==0:
+                return "ERR: impossible de détecter les adversaires sur cette zone"
 
             #get one allyCode from opponent guild
             query = "SELECT allyCode FROM players "
@@ -2038,7 +2040,6 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
     else:
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
-
     # Create all lines before display
     list_print_stats=[]
     for player_name in list_player_names:
@@ -2049,6 +2050,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             dict_player = dict_stats[player_name]
         else:
             dict_player={}
+
         for character_id in list_character_ids:
             if character_id in dict_player:
                 character_name = dict_unitsList[character_id]["name"]
@@ -2074,7 +2076,6 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                                 character_stats[stat_id] += dict_player[character_id]["stats"][stat_type][stat_id]
                             else:
                                 character_stats[stat_id] = dict_player[character_id]["stats"][stat_type][stat_id]
-                
                 if compute_guild:
                     if tw_zone == None:
                         line_header = player_name
@@ -2145,6 +2146,8 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                     ret_print_character_stats += ("{0:"+str(len(stat[1]))+"} ").format(int(stat_value/1e8))
         
             ret_print_character_stats += "\n"
+    else:
+        ret_print_character_stats += "Aucun personnage trouvé"
 
     return ret_print_character_stats
 
