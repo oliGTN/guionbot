@@ -16,6 +16,7 @@ import go
 import goutils
 import connect_mysql
 import connect_rpc
+import connect_crinolo
 import data as godata
 
 class ModOptimizerListParser(HTMLParser):
@@ -169,6 +170,12 @@ dict_slot_by_shape = {"square": 2,
                       "triangle": 5,
                       "circle": 6,
                       "cross":7}
+dict_shape_by_slot = {2: "square",
+                      3: "arrow",
+                      4: "diamond",
+                      5: "triangle",
+                      6: "circle",
+                      7: "cross"}
 dict_stat_by_set = {'1': "health",
                     '2': "offense",
                     '3': "defense",
@@ -177,7 +184,6 @@ dict_stat_by_set = {'1': "health",
                     '6': "critdamage",
                     '7': "potency",
                     '8': "tenacity"}
-
 
 
 def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
@@ -582,3 +588,299 @@ async def apply_config_allocations(config_name, txt_allyCode, is_simu):
 
     ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
     return ec, et
+
+########################################
+async def get_modopti_export(txt_allyCode):
+    mod_list = godata.get("modList_dict.json")
+
+    #Get player API data
+    ec, et, dict_player = await go.load_player(txt_allyCode, -1, True)
+    if ec!=0:
+        return ec, et, None
+
+    dict_player = goutils.roster_from_dict_to_list(dict_player)
+
+    #Add stats
+    ec, et, dict_player = connect_crinolo.add_base_stats(dict_player)
+    if ec!=0:
+        return ec, et, None
+
+    modopti_export = {}
+    modopti_export["lastRuns"] = []
+    modopti_export["characterTemplates"] = []
+    modopti_export["version"] = "1.8"
+    modopti_export["allyCode"] = dict_player["allyCode"]
+
+    my_profile = {}
+    my_profile["allyCode"] = dict_player["allyCode"]
+    my_profile["playerName"] = dict_player["name"]
+    my_profile["selectedCharacters"] = []
+    my_profile["modAssignments"] = []
+    my_profile["globalSettings"] = {"modChangeThreshold": 0,
+                                    "lockUnselectedCharacters": False,
+                                    "forceCompleteSets": False,
+                                    "omicronBoostsGac": False,
+                                    "omicronBoostsTw": False,
+                                    "omicronBoostsTb": False,
+                                    "omicronBoostsRaids": False,
+                                    "omicronBoostsConquest": False}
+    my_profile["previousSettings"] = {}
+    my_profile["incrementalOptimizeIndex"] = None
+    my_profile["characters"] = {}
+    my_profile["mods"] = []
+
+    #Loop on all roster units. Fill profile characters and GameSettings
+    for player_unit in dict_player["rosterUnit"]:
+        if "crew" in player_unit["stats"]:
+            #ignore ships
+            continue
+
+        unit_defId = player_unit["definitionId"].split(":")[0]
+        #if unit_defId!="FIFTHBROTHER":
+        #    continue
+        #print(unit_defId)
+
+        modopti_unit = {}
+        modopti_unit["baseID"] = unit_defId
+        modopti_unit["playerValues"] = {}
+        modopti_unit["playerValues"]["level"] = player_unit["currentLevel"]
+        modopti_unit["playerValues"]["stars"] = player_unit["currentRarity"]
+        modopti_unit["playerValues"]["gearLevel"] = player_unit["currentTier"]
+
+        modopti_unit["playerValues"]["gearPieces"] = []
+        if "equipment" in player_unit:
+            for eqpt in player_unit["equipment"]:
+                modopti_unit["playerValues"]["gearPieces"].append(eqpt["equipmentId"])
+
+        modopti_unit["playerValues"]["galacticPower"] = player_unit["gp"]
+
+        ######################
+        # BASE STATS
+
+        modopti_unit["playerValues"]["baseStats"] = {}
+        if "1" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["health"] = int(player_unit["stats"]["base"]["1"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["health"] = 0
+
+        if "28" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["protection"] = int(player_unit["stats"]["base"]["28"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["protection"] = 0
+
+        if "5" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["speed"] = int(player_unit["stats"]["base"]["5"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["speed"] = 0
+
+        if "17" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["potency"] = int(player_unit["stats"]["base"]["17"]*1e-6)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["potency"] = 0
+
+        if "18" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["tenacity"] = int(player_unit["stats"]["base"]["18"]*1e-6)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["tenacity"] = 0
+
+        if "16" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["critDmg"] = int(player_unit["stats"]["base"]["16"]*1e-6)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["critDmg"] = 0
+
+        if "39" in player_unit["stats"]["final"]:
+            modopti_unit["playerValues"]["baseStats"]["critAvoid"] = int(player_unit["stats"]["final"]["39"]*1e-6)
+            modopti_unit["playerValues"]["baseStats"]["critAvoid"] = 0
+
+
+        if "37" in player_unit["stats"]["final"]:
+            modopti_unit["playerValues"]["baseStats"]["accuracy"] = player_unit["stats"]["final"]["37"]*1e-6
+        else:
+            modopti_unit["playerValues"]["baseStats"]["accuracy"] = 0
+
+        if "6" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["physDmg"] = int(player_unit["stats"]["base"]["6"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["physDmg"] = 0
+
+        if "14" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["physCritRating"] = int(player_unit["stats"]["base"]["14"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["physCritRating"] = 0
+
+        if "8" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["armor"] = int(player_unit["stats"]["base"]["8"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["armor"] = 0
+
+        if "7" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["specDmg"] = int(player_unit["stats"]["base"]["7"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["specDmg"] = 0
+
+        if "15" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["specCritRating"] = int(player_unit["stats"]["base"]["15"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["specCritRating"] = 0
+
+        if "9" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["resistance"] = int(player_unit["stats"]["base"]["9"]*1e-8)
+        else:
+            modopti_unit["playerValues"]["baseStats"]["resistance"] = 0
+
+        if "14" in player_unit["stats"]["final"]:
+            modopti_unit["playerValues"]["baseStats"]["physCritChance"] = int(player_unit["stats"]["base"]["14"]*1e-8)/2400+0.1
+        else:
+            modopti_unit["playerValues"]["baseStats"]["physCritChance"] = 0
+
+        if "15" in player_unit["stats"]["final"]:
+            modopti_unit["playerValues"]["baseStats"]["specCritChance"] = int(player_unit["stats"]["base"]["15"]*1e-8)/2400+0.1
+        else:
+            modopti_unit["playerValues"]["baseStats"]["specCritChance"] = 0
+
+        ######################
+        # EQUIPPED STATS
+
+        #copy base stats
+        modopti_unit["playerValues"]["equippedStats"] = dict(modopti_unit["playerValues"]["baseStats"])
+
+        #Then add gear if any
+        if "1" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["health"] += int(player_unit["stats"]["gear"]["1"]*1e-8)
+
+        if "28" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["protection"] += int(player_unit["stats"]["gear"]["28"]*1e-8)
+
+        if "5" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["speed"] += int(player_unit["stats"]["gear"]["5"]*1e-8)
+
+        if "17" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["potency"] += int(player_unit["stats"]["gear"]["17"]*1e-6)
+
+        if "18" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["tenacity"] += int(player_unit["stats"]["gear"]["18"]*1e-6)
+
+        if "16" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["critDmg"] += int(player_unit["stats"]["gear"]["16"]*1e-6)
+
+        if "6" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["physDmg"] += int(player_unit["stats"]["gear"]["6"]*1e-8)
+
+        if "14" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["physCritRating"] += int(player_unit["stats"]["gear"]["14"]*1e-8)
+
+        if "8" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["armor"] += int(player_unit["stats"]["gear"]["8"]*1e-8)
+
+        if "7" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["specDmg"] += int(player_unit["stats"]["gear"]["7"]*1e-8)
+
+        if "15" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["specCritRating"] += int(player_unit["stats"]["gear"]["15"]*1e-8)
+
+        if "9" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["resistance"] += int(player_unit["stats"]["gear"]["9"]*1e-8)
+
+        # Add the unit to modopti_export
+        my_profile["characters"][unit_defId] = modopti_unit
+
+        ##################################
+        # Loop through equipped mods
+
+        if "equippedStatMod" in player_unit:
+            for mod in player_unit["equippedStatMod"]:
+                mod_defId = mod["definitionId"]
+
+                modopti_mod = {}
+                modopti_mod["mod_uid"] = mod["id"]
+                modopti_mod["slot"] = dict_shape_by_slot[mod_list[mod_defId]["slot"]]
+                modopti_mod["set"] = dict_stat_by_set[mod_list[mod_defId]["setId"]]
+                modopti_mod["level"] = mod["level"]
+                modopti_mod["pips"] = mod_list[mod_defId]["rarity"]
+                modopti_mod["characterID"] = unit_defId
+                modopti_mod["tier"] = mod["tier"]
+
+                modopti_mod = add_stats_to_modopti_mod("primaryBonusType",
+                                                       "primaryBonusValue",
+                                                       None,
+                                                       mod["primaryStat"]["stat"],
+                                                       modopti_mod)
+
+                if "secondaryStat" in mod:
+                    pos_sec_stat = 1
+                    for sec_stat in mod["secondaryStat"]:
+                        modopti_mod = add_stats_to_modopti_mod("secondaryType_"+str(pos_sec_stat),
+                                                               "secondaryValue_"+str(pos_sec_stat),
+                                                               "secondaryRoll_"+str(pos_sec_stat),
+                                                               sec_stat["stat"],
+                                                               modopti_mod)
+
+                        pos_sec_stat += 1
+
+                my_profile["mods"].append(modopti_mod)
+
+    #Loop on unequipped mods
+
+    modopti_export["profiles"] = [my_profile]
+
+    return 0, "", modopti_export
+    
+def add_stats_to_modopti_mod(type_name, value_name, roll_name, mod_stat, modopti_mod):
+    print(mod_stat)
+    if mod_stat["unitStatId"]==1:
+        modopti_mod[type_name] = "Health"
+        stat_value = int(int(mod_stat["unscaledDecimalValue"])*1e-8)
+    elif mod_stat["unitStatId"]==5:
+        modopti_mod[type_name] = "Speed"
+        stat_value = int(int(mod_stat["unscaledDecimalValue"])*1e-8)
+    elif mod_stat["unitStatId"]==16:
+        modopti_mod[type_name] = "Critical Damage %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==17:
+        modopti_mod[type_name] = "Potency %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==18:
+        modopti_mod[type_name] = "Tenacity %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==28:
+        modopti_mod[type_name] = "Protection"
+        stat_value = int(int(mod_stat["unscaledDecimalValue"])*1e-8)
+    elif mod_stat["unitStatId"]==41:
+        modopti_mod[type_name] = "Offense"
+        stat_value = int(int(mod_stat["unscaledDecimalValue"])*1e-8)
+    elif mod_stat["unitStatId"]==42:
+        modopti_mod[type_name] = "Defense"
+        stat_value = int(int(mod_stat["unscaledDecimalValue"])*1e-8)
+    elif mod_stat["unitStatId"]==48:
+        modopti_mod[type_name] = "Offense %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==49:
+        modopti_mod[type_name] = "Defense %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==53:
+        modopti_mod[type_name] = "Critical Chance %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==54:
+        modopti_mod[type_name] = "Critical Avoidance %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==55:
+        modopti_mod[type_name] = "Health %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==56:
+        modopti_mod[type_name] = "Protection %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    else:
+        print("Unknown mod stat: "+str(mod_stat["unitStatId"]))
+        sys.exit(1)
+    
+    stat_value_txt = str(stat_value)
+    if "." in stat_value_txt:
+        stat_value_txt = stat_value_txt.strip("0")
+        if stat_value_txt[-1]==".":
+            stat_value_txt = stat_value_txt[:-1]
+    modopti_mod[value_name] = "+"+stat_value_txt
+
+    if "statRolls" in mod_stat:
+        modopti_mod[roll_name] = mod_stat["statRolls"]
+
+    return modopti_mod
