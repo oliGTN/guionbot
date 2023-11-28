@@ -11,6 +11,7 @@ import re
 import json
 from html.parser import HTMLParser
 import copy #deepcopy
+import requests
 
 import go
 import goutils
@@ -592,13 +593,28 @@ async def apply_config_allocations(config_name, txt_allyCode, is_simu):
 ########################################
 async def get_modopti_export(txt_allyCode):
     mod_list = godata.get("modList_dict.json")
+    dict_unitsList = godata.get("unitsList_dict.json")
+
+    # get swgoh.gg character list for images
+    swgohgg_characters_url = 'http://api.swgoh.gg/characters'
+    goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
+    r = requests.get(swgohgg_characters_url, allow_redirects=True)
+    list_characters = json.loads(r.content.decode('utf-8'))
+    dict_images = {}
+    for c in list_characters:
+        dict_images[c["base_id"]] = c["image"]
 
     #Get player API data
-    ec, et, dict_player = await go.load_player(txt_allyCode, -1, True)
+    ec, et, dict_player = await go.load_player(txt_allyCode, 1, True)
     if ec!=0:
         return ec, et, None
 
     dict_player = goutils.roster_from_dict_to_list(dict_player)
+
+    #Get player API initialdata
+    ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+    if ec!=0:
+        return ec, et, None
 
     #Add stats
     ec, et, dict_player = connect_crinolo.add_base_stats(dict_player)
@@ -606,14 +622,18 @@ async def get_modopti_export(txt_allyCode):
         return ec, et, None
 
     modopti_export = {}
+    modopti_export["profiles"] = []
+    modopti_export["gameSettings"] = []
     modopti_export["lastRuns"] = []
     modopti_export["characterTemplates"] = []
     modopti_export["version"] = "1.8"
-    modopti_export["allyCode"] = dict_player["allyCode"]
+    modopti_export["allyCode"] = str(dict_player["allyCode"])
 
     my_profile = {}
-    my_profile["allyCode"] = dict_player["allyCode"]
+    my_profile["allyCode"] = str(dict_player["allyCode"])
     my_profile["playerName"] = dict_player["name"]
+    my_profile["characters"] = {}
+    my_profile["mods"] = []
     my_profile["selectedCharacters"] = []
     my_profile["modAssignments"] = []
     my_profile["globalSettings"] = {"modChangeThreshold": 0,
@@ -626,8 +646,7 @@ async def get_modopti_export(txt_allyCode):
                                     "omicronBoostsConquest": False}
     my_profile["previousSettings"] = {}
     my_profile["incrementalOptimizeIndex"] = None
-    my_profile["characters"] = {}
-    my_profile["mods"] = []
+
 
     #Loop on all roster units. Fill profile characters and GameSettings
     for player_unit in dict_player["rosterUnit"]:
@@ -636,9 +655,11 @@ async def get_modopti_export(txt_allyCode):
             continue
 
         unit_defId = player_unit["definitionId"].split(":")[0]
-        #if unit_defId!="FIFTHBROTHER":
+        #if unit_defId!="HERMITYODA":
         #    continue
         #print(unit_defId)
+        for s in player_unit["stats"]:
+            print(s+":"+str(player_unit["stats"][s]))
 
         modopti_unit = {}
         modopti_unit["baseID"] = unit_defId
@@ -684,14 +705,14 @@ async def get_modopti_export(txt_allyCode):
             modopti_unit["playerValues"]["baseStats"]["tenacity"] = 0
 
         if "16" in player_unit["stats"]["base"]:
-            modopti_unit["playerValues"]["baseStats"]["critDmg"] = int(player_unit["stats"]["base"]["16"]*1e-6)
+            modopti_unit["playerValues"]["baseStats"]["critDmg"] = player_unit["stats"]["base"]["16"]*1e-6
         else:
             modopti_unit["playerValues"]["baseStats"]["critDmg"] = 0
 
         if "39" in player_unit["stats"]["final"]:
-            modopti_unit["playerValues"]["baseStats"]["critAvoid"] = int(player_unit["stats"]["final"]["39"]*1e-6)
+            modopti_unit["playerValues"]["baseStats"]["critAvoid"] = player_unit["stats"]["final"]["39"]*1e-6
+        else:
             modopti_unit["playerValues"]["baseStats"]["critAvoid"] = 0
-
 
         if "37" in player_unit["stats"]["final"]:
             modopti_unit["playerValues"]["baseStats"]["accuracy"] = player_unit["stats"]["final"]["37"]*1e-6
@@ -728,13 +749,13 @@ async def get_modopti_export(txt_allyCode):
         else:
             modopti_unit["playerValues"]["baseStats"]["resistance"] = 0
 
-        if "14" in player_unit["stats"]["final"]:
-            modopti_unit["playerValues"]["baseStats"]["physCritChance"] = int(player_unit["stats"]["base"]["14"]*1e-8)/2400+0.1
+        if "14" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["physCritChance"] = modopti_unit["playerValues"]["baseStats"]["physCritRating"] /24+10
         else:
             modopti_unit["playerValues"]["baseStats"]["physCritChance"] = 0
 
-        if "15" in player_unit["stats"]["final"]:
-            modopti_unit["playerValues"]["baseStats"]["specCritChance"] = int(player_unit["stats"]["base"]["15"]*1e-8)/2400+0.1
+        if "15" in player_unit["stats"]["base"]:
+            modopti_unit["playerValues"]["baseStats"]["specCritChance"] = modopti_unit["playerValues"]["baseStats"]["specCritRating"] /24+10
         else:
             modopti_unit["playerValues"]["baseStats"]["specCritChance"] = 0
 
@@ -781,6 +802,23 @@ async def get_modopti_export(txt_allyCode):
         if "9" in player_unit["stats"]["gear"]:
             modopti_unit["playerValues"]["equippedStats"]["resistance"] += int(player_unit["stats"]["gear"]["9"]*1e-8)
 
+        if "14" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["physCritChance"] = modopti_unit["playerValues"]["equippedStats"]["physCritRating"] /24+10
+
+        if "15" in player_unit["stats"]["gear"]:
+            modopti_unit["playerValues"]["equippedStats"]["specCritChance"] = modopti_unit["playerValues"]["equippedStats"]["specCritRating"] /24+10
+
+        #Relic
+        if "relic" in player_unit:
+            modopti_unit["playerValues"]["relicTier"] = player_unit["relic"]["currentTier"]
+            if modopti_unit["playerValues"]["relicTier"]==1:
+                modopti_unit["playerValues"]["relicTier"]=2
+
+        modopti_unit["optimizerSettings"] = {"targets": [],
+                                             "minimumModDots": 1,
+                                             "sliceMods": False,
+                                             "isLocked": False}
+                                    
         # Add the unit to modopti_export
         my_profile["characters"][unit_defId] = modopti_unit
 
@@ -789,44 +827,41 @@ async def get_modopti_export(txt_allyCode):
 
         if "equippedStatMod" in player_unit:
             for mod in player_unit["equippedStatMod"]:
-                mod_defId = mod["definitionId"]
-
-                modopti_mod = {}
-                modopti_mod["mod_uid"] = mod["id"]
-                modopti_mod["slot"] = dict_shape_by_slot[mod_list[mod_defId]["slot"]]
-                modopti_mod["set"] = dict_stat_by_set[mod_list[mod_defId]["setId"]]
-                modopti_mod["level"] = mod["level"]
-                modopti_mod["pips"] = mod_list[mod_defId]["rarity"]
-                modopti_mod["characterID"] = unit_defId
-                modopti_mod["tier"] = mod["tier"]
-
-                modopti_mod = add_stats_to_modopti_mod("primaryBonusType",
-                                                       "primaryBonusValue",
-                                                       None,
-                                                       mod["primaryStat"]["stat"],
-                                                       modopti_mod)
-
-                if "secondaryStat" in mod:
-                    pos_sec_stat = 1
-                    for sec_stat in mod["secondaryStat"]:
-                        modopti_mod = add_stats_to_modopti_mod("secondaryType_"+str(pos_sec_stat),
-                                                               "secondaryValue_"+str(pos_sec_stat),
-                                                               "secondaryRoll_"+str(pos_sec_stat),
-                                                               sec_stat["stat"],
-                                                               modopti_mod)
-
-                        pos_sec_stat += 1
-
+                modopti_mod = mod_to_modopti(mod, unit_defId)
                 my_profile["mods"].append(modopti_mod)
 
-    #Loop on unequipped mods
+        ##################################
+        # GameSettings
 
-    modopti_export["profiles"] = [my_profile]
+        my_unit_setting = {}
+        my_unit_setting["baseID"] = unit_defId
+        my_unit_setting["name"] = dict_unitsList[unit_defId]["name"]
+        my_unit_setting["avatarUrl"] = dict_images[unit_defId]
+        my_unit_setting["description"] = ""
+        
+        forceAlignment = dict_unitsList[unit_defId]["forceAlignment"]
+        if forceAlignment==1:
+            my_unit_setting["alignment"] = "neutral"
+        elif forceAlignment==2:
+            my_unit_setting["alignment"] = "light"
+        else:
+            my_unit_setting["alignment"] = "dark"
+        my_unit_setting["tags"] = dict_unitsList[unit_defId]["categoryId"]
+
+        modopti_export["gameSettings"].append(my_unit_setting)
+
+    #Loop on unequipped mods
+    for mod in initialdata["inventory"]["unequippedMod"]:
+        modopti_mod = mod_to_modopti(mod, None)
+        my_profile["mods"].append(modopti_mod)
+
+    modopti_export["profiles"].append(my_profile)
 
     return 0, "", modopti_export
     
-def add_stats_to_modopti_mod(type_name, value_name, roll_name, mod_stat, modopti_mod):
-    print(mod_stat)
+def add_stats_to_modopti_mod(type_name, value_name, roll_name, mod_stat_info, modopti_mod):
+    #print(mod_stat)
+    mod_stat = mod_stat_info["stat"]
     if mod_stat["unitStatId"]==1:
         modopti_mod[type_name] = "Health"
         stat_value = int(int(mod_stat["unscaledDecimalValue"])*1e-8)
@@ -857,6 +892,9 @@ def add_stats_to_modopti_mod(type_name, value_name, roll_name, mod_stat, modopti
     elif mod_stat["unitStatId"]==49:
         modopti_mod[type_name] = "Defense %"
         stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
+    elif mod_stat["unitStatId"]==52:
+        modopti_mod[type_name] = "Accuracy %"
+        stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
     elif mod_stat["unitStatId"]==53:
         modopti_mod[type_name] = "Critical Chance %"
         stat_value = round(int(mod_stat["unscaledDecimalValue"])*1e-6, 3)
@@ -880,7 +918,47 @@ def add_stats_to_modopti_mod(type_name, value_name, roll_name, mod_stat, modopti
             stat_value_txt = stat_value_txt[:-1]
     modopti_mod[value_name] = "+"+stat_value_txt
 
-    if "statRolls" in mod_stat:
-        modopti_mod[roll_name] = mod_stat["statRolls"]
+    if "statRolls" in mod_stat_info:
+        modopti_mod[roll_name] = mod_stat_info["statRolls"]
+
+    return modopti_mod
+
+def mod_to_modopti(mod, unit_defId):
+    mod_list = godata.get("modList_dict.json")
+
+    mod_defId = mod["definitionId"]
+
+    modopti_mod = {}
+
+    #print(mod["id"])
+    modopti_mod = add_stats_to_modopti_mod("primaryBonusType",
+                                           "primaryBonusValue",
+                                           None,
+                                           mod["primaryStat"],
+                                           modopti_mod)
+
+    if "secondaryStat" in mod:
+        pos_sec_stat = 1
+        for sec_stat in mod["secondaryStat"]:
+            modopti_mod = add_stats_to_modopti_mod("secondaryType_"+str(pos_sec_stat),
+                                                   "secondaryValue_"+str(pos_sec_stat),
+                                                   "secondaryRoll_"+str(pos_sec_stat),
+                                                   sec_stat,
+                                                   modopti_mod)
+
+            pos_sec_stat += 1
+
+        for empty_pos in range(pos_sec_stat-1,5):
+            modopti_mod["secondaryType_"+str(empty_pos)] = ""
+            modopti_mod["secondaryValue_"+str(empty_pos)] = ""
+            modopti_mod["secondaryRoll_"+str(empty_pos)] = ""
+
+    modopti_mod["mod_uid"] = mod["id"]
+    modopti_mod["slot"] = dict_shape_by_slot[mod_list[mod_defId]["slot"]]
+    modopti_mod["set"] = dict_stat_by_set[mod_list[mod_defId]["setId"]]
+    modopti_mod["level"] = mod["level"]
+    modopti_mod["pips"] = mod_list[mod_defId]["rarity"]
+    modopti_mod["characterID"] = unit_defId
+    modopti_mod["tier"] = mod["tier"]
 
     return modopti_mod
