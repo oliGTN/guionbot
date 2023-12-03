@@ -1038,9 +1038,9 @@ def get_team_header(team_name, objectifs):
                         perso_gear_min=13
                     perso_min_display = str(perso_rarity_min)
                     if perso_relic_min == 0:
-                        perso_min_display += '*G' + "{:02d}".format(perso_gear_min)                        
+                        perso_min_display += '\\*G' + "{:02d}".format(perso_gear_min)                        
                     else:
-                        perso_min_display += '*R' + str(perso_relic_min)
+                        perso_min_display += '\\*R' + str(perso_relic_min)
 
                     perso_rarity_reco = objectifs[i_level][2][perso][3]
                     perso_gear_reco = objectifs[i_level][2][perso][4]                    
@@ -1052,9 +1052,9 @@ def get_team_header(team_name, objectifs):
                         perso_gear_reco=13
                     perso_reco_display = str(perso_rarity_reco)
                     if perso_relic_reco == 0:
-                        perso_reco_display += '*G' + "{:02d}".format(perso_gear_reco)                        
+                        perso_reco_display += '\\*G' + "{:02d}".format(perso_gear_reco)                        
                     else:
-                        perso_reco_display += '*R' + str(perso_relic_reco)
+                        perso_reco_display += '\\*R' + str(perso_relic_reco)
 
                     #Zetas
                     req_zetas = objectifs[i_level][2][perso][5].split(',')
@@ -1081,14 +1081,14 @@ def get_team_header(team_name, objectifs):
 #IN: gv_mode (0: VTJ, 1: GVJ, 2: FTJ)
 #IN: score_type (1: progress % / 2: yellow energy)
 ####################################################
-async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_guild, exclusive_player_list, gv_mode, dict_tw_def, score_type):
+async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name, compute_guild, exclusive_player_list, gv_mode, dict_tw_def, score_type):
     dict_unitsList = godata.get("unitsList_dict.json")
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
     ec, list_team_bot, dict_team_bot = connect_gsheets.load_config_teams(BOT_GFILE, False)
-    if server_id != BOT_GFILE:
-        ec, list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(server_id, False)
+    if guild_id != BOT_GFILE:
+        ec, list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(guild_id, False)
         if ec == 2:
             return "", "ERR: pas de fichier de config pour ce serveur"
         elif ec == 3:
@@ -1342,15 +1342,15 @@ async def get_team_progress(list_team_names, txt_allyCode, server_id, compute_gu
 
     return collection_name, ret_get_team_progress
 
-async def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
+async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode):
 
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et
 
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
         if ec != 0:
             return ec, et
 
@@ -1359,7 +1359,8 @@ async def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
         list_active_players = None
 
     guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
-                                              server_id, 1, list_active_players, 0, dict_def_toon_player, 1)
+                                              guild_id, gfile_name, 1, list_active_players,
+                                              0, dict_def_toon_player, 1)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
         return 1, ret_get_team_progress
@@ -1419,14 +1420,14 @@ async def print_vtg(list_team_names, txt_allyCode, server_id, tw_mode):
 
     return 0, ret_print_vtx
 
-async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
+async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode):
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et
 
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
         if ec != 0:
             return ec, et, None
     else:
@@ -1434,7 +1435,8 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
         list_active_players = None
 
     player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, 
-                                              server_id, 0, list_active_players, 0, dict_def_toon_player, 1)
+                                              guild_id, gfile_name, 0, list_active_players,
+                                              0, dict_def_toon_player, 1)
     if type(ret_get_team_progress) == str:
         goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1,  ret_get_team_progress, None
@@ -1481,7 +1483,7 @@ async def print_vtj(list_team_names, txt_allyCode, server_id, tw_mode):
                         image_mode = "TW"
                     else:
                         image_mode = ""
-                    e, t, images = await get_character_image(list_char_allycodes, True, False, image_mode, server_id)
+                    e, t, images = await get_character_image(list_char_allycodes, True, False, image_mode, guild_id)
 
     #In case of several teams, don't display images
     if len(ret_get_team_progress) > 1:
@@ -1546,10 +1548,10 @@ def print_fegv(txt_allyCode):
 
     return 0, ret_print_fegv
 
-async def print_ftj(txt_allyCode, team, server_id):
+async def print_ftj(txt_allyCode, team, guild_id):
     ret_print_ftj = ""
 
-    player_name, ret_get_team_progress = await get_team_progress([team], txt_allyCode, server_id, 0, None, 2, {}, 1)
+    player_name, ret_get_team_progress = await get_team_progress([team], txt_allyCode, guild_id, 0, None, 2, {}, 1)
     #print(team)
     #print(ret_get_team_progress)
     if type(ret_get_team_progress) == str:
@@ -1760,7 +1762,7 @@ async def print_gvs(list_team_names, txt_allyCode):
 #########################################"
 # IN tw_zone: name of the TW zone to filter the players (other guild) - only for compute_guild=True
 #########################################"
-async def print_character_stats(characters, options, txt_allyCode, compute_guild, server_id, tw_zone):
+async def print_character_stats(characters, options, txt_allyCode, compute_guild, guild_id, tw_zone):
     dict_unitsList = godata.get("unitsList_dict.json")
     ret_print_character_stats = ''
 
@@ -1953,10 +1955,10 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
         #if tw_zone is set, need to find the txt_allyCode by using the TW opponent
         if tw_zone != None:
             #Check if the guild can use RPC
-            if not server_id in connect_rpc.get_dict_bot_accounts():
+            if not guild_id in connect_rpc.get_dict_bot_accounts():
                 return "ERR: cannot detect TW opponent in this server"
 
-            rpc_data = await connect_rpc.get_tw_status(server_id, -1)
+            rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
             tw_id = rpc_data["tw_id"]
             if tw_id == None:
                 return "ERR: no TW ongoing"
@@ -2284,7 +2286,7 @@ async def get_gac_distribution(txt_allyCode):
 # IN: game_mode: 'TW', 'TB', ... or '' for undefined
 # return: err_code, err_txt, image
 #################################
-async def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mode, server_id):
+async def get_character_image(list_characters_allyCode, is_ID, refresh_player, game_mode, guild_id):
     err_code = 0
     err_txt = ''
 
@@ -2294,7 +2296,7 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
 
     #Get reserved TW toons
     if game_mode == "TW":
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, 0)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, 0)
         if ec != 0:
             return 1, et, None
     
@@ -2356,18 +2358,18 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
 # return: err_code, err_txt, list of images
 #################################
 async def get_tw_battle_image(list_char_attack, allyCode_attack, \
-                        character_defense, server_id):
+                        character_defense, guild_id):
     war_txt = ""
 
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
-    if not server_id in connect_rpc.get_dict_bot_accounts():
+    if not guild_id in connect_rpc.get_dict_bot_accounts():
         return []
 
     query = "SELECT name, twChanOut_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
-    query+= "WHERE server_id="+str(server_id)
+    query+= "WHERE guild_id='"+guild_id+"'"
     goutils.log2('DBG', query)
     db_data = connect_mysql.get_line(query)
 
@@ -2376,7 +2378,7 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = await connect_rpc.get_tw_status(server_id, -1)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
@@ -2441,7 +2443,7 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
             list_char_allycodes.append([opp_squad[2], opp_squad[1], opp_squad[0]])
 
     #print(list_char_allycodes)
-    ec, et, images = await get_character_image(list_char_allycodes, True, False, 'TW', server_id)
+    ec, et, images = await get_character_image(list_char_allycodes, True, False, 'TW', guild_id)
     if ec != 0:
         return 1, et, None
 
@@ -2875,8 +2877,8 @@ async def print_erx(txt_allyCode, days, compute_guild):
 # Function: print_tb_progress
 # return: err_code, err_txt, list of players with teams and scores
 #################################
-async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
-    list_tb_teams = connect_gsheets.load_tb_teams(server_id, False)
+async def print_tb_progress(txt_allyCode, guild_id, tb_alias, use_mentions):
+    list_tb_teams = connect_gsheets.load_tb_teams(guild_id, False)
     tb_team_names = list(set(sum(sum([list(x.values()) for x in list_tb_teams], []), [])))
     tb_team_names.remove('')
     list_known_bt = list(set(sum([[y[0:3] for y in x.keys()] for x in list_tb_teams], [])))
@@ -2884,13 +2886,13 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
         return 1, "ERR: unknown BT", ""
 
     query = "SELECT warstats_id FROM guild_bot_infos "
-    query+= "WHERE server_id = "+str(server_id)
+    query+= "WHERE guild_id='"+guild_id+"'"
     warstats_id = connect_mysql.get_value(query)
 
     if warstats_id == None or warstats_id == 0:
         return 1, "ERR: Guide non déclarée dans le bot", ""
 
-    guild_name, dict_teams = await get_team_progress(tb_team_names, txt_allyCode, server_id, 1, None, 0, {}, 1)
+    guild_name, dict_teams = await get_team_progress(tb_team_names, txt_allyCode, guild_id, 1, None, 0, {}, 1)
     dict_teams_by_player = {}
     for team in dict_teams:
         dict_teams_by_player[team]={}
@@ -2901,7 +2903,7 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 
     # TODO move to RPC data
     #active_round, dict_player_scores, list_open_territories = \
-    #        connect_warstats.parse_tb_player_scores(server_id, tb_alias, True)
+    #        connect_warstats.parse_tb_player_scores(guild_id, tb_alias, True)
 
     if tb_alias[0] == "H":
         tb_day_count = 6
@@ -3101,22 +3103,22 @@ async def print_tb_progress(txt_allyCode, server_id, tb_alias, use_mentions):
 
 ############################################
 # get_tw_alerts
-# IN - server_id (equivalent to guild id)
+# IN - guild_id
 # OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
 #                                      territory2: alert_territory2...},
 #                       tw_timestamp]]
 # Err Code: 0 = OK / 1 = config error / 2 = no TW ongoing
 ############################################
-async def get_tw_alerts(server_id, force_update):
+async def get_tw_alerts(guild_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
-    if not server_id in connect_rpc.get_dict_bot_accounts():
+    if not guild_id in connect_rpc.get_dict_bot_accounts():
         return 1, "ERR: serveur discord inconnu du bot", []
 
     query = "SELECT name, twChanOut_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
-    query+= "WHERE server_id="+str(server_id)
+    query+= "WHERE guild_id='"+guild_id+"'"
     goutils.log2('DBG', query)
     db_data = connect_mysql.get_line(query)
 
@@ -3125,7 +3127,7 @@ async def get_tw_alerts(server_id, force_update):
     if twChannel_id == 0:
         return 1, "ERR: salon discord non configuré", []
 
-    rpc_data = await connect_rpc.get_tw_status(server_id, force_update)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 2, "ERR: pas de GT en cours", []
@@ -3431,91 +3433,14 @@ async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team
     return 0, "", list_best_teams_score
 
 ################################################################
-# find_best_teams_for_raid
-# IN: txt_allyCode
-# IN: raid_name
-# IN: compute_guild (True/False)
-# OUT: err_code, err_txt, dict_best_teams {'Gui On': ['JKR', 'DR'], ...}
-################################################################
-async def find_best_teams_for_raid(txt_allyCode, server_id, raid_name, compute_guild):
-    if compute_guild:
-        err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
-        if err_code != 0:
-            return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, {}
-    else:
-        e, t, d = await load_player(txt_allyCode, 1, False)
-        if e != 0:
-            return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, {}
-
-    dict_raids = connect_gsheets.load_config_raids(server_id, True)
-
-    if not raid_name in dict_raids:
-        goutils.log2("ERR", "raid "+raid_name+" inconnu")
-        return 1, "ERR: raid "+raid_name+" inconnu", {}
-
-    dts = {}
-    for team_name in dict_raids[raid_name][1]:
-        dts[team_name] = dict_raids[raid_name][1][team_name]
-    goutils.log2("DBG", dts)
-
-    ec, l, d = connect_gsheets.load_config_teams(server_id, True)
-    if ec == 2:
-        return 1, "ERR: pas de fichier de config pour ce serveur", {}
-    elif ec == 3:
-        return 1, "ERR: pas d'onglet 'teams' dans le fichier de config", {}
-    elif ec != 0:
-        return 1, "ERR: erreur en lisant le fichier de config", {}
-
-    d_raid = {k: d[k] for k in dts.keys()}
-    ec, et, ddt = develop_teams(d_raid)
-
-    if compute_guild:
-        query = "SELECT allyCode, defId FROM roster " \
-              + "WHERE allyCode IN (" \
-              + "SELECT allyCode from players WHERE guildName=(" \
-              + "SELECT guildName from players WHERE allyCode="+txt_allyCode \
-              + ")) AND relic_currentTier>=7"
-    else:
-        query = "SELECT allyCode, defId FROM roster " \
-              + "WHERE allyCode="+txt_allyCode+" " \
-              + "AND relic_currentTier>=7"
-
-    goutils.log2("DBG", query)
-    allyCode_toon = connect_mysql.get_table(query)
-
-    if compute_guild:
-        query = "SELECT allyCode, name FROM players " \
-              + "WHERE guildName=(SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
-              + "ORDER BY name"
-    else:
-        query = "SELECT allyCode, name FROM players " \
-              + "WHERE allyCode="+txt_allyCode+" " \
-              + "ORDER BY name"
-
-    goutils.log2("DBG", query)
-    ac_name = connect_mysql.get_table(query)
-
-    list_acs = [str(x[0]) for x in ac_name]
-    #list_acs = ['513353354']
-    dict_best_teams = {}
-    for ac in list_acs:
-        ec, et, lbts = await find_best_teams_for_player(allyCode_toon, ac, dts, ddt)
-        if ec != 0:
-            return 1, et, {}
-        pname = [x[1] for x in ac_name if x[0]==int(ac)][0]
-        dict_best_teams[pname] = lbts
-
-    return 0, "", dict_best_teams
-
-################################################################
 # tag_players_with_character
 # IN: txt_allyCode (to identify the guild)
 # IN: list_list_character ([["SEE"], ["Mara", "+SK"], ["SEE:7:G8"], ["SEE:R5"]])
-# IN: server_id (discord server id)
+# IN: guild_id
 # IN: tw_mode (True if the bot shall count defense-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-async def tag_players_with_character(txt_allyCode, list_list_characters, server_id, tw_mode):
+async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id, tw_mode):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
@@ -3523,7 +3448,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, server_
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et, None
 
@@ -3532,7 +3457,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, server_
 
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
         if ec != 0:
             return ec, et, None
     else:
@@ -3705,17 +3630,17 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, server_
 # count_players_with_character
 # IN: txt_allyCode (to identify the guild)
 # IN: list_characters alias
-# IN: server_id (discord server id)
+# IN: guild_id
 # IN: tw_mode (True if the bot shall manage registered players and display count for adversary
 # OUT: err_code, err_txt, {'unit name': [total, in TW defense], ...}
 ################################################################
-async def count_players_with_character(txt_allyCode, list_characters, server_id, tw_mode):
+async def count_players_with_character(txt_allyCode, list_characters, guild_id, tw_mode):
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, 0)
+        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et
 
@@ -3752,7 +3677,7 @@ async def count_players_with_character(txt_allyCode, list_characters, server_id,
     #print(output_dict)
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, -1)
+        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
         if ec != 0:
             return ec, et, None
 
@@ -4042,16 +3967,16 @@ def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
 
     return 0, "", image
 
-async def get_tw_defense_toons(server_id, force_update):
+async def get_tw_defense_toons(guild_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
-    if not server_id in connect_rpc.get_dict_bot_accounts():
+    if not guild_id in connect_rpc.get_dict_bot_accounts():
         return []
 
     query = "SELECT name, twChanOut_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
-    query+= "WHERE server_id="+str(server_id)
+    query+= "WHERE guild_id='"+guild_id+"'"
     goutils.log2('DBG', query)
     db_data = connect_mysql.get_line(query)
 
@@ -4060,7 +3985,7 @@ async def get_tw_defense_toons(server_id, force_update):
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = await connect_rpc.get_tw_status(server_id, force_update)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
@@ -4117,9 +4042,7 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update):
     dict_tb = godata.dict_tb
 
-    #TO-DO: remove this query once get_tb_status moves to guild_id
-    server_id = connect_mysql.get_value("SELECT server_id from guild_bot_infos WHERE guild_id='"+guild_id+"'")
-    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, targets_zone_stars, compute_estimated_fights, force_update)
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update)
     if ec!=0:
         return 1, et, None
 
@@ -4136,7 +4059,7 @@ async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights
 
     # START THE DISPLAY PART
     ret_print_tb_status = "**Territory Battle** - round "+str(dict_phase["round"])+"\n"
-    sheet_url = connect_gsheets.get_sheet_url(server_id, "BT graphs")
+    sheet_url = connect_gsheets.get_sheet_url(guild_id, "BT graphs")
     if sheet_url != None:
         ret_print_tb_status += "More details, including players: "+sheet_url+"\n"
 
@@ -4304,19 +4227,19 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
 
     return zone_img
 
-async def get_tb_alerts(server_id, force_update):
+async def get_tb_alerts(guild_id, force_update):
     #Check if the guild can use RPC
-    if server_id in connect_rpc.get_dict_bot_accounts():
-        territory_scores, active_round = await connect_rpc.get_tb_guild_scores(server_id, force_update)
+    if guild_id in connect_rpc.get_dict_bot_accounts():
+        territory_scores, active_round = await connect_rpc.get_tb_guild_scores(guild_id, force_update)
     else:
         return []
-    goutils.log2("DBG", "["+str(server_id)+"] territory_scores="+str(territory_scores))
+    goutils.log2("DBG", "["+guild_id+"] territory_scores="+str(territory_scores))
 
     if active_round != "":
         dict_tb = godata.dict_tb
         
-        [daily_targets, margin] = connect_gsheets.get_tb_triggers(server_id, False)
-        goutils.log2("DBG", "["+str(server_id)+"] tb_triggers="+str([daily_targets, margin]))
+        [daily_targets, margin] = connect_gsheets.get_tb_triggers(guild_id, False)
+        goutils.log2("DBG", "["+guild_id+"] tb_triggers="+str([daily_targets, margin]))
 
         #print(territory_scores)
         tb_name = dict_tb[list(territory_scores.keys())[0]]["name"].split("-")[0][:-1]
@@ -4442,7 +4365,7 @@ def get_tw_player_def(fevents_name, player_name):
             txt_cmd += " \""+dict_units[unit_id]["name"]+"\""
         #print(txt_cmd)
 
-async def deploy_bot_tb(server_id, zone_shortname, characters):
+async def deploy_bot_tb(guild_id, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Manage request for all characters
@@ -4455,7 +4378,7 @@ async def deploy_bot_tb(server_id, zone_shortname, characters):
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
     dict_tb = godata.dict_tb
-    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, -1)
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", False, -1)
     if ec!=0:
         return 1, et
 
@@ -4492,11 +4415,11 @@ async def deploy_bot_tb(server_id, zone_shortname, characters):
                 filtered_list_character_ids.append(unit_id)
         list_character_ids = filtered_list_character_ids
 
-    ec, txt = await connect_rpc.deploy_tb(server_id, zone_name, list_character_ids)
+    ec, txt = await connect_rpc.deploy_tb(guild_id, zone_name, list_character_ids)
 
     return ec, txt
 
-async def deploy_bot_tw(server_id, zone_shortname, characters):
+async def deploy_bot_tw(guild_id, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
@@ -4511,7 +4434,7 @@ async def deploy_bot_tw(server_id, zone_shortname, characters):
     else:
         return 1, "Zone GT inconnue"
 
-    ec, txt = await connect_rpc.deploy_tw(server_id, zone_name, list_character_ids)
+    ec, txt = await connect_rpc.deploy_tw(guild_id, zone_name, list_character_ids)
 
     return ec, txt
 
@@ -4661,14 +4584,14 @@ def print_ability(unit_id, ability_id, ability_type):
     return output_txt
 
 ###########################################
-#FUNCTION: detect_fulldef(server_id)
+#FUNCTION: detect_fulldef(guild_id)
 #IN: server ID
 #OUT: dict_player_status {"Vince":1, "Gui":1, "HB":0, "Darak":-1}
 #with 1=fulldef / -1=normal / 0=unknown
 ###########################################
-async def detect_fulldef(server_id, force_update):
+async def detect_fulldef(guild_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
-    ec, et, dict_def_toon_player = await get_tw_defense_toons(server_id, force_update)
+    ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, force_update)
     if ec != 0:
         return ec, et, None
 
@@ -4716,20 +4639,20 @@ async def detect_fulldef(server_id, force_update):
 
     return 0, "", dict_fulldef
 
-async def get_tw_insufficient_attacks(server_id, min_char_attacks, min_ship_attacks):
-    ec, et, dict_leaderboard = await connect_rpc.get_tw_leaderboard(server_id, -1)
+async def get_tw_insufficient_attacks(guild_id, min_char_attacks, min_ship_attacks):
+    ec, et, dict_leaderboard = await connect_rpc.get_tw_leaderboard(guild_id, -1)
     if ec != 0:
         return ec, et, None
 
-    ec, et, dict_fulldef = await detect_fulldef(server_id, -1)
+    ec, et, dict_fulldef = await detect_fulldef(guild_id, -1)
     if ec != 0:
         return ec, et, None
 
-    ec, et, list_active_players = await connect_rpc.get_tw_active_players(server_id, -1)
+    ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, -1)
     if ec != 0:
         return ec, et, None
 
-    rpc_data = await connect_rpc.get_tw_status(server_id, -1)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return "ERR: no TW ongoing"

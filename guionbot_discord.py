@@ -186,7 +186,7 @@ async def bot_loop_60secs(bot):
         #UPDATE RPC data
         # update when the time since last update is greater than the period and the time is rounded
         # (15 min bots are updated only at :00, :15, :30...)
-        query = "SELECT server_id FROM guild_bot_infos "
+        query = "SELECT guild_id FROM guild_bot_infos "
         query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=(bot_period_min-1) "
         query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
         query+= "AND mod(minute(CURRENT_TIMESTAMP),bot_period_min)=0 "
@@ -195,13 +195,13 @@ async def bot_loop_60secs(bot):
         goutils.log2("DBG", "db_data: "+str(db_data))
 
         if not db_data==None:
-            for server_id in db_data:
+            for guild_id in db_data:
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
-                    await connect_rpc.get_guild_rpc_data( server_id, ["TW", "TB", "CHAT"], 1)
-                    await connect_gsheets.update_gwarstats(server_id)
+                    await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1)
+                    await connect_gsheets.update_gwarstats(guild_id)
 
-                    ec, et, ret_data = await connect_rpc.get_guildLog_messages(server_id, True)
+                    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True)
                     if ec!=0:
                         goutils.log2("ERR", et)
                     else:
@@ -276,7 +276,7 @@ async def bot_loop_5minutes(bot):
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
-        query = "SELECT server_id FROM guild_bot_infos "
+        query = "SELECT guild_id FROM guild_bot_infos WHERE guild_id<>''"
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_column(query)
 
@@ -304,7 +304,7 @@ async def bot_loop_5minutes(bot):
 
                         #get msg_id for this TW / zone
                         query = "SELECT msg_id FROM tw_messages "
-                        query+= "WHERE server_id="+str(guild.id)+" "
+                        query+= "WHERE guild_id='"+guild_id+"' "
                         query+= "AND zone='"+territory+"'"
                         goutils.log2("INFO", query)
                         old_msg_id = connect_mysql.get_value(query)
@@ -316,8 +316,8 @@ async def bot_loop_5minutes(bot):
                             #Full message to TW guild channel
                             if not bot_test_mode:
                                 new_msg = await tw_bot_channel.send(msg_txt)
-                                query = "INSERT INTO tw_messages(server_id, tw_ts, zone, msg_id) "
-                                query+= "VALUES("+str(guild.id)+", "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
+                                query = "INSERT INTO tw_messages(guild_id, tw_ts, zone, msg_id) "
+                                query+= "VALUES('"+guild_id+"', "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
                                 goutils.log2("DBG", query)
                                 connect_mysql.simple_execute(query)
                         else:
@@ -329,29 +329,6 @@ async def bot_loop_5minutes(bot):
                                 raise(e)
 
                             #Home messages are not modified
-
-                            # TEST of no resent, rather modify
-                            #Placement are re-sent when modified
-                            # and the previous gets removed
-                            #if territory.startswith('Placement:'):
-                            #    old_msg_txt = old_msg.content
-                            #    if old_msg_txt != msg_txt:
-                            #        goutils.log2("WAR", "old_msg_txt>"+old_msg_txt+"<")
-                            #        goutils.log2("WAR", "msg_txt>"+msg_txt+"<")
-
-                            #        #remove old_msg, add new_msg, update DB
-                            #        if not bot_test_mode:
-                            #            await old_msg.delete()
-
-                            #            new_msg = await tw_bot_channel.send(msg_txt)
-
-                            #            query = "UPDATE tw_messages "
-                            #            query+= "SET msg_id ="+str(new_msg.id)+" "
-                            #            query+= "WHERE server_id="+str(guild.id)+" "
-                            #            query+= "AND tw_ts="+tw_ts+" "
-                            #            query+= "AND zone='"+territory+"'"
-                            #            goutils.log2("DBG", query)
-                            #            connect_mysql.simple_execute(query)
 
                             #Placement messages are updated when modified
                             #Attack messages are updated when modified
@@ -370,7 +347,7 @@ async def bot_loop_5minutes(bot):
                     if ec == 2:
                         #TW is over
                         #Delete potential previous tw_messages
-                        query = "DELETE FROM tw_messages WHERE server_id="+str(guild.id)+" "
+                        query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
                         query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
                         goutils.log2("INFO", query)
                         connect_mysql.simple_execute(query)
@@ -1042,7 +1019,17 @@ async def manage_me(ctx, alias, allow_tw):
         if ctx.guild == None:
             return "ERR: commande non autorisée depuis un DM avec l'option -TW"
 
-        ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        #Launch the actuel search
+        ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
         if ec != 0:
             return "ERR: "+et
 
@@ -1130,13 +1117,17 @@ async def manage_me(ctx, alias, allow_tw):
 
 ##############################################################
 # Function: read_gsheets
-# IN: server_id (= discord server)
-# Purpose: affecte le code allié de l'auteur si "me"
+# IN: gfile_name
 # OUT: err_code (0 = OK), err_txt
 ##############################################################
-async def read_gsheets(server_id):
+async def read_gsheets(gfile_name):
     err_code = 0
     err_txt = ""
+
+    if gfile_name == None:
+        query = "SELECT gfile_name FROM guild_bot_infos WHERE server_id="+str(server_id)
+        goutils.log2("DBG", query)
+        gfile_name = connect_mysql.get_value(query)
 
     d = connect_gsheets.load_config_units(True)
     if d == None:
@@ -1458,19 +1449,23 @@ def officer_command(ctx):
 
     if ctx.guild != None:
         # Can be an officer only if in a discord server, not in a DM
-        query = "SELECT discord_id FROM players " \
-                "WHERE guildId=( " \
-                "    SELECT guild_id FROM guild_bot_infos WHERE server_id="+str(ctx.guild.id)+" " \
-                ") AND discord_id<>'' AND guildMemberLevel>=3 "
-        goutils.log2("DBG", query)
-        db_data = connect_mysql.get_column(query)
-        if db_data == None:
-            list_did = []
-        else:
-            list_did = db_data
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec==0:
+            guild_id = bot_infos["guild_id"]
 
-        if str(ctx.author.id) in list_did:
-            ret_is_officer = True
+            query = "SELECT discord_id FROM players " \
+                    "WHERE guildId='"+guild_id+"' " \
+                    "AND discord_id<>'' AND guildMemberLevel>=3 "
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_column(query)
+            if db_data == None:
+                list_did = []
+            else:
+                list_did = db_data
+
+            if str(ctx.author.id) in list_did:
+                ret_is_officer = True
 
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
@@ -1889,7 +1884,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        ec, et, ret_data = await connect_rpc.get_guildLog_messages(ctx.guild.id, False)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -2015,7 +2020,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        ec, et = await connect_rpc.unlock_bot_account(ctx.guild.id)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        ec, et = await connect_rpc.unlock_bot_account(guild_id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -2036,7 +2051,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        ec, et = await connect_rpc.lock_bot_account(ctx.guild.id)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        ec, et = await connect_rpc.lock_bot_account(guild_id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -2057,7 +2082,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        ec, et = await connect_rpc.join_tw(ctx.guild.id)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        ec, et = await connect_rpc.join_tw(guild_id)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -2078,7 +2113,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        ec, et = await go.deploy_bot_tw(ctx.guild.id, zone, characters)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        ec, et = await go.deploy_bot_tw(guild_id, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -2104,7 +2149,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        ec, et = await go.deploy_bot_tb(ctx.guild.id, zone, characters)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        ec, et = await go.deploy_bot_tb(guild_id, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
@@ -2141,7 +2196,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             display_mentions=False
             output_channel = ctx.message.channel
 
-        err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players( ctx.guild.id, 0)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(guild_id, 0)
         lines = ret_data["lines_player"]
         endTime = ret_data["round_endTime"]
         if err_code == 0:
@@ -2199,7 +2264,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         min_char = int(args[0])
         min_ship = int(args[1])
 
-        err_code, err_txt, d_attacks = await go.get_tw_insufficient_attacks(ctx.guild.id, min_char, min_ship)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        err_code, err_txt, d_attacks = await go.get_tw_insufficient_attacks(guild_id, min_char, min_ship)
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             output_txt="La guilde a besoin de vous pour la GT svp : \n"
@@ -2276,7 +2351,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(ctx.guild.id, 50, True)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Launch the actual command
+        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(guild_id, 50, True)
         if raid_id == None:
             await ctx.send("Aucun raid en cours")
             await ctx.message.add_reaction(emoji_error)
@@ -2399,8 +2484,18 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         
         if len(list_characters) > 0:
             if len(list_options) <= 1:
+                #get bot config from DB
+                ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+                if ec!=0:
+                    txt = emoji_error+" ERR: "+et
+                    await interaction.edit_original_response(content=txt)
+                    return
+
+                guild_id = bot_infos["guild_id"]
+
+                # Launch the actual command
                 ret_cmd = await go.print_character_stats( list_characters,
-                    list_options, "", True, ctx.guild.id, tw_zone)
+                    list_options, "", True, guild_id, tw_zone)
             else:
                 ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
         else:
@@ -2437,11 +2532,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        query = "SELECT name FROM guilds " \
-                "JOIN guild_bot_infos ON id=guild_id " \
-                "WHERE server_id = " + str(ctx.guild.id)
-        goutils.log2("DBG", query)
-        guild_name = connect_mysql.get_value(query)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        guild_name = bot_infos["guild_name"]
 
         if guild_name == None:
             await ctx.send('ERR: Guilde non déclarée dans le bot')
@@ -2569,8 +2666,22 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
             return
 
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        gfile_name = bot_infos["gfile_name"]
+        if gfile_name==None:
+            await ctx.send("Aucun fichier de configuration paramétré")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        #Launch the actual command
         data.reset_data()
-        err_code, err_txt = await read_gsheets(ctx.guild.id)
+        err_code, err_txt = await read_gsheets(gfile_name)
 
         if err_code == 1:
             await ctx.send(err_txt)
@@ -2859,39 +2970,58 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        server_id = ctx.guild.id
         allyCode = await manage_me(ctx, allyCode, True)
-                
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
-        else:
-            teams = list(teams)
-            if "-TW" in teams:
-                #Ensure command is launched from a server, not a DM
-                if ctx.guild == None:
-                    await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                    await ctx.message.add_reaction(emoji_error)
-                    return
+            return
 
-                tw_mode = True
-                teams.remove("-TW")
-            else:
-                tw_mode = False
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
-            if len(teams) == 0:
-                teams = ["all"]
+        guild_id = bot_infos["guild_id"]
+        gfile_name = bot_infos["gfile_name"]
+        if gfile_name == None:
+            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
-            err, ret_cmd = await go.print_vtg( teams, allyCode, server_id, tw_mode)
-            if err == 0:
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send(txt)
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
-            else:
-                await ctx.send(ret_cmd)
+        teams = list(teams)
+        if "-TW" in teams:
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
                 await ctx.message.add_reaction(emoji_error)
+                return
+
+            #Ensure command is launched from a server which is linked to a warbot
+            if guild_id == None:
+                await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            tw_mode = True
+            teams.remove("-TW")
+        else:
+            tw_mode = False
+
+        if len(teams) == 0:
+            teams = ["all"]
+
+        err, ret_cmd = await go.print_vtg( teams, allyCode, guild_id, gfile_name, tw_mode)
+        if err == 0:
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                await ctx.send(txt)
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_cmd)
+            await ctx.message.add_reaction(emoji_error)
 
     ##############################################################
     # Command: vtj
@@ -2918,38 +3048,63 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        server_id = ctx.guild.id
         allyCode = await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
-        else:
-            teams = list(teams)
-            if "-TW" in teams:
-                tw_mode = True
-                teams.remove("-TW")
-            else:
-                tw_mode = False
 
-            if len(teams) == 0:
-                teams = ["all"]
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+            await ctx.message.add_reaction(emoji_error)
+            return
 
-            err, txt, images = await go.print_vtj( teams, allyCode, server_id, tw_mode)
-            if err != 0:
-                await ctx.send(txt)
+        guild_id = bot_infos["guild_id"]
+        gfile_name = bot_infos["gfile_name"]
+        if gfile_name == None:
+            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        teams = list(teams)
+        if "-TW" in teams:
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
                 await ctx.message.add_reaction(emoji_error)
-            else:
-                for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
-                    await ctx.send(sub_txt)
-                if images != None:
-                    image = images[0]
-                    with BytesIO() as image_binary:
-                        image.save(image_binary, 'PNG')
-                        image_binary.seek(0)
-                        await ctx.send(content = "",
-                            file=File(fp=image_binary, filename='image.png'))
+                return
 
-                #Icône de confirmation de fin de commande dans le message d'origine
+            #Ensure command is launched from a server which is linked to a warbot
+            if guild_id == None:
+                await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            tw_mode = True
+            teams.remove("-TW")
+        else:
+            tw_mode = False
+
+        if len(teams) == 0:
+            teams = ["all"]
+
+        err, txt, images = await go.print_vtj(teams, allyCode, guild_id, gfile_name, tw_mode)
+        if err != 0:
+            await ctx.send(txt)
+            await ctx.message.add_reaction(emoji_error)
+        else:
+            for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
+                await ctx.send(sub_txt)
+            if images != None:
+                image = images[0]
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = "",
+                        file=File(fp=image_binary, filename='image.png'))
+
+            #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emoji_check)
 
     @commands.check(member_command)
@@ -2992,20 +3147,34 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         allyCode = await manage_me(ctx, allyCode, False)
-
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
-        else:
-            err_code, ret_cmd = await go.print_ftj( allyCode, team, ctx.guild.id)
-            if err_code == 0:
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("`"+txt+"`")
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
-            else:
-                await ctx.send(ret_cmd)
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        gfile_name = bot_infos["gfile_name"]
+        if gfile_name == None:
+            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        # Actual command
+        err_code, ret_cmd = await go.print_ftj( allyCode, team, guild_id, gfile_name)
+        if err_code == 0:
+            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                await ctx.send("`"+txt+"`")
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(ret_cmd)
 
     ##############################################################
     # Command: gvj
@@ -3657,6 +3826,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        if guild_id == None:
+            await ctx.send("ERR: vous devez avoir un warbot pour lancer cette commande")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
         # Extract command options
         if not ("VS" in options):
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rgt")
@@ -3688,7 +3870,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         # Computes images
         e, ret_cmd, images = await go.get_tw_battle_image( list_char_attack, allyCode_attack, 
-                                             character_defense, ctx.guild.id)
+                                             character_defense, guild_id)
                         
         if e == 0:      
             #regroup images into bigger ones containing several teams
@@ -4057,26 +4239,37 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emoji_error)
                 return
 
-            tw_mode = True
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emoji_error)
+                return
 
-            ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(ctx.guild.id)
+            guild_id = bot_infos["guild_id"]
+            if guild_id == None:
+                await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            tw_mode = True
+            ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emoji_error)
                 return
 
-            ec, et, bot_player = await connect_rpc.get_bot_player_data(ctx.guild.id, False)
+            ec, et, bot_player = await connect_rpc.get_bot_player_data(guild_id, False)
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emoji_error)
                 return
             allyCode = str(bot_player["allyCode"])
-            server_id = ctx.guild.id
         else:
             tw_mode = False
             allyCode = args[0]
             allyCode = await manage_me(ctx, allyCode, False)
-            server_id = None
+            guild_id = None
 
         if "-TW" in args[1:]:
             await ctx.send("ERR: l'option -TW doit être utilisée en première position. Consulter go.help cpg pour plus d'infos.")
@@ -4085,7 +4278,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         if len(args) == 1:
             #default list
-            unit_list = ['executor', 'profundity', 'leviathan', 'GLrey', 'SLKR', 'JML', 'SEE', 'JMK', 'LV', 'Jabba']
+            unit_list = ['executor', 'profundity', 'leviathan', 'GLrey', 'SLKR', 'JML', 'SEE', 'JMK', 'LV', 'Jabba', 'glLeia']
         else:
             unit_list = args[1:]
 

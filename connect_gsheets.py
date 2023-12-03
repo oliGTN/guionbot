@@ -25,8 +25,8 @@ client=None
 
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 
-def get_gfile_name(server_id):
-    query = "SELECT gfile_name FROM guild_bot_infos WHERE server_id="+str(server_id)
+def get_gfile_name(guild_id):
+    query = "SELECT gfile_name FROM guild_bot_infos WHERE guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
     return connect_mysql.get_value(query)
 
@@ -60,8 +60,8 @@ def get_dict_columns(list_col_names, list_list_sheet):
                 dict_columns[col_name] = i_col
     return dict_columns
 
-def get_sheet_url(server_id, sheet_name):
-    gfile_name = get_gfile_name(server_id)
+def get_sheet_url(guild_id, sheet_name):
+    gfile_name = get_gfile_name(guild_id)
     if gfile_name==None or gfile_name=='':
         return None
     try:
@@ -87,8 +87,8 @@ def get_sheet_url(server_id, sheet_name):
 #                          {team_name:
 #                             [phase, normal, super]}]}
 ##############################################################
-def load_config_raids(server_id, force_load):
-    gfile_name = get_gfile_name(server_id)
+def load_config_raids(guild_id, force_load):
+    gfile_name = get_gfile_name(guild_id)
     json_file = "CACHE"+os.path.sep+gfile_name+"_config_raids.json"
 
     if force_load or not os.path.isfile(json_file):
@@ -142,15 +142,15 @@ def load_config_raids(server_id, force_load):
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams(server_id, force_load):
-    if server_id == 0:
+def load_config_teams(guild_id, force_load):
+    if guild_id == 0:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
-        gfile_name = get_gfile_name(server_id)
+        gfile_name = get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
-        query = "SELECT name FROM guilds JOIN guild_bot_infos ON guilds.id = guild_bot_infos.guild_id WHERE server_id="+str(server_id)
+        query = "SELECT name FROM guilds JOIN guild_bot_infos ON guilds.id = guild_bot_infos.guild_id WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
         guild_name = connect_mysql.get_value(query)
 
@@ -446,8 +446,8 @@ def load_config_statq():
 #         dict of star tagrets by TB and by day
 #         margin of score before reaching the target
 ##############################################################
-def get_tb_triggers(server_id, force_load):
-    gfile_name = get_gfile_name(server_id)
+def get_tb_triggers(guild_id, force_load):
+    gfile_name = get_gfile_name(guild_id)
 
     json_file = "CACHE"+os.path.sep+gfile_name+"_config_tb.json"
 
@@ -539,8 +539,8 @@ def get_tb_triggers(server_id, force_load):
 
     return [daily_targets, margin]
 
-def load_tb_teams(server_id, force_load):
-    gfile_name = get_gfile_name(server_id)
+def load_tb_teams(guild_id, force_load):
+    gfile_name = get_gfile_name(guild_id)
 
     json_file = "CACHE"+os.path.sep+gfile_name+"_config_tb_teams.json"
 
@@ -583,10 +583,10 @@ def load_tb_teams(server_id, force_load):
     return tb_teams
 
 ##############################################################
-async def update_gwarstats(server_id):
-    gfile_name = get_gfile_name(server_id)
+async def update_gwarstats(guild_id):
+    gfile_name = get_gfile_name(guild_id)
 
-    ec, et, tb_data = await connect_rpc.get_tb_status(server_id, "", False, -1)
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", False, -1)
     if ec != 0:
         return 1, et
 
