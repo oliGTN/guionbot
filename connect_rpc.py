@@ -423,8 +423,29 @@ async def get_player_data(ac_or_id):
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
-    goutils.log2("DBG", "END")
     return 0, "", dict_player
+
+async def get_player_initialdata(ac):
+    url = "http://localhost:8000/initialdata"
+    params = {"allyCode": ac}
+    req_data = json.dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "initialdata status="+str(resp.status))
+                if resp.status==200:
+                    initialdata_player = await(resp.json())
+                else:
+                    return 1, "Cannot get initialdata from RPC", None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    return 0, "", initialdata_player
 
 async def get_bot_player_data(server_id, use_cache_data):
     dict_bot_accounts = get_dict_bot_accounts()
