@@ -1548,10 +1548,10 @@ def print_fegv(txt_allyCode):
 
     return 0, ret_print_fegv
 
-async def print_ftj(txt_allyCode, team, guild_id):
+async def print_ftj(txt_allyCode, team, guild_id, gfile_name):
     ret_print_ftj = ""
 
-    player_name, ret_get_team_progress = await get_team_progress([team], txt_allyCode, guild_id, 0, None, 2, {}, 1)
+    player_name, ret_get_team_progress = await get_team_progress([team], txt_allyCode, guild_id, gfile_name, 0, None, 2, {}, 1)
     #print(team)
     #print(ret_get_team_progress)
     if type(ret_get_team_progress) == str:
@@ -1579,7 +1579,7 @@ async def print_ftj(txt_allyCode, team, guild_id):
 async def print_gvj(list_team_names, txt_allyCode, score_type):
     ret_print_gvj = ""
 
-    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 0, None, 1, {}, score_type)
+    player_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, None, BOT_GFILE, 0, None, 1, {}, score_type)
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
 
@@ -1670,7 +1670,7 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
 async def print_gvg(list_team_names, txt_allyCode):
     ret_print_gvg = ""
 
-    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 1, None, 1, {}, 1)
+    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, None, BOT_GFILE, 1, None, 1, {}, 1)
 
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -1716,7 +1716,7 @@ async def print_gvg(list_team_names, txt_allyCode):
 async def print_gvs(list_team_names, txt_allyCode):
     ret_print_gvs = ""
 
-    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, BOT_GFILE, 2, None, 1, {}, 1)
+    guild_name, ret_get_team_progress = await get_team_progress(list_team_names, txt_allyCode, None, BOT_GFILE, 2, None, 1, {}, 1)
 
     if type(ret_get_team_progress) == str:
         return 1, ret_get_team_progress
@@ -2872,234 +2872,6 @@ async def print_erx(txt_allyCode, days, compute_guild):
     else:
         goutils.log2("ERR", "error while running query, returned NULL")
         return 1, "ERR: erreur lors de la connexion à la DB"
-
-#################################
-# Function: print_tb_progress
-# return: err_code, err_txt, list of players with teams and scores
-#################################
-async def print_tb_progress(txt_allyCode, guild_id, tb_alias, use_mentions):
-    list_tb_teams = connect_gsheets.load_tb_teams(guild_id, False)
-    tb_team_names = list(set(sum(sum([list(x.values()) for x in list_tb_teams], []), [])))
-    tb_team_names.remove('')
-    list_known_bt = list(set(sum([[y[0:3] for y in x.keys()] for x in list_tb_teams], [])))
-    if not tb_alias in list_known_bt:
-        return 1, "ERR: unknown BT", ""
-
-    query = "SELECT warstats_id FROM guild_bot_infos "
-    query+= "WHERE guild_id='"+guild_id+"'"
-    warstats_id = connect_mysql.get_value(query)
-
-    if warstats_id == None or warstats_id == 0:
-        return 1, "ERR: Guide non déclarée dans le bot", ""
-
-    guild_name, dict_teams = await get_team_progress(tb_team_names, txt_allyCode, guild_id, 1, None, 0, {}, 1)
-    dict_teams_by_player = {}
-    for team in dict_teams:
-        dict_teams_by_player[team]={}
-        for line in dict_teams[team][0][1:]:
-            nogo = line[3]
-            player_name = line[4]
-            dict_teams_by_player[team][player_name] = not nogo
-
-    # TODO move to RPC data
-    #active_round, dict_player_scores, list_open_territories = \
-    #        connect_warstats.parse_tb_player_scores(guild_id, tb_alias, True)
-
-    if tb_alias[0] == "H":
-        tb_day_count = 6
-    else:
-        tb_day_count = 4
-
-    #Player lines
-    dict_players_by_IG = connect_mysql.load_config_players()[0]
-    list_scores = []
-    list_terr_by_day = [""] * tb_day_count
-    first_player = True
-    list_unknown_players = []
-    list_inactive_players_by_day = [[] for i in range(tb_day_count)]
-    for player_name in dict_player_scores:
-        if player_name == "":
-            continue
-
-        goutils.log2('DBG', 'player_name: '+player_name)
-        line=[player_name]
-
-        if use_mentions and (player_name in dict_players_by_IG):
-            player_mention = dict_players_by_IG[player_name][1]
-        else:
-            player_mention = player_name
-
-        for team in tb_team_names:
-            player_has_team = False
-            if player_name in dict_teams_by_player[team]:
-                player_has_team = dict_teams_by_player[team][player_name]
-            else:
-                if not player_name in list_unknown_players:
-                    list_unknown_players.append(player_name)
-
-            if player_has_team:
-                line.append("X")
-            else:
-                line.append("")
-
-        for i_day in range(tb_day_count):
-            day_progress_txt = ""
-            day_name = tb_alias+str(i_day+1)
-            goutils.log2('DBG', 'day_name: '+day_name)
-
-            if not day_name in dict_player_scores[player_name]:
-                line.append("")
-                continue
-
-            day_scores = dict_player_scores[player_name][day_name]
-            goutils.log2('DBG', 'day_scores: '+str(day_scores))
-            total_fight_count_day = int(day_scores[-1])
-            max_fights_day = max([len(x) for x in day_scores])
-            if len(day_scores)==2: #index, name, is_ground
-                list_territories = [[0, "top", True], [1, "bot", True]]
-            else:
-                list_territories = [[0, "top", False], [1, "mid", True], [2, "bot", True]]
-
-            team_list_day = [[], []]
-            fight_count_day = [0, 0] #[ships, ground]
-            for [idx, pos, is_ground] in list_territories:
-                territory_scores = day_scores[idx]
-                terr_round = territory_scores[0]
-                full_terr_name = tb_alias+"-P"+str(terr_round)+"-"+pos
-                if first_player:
-                    list_terr_by_day[i_day] += "P"+str(terr_round)+"-"+pos + "\n"
-
-                terr_teams = list_tb_teams[i_day][full_terr_name]
-
-                team_count_terr = 0
-                for team in terr_teams:
-                    if team == "":
-                        continue
-                    if player_name in dict_teams_by_player[team]:
-                        if dict_teams_by_player[team][player_name]:
-                            goutils.log2("DBG", player_name + " has " + team)
-                            team_count_terr += 1
-                            team_list_day[is_ground].append(team)
-
-                count_4=0
-                count_1to3=0
-                count_0=0
-                for score in territory_scores[1:]:
-                    fight_count_day[is_ground] += 1
-                    if score == '4' or (pos=="top" and score == "1"):
-                        count_4+=1
-                    elif score in ['1', '2', '3']:
-                        count_1to3+=1
-                    elif score == '0':
-                        count_0+=1
-                    else:#no fight
-                        #cancel the +1 for fight count
-                        fight_count_day[is_ground] -= 1
-
-                terr_txt = ""
-                while team_count_terr > 0:
-                    if count_4 > 0:
-                        count_4 -= 1
-                        terr_txt += "\N{WHITE HEAVY CHECK MARK}"
-                    elif count_1to3 > 0:
-                        count_1to3 -= 1
-                        terr_txt +=  "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-                    elif count_0 > 0:
-                        count_0 -= 1
-                        terr_txt += "\N{UP-POINTING RED TRIANGLE}"
-                    else:
-                        if total_fight_count_day == sum(fight_count_day):
-                            terr_txt += "\N{CROSS MARK}"
-                        else:
-                            terr_txt += "\N{TRIANGULAR FLAG ON POST}"
-
-                    team_count_terr -= 1
-
-                if len(terr_txt) < len(territory_scores[1:]):
-                    terr_txt += "\N{WHITE LARGE SQUARE}" * (len(territory_scores[1:]) - len(terr_txt))
-                if len(terr_txt) < max_fights_day:
-                    terr_txt += "\N{BLACK LARGE SQUARE}" * (max_fights_day - len(terr_txt))
-
-                day_progress_txt += terr_txt+"\n"
-
-            line.append(day_progress_txt[:-1])
-
-            #create alerts for inactive players
-            full_team_list_day = [y for x in team_list_day for y in x]
-            if len(full_team_list_day) > total_fight_count_day:
-                if len(team_list_day[False]) == fight_count_day[False]:
-                    txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[True]) \
-                                + " combats terrestres malgré "+str(team_list_day[True])
-                elif len(team_list_day[True]) == fight_count_day[True]:
-                    txt_alert = "**" + player_mention + "** a fait " + str(fight_count_day[False]) \
-                                + " combats de vaisseaux malgré "+str(team_list_day[False])
-                else:
-                    txt_alert = "**" + player_mention + "** a fait " + str(total_fight_count_day) \
-                                + " combats malgré "+str(full_team_list_day)
-                list_inactive_players_by_day[i_day].append(txt_alert)
-
-        list_scores.append(line)
-        first_player = False
-
-    #Display
-    if active_round == "":
-        tb_phase_txt = "terminée"
-    else:
-        tb_phase_txt = "Jour "+active_round
-    ret_print_tb_progress = "Résultat de la BT "+tb_alias+" ("+tb_phase_txt+") pour la guilde "+guild_name+"\n\n"
-    ret_print_tb_progress+= "Teams utilisées :\n"
-
-    team_id = 1
-    for team in tb_team_names:
-        #look in which territory the team is useful
-        team_terr_set = set([])
-        for day_teams in list_tb_teams:
-            for terr_name in day_teams:
-                if team in day_teams[terr_name]:
-                    team_terr_set.add(terr_name[4:])
-
-        ret_print_tb_progress+= "T"+str(team_id)+": "+team+" "+str(team_terr_set)+"\n"
-        team_id += 1
-
-    #Legend of emojis
-    ret_print_tb_progress+= "\nLégende :\n"
-    ret_print_tb_progress+= "- \N{WHITE HEAVY CHECK MARK} : team dispo et max atteint\n"
-    ret_print_tb_progress+= "- \N{WHITE RIGHT POINTING BACKHAND INDEX} : team dispo et entre 1 et 3 vagues\n"
-    ret_print_tb_progress+= "- \N{UP-POINTING RED TRIANGLE} : team dispo et aucune vague de réussie\n"
-    ret_print_tb_progress+= "- \N{CROSS MARK} : team dispo et combat pas tenté\n"
-    ret_print_tb_progress+= "- \N{TRIANGULAR FLAG ON POST} : team dispo et inconnu entre pas tenté et aucune vague\n"
-    ret_print_tb_progress+= "- \N{WHITE LARGE SQUARE} : pas de team dispo\n"
-
-    #Header line
-    line_header = ["Joueur"]
-    for id in range(1, team_id):
-        line_header.append("T"+str(id))
-    for id in range(0, tb_day_count):
-        terr_day = list_terr_by_day[id]
-        line_header.append("Jour "+str(id+1) + "\n" + terr_day[:-1])
-
-    #Display all players
-    t = Texttable()
-    t.add_rows([line_header] + list_scores)
-    ret_print_tb_progress+= "\n"+t.draw()
-
-    if len(list_unknown_players)>0:
-        ret_print_tb_progress+= "\n joueurs inconnus dans la guilde "+str(list_unknown_players)
-
-    for i_day in range(tb_day_count):
-        if len(list_inactive_players_by_day[i_day])>0:
-            ret_print_tb_progress+= "\n\nSPLIT_HERE__Rappels pour le jour "\
-                                 +str(i_day+1) + " de la **BT " + tb_alias + "**__ :"
-            if active_round != "" and active_round[-1] == str(i_day+1):
-                ret_print_tb_progress+= " *phase en cours*"
-
-            ret_print_tb_progress+= "\n(dites \"go.vtj me <nom team>\" au bot pour voir la composition)"
-            for row in list_inactive_players_by_day[i_day]:
-                ret_print_tb_progress+= "\n"+row
-
-    ret_print_tb_progress+= "\n\nCes rappels sont __en rôdage__. Contactez un officier si vous voyez une erreur."
-
-    return 0, "", ret_print_tb_progress
 
 ############################################
 # get_tw_alerts
