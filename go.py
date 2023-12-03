@@ -1087,7 +1087,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
 
     #Recuperation des dernieres donnees sur gdrive
     ec, list_team_bot, dict_team_bot = connect_gsheets.load_config_teams(BOT_GFILE, False)
-    if guild_id != BOT_GFILE:
+    if gfile_name != BOT_GFILE:
         ec, list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(guild_id, False)
         if ec == 2:
             return "", "ERR: pas de fichier de config pour ce serveur"
