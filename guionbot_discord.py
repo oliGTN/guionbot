@@ -1885,7 +1885,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2021,7 +2021,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2052,7 +2052,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2083,7 +2083,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2114,7 +2114,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2150,7 +2150,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2197,7 +2197,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             output_channel = ctx.message.channel
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2265,7 +2265,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         min_ship = int(args[1])
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2352,7 +2352,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -2485,7 +2485,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         if len(list_characters) > 0:
             if len(list_options) <= 1:
                 #get bot config from DB
-                ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+                ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
                 if ec!=0:
                     txt = emoji_error+" ERR: "+et
                     await interaction.edit_original_response(content=txt)
