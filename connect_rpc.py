@@ -404,7 +404,7 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
     return 0, "", dict_guild
 
 async def get_player_data(ac_or_id):
-    url = "http://localhost:8000/player"
+    url = "http://localhost:8000/extplayer"
     params = {"player_id": ac_or_id}
     req_data = json.dumps(params)
     try:
