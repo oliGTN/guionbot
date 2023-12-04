@@ -1821,6 +1821,11 @@ async def get_raid_status(guild_id, target_percent, force_update):
     query+= "AND raid_name='"+raid_id+"'"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
+    if db_data==None:
+        # running without estilates is still possible
+        db_data = []
+
+    #prepare estilate scores per player
     dict_estimates = {}
     for line in db_data:
         dict_estimates[line[0]] = line[1]

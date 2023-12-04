@@ -25,7 +25,6 @@ import asyncio
 import connect_gsheets
 import connect_mysql
 import connect_crinolo
-import connect_warstats
 import connect_rpc
 import goutils
 import portraits
