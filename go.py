@@ -3006,7 +3006,7 @@ async def get_tw_alerts(guild_id, force_update):
             elif state=="IGNORED":
                 msg += '\N{PROHIBITED SIGN}'
             else:
-                msg += '\N{RIGHT ARROW}'
+                msg += '\U000027A1\U0000FE0F' #right pointing arrow on blue background
 
             msg += "**DEFENSE** - "+territory_fullname+" ("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
 

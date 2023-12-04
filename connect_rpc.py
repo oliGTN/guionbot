@@ -1542,7 +1542,10 @@ async def get_tw_status(guild_id, force_update):
                     commandMsg = zone["zoneStatus"]["commandMessage"]
                 else:
                     commandMsg = None
-                commandState = zone["zoneStatus"]["commandState"]
+                if "commandState" in zone["zoneStatus"]:
+                    commandState = zone["zoneStatus"]["commandState"]
+                else:
+                    commandState = None
                 list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg, commandState])
 
     return {"tw_id": tw_id, \
