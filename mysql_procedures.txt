@@ -154,7 +154,7 @@ CREATE TABLE `guild_evolutions` (
   `playerId` varchar(24) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=976034 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=976430 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -244,6 +244,20 @@ CREATE TABLE `guild_teams` (
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=603 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `guild_test_channels`
+--
+
+DROP TABLE IF EXISTS `guild_test_channels`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `guild_test_channels` (
+  `guild_id` varchar(24) NOT NULL DEFAULT '',
+  `channel_id` bigint(20) DEFAULT 0,
+  PRIMARY KEY (`guild_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -362,6 +376,41 @@ SET character_set_client = utf8;
 SET character_set_client = @saved_cs_client;
 
 --
+-- Table structure for table `platoon_allocations`
+--
+
+DROP TABLE IF EXISTS `platoon_allocations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `platoon_allocations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `config_id` int(11) DEFAULT NULL,
+  `allyCode` int(11) DEFAULT NULL,
+  `unit_id` varchar(255) DEFAULT NULL,
+  `zone_id` varchar(45) DEFAULT NULL,
+  `platoon_id` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=259 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `platoon_config`
+--
+
+DROP TABLE IF EXISTS `platoon_config`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `platoon_config` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `guild_id` varchar(24) DEFAULT NULL,
+  `tb_name` varchar(12) DEFAULT NULL,
+  `phases` varchar(12) DEFAULT NULL,
+  `timestamp` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `player_discord`
 --
 
@@ -467,7 +516,7 @@ CREATE TABLE `roster` (
   `mod28` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=9148763 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9331875 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -484,7 +533,7 @@ CREATE TABLE `roster_evolutions` (
   `defId` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3555747 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=3618669 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -505,7 +554,7 @@ CREATE TABLE `roster_skills` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=51771142 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52559200 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -561,7 +610,7 @@ DROP TABLE IF EXISTS `tw_messages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tw_messages` (
-  `server_id` bigint(20) NOT NULL,
+  `guild_id` varchar(24) NOT NULL,
   `tw_ts` bigint(20) NOT NULL,
   `zone` varchar(15) NOT NULL,
   `msg_id` bigint(20) NOT NULL
@@ -1245,4 +1294,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-11-13 12:50:53
+-- Dump completed on 2023-12-04  1:34:17
