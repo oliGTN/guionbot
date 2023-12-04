@@ -1164,6 +1164,24 @@ def get_warbot_info(server_id, channel_id):
                    "guild_name": db_data[4],
                    "gfile_name": db_data[5]}
 
+def get_warbot_info_from_guild(guild_id):
+    query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, guilds.name, gfile_name FROM guild_bot_infos \n"
+    query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
+    query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
+    query+= "WHERE guild_id='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    db_data = get_line(query)
+
+    if db_data == None:
+        return 1, "Pas de warbot trouvé pour cette guilde", None
+
+    return 0, "", {"guild_id": db_data[0],
+                   "allyCode": db_data[1],
+                   "player_name": db_data[2],
+                   "tbChanRead_id": db_data[3],
+                   "guild_name": db_data[4],
+                   "gfile_name": db_data[5]}
+
 ########################################
 # Get guild ID, allyCode and player name for the
 #  google account linked to this channel
