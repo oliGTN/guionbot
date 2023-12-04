@@ -2976,6 +2976,7 @@ async def get_tw_alerts(guild_id, force_update):
             size = territory[1]
             filled = territory[2]
             orders = territory[5]
+            state = territory[6]
 
             n_territory = int(territory_name[1])
             if territory_name[0] == "T" and int(territory_name[1]) > 2:
@@ -3002,6 +3003,10 @@ async def get_tw_alerts(guild_id, force_update):
 
             if filled == size:
                 msg += '\N{WHITE HEAVY CHECK MARK}'
+            elif state=="IGNORED":
+                msg += '\N{PROHIBITED SIGN}'
+            else:
+                msg += '\N{RIGHT ARROW}'
 
             msg += "**DEFENSE** - "+territory_fullname+" ("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
 

@@ -1476,7 +1476,7 @@ async def get_tw_opponent_leader(guild_id):
 # tw_id: None / "TERRITORY_WAR_EVENT_C:01681236000000"
 # list_teams: [["T1", "Karcot", ["General Skywalker", "CT-5555 Fives", ...], <is_beaten>, <fights>],
 #              ["T1", "JeanLuc"...
-# list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>], ...]
+# list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>, <status>], ...]
 # opp_guild: [name, id]
 ########################################
 async def get_tw_status(guild_id, force_update):
@@ -1542,7 +1542,8 @@ async def get_tw_status(guild_id, force_update):
                     commandMsg = zone["zoneStatus"]["commandMessage"]
                 else:
                     commandMsg = None
-                list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg])
+                commandState = zone["zoneStatus"]["commandState"]
+                list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg, commandState])
 
     return {"tw_id": tw_id, \
             "tw_round": tw_round, \
