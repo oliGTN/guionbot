@@ -4296,7 +4296,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         # get the DB information for home guild
-        ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, server_id, tw_mode)
+        ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, guild_id, tw_mode)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
