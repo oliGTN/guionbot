@@ -416,7 +416,8 @@ async def get_bot_player_data(guild_id, use_cache_data):
     bot_allyCode = connect_mysql.get_value("SELECT bot_allyCode from guild_bot_infos WHERE guild_id='"+guild_id+"'")
     if bot_allyCode == None:
         return 1, "Ce serveur discord n'a pas de warbot", None
-    goutils.log2("DBG", "bot account for "+str(guild_id)+" is "+bot_allyCode)
+    bot_allyCode = str(bot_allyCode)
+    goutils.log2("DBG", "bot account for "+guild_id+" is "+bot_allyCode)
 
     # Manage cache
     use_cache_data = False
