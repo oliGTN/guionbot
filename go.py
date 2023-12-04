@@ -3436,6 +3436,8 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
           + "ORDER BY defId, gear, relic_currentTier"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
+    if db_data==None:
+        db_data=[]
 
     output_dict = {}
     for line in db_data:

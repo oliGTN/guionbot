@@ -1117,14 +1117,9 @@ async def manage_me(ctx, alias, allow_tw):
 # IN: gfile_name
 # OUT: err_code (0 = OK), err_txt
 ##############################################################
-async def read_gsheets(gfile_name):
+async def read_gsheets(guild_id):
     err_code = 0
     err_txt = ""
-
-    if gfile_name == None:
-        query = "SELECT gfile_name FROM guild_bot_infos WHERE server_id="+str(server_id)
-        goutils.log2("DBG", query)
-        gfile_name = connect_mysql.get_value(query)
 
     d = connect_gsheets.load_config_units(True)
     if d == None:
@@ -1136,7 +1131,7 @@ async def read_gsheets(gfile_name):
         err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
         err_code = 1
 
-    ec, l, d = connect_gsheets.load_config_teams(server_id, True)
+    ec, l, d = connect_gsheets.load_config_teams(guild_id, True)
     if ec == 2:
         err_txt += "ERR: pas de fichier de config pour ce serveur\n"
         err_code = 1
@@ -1147,17 +1142,17 @@ async def read_gsheets(gfile_name):
         err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
         err_code = 1
 
-    d = connect_gsheets.load_config_raids(server_id, True)
+    d = connect_gsheets.load_config_raids(guild_id, True)
     if d == None:
         err_txt += "ERR: erreur en mettant à jour les RAIDS\n"
         err_code = 1
 
-    [dt, m] = connect_gsheets.get_tb_triggers(server_id, True)
+    [dt, m] = connect_gsheets.get_tb_triggers(guild_id, True)
     if dt == None:
         err_txt += "ERR: erreur en mettant à jour les objectifs de BT\n"
         err_code = 1
 
-    l = connect_gsheets.load_tb_teams(server_id, True)
+    l = connect_gsheets.load_tb_teams(guild_id, True)
     if l == None:
         err_txt += "ERR: erreur en mettant à jour les teams BT\n"
         err_code = 1
@@ -2651,7 +2646,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     ##############################################################
     @commands.check(officer_command)
     @commands.command(name='lgs', brief="Lit les dernières infos du google sheet",
-                             help="Lit les dernières infos du google sheet")
+                      help="Lit les dernières infos du google sheet")
     async def lgs(self, ctx):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -2668,15 +2663,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        gfile_name = bot_infos["gfile_name"]
-        if gfile_name==None:
-            await ctx.send("Aucun fichier de configuration paramétré")
-            await ctx.message.add_reaction(emoji_error)
-            return
+        guild_id = bot_infos["guild_id"]
 
         #Launch the actual command
         data.reset_data()
-        err_code, err_txt = await read_gsheets(gfile_name)
+        err_code, err_txt = await read_gsheets(guild_id)
 
         if err_code == 1:
             await ctx.send(err_txt)
@@ -2714,10 +2705,18 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
             tw_mode = True
             args.remove("-TW")
-            server_id = ctx.guild.id
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            guild_id = bot_infos["guild_id"]
         else:
             tw_mode = False
-            server_id = None
+            guild_id = None
 
         if len(args) >= 2:
             allyCode = args[0]
@@ -2734,7 +2733,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emoji_error)
         else:
             err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
-                                                                             server_id, tw_mode)
+                                                                             guild_id, tw_mode)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
