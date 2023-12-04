@@ -1887,8 +1887,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2023,8 +2023,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2054,8 +2054,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2085,8 +2085,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2116,8 +2116,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2152,8 +2152,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2199,17 +2199,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send("ERR: "+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
 
         # Launch the actual command
         err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(guild_id, 0)
-        lines = ret_data["lines_player"]
-        endTime = ret_data["round_endTime"]
         if err_code == 0:
+            lines = ret_data["lines_player"]
+            endTime = ret_data["round_endTime"]
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
             output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
@@ -2267,8 +2267,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send("ERR: "+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2354,8 +2354,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
+            await ctx.send("ERR: "+et)
+            await ctx.message.add_reaction(emoji_error)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2420,7 +2420,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
-            await ctx.send('ERR: '+et)
+            await ctx.send("ERR: "+et)
             await ctx.message.add_reaction(emoji_error)
             return
 
@@ -2487,8 +2487,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 #get bot config from DB
                 ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
                 if ec!=0:
-                    txt = emoji_error+" ERR: "+et
-                    await interaction.edit_original_response(content=txt)
+                    await ctx.send("ERR: "+et)
+                    await ctx.message.add_reaction(emoji_error)
                     return
 
                 guild_id = bot_infos["guild_id"]
