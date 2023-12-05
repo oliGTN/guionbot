@@ -1474,7 +1474,7 @@ async def get_tw_opponent_leader(guild_id):
 # get_tw_status
 # get status of territories in attack and def
 # tw_id: None / "TERRITORY_WAR_EVENT_C:01681236000000"
-# list_teams: [["T1", "Karcot", ["General Skywalker", "CT-5555 Fives", ...], <is_beaten>, <fights>],
+# list_teams: [["T1", "Karcot", ["GENERALSKYWALGER", "ARCTROOPER", ...], <is_beaten>, <fights>],
 #              ["T1", "JeanLuc"...
 # list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>, <status>], ...]
 # opp_guild: [name, id]

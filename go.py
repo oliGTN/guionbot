@@ -39,6 +39,10 @@ SCORE_ALMOST_GREEN = 95
 SCORE_AMBER = 80
 SCORE_RED = 50
 
+emoji_check = "\N{WHITE HEAVY CHECK MARK}"
+emoji_cross = "\N{CROSS MARK}"
+emoji_frowning = "\N{SLIGHTLY FROWNING FACE}"
+
 #Clean temp files
 parallel_work.clean_cache()
 
@@ -4734,3 +4738,144 @@ def store_eb_allocations(guild_id, tb_name, phases, allocations):
 
     return 0, ""
 
+async def check_tw_counter(txt_allyCode, guild_id, counter_type):
+    if not counter_type in ['SEEvsJMK', 'ITvsGEOS']:
+        return 1, "Counter inconnu: "+counter_type
+
+    # Get TW data and opponent teams
+    rpc_data = await connect_rpc.get_tw_status(guild_id, True)
+    tw_id = rpc_data["tw_id"]
+    if tw_id == None:
+        return 2, "ERR: pas de GT en cours"
+
+    list_opponent_squads = [x for x in rpc_data["awayGuild"]["list_teams"] if not x[3]]
+    opp_guild_name = rpc_data["opp_guildName"]
+
+    # Get data for this player
+    e, t, dict_player = await load_player(txt_allyCode, 1, False)
+    if e != 0:
+        return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
+
+    output_txt = "Counter "+counter_type+" pour "+dict_player["name"]
+    count_opponent = 0
+    if counter_type == "ITvsGEOS":
+        # Check attacker stats
+        if not "ADMIRALPIETT" in dict_player["rosterUnit"]:
+            return 2, "Pas de ITvsGEOS sans Piett"
+        my_Piett_speed = int(dict_player["rosterUnit"]["ADMIRALPIETT"]["stats"]["final"]["5"]*1e-8)
+        output_txt += "\nVitesse de mon Piett = "+str(my_Piett_speed)
+
+        output_txt += "\n-----"
+
+        # Check opponent stats
+        required_opp_units = ['GEONOSIANBROODALPHA', 'GEONOSIANSPY', 'SUNFAC', 'GEONOSIANSOLDIER', 'POGGLETHELESSER']
+        for squad in list_opponent_squads:
+            opp_player_name = squad[1]
+            opp_units = squad[2]
+            #print(squad[1]+": "+str(opp_units))
+            counter_required = 0
+            for unit in opp_units:
+                if unit in required_opp_units:
+                    counter_required+=1
+            if counter_required < len(required_opp_units):
+                # not valid ennemy
+                continue
+
+            count_opponent+=1
+            #Get fastest ennemy
+            query = "SELECT MAX(stat5) FROM roster " \
+                    "JOIN players on players.allyCode=roster.allyCode "\
+                    "WHERE players.name='"+opp_player_name+"' AND guildName='"+opp_guild_name+"' "\
+                    "AND defId IN "+str(tuple(required_opp_units))
+            goutils.log2("DBG", query)
+            opp_geo_max_speed = int(connect_mysql.get_value(query)*1e-8)
+            output_txt += "\nVitesse max des géos de "+opp_player_name+" = "+str(opp_geo_max_speed)
+            count_opponent+=1
+
+            if opp_geo_max_speed <= (my_Piett_speed+59):
+                output_txt += " > "+emoji_check
+            else:
+                output_txt += " > "+emoji_cross
+
+        if len(list_opponent_squads):
+            output_txt += "Aucun adversaire détecté"
+        return 0, output_txt
+
+    elif counter_type == "SEEvsJMK":
+        # Check attacker stats
+        if not "SITHPALPATINE" in dict_player["rosterUnit"]:
+            return 2, "Pas de SEEvsJMK sans SEE"
+        my_SEE_health = int(dict_player["rosterUnit"]["SITHPALPATINE"]["stats"]["final"]["1"]*1e-8)
+        output_txt += "\nSanté de mon SEE = "+str(my_SEE_health)
+
+        if my_SEE_health < 180000:
+            output_txt += "\nSanté de mon SEE < 180k"
+            output_txt += "\nCounter probablement non-valide"
+
+        if not "WATTAMBOR" in dict_player["rosterUnit"]:
+            return 2, "Pas de SEEvsJMK sans Wat"
+
+        if not "ARMORER" in dict_player["rosterUnit"]:
+            return 2, "Pas de SEEvsJMK sans l'Armurière"
+        my_Armorer_speed = int(dict_player["rosterUnit"]["ARMORER"]["stats"]["final"]["5"]*1e-8)
+        output_txt += "\nVitesse de mon Armurière = "+str(my_Armorer_speed)
+
+        if not "GRANDADMIRALTHRAWN" in dict_player["rosterUnit"]:
+            return 2, "Pas de SEEvsJMK sans Thrawn"
+        my_Thrawn_speed = int(dict_player["rosterUnit"]["GRANDADMIRALTHRAWN"]["stats"]["final"]["5"]*1e-8)
+        output_txt += "\nVitesse de mon Thrawn = "+str(my_Thrawn_speed)
+
+        if my_Armorer_speed < my_Thrawn_speed+21:
+            output_txt += "\nVitesse de mon Armurière < vitesse de mon Thrawn+21"
+            output_txt += "\nCounter non-valide"
+            return 2, output_txt
+
+        output_txt += "\n-----"
+
+        # Check opponent stats
+        required_opp_units = ['JEDIMASTERKENOBI', 'COMMANDERAHSOKA', 'AHSOKATANO', 'GENERALKENOBI']
+        fifth_unit_id = None
+        for squad in list_opponent_squads:
+            opp_player_name = squad[1]
+            opp_units = squad[2]
+            #print(squad[1]+": "+str(opp_units))
+            counter_required = 0
+            for unit in opp_units:
+                if unit in required_opp_units:
+                    counter_required+=1
+                else:
+                    fifth_unit_id = unit
+            if counter_required < len(required_opp_units):
+                # not valid ennemy
+                continue
+
+            count_opponent+=1
+            if fifth_unit_id == "SHAAKTI":
+                output_txt += "\nLe 5e perso de "+opp_player_name+" est Shaak-Ti > "+emoji_check
+            elif fifth_unit_id == "AAYLASECURA":
+                output_txt += "\nLe 5e perso de "+opp_player_name+" est Aayla > "+emoji_cross
+            elif fifth_unit_id == "R2D2_LEGENDARY":
+                output_txt += "\nLe 5e perso de "+opp_player_name+" est R2-D2 > "+emoji_cross
+            else:
+                #Get speed of 5th ennemy
+                query = "SELECT stat5  FROM roster " \
+                        "JOIN players on players.allyCode=roster.allyCode "\
+                        "WHERE players.name='"+opp_player_name+"' AND guildName='"+opp_guild_name+"' "\
+                        "AND defId='"+fifth_unit_id+"'"
+                goutils.log2("DBG", query)
+                fifth_unit_speed = int(connect_mysql.get_value(query)*1e-8)
+
+                output_txt += "\nVitesse du 5e perso ("+fifth_unit_id+") de "+opp_player_name+" = "+str(fifth_unit_speed)
+                if fifth_unit_speed <= (my_Thrawn_speed-11):
+                    if fifth_unit_id == "MACEWINDU":
+                        output_txt += " > "+emoji_frowning
+                    else:
+                        output_txt += " > "+emoji_check
+                else:
+                    output_txt += " > "+emoji_cross
+
+        if counter_opponent==0:
+            output_txt += "Aucun adversaire détecté"
+        return 0, output_txt
+    else:
+        return 1, "Counter inconnu: "+counter_type
