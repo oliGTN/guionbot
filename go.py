@@ -4790,14 +4790,13 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
             goutils.log2("DBG", query)
             opp_geo_max_speed = int(connect_mysql.get_value(query)*1e-8)
             output_txt += "\nVitesse max des géos de "+opp_player_name+" = "+str(opp_geo_max_speed)
-            count_opponent+=1
 
             if opp_geo_max_speed <= (my_Piett_speed+59):
                 output_txt += " > "+emoji_check
             else:
                 output_txt += " > "+emoji_cross
 
-        if len(list_opponent_squads):
+        if len(list_opponent_squads)==0:
             output_txt += "Aucun adversaire détecté"
         return 0, output_txt
 
