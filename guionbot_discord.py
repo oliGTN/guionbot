@@ -485,13 +485,12 @@ async def bot_loop_5minutes(bot):
         goutils.log2("DBG", "END loop")
 
 ##############################################################
-# Function: bot_loop_6hours
+# Function: bot_loop_60minutes
 # Parameters: none
 # Purpose: high level monitoring, every 6 hours
 # Output: none
 ##############################################################
-async def bot_loop_6hours(bot):
-        goutils.log2("DBG", "START loop")
+async def bot_loop_60minutes(bot):
         t_start = time.time()
 
         try:
@@ -502,11 +501,11 @@ async def bot_loop_6hours(bot):
                 await send_alert_to_admins(None, err_txt)
 
         except Exception as e:
-            goutils.log("ERR", "guionbot_discord.bot_loop_6hours", str(sys.exc_info()[0]))
-            goutils.log("ERR", "guionbot_discord.bot_loop_6hours", e)
-            goutils.log("ERR", "guionbot_discord.bot_loop_6hours", traceback.format_exc())
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_6hours:"+str(sys.exc_info()[0]))
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
         # Check metadata
         ec, et, metadata = await connect_rpc.get_metadata()
@@ -526,8 +525,6 @@ async def bot_loop_6hours(bot):
 
             if not bot_test_mode:
                 await send_alert_to_admins(None, "New GameDataVersion")
-
-        goutils.log2("DBG", "END loop")
 
 
 ################################################
@@ -1503,16 +1500,16 @@ class Loop10minutes(commands.Cog):
     async def before_loop_10minutes(self):
         await self.bot.wait_until_ready()
 
-class Loop6hours(commands.Cog):
+class Loop60minutes(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.loop_6hours.start()
+        self.loop_60minutes.start()
 
-    @tasks.loop(hours=6)
-    async def loop_6hours(self):
-        await bot_loop_6hours(self.bot)
-    @loop_6hours.before_loop
-    async def before_loop_6hours(self):
+    @tasks.loop(minutes=60)
+    async def loop_60minutes(self):
+        await bot_loop_60minutes(self.bot)
+    @loop_60minutes.before_loop
+    async def before_loop_60minutes(self):
         await self.bot.wait_until_ready()
 
 ##############################################################
@@ -4578,7 +4575,7 @@ async def main():
         await bot.add_cog(Loop60secsCog(bot))
         await bot.add_cog(Loop5minutes(bot))
         await bot.add_cog(Loop10minutes(bot))
-        await bot.add_cog(Loop6hours(bot))
+        await bot.add_cog(Loop60minutes(bot))
 
     #Lancement du bot
     goutils.log2("INFO", "Run bot...")
