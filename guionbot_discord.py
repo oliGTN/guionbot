@@ -1354,6 +1354,7 @@ async def on_command_error(ctx, error):
         await ctx.send("ERR: erreur inconnue")
         await ctx.message.add_reaction(emoji_error)
         goutils.log2("ERR", error)
+        goutils.log2("ERR", traceback.format_exception(error))
         await send_alert_to_admins(ctx.guild, "ERR: erreur inconnue "+str(error))
         raise error
 

@@ -1473,11 +1473,19 @@ async def get_tw_opponent_leader(guild_id):
 ########################################
 # get_tw_status
 # get status of territories in attack and def
-# tw_id: None / "TERRITORY_WAR_EVENT_C:01681236000000"
-# list_teams: [["T1", "Karcot", ["GENERALSKYWALGER", "ARCTROOPER", ...], <is_beaten>, <fights>],
-#              ["T1", "JeanLuc"...
-# list_territories: [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>, <status>], ...]
-# opp_guild: [name, id]
+# {
+#   "tw_id": None / "TERRITORY_WAR_EVENT_C:01681236000000", 
+#   "tw_round": tw_round, 
+#   "homeGuild": {"list_teams": [["T1", "Karcot", ["GENERALSKYWALGER", "ARCTROOPER", ...], <is_beaten>, <fights>],
+#                                ["T1", "JeanLuc"...
+#                 "list_territories": [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>, <status>], ...]
+#                }, 
+#   "awayGuild": {"list_teams": ...,
+#                 "list_territories": ...
+#                }, 
+#   "opp_guildName": name, 
+#   "opp_guildId": id
+# }
 ########################################
 async def get_tw_status(guild_id, force_update):
     dict_tw=godata.dict_tw
@@ -1513,6 +1521,7 @@ async def get_tw_status(guild_id, force_update):
     list_teams = {}
     list_territories = {}
 
+    capa_list = godata.get("unit_capa_list.json")
     for guild in ["homeGuild", "awayGuild"]:
         list_teams[guild] = []
         list_territories[guild] = []
@@ -1525,7 +1534,31 @@ async def get_tw_status(guild_id, force_update):
                 if "warSquad" in zone:
                     for squad in zone["warSquad"]:
                         player_name = squad["playerName"]
-                        list_chars = [c["unitDefId"].split(":")[0] for c in squad["squad"]["cell"]]
+                        list_chars = []
+                        for c in squad["squad"]["cell"]:
+                            unit_id = c["unitDefId"].split(":")[0]
+                            my_unit = {"unitDefId": c["unitDefId"],
+                                       "unitId": unit_id,
+                                       "level": c["unitBattleStat"]["level"],
+                                       "gear": c["unitBattleStat"]["tier"],
+                                       "relic": c["unitBattleStat"]["unitRelicTier"]-5,
+                                       "zetas": [],
+                                       "omicrons": [],
+                                       "turnMeter": c["unitState"]["turnPercent"]}
+                            if "skill" in c["unitBattleStat"]:
+                                for s in c["unitBattleStat"]["skill"]:
+                                    skill_id = s["id"]
+                                    skill_tier = s["tier"]+2
+                                    if skill_id in capa_list[unit_id]:
+                                        if capa_list[unit_id][skill_id]["zetaTier"] < 99 and \
+                                           capa_list[unit_id][skill_id]["zetaTier"] <= skill_tier:
+                                            my_unit["zetas"].append(skill_id)
+                                        if capa_list[unit_id][skill_id]["omicronTier"] < 99 and \
+                                           capa_list[unit_id][skill_id]["omicronTier"] <= skill_tier:
+                                            my_unit["omicrons"].append(skill_id)
+
+                                list_chars.append(my_unit)
+
                         is_beaten = (squad["squadStatus"]=="SQUADDEFEATED")
                         fights = squad["successfulDefends"]
                         list_teams[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights])

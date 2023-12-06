@@ -1986,7 +1986,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             for team in list_opponent_squads:
                 zone=team[0]
                 if tw_zone=="all" or zone==tw_zone:
-                    team_char_ids = team[2]
+                    team_char_ids = [x["unitId"] for x in team[2]]
                     if character_id in team_char_ids:
                         team_player_name = team[1]
                         dict_tw_zone_players[team_player_name] = zone
@@ -2408,7 +2408,7 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     for opp_squad in list_opponent_squads:
         territory = opp_squad[0]
         player_name = opp_squad[1]
-        squad_char_ids = opp_squad[2]
+        squad_char_ids = [x["unitId"] for x in opp_squad[2]]
         list_opp_squad_ids.append([territory, player_name, squad_char_ids])
 
     list_opp_squads_with_char = list(filter(lambda x:char_def_id in x[2], list_opp_squad_ids))
@@ -2419,24 +2419,19 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     query = "SELECT name, allyCode "
     query+= "FROM players "
     query+= "WHERE guildName='"+guildName.replace("'", "''")+"' "
-    query+= "ORDER BY name"
     goutils.log2("DBG", query)
     results = connect_mysql.get_table(query)
-    list_DB_names = [x[0] for x in results]
+    dict_DB_names = {}
+    for line in results:
+        dict_DB_names[line[0]] = str(line[1])
 
     for opp_squad in list_opp_squads_with_char:
         player_name = opp_squad[1]
 
-        closest_names=difflib.get_close_matches(player_name, list_DB_names, 1)
-        #print(closest_names)
-        if len(closest_names)<1:
+        if not player_name in dict_DB_names:
             goutils.log2("ERR", player_name+' ne fait pas partie des joueurs connus de la guilde '+guildName)
-            return 1, 'ERR: '+player_name+' ne fait pas partie des joueurs connus\n', None
-        else:
-            goutils.log2("INFO", "cmd launched with name that looks like "+closest_names[0])
-            for r in results:
-                if r[0] == closest_names[0]:
-                    opp_squad[1] = str(r[1])
+            return 1, "ERR: "+player_name+" ne fait pas partie des joueurs connus dans la guilde "+guildName, None
+        opp_squad[1] = dict_DB_names[player_name]
 
     #print(list_opp_squads_with_char)
     list_char_allycodes = []
@@ -2922,8 +2917,8 @@ async def get_tw_alerts(guild_id, force_update):
         for territory in list_open_tw_territories:
             list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
             list_opp_remaining_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0 and not x[3])]
-            counter_leaders = Counter([x[2][0] for x in list_opp_squads_terr])
-            counter_remaining_leaders = Counter([x[2][0] for x in list_opp_remaining_squads_terr])
+            counter_leaders = Counter([x[2][0]["unitId"] for x in list_opp_squads_terr])
+            counter_remaining_leaders = Counter([x[2][0]["unitId"] for x in list_opp_remaining_squads_terr])
 
             n_territory = int(territory[1])
             if territory[0] == "T" and int(territory[1]) > 2:
@@ -2968,7 +2963,6 @@ async def get_tw_alerts(guild_id, force_update):
                 list_tw_alerts[1][territory] = "\N{WHITE RIGHT POINTING BACKHAND INDEX}"+msg
 
 
-    list_defense_squads = rpc_data["homeGuild"]["list_teams"]
     list_def_territories = rpc_data["homeGuild"]["list_territories"]
     list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
     nb_full = len(list_full_territories)
@@ -3777,7 +3771,8 @@ async def get_tw_defense_toons(guild_id, force_update):
     dict_def_toon_player = {}
     for squad in list_defense_squads:
         player = squad[1]
-        for char_id in squad[2]:
+        for char in squad[2]:
+            char_id = char["unitId"]
             if not char_id in dict_def_toon_player:
                 dict_def_toon_player[char_id] = []
 
@@ -4638,7 +4633,7 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
     return kyro_energy, shard_energy
 
 def update_raid_estimates_from_wookiebot(raid_name, file_content):
-    print(file_content[:100])
+    #print(file_content[:100])
     for line in file_content.split("\n")[1:]:
         fields = line.split('"')
         if len(fields)<4:
@@ -4771,7 +4766,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
         required_opp_units = ['GEONOSIANBROODALPHA', 'GEONOSIANSPY', 'SUNFAC', 'GEONOSIANSOLDIER', 'POGGLETHELESSER']
         for squad in list_opponent_squads:
             opp_player_name = squad[1]
-            opp_units = squad[2]
+            opp_units = [x["unitId"] for x in squad[2]]
             #print(squad[1]+": "+str(opp_units))
             counter_required = 0
             for unit in opp_units:
@@ -4836,7 +4831,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
         fifth_unit_id = None
         for squad in list_opponent_squads:
             opp_player_name = squad[1]
-            opp_units = squad[2]
+            opp_units = [x["unitId"] for x in squad[2]]
             #print(squad[1]+": "+str(opp_units))
             counter_required = 0
             for unit in opp_units:
