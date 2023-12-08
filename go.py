@@ -297,7 +297,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
         if os.path.isfile(json_file):
             prev_dict_guild = json.load(open(json_file, 'r'))
 
-    ec, et, dict_guild = await connect_rpc.get_guild_data(txt_allyCode, False)
+    ec, et, dict_guild = await connect_rpc.get_guild_data_from_ac(txt_allyCode, False)
     if ec != 0:
         goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
         dict_guild = prev_dict_guild
@@ -4417,7 +4417,7 @@ async def detect_fulldef(guild_id, force_update):
     return 0, "", dict_fulldef
 
 async def get_tw_insufficient_attacks(guild_id, min_char_attacks, min_ship_attacks):
-    ec, et, dict_leaderboard = await connect_rpc.get_tw_leaderboard(guild_id, -1)
+    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1)
     if ec != 0:
         return ec, et, None
 
