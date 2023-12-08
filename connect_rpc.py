@@ -1729,11 +1729,6 @@ async def deploy_tb(guild_id, zone, list_defId):
     if not guild_id in dict_bot_accounts:
         return 1, "Ce serveur discord n'a pas de warbot", None
 
-    err_code, err_txt, dict_guild = await get_guild_data(guild_id, -1)
-    if err_code != 0:
-        goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au bot"
-
     err_code, err_txt, dict_player = await get_bot_player_data(guild_id, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -1769,11 +1764,6 @@ async def deploy_tw(guild_id, zone, list_defId):
     dict_bot_accounts = get_dict_bot_accounts()
     if not guild_id in dict_bot_accounts:
         return 1, "Ce serveur discord n'a pas de warbot", None
-
-    err_code, err_txt, dict_guild = await get_guild_data(guild_id, -1)
-    if err_code != 0:
-        goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au bot"
 
     err_code, err_txt, dict_player = await get_bot_player_data(guild_id, False)
     if err_code != 0:
