@@ -1961,7 +1961,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             if not guild_id in connect_rpc.get_dict_bot_accounts():
                 return "ERR: cannot detect TW opponent in this server"
 
-            rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
+            rpc_data = await connect_rpc.get_tw_status(guild_id, 0)
             tw_id = rpc_data["tw_id"]
             if tw_id == None:
                 return "ERR: no TW ongoing"
@@ -2381,7 +2381,7 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if twChannel_id == 0:
         return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
-    rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, 0)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
@@ -4417,7 +4417,7 @@ async def detect_fulldef(guild_id, force_update):
     return 0, "", dict_fulldef
 
 async def get_tw_insufficient_attacks(guild_id, min_char_attacks, min_ship_attacks):
-    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1)
+    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, 0)
     if ec != 0:
         return ec, et, None
 
@@ -4425,10 +4425,12 @@ async def get_tw_insufficient_attacks(guild_id, min_char_attacks, min_ship_attac
     if ec != 0:
         return ec, et, None
 
+    # Called with use_cache_data = -1 as RPC call was just made in get_tw_participation
     ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, -1)
     if ec != 0:
         return ec, et, None
 
+    # Called with use_cache_data = -1 as RPC call was just made in get_tw_participation
     rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
@@ -4738,7 +4740,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
         return 1, "Counter inconnu: "+counter_type
 
     # Get TW data and opponent teams
-    rpc_data = await connect_rpc.get_tw_status(guild_id, True)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, 0)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 2, "ERR: pas de GT en cours"
