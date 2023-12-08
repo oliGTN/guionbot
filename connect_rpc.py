@@ -1677,7 +1677,7 @@ async def get_tw_status(guild_id, force_update):
                                            capa_list[unit_id][skill_id]["omicronTier"] <= skill_tier:
                                             my_unit["omicrons"].append(skill_id)
 
-                                list_chars.append(my_unit)
+                            list_chars.append(my_unit)
 
                         is_beaten = (squad["squadStatus"]=="SQUADDEFEATED")
                         fights = squad["successfulDefends"]
