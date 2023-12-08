@@ -1711,7 +1711,7 @@ async def get_tw_status(guild_id, force_update):
             "opp_guildId": opp_guildId}
 
 async def get_tw_active_players(guild_id, force_update):
-    ec, et, dict_guild = await get_guild_rpc_data(guild_id, force_update)
+    ec, et, dict_guild = await get_guild_data(guild_id, force_update)
     if ec!=0:
         return 1, et, None
 
