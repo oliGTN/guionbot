@@ -198,9 +198,14 @@ async def bot_loop_60secs(bot):
             for guild_id in db_data:
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
+                    #This RPC call gets everything once, so that next calls in the 
+                    # following lines are able to use cache data
                     await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1)
-                    await connect_gsheets.update_gwarstats(guild_id)
 
+                    #Update g-sheet during TB
+                    await connect_gsheets.update_gwarstats(guild_id)
+                    
+                    #Update log channels
                     ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True)
                     if ec!=0:
                         goutils.log2("ERR", et)
