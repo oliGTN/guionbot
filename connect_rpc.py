@@ -232,13 +232,14 @@ async def get_event_data(dict_guild, event_types, force_update):
         # RPC REQUEST for events
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
+                  "eventType": "TB",
                   "list_channels": list_channels, 
                   "use_cache_data":use_cache_data}
         req_data = json.dumps(params)
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, data=req_data) as resp:
-                    goutils.log2("DBG", "POST events status="+str(resp.status))
+                    goutils.log2("DBG", "POST TB events status="+str(resp.status))
                     if resp.status==200:
                         resp_events = await(resp.json())
                     else:
@@ -273,13 +274,14 @@ async def get_event_data(dict_guild, event_types, force_update):
         # RPC REQUEST for events
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
+                  "eventType": "TW",
                   "list_channels": list_channels, 
                   "use_cache_data":use_cache_data}
         req_data = json.dumps(params)
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, data=req_data) as resp:
-                    goutils.log2("DBG", "POST events status="+str(resp.status))
+                    goutils.log2("DBG", "POST TW events status="+str(resp.status))
                     if resp.status==200:
                         resp_events = await(resp.json())
                     else:
@@ -304,18 +306,18 @@ async def get_event_data(dict_guild, event_types, force_update):
                 if room["type"] == "GUILDDEFAULT":
                     room_channel = room["roomId"]
                     list_channels.append(room_channel)
-        #print(list_channels)
 
         # RPC REQUEST for events
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
+                  "eventType": "CHAT",
                   "list_channels": list_channels, 
                   "use_cache_data":use_cache_data}
         req_data = json.dumps(params)
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, data=req_data) as resp:
-                    goutils.log2("DBG", "POST events status="+str(resp.status))
+                    goutils.log2("DBG", "POST CHAT events status="+str(resp.status))
                     if resp.status==200:
                         resp_events = await(resp.json())
                     else:

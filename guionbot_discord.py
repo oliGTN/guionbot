@@ -1691,7 +1691,10 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(admin_command)
     async def test(self, ctx, *args):
-        await bot_loop_5minutes(bot)
+        #await ctx.message.add_reaction(emoji_thumb)
+        #await bot_loop_60secs(bot)
+        #await ctx.message.add_reaction(emoji_check)
+        pass
 
 ##############################################################
 # Class: TbCog - for Google accounts
