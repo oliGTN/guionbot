@@ -731,14 +731,17 @@ async def get_guildLog_messages(guild_id, onlyLatest):
         goutils.log2("ERR", err_txt)
         return 1, err_txt, None
 
-    # Get events only if the discord channel is defined
-    eventTypes = []
-    if chatChan_id != 0:
-        eventTypes.append("CHAT")
-    if twlogChan_id != 0:
-        eventTypes.append("TW")
-    if tblogChan_id != 0:
-        eventTypes.append("TB")
+    # Get latest events only if the discord channel is defined
+    if onlyLatest:
+        eventTypes = []
+        if chatChan_id != 0:
+            eventTypes.append("CHAT")
+        if twlogChan_id != 0:
+            eventTypes.append("TW")
+        if tblogChan_id != 0:
+            eventTypes.append("TB")
+    else:
+        eventTypes = ["CHAT", "TW", "TB"]
 
     # Get data from RPC
     err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, -1)
