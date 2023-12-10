@@ -2534,18 +2534,19 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
+        guild_id = bot_infos["guild_id"]
         guild_name = bot_infos["guild_name"]
 
-        if guild_name == None:
+        if guild_id == None:
             await ctx.send('ERR: Guilde non déclarée dans le bot')
             return
 
-        #Look for latest TW evennt file for this guild
+        #Look for latest TW event file for this guild
         search_dir = "EVENTS/"
         files = os.listdir(search_dir)
         files = [os.path.join(search_dir, f) for f in files] # add path to each file
         files = list(filter(os.path.isfile, files))
-        files = list(filter(lambda f: guild_name+"_TERRITORY_WAR_EVENT" in f, files))
+        files = list(filter(lambda f: guild_id+"_TERRITORY_WAR_EVENT" in f, files))
         files.sort(key=lambda x: os.path.getmtime(x))
         latest_log = files[-1]
 
