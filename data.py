@@ -6,16 +6,16 @@ dict_raid_tiers['Rancor (challenge)']=[41193988, 36425856, 39461352, 37943604]
 
 dict_tb={}
 dict_tb["GDS"] = {"id": "t03D"}
-dict_tb["t04D"] = {"PhaseDuration": 129600000, "zoneNames": {}, "zonePositions": {}, "maxRound": 4}
-dict_tb["t04D"]["name"] = "Geonosis Dark Side"
-dict_tb["t04D"]["shortname"] = "GDS"
-dict_tb["t04D"]["zoneNames"]["top"] = "conflict01"
-dict_tb["t04D"]["zoneNames"]["mid"] = "conflict02"
-dict_tb["t04D"]["zoneNames"]["bot"] = "conflict03"
-dict_tb["t04D"]["zonePositions"]["top"] = 1
-dict_tb["t04D"]["zonePositions"]["mid"] = 2
-dict_tb["t04D"]["zonePositions"]["bot"] = 3
-dict_tb["t04D"]["prefix"] = "geonosis_separatist"
+dict_tb["t03D"] = {"PhaseDuration": 129600000, "zoneNames": {}, "zonePositions": {}, "maxRound": 4}
+dict_tb["t03D"]["name"] = "Geonosis Dark Side"
+dict_tb["t03D"]["shortname"] = "GDS"
+dict_tb["t03D"]["zoneNames"]["top"] = "conflict01"
+dict_tb["t03D"]["zoneNames"]["mid"] = "conflict02"
+dict_tb["t03D"]["zoneNames"]["bot"] = "conflict03"
+dict_tb["t03D"]["zonePositions"]["top"] = 1
+dict_tb["t03D"]["zonePositions"]["mid"] = 2
+dict_tb["t03D"]["zonePositions"]["bot"] = 3
+dict_tb["t03D"]["prefix"] = "geonosis_separatist"
 #PHASE 1
 dict_tb["geonosis_separatist_phase01_conflict01"] = {}
 dict_tb["geonosis_separatist_phase01_conflict01"]["name"] = "GDS1-top"
