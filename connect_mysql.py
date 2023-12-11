@@ -1165,7 +1165,7 @@ def get_warbot_info(server_id, channel_id):
                    "gfile_name": db_data[5]}
 
 def get_warbot_info_from_guild(guild_id):
-    query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, guilds.name, gfile_name FROM guild_bot_infos \n"
+    query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name FROM guild_bot_infos \n"
     query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
     query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
     query+= "WHERE guild_id='"+guild_id+"'"
@@ -1179,8 +1179,10 @@ def get_warbot_info_from_guild(guild_id):
                    "allyCode": db_data[1],
                    "player_name": db_data[2],
                    "tbChanRead_id": db_data[3],
-                   "guild_name": db_data[4],
-                   "gfile_name": db_data[5]}
+                   "tbChanOut_id": db_data[4],
+                   "tbRoleOut": db_data[5],
+                   "guild_name": db_data[6],
+                   "gfile_name": db_data[7]}
 
 ########################################
 # Get guild ID, allyCode and player name for the
