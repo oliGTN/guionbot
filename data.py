@@ -61,6 +61,20 @@ dict_tb["geonosis_separatist_phase02_conflict03"]["strikes"]["strike01"] = [4, 1
 dict_tb["geonosis_separatist_phase02_conflict03"]["strikes"]["strike02"] = [4, 1080000]
 dict_tb["geonosis_separatist_phase02_conflict03"]["coverts"] = {}
 dict_tb["geonosis_separatist_phase02_conflict03"]["coverts"]["covert01"] = [1]
+#PHASE 3
+dict_tb["geonosis_separatist_phase03_conflict01"] = {}
+dict_tb["geonosis_separatist_phase03_conflict01"]["name"] = "GDS3-top"
+dict_tb["geonosis_separatist_phase03_conflict02"] = {}
+dict_tb["geonosis_separatist_phase03_conflict02"]["name"] = "GDS3-mid"
+dict_tb["geonosis_separatist_phase03_conflict03"] = {}
+dict_tb["geonosis_separatist_phase03_conflict03"]["name"] = "GDS3-bot"
+#PHASE 4
+dict_tb["geonosis_separatist_phase04_conflict01"] = {}
+dict_tb["geonosis_separatist_phase04_conflict01"]["name"] = "GDS4-top"
+dict_tb["geonosis_separatist_phase04_conflict02"] = {}
+dict_tb["geonosis_separatist_phase04_conflict02"]["name"] = "GDS4-mid"
+dict_tb["geonosis_separatist_phase04_conflict03"] = {}
+dict_tb["geonosis_separatist_phase04_conflict03"]["name"] = "GDS4-bot"
 
 dict_tb["GLS"] = {"id": "t04D"}
 dict_tb["t04D"] = {"PhaseDuration": 129600000, "zoneNames": {}, "zonePositions": {}, "maxRound": 4}
