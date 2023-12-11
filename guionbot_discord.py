@@ -370,7 +370,7 @@ async def bot_loop_5minutes(bot):
                 for tb_alert in list_tb_alerts:
                     if not tb_alert in dict_tb_alerts_previously_done[guild_id]:
                         if not first_bot_loop_5minutes:
-                            await send_alert_to_echocommanders(None, "["+guild_id+"] "+tb_alert)
+                            await send_alert_to_echocommanders(guild_id, tb_alert)
                             goutils.log2("INFO", "["+guild_id+"] New TB alert: "+tb_alert)
                         else:
                             goutils.log2("DBG", "["+guild_id+"] New TB alert within the first 5 minutes: "+tb_alert)
@@ -474,7 +474,7 @@ async def bot_loop_5minutes(bot):
                             msg += territory_display+": "+str(territory_full_count)+"/6)"
                             if not first_bot_loop_5minutes:
                                 goutils.log2("INFO", "["+guild_id+"]"+msg)
-                                await send_alert_to_echocommanders(None, "["+guild_id+"] "+msg)
+                                await send_alert_to_echocommanders(guild_id, msg)
 
                         dict_platoons_previously_done[guild_id] = dict_platoons_done.copy()
 
@@ -582,26 +582,26 @@ async def send_alert_to_admins(server, message):
 # Purpose: send a message to Echobot admins.
 # Output: None
 ##############################################################
-async def send_alert_to_echocommanders(server, message):
-    goutils.log2("DBG", "server.name="+server.name+", message="+message)
+async def send_alert_to_echocommanders(guild_id, message):
+    goutils.log2("DBG", "guild_id="+guild_id+", message="+message)
     if bot_test_mode:
-        await send_alert_to_admins(server, message)
+        await send_alert_to_admins(None, "["+guild_id+"] "+message)
     else:
-        query = "SELECT tbChanOut_id, tbRoleOut FROM guild_bot_infos WHERE server_id="+str(server.id)
-        goutils.log2("DBG", query)
-        result = connect_mysql.get_line(query)
-        if result == None:
-            await ctx.send('ERR: commande non utilisable sur ce serveur')
+        ec, et, warbot_infos = connect_mysql.get_warbot_info_from_guild(guild_id)
+        if ec != 0:
+            await ctx.send('ERR: commande non utilisable Pour cette guilde')
             return
 
-        [tbChanOut_id, tbRoleOut] = result
+        tbChanOut_id = warbot_infos["tbChanOut_id"]
+        tbRoleOut = warbot_infos["tbRoleOut"]
+        guild_name = warbot_infos["guildName"]
 
         if tbChanOut_id != 0:
             tb_channel = bot.get_channel(tbChanOut_id)
             try:
-                await tb_channel.send("["+server.name+"]"+ message)
+                await tb_channel.send("["+guild_name+"]"+ message)
             except discorderrors.Forbidden as e:
-                goutils.log2("WAR", "["+server.name+"] Cannot send message to "+str(tbChanOut_id))
+                goutils.log2("WAR", "["+guild_name+"] Cannot send message to "+str(tbChanOut_id))
 
         if tbRoleOut != "":
             for role in server.roles:
@@ -609,9 +609,9 @@ async def send_alert_to_echocommanders(server, message):
                     for member in role.members:
                         channel = await member.create_dm()
                         try:
-                            await channel.send("["+server.name+"]"+ message)
+                            await channel.send("["+guild_name+"]"+ message)
                         except discorderrors.Forbidden as e:
-                            goutils.log2("WAR", "["+server.name+"] Cannot send DM to "+member.name)
+                            goutils.log2("WAR", "["+guild_name+"] Cannot send DM to "+member.name)
 
 ##############################################################
 # Function: get_eb_allocation
