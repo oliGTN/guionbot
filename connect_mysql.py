@@ -1134,7 +1134,7 @@ def compute_statq_avg(force_all):
 #  warbot linked to this discord server
 ########################################
 def get_warbot_info(server_id, channel_id):
-    query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, guilds.name, gfile_name FROM guild_bot_infos \n"
+    query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name FROM guild_bot_infos \n"
     query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
     query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
     query+= "WHERE server_id="+str(server_id)
@@ -1144,7 +1144,7 @@ def get_warbot_info(server_id, channel_id):
     if db_data == None:
         if channel_id != None:
             #no warbot found from server, try it from the channel
-            query = "SELECT guildId, allyCode, players.name, tbChanRead_id, guilds.name, gfile_name FROM guild_bot_infos \n"
+            query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name FROM guild_bot_infos \n"
             query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
             query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
             query+= "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bot_infos.guild_id \n"
@@ -1161,8 +1161,10 @@ def get_warbot_info(server_id, channel_id):
                    "allyCode": db_data[1],
                    "player_name": db_data[2],
                    "tbChanRead_id": db_data[3],
-                   "guild_name": db_data[4],
-                   "gfile_name": db_data[5]}
+                   "tbChanOut_id": db_data[4],
+                   "tbRoleOut": db_data[5],
+                   "guild_name": db_data[6],
+                   "gfile_name": db_data[7]}
 
 def get_warbot_info_from_guild(guild_id):
     query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name FROM guild_bot_infos \n"
