@@ -351,7 +351,7 @@ async def bot_loop_5minutes(bot):
                         #Delete potential previous tw_messages
                         query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
                         query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
-                        goutils.log2("INFO", query)
+                        goutils.log2("DBGO", query)
                         connect_mysql.simple_execute(query)
 
             except Exception as e:
@@ -592,9 +592,10 @@ async def send_alert_to_echocommanders(guild_id, message):
             await ctx.send('ERR: commande non utilisable Pour cette guilde')
             return
 
+        goutils.log2("INFO", warbot_infos)
         tbChanOut_id = warbot_infos["tbChanOut_id"]
         tbRoleOut = warbot_infos["tbRoleOut"]
-        guild_name = warbot_infos["guildName"]
+        guild_name = warbot_infos["guild_name"]
 
         if tbChanOut_id != 0:
             tb_channel = bot.get_channel(tbChanOut_id)
