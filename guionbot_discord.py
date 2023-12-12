@@ -596,6 +596,7 @@ async def send_alert_to_echocommanders(guild_id, message):
         tbChanOut_id = warbot_infos["tbChanOut_id"]
         tbRoleOut = warbot_infos["tbRoleOut"]
         guild_name = warbot_infos["guild_name"]
+        server_id = warbot_infos["server_id"]
 
         if tbChanOut_id != 0:
             tb_channel = bot.get_channel(tbChanOut_id)
@@ -605,14 +606,18 @@ async def send_alert_to_echocommanders(guild_id, message):
                 goutils.log2("WAR", "["+guild_name+"] Cannot send message to "+str(tbChanOut_id))
 
         if tbRoleOut != "":
-            for role in server.roles:
-                if role.name == tbRoleOut:
-                    for member in role.members:
-                        channel = await member.create_dm()
-                        try:
-                            await channel.send("["+guild_name+"]"+ message)
-                        except discorderrors.Forbidden as e:
-                            goutils.log2("WAR", "["+guild_name+"] Cannot send DM to "+member.name)
+            server = bot.get_guild(server_id)
+            if server == None:
+                goutils.log2("WAR", "server "+str(server_id)+" not found > cannot send allert to echocommanders")
+            else:
+                for role in server.roles:
+                    if role.name == tbRoleOut:
+                        for member in role.members:
+                            channel = await member.create_dm()
+                            try:
+                                await channel.send("["+guild_name+"]"+ message)
+                            except discorderrors.Forbidden as e:
+                                goutils.log2("WAR", "["+guild_name+"] Cannot send DM to "+member.name)
 
 ##############################################################
 # Function: get_eb_allocation
