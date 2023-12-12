@@ -688,6 +688,34 @@ async def update_gwarstats(guild_id):
         # Prepare next loop
         i_zone+=1
 
+    # Erasing useless columns (when a phase has less than 3 zones)
+    i_next_zone = i_zone
+    for i_zone in range(i_next_zone, 3):
+        cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=12, col=1+i_col+4*i_zone, value=0))
+        cells.append(gspread.cell.Cell(row=12, col=2+i_col+4*i_zone, value=0))
+        cells.append(gspread.cell.Cell(row=12, col=3+i_col+4*i_zone, value=0))
+
+        #zone scores (for the graph)
+        cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=0))
+        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=0))
+        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=0))
+        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=0))
+
+        #zone strike stats
+        for line in [19, 20, 21, 22, 23]:
+            cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value=""))
+            cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=""))
+
+        cells.append(gspread.cell.Cell(row=27, col=5+2*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=""))
+
+        #strikes success
+        cells.append(gspread.cell.Cell(row=32, col=1+4*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=""))
+
     #global stats
     #Remaining Deployments
     if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
@@ -765,6 +793,14 @@ async def update_gwarstats(guild_id):
                 strike_txt = strike_txt.replace("?", "0")
             cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=strike_txt.strip()))
             i_zone += 1
+
+        # Erasing useless strike columns (when a phase has less than 3 zones)
+        i_next_zone = i_zone
+        print(i_next_zone)
+        for i_zone in range(i_next_zone, 4):
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=""))
+
+        # Total strikes
         player_strikes = player["strike_attempts"]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+12, value=str(player_strikes)+"/"+str(total_strikes)))
 
