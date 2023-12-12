@@ -615,7 +615,7 @@ async def update_gwarstats(guild_id):
         feuille.duplicate(insert_sheet_index=max_sheet_id+1, new_sheet_name=new_sheet_name)
 
 
-    dict_tb = data.dict_tb
+    dict_tb = data.get("tb_definition.json")
     cells = []
     cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["name"]))
     cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["round"]))

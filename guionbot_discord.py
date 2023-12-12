@@ -860,7 +860,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         del dict_platoons_allocation[key]
                                             
                             else:
-                                goutils.log2("WAR", 'Mission \"'+territory_name+'\" inconnue')
+                                goutils.log2("WAR", "Unknown mission "+territory_name+" for TB "+tbs_name)
 
                 if detect_previous_BT:
                     #out of the main message reading loop

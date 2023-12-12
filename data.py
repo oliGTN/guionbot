@@ -4,14 +4,12 @@ import os
 dict_raid_tiers = {}
 dict_raid_tiers['Rancor (challenge)']=[41193988, 36425856, 39461352, 37943604]
 
+"""
 dict_tb={}
 dict_tb["GDS"] = {"id": "t03D"}
-dict_tb["t03D"] = {"PhaseDuration": 129600000, "zoneNames": {}, "zonePositions": {}, "maxRound": 4}
+dict_tb["t03D"] = {"PhaseDuration": 129600000, "zonePositions": {}, "maxRound": 4}
 dict_tb["t03D"]["name"] = "Geonosis Dark Side"
 dict_tb["t03D"]["shortname"] = "GDS"
-dict_tb["t03D"]["zoneNames"]["top"] = "conflict01"
-dict_tb["t03D"]["zoneNames"]["mid"] = "conflict02"
-dict_tb["t03D"]["zoneNames"]["bot"] = "conflict03"
 dict_tb["t03D"]["zonePositions"]["top"] = 1
 dict_tb["t03D"]["zonePositions"]["mid"] = 2
 dict_tb["t03D"]["zonePositions"]["bot"] = 3
@@ -77,12 +75,9 @@ dict_tb["geonosis_separatist_phase04_conflict03"] = {}
 dict_tb["geonosis_separatist_phase04_conflict03"]["name"] = "GDS4-bot"
 
 dict_tb["GLS"] = {"id": "t04D"}
-dict_tb["t04D"] = {"PhaseDuration": 129600000, "zoneNames": {}, "zonePositions": {}, "maxRound": 4}
+dict_tb["t04D"] = {"PhaseDuration": 129600000, "zonePositions": {}, "maxRound": 4}
 dict_tb["t04D"]["name"] = "Geonosis Light Side"
 dict_tb["t04D"]["shortname"] = "GLS"
-dict_tb["t04D"]["zoneNames"]["top"] = "conflict01"
-dict_tb["t04D"]["zoneNames"]["mid"] = "conflict02"
-dict_tb["t04D"]["zoneNames"]["bot"] = "conflict03"
 dict_tb["t04D"]["zonePositions"]["top"] = 1
 dict_tb["t04D"]["zonePositions"]["mid"] = 2
 dict_tb["t04D"]["zonePositions"]["bot"] = 3
@@ -190,12 +185,9 @@ dict_tb["geonosis_republic_phase04_conflict03"]["strikes"]["covert01"] = [4, 238
 dict_tb["geonosis_republic_phase04_conflict03"]["coverts"] = {}
 
 dict_tb["ROTE"] = {"id": "t05D"}
-dict_tb["t05D"] = {"PhaseDuration": 86400000, "zoneNames": {}, "zonePositions": {}, "maxRound": 6}
+dict_tb["t05D"] = {"PhaseDuration": 86400000, "zonePositions": {}, "maxRound": 6}
 dict_tb["t05D"]["name"] = "Rise of the Empire"
 dict_tb["t05D"]["shortname"] = "ROTE"
-#dict_tb["t05D"]["zoneNames"]["DS"] = "conflict02"
-#dict_tb["t05D"]["zoneNames"]["MS"] = "conflict03"
-#dict_tb["t05D"]["zoneNames"]["LS"] = "conflict01"
 dict_tb["t05D"]["zonePositions"]["DS"] = 1
 dict_tb["t05D"]["zonePositions"]["MS"] = 2
 dict_tb["t05D"]["zonePositions"]["LS"] = 3
@@ -409,9 +401,10 @@ dict_tb["tb3_mixed_phase06_conflict03"]["strikes"] = {}
 dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike01"] = [2, 1151719]
 dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike02"] = [2, 1151719]
 dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike03"] = [2, 1151719]
-dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike04"] = [1, 1151719]
+dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike04"] = [2, 1151719]
 dict_tb["tb3_mixed_phase06_conflict03"]["strikes"]["strike05"] = [1, 2303438]
 dict_tb["tb3_mixed_phase06_conflict03"]["coverts"] = {}
+"""
 
 dict_tw = {}
 dict_tw["tw_jakku01_phase01_conflict01"] = "T1"

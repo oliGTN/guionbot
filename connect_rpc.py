@@ -627,7 +627,7 @@ async def get_actual_tb_platoons(guild_id, force_update):
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
     list_open_territories = [0, 0, 0] # [4, 3, 3]
 
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
 
     err_code, err_txt, dict_guild = await get_guild_data(guild_id, force_update)
 
@@ -768,7 +768,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
     FRE_FR = godata.get('FRE_FR.json')
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_tw = godata.dict_tw
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
 
     list_chat_events = []
     list_tw_logs = []
@@ -958,7 +958,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
     return list_chat_events, list_tw_logs, list_tb_logs
 
 async def tag_tb_undeployed_players(guild_id, force_update):
-    dict_tb=godata.dict_tb
+    dict_tb=godata.get("tb_definition.json")
     ec, et, tb_data = await get_tb_status(guild_id, "", False, force_update)
     if ec!=0:
         return 1, et, None
@@ -1020,7 +1020,7 @@ async def tag_tb_undeployed_players(guild_id, force_update):
 
 ##############################################################
 async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update):
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
 
     ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], force_update)
     if ec!=0:
@@ -1545,7 +1545,7 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
 # OUT: tb_active_round = 3
 ##########################################"
 async def get_tb_guild_scores(guild_id, force_update):
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
     ec, et, tb_data = await get_tb_status(guild_id, "", False, force_update)
     if ec!=0:
         return {}, ""

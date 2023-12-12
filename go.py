@@ -3817,7 +3817,7 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
     return 0, "", ret_db
 
 async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update):
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
 
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update)
     if ec!=0:
@@ -4013,7 +4013,7 @@ async def get_tb_alerts(guild_id, force_update):
     goutils.log2("DBG", "["+guild_id+"] territory_scores="+str(territory_scores))
 
     if active_round != "":
-        dict_tb = godata.dict_tb
+        dict_tb = godata.get("tb_definition.json")
         
         [daily_targets, margin] = connect_gsheets.get_tb_triggers(guild_id, False)
         goutils.log2("DBG", "["+guild_id+"] tb_triggers="+str([daily_targets, margin]))
@@ -4157,7 +4157,7 @@ async def deploy_bot_tb(guild_id, zone_shortname, characters):
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", False, -1)
     if ec!=0:
         return 1, et
@@ -4226,7 +4226,7 @@ async def deploy_platoons_tb(allyCode, platoon_name, characters):
     if txt != '':
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
     tb_name = platoon_name.split('-')[0][:-1]
     tb_phase = platoon_name.split('-')[0][-1]
     platoon_side = platoon_name.split('-')[1]
@@ -4234,8 +4234,6 @@ async def deploy_platoons_tb(allyCode, platoon_name, characters):
     platoon_position = platoon_name.split('-')[2]
     tb_id = dict_tb[tb_name]["id"]
     tb_prefix = dict_tb[tb_id]["prefix"]
-    #side_name = dict_tb[tb_id]["zoneNames"][platoon_side]
-    #zone_name = tb_prefix+"_phase0"+tb_phase+"_"+side_name+"_recon01"
 
     zone_found = False
     list_zone_names = []
@@ -4700,7 +4698,7 @@ def store_eb_allocations(guild_id, tb_name, phases, allocations):
         dict_players[line[0]] = line[1]
 
     #Prepare the dict to transform platoon names into zone IDs
-    dict_tb = godata.dict_tb
+    dict_tb = godata.get("tb_definition.json")
     tb_id = dict_tb[tb_name]["id"]
     tb_zone_prefix = dict_tb[tb_id]["prefix"]
     tb_zones = [k for k in dict_tb.keys() if k.startswith(tb_zone_prefix)]
