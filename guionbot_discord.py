@@ -755,37 +755,6 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
 
-            elif message.content.startswith("<@") or message.content.startswith("Filled in another phase"):
-                #EB message by player
-                for embed in message.embeds:
-                    dict_embed = embed.to_dict()
-                    if 'fields' in dict_embed:
-                        #on garde le nom de la BT mais on met X comme numéro de phase
-                        #le numéro de phase sera affecté plus tard
-                        player_name = re.search('\*\*(.*)\*\*',
-                                dict_embed['description']).group(1)
-
-                        for dict_platoon in dict_embed['fields']:
-                            platoon_pos = dict_platoon['name'].split(" ")[0]
-                            platoon_num = dict_platoon['name'][-1]
-                            platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
-
-                            for character in dict_platoon['value'].split('\n'):
-                                char_name = character[1:-1]
-                                if char_name[0:4]=='*` *':
-                                    char_name=char_name[4:]
-                                if not platoon_name in dict_platoons_allocation:
-                                    dict_platoons_allocation[
-                                        platoon_name] = {}
-
-                                #as the name may be in English, or approximative, best to go through the alias search
-                                list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
-                                char_name = dict_id_name[char_name][0][1]
-
-                                if not char_name in dict_platoons_allocation[platoon_name]:
-                                    dict_platoons_allocation[platoon_name][char_name] = []
-                                dict_platoons_allocation[platoon_name][char_name].append(player_name)
-
             elif message.content.startswith(":information_source: **Overview**"):
                 #Overview of the EB posts. Gives the territory names
                 # this name helps allocatting the phase
@@ -865,6 +834,39 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                 if detect_previous_BT:
                     #out of the main message reading loop
                     break
+
+            #elif message.content.startswith("<@") or message.content.startswith("Filled in another phase"):
+            else: #try to manage any message as EchoBot allocation may be sent without the "include @mentions" option
+                #EB message by player
+                for embed in message.embeds:
+                    dict_embed = embed.to_dict()
+                    if 'fields' in dict_embed:
+                        #on garde le nom de la BT mais on met X comme numéro de phase
+                        #le numéro de phase sera affecté plus tard
+                        player_name = re.search('\*\*(.*)\*\*',
+                                dict_embed['description']).group(1)
+
+                        for dict_platoon in dict_embed['fields']:
+                            platoon_pos = dict_platoon['name'].split(" ")[0]
+                            platoon_num = dict_platoon['name'][-1]
+                            platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
+
+                            for character in dict_platoon['value'].split('\n'):
+                                char_name = character[1:-1]
+                                if char_name[0:4]=='*` *':
+                                    char_name=char_name[4:]
+                                if not platoon_name in dict_platoons_allocation:
+                                    dict_platoons_allocation[
+                                        platoon_name] = {}
+
+                                #as the name may be in English, or approximative, best to go through the alias search
+                                list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
+                                char_name = dict_id_name[char_name][0][1]
+
+                                if not char_name in dict_platoons_allocation[platoon_name]:
+                                    dict_platoons_allocation[platoon_name][char_name] = []
+                                dict_platoons_allocation[platoon_name][char_name].append(player_name)
+
 
     #cleanup btX platoons
     tmp_d = dict_platoons_allocation.copy()
