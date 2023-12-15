@@ -553,8 +553,20 @@ def get_mod_config(conf_name, txt_allyCode):
 async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu):
     modopti_progress = json.loads(modopti_content)
 
+    # a json may contain several profiles
+    # look for thevright on
+    my_profile = None
+    for p in modopti_progress["profiles"]:
+        if p["allyCode"] == txt_allyCode:
+            my_profile = p
+            break
+
+    if my_profile == None:
+        return 1, "Le fichier n'a pas de profil pour "+txt_allyCode
+
+
     player_mods = {}
-    for mod in modopti_progress["profiles"][0]["mods"]:
+    for mod in my_profile["mods"]:
         player_mods[mod["mod_uid"]] = mod
 
     # mod_allocation element - dict
@@ -564,7 +576,7 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu)
     #          ]
     # }
     mod_allocations = []
-    for mod_assignment in modopti_progress["profiles"][0]["modAssignments"]:
+    for mod_assignment in my_profile["modAssignments"]:
         if mod_assignment == None:
             continue
         unit_id = mod_assignment["id"]
