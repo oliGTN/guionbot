@@ -428,7 +428,13 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
             max_unallocated = len(unallocated_mods)
 
     goutils.log2("INFO", "Max unallocated: "+str(max_unallocated))
-    return 0, str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(max_unallocated)+" places nécessaires dans l'inventaire, et "+str(unequip_cost)+" crédits)"
+
+    if is_simu:
+        ret_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos ("+str(max_unallocated)+" places nécessaires dans l'inventaire, et "+str(unequip_cost)+" crédits)"
+    else:
+        ret_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+    
+    return 0, ret_txt
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     #Get game mod data
