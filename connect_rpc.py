@@ -1324,21 +1324,48 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
             if ratio_deploy_mix >= 0.99:
                 finished_players["mix"].append(playerName)
 
-    #print(finished_players)
-
     # Loop by zone then by strike in the zone
     for zone in dict_open_zones:
+        total_strikes = 0
+        for z in dict_open_zones:
+            for s in dict_tb[z]["strikes"]:
+                total_strikes+=1
+
         for strike in dict_tb[zone]["strikes"]:
             strike_shortname = "conflict0"+zone[-1]+"_"+strike
             strike_name = zone+"_"+strike
 
+            # First loop to get the amount of tries in this fight
+            tryCount = 0
+            for playerName in dict_tb_players:
+                if len(dict_tb_players[playerName]["strikes"]) == total_strikes:
+                    # the player has fought all possible fights
+                    # This helps counting a fight with no wave when the player does them all
+                    tryCount += 1
+                else:
+                    if strike_shortname in dict_tb_players[playerName]["strikes"]:
+                        tryCount += 1
+                    else:
+                        # if the player has finished, it is considered as a participation to the fight
+                        # possibly of 0
+                        if   dict_tb[zone]["type"]=="ships" and playerName in finished_players["ships"]:
+                            tryCount += 1
+                        elif dict_tb[zone]["type"]=="chars" and playerName in finished_players["chars"]:
+                            tryCount += 1
+                        elif dict_tb[zone]["type"]=="mix"   and playerName in finished_players["mix"]:
+                            tryCount += 1
+
+            #Previous idea: actual participation
+            # not counting fights with 0 wave
             #strike_fights = dict_strike_zones[strike_name]["participation"]
-            #actually not the real ammount of fights, but the amount of tries
-            # which is estimated to the amount of players who have finished
-            # playing in that type of fight
-            # LIMIT: if a player has fought and not finished, the result is biased
-            # The method to count actual fights + finished players is TBD
-            strike_fights = len(finished_players[dict_tb[zone]["type"]])
+
+            #Previous idea: not finished players
+            # not good when player fight and do not deploy > overestimates the possible score
+            #strike_fights = len(finished_players[dict_tb[zone]["type"]])
+
+            #Current idea: all players who have fought OR who has finished
+            # if the player has done all fights, then fights with 0 ar in the count
+            strike_fights = tryCount
 
             strike_score = dict_strike_zones[strike_name]["eventStrikeScore"]
             if strike_fights > 0:
@@ -1346,6 +1373,7 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
             else:
                 strike_average_score = 0
 
+            # A try is when there strike is recorded for the player, or if the player has finished playing this phase
             #Loop on all TB players to get estimated score
             for playerName in dict_tb_players:
                 #If the player has not fought for this strike, his potential score
@@ -1367,11 +1395,6 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                         dict_strike_zones[strike_name]["estimatedStrikes"] += 1
                         dict_strike_zones[strike_name]["estimatedScore"] += strike_average_score
 
-                        #print(playerName+","+strike_shortname+","+str(strike_fights)+","+str(strike_score)+","+str(strike_average_score))
-
-    print(dict_strike_zones[strike_name])
-    #for i in dict_strike_zones:
-    #    print(i+": "+str(dict_strike_zones[i]))
 
     dict_phase["shipPlayers"] = len(dict_tb_players) - len(finished_players["ships"])
     dict_phase["charPlayers"] = len(dict_tb_players) - len(finished_players["chars"])
