@@ -1369,6 +1369,7 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
 
                         #print(playerName+","+strike_shortname+","+str(strike_fights)+","+str(strike_score)+","+str(strike_average_score))
 
+    print(dict_strike_zones[strike_name])
     #for i in dict_strike_zones:
     #    print(i+": "+str(dict_strike_zones[i]))
 
