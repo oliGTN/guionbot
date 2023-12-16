@@ -4,11 +4,37 @@ game_data = json.load(open(sys.argv[1], 'r'))
 FRE_FR = json.load(open('DATA/FRE_FR.json', 'r'))
 
 # shortname, [conflit01, conflict02, conflict03]
-tb_aliases = {"t01D": ["HLS", "top", "mid", "bot"],
-              "t02D": ["HDS", "top", "mid", "bot"],
-              "t03D": ["GDS", "top", "mid", "bot"],
-              "t04D": ["GLS", "top", "mid", "bot"],
-              "t05D": ["ROTE", "LS", "DS", "MS", "Zeffo"]}
+tb_aliases = {"t01D": {"alias": "HLS", 
+                       "conflict01": "top", 
+                       "conflict02": "mid", 
+                       "conflict03": "bot", 
+                       "positions": ["top", "mid", "bot"]
+                       },
+              "t02D": {"alias": "HDS", 
+                       "conflict01": "top", 
+                       "conflict02": "mid", 
+                       "conflict03": "bot", 
+                       "positions": ["top", "mid", "bot"]
+                       },
+              "t03D": {"alias": "GDS", 
+                       "conflict01": "top", 
+                       "conflict02": "mid", 
+                       "conflict03": "bot", 
+                       "positions": ["top", "mid", "bot"]
+                       },
+              "t04D": {"alias": "GLS", 
+                       "conflict01": "top", 
+                       "conflict02": "mid", 
+                       "conflict03": "bot", 
+                       "positions": ["top", "mid", "bot"]
+                       },
+              "t05D": {"alias": "ROTE", 
+                       "conflict01": "LS", 
+                       "conflict02": "DS", 
+                       "conflict03": "MS", 
+                       "positions": ["DS", "MS", "LS"]
+                       },
+             }
 
 dict_tables = {}
 for t in game_data["table"]:
@@ -17,7 +43,7 @@ for t in game_data["table"]:
 dict_tb={}
 for tb in game_data["territoryBattleDefinition"]:
     tb_id = tb["id"]
-    tb_alias = tb_aliases[tb_id][0]
+    tb_alias = tb_aliases[tb_id]["alias"]
     dict_tb[tb_alias] = {"id": tb_id}
 
     tb_rounds = int(tb["roundCount"])
@@ -28,7 +54,8 @@ for tb in game_data["territoryBattleDefinition"]:
     dict_tb[tb_id]["shortname"] = tb_alias
 
     for i in [1, 2, 3]:
-        dict_tb[tb_id]["zonePositions"][tb_aliases[tb_id][i]] = i
+        tb_positions = tb_aliases[tb_id]["positions"]
+        dict_tb[tb_id]["zonePositions"][tb_positions[i-1]] = i
 
     first_zone_id = tb["conflictZoneDefinition"][0]["zoneDefinition"][0]["zoneId"]
     dict_tb[tb_id]["prefix"] = "_".join(first_zone_id.split("_")[:-2])
@@ -36,23 +63,33 @@ for tb in game_data["territoryBattleDefinition"]:
     for c in tb["conflictZoneDefinition"]:
         #print(c)
         zone_id = c["zoneDefinition"][0]["zoneId"]
-        zone_phase = zone_id.split("_")[-2]
+        if zone_id.endswith("_bonus"):
+            is_bonus = True
+            zone_phase = zone_id.split("_")[-3]
+            conflict_id = zone_id.split("_")[-2]
+        else:
+            is_bonus = False
+            zone_phase = zone_id.split("_")[-2]
+            conflict_id = zone_id.split("_")[-1]
+
         zone_from_same_phase = [x for x in tb["conflictZoneDefinition"] if zone_phase in x["zoneDefinition"][0]["zoneId"]]
         dict_tb[zone_id] = {}
         if len(zone_from_same_phase) == 1:
-            dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id][2]
+            dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id]["conflict02"]
         elif len(zone_from_same_phase) == 2:
             if c == zone_from_same_phase[0]:
-                dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id][1]
+                dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id]["conflict01"]
             else:
-                dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id][3]
-        else: # len = 3
-            zone_index = zone_from_same_phase.index(c)
-            dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id][zone_index+1]
+                dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id]["conflict03"]
+        else: # len >= 3
+            dict_tb[zone_id]["name"] = tb_alias+zone_phase[-1]+"-"+tb_aliases[tb_id][conflict_id]
+
+            if is_bonus:
+                dict_tb[zone_id]["name"] += "b"
 
         if c["territoryBattleZoneUnitType"] == 1:
             dict_tb[zone_id]["type"] = "chars"
-        elif c["territoryBattleZoneUnitType"] == 1:
+        elif c["territoryBattleZoneUnitType"] == 2:
             dict_tb[zone_id]["type"] = "ships"
         else:
             dict_tb[zone_id]["type"] = "mix"
