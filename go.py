@@ -820,6 +820,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                 goutils.log2("DBG", tab_progress_player[i_subobj][i_character - 1])
 
             else:
+                # unlocked unit
                 if gv_mode:
                     character_id_team = character_id + '-GV'
                     if character_id_team in dict_teams[player_name][1]:
@@ -3867,26 +3868,41 @@ async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights
         ret_print_tb_status+="---------------\n"
         ret_print_tb_status+="**"+dict_tb[zone_name]["name"]+"**\n"
 
+        max_zone_score = dict_tb[zone_name]["scores"][-1]
+
+        # Current score - GREEN
         current_score = dict_open_zones[zone_name]["score"]
+        if current_score > max_zone_score:
+            current_score = max_zone_score
         ret_print_tb_status+="Current score: "+str(round(current_score/1000000, 1))+"M "
 
+        # Including done fights - TEXT ONLY
         cur_strike_score = dict_open_zones[zone_name]["strikeScore"]
         cur_strike_fights = sum(dict_open_zones[zone_name]["strikeFights"].values())
-        estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
-        estimated_strike_fights = dict_open_zones[zone_name]["estimatedStrikeFights"]
-        max_strike_score = dict_open_zones[zone_name]["maxStrikeScore"]
-
         ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+"M in "+str(cur_strike_fights)+" fights)\n"
 
+        # Estimated fights - ORANGE
+        estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
+        estimated_strike_fights = dict_open_zones[zone_name]["estimatedStrikeFights"]
+
         score_with_estimated_strikes = current_score + estimated_strike_score
-        if compute_estimated_fights:
+        if score_with_estimated_strikes > max_zone_score:
+            estimated_strike_score = max_zone_score - current_score
+            score_with_estimated_strikes = max_zone_score
+
+        if compute_estimated_fights and estimated_strike_score > 0:
             ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"M "
             ret_print_tb_status+="(in "+str(estimated_strike_fights)+" fights)\n"
 
+        # Deployment - YELLOW
         deploy_consumption = dict_open_zones[zone_name]["deployment"]
         score_with_estimations = score_with_estimated_strikes + deploy_consumption
         ret_print_tb_status+="Deployment: "+str(round(deploy_consumption/1000000, 1))+"M\n"
 
+        # Max fights - RED
+        max_strike_score = dict_open_zones[zone_name]["maxStrikeScore"]
+
+        # Stars
         star_for_score = dict_open_zones[zone_name]["estimatedStars"]
         round_estimated_stars += star_for_score
         ret_print_tb_status+="\u27a1 Zone result: "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
@@ -3913,6 +3929,8 @@ async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights
     return 0, ret_print_tb_status, list_images
 
 def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, position):
+    goutils.log2("DBG", "draw_score_zone("+str(start_score)+", "+str(delta_score)+", "+str(max_score)+")")
+
     font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 18)
 
     end_score = start_score + delta_score
@@ -3921,7 +3939,7 @@ def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, p
         delta_score = max_score - start_score
     else:
         end_score = int(end_score)
-    if delta_score == 0:
+    if delta_score <= 0:
         return start_score
 
     #colored rectangle
@@ -3945,6 +3963,7 @@ def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, p
     return end_score
 
 def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes, deployments, max_strikes):
+    goutils.log2("DBG", "draw_tb_previsions("+zone_name+", "+str(zone_scores)+", "+str(current_score)+", "+str(estimated_strikes)+", "+str(deployments)+", "+str(max_strikes)+")")
     zone_img = Image.new('RGB', (500, 220), (255, 255, 255))
     zone_img_draw = ImageDraw.Draw(zone_img)
 
