@@ -676,8 +676,8 @@ async def get_modopti_export(txt_allyCode):
         #if unit_defId!="HERMITYODA":
         #    continue
         #print(unit_defId)
-        for s in player_unit["stats"]:
-            print(s+":"+str(player_unit["stats"][s]))
+        #for s in player_unit["stats"]:
+        #    print(s+":"+str(player_unit["stats"][s]))
 
         modopti_unit = {}
         modopti_unit["baseID"] = unit_defId
