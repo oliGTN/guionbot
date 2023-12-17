@@ -21,6 +21,7 @@ import traceback
 from texttable import Texttable
 import zipfile
 import typing
+import json
 
 import go
 import goutils
@@ -1847,6 +1848,35 @@ class ModsCog(commands.GroupCog, name="mods"):
             await interaction.edit_original_response(content=txt)
         else:
             await interaction.edit_original_response(content=emoji_error+" "+et)
+
+    @app_commands.command(name="exporte-liste")
+    async def apply_conf(self, interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+
+        channel_id = interaction.channel_id
+
+        #get allyCode
+        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+        allyCode = str(connect_mysql.get_value(query))
+        if allyCode == "None":
+            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            return
+
+        #Run the function
+        ec, et, dict_export = await manage_mods.get_modopti_export(allyCode)
+
+        if ec != 0:
+            await interaction.edit_original_response(content=emoji_error+" "+et)
+        else:
+            export_path="/tmp/modoptiProgress_"+allyCode+".json"
+            export_file = open(export_path, "w")
+            print(type(dict_export))
+            export_txt = json.dumps(dict_export, indent=4)
+            export_file.write(export_txt)
+            export_file.close()
+
+            await interaction.edit_original_response(content=emoji_check+" fichier prêt", 
+                                                     attachments=[discord.File(export_path)])
 
 ##############################################################
 # Class: ServerCog
