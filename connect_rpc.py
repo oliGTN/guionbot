@@ -1264,6 +1264,7 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                     if dict_tb_players[playerName]["score"]["deployed"] != dict_tb_players[playerName]["score"]["deployedMix"]:
                         goutils.log2("WAR", "Event deployment does not match total deployment for "+playerName)
                         goutils.log2("WAR", "("+str(dict_tb_players[playerName]["score"]["deployedMix"])+" vs "+str(dict_tb_players[playerName]["score"]["deployed"])+")")
+
                         #Estimate ships / chars score from total score and current ship / char
                         not_deployed_ships = dict_tb_players[playerName]["ship_gp"] - dict_tb_players[playerName]["score"]["deployedShips"]
                         not_deployed_chars = dict_tb_players[playerName]["char_gp"] - dict_tb_players[playerName]["score"]["deployedChars"]
@@ -1274,8 +1275,8 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                             bonus_ships = 0
                             bonus_chars = 0
                         else:
-                            bonus_ships = bonus_deployment * not_deployed_ships / (not_deployed_ships + not_deployed_chars)
-                            bonus_chars = bonus_deployment * not_deployed_chars / (not_deployed_ships + not_deployed_chars)
+                            bonus_ships = int(bonus_deployment * not_deployed_ships / (not_deployed_ships + not_deployed_chars))
+                            bonus_chars = int(bonus_deployment * not_deployed_chars / (not_deployed_ships + not_deployed_chars))
                         dict_tb_players[playerName]["score"]["deployedShips"] += bonus_ships
                         dict_tb_players[playerName]["score"]["deployedChars"] += bonus_chars
                         dict_tb_players[playerName]["score"]["deployedMix"] = dict_tb_players[playerName]["score"]["deployed"]
@@ -2062,7 +2063,10 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "updateMods status="+str(resp.status))
                 if resp.status==200:
-                    inventory_delta = await(resp.json())
+                    resp_data = await(resp.json())
+
+                    if "err_code" in resp_data:
+                        return resp_data["err_code"], resp_data["err_txt"]
                 elif resp.status==201:
                     return 1, "ERR: il faut au moins un mod à ajouter"
                 else:
@@ -2074,8 +2078,6 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-
-    #print(inventory_delta)
 
     return 0, ""
 
