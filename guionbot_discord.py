@@ -1850,7 +1850,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             await interaction.edit_original_response(content=emoji_error+" "+et)
 
     @app_commands.command(name="exporte-liste")
-    async def apply_conf(self, interaction: discord.Interaction):
+    async def export_modoptimizer(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
 
         channel_id = interaction.channel_id
