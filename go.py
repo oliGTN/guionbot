@@ -4895,3 +4895,52 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
         return 0, output_txt
     else:
         return 1, "Counter inconnu: "+counter_type
+
+async def print_guild_dtc(txt_allyCode, filter_txt):
+    err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
+    if err_code != 0:
+        return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
+
+    dict_dtc = {}
+
+    for member in dict_guild["member"]:
+        player_id = member["playerId"]
+        player_file = "PLAYERS/"+player_id+".json"
+        player = json.load(open(player_file))
+        player_name = player["name"]
+
+        if not "datacron" in player:
+            continue
+
+        for dtc in player["datacron"]:
+            lvl6 = None
+            lvl9 = None
+            if not "affix" in dtc:
+                continue
+
+            if len(dtc["affix"]) < 6:
+                continue
+            abilityId = dtc["affix"][5]["abilityId"]
+            target_rule = dtc["affix"][5]["targetRule"][16:]
+            lvl6 = abilityId[17:]+"("+target_rule+")"
+            if len(dtc["affix"]) >= 9:
+                abilityId = dtc["affix"][8]["abilityId"]
+                target_rule = dtc["affix"][8]["targetRule"][16:]
+                lvl9 = abilityId[19:]+"("+target_rule+")"
+                #lvl9 = dtc["affix"][8]["targetRule"][16:]
+            key_dtc = "LVL6="+lvl6+" / LVL9="+str(lvl9)
+
+            if not key_dtc in dict_dtc:
+                dict_dtc[key_dtc] = []
+            dict_dtc[key_dtc].append(player_name)
+
+    output_txt = ""
+
+    for dtc in dict_dtc:
+        if filter_txt != None:
+            if filter_txt.lower() in dtc.lower():
+                output_txt += dtc+": "+str(dict_dtc[dtc])+"\n"
+        else:
+            output_txt += dtc+": "+str(dict_dtc[dtc])+"\n"
+
+    return 0, "", output_txt

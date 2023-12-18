@@ -4172,8 +4172,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Liste des Omicrons d'une Guilde",
                  help="Liste des Omicrons d'une Guilde\n"\
                       "Exemple: go.log 123456789 \n"\
-                      "Exemple: go.loj 123456789 Mara\n"\
-                      "Exemple: go.loj 123456789 mode:TW")
+                      "Exemple: go.log 123456789 Mara\n"\
+                      "Exemple: go.log 123456789 mode:TW")
     async def log(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -4204,6 +4204,55 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
             #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        elif len(txt_lines)==0:
+            await ctx.send("Aucun omicron détecté")
+            await ctx.message.add_reaction(emoji_check)
+        else:
+            await ctx.send(err_txt)
+            await ctx.message.add_reaction(emoji_error)
+
+    ##############################################################
+    # Command: dtcg
+    # Parameters: player idenfier
+    # Purpose: list of datacrons of a guild
+    # Display: list
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='dtcg',
+                 brief="Liste des Datacrons d'une Guilde",
+                 help="Liste des Datacrons d'une Guilde\n"\
+                      "Exemple: go.dtcg 123456789 \n"\
+                      "Exemple: go.dtcg 123456789 Boushh")
+    async def dtcg(self, ctx, *args):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        if len(args) == 1:
+            allyCode = args[0]
+            filter_txt = None
+        elif len(args) == 2:
+            allyCode = args[0]
+            filter_txt = args[1]
+        else:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help dtcg")
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        allyCode= await manage_me(ctx, allyCode, True)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        e, err_txt, output_txt = await go.print_guild_dtc(allyCode, filter_txt)
+        if e == 0 and len(output_txt) >0:
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`' + txt + '`')
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emoji_check)
+        elif len(output_txt)==0:
+            await ctx.send("Aucun datacron détecté")
             await ctx.message.add_reaction(emoji_check)
         else:
             await ctx.send(err_txt)
