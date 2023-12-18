@@ -1450,6 +1450,7 @@ def member_command(ctx):
 
 def officer_command(ctx):
     ret_is_officer = False
+    is_server_admin = False
 
     if ctx.guild != None:
         # Can be an officer only if in a discord server, not in a DM
@@ -1471,9 +1472,12 @@ def officer_command(ctx):
             if str(ctx.author.id) in list_did:
                 ret_is_officer = True
 
+        # Can have the rights if server admin
+        is_server_admin = ctx.author.top_role.permissions.administrator
+
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
-    return (ret_is_officer and (not bot_test_mode)) or is_owner
+    return ((ret_is_officer or is_server_admin) and (not bot_test_mode)) or is_owner
 
 ##############################################################
 # Description: contains all background tasks
@@ -1689,6 +1693,23 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         
             await ctx.message.add_reaction(emoji_check)
 
+
+    ##############################################################
+    # Command: servers
+    # Parameters: Aucun
+    # Purpose: affiche les serveurs discord qui utilisent le bot
+    # Display: liste Nom / ID
+    #############################################################
+    @commands.command(name='servers', help='Liste des serveurs discord du bot')
+    @commands.check(admin_command)
+    async def servers(self, ctx):
+        await ctx.message.add_reaction(emoji_thumb)
+        output_txt = ""
+        for g in bot.guilds:
+            output_txt += g.name+ " ("+str(g.id)+")\n"
+
+        await ctx.send(output_txt)
+        await ctx.message.add_reaction(emoji_check)
 
     ##############################################################
     # Command: test
