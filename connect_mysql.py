@@ -968,7 +968,10 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
 #          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
 ##############################################################
 def load_config_players():
-    query = "SELECT allyCode, players.name, discord_id, guildMemberLevel FROM players "
+    query = "SELECT players.allyCode, players.name, player_discord.discord_id, player_discord.main, guildMemberLevel \n"
+    query+= "FROM players \n"
+    query+= "JOIN player_discord ON player_discord.allyCode=players.allyCode \n"
+    query+= "ORDER BY player_discord.discord_id, playter_discord.main "
     goutils.log2("DBG", query)
     data_db = get_table(query)
 
@@ -982,15 +985,18 @@ def load_config_players():
         did = line[2]
         if did == None:
             did=""
-        isOff = (line[3]!=2)
+        isMain = line[3]
+        isOff = (line[4]!=2)
 
         if did != "":
             dict_players_by_IG[name] = [ac, name]
             if list_did.count(did) == 1:
                 dict_players_by_IG[name] = [ac, "<@"+did+">"]
+                dict_players_by_ID[did] = [ac, isOff]
             else:
                 dict_players_by_IG[name] = [ac, "<@"+did+"> ["+name+"]"]
-            dict_players_by_ID[did] = [ac, isOff]
+                if isMain:
+                    dict_players_by_ID[did] = [ac, isOff]
 
     return dict_players_by_IG, dict_players_by_ID
 
