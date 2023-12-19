@@ -1473,7 +1473,7 @@ def officer_command(ctx):
                 is_officer = True
 
         # Can have the rights if server admin
-        is_server_admin = ctx.author.top_role.permissions.administrator
+        is_server_admin = ctx.author.guild_permissions.administrator
 
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
@@ -1727,7 +1727,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         for g in bot.guilds:
             for m in g.members:
                 if m.id == 1062721696857067591:
-                    print(g.name, m.name, m.top_role.permissions.administrator)
+                    print(g.name, m.name, m.top_role.permissions.administrator, m.guild_permissions.administrator)
         await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
