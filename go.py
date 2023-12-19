@@ -4894,7 +4894,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 else:
                     output_txt += " > "+emoji_cross
 
-        if counter_opponent==0:
+        if count_opponent==0:
             output_txt += "Aucun adversaire détecté"
         return 0, output_txt
     else:
