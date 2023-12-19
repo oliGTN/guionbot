@@ -1461,9 +1461,11 @@ def officer_command(ctx):
         if ec==0:
             guild_id = bot_infos["guild_id"]
 
-            query = "SELECT discord_id FROM players " \
+            query = "SELECT player_discord.discord_id " \
+                    "FROM player_discord " \
+                    "JOIN player_discord.allyCode = players.allyCode " \
                     "WHERE guildId='"+guild_id+"' " \
-                    "AND discord_id<>'' AND guildMemberLevel>=3 "
+                    "AND player_discord.discord_id<>'' AND guildMemberLevel>=3 "
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_column(query)
             if db_data == None:
@@ -2911,9 +2913,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         player_name = dict_player["name"]
 
-        #Add discord id in DB
-        query = "UPDATE players SET discord_id='"+discord_id_txt+"' WHERE allyCode="+ac
+        #Setup all potential previous accounts as alt
+        query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
         goutils.log2("INFO", query)
+        connect_mysql.simple_execute(query)
+
+        #Add discord id in DB
+        query = "INSERT INTO player_discord (allyCode, discord_id)\n"
+        query+= "VALUES("+ac+", "+discord_id_txt+") \n"
+        query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
+        goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
         await ctx.send("Enregistrement de "+player_name+" réussi pour <@"+discord_id_txt+">")
