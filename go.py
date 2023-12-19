@@ -3215,7 +3215,7 @@ async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team
 # IN: tw_mode (True if the bot shall count defense-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id, tw_mode):
+async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id, tw_mode, with_mentions):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
@@ -3227,8 +3227,12 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         if ec != 0:
             return ec, et, None
 
-    #get list of allyCodes and player tags
-    dict_players = connect_mysql.load_config_players()[0]
+    if with_mentions:
+        #get list of allyCodes and player tags
+        dict_players = connect_mysql.load_config_players()[0]
+    else:
+        # if this dict is empty, there will be no discord mention
+        dict_players = {}
 
     #Manage -TW option
     if tw_mode:

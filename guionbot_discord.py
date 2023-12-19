@@ -1449,7 +1449,7 @@ def member_command(ctx):
     return (not bot_test_mode) or is_owner
 
 def officer_command(ctx):
-    ret_is_officer = False
+    is_officer = False
     is_server_admin = False
 
     if ctx.guild != None:
@@ -1470,14 +1470,15 @@ def officer_command(ctx):
                 list_did = db_data
 
             if str(ctx.author.id) in list_did:
-                ret_is_officer = True
+                is_officer = True
 
         # Can have the rights if server admin
         is_server_admin = ctx.author.top_role.permissions.administrator
 
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
 
-    return ((ret_is_officer or is_server_admin) and (not bot_test_mode)) or is_owner
+    goutils.log2("INFO", [ctx.author.name, is_owner, is_officer, is_server_admin])
+    return ((is_officer or is_server_admin) and (not bot_test_mode)) or is_owner
 
 ##############################################################
 # Description: contains all background tasks
@@ -1721,10 +1722,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(admin_command)
     async def test(self, ctx, *args):
-        #await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emoji_thumb)
         #await bot_loop_60secs(bot)
-        #await ctx.message.add_reaction(emoji_check)
-        pass
+        for g in bot.guilds:
+            for m in g.members:
+                if m.id == 1062721696857067591:
+                    print(g.name, m.name, m.top_role.permissions.administrator)
+        await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
 # Class: TbCog - for Google accounts
@@ -2748,7 +2752,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     # Purpose: Tag all players in the guild which own the selected character
     # Display: One line with all discord tags
     ##############################################################
-    @commands.check(officer_command)
+    @commands.check(member_command)
     @commands.command(name='tpg',
                  brief="Tag les possesseurs d'un Perso dans la Guilde",
                  help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
@@ -2798,8 +2802,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emoji_error)
         else:
+            with_mentions = officer_command(ctx)
             err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
-                                                                             guild_id, tw_mode)
+                                                                             guild_id, tw_mode, with_mentions)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)
