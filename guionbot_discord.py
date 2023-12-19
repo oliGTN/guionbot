@@ -519,7 +519,7 @@ async def bot_loop_60minutes(bot):
             goutils.log2("ERR", et)
 
         LocalizationBundleVersion = metadata["latestLocalizationBundleVersion"]
-        goutils.log2("DBG", "LocalizationBundleVersion="+LocalizationBundleVersion)
+        goutils.log2("INFO", "LocalizationBundleVersion="+LocalizationBundleVersion)
         if LocalizationBundleVersion != latestLocalizationBundleVersion \
             and latestLocalizationBundleVersion != "":
 
@@ -527,7 +527,7 @@ async def bot_loop_60minutes(bot):
                 await send_alert_to_admins(None, "New LocalizationBundle")
 
         GameDataVersion = metadata["latestGameDataVersion"]
-        goutils.log2("DBG", "GameDataVersion="+GameDataVersion)
+        goutils.log2("INFO", "GameDataVersion="+GameDataVersion)
         if GameDataVersion != latestGameDataVersion \
             and latestGameDataVersion != "":
 
