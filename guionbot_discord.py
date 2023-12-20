@@ -1017,8 +1017,8 @@ async def manage_me(ctx, alias, allow_tw):
     if alias == 'me':
         dict_players_by_ID = connect_mysql.load_config_players()[1]
         #print(dict_players_by_ID)
-        if str(ctx.author.id) in dict_players_by_ID:
-            ret_allyCode_txt = str(dict_players_by_ID[str(ctx.author.id)][0])
+        if ctx.author.id in dict_players_by_ID:
+            ret_allyCode_txt = str(dict_players_by_ID[ctx.author.id]["main"][0])
         else:
             ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
     elif alias == "-TW":
@@ -1048,13 +1048,13 @@ async def manage_me(ctx, alias, allow_tw):
     elif alias.startswith('<@'):
         # discord @mention
         if alias.startswith('<@!'):
-            discord_id_txt = alias[3:-1]
+            discord_id = int(alias[3:-1])
         else: # '<@ without the !
-            discord_id_txt = alias[2:-1]
+            discord_id = int(alias[2:-1])
         goutils.log2("INFO", "command launched with discord @mention "+alias)
         dict_players_by_ID = connect_mysql.load_config_players()[1]
-        if discord_id_txt.isnumeric() and discord_id_txt in dict_players_by_ID:
-            ret_allyCode_txt = str(dict_players_by_ID[discord_id_txt][0])
+        if discord_id in dict_players_by_ID:
+            ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
         else:
             ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
@@ -1113,11 +1113,10 @@ async def manage_me(ctx, alias, allow_tw):
         else:
             goutils.log2("INFO", alias + " looks like the discord name "+closest_name_discord)
 
-            discord_id = [str(x[0]) for x in guild_members_clean \
-                            if x[1] == closest_name_discord][0]
+            discord_id = [x[0] for x in guild_members_clean if x[1] == closest_name_discord][0]
             dict_players_by_ID = connect_mysql.load_config_players()[1]
             if discord_id in dict_players_by_ID:
-                ret_allyCode_txt = str(dict_players_by_ID[discord_id][0])
+                ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
             else:
                 goutils.log2("ERR", alias + " ne fait pas partie des joueurs enregistrés")
                 ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'

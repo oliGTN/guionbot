@@ -965,13 +965,14 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
 # Function: load_config_players
 # Parameters: none
 # Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>]}
-#          dict_players_by_ID {key=discord ID, value=[allycode, isOfficer]}
+#          dict_players_by_ID {key=discord ID, value={"main":[allycode, isOfficer]
+#                                                     "alts":[[ac, isOff], [ac2, isOff]...]}}
 ##############################################################
 def load_config_players():
     query = "SELECT players.allyCode, players.name, player_discord.discord_id, player_discord.main, guildMemberLevel \n"
     query+= "FROM players \n"
     query+= "JOIN player_discord ON player_discord.allyCode=players.allyCode \n"
-    query+= "ORDER BY player_discord.discord_id, playter_discord.main "
+    query+= "ORDER BY player_discord.discord_id, player_discord.main "
     goutils.log2("DBG", query)
     data_db = get_table(query)
 
@@ -983,20 +984,22 @@ def load_config_players():
         ac = line[0]
         name = line[1]
         did = line[2]
-        if did == None:
-            did=""
         isMain = line[3]
         isOff = (line[4]!=2)
 
-        if did != "":
-            dict_players_by_IG[name] = [ac, name]
-            if list_did.count(did) == 1:
-                dict_players_by_IG[name] = [ac, "<@"+did+">"]
-                dict_players_by_ID[did] = [ac, isOff]
-            else:
-                dict_players_by_IG[name] = [ac, "<@"+did+"> ["+name+"]"]
-                if isMain:
-                    dict_players_by_ID[did] = [ac, isOff]
+        dict_players_by_IG[name] = [ac, name]
+        if list_did.count(did) == 1:
+            dict_players_by_IG[name] = [ac, "<@"+str(did)+">"]
+        else:
+            dict_players_by_IG[name] = [ac, "<@"+str(did)+"> ["+name+"]"]
+
+        if not did in dict_players_by_ID:
+            dict_players_by_ID[did] = {"main": None, "alts": []}
+            
+        if isMain:
+            dict_players_by_ID[did]["main"] = [ac, isOff]
+        else:
+            dict_players_by_ID[did]["alts"].append([ac, isOff])
 
     return dict_players_by_IG, dict_players_by_ID
 
