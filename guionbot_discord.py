@@ -1462,7 +1462,7 @@ def officer_command(ctx):
 
             query = "SELECT player_discord.discord_id " \
                     "FROM player_discord " \
-                    "JOIN player_discord.allyCode = players.allyCode " \
+                    "JOIN players ON player_discord.allyCode = players.allyCode " \
                     "WHERE guildId='"+guild_id+"' " \
                     "AND player_discord.discord_id<>'' AND guildMemberLevel>=3 "
             goutils.log2("DBG", query)
