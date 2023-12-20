@@ -2379,7 +2379,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             await ctx.message.add_reaction(emoji_check)
         else:
-            await ctx.send(ret_txt)
+            await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
 
     #######################################################
