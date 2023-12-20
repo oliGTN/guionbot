@@ -4477,9 +4477,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     if dict_units[unit_id]['combatType'] == 2:
                         #ship, we keep only rarity
                         gear = gear[:2]
-                    else:
-                        #char, keep only gear / relic
-                        gear = gear[2:]
 
                     unit_gear += gear+"\n"
                     unit_total += str(total)+"\n"
@@ -4503,7 +4500,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     def_count = output_dict[unit_id][gear][1]
 
                     if dict_units[unit_id]['combatType'] == 2:
-                        gear = ''
+                        gear = gear[:2]
                     if def_count == None:
                         def_count=''
 

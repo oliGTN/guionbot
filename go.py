@@ -3468,9 +3468,9 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
                 list_def_players = dict_def_toon_player[unit_id]
 
                 query = "SELECT defId, " \
-                      + "CASE WHEN gear<10 THEN CONCAT('G0', gear) " \
-                      + "WHEN gear<13 THEN CONCAT('G', gear) " \
-                      + "ELSE CONCAT('R', relic_currentTier-2) END, " \
+                      + "CASE WHEN gear<10 THEN CONCAT(rarity, '*G0', gear) " \
+                      + "WHEN gear<13 THEN CONCAT(rarity, '*G', gear) " \
+                      + "ELSE CONCAT(rarity, '*R', relic_currentTier-2) END, " \
                       + "count(*) FROM players " \
                       + "JOIN roster ON roster.allyCode = players.allyCode " \
                       + "WHERE guildName=(" \
