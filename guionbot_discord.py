@@ -46,7 +46,7 @@ first_bot_loop_5minutes = True
 first_bot_loop_10minutes = True
 list_alerts_sent_to_admin = []
 latestLocalizationBundleVersion = ""
-latestGameDataVersion = ""
+latestGamedataVersion = ""
 
 ##############################################################
 # Class: MyClient
@@ -497,42 +497,47 @@ async def bot_loop_5minutes(bot):
 # Output: none
 ##############################################################
 async def bot_loop_60minutes(bot):
-        t_start = time.time()
+    global latestLocalizationBundleVersion
+    global latestGamedataVersion
 
-        try:
-            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-            err_code, err_txt = go.manage_disk_usage()
+    t_start = time.time()
 
-            if err_code > 0:
-                await send_alert_to_admins(None, err_txt)
+    try:
+        #REFRESH and CLEAN CACHE DATA FROM SWGOH API
+        err_code, err_txt = go.manage_disk_usage()
 
-        except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
+        if err_code > 0:
+            await send_alert_to_admins(None, err_txt)
 
-        # Check metadata
-        ec, et, metadata = await connect_rpc.get_metadata()
-        if ec!=0:
-            goutils.log2("ERR", et)
+    except Exception as e:
+        goutils.log2("ERR", str(sys.exc_info()[0]))
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
+        if not bot_test_mode:
+            await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
-        LocalizationBundleVersion = metadata["latestLocalizationBundleVersion"]
-        goutils.log2("INFO", "LocalizationBundleVersion="+LocalizationBundleVersion)
-        if LocalizationBundleVersion != latestLocalizationBundleVersion \
-            and latestLocalizationBundleVersion != "":
+    # Check metadata
+    ec, et, metadata = await connect_rpc.get_metadata()
+    if ec!=0:
+        goutils.log2("ERR", et)
 
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "New LocalizationBundle")
+    LocalizationBundleVersion = metadata["latestLocalizationBundleVersion"]
+    goutils.log2("INFO", "LocalizationBundleVersion="+LocalizationBundleVersion)
+    if LocalizationBundleVersion != latestLocalizationBundleVersion \
+        and latestLocalizationBundleVersion != "":
 
-        GameDataVersion = metadata["latestGameDataVersion"]
-        goutils.log2("INFO", "GameDataVersion="+GameDataVersion)
-        if GameDataVersion != latestGameDataVersion \
-            and latestGameDataVersion != "":
+        if not bot_test_mode:
+            await send_alert_to_admins(None, "New LocalizationBundle")
+        latestLocalizationBundleVersion = LocalizationBundleVersion
 
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "New GameDataVersion")
+    GameDataVersion = metadata["latestGamedataVersion"]
+    goutils.log2("INFO", "GameDataVersion="+GameDataVersion)
+    if GameDataVersion != latestGamedataVersion \
+        and latestGamedataVersion != "":
+
+        if not bot_test_mode:
+            await send_alert_to_admins(None, "New GameDataVersion")
+        latestGameDataVersion = GamedataVersion
 
 
 ################################################
@@ -1726,11 +1731,11 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.check(admin_command)
     async def test(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
-        #await bot_loop_60secs(bot)
-        for g in bot.guilds:
-            for m in g.members:
-                if m.id == 1062721696857067591:
-                    print(g.name, m.name, m.top_role.permissions.administrator, m.guild_permissions.administrator)
+        await bot_loop_60minutes(bot)
+        #for g in bot.guilds:
+        #    for m in g.members:
+        #        if m.id == 1062721696857067591:
+        #            print(g.name, m.name, m.top_role.permissions.administrator, m.guild_permissions.administrator)
         await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
