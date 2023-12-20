@@ -3428,9 +3428,9 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
 
     #prepare basic query
     query = "SELECT defId, " \
-          + "CASE WHEN gear<10 THEN CONCAT('G0', gear) " \
-          + "WHEN gear<13 THEN CONCAT('G', gear) " \
-          + "ELSE CONCAT('R', relic_currentTier-2) END, " \
+          + "CASE WHEN gear<10 THEN CONCAT(rarity, '*G0', gear) " \
+          + "WHEN gear<13 THEN CONCAT(rarity, '*G', gear) " \
+          + "ELSE CONCAT(rarity, '*R', relic_currentTier-2) END, " \
           + "count(*) FROM players " \
           + "JOIN roster ON roster.allyCode = players.allyCode " \
           + "WHERE guildName=(" \
@@ -3440,8 +3440,8 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
     if tw_mode:
         query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+" "
 
-    query +="GROUP BY defId, gear, relic_currentTier " \
-          + "ORDER BY defId, gear, relic_currentTier"
+    query +="GROUP BY defId, rarity, gear, relic_currentTier " \
+          + "ORDER BY defId, rarity, gear, relic_currentTier"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
     if db_data==None:
@@ -3451,6 +3451,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
     for line in db_data:
         unit_id = line[0]
         unit_gear = line[1]
+
         if not unit_id in output_dict:
             output_dict[unit_id] = {}
         output_dict[unit_id][unit_gear] = [line[2], None]
