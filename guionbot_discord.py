@@ -4559,7 +4559,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         opp_count = ""
 
                     if dict_units[unit_id]['combatType'] == 2:
-                        gear = ''
+                        gear = gear[:2]
                     if def_count == None:
                         def_count=''
 
