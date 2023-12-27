@@ -2173,7 +2173,7 @@ def get_distribution_graph(values,           #list of values to distribute
 
     #pre-calculate bins to align histograms
     if bin_count != None:
-        #Automatic bons, from a count
+        #Automatic bins, from a count
         if values_2 != None:
             bins=np.histogram(np.hstack((values, values_2)), bins=bin_count)[1]
             bin_count = len(bins)
@@ -2184,11 +2184,13 @@ def get_distribution_graph(values,           #list of values to distribute
         bins = bin_list
 
     # 1st hist
-    ax.hist(values, bins=bins, color='blue', label=legend)
+    counts, bins = np.histogram(values, bins=bins)
+    ax.stairs(counts, edges=bins, color='blue', label=legend, fill=True)
 
     # 2nd hist
     if values_2 != None:
-        ax.hist(values_2, bins=bins, label=legend_2, color='lightblue')
+        counts_2, bins = np.histogram(values_2, bins=bins)
+        ax.stairs(counts_2, edges=bins, label=legend_2, color='lightblue', fill=True)
 
     # bin labels in X axis
     if bin_labels != None:
@@ -2270,7 +2272,7 @@ async def get_gac_distribution(txt_allyCode):
 
     #compute graph
     image = get_distribution_graph(guild_stats, None, None, 
-                                   list(range(25)),
+                                   list(range(26)), # [0 - 25] so that the 24 are in the 24-25 bin
                                    {0:'Carbonite',
                                     5:'Bronzium',
                                     10:'Chromium',
