@@ -276,9 +276,7 @@ async def load_player(ac_or_id, force_update, no_db):
     return 0, "", dict_player
 
 async def load_guild(txt_allyCode, load_players, cmd_request):
-    #Get API data for the guild
-    goutils.log2('INFO', 'Requesting RPC data for guild of ' + txt_allyCode)
-
+    # Get DB stored guild for the player
     query = "SELECT id FROM guilds "
     query+= "JOIN players ON players.guildName = guilds.name "
     query+= "WHERE allyCode = " + txt_allyCode
@@ -297,6 +295,8 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
         if os.path.isfile(json_file):
             prev_dict_guild = json.load(open(json_file, 'r'))
 
+    #Get current guild for the player
+    goutils.log2('INFO', 'Requesting RPC data for guild of ' + txt_allyCode)
     ec, et, dict_guild = await connect_rpc.get_guild_data_from_ac(txt_allyCode, False)
     if ec != 0:
         goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
