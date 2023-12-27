@@ -1477,8 +1477,11 @@ def officer_command(ctx):
             else:
                 list_did = db_data
 
-            if str(ctx.author.id) in list_did:
+            if ctx.author.id in list_did:
                 is_officer = True
+        else:
+            goutils.log2("DBG", et)
+
 
         # Can have the rights if server admin
         is_server_admin = ctx.author.guild_permissions.administrator
@@ -2379,7 +2382,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             await ctx.message.add_reaction(emoji_check)
         else:
-            await ctx.send(ret_txt)
+            await ctx.send(err_txt)
             await ctx.message.add_reaction(emoji_error)
 
     #######################################################
@@ -4559,7 +4562,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         opp_count = ""
 
                     if dict_units[unit_id]['combatType'] == 2:
-                        gear = ''
+                        gear = gear[:2]
                     if def_count == None:
                         def_count=''
 
