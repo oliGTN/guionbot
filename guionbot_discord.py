@@ -636,7 +636,6 @@ async def send_alert_to_echocommanders(guild_id, message):
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
 async def get_eb_allocation(tbChannel_id, tbs_round):
-    dict_alias = data.get("unitsAlias_dict.json")
     dict_units = data.get("unitsList_dict.json")
 
     # Lecture des affectation ECHOBOT
@@ -2781,6 +2780,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         #Check arguments
         args = list(args)
+        tw_mode = False
+        tb_mode = False
+        guild_id = None
+
         if "-TW" in args:
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
@@ -2799,9 +2802,30 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 return
 
             guild_id = bot_infos["guild_id"]
-        else:
-            tw_mode = False
-            guild_id = None
+
+        if "-TB" in args:
+            if tw_mode:
+                await ctx.send("ERR: impossible d'utiliser les options -TW et -TB en même temps")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TB")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            tb_mode = True
+            args.remove("-TB")
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+                await ctx.message.add_reaction(emoji_error)
+                return
+
+            guild_id = bot_infos["guild_id"]
 
         if len(args) >= 2:
             allyCode = args[0]
@@ -2819,7 +2843,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         else:
             with_mentions = officer_command(ctx)
             err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
-                                                                             guild_id, tw_mode, with_mentions)
+                                                                             guild_id, tw_mode, tb_mode,
+                                                                             with_mentions)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emoji_error)

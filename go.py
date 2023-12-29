@@ -3215,9 +3215,10 @@ async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team
 # IN: list_list_character ([["SEE"], ["Mara", "+SK"], ["SEE:7:G8"], ["SEE:R5"]])
 # IN: guild_id
 # IN: tw_mode (True if the bot shall count defense-used toons as not avail)
+# IN: tb_mode (True if the bot shall count platoon-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id, tw_mode, with_mentions):
+async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id=None, tw_mode=False, tb_mode=False, with_mentions=False):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
@@ -3236,13 +3237,39 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         # if this dict is empty, there will be no discord mention
         dict_players = {}
 
-    #Manage -TW option
+
+    #Manage -TW or -TB option
+    dict_used_toon_player = {} # key=toon, value = [playerName1, playerName2...]
     if tw_mode:
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
+        ec, et, dict_used_toon_player = await get_tw_defense_toons(guild_id, -1)
         if ec != 0:
             return ec, et, None
-    else:
-        dict_def_toon_player = {}
+    elif tb_mode:
+        dict_alias = godata.get("unitsAlias_dict.json")
+        tbs_round, dict_platoons_done, list_open_terr = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+        if tbs_round == "":
+            return 1, "Aucune BT en cours", None
+
+        tb_name = tbs_round[:-1]
+        if tb_name == "ROTE":
+            terr_pos = ["DS", "MS", "LS"]
+        else:
+            terr_pos = ["top", "mid", "bot"]
+        list_open_terr_names = ['', '', '']
+        list_open_terr_names[0] = tb_name+str(list_open_terr[0])+"-"+terr_pos[0]
+        list_open_terr_names[1] = tb_name+str(list_open_terr[1])+"-"+terr_pos[1]
+        list_open_terr_names[2] = tb_name+str(list_open_terr[2])+"-"+terr_pos[2]
+
+        for terr in dict_platoons_done:
+            #LIMIT: if a terr is filled over several days, a player may have put
+            # the toon the day before. So it is available for today, yet
+            # the algorithm will detect it as not available
+            if terr[:-2] in list_open_terr_names:
+                for unit_name in dict_platoons_done[terr]:
+                    unit_id = dict_alias[unit_name.lower()][1]
+                    if not unit_id in dict_used_toon_player:
+                        dict_used_toon_player[unit_id] = []
+                    dict_used_toon_player[unit_id] += dict_platoons_done[terr][unit_name]
 
     list_list_discord_ids=[]
     for list_characters in list_list_characters:
@@ -3375,6 +3402,8 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         if tw_mode:
             intro_txt += ", qui sont inscrits à la GT, et qui ne l'ont pas mis en défense"
             query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+"\n"
+        if tb_mode:
+            intro_txt += ", et qui ne l'ont pas posé en peloton"
         query += "GROUP BY guildName, players.name "
         goutils.log2('DBG', query)
         allyCodes_in_DB = connect_mysql.get_table(query)
@@ -3392,10 +3421,10 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
             goutils.log2('DBG', 'player_name: '+player_name)
 
-            if first_char_id in dict_def_toon_player and \
-                player_name in dict_def_toon_player[first_char_id]:
+            if first_char_id in dict_used_toon_player and \
+                player_name in dict_used_toon_player[first_char_id]:
 
-                goutils.log2('DBG', "toon used in TW defense, no tag")
+                goutils.log2('DBG', "toon used in TW defense or TB platoon, no tag")
             else:
                 if player_name in dict_players:
                     player_mention = dict_players[player_name][1]
