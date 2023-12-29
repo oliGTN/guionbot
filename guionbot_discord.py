@@ -839,9 +839,13 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                             else:
                                 goutils.log2("WAR", "Unknown mission "+territory_name+" for TB "+tbs_name)
 
-                if detect_previous_BT:
-                    #out of the main message reading loop
-                    break
+                #if detect_previous_BT:
+                #    #out of the main message reading loop
+                #    break
+
+                # Assumption of a single Echostation allocation per phase
+                # no need to detect platoons from previous phases
+                break
 
             #elif message.content.startswith("<@") or message.content.startswith("Filled in another phase"):
             else: #try to manage any message as EchoBot allocation may be sent without the "include @mentions" option
