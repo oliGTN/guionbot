@@ -1,10 +1,26 @@
+# PACKAGE imports
+from discord.ext import tasks, commands
+from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
+from discord import app_commands, Interaction
+from io import BytesIO
+
+# BOT imports
+import go
+import connect_mysql
+import goutils
+
+# CONSTANTS
 import emojis
+MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 
 async def command_ack(ctx_interaction):
-    if type(ctx) == discord.ext.commands.Context:
-        await ctx_interaction.message.add_reaction(emojis.thumb)
-    elif type(ctx) == discord.Interaction:
-        await ctx_interaction.response.defer(thinking=True)
+    if type(ctx_interaction) == commands.Context:
+        ctx = ctx_interaction
+        await ctx.message.add_reaction(emojis.thumb)
+
+    elif type(ctx) == Interaction:
+        interaction = ctx_interaction
+        await interaction.response.defer(thinking=True)
     else:
         print("In progress...")
 
@@ -21,18 +37,18 @@ async def command_ok(ctx_interaction, output_txt, images=None, files=None, inter
     if files != None:
         attachments += files
 
-    if type(ctx_interaction) == discord.ext.commands.Context:
+    if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
         if intermediate:
-            await ctx.message.add_reaction(emoji.hourglass)
+            await ctx.message.add_reaction(emojis.hourglass)
         else:
-            await ctx.message.remove_reaction(emoji_hourglass, ctx.me)
-            await ctx.message.add_reaction(emoji.check)
+            await ctx.message.remove_reaction(emojis.hourglass, ctx.me)
+            await ctx.message.add_reaction(emojis.check)
 
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await ctx.send(txt, files=attachments)
 
-    elif type(ctx_interaction) == discord.Interaction:
+    elif type(ctx_interaction) == Interaction:
         interaction = ctx_interaction
         if intermediate:
             txt = emojis.hourglass+" "+text
@@ -50,11 +66,13 @@ async def command_ok(ctx_interaction, output_txt, images=None, files=None, inter
 
 
 async def command_error(ctx_interaction, err_txt):
-    if type(ctx) == discord.ext.commands.Context:
-        await ctx_interaction.message.add_reaction(emoji.redcross)
+    if type(ctx_interaction) == commands.Context:
+        ctx = ctx_interaction
+        await ctx.message.add_reaction(emojis.redcross)
         await ctx.send(err_txt)
 
-    elif type(ctx) == discord.Interaction:
+    elif type(ctx_interaction) == Interaction:
+        interaction = ctx_interaction
         txt = emojis.redcross+" "+err_txt
         await interaction.edit_original_response(content=txt)
 
@@ -110,7 +128,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
         if ec!=0:
             await ctx_interaction.send('ERR: '+et)
-            await ctx_interaction.message.add_reaction(emoji_error)
+            await ctx_interaction.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
