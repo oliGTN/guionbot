@@ -14,9 +14,10 @@ import emojis
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 
 async def command_ack(ctx_interaction):
+    msg = None
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
-        await ctx.message.add_reaction(emojis.thumb)
+        msg = await ctx.reply(emojis.thumb+" "+ctx.me.name+" réfléchit...")
 
     elif type(ctx_interaction) == Interaction:
         interaction = ctx_interaction
@@ -24,7 +25,9 @@ async def command_ack(ctx_interaction):
     else:
         print("In progress...")
 
-async def command_ok(ctx_interaction, output_txt, images=None, files=None, intermediate=False):
+    return msg
+
+async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=None, intermediate=False):
     attachments = []
 
     if images != None:
@@ -42,90 +45,95 @@ async def command_ok(ctx_interaction, output_txt, images=None, files=None, inter
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
         if intermediate:
-            await ctx.message.add_reaction(emojis.hourglass)
+            content = emojis.hourglass+" "+output_txt
         else:
-            await ctx.message.add_reaction(emojis.check)
+            content = emojis.check+" "+output_txt
 
-        answer_messages = []
-        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-            msg = await ctx.send(txt, files=attachments)
-            answer_messages.append(msg)
+        await resp_msg.edit(content=content, attachments=attachments)
 
     elif type(ctx_interaction) == Interaction:
         interaction = ctx_interaction
         if intermediate:
-            txt = emojis.hourglass+" "+output_txt
+            content = emojis.hourglass+" "+output_txt
         else:
-            txt = emojis.check+" "+output_txt
+            content = emojis.check+" "+output_txt
 
-        await interaction.edit_original_response(content=txt, attachments=attachments)
+        await interaction.edit_original_response(content=content, attachments=attachments)
 
     else:
-        print("Command OK")
-        print(output_txt)
+        if intermediate:
+            content = "OK "+output_txt
+        else:
+            content = "In Progress... "+output_txt
+
+        print(content)
 
         for attachment in attachments:
             print(attachment)
 
-    return answer_messages
 
-async def command_intermediate_to_ok(ctx_interaction, answer_messages=None, new_txt=None):
+async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
-        await ctx.message.remove_reaction(emojis.hourglass, ctx.me)
-        await ctx.message.add_reaction(emojis.check)
 
-        if new_txt != None:
-            await answer_messages[0].edit(content=new_txt)
+        if new_txt == None:
+            content = resp_msg.content.replace(emojis.hourglass, emojis.check)
+        else:
+            content = emojis.check+" "+new_txt
+
+        await resp_msg.edit(content=content)
 
     elif type(ctx_interaction) == Interaction:
         interaction = ctx_interaction
         if new_txt == None:
-            new_content = interaction.message.content.replace(emojis.hourglass, emojis.check)
+            content = interaction.message.content.replace(emojis.hourglass, emojis.check)
         else:
-            new_content = emojis.check+" "+new_txt
-        await interaction.edit_original_response(content=new_content)
+            content = emojis.check+" "+new_txt
+        await interaction.edit_original_response(content=content)
 
     else:
-        print("Command OK")
+        if new_txt == None:
+            print("OK")
+        else:
+            print("OK "+new_txt)
 
-async def command_error(ctx_interaction, err_txt):
+async def command_error(ctx_interaction, resp_msg, err_txt):
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
-        await ctx.message.add_reaction(emojis.redcross)
-        await ctx.send(err_txt)
+        content = emojis.redcross+" "+err_txt
+
+        await resp_msg.edit(content=content)
 
     elif type(ctx_interaction) == Interaction:
         interaction = ctx_interaction
-        txt = emojis.redcross+" "+err_txt
-        await interaction.edit_original_response(content=txt)
+        content = emojis.redcross+" "+err_txt
+
+        await interaction.edit_original_response(content=content)
 
     else:
-        print("ERROR")
-        print(err_txt)
+        print("ERROR "+err_txt)
 
 async def gdp(ctx_interaction, allyCode):
-    await command_ack(ctx_interaction)
+    resp_msg = await command_ack(ctx_interaction)
 
     allyCode = await manage_me(ctx_interaction, allyCode, allow_tw=True)
     if allyCode[0:3] == 'ERR':
-        await command_error(ctx_interaction, allyCode)
+        await command_error(ctx_interaction, resp_msg, allyCode)
         return
 
     # Display the chart
     e, err_txt, image = await go.get_gp_distribution(allyCode)
     if e != 0:
-        await command_error(ctx_interaction, err_txt)
+        await command_error(ctx_interaction, resp_msg, err_txt)
         return
 
-    answer_messages = await command_ok(ctx_interaction, "chargement des joueurs en cours", images=[image], intermediate=True)
+    await command_ok(ctx_interaction, resp_msg, "chargement des joueurs en cours", images=[image], intermediate=True)
 
     # Now load all players from the guild
     await go.load_guild( allyCode, True, True)
 
     #Icône de confirmation de fin de commande dans le message d'origine
-    await command_intermediate_to_ok(ctx_interaction, answer_messages=answer_messages,
-                                     new_txt="chargement des joueurs OK")
+    await command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt="chargement des joueurs OK")
 
 ##############################################################
 # Function: manage_me
