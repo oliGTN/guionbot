@@ -2859,12 +2859,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emoji_check)
 
+##############################################################
+# Member slash commands (duplicate of MemberCog
+##############################################################
 @bot.tree.command()
 async def gdp(interaction: discord.Interaction,
               allycode: str) -> None:
-    print("aa")
     await bot_commands.gdp(interaction, allycode)
-    print("bb")
 
 
 ##############################################################
