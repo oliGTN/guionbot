@@ -3283,7 +3283,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
               + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") "
         intro_txt = "Ceux"
 
-        first_char = True #to store the char_id of the first char in the command
+        list_req_chars = [] #to store the char_id of the required chars in the command
         for character in list_characters:
             tab_virtual_character = character.split(':')
             while '' in tab_virtual_character:
@@ -3336,8 +3336,6 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                 return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
             character_id = list_character_ids[0]
             character_name = "**"+dict_unitsList[character_id]["name"]+"**"
-            if first_char:
-                first_char_id = character_id
 
             goutils.log2("DBG", character_id)
             goutils.log2("DBG", opposite_search)
@@ -3350,6 +3348,8 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     intro_txt+= " qui ont ("+character_name+ " mais pas "+character_name
                 else:
                     intro_txt+= " qui ont "+character_name
+                    list_req_chars.append(character_id)
+
 
                 if not simple_search:
                     if char_rarity>0:
@@ -3396,7 +3396,6 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     query += "      AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
             query += ") "
             intro_txt += " et"
-            first_char = False
 
         intro_txt = intro_txt[:-3]
         if tw_mode:
@@ -3421,9 +3420,14 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
             goutils.log2('DBG', 'player_name: '+player_name)
 
-            if first_char_id in dict_used_toon_player and \
-                player_name in dict_used_toon_player[first_char_id]:
+            # Look for required chars in used toons
+            req_chars_available = True
+            for req_char in list_req_chars:
+                if req_char in dict_used_toon_player and \
+                    player_name in dict_used_toon_player[req_char]:
+                    req_chars_available = False
 
+            if not req_chars_available:
                 goutils.log2('DBG', "toon used in TW defense or TB platoon, no tag")
             else:
                 if player_name in dict_players:
