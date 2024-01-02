@@ -27,6 +27,22 @@ async def command_ack(ctx_interaction):
 
     return msg
 
+async def command_error(ctx_interaction, resp_msg, err_txt):
+    if type(ctx_interaction) == commands.Context:
+        ctx = ctx_interaction
+        content = emojis.redcross+" "+err_txt
+
+        await resp_msg.edit(content=content)
+
+    elif type(ctx_interaction) == Interaction:
+        interaction = ctx_interaction
+        content = emojis.redcross+" "+err_txt
+
+        await interaction.edit_original_response(content=content)
+
+    else:
+        print("ERROR "+err_txt)
+
 async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=None, intermediate=False):
     attachments = []
 
@@ -39,8 +55,6 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
 
     if files != None:
         attachments += files
-
-    answer_messages = None
 
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
@@ -72,6 +86,29 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
             print(attachment)
 
 
+async def send_message(ctx_interaction, output_txt, images=None, files=None):
+    attachments = []
+
+    if images != None:
+        for image in images:
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                attachments.append(File(fp=image_binary, filename='image.png'))
+
+    if files != None:
+        attachments += files
+
+    if ctx_interaction != None:
+        await ctx_interaction.message.channel.send(content=content, attachments=attachments)
+
+    else:
+        print(content)
+
+        for attachment in attachments:
+            print(attachment)
+
+
 async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
@@ -97,22 +134,8 @@ async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
         else:
             print("OK "+new_txt)
 
-async def command_error(ctx_interaction, resp_msg, err_txt):
-    if type(ctx_interaction) == commands.Context:
-        ctx = ctx_interaction
-        content = emojis.redcross+" "+err_txt
 
-        await resp_msg.edit(content=content)
-
-    elif type(ctx_interaction) == Interaction:
-        interaction = ctx_interaction
-        content = emojis.redcross+" "+err_txt
-
-        await interaction.edit_original_response(content=content)
-
-    else:
-        print("ERROR "+err_txt)
-
+##############################################################
 async def gdp(ctx_interaction, allyCode):
     resp_msg = await command_ack(ctx_interaction)
 
@@ -136,6 +159,90 @@ async def gdp(ctx_interaction, allyCode):
     await command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt="chargement des joueurs OK")
 
 ##############################################################
+async def tpg(ctx_interaction, *args):
+    resp_msg = await command_ack(ctx_interaction)
+
+    #Check arguments
+    args = list(args)
+    tw_mode = False
+    tb_mode = False
+    guild_id = None
+
+    if "-TW" in args:
+        #Ensure command is launched from a server, not a DM
+        if commands_check.dm(ctx_interaction, "L'option -TW"):
+            return
+
+        tw_mode = True
+        args.remove("-TW")
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+    if "-TB" in args:
+        if tw_mode:
+            await command_error(ctx_interaction, resp_msg, "ERR: impossible d'utiliser les options -TW et -TB en même temps")
+            return
+
+        #Ensure command is launched from a server, not a DM
+        #Ensure command is launched from a server, not a DM
+        if commands_check.dm(ctx_interaction, "L'option -TB"):
+            return
+
+        tb_mode = True
+        args.remove("-TB")
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TB")
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+    ec, et, ret = get_channel_from_args(arg)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    args = ret["args"]
+    display_mentions = ret["display_mentions"]
+    output_channel = ret["output_channel"]
+
+    if len(args) >= 2:
+        allyCode = args[0]
+        character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')]]
+    else:
+        await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
+        return
+
+    ec, et, allyCode = await manage_me(ctx_interaction, allyCode, False)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
+                                                                     guild_id, tw_mode, tb_mode,
+                                                                     display_mentions)
+    if err != 0:
+        await command_error(ctx_interaction, resp_msg, errtxt)
+        return
+
+    for list_ids in list_list_ids:
+        intro_txt = list_ids[0]
+        if len(list_ids) > 1:
+            await send_message(ctx_interaction, intro_txt +" :\n" +' / '.join(list_ids[1:])+"\n--> "+str(len(list_ids)-1)+" joueur(s)")
+        else:
+            await send_message(ctx_interaction, intro_txt +" : aucun joueur")
+
+    await command_ok(ctx_interaction, resp_msg, "Commande terminée")
+
+##############################################################
 # Function: manage_me
 # IN (string): alias > me / -TW / @mention / allyCode / in-game name / discord name
 # OUT (string): find the allyCode from the alias
@@ -156,25 +263,23 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
             ret_allyCode_txt = "ERR: \"me\" (<@"+str(user_id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
     elif alias == "-TW":
         if not allow_tw:
-            return "ERR: l'option -TW n'est pas utilisable avec cette commande"
+            return 1, "ERR: l'option -TW n'est pas utilisable avec cette commande", None
 
         #Ensure command is launched from a server, not a DM
         if ctx_interaction.guild == None:
-            return "ERR: commande non autorisée depuis un DM avec l'option -TW"
+            return 1, "ERR: commande non autorisée depuis un DM avec l'option -TW", None
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
         if ec!=0:
-            await ctx_interaction.send('ERR: '+et)
-            await ctx_interaction.message.add_reaction(emojis.redcross)
-            return
+            return ec, et, None
 
         guild_id = bot_infos["guild_id"]
 
         #Launch the actuel search
         ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
         if ec != 0:
-            return "ERR: "+et
+            return ec, "ERR: "+et, None
 
         ret_allyCode_txt = allyCode
 
@@ -255,4 +360,34 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
                 ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
     
-    return ret_allyCode_txt
+    return 0, "", ret_allyCode_txt
+
+###########################################################
+async def get_channel_from_args(ctx_interaction, args):
+    for arg in args:
+        if arg.startswith('<#'):
+            id_output_channel = int(channel_name[2:-1])
+            output_channel = bot.get_channel(id_output_channel)
+
+            if output_channel == None:
+                return 1, "Channel " + arg + "(id=" + str(id_output_channel) + ") introuvable", \
+                          {"args": args.remove(arg),
+                           "output_channel": None,
+                           "display_mentions": False}
+
+            if not output_channel.permissions_for(ctx_interaction.me).send_messages:
+                return 1, 'Il manque les droits d\'écriture dans ' + channel_name, \
+                          {"args": args.remove(arg),
+                           "output_channel": None,
+                           "display_mentions": False}
+            
+            display_mentions = officer(ctx_interaction)
+            return 0, "", {"args": args.remove(arg), 
+                           "output_channel": output_channel,
+                           "display_mentions": True}
+                    
+    # If we reach this point, it means no channel was in the arguments
+    return 0, "", {"args": args,
+                   "output_channel": ctx_interaction.message.channel,
+                   "display_mentions": False}
+

@@ -10,19 +10,30 @@ def _user(ctx_interaction):
 
     return user
 
-def admin(ctx_interaction):
+def dm(ctx_interaction, specific_restriction="Cette commande"):
+    is_in_dm = (ctx_interaction.guild == None)
+    if is_in_dm:
+        bot_commands.command_error(ctx_interaction, specific_restriction+" ne peut âs être utilisée dans un DM")
+        return True
+
+    return False
+
+def is_bot_admin(ctx_interaction):
     is_bot_admin = str(_user(ctx_interaction).id) in config.GO_ADMIN_IDS.split(' ')
+    return is_bot_admin
+
+def admin(ctx_interaction):
+    is_bot_admin = is_bot_admin(ctx_interaction)
     if not is_bot_admin:
         bot_commands.command_error(ctx_interaction, "Commande réservée aux admins")
         return False
 
     return True
 
-def officer(ctx_interaction):
-    is_bot_admin = str(_user(ctx_interaction).id) in config.GO_ADMIN_IDS.split(' ')
-
+def is_officer(ctx_interaction):
+    is_bot_admin = is_bot_admin(ctx_interaction)
+    is_server_admin = _user(ctx_interaction).guild_permissions.administrator
     is_officer = False
-    is_server_admin = False
 
     if ctx_interaction.guild != None:
         # Can be an officer only if in a discord server, not in a DM
@@ -49,16 +60,13 @@ def officer(ctx_interaction):
         else:
             goutils.log2("DBG", et)
 
+    return is_officer or is_bot_admin or is_server_admin
 
-        # Can have the rights if server admin
-        is_server_admin = _user(ctx_interaction).guild_permissions.administrator
+def officer(ctx_interaction, specific_restriction="Cette commande"):
+    is_officer = is_officer(ctx_interaction)
 
-    goutils.log2("INFO", [ctx.author.name, is_bot_admin, is_officer, is_server_admin])
-
-    is_allowed = ((is_officer or is_server_admin) and (not bot_test_mode)) or is_bot_admin
-
-    if not is_allowed:
-        bot_commands.command_error(ctx_interaction, "Commande réservée aux officiers (in-game) ou aux admins du serveur")
+    if not is_officer:
+        bot_commands.command_error(ctx_interaction, specific_restriction+" est réservée aux officiers (in-game) ou aux admins du serveur")
         return False
 
     return True
