@@ -18,7 +18,7 @@ async def command_ack(ctx_interaction):
         ctx = ctx_interaction
         await ctx.message.add_reaction(emojis.thumb)
 
-    elif type(ctx) == Interaction:
+    elif type(ctx_interaction) == Interaction:
         interaction = ctx_interaction
         await interaction.response.defer(thinking=True)
     else:
@@ -37,33 +37,57 @@ async def command_ok(ctx_interaction, output_txt, images=None, files=None, inter
     if files != None:
         attachments += files
 
+    answer_messages = None
+
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction
         if intermediate:
             await ctx.message.add_reaction(emojis.hourglass)
         else:
-            await ctx.message.remove_reaction(emojis.hourglass, ctx.me)
             await ctx.message.add_reaction(emojis.check)
 
+        answer_messages = []
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-            await ctx.send(txt, files=attachments)
+            msg = await ctx.send(txt, files=attachments)
+            answer_messages.append(msg)
 
     elif type(ctx_interaction) == Interaction:
         interaction = ctx_interaction
         if intermediate:
-            txt = emojis.hourglass+" "+text
+            txt = emojis.hourglass+" "+output_txt
         else:
-            txt = emojis.check+" "+text
+            txt = emojis.check+" "+output_txt
 
         await interaction.edit_original_response(content=txt, attachments=attachments)
 
     else:
         print("Command OK")
-        print(text)
+        print(output_txt)
 
         for attachment in attachments:
             print(attachment)
 
+    return answer_messages
+
+async def command_intermediate_to_ok(ctx_interaction, answer_messages=None, new_txt=None):
+    if type(ctx_interaction) == commands.Context:
+        ctx = ctx_interaction
+        await ctx.message.remove_reaction(emojis.hourglass, ctx.me)
+        await ctx.message.add_reaction(emojis.check)
+
+        if new_txt != None:
+            await answer_messages[0].edit(content=new_txt)
+
+    elif type(ctx_interaction) == Interaction:
+        interaction = ctx_interaction
+        if new_txt == None:
+            new_content = interaction.message.content.replace(emojis.hourglass, emojis.check)
+        else:
+            new_content = emojis.check+" "+new_txt
+        await interaction.edit_original_response(content=new_content)
+
+    else:
+        print("Command OK")
 
 async def command_error(ctx_interaction, err_txt):
     if type(ctx_interaction) == commands.Context:
@@ -81,26 +105,27 @@ async def command_error(ctx_interaction, err_txt):
         print(err_txt)
 
 async def gdp(ctx_interaction, allyCode):
-        await command_ack(ctx_interaction)
+    await command_ack(ctx_interaction)
 
-        allyCode = await manage_me(ctx_interaction, allyCode, allow_tw=True)
-        if allyCode[0:3] == 'ERR':
-            await command_error(ctx_interaction, allyCode)
-            return
+    allyCode = await manage_me(ctx_interaction, allyCode, allow_tw=True)
+    if allyCode[0:3] == 'ERR':
+        await command_error(ctx_interaction, allyCode)
+        return
 
-        # Display the chart
-        e, err_txt, image = await go.get_gp_distribution(allyCode)
-        if e != 0:
-            await command_error(ctx_interaction, err_txt)
-            return
+    # Display the chart
+    e, err_txt, image = await go.get_gp_distribution(allyCode)
+    if e != 0:
+        await command_error(ctx_interaction, err_txt)
+        return
 
-        await command_ok(ctx_interaction, "", images=[image], intermediate=True)
+    answer_messages = await command_ok(ctx_interaction, "chargement des joueurs en cours", images=[image], intermediate=True)
 
-        # Now load all players from the guild
-        await go.load_guild( allyCode, True, True)
+    # Now load all players from the guild
+    await go.load_guild( allyCode, True, True)
 
-        #Icône de confirmation de fin de commande dans le message d'origine
-        await command_ok(ctx_interaction, "", images=[image])
+    #Icône de confirmation de fin de commande dans le message d'origine
+    await command_intermediate_to_ok(ctx_interaction, answer_messages=answer_messages,
+                                     new_txt="chargement des joueurs OK")
 
 ##############################################################
 # Function: manage_me
@@ -111,11 +136,16 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
     #Special case of 'me' as allyCode
     if alias == 'me':
         dict_players_by_ID = connect_mysql.load_config_players()[1]
-        #print(dict_players_by_ID)
-        if ctx_interaction.author.id in dict_players_by_ID:
-            ret_allyCode_txt = str(dict_players_by_ID[ctx_interaction.author.id]["main"][0])
+        if type(ctx_interaction) == commands.Context:
+            user_id = ctx_interaction.author.id
+        else: # Interaction
+            user_id = ctx_interaction.user.id
+
+        print(user_id)
+        if user_id in dict_players_by_ID:
+            ret_allyCode_txt = str(dict_players_by_ID[user_id]["main"][0])
         else:
-            ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx_interaction.author.id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
+            ret_allyCode_txt = "ERR: \"me\" (<@"+str(user_id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
     elif alias == "-TW":
         if not allow_tw:
             return "ERR: l'option -TW n'est pas utilisable avec cette commande"

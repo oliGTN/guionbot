@@ -23,6 +23,7 @@ import zipfile
 import typing
 import json
 
+import bot_commands
 import go
 import goutils
 import connect_gsheets
@@ -2858,6 +2859,14 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emoji_check)
 
+@bot.tree.command()
+async def gdp(interaction: discord.Interaction,
+              allycode: str) -> None:
+    print("aa")
+    await bot_commands.gdp(interaction, allycode)
+    print("bb")
+
+
 ##############################################################
 # Class: MemberCog
 # Description: contains all member commands
@@ -3598,6 +3607,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gdp 123456789\n"\
                       "Exemple: go.gdp -TW")
     async def gdp(self, ctx, allyCode):
+        await bot_commands.gdp(ctx, allyCode)
+
+        """
         await ctx.message.add_reaction(emoji_thumb)
 
         allyCode = await manage_me(ctx, allyCode, True)
@@ -3626,6 +3638,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.remove_reaction(emoji_hourglass, bot.user)
             await ctx.message.add_reaction(emoji_check)
+        """
 
     ##############################################################
     # Command: ggac
@@ -3668,6 +3681,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.remove_reaction(emoji_hourglass, bot.user)
             await ctx.message.add_reaction(emoji_check)
+
                 
     ##############################################################
     # Command: ggv
