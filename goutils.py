@@ -748,13 +748,14 @@ def print_tw_best_teams(list_teams, intro_txt):
                     log2('DBG', "best_teams="+str(best_teams))
                     output_txt += intro_txt+" "+label_terr+" "+label+" après "+str(max_fights)+" combats :\n"
                     for t in best_teams:
-                        t[2] = [dict_unitsList[x]["name"] for x in t[2]]
-                        output_txt += t[1] + ": " + str(t[2]).replace("'", '"')\
+                        player_name = t[1]
+                        list_unit_names = [dict_unitsList[x["unitId"]]["name"] for x in t[2]]
+                        output_txt += player_name + ": " + str(list_unit_names).replace("'", '"')\
                                                              .replace(", ", " ")\
                                                              .replace("]", "")\
                                                              .replace("[", "") + "\n"
                 else:
-                    output_txt += intro_txt+" "+label_terr+" "+label+" : rien de particulier à signaler"
+                    output_txt += intro_txt+" "+label_terr+" "+label+" : rien de particulier à signaler\n"
 
     return output_txt
 
