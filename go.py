@@ -4916,7 +4916,8 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 #Get speed of 5th ennemy
                 query = "SELECT stat5  FROM roster " \
                         "JOIN players on players.allyCode=roster.allyCode "\
-                        "WHERE players.name='"+opp_player_name+"' AND guildName='"+opp_guild_name+"' "\
+                        "WHERE players.name='"+opp_player_name.replace("'", "''")+"' "\
+                        "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
                         "AND defId='"+fifth_unit_id+"'"
                 goutils.log2("DBG", query)
                 fifth_unit_speed = int(connect_mysql.get_value(query)*1e-8)
