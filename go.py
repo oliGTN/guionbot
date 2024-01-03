@@ -4925,7 +4925,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 output_txt += "\nVitesse du 5e perso ("+fifth_unit_id+") de "+opp_player_name+" = "+str(fifth_unit_speed)
                 if fifth_unit_speed <= (my_Thrawn_speed-11):
                     if fifth_unit_id == "MACEWINDU":
-                        output_txt += " > "+emoji_frowning
+                        output_txt += " > "+emoji_frowning+" attention si omicron !"
                     else:
                         output_txt += " > "+emoji_check
                 else:
