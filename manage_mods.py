@@ -980,3 +980,31 @@ def mod_to_modopti(mod, unit_defId):
     modopti_mod["tier"] = mod["tier"]
 
     return modopti_mod
+
+async def get_mod_stats(txt_allyCode):
+    #Get game mod data
+    mod_list = godata.get("modList_dict.json")
+
+    # Get player data
+    e, t, dict_player = await go.load_player(txt_allyCode, -1, False)
+    if e != 0:
+        return 1, "ERR: "+t
+
+    set_count = {}
+    for unit_id in dict_player["rosterUnit"]:
+        unit = dict_player["rosterUnit"][unit_id]
+        for mod in unit["equippedStatMod"]:
+            mod_defId=mod["definitionId"]
+            mod_setId=mod_list[mod_defId]["setId"]
+            mod_set=dict_stat_by_set[mod_setId]
+            if not mod_set in set_count:
+                set_count[mod_set]=0
+
+            set_count[mod_set]+=1
+
+    # normalize to 100%
+    total_mods=sum(set_count.values())
+    for k in set_count:
+        set_count[k]=set_count[k]/total_mods
+
+    return set_count
