@@ -13,17 +13,16 @@ NAME_HEIGHT = 30
 PORTRAIT_SIZE = 168
 MAX_WIDTH_PORTRAITS = 10
 
-dict_colors = {}
-dict_colors["blue"] = (0, 0, 255)
-dict_colors["bright_orange"] = (255, 200, 10)
-dict_colors["brown"] = (128, 0, 0)
-dict_colors["gold"] = (255, 200, 10)
-dict_colors["green"] = (0, 255, 0)
-dict_colors["purple"] = (100, 30, 150)
-dict_colors["white"] = (255, 255, 255)
-dict_colors["red"] = (128, 0, 0)
-dict_colors["bright_blue"] = (128, 128, 255)
-dict_colors["dark_blue"] = (0, 0, 255)
+# list recovered from gamedata.json / 24 / 2
+dict_colors = { "bright_orange_brown": ["0xFFCA52FF", "0x5C2C1AFF"],
+                "bright_blue_dark_blue": ["0xA4DCFFFF", "0x0020BFFF"],
+                "white_red": ["0xFFFFFFFF", "0x430000FF"],
+                "cyan_purple": ["0x00D4FFFF", "0x880084FF"],
+                "gold_purple": ["0xF7C419FF", "0x542583FF"],
+                "green_blue": ["0x05FF9CFF", "0x1A427DFF"],
+                "red_white": ["0xEB2429FF", "0xEAE4D6FF"],
+                "green_dark_green": ["0xC6FA08FF", "0x283E04FF"]
+              }
 
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
@@ -68,26 +67,20 @@ def get_guild_logo(dict_guild, target_size):
     logo_name = dict_guild["profile"]["bannerLogoId"]
     logo_colors = dict_guild["profile"]["bannerColorId"]
 
-    logo_color_elements = logo_colors.split("_")
-    if logo_colors.startswith("bright"):
-        color1 = "bright_" + logo_color_elements[1]
-        color2 = "_".join(logo_color_elements[2:])
-    else:
-        color1 = logo_color_elements[0]
-        color2 = "_".join(logo_color_elements[1:])
-
-    if color1 in dict_colors:
-        rgb1 = dict_colors[color1]
+    if logo_colors in dict_colors:
+        rgb1_txt = dict_colors[logo_colors][0]
+        rgb1 = (int(rgb1_txt[2:4], 16),
+                int(rgb1_txt[4:6], 16),
+                int(rgb1_txt[6:8], 16))
+        rgb2_txt = dict_colors[logo_colors][1]
+        rgb2 = (int(rgb2_txt[2:4], 16),
+                int(rgb2_txt[4:6], 16),
+                int(rgb2_txt[6:8], 16))
     else:
         rgb1 = (255, 255, 255)
-        goutils.log("WAR", "get_guild_logo", "unknown color "+color1)
-    rgb1_dark = tuple([int(x/2) for x in rgb1])
-
-    if color2 in dict_colors:
-        rgb2 = dict_colors[color2]
-    else:
         rgb2 = (0, 0, 0)
-        goutils.log("WAR", "get_guild_logo", "unknown color "+color2)
+        goutils.log2("WAR", "unknown color "+logo_colors)
+    rgb1_dark = tuple([int(x/2) for x in rgb1])
 
     logo_img_name = 'IMAGES'+os.path.sep+'GUILD_LOGOS'+os.path.sep+logo_name+'.png'
     if not os.path.exists(logo_img_name):
