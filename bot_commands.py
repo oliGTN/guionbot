@@ -3,6 +3,8 @@ from discord.ext import tasks, commands
 from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
 from discord import app_commands, Interaction
 from io import BytesIO
+import re
+import difflib
 
 # BOT imports
 import go
@@ -139,9 +141,9 @@ async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
 async def gdp(ctx_interaction, allyCode):
     resp_msg = await command_ack(ctx_interaction)
 
-    allyCode = await manage_me(ctx_interaction, allyCode, allow_tw=True)
-    if allyCode[0:3] == 'ERR':
-        await command_error(ctx_interaction, resp_msg, allyCode)
+    ec, et, allyCode = await manage_me(ctx_interaction, allyCode, allow_tw=True)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
         return
 
     # Display the chart
@@ -256,7 +258,6 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
         else: # Interaction
             user_id = ctx_interaction.user.id
 
-        print(user_id)
         if user_id in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[user_id]["main"][0])
         else:
@@ -360,6 +361,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
                 ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
     
+    goutils.log2("DBG", ret_allyCode_txt)
     return 0, "", ret_allyCode_txt
 
 ###########################################################
