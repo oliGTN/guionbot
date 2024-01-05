@@ -8,6 +8,7 @@ import difflib
 
 # BOT imports
 import go
+import connect_rpc
 import connect_mysql
 import goutils
 
