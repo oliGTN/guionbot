@@ -4985,3 +4985,67 @@ async def print_guild_dtc(txt_allyCode, filter_txt):
             output_txt += dtc+": "+str(dict_dtc[dtc])+"\n"
 
     return 0, "", output_txt
+
+async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
+    # get TW status to know if one is ongoing
+    rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
+    tw_id = rpc_data["tw_id"]
+
+    # Get TW defense orders
+    dict_orders = {}
+    for terr in rpc_data["homeGuild"]["list_territories"]:
+        zone_shortId = terr[0]
+        cmdMsg = terr[5]
+        state = terr[6]
+        if state=="IGNORED":
+            dict_orders[zone_shortId] = "!!INTERDIT!! "+cmdMsg
+        else:
+            dict_orders[zone_shortId] = cmdMsg
+
+    # Get player Id
+    query = "SELECT playerId FROM players WHERE allyCode="+txt_allyCode
+    goutils.log2("DBG", query)
+    player_id = connect_mysql.get_value(query)
+    if player_id == None:
+        return 1, "Joueur inconnu"
+
+    # Get list of previous TWs
+    event_filenames = os.listdir("EVENTS/")
+    event_tw_filenames = [x for x in event_filenames if x.startswith(guild_id+"_TERRITORY_WAR")]
+
+    if tw_id!=None:
+        event_prev_tw_filenames = [x for x in event_tw_filenames if not tw_id in x]
+
+    # Get filename for latest TW
+    event_previous_tw_filename = sorted(event_prev_tw_filenames, key=lambda x:x[-26:-12])[-1]
+
+    # Read and extract defenses
+    dict_unitsList = godata.get("unitsList_dict.json")
+    dict_tw = godata.dict_tw
+    dict_events = json.load(open("EVENTS/"+event_previous_tw_filename))
+    deftw_cmd = ""
+    for event_id in dict_events:
+        event = dict_events[event_id]
+        if event["authorId"] != player_id:
+            continue
+        activity = event["data"][0]["activity"]
+        if not activity["zoneData"]["activityLogMessage"]["key"].endswith("_DEPLOY"):
+            continue
+
+        if activity["warSquad"]["playerId"] != player_id:
+            if "eGBR" in event_id:
+                print("warSquad player != event player for "+event_id)
+            continue
+
+        zoneId = activity["zoneData"]["zoneId"]
+        zone_shortId = dict_tw[zoneId]
+
+        list_units=""
+        for cell in activity["warSquad"]["squad"]["cell"]:
+            unitDefId = cell["unitDefId"].split(":")[0]
+            unit_name = dict_unitsList[unitDefId]["name"].replace('"', '')
+            list_units += '"'+unit_name+'" '
+        deftw_cmd += command_schema.format(zone_shortId, list_units)
+        deftw_cmd += "\n"+zone_shortId+": "+dict_orders[zone_shortId]+"\n--------------\n"
+
+    return 0, deftw_cmd
