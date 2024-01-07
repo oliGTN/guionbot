@@ -23,6 +23,7 @@ dict_colors = { "bright_orange_brown": ["0xFFCA52FF", "0x5C2C1AFF"],
                 "red_white": ["0xEB2429FF", "0xEAE4D6FF"],
                 "green_dark_green": ["0xC6FA08FF", "0x283E04FF"]
               }
+reverse_guild_logos = ['guild_icon_senate']
 
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
@@ -81,6 +82,7 @@ def get_guild_logo(dict_guild, target_size):
         rgb2 = (0, 0, 0)
         goutils.log2("WAR", "unknown color "+logo_colors)
     rgb1_dark = tuple([int(x/2) for x in rgb1])
+    rgb2_dark = tuple([int(x/2) for x in rgb2])
 
     logo_img_name = 'IMAGES'+os.path.sep+'GUILD_LOGOS'+os.path.sep+logo_name+'.png'
     if not os.path.exists(logo_img_name):
@@ -95,12 +97,18 @@ def get_guild_logo(dict_guild, target_size):
     image_draw = ImageDraw.Draw(image)
 
     #Draw background circle with color2
-    image_draw.ellipse((2,2,126,126), fill=rgb2)
+    if logo_name in reverse_guild_logos:
+        image_draw.ellipse((2,2,126,126), fill=rgb1_dark)
+    else:
+        image_draw.ellipse((2,2,126,126), fill=rgb2)
 
     #Add guild image in foreground with color1
     logo_img = Image.open(logo_img_name)
     logo_img = logo_img.convert("RGBA")
-    logo_img = replace_color(logo_img, (0, 0, 0), rgb1_dark)
+    if logo_name in reverse_guild_logos:
+        logo_img = replace_color(logo_img, (0, 0, 0), rgb2)
+    else:
+        logo_img = replace_color(logo_img, (0, 0, 0), rgb1_dark)
 
     #Add edges
     logo_edges = logo_img.filter(ImageFilter.FIND_EDGES)
