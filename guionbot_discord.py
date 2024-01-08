@@ -2412,7 +2412,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         use_tags = False
         for arg in args:
             if arg.startswith('<#'):
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
                 use_tags = True
                 if output_channel == None:
                     await ctx.send('**ERR**: '+err_msg)
