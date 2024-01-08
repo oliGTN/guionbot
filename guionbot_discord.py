@@ -2420,7 +2420,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     use_tags = True
                 args.remove(arg)
 
-        if len(args) != 0:
+        target_progress=50
+        if len(args) == 1:
+            target_progress=int(args[0])
+            if target_progress<0:
+                target_progress=0
+            if target_progress>100:
+                target_progress=100
+        elif len(args) != 0:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help raidrappel")
             await ctx.message.add_reaction(emoji_error)
             return
@@ -2435,7 +2442,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         guild_id = bot_infos["guild_id"]
 
         # Launch the actual command
-        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(guild_id, 50, True)
+        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(guild_id, target_progress, True)
         if raid_id == None:
             await ctx.send("Aucun raid en cours")
             await ctx.message.add_reaction(emoji_error)
