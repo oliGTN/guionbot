@@ -2026,6 +2026,7 @@ async def get_raid_status(guild_id, target_percent, force_update):
         dict_raid_members_by_id[member["playerId"]] = member
 
     list_inactive_players = []
+    potential_score = guild_score
     for member_id in dict_members_by_id:
         member = dict_members_by_id[member_id]
         if member["guildJoinTime"]*1000 >= raid_join_time:
@@ -2048,8 +2049,9 @@ async def get_raid_status(guild_id, target_percent, force_update):
         if score <= estimated_score*target_percent/100:
             #this is not enough
             list_inactive_players.append({"name": member["playerName"], "status": status_txt})
+            potential_score += estimated_score*target_percent/100 - score
 
-    return raid_id, expire_time, list_inactive_players, guild_score
+    return raid_id, expire_time, list_inactive_players, guild_score, potential_score
 
 async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode):
     url = "http://localhost:8000/updateMods"

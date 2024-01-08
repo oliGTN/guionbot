@@ -2442,7 +2442,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         guild_id = bot_infos["guild_id"]
 
         # Launch the actual command
-        raid_id, expire_time, list_inactive_players, guild_score = await connect_rpc.get_raid_status(guild_id, target_progress, True)
+        raid_id, expire_time, list_inactive_players, guild_score, potential_score = await connect_rpc.get_raid_status(guild_id, target_progress, True)
         if raid_id == None:
             await ctx.send("Aucun raid en cours")
             await ctx.message.add_reaction(emoji_error)
@@ -2451,7 +2451,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         dict_players_by_IG = connect_mysql.load_config_players()[0]
         expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
         score_txt = str(int(guild_score/100000)/10)
-        output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M) : \n"
+        potential_score_txt = str(int(potential_score/100000)/10)
+        output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M, "+potential_score_txt+" M si tout le monde atteint "+str(target_progress)+"% de son max) : \n"
         if len(list_inactive_players) > 0 :
             for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
                 if use_tags and p["name"] in dict_players_by_IG:
