@@ -2195,6 +2195,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         guild_id = bot_infos["guild_id"]
+        txt_allyCode = str(bot_infos["allyCode"])
 
         # Launch the actual command
         ec, et = await go.deploy_bot_tw(guild_id, zone, characters)
@@ -2233,7 +2234,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         guild_id = bot_infos["guild_id"]
 
         # Launch the actual command
-        ec, et = await go.deploy_bot_tb(guild_id, zone, characters)
+        ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)

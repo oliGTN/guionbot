@@ -215,7 +215,7 @@ async def load_player(ac_or_id, force_update, no_db):
 
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting RPC data for player ' + ac_or_id + '...')
-        ec, et, dict_player_list = await connect_rpc.get_player_data(ac_or_id)
+        ec, et, dict_player_list = await connect_rpc.get_extplayerdata(ac_or_id)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
             dict_player_list = prev_dict_player_list
@@ -4204,7 +4204,15 @@ def get_tw_player_def(fevents_name, player_name):
             txt_cmd += " \""+dict_units[unit_id]["name"]+"\""
         #print(txt_cmd)
 
-async def deploy_bot_tb(guild_id, zone_shortname, characters):
+##############################
+# IN guild_id
+# IN txt_allyCode: tis account needs to be a bot or a google user
+# IN zone_shortname: DS, LS, MS, bot, mid, top
+# IN characters: one alias for one unit ("lobot") or a group of units ("all", "tag:c:all", "tag:empire")
+#
+# This function extracts the unit IDs and sends the list to the RPC function
+##############################
+async def deploy_tb(guild_id, txt_allyCode, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Manage request for all characters
@@ -4242,6 +4250,7 @@ async def deploy_bot_tb(guild_id, zone_shortname, characters):
     if not zone_found:
         return 1, "zone inconnue: " + zone_shortname + " " + str(list_zone_names)
 
+    # Filter out units depending on zone type mix/char/ship
     zone_type = dict_tb[zone_name]["type"]
     if zone_type != "mix":
         if zone_type == "chars":
@@ -4254,7 +4263,7 @@ async def deploy_bot_tb(guild_id, zone_shortname, characters):
                 filtered_list_character_ids.append(unit_id)
         list_character_ids = filtered_list_character_ids
 
-    ec, txt = await connect_rpc.deploy_tb(guild_id, zone_name, list_character_ids)
+    ec, txt = await connect_rpc.deploy_tb(txt_allyCode, zone_name, list_character_ids)
 
     return ec, txt
 

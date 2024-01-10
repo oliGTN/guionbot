@@ -458,7 +458,7 @@ async def get_event_data(dict_guild, event_types, force_update):
     return 0, "", dict_events
 
 async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
-    ec, et, dict_player = await get_player_data(txt_allyCode)
+    ec, et, dict_player = await get_extplayer_data(txt_allyCode)
     if ec != 0:
         return 1, et, None
 
@@ -497,7 +497,7 @@ async def get_guild_data_from_id(guild_id, use_cache_data):
 
     return 0, "", dict_guild
 
-async def get_player_data(ac_or_id):
+async def get_extplayer_data(ac_or_id):
     url = "http://localhost:8000/extplayer"
     params = {"player_id": ac_or_id}
     req_data = json.dumps(params)
@@ -555,9 +555,13 @@ async def get_bot_player_data(guild_id, use_cache_data):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
+    ec, et d = await get_player_data(bot_allyCode, use_cache_data)
+    return ec, et, d
+
+async def get_player_data(txt_allyCode, use_cache_data):
     # prepare actual server request
     url = "http://localhost:8000/player"
-    params = {"allyCode":bot_allyCode, "player_id": bot_allyCode, "use_cache_data": use_cache_data}
+    params = {"allyCode":txt_allyCode, "player_id": txt_allyCode, "use_cache_data": use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -1624,7 +1628,7 @@ async def get_tw_opponent_leader(guild_id):
         if member["memberLevel"] == 4:
             leader_id = member["playerId"]
 
-    ec, et, dict_player = await get_player_data(leader_id)
+    ec, et, dict_player = await get_extplayer_data(leader_id)
     if ec != 0:
         return ec, et, None
 
@@ -1764,17 +1768,11 @@ async def get_tw_active_players(guild_id, force_update):
 
     return 0, "", list_active_players
 
-async def deploy_tb(guild_id, zone, list_defId):
-    dict_bot_accounts = get_dict_bot_accounts()
-    if not guild_id in dict_bot_accounts:
-        return 1, "Ce serveur discord n'a pas de warbot", None
-
-    err_code, err_txt, dict_player = await get_bot_player_data(guild_id, False)
+async def deploy_tb(txt_allyCode, zone, list_defId):
+    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
-
-    bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
 
     list_char_id = []
     for unit in dict_player["rosterUnit"]:
@@ -1786,7 +1784,7 @@ async def deploy_tb(guild_id, zone, list_defId):
     if len(list_char_id) == 0:
         return 1, "Plus rien à déployer"
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", bot_allyCode, zone]+list_char_id)
+    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone]+list_char_id)
     goutils.log2("DBG", "deploy_tb code="+str(process.returncode))
     if process.returncode!=0:
         if process.returncode == 202:
@@ -1796,7 +1794,7 @@ async def deploy_tb(guild_id, zone, list_defId):
         elif process.returncode != 0:
             return 1, "Erreur en déployant en TB - code="+str(process.returncode)
 
-    return 0, "Le bot a déployé en " + zone
+    return 0, "Déploiement OK en " + zone
 
 async def deploy_tw(guild_id, zone, list_defId):
     dict_unitsList = godata.get("unitsList_dict.json")
