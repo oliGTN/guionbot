@@ -3252,7 +3252,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
         tb_name = tbs_round[:-1]
         if tb_name == "ROTE":
-            terr_pos = ["DS", "MS", "LS"]
+            terr_pos = ["LS", "DS", "MS"]
         else:
             terr_pos = ["top", "mid", "bot"]
         list_open_terr_names = ['', '', '']
