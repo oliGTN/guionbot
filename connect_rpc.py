@@ -555,7 +555,7 @@ async def get_bot_player_data(guild_id, use_cache_data):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
-    ec, et d = await get_player_data(bot_allyCode, use_cache_data)
+    ec, et, d = await get_player_data(bot_allyCode, use_cache_data)
     return ec, et, d
 
 async def get_player_data(txt_allyCode, use_cache_data):
@@ -1784,7 +1784,9 @@ async def deploy_tb(txt_allyCode, zone, list_defId):
     if len(list_char_id) == 0:
         return 1, "Plus rien à déployer"
 
-    process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone]+list_char_id)
+    process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone]+list_char_id
+    goutils.log2("DBG", process_cmd_list)
+    process = subprocess.run(process_cmd_list)
     goutils.log2("DBG", "deploy_tb code="+str(process.returncode))
     if process.returncode!=0:
         if process.returncode == 202:
