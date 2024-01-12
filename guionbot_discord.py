@@ -2232,6 +2232,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         guild_id = bot_infos["guild_id"]
+        txt_allyCode = str(bot_infos["allyCode"])
 
         # Launch the actual command
         ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, characters)
