@@ -215,7 +215,7 @@ async def load_player(ac_or_id, force_update, no_db):
 
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("INFO", 'Requesting RPC data for player ' + ac_or_id + '...')
-        ec, et, dict_player_list = await connect_rpc.get_extplayerdata(ac_or_id)
+        ec, et, dict_player_list = await connect_rpc.get_extplayer_data(ac_or_id)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
             dict_player_list = prev_dict_player_list
