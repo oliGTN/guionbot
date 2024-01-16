@@ -4441,19 +4441,37 @@ async def detect_fulldef(guild_id, force_update):
     if ec != 0:
         return ec, et, None
 
+    # Get the count of units and capital ships in the guild
     query = "SELECT defId, count(*) FROM roster " \
             "JOIN players ON players.allyCode=roster.allyCode " \
-            "WHERE guildName='Kangoo Legends' " \
+            "WHERE guildId='"+guild_id+"' " \
             "AND ((combatType=1 AND gear>=12) OR (combatType=2 AND defId like 'CAPITAL%')) " \
             "GROUP BY defId "
     goutils.log2("DBG", query)
     data_db = connect_mysql.get_table(query)
 
-    dict_char_ratio = {}
+    # This dict contains the ratio (units in defense) / (units in the guild)
+    # If a player puts lots of low-ratio units in defense, he is probably full def
+    dict_char_ratio_rarity = {}
     for [unit_id, unit_count] in data_db:
         if unit_id in dict_def_toon_player:
-            dict_char_ratio[unit_id] = len(dict_def_toon_player[unit_id]) / unit_count
+            dict_char_ratio_rarity[unit_id] = len(dict_def_toon_player[unit_id]) / unit_count
 
+    # Get the count of units and capital ships per player in the guild
+    query = "SELECT name, count(*) FROM roster " \
+            "JOIN players ON players.allyCode=roster.allyCode " \
+            "WHERE guildId='"+guild_id+"' " \
+            "AND ((combatType=1 AND gear>=12) OR (combatType=2 AND defId like 'CAPITAL%')) " \
+            "GROUP BY players.allyCode "
+    goutils.log2("DBG", query)
+    data_db = connect_mysql.get_table(query)
+    
+    dict_units_per_player = {}
+    for [name, unit_count] in data_db:
+        dict_units_per_player[name] = unit_count
+
+
+    # This dict contains all defense units of a player
     dict_def_player_toon = {}
     for unit_id in dict_def_toon_player:
         for player in dict_def_toon_player[unit_id]:
@@ -4463,23 +4481,25 @@ async def detect_fulldef(guild_id, force_update):
 
     dict_player_fulldef_ratio = {}
     for player in dict_def_player_toon:
-        list_ratio = []
+        list_ratio_rarity = []
         for unit_id in dict_def_player_toon[player]:
-            if unit_id in dict_char_ratio:
-                list_ratio.append(dict_char_ratio[unit_id])
-        if len(list_ratio)==0:
-            ratio=1
+            if unit_id in dict_char_ratio_rarity:
+                list_ratio_rarity.append(dict_char_ratio_rarity[unit_id])
+        if len(list_ratio_rarity)==0:
+            ratio_rarity=1
         else:
-            ratio = sum(list_ratio)/len(list_ratio)
-        dict_player_fulldef_ratio[player] = ratio
+            # Average of unit rarity in def
+            ratio_rarity = sum(list_ratio_rarity)/len(list_ratio_rarity)
+
+        # Ratio with used def units / total player units
+        ratio_usage = len(dict_def_player_toon[player]) / dict_units_per_player[player]
+        dict_player_fulldef_ratio[player] = ratio_rarity / ratio_usage
 
     dict_fulldef = {}
     for player in dict_player_fulldef_ratio:
         ratio = dict_player_fulldef_ratio[player]
-        if ratio >= 0.5:
+        if ratio >= 1.0:
             dict_fulldef[player] = -1
-        elif ratio >= 0.4:
-            dict_fulldef[player] = 0
         else:
             dict_fulldef[player] = 1
 
