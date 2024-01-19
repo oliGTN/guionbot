@@ -4342,10 +4342,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emoji_error)
             return
 
-        e, err_txt, output_txt = await go.print_guild_dtc(allyCode, filter_txt)
+        with_mentions = officer_command(ctx)
+        e, err_txt, output_txt = await go.print_guild_dtc(allyCode, filter_txt, with_mentions)
         if e == 0 and len(output_txt) >0:
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await ctx.send('`' + txt + '`')
+                await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emoji_check)

@@ -4966,13 +4966,19 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
     else:
         return 1, "Counter inconnu: "+counter_type
 
-async def print_guild_dtc(txt_allyCode, filter_txt):
+async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
-    dict_dtc = {}
+    if with_mentions:
+        #get list of allyCodes and player tags
+        dict_players = connect_mysql.load_config_players()[0]
+    else:
+        # if this dict is empty, there will be no discord mention
+        dict_players = {}
 
+    dict_dtc = {}
     for member in dict_guild["member"]:
         player_id = member["playerId"]
         player_file = "PLAYERS/"+player_id+".json"
@@ -5002,16 +5008,21 @@ async def print_guild_dtc(txt_allyCode, filter_txt):
 
             if not key_dtc in dict_dtc:
                 dict_dtc[key_dtc] = []
-            dict_dtc[key_dtc].append(player_name)
+
+            if player_name in dict_players:
+                player_mention = dict_players[player_name][1]
+            else:
+                player_mention = player_name
+            dict_dtc[key_dtc].append(player_mention)
 
     output_txt = ""
 
     for dtc in dict_dtc:
         if filter_txt != None:
             if filter_txt.lower() in dtc.lower():
-                output_txt += dtc+": "+str(dict_dtc[dtc])+"\n"
+                output_txt += dtc+":\n"+", ".join(dict_dtc[dtc])+"\n\n"
         else:
-            output_txt += dtc+": "+str(dict_dtc[dtc])+"\n"
+            output_txt += dtc+":\n"+", ".join(dict_dtc[dtc])+"\n\n"
 
     return 0, "", output_txt
 
