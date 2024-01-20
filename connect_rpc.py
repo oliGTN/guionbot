@@ -504,7 +504,7 @@ async def get_extplayer_data(ac_or_id):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
-                goutils.log2("DBG", "getplayer status="+str(resp.status))
+                goutils.log2("DBG", "extplayer status="+str(resp.status))
                 if resp.status==200:
                     dict_player = await(resp.json())
                 else:
@@ -566,7 +566,7 @@ async def get_player_data(txt_allyCode, use_cache_data):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
-                goutils.log2("DBG", "botplayer status="+str(resp.status))
+                goutils.log2("DBG", "player status="+str(resp.status))
                 if resp.status==200:
                     dict_player = await(resp.json())
                 else:
@@ -1658,6 +1658,7 @@ async def get_tw_status(guild_id, force_update):
 
     ec, et, dict_guild = await get_guild_data(guild_id, force_update)
     if ec!=0:
+        goutils.log2("ERR", et)
         return {"tw_id": None}
 
     dict_members_by_id={}
@@ -1798,19 +1799,13 @@ async def deploy_tb(txt_allyCode, zone, list_defId):
 
     return 0, "Déploiement OK en " + zone
 
-async def deploy_tw(guild_id, zone, list_defId):
+async def deploy_tw(guild_id, txt_allyCode, zone, list_defId):
     dict_unitsList = godata.get("unitsList_dict.json")
 
-    dict_bot_accounts = get_dict_bot_accounts()
-    if not guild_id in dict_bot_accounts:
-        return 1, "Ce serveur discord n'a pas de warbot", None
-
-    err_code, err_txt, dict_player = await get_bot_player_data(guild_id, False)
+    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
-
-    bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
 
     dict_roster = {}
     for unit in dict_player["rosterUnit"]:
@@ -1839,10 +1834,14 @@ async def deploy_tw(guild_id, zone, list_defId):
 
     if team_combatType==2:
         #Fleet
-        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_allyCode, zone, '-s']+list_char_id)
+        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone, '-s']+list_char_id
+        goutils.log2("DBG", process_cmd_list)
+        process = subprocess.run(process_cmd_list)
     else:
         #Ground
-        process = subprocess.run(["/home/pi/GuionBot/warstats/deploy_tw.sh", bot_allyCode, zone]+list_char_id)
+        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone]+list_char_id
+        goutils.log2("DBG", process_cmd_list)
+        process = subprocess.run(process_cmd_list)
 
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
     if process.returncode==202:
