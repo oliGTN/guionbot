@@ -4267,7 +4267,7 @@ async def deploy_tb(guild_id, txt_allyCode, zone_shortname, characters):
 
     return ec, txt
 
-async def deploy_bot_tw(guild_id, zone_shortname, characters):
+async def deploy_bot_tw(guild_id, txt_allyCode, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
@@ -4282,7 +4282,7 @@ async def deploy_bot_tw(guild_id, zone_shortname, characters):
     else:
         return 1, "Zone GT inconnue"
 
-    ec, txt = await connect_rpc.deploy_tw(guild_id, zone_name, list_character_ids)
+    ec, txt = await connect_rpc.deploy_tw(guild_id, txt_allyCode, zone_name, list_character_ids)
 
     return ec, txt
 
