@@ -2913,7 +2913,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         if len(args) >= 2:
             allyCode = args[0]
-            character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')]]
+            character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')] if x!='']
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
             await ctx.message.add_reaction(emoji_error)
