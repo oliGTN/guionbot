@@ -1746,6 +1746,46 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
+# Class: TwCog - for Google accounts
+# Description: contains all slash commands for TW
+##############################################################
+class TwCog(commands.GroupCog, name="gt"):
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot = bot
+        super().__init__()
+
+    @app_commands.command(name="défense")
+    @app_commands.rename(units="unités")
+    async def tw_defense(self, interaction: discord.Interaction,
+                         zone: str,
+                         units: str):
+
+        await interaction.response.defer(thinking=True)
+
+        #get player config from DB
+        ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        if ec!=0:
+            txt = emoji_error+" ERR: "+et
+            await interaction.edit_original_response(content=txt)
+            return
+
+        guild_id = player_infos["guild_id"]
+        txt_allyCode = str(player_infos["allyCode"])
+
+        # split units by <space>, preserving quoted strings
+        characters = [p.strip('"') for p in re.split("( |\\\".*?\\\"|'.*?')", units) if p.strip()]
+
+        # Launch the actual command
+        ec, et = await go.deploy_bot_tw(guild_id, txt_allyCode, zone, characters)
+        if ec == 0:
+            txt = emoji_check+" "+et
+            if simulation:
+                txt = "[SIMULATION]"+txt
+            await interaction.edit_original_response(content=txt)
+        else:
+            await interaction.edit_original_response(content=emoji_error+" "+et)
+
+##############################################################
 # Class: TbCog - for Google accounts
 # Description: contains all slash commands for Tb
 ##############################################################
@@ -2176,8 +2216,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emoji_check)
 
     @commands.command(name='bot.deftw',
-            brief="Défense GT pour le warbot",
-            help="Pose des teams en défense GT pour le warbot")
+                      brief="Défense GT pour le warbot",
+                      help="Pose des teams en défense GT pour le warbot")
     async def botdeftw(self, ctx, zone, *characters):
         await ctx.message.add_reaction(emoji_thumb)
 
@@ -2198,13 +2238,46 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         txt_allyCode = str(bot_infos["allyCode"])
 
         # Launch the actual command
-        ec, et = await go.deploy_bot_tw(guild_id, zone, characters)
+        ec, et = await go.deploy_bot_tw(guild_id, txt_allyCode, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
             return
 
         await ctx.send(et)
+        await ctx.message.add_reaction(emoji_check)
+
+    @commands.command(name='bot.lastdeftw',
+                      brief="Précédente défense GT pour le warbot",
+                      help="Affiche les défenses de la dernière fois, pour aider à poser des teams en défense GT pour le warbot")
+    async def lastbotdeftw(self, ctx):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        txt_allyCode = str(bot_infos["allyCode"])
+
+        # Launch the actual command
+        ec, et = await go.get_previous_tw_defense(txt_allyCode, guild_id, "go.bot.deftw {0} {1}")
+        if ec != 0:
+            await ctx.send(et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        for txt in goutils.split_txt(et, MAX_MSG_SIZE):
+            await ctx.send(txt)
         await ctx.message.add_reaction(emoji_check)
 
     #######################################################
@@ -4766,6 +4839,7 @@ async def main():
     await bot.add_cog(MemberCog(bot))
     await bot.add_cog(ModsCog(bot), guilds=[ADMIN_GUILD])
     await bot.add_cog(TbCog(bot), guilds=[ADMIN_GUILD])
+    await bot.add_cog(TwCog(bot), guilds=[ADMIN_GUILD])
 
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
