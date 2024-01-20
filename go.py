@@ -5036,6 +5036,8 @@ async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
     for terr in rpc_data["homeGuild"]["list_territories"]:
         zone_shortId = terr[0]
         cmdMsg = terr[5]
+        if cmdMsg == None:
+            cmdMsg = "<aucun ordre défini>"
         state = terr[6]
         if state=="IGNORED":
             dict_orders[zone_shortId] = "!!INTERDIT!! "+cmdMsg
@@ -5074,7 +5076,7 @@ async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
 
         if activity["warSquad"]["playerId"] != player_id:
             if "eGBR" in event_id:
-                print("warSquad player != event player for "+event_id)
+                goutils.log2("WAR", "warSquad player != event player for "+event_id)
             continue
 
         zoneId = activity["zoneData"]["zoneId"]
