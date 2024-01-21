@@ -4362,13 +4362,14 @@ def print_unit_kit(alias):
     output_txt += print_ability(unit_id, ability_id, "Basique")
 
     #SPECIALS
-    ab_id = 1
-    for special in dict_units[unit_id]["limitBreakRef"]:
-        ability_id = special["abilityId"]
-        if ability_id == "generic_reinforcement":
-            continue
-        output_txt += print_ability(unit_id, ability_id, "Spéciale "+str(ab_id))
-        ab_id+=1
+    if "limitBreakRef" in dict_units[unit_id]:
+        ab_id = 1
+        for special in dict_units[unit_id]["limitBreakRef"]:
+            ability_id = special["abilityId"]
+            if ability_id == "generic_reinforcement":
+                continue
+            output_txt += print_ability(unit_id, ability_id, "Spéciale "+str(ab_id))
+            ab_id+=1
 
     #LEADER
     if "leaderAbilityRef" in dict_units[unit_id]:
@@ -4376,14 +4377,15 @@ def print_unit_kit(alias):
         output_txt += print_ability(unit_id, ability_id, "Chef")
 
     #UNIQUES
-    ab_id = 1
-    for special in dict_units[unit_id]["uniqueAbilityRef"]:
-        ability_id = special["abilityId"]
-        ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
-        if ability_name == "Placeholder":
-            continue
-        output_txt += print_ability(unit_id, ability_id, "Unique "+str(ab_id))
-        ab_id+=1
+    if "uniqueAbilityRef" in dict_units[unit_id]:
+        ab_id = 1
+        for special in dict_units[unit_id]["uniqueAbilityRef"]:
+            ability_id = special["abilityId"]
+            ability_name = FRE_FR[dict_abilities[ability_id]["nameKey"]]
+            if ability_name == "Placeholder":
+                continue
+            output_txt += print_ability(unit_id, ability_id, "Unique "+str(ab_id))
+            ab_id+=1
 
     return 0, output_txt
 
