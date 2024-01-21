@@ -170,142 +170,167 @@ def add_horizontal(img1, img2):
     
 def get_image_from_character(character_id, dict_player, game_mode):
     dict_unitsList = data.get("unitsList_dict.json")
+
+    #Get character details
+    if character_id in dict_player["rosterUnit"]:
+        character = dict_player["rosterUnit"][character_id]
+
+        #CREW
+        crew_units = []
+        if "crew" in dict_unitsList[character_id] and dict_unitsList[character_id]["crew"]!= None:
+            for crew_element in dict_unitsList[character_id]["crew"]:
+                crew_id = crew_element["unitId"]
+                crew_units.append(dict_player["rosterUnit"][crew_id])
+
+        portrait_image = get_image_from_unit(character, crew_units, game_mode)
+    else:
+        #Get basic image of character
+        portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
+        portrait_draw = ImageDraw.Draw(portrait_image)
+        
+        character_image = get_image_from_id(character_id)
+        character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
+        portrait_image.paste(character_image, (20, 10), character_mask_image)
+        
+        #character is invalid, display it in reduce
+        red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
+        portrait_image = Image.blend(portrait_image, red_img, 0.5)
+
+    return portrait_image
+
+########################################
+# IN: character: unit as an element of rosterUnit
+# IN: crew_units: table of units as an element of rosterUnit, only for ships
+# IN: game_mode: string used to display omicrons (CQ, GA, GA3, GA5, RD, TB, TW)
+########################################
+def get_image_from_unit(character, crew_units, game_mode):
+    dict_unitsList = data.get("unitsList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
 
     portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
     portrait_draw = ImageDraw.Draw(portrait_image)
     
     #Get basic image of character
+    character_id = character["definitionId"].split(':')[0]
     character_image = get_image_from_id(character_id)
     character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
     portrait_image.paste(character_image, (20, 10), character_mask_image)
     
-    #Get character details
-    if character_id in dict_player["rosterUnit"]:
-        character = dict_player["rosterUnit"][character_id]
+    #RARITY
+    rarity = character["currentRarity"]
+    active_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star.png')
+    inactive_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star-inactive.png')
+    for cur_rarity in [1, 2, 3, 4, 5, 6, 7]:
+        pos_x = cur_rarity*21 - 10
+        pos_y = 140
+        if rarity >= cur_rarity:
+            star_image = active_star_img
+        else:
+            star_image = inactive_star_img
+        portrait_image.paste(star_image, (pos_x, pos_y), star_image)
 
-        #RARITY
-        rarity = character["currentRarity"]
-        active_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star.png')
-        inactive_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star-inactive.png')
-        for cur_rarity in [1, 2, 3, 4, 5, 6, 7]:
-            pos_x = cur_rarity*21 - 10
-            pos_y = 140
-            if rarity >= cur_rarity:
-                star_image = active_star_img
+    combatType = dict_unitsList[character_id]["combatType"]
+    forceAlignment = dict_unitsList[character_id]["forceAlignment"]
+
+    if combatType == 1:
+        #GEAR
+        gear = character["currentTier"]
+        if gear < 13:
+            gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g'+str(gear)+'-frame.png')
+            gear_frame_img = gear_frame_img.resize((126,126))
+            portrait_image.paste(gear_frame_img, (21, 11), gear_frame_img)
+        else:
+            gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g13-frame-atlas.png')
+            if forceAlignment == 2:
+                gear_frame_img = gear_frame_img.crop((0, 0, 120, 112))
+            elif forceAlignment == 3:
+                gear_frame_img = gear_frame_img.crop((0, 112, 120, 224))
             else:
-                star_image = inactive_star_img
-            portrait_image.paste(star_image, (pos_x, pos_y), star_image)
+                gear_frame_img = gear_frame_img.crop((0, 224, 120, 336))
+            gear_frame_img = gear_frame_img.resize((148,148))
+            portrait_image.paste(gear_frame_img, (11, 1), gear_frame_img)
 
-        combatType = dict_unitsList[character_id]["combatType"]
-        forceAlignment = dict_unitsList[character_id]["forceAlignment"]
+        #RELIC
+        relic = character["relic"]["currentTier"]-2
+        if relic>0:
+            relic_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'relic-badge-atlas.png')
 
-        if combatType == 1:
-            #GEAR
-            gear = character["currentTier"]
-            if gear < 13:
-                gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g'+str(gear)+'-frame.png')
-                gear_frame_img = gear_frame_img.resize((126,126))
-                portrait_image.paste(gear_frame_img, (21, 11), gear_frame_img)
+            #FIRST LOOK IF ULTIMATE ACTIVATED
+            ultimate = False
+            if "purchaseAbilityId" in character:
+                for ability in character["purchaseAbilityId"]:
+                    if ability.startswith("ultimateability"):
+                        ultimate = True
+
+            #ALLOCATE the right relic badge depending on ultimate, then alignment if no ultimate
+            if ultimate:
+                relic_frame_img = relic_frame_img.crop((0, 162, 54, 216))
+            elif forceAlignment == 2:
+                relic_frame_img = relic_frame_img.crop((0, 0, 54, 54))
+            elif forceAlignment == 3:
+                relic_frame_img = relic_frame_img.crop((0, 54, 54, 108))
             else:
-                gear_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'g13-frame-atlas.png')
-                if forceAlignment == 2:
-                    gear_frame_img = gear_frame_img.crop((0, 0, 120, 112))
-                elif forceAlignment == 3:
-                    gear_frame_img = gear_frame_img.crop((0, 112, 120, 224))
-                else:
-                    gear_frame_img = gear_frame_img.crop((0, 224, 120, 336))
-                gear_frame_img = gear_frame_img.resize((148,148))
-                portrait_image.paste(gear_frame_img, (11, 1), gear_frame_img)
-
-            #RELIC
-            relic = character["relic"]["currentTier"]-2
-            if relic>0:
-                relic_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'relic-badge-atlas.png')
-
-                #FIRST LOOK IF ULTIMATE ACTIVATED
-                ultimate = False
-                if "purchaseAbilityId" in character:
-                    for ability in character["purchaseAbilityId"]:
-                        if ability.startswith("ultimateability"):
-                            ultimate = True
-
-                #ALLOCATE the right relic badge depending on ultimate, then alignment if no ultimate
-                if ultimate:
-                    relic_frame_img = relic_frame_img.crop((0, 162, 54, 216))
-                elif forceAlignment == 2:
-                    relic_frame_img = relic_frame_img.crop((0, 0, 54, 54))
-                elif forceAlignment == 3:
-                    relic_frame_img = relic_frame_img.crop((0, 54, 54, 108))
-                else:
-                    relic_frame_img = relic_frame_img.crop((0, 108, 54, 162))
-                relic_frame_img = relic_frame_img.resize((70,70))
-                portrait_image.paste(relic_frame_img, (50, 87), relic_frame_img)
-                portrait_draw.text((78,107), str(relic), (255, 255, 255), font=font)
-            else:
-                #LEVEL
-                level = character["currentLevel"]
-                level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
-                level_frame_img = level_frame_img.resize((40,40))
-                portrait_image.paste(level_frame_img, (64, 107), level_frame_img)
-                portrait_draw.text((86-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
-
-            #ZETAS
-            zetas = 0
-            for skill in character["skill"]:
-                skill_id = skill["id"]
-                if ( (skill["tier"]+2) >= dict_capas[character_id][skill_id]["zetaTier"] ):
-                    zetas += 1
-            if zetas != None and zetas>0:
-                zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
-                zeta_frame_img = zeta_frame_img.resize((60,60))
-                portrait_image.paste(zeta_frame_img, (5, 85), zeta_frame_img)
-                portrait_draw.text((29,100), str(zetas), (255, 255, 255), font=font)
-
-            #OMICRONS
-            omicrons = 0
-            if character_id in dict_capas:
-                for skill in character["skill"]:
-                    skill_id = skill['id']
-                    skill_tier = skill['tier']+2
-                    if skill_id in dict_capas[character_id]:
-                        if skill_tier >= dict_capas[character_id][skill_id]["omicronTier"]:
-                            if game_mode=="" or (dict_capas[character_id][skill_id]["omicronMode"]==game_mode):
-                                omicrons += 1
-            if omicrons>0:
-                omicron_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_omicron.png')
-                omicron_frame_img = omicron_frame_img.resize((60,60))
-                portrait_image.paste(omicron_frame_img, (106, 85), omicron_frame_img)
-                portrait_draw.text((130,100), str(omicrons), (255, 255, 255), font=font)
+                relic_frame_img = relic_frame_img.crop((0, 108, 54, 162))
+            relic_frame_img = relic_frame_img.resize((70,70))
+            portrait_image.paste(relic_frame_img, (50, 87), relic_frame_img)
+            portrait_draw.text((78,107), str(relic), (255, 255, 255), font=font)
         else:
             #LEVEL
             level = character["currentLevel"]
             level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
             level_frame_img = level_frame_img.resize((40,40))
-            portrait_image.paste(level_frame_img, (4, 107), level_frame_img)
-            portrait_draw.text((26-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
+            portrait_image.paste(level_frame_img, (64, 107), level_frame_img)
+            portrait_draw.text((86-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
 
-            #CREW
-            if "crew" in dict_unitsList[character_id] and dict_unitsList[character_id]["crew"]!= None:
-                for crew_element in dict_unitsList[character_id]["crew"]:
-                    crew_id = crew_element["unitId"]
+        #ZETAS
+        zetas = 0
+        for skill in character["skill"]:
+            skill_id = skill["id"]
+            if ( (skill["tier"]+2) >= dict_capas[character_id][skill_id]["zetaTier"] ):
+                zetas += 1
+        if zetas != None and zetas>0:
+            zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
+            zeta_frame_img = zeta_frame_img.resize((60,60))
+            portrait_image.paste(zeta_frame_img, (5, 85), zeta_frame_img)
+            portrait_draw.text((29,100), str(zetas), (255, 255, 255), font=font)
 
-                    #for crew image, the game_mode is ignored as it serves to display omicrons
-                    crew_image = get_image_from_character(crew_id, dict_player, "")
-                    portrait_image = add_vertical(portrait_image, crew_image)
-
-        #Orange frame if character unavail
-        # unavail character is tagged with "reserved" and it is applicable with game_mode="TW" only
-        # this to prevent displaying a crew in orange because the crew is in defense
-        # display of crew is always done with game_mode=""
-        if 'reserved' in character and game_mode=="TW":
-            if character['reserved']:
-                orange_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'orange')
-                portrait_image = Image.blend(portrait_image, orange_img, 0.5)
+        #OMICRONS
+        omicrons = 0
+        if character_id in dict_capas:
+            for skill in character["skill"]:
+                skill_id = skill['id']
+                skill_tier = skill['tier']+2
+                if skill_id in dict_capas[character_id]:
+                    if skill_tier >= dict_capas[character_id][skill_id]["omicronTier"]:
+                        if game_mode=="" or (dict_capas[character_id][skill_id]["omicronMode"]==game_mode):
+                            omicrons += 1
+        if omicrons>0:
+            omicron_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_omicron.png')
+            omicron_frame_img = omicron_frame_img.resize((60,60))
+            portrait_image.paste(omicron_frame_img, (106, 85), omicron_frame_img)
+            portrait_draw.text((130,100), str(omicrons), (255, 255, 255), font=font)
     else:
-        #character is invalid, display it in reduce
-        red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
-        portrait_image = Image.blend(portrait_image, red_img, 0.5)
+        #LEVEL
+        level = character["currentLevel"]
+        level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
+        level_frame_img = level_frame_img.resize((40,40))
+        portrait_image.paste(level_frame_img, (4, 107), level_frame_img)
+        portrait_draw.text((26-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
+
+        #CREW
+        for crew_unit in crew_units:
+            #for crew image, the game_mode is ignored as it serves to display omicrons
+            crew_image = get_image_from_unit(crew_unit, None, "")
+            portrait_image = add_vertical(portrait_image, crew_image)
+
+    #Orange frame if character unavail
+    # Unavail character is tagged with "reserved" and it is applicable with game_mode="TW" only
+    # This to prevent displaying a crew in orange because the crew is in defense
+    # Display of crew is always done with game_mode=""
+    if 'reserved' in character and game_mode=="TW":
+        if character['reserved']:
+            orange_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'orange')
+            portrait_image = Image.blend(portrait_image, orange_img, 0.5)
 
     return portrait_image
 

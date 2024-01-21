@@ -750,7 +750,7 @@ def print_tw_best_teams(list_teams, intro_txt):
                     for t in best_teams:
                         player_name = t[1]
                         list_unit_names = [dict_unitsList[x["unitId"]]["name"] for x in t[2]]
-                        output_txt += player_name + ": "
+                        output_txt += player_name + " "
                         for u in list_unit_names:
                             output_txt += '"'+u.replace('"', '')+'" '
                         output_txt += "\n"
