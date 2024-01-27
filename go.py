@@ -649,12 +649,14 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
             #Rarity
             req_rarity_min = character_obj[1]
             req_rarity_reco = character_obj[3]
+            if req_rarity_min == '' or gv_mode:
+                req_rarity_min = 1
 
             #Gear
             req_gear_min = character_obj[2]
             req_gear_reco = character_obj[4]
             req_relic_min=0
-            if req_gear_min == '':
+            if req_gear_min == '' or gv_mode:
                 req_gear_min = 1
             elif type(req_gear_min) == str:
                 if req_gear_min[0] == 'G':
@@ -953,7 +955,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
             score100 += sum_weights
         else:
             score += sum_scores
-        
+
         if 0.0 in top_weighted_scores:
             score_nogo = True
 
