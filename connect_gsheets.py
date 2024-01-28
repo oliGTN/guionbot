@@ -607,13 +607,54 @@ async def update_gwarstats(guild_id):
 
     #first need to check if the round has evolved
     # in that case, duplicate current sheet as backup copy
-    prev_round = int(feuille.get("B2")[0][0])
-    prev_shortname = feuille.get("A4")[0][0].split("-")[0][:-1]
+    prev_round = int(feuille.get("B2")[0][0]) # 6, 4
+    prev_shortname = feuille.get("A4")[0][0].split("-")[0][:-1] # ROTE, GLS
     if prev_round != dict_phase["round"]:
         max_sheet_id = max([ws.id for ws in file.worksheets()])
         new_sheet_name=prev_shortname+" J"+str(prev_round)+" "+now.strftime("%d/%m")
         feuille.duplicate(insert_sheet_index=max_sheet_id+1, new_sheet_name=new_sheet_name)
 
+        # If the round gets back to 1, this is a new TB
+        # also duplicate synthesis sheet
+        if dict_phase["round"] == 1:
+            try:
+                feuille_synth=file.worksheet("BT synthesis")
+
+                # duplicate the sheet
+                new_sheet_name=prev_shortname+" synthesis "+now.strftime("%d/%m")
+                new_feuille_synth = feuille_synth.duplicate(insert_sheet_index=max_sheet_id+2, new_sheet_name=new_sheet_name)
+
+                # now copy/paste values, as this sheet is mainly formulas 
+                # and there is risk to lose values from other sheets (or to loose complete sheets)
+                sourceSheetId = feuille_synth._properties['sheetId']
+                destinationSheetId = new_feuille_synth._properties['sheetId']
+                body = {
+                    "requests": [
+                        {
+                            "copyPaste": {
+                                "source": {
+                                    "sheetId": sourceSheetId,
+                                    "startRowIndex": 0,
+                                    "endRowIndex": 61,
+                                    "startColumnIndex": 0,
+                                    "endColumnIndex": 7
+                                },
+                                "destination": {
+                                    "sheetId": destinationSheetId,
+                                    "startRowIndex": 0,
+                                    "endRowIndex": 61,
+                                    "startColumnIndex": 0,
+                                    "endColumnIndex": 7
+                                },
+                                "pasteType": "PASTE_VALUES"
+                            }
+                        }
+                    ]
+                }
+                res = file.batch_update(body)
+
+            except:
+                goutils.log2("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
 
     dict_tb = data.get("tb_definition.json")
     cells = []
