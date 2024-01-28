@@ -583,6 +583,70 @@ def load_tb_teams(guild_id, force_load):
     return tb_teams
 
 ##############################################################
+async def close_tb_gwarstats(guild_id):
+    gfile_name = get_gfile_name(guild_id)
+
+    try:
+        get_gapi_client()
+        file = client.open(gfile_name)
+        feuille=file.worksheet("BT graphs")
+    except:
+        goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+        return 1, "Erreur inconnue"
+
+    now = datetime.datetime.now()
+
+    # duplicate current sheet as backup copy
+    last_round = int(feuille.get("B2")[0][0]) # 6, 4
+    last_shortname = feuille.get("A4")[0][0].split("-")[0][:-1] # ROTE, GLS
+
+    max_sheet_id = max([ws.id for ws in file.worksheets()])
+    new_sheet_name=last_shortname+" J"+str(last_round)+" "+now.strftime("%d/%m")
+    feuille.duplicate(insert_sheet_index=max_sheet_id+1, new_sheet_name=new_sheet_name)
+
+    # also duplicate synthesis sheet
+    try:
+        feuille_synth=file.worksheet("BT synthesis")
+
+        # duplicate the sheet
+        new_sheet_name=last_shortname+" synthesis "+now.strftime("%d/%m")
+        new_feuille_synth = feuille_synth.duplicate(insert_sheet_index=max_sheet_id+2, new_sheet_name=new_sheet_name)
+
+        # now copy/paste values, as this sheet is mainly formulas 
+        # and there is risk to lose values from other sheets (or to loose complete sheets)
+        sourceSheetId = feuille_synth._properties['sheetId']
+        destinationSheetId = new_feuille_synth._properties['sheetId']
+        body = {
+            "requests": [
+                {
+                    "copyPaste": {
+                        "source": {
+                            "sheetId": sourceSheetId,
+                            "startRowIndex": 0,
+                            "endRowIndex": 61,
+                            "startColumnIndex": 0,
+                            "endColumnIndex": 7
+                        },
+                        "destination": {
+                            "sheetId": destinationSheetId,
+                            "startRowIndex": 0,
+                            "endRowIndex": 61,
+                            "startColumnIndex": 0,
+                            "endColumnIndex": 7
+                        },
+                        "pasteType": "PASTE_VALUES"
+                    }
+                }
+            ]
+        }
+        res = file.batch_update(body)
+
+    except:
+        goutils.log2("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
+
+    return 0, ""
+
+##############################################################
 async def update_gwarstats(guild_id):
     gfile_name = get_gfile_name(guild_id)
 
@@ -607,9 +671,10 @@ async def update_gwarstats(guild_id):
 
     #first need to check if the round has evolved
     # in that case, duplicate current sheet as backup copy
+    # unless round 1, because the copy has been done at TB closure
     prev_round = int(feuille.get("B2")[0][0]) # 6, 4
     prev_shortname = feuille.get("A4")[0][0].split("-")[0][:-1] # ROTE, GLS
-    if prev_round != dict_phase["round"]:
+    if (prev_round != dict_phase["round"]) and (dict_phase["round"] > 1):
         max_sheet_id = max([ws.id for ws in file.worksheets()])
         new_sheet_name=prev_shortname+" J"+str(prev_round)+" "+now.strftime("%d/%m")
         feuille.duplicate(insert_sheet_index=max_sheet_id+1, new_sheet_name=new_sheet_name)

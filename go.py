@@ -297,7 +297,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
 
     #Get current guild for the player
     goutils.log2('INFO', 'Requesting RPC data for guild of ' + txt_allyCode)
-    ec, et, dict_guild = await connect_rpc.get_guild_data_from_ac(txt_allyCode, False)
+    ec, et, dict_guild = await connect_rpc.get_extguild_data_from_ac(txt_allyCode, False)
     if ec != 0:
         goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
         dict_guild = prev_dict_guild

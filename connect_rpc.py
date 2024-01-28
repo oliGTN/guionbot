@@ -15,6 +15,8 @@ import goutils
 import data as godata
 import connect_mysql
 import go
+import manage_events
+import connect_gsheets
 
 dict_sem={}
 async def acquire_sem(id):
@@ -72,12 +74,13 @@ def islocked_bot_account(guildName):
     is_locked = int(locked_until_ts) > int(time.time())
     return is_locked
 
+########################################################
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
 async def get_guild_rpc_data(guild_id, event_types, force_update):
     goutils.log2("DBG", "START get_guild_rpc_data("+guild_id+", "+str(event_types)+", "+str(force_update)+")")
     calling_func = inspect.stack()[1][3]
 
-    ec, et, dict_guild = await get_guild_data(guild_id, force_update)
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
     if ec!=0:
         return ec, et, None
 
@@ -92,7 +95,9 @@ async def get_guild_rpc_data(guild_id, event_types, force_update):
     goutils.log2("DBG", "END get_guild_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
-async def get_guild_data(guild_id, force_update):
+#########################################
+# Get full guild data, using the bot account
+async def get_guild_data_from_id(guild_id, force_update):
     dict_bot_accounts = get_dict_bot_accounts()
     if not guild_id in dict_bot_accounts:
         return 1, "Ce serveur discord n'a pas de warbot", None
@@ -112,9 +117,14 @@ async def get_guild_data(guild_id, force_update):
         else: #force_update==0
             use_cache_data = bool(dict_bot_accounts[guild_id]["priority_cache"])
 
+    return await get_guild_data_from_ac(bot_allyCode, force_update)
+
+#########################################
+# Get full guild data, using the allyCode
+async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
     # RPC REQUEST for guild
     url = "http://localhost:8000/guild"
-    params = {"allyCode": bot_allyCode, "use_cache_data":use_cache_data}
+    params = {"allyCode": txt_allyCode, "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -135,7 +145,7 @@ async def get_guild_data(guild_id, force_update):
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
     else:
-        return 1, "Aucune info de guilde disponible pour "+bot_allyCode, None
+        return 1, "Aucune info de guilde disponible pour "+txt_allyCode, None
 
     return 0, "", dict_guild
 
@@ -457,7 +467,7 @@ async def get_event_data(dict_guild, event_types, force_update):
 
     return 0, "", dict_events
 
-async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
+async def get_extguild_data_from_ac(txt_allyCode, use_cache_data):
     ec, et, dict_player = await get_extplayer_data(txt_allyCode)
     if ec != 0:
         return 1, et, None
@@ -469,11 +479,11 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
     if guild_id == None or guild_id == "":
         return 1, "ERR: ce joueur n'a pas de guilde", None
 
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, use_cache_data)
+    ec, et, dict_guild = await get_extguild_data_from_id(guild_id, use_cache_data)
 
     return ec, et, dict_guild
 
-async def get_guild_data_from_id(guild_id, use_cache_data):
+async def get_extguild_data_from_id(guild_id, use_cache_data):
     url = "http://localhost:8000/extguild"
     params = {"guild_id": guild_id}
     req_data = json.dumps(params)
@@ -586,7 +596,7 @@ async def join_tw(guild_id):
     if not guild_id in dict_bot_accounts:
         return 1, "Ce serveur discord n'a pas de warbot", None
 
-    err_code, err_txt, dict_guild = await get_guild_data(guild_id, -1)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, -1)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -633,7 +643,7 @@ async def get_actual_tb_platoons(guild_id, force_update):
 
     dict_tb = godata.get("tb_definition.json")
 
-    err_code, err_txt, dict_guild = await get_guild_data(guild_id, force_update)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -730,7 +740,7 @@ async def get_guildLog_messages(guild_id, onlyLatest):
     if bot_allyCode == '':
         return 1, "ERR: no RPC bot for guild "+guild_id, None
 
-    err_code, err_txt, dict_guild = await get_guild_data(guild_id, -1)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, -1)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, err_txt, None
@@ -1066,6 +1076,24 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                 break
 
     if not tb_ongoing:
+        # Check if previous TB has ended properly, with associated actions
+        latest_tb_end_ts = 0
+        latest_tb_id = ""
+        if "territoryBattleResult" in dict_guild:
+            for battleResult in dict_guild["territoryBattleResult"]:
+                tb_end_ts = int(battleResult["endTime"])
+                if tb_end_ts > latest_tb_end_ts:
+                    latest_tb_end_ts = tb_end_ts
+                    latest_tb_id = battleResult["instanceId"]
+
+        if latest_tb_end_ts > 0:
+            if not manage_events.exists("tb_end", latest_tb_id):
+                # the closure is not done yet
+                await connect_gsheets.close_tb_gwarstats(guild_id)
+
+                manage_events.create_event("tb_end", latest_tb_id)
+
+
         return 1, "No TB on-going", None
 
     query = "SELECT name, char_gp, ship_gp, playerId FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
@@ -1603,7 +1631,7 @@ async def get_tb_guild_scores(guild_id, force_update):
 # get an allyCode of the opponent TW guild
 ########################################
 async def get_tw_opponent_leader(guild_id):
-    ec, et, dict_guild = await get_guild_data(guild_id, -1)
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, -1)
     if ec!=0:
         return 1, et, None
 
@@ -1620,7 +1648,7 @@ async def get_tw_opponent_leader(guild_id):
     if opp_guild_id == None:
         return 1, "Adversaire de GT pas encore connu", None
 
-    ec, et, dict_guild = await get_guild_data_from_id(opp_guild_id, False)
+    ec, et, dict_guild = await get_extguild_data_from_id(opp_guild_id, False)
     if ec != 0:
         return ec, et, None
 
@@ -1656,7 +1684,7 @@ async def get_tw_opponent_leader(guild_id):
 async def get_tw_status(guild_id, force_update):
     dict_tw=godata.dict_tw
 
-    ec, et, dict_guild = await get_guild_data(guild_id, force_update)
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
     if ec!=0:
         goutils.log2("ERR", et)
         return {"tw_id": None}
@@ -1756,7 +1784,7 @@ async def get_tw_status(guild_id, force_update):
             "opp_guildId": opp_guildId}
 
 async def get_tw_active_players(guild_id, force_update):
-    ec, et, dict_guild = await get_guild_data(guild_id, force_update)
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
     if ec!=0:
         return 1, et, None
 
@@ -1769,23 +1797,59 @@ async def get_tw_active_players(guild_id, force_update):
 
     return 0, "", list_active_players
 
-async def deploy_tb(txt_allyCode, zone, list_defId):
+async def deploy_tb(txt_allyCode, zone_id, list_defId):
+
+    # transform list of defId (LOBOT) into unit id (dkh65_TR-CxrT5jk547)
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au bot"
+        return 1, "Erreur en récupérant les infos joueur de "+txt_allyCode
 
-    list_char_id = []
+    list_unit_ids = []
     for unit in dict_player["rosterUnit"]:
         full_defId = unit["definitionId"]
         defId = full_defId.split(":")[0]
         if defId in list_defId:
-            list_char_id.append(unit["id"])
+            list_unit_ids.append(unit["id"])
 
-    if len(list_char_id) == 0:
+    if len(list_unit_ids) == 0:
         return 1, "Plus rien à déployer"
 
-    process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone]+list_char_id
+    # Remove already deployed units
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, True)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
+
+    dict_zone_states = {}
+    prev_score = 0
+    for tb in dict_guild["territoryBattleStatus"]:
+        if tb["selected"]:
+            tb_id = tb["instanceId"]
+            for zone in tb["conflictZoneStatus"]:
+                zone_status = zone["zoneStatus"]
+                dict_zone_states[zone_status["zoneId"]] = zone_status["zoneState"]
+            if "playerStatus" in tb:
+                if "unitStatus" in tb["playerStatus"]:
+                    for unit in tb["playerStatus"]["unitStatus"]:
+                        if unit["unitId"] in list_unit_ids:
+                            print("Déjà déployé : "+unit["unitId"])
+                            list_unit_ids.remove(unit["unitId"])
+            for mapstat in tb["currentStat"]:
+                if mapstat["mapStatId"] == "summary":
+                    for player_stat in mapstat["playerStat"]:
+                        if player_stat["memberId"] == player_id:
+                            prev_score = int(player_stat["score"])
+
+        if zone_id in dict_zone_states:
+            knownCommandState = dict_zone_states[zone_id]
+            zone_param = tb_id+":"+zone_id+":"+knownCommandState
+        else:
+            zone_param = tb_id+":"+zone_id
+
+
+    # Launch the actuual command
+    process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone_param]+list_unit_ids
     goutils.log2("DBG", process_cmd_list)
     process = subprocess.run(process_cmd_list)
     goutils.log2("DBG", "deploy_tb code="+str(process.returncode))
@@ -1813,10 +1877,10 @@ async def deploy_tw(guild_id, txt_allyCode, zone, list_defId):
         defId = full_defId.split(":")[0]
         dict_roster[defId] = unit
 
-    list_char_id = []
+    list_unit_ids = []
     team_combatType = None
     for defId in list_defId:
-        list_char_id.append(dict_roster[defId]["id"])
+        list_unit_ids.append(dict_roster[defId]["id"])
         unit_combatType = dict_unitsList[defId]["combatType"]
         if team_combatType==None or team_combatType==unit_combatType:
             team_combatType=unit_combatType
@@ -1824,22 +1888,22 @@ async def deploy_tw(guild_id, txt_allyCode, zone, list_defId):
             goutils.log2("ERR", "Mixing chars and ships")
             return 1, "ERR: ne pas mélanger toons et vaisseaux svp"
             
-    if team_combatType == 1 and len(list_char_id) != 5:
-        goutils.log2("ERR", "Need 5 units but found "+str(list_char_id))
+    if team_combatType == 1 and len(list_unit_ids) != 5:
+        goutils.log2("ERR", "Need 5 units but found "+str(list_unit_ids))
         return 1, "ERR: il faut exactement 5 persos"
 
-    if team_combatType == 2 and len(list_char_id) < 4:
-        goutils.log2("ERR", "Need at least 4 units but found "+str(list_char_id))
+    if team_combatType == 2 and len(list_unit_ids) < 4:
+        goutils.log2("ERR", "Need at least 4 units but found "+str(list_unit_ids))
         return 1, "ERR: il faut au moins 4 vaisseaux"
 
     if team_combatType==2:
         #Fleet
-        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone, '-s']+list_char_id
+        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone, '-s']+list_unit_ids
         goutils.log2("DBG", process_cmd_list)
         process = subprocess.run(process_cmd_list)
     else:
         #Ground
-        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone]+list_char_id
+        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone]+list_unit_ids
         goutils.log2("DBG", process_cmd_list)
         process = subprocess.run(process_cmd_list)
 
@@ -1915,7 +1979,7 @@ async def update_K1_players():
 async def get_tw_participation(guild_id, force_update):
     dict_tw = godata.dict_tw
 
-    err_code, err_txt, dict_guild = await get_guild_data(guild_id, force_update)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, err_txt, None
@@ -1979,7 +2043,7 @@ async def get_tw_participation(guild_id, force_update):
 # OUT: list_inactive_players: ["Karcot", "MolEliza", ...]
 ########################################
 async def get_raid_status(guild_id, target_percent, force_update):
-    ec, et, dict_guild = await get_guild_data(guild_id, force_update)
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
     if ec!=0:
         return None, None, [], 0
 
@@ -2103,5 +2167,6 @@ async def get_metadata():
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     return 0, "", metadata
+
 
 
