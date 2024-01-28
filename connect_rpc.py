@@ -1087,11 +1087,12 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                     latest_tb_id = battleResult["instanceId"]
 
         if latest_tb_end_ts > 0:
-            if not manage_events.exists("tb_end", latest_tb_id):
+            goutils.log2("INFO", "Close TB "+latest_tb_id+" for guild "+guild_id)
+            if not manage_events.exists("tb_end", guild_id, latest_tb_id):
                 # the closure is not done yet
                 await connect_gsheets.close_tb_gwarstats(guild_id)
 
-                manage_events.create_event("tb_end", latest_tb_id)
+                manage_events.create_event("tb_end", guild_id, latest_tb_id)
 
 
         return 1, "No TB on-going", None
