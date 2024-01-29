@@ -4269,7 +4269,9 @@ async def deploy_tb(guild_id, txt_allyCode, zone_shortname, characters):
 
     return ec, txt
 
-async def deploy_bot_tw(guild_id, txt_allyCode, zone_shortname, characters):
+############################################################
+# transforms aliases into defID and zone alias into zone Id
+async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player

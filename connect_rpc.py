@@ -1864,9 +1864,10 @@ async def deploy_tb(txt_allyCode, zone_id, list_defId):
 
     return 0, "Déploiement OK en " + zone
 
-async def deploy_tw(guild_id, txt_allyCode, zone, list_defId):
+async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
     dict_unitsList = godata.get("unitsList_dict.json")
 
+    # get player roster
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
@@ -1878,16 +1879,53 @@ async def deploy_tw(guild_id, txt_allyCode, zone, list_defId):
         defId = full_defId.split(":")[0]
         dict_roster[defId] = unit
 
+    # get guild tw info, including player deployed units
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
+
+    if not "territoryWarStatus" in dict_guild:
+        return 1, "Pas de GT en cours"
+
+    dict_zone_states = {}
+    tw = dict_guild["territoryWarStatus"][0]
+    tw_id = tw["instanceId"]
+    for zone in tw["homeGuild"]["conflictStatus"]:
+        zone_status = zone["zoneStatus"]
+        if "commandState" in zone_status:
+            dict_zone_states[zone_status["zoneId"]] = zone_status["commandState"]
+
+    if zone_id in dict_zone_states:
+        knownCommandState = dict_zone_states[zone_id]
+        zone_param = tw_id+":"+zone_id+":"+knownCommandState
+    else:
+        zone_param = tw_id+":"+zone_id
+
+    if not "playerStatus" in tw:
+        return 1, "ERR: " + txt_allyCode+" n'a pas rejoint la GT"
+
+    list_used_units = []
+    if "unitStatus" in tw["playerStatus"]:
+        for unit in tw["playerStatus"]["unitStatus"]:
+            list_used_units.append(unit["unitId"])
+
     list_unit_ids = []
     team_combatType = None
     for defId in list_defId:
-        list_unit_ids.append(dict_roster[defId]["id"])
+        unit_id = dict_roster[defId]["id"]
+        unit_level = str(dict_roster[defId]["currentLevel"])
+        unit_tier = str(dict_roster[defId]["currentTier"])
+        if unit_id in list_used_units:
+            return 1, "ERR: " + txt_allyCode + " a déjà déployé " + defId
+
+        list_unit_ids.append(defId+":"+unit_id+":"+unit_level+":"+unit_tier)
         unit_combatType = dict_unitsList[defId]["combatType"]
         if team_combatType==None or team_combatType==unit_combatType:
             team_combatType=unit_combatType
         else:
             goutils.log2("ERR", "Mixing chars and ships")
-            return 1, "ERR: ne pas mélanger toons et vaisseaux svp"
+            return 1, "ERR: ne pas mélanger persos et vaisseaux svp"
             
     if team_combatType == 1 and len(list_unit_ids) != 5:
         goutils.log2("ERR", "Need 5 units but found "+str(list_unit_ids))
@@ -1899,14 +1937,14 @@ async def deploy_tw(guild_id, txt_allyCode, zone, list_defId):
 
     if team_combatType==2:
         #Fleet
-        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone, '-s']+list_unit_ids
+        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone_param, '-s']+list_unit_ids
         goutils.log2("DBG", process_cmd_list)
-        process = subprocess.run(process_cmd_list)
+        #process = subprocess.run(process_cmd_list)
     else:
         #Ground
-        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone]+list_unit_ids
+        process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone_param]+list_unit_ids
         goutils.log2("DBG", process_cmd_list)
-        process = subprocess.run(process_cmd_list)
+        #process = subprocess.run(process_cmd_list)
 
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
     if process.returncode==202:

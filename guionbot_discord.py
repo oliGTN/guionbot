@@ -1776,11 +1776,9 @@ class TwCog(commands.GroupCog, name="gt"):
         characters = [p.strip('"') for p in re.split("( |\\\".*?\\\"|'.*?')", units) if p.strip()]
 
         # Launch the actual command
-        ec, et = await go.deploy_bot_tw(guild_id, txt_allyCode, zone, characters)
+        ec, et = await go.deploy_def_tw(guild_id, txt_allyCode, zone, characters)
         if ec == 0:
             txt = emoji_check+" "+et
-            if simulation:
-                txt = "[SIMULATION]"+txt
             await interaction.edit_original_response(content=txt)
         else:
             await interaction.edit_original_response(content=emoji_error+" "+et)
@@ -2238,7 +2236,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         txt_allyCode = str(bot_infos["allyCode"])
 
         # Launch the actual command
-        ec, et = await go.deploy_bot_tw(guild_id, txt_allyCode, zone, characters)
+        ec, et = await go.deploy_def_tw(guild_id, txt_allyCode, zone, characters)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emoji_error)
