@@ -117,7 +117,7 @@ async def get_guild_data_from_id(guild_id, force_update):
         else: #force_update==0
             use_cache_data = bool(dict_bot_accounts[guild_id]["priority_cache"])
 
-    return await get_guild_data_from_ac(bot_allyCode, force_update)
+    return await get_guild_data_from_ac(bot_allyCode, use_cache_data)
 
 #########################################
 # Get full guild data, using the allyCode
