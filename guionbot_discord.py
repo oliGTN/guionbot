@@ -2274,8 +2274,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emoji_error)
             return
 
-        for txt in goutils.split_txt(et, MAX_MSG_SIZE):
-            await ctx.send(txt)
+        txt_lines = et.split('\n')
+        for txt_line in txt_lines:
+            await ctx.send(txt_line)
         await ctx.message.add_reaction(emoji_check)
 
     #######################################################

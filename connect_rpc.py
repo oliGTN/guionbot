@@ -1939,12 +1939,12 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
         #Fleet
         process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone_param, '-s']+list_unit_ids
         goutils.log2("DBG", process_cmd_list)
-        #process = subprocess.run(process_cmd_list)
+        process = subprocess.run(process_cmd_list)
     else:
         #Ground
         process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tw.sh", txt_allyCode, zone_param]+list_unit_ids
         goutils.log2("DBG", process_cmd_list)
-        #process = subprocess.run(process_cmd_list)
+        process = subprocess.run(process_cmd_list)
 
     goutils.log2("DBG", "deploy_tw code="+str(process.returncode))
     if process.returncode==202:
@@ -1958,7 +1958,7 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
     elif process.returncode!=0:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
 
-    return 0, "Le bot a posé "+str(list_defId)+" en " + zone
+    return 0, "Le bot a posé "+str(list_defId)+" en " + zone_id
 
 async def platoon_tb(allyCode, zone_name, platoon_id, list_defId):
     # Launch RPC command
