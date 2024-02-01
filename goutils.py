@@ -666,19 +666,28 @@ def get_characters_from_alias(list_alias):
         elif character_alias.startswith("tag:"):
             #Alias of a tag / faction
             tag_definition = character_alias[4:]
-            if tag_definition.lower().startswith("char:") or \
-               tag_definition.lower().startswith("c:") or \
-               tag_definition.lower().startswith("character:") or \
-               tag_definition.lower().startswith("characters:"):
+            if tag_definition.lower().startswith("c:"):
                 #Alias of a tag / faction for characters
                 tag_alias = tag_definition[tag_definition.index(":")+1:]
                 combatType = 1
-            elif tag_definition.lower().startswith("ship:") or \
-                 tag_definition.lower().startswith("s:") or \
-                 tag_definition.lower().startswith("ships:"):
+            elif tag_definition.lower().startswith("s:"):
                 #Alias of a tag / faction for ships
                 tag_alias = tag_definition[tag_definition.index(":")+1:]
                 combatType = 2
+                only_capital_ship = False
+                only_fighter_ship = False
+            elif tag_definition.lower().startswith("cs:"):
+                #Alias of a tag / faction for ships
+                tag_alias = tag_definition[tag_definition.index(":")+1:]
+                combatType = 2
+                only_capital_ship = True
+                only_fighter_ship = False
+            elif tag_definition.lower().startswith("fs:"):
+                #Alias of a tag / faction for ships
+                tag_alias = tag_definition[tag_definition.index(":")+1:]
+                combatType = 2
+                only_capital_ship = False
+                only_fighter_ship = True
             else:
                 #Alias of tag / faction for characters and ships
                 tag_alias = character_alias[4:]
@@ -689,11 +698,18 @@ def get_characters_from_alias(list_alias):
                 for character_id in dict_unitsList:
                     character_name = dict_unitsList[character_id]["name"]
                     char_ct = dict_unitsList[character_id]["combatType"]
-                    if combatType == 0 or (combatType == char_ct):
-                        if not character_id in list_ids:
-                            list_ids.append(character_id)
-                        if not [character_id, character_name] in dict_id_name[character_alias]:
-                            dict_id_name[character_alias].append([character_id, character_name])
+                    char_cs = "role_capital" in dict_unitsList[character_id]["categoryId"]
+                    if combatType != 0 and (combatType != char_ct):
+                        continue
+                    if combatType==2 and only_capital_ship and not char_cs:
+                        continue
+                    if combatType==2 and only_fighter_ship and char_cs:
+                        continue
+
+                    if not character_id in list_ids:
+                        list_ids.append(character_id)
+                    if not [character_id, character_name] in dict_id_name[character_alias]:
+                        dict_id_name[character_alias].append([character_id, character_name])
             else:
                 closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
                 if len(closest_names)<1:
@@ -701,12 +717,21 @@ def get_characters_from_alias(list_alias):
                     txt_not_found_characters += character_alias + ' '
                 else:
                     dict_id_name[character_alias] = []
-                    for [character_id, character_name, char_ct] in dict_tagAlias[closest_names[0]]:
-                        if combatType == 0 or (combatType == char_ct):
-                            if not character_id in list_ids:
-                                list_ids.append(character_id)
-                            if not [character_id, character_name] in dict_id_name[character_alias]:
-                                dict_id_name[character_alias].append([character_id, character_name])
+                    for [character_id, xcn, xct] in dict_tagAlias[closest_names[0]]:
+                        character_name = dict_unitsList[character_id]["name"]
+                        char_ct = dict_unitsList[character_id]["combatType"]
+                        char_cs = "role_capital" in dict_unitsList[character_id]["categoryId"]
+                        if combatType != 0 and (combatType != char_ct):
+                            continue
+                        if combatType==2 and only_capital_ship and not char_cs:
+                            continue
+                        if combatType==2 and only_fighter_ship and char_cs:
+                            continue
+
+                        if not character_id in list_ids:
+                            list_ids.append(character_id)
+                        if not [character_id, character_name] in dict_id_name[character_alias]:
+                            dict_id_name[character_alias].append([character_id, character_name])
         else:
             #First look for exact match (better for performance)
             if character_alias.lower() in dict_unitAlias:
