@@ -88,6 +88,8 @@ async def get_guild_rpc_data(guild_id, event_types, force_update):
         ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update)
         if ec!=0:
             return ec, et, None
+    else:
+        dict_TBmapstats={}
 
     ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update)
     if ec!=0:
