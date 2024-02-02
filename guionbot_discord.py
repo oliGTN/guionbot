@@ -2276,7 +2276,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         txt_lines = et.split('\n')
         for txt_line in txt_lines:
-            await ctx.send(txt_line)
+            if txt_line.strip() != "":
+                await ctx.send(txt_line)
         await ctx.message.add_reaction(emoji_check)
 
     #######################################################
