@@ -25,6 +25,7 @@ dict_colors = { "bright_orange_brown": ["0xFFCA52FF", "0x5C2C1AFF"],
               }
 reverse_guild_logos = ['guild_icon_senate', 
                        'guild_icon_flame',
+                       'guild_icon_cis',
                        'guild_icon_mandalorian']
 
 def get_image_from_id(character_id):
