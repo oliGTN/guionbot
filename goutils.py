@@ -753,37 +753,6 @@ def get_characters_from_alias(list_alias):
 
     return list_ids, dict_id_name, txt_not_found_characters
 
-def print_tw_best_teams(list_teams, intro_txt):
-    dict_unitsList = data.get("unitsList_dict.json")
-
-    output_txt = ""
-
-    for [terr_prefixes, label_terr] in [["TB", "terrestre"], ["F", "vaisseaux"]]:
-        log2('DBG', [terr_prefixes, label_terr])
-        for [beaten, label] in [[False, "invaincue"], [True, "vaincue"]]:
-            log2('DBG', [beaten, label])
-            filtered_teams = [x for x in list_teams if (x[0][0] in terr_prefixes and x[3]==beaten)]
-            #log2('DBG', "list_teams="+str(list_teams))
-            #log2('DBG', "filtered_teams="+str(filtered_teams))
-            if len(filtered_teams) > 0:
-                max_fights = max(filtered_teams, key=lambda x: x[4])[4]
-                log2('DBG', "max_fights="+str(max_fights))
-                if (max_fights + int(not(beaten))) > 1:
-                    best_teams = [x for x in filtered_teams if x[4]==max_fights]
-                    log2('DBG', "best_teams="+str(best_teams))
-                    output_txt += intro_txt+" "+label_terr+" "+label+" après "+str(max_fights)+" combats :\n"
-                    for t in best_teams:
-                        player_name = t[1]
-                        list_unit_names = [dict_unitsList[x["unitId"]]["name"] for x in t[2]]
-                        output_txt += player_name + " "
-                        for u in list_unit_names:
-                            output_txt += '"'+u.replace('"', '')+'" '
-                        output_txt += "\n"
-                else:
-                    output_txt += intro_txt+" "+label_terr+" "+label+" : rien de particulier à signaler\n"
-
-    return output_txt
-
 def remove_format_from_desc(desc):
     while "[" in desc:
         pos_open = desc.find("[")
