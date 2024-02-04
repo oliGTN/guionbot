@@ -428,6 +428,15 @@ dict_tw["F2"] = "tw_jakku01_phase04_conflict01"
 dict_tw["T4"] = "tw_jakku01_phase04_conflict02"
 dict_tw["B4"] = "tw_jakku01_phase04_conflict03"
 
+dict_rarity = {}
+dict_rarity["ONE_STAR"] = 1
+dict_rarity["TWO_STAR"] = 2
+dict_rarity["THREE_STAR"] = 3
+dict_rarity["FOUR_STAR"] = 4
+dict_rarity["FIVE_STAR"] = 5
+dict_rarity["SIX_STAR"] = 6
+dict_rarity["SEVEN_STAR"] = 7
+
 dict_data={}
 def get(filename):
     if filename in dict_data:
