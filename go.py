@@ -2356,7 +2356,7 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
     #Return a list of images
     list_images = []
     for [ids, dict_player, tw_terr] in list_ids_dictplayer:
-        image = portraits.get_image_from_team(ids, dict_player, tw_terr, game_mode)
+        image = portraits.get_image_from_defIds(ids, dict_player, tw_terr, game_mode)
         list_images.append(image)
     
     return err_code, err_txt, list_images
@@ -5097,3 +5097,64 @@ async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
         deftw_cmd += "\n"+zone_shortId+": "+dict_orders[zone_shortId]+"\n--------------\n"
 
     return 0, deftw_cmd
+
+def filter_tw_best_teams(tw_teams):
+    dict_unitsList = godata.get("unitsList_dict.json")
+    dict_rarity = godata.dict_rarity
+
+    best_teams = {"ships": {"beaten": None, "remaining": None},
+                  "chars": {"beaten": None, "remaining": None}}
+
+    for [terr_prefixes, unit_type_txt] in [["TB", "chars"], ["F", "ships"]]:
+        for [beaten, beaten_txt] in [[False, "remaining"], [True, "beaten"]]:
+            terr_beaten_teams = [x for x in tw_teams if (x[0][0] in terr_prefixes and x[3]==beaten)]
+            #goutils.log2('DBG', "tw_teams="+str(tw_teams))
+            #goutils.log2('DBG', "terr_beaten_teams="+str(terr_beaten_teams))
+            if len(terr_beaten_teams) > 0:
+                max_fights = max(terr_beaten_teams, key=lambda x: x[4])[4]
+                goutils.log2('DBG', "max_fights="+str(max_fights))
+                list_team_txt = []
+                list_team_img = []
+
+                # Report teams which managed at least 2 fails
+                if (max_fights + int(not(beaten))) > 2:
+                    best_terr_beaten_teams = [x for x in terr_beaten_teams if x[4]==max_fights]
+                    goutils.log2('DBG', "best_terr_beaten_teams="+str(best_terr_beaten_teams))
+                    for t in best_terr_beaten_teams:
+                        # text description
+                        player_name = t[1]
+                        team_gp = t[5]
+                        list_unit_names = [dict_unitsList[x["unitId"]]["name"] for x in t[2]]
+                        team_txt = player_name + " "
+                        for u in list_unit_names:
+                            team_txt += '"'+u.replace('"', '')+'" '
+                        list_team_txt.append(team_txt)
+
+                        # image
+                        list_units = []
+                        for tw_unit in t[2]:
+                            unitDefId = tw_unit["unitDefId"]
+                            txt_rarity = unitDefId.split(':')[1]
+                            rarity = dict_rarity[txt_rarity]
+                            unit = {"definitionId": tw_unit["unitDefId"],
+                                    "currentRarity": rarity,
+                                    "currentTier": tw_unit["gear"],
+                                    "relic": {"currentTier": tw_unit["relic"]},
+                                    "currentLevel": tw_unit["level"]}
+                            if "purchaseAbilityId" in tw_unit:
+                                unit["purchaseAbilityId"] = tw_unit["purchaseAbilityId"]
+                            if "skill" in tw_unit:
+                                unit["skill"] = tw_unit["skill"]
+                            list_units.append({"unit": unit, "crew": []})
+
+                        team_img = portraits.get_image_from_units(list_units, player_name, 
+                                                                  team_gp=team_gp,
+                                                                  omicron_mode="TW")
+                        list_team_img.append(team_img)
+
+                best_teams[unit_type_txt][beaten_txt] = {"fights": max_fights,
+                                                         "text":   list_team_txt,
+                                                         "images": list_team_img}
+
+    return best_teams
+

@@ -1376,6 +1376,8 @@ async def on_command_error(ctx, error):
         await ctx.message.add_reaction(emoji_error)
         goutils.log2("ERR", error)
         goutils.log2("ERR", traceback.format_exception(error))
+
+        # discord DM to admins
         await send_alert_to_admins(ctx.guild, "ERR: erreur inconnue "+str(error))
         raise error
 
@@ -2717,6 +2719,75 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             zipped.write(latest_log)
         file = discord.File(archive_path)
         await ctx.send(file=file, content="Dernier fichier trouvé : "+latest_log)
+
+        await ctx.message.add_reaction(emoji_check)
+
+    ##############################################################
+    # Command: gettwbest
+    # Parameters: none
+    # Purpose: Display best teams from last TW
+    # Display: image and description of teams
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='gettwbest',
+                      brief="Affiche les meilleures défenses de la GT",
+                      help="Affiche les meilleures défenses de la GT")
+    async def gettwbest(self, ctx):
+        await ctx.message.add_reaction(emoji_thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emoji_error)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        guild_name = bot_infos["guild_name"]
+
+        if guild_id == None:
+            await ctx.send('ERR: Guilde non déclarée dans le bot')
+            return
+
+        # Launch actual command
+        ret = await connect_rpc.get_tw_status(guild_id, 0)
+
+        for home_away in [["homeGuild", "notre défense"], ["awayGuild", "la défense adverse"]]:
+            list_team_home=ret[home_away[0]]["list_teams"]
+            best_teams = go.filter_tw_best_teams(list_team_home)
+            for unit_type in [["ships", "vaisseaux"], ["chars", "terrestre"]]:
+                for beaten_txt in [["beaten", "vaincue"], ["remaining", "invaincue"]]:
+                    cur_teams = best_teams[unit_type[0]][beaten_txt[0]]
+                    if cur_teams == None:
+                        continue
+
+                    team_count = len(cur_teams["images"])
+                    fights = cur_teams["fights"]
+
+                    if team_count == 0:
+                        txt = "Rien de particulier à signaler pour notre défense "+unit_type[1]+" pour les teams "+beaten_txt[1]+"s"
+                    elif team_count == 1:
+                        txt = "Meilleure team de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+" après "+str(fights)+" combats"
+                    else:
+                        txt = "Meilleures teams de **"+home_away[1]+""+unit_type[1]+"**, "+beaten_txt[1]+"s après "+str(fights)+" combats"
+
+                    full_img = None
+                    for img in cur_teams["images"]:
+                        full_img = portraits.add_vertical(full_img, img)
+
+                    if full_img == None:
+                        await ctx.send(content = txt)
+                    else:
+                        with BytesIO() as image_binary:
+                            full_img.save(image_binary, 'PNG')
+                            image_binary.seek(0)
+                            await ctx.send(content = txt, file=File(fp=image_binary, filename='image.png'))
 
         await ctx.message.add_reaction(emoji_check)
 
@@ -4853,4 +4924,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 

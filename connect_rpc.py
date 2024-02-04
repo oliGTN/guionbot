@@ -1734,31 +1734,24 @@ async def get_tw_status(guild_id, force_update):
                         list_chars = []
                         for c in squad["squad"]["cell"]:
                             unit_id = c["unitDefId"].split(":")[0]
+                            print(player_name, unit_id, flush=True)
                             my_unit = {"unitDefId": c["unitDefId"],
                                        "unitId": unit_id,
                                        "level": c["unitBattleStat"]["level"],
                                        "gear": c["unitBattleStat"]["tier"],
-                                       "relic": c["unitBattleStat"]["unitRelicTier"]-5,
-                                       "zetas": [],
-                                       "omicrons": [],
+                                       "relic": c["unitBattleStat"]["unitRelicTier"],
                                        "turnMeter": c["unitState"]["turnPercent"]}
                             if "skill" in c["unitBattleStat"]:
-                                for s in c["unitBattleStat"]["skill"]:
-                                    skill_id = s["id"]
-                                    skill_tier = s["tier"]+2
-                                    if skill_id in capa_list[unit_id]:
-                                        if capa_list[unit_id][skill_id]["zetaTier"] < 99 and \
-                                           capa_list[unit_id][skill_id]["zetaTier"] <= skill_tier:
-                                            my_unit["zetas"].append(skill_id)
-                                        if capa_list[unit_id][skill_id]["omicronTier"] < 99 and \
-                                           capa_list[unit_id][skill_id]["omicronTier"] <= skill_tier:
-                                            my_unit["omicrons"].append(skill_id)
+                                my_unit["skill"] = c["unitBattleStat"]["skill"]
+                            if "purchaseAbilityId" in c["unitBattleStat"]:
+                                my_unit["purchaseAbilityId"] = c["unitBattleStat"]["purchaseAbilityId"]
 
                             list_chars.append(my_unit)
 
                         is_beaten = (squad["squadStatus"]=="SQUADDEFEATED")
                         fights = squad["successfulDefends"]
-                        list_teams[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights])
+                        team_gp = squad["power"]
+                        list_teams[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights, team_gp])
 
                         if is_beaten:
                             victories+=1
