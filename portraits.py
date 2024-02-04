@@ -171,7 +171,7 @@ def add_horizontal(img1, img2):
 
     return image
     
-def get_image_from_character(character_id, dict_player, game_mode):
+def get_image_from_defId(character_id, dict_player, game_mode):
     dict_unitsList = data.get("unitsList_dict.json")
 
     #Get character details
@@ -185,20 +185,10 @@ def get_image_from_character(character_id, dict_player, game_mode):
                 crew_id = crew_element["unitId"]
                 crew_units.append(dict_player["rosterUnit"][crew_id])
 
-        portrait_image = get_image_from_unit(character, crew_units, game_mode)
     else:
-        #Get basic image of character
-        portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
-        portrait_draw = ImageDraw.Draw(portrait_image)
-        
-        character_image = get_image_from_id(character_id)
-        character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
-        portrait_image.paste(character_image, (20, 10), character_mask_image)
-        
-        #character is invalid, display it in reduce
-        red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
-        portrait_image = Image.blend(portrait_image, red_img, 0.5)
+        character = {"definitionId": character_id, "locked": True}
 
+    portrait_image = get_image_from_unit(character, crew_units, game_mode)
     return portrait_image
 
 ########################################
@@ -219,6 +209,12 @@ def get_image_from_unit(character, crew_units, game_mode):
     character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
     portrait_image.paste(character_image, (20, 10), character_mask_image)
     
+    if "locked" in character and character["locked"]:
+        #character is invalid, display it in red
+        red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
+        portrait_image = Image.blend(portrait_image, red_img, 0.5)
+        return portrait_image
+
     #RARITY
     rarity = character["currentRarity"]
     active_star_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'star.png')
@@ -338,21 +334,55 @@ def get_image_from_unit(character, crew_units, game_mode):
     return portrait_image
 
 #################################################
-# get_image_from_team
+# get_image_from_defIds
 # list_character_ids: [toon1_ID, toon2_ID, ...], dict_player, 
 # dict_player: roster of the player
 # tw_territory: 'T1', 'T2', 'F1', ...
 #################################################
-def get_image_from_team(list_character_ids, dict_player, tw_territory, game_mode):
-    list_portrait_images = []
+def get_image_from_defIds(list_character_ids, dict_player, tw_territory, omicron_mode):
+    dict_unitsList = data.get("unitsList_dict.json")
+
     player_name = dict_player["name"]
 
-    total_gp = 0
+    list_units = []
     for character_id in list_character_ids:
         if character_id in dict_player["rosterUnit"]:
-            total_gp += dict_player["rosterUnit"][character_id]["gp"]
-        character_img = get_image_from_character(character_id, dict_player, game_mode)
+            unit = dict_player["rosterUnit"][character_id]
+
+            #CREW
+            crew_units = []
+            if "crew" in dict_unitsList[character_id] and dict_unitsList[character_id]["crew"]!= None:
+                for crew_element in dict_unitsList[character_id]["crew"]:
+                    crew_id = crew_element["unitId"]
+                    crew_units.append(dict_player["rosterUnit"][crew_id])
+        else:
+            unit = {"definitionId": character_id, "locked": True}
+            crew_units = []
+
+        list_units.append({"unit": unit, "crew": crew_units})
+
+    return get_image_from_units(list_units, player_name, 
+                                tw_territory=tw_territory, 
+                                omicron_mode=omicron_mode)
+
+def get_image_from_units(list_characters, player_name, tw_territory="", omicron_mode="", team_gp=None):
+    list_portrait_images = []
+
+    total_gp = 0
+    for unit_crew in list_characters:
+        character = unit_crew["unit"]
+        crew = unit_crew["crew"]
+        if "locked" in character and character["locked"]:
+            # no impact on GP
+            pass
+        elif "gp" in character:
+            total_gp += character["gp"]
+
+        character_img = get_image_from_unit(character, crew, omicron_mode)
         list_portrait_images.append(character_img)
+
+    if team_gp != None:
+        total_gp = team_gp
 
     if tw_territory != '':
         tw_img = Image.open('IMAGES'+os.path.sep+'TW'+os.path.sep+tw_territory+'.png')
