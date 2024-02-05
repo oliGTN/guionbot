@@ -1734,7 +1734,6 @@ async def get_tw_status(guild_id, force_update):
                         list_chars = []
                         for c in squad["squad"]["cell"]:
                             unit_id = c["unitDefId"].split(":")[0]
-                            print(player_name, unit_id, flush=True)
                             my_unit = {"unitDefId": c["unitDefId"],
                                        "unitId": unit_id,
                                        "level": c["unitBattleStat"]["level"],

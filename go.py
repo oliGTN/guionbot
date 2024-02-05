@@ -5140,7 +5140,8 @@ def filter_tw_best_teams(tw_teams):
                                     "currentRarity": rarity,
                                     "currentTier": tw_unit["gear"],
                                     "relic": {"currentTier": tw_unit["relic"]},
-                                    "currentLevel": tw_unit["level"]}
+                                    "currentLevel": tw_unit["level"],
+                                    "skill": []}
                             if "purchaseAbilityId" in tw_unit:
                                 unit["purchaseAbilityId"] = tw_unit["purchaseAbilityId"]
                             if "skill" in tw_unit:

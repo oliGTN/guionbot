@@ -2775,7 +2775,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     elif team_count == 1:
                         txt = "Meilleure team de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+" après "+str(fights)+" combats"
                     else:
-                        txt = "Meilleures teams de **"+home_away[1]+""+unit_type[1]+"**, "+beaten_txt[1]+"s après "+str(fights)+" combats"
+                        txt = "Meilleures teams de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+"s après "+str(fights)+" combats"
 
                     full_img = None
                     for img in cur_teams["images"]:
