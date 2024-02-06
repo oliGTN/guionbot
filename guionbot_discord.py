@@ -891,7 +891,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
 
 #####################
 # IN - guild_id: the game guild ID
-# IN - txt_allyCode: the allyCOde of the payer to deploy / None if no deployment
+# IN - txt_allyCode: the allyCode of the player to deploy / None if no deployment
 # IN - display_mentions: True if player names are replaced by @discord_name
 # OUT - full_txt
 #####################
@@ -1799,29 +1799,37 @@ class TbCog(commands.GroupCog, name="bt"):
         await interaction.response.defer(thinking=True)
 
         #get bot config from DB
+        goutils.log2("DBG", "")
         ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        goutils.log2("DBG", "")
         if ec!=0:
             txt = emoji_error+" ERR: "+et
             await interaction.edit_original_response(content=txt)
             return
 
+        goutils.log2("DBG", "")
         guild_id = bot_infos["guild_id"]
+        goutils.log2("DBG", "")
         tbChannel_id = bot_infos["tbChanRead_id"]
+        goutils.log2("DBG", "")
         if tbChannel_id==0:
             txt = emoji_error+" ERR: warbot mal configuré (tbChannel_id=0)"
             await interaction.edit_original_response(content=txt)
             return
 
+        goutils.log2("DBG", "")
         allyCode = bot_infos["allyCode"]
         player_name = bot_infos["player_name"]
 
-        print("before check...")
+        goutils.log2("DBG", "")
         ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_name, False)
-        print("after check... "+str(ec))
+        goutils.log2("DBG", "")
         if ec != 0:
+            goutils.log2("DBG", "")
             txt = emoji_error+" ERR: "+ret_txt
             await interaction.edit_original_response(content=txt)
         else:
+            goutils.log2("DBG", "")
             #filter deployment lines
             lines = ret_txt.split("\n")
             lines = [l for l in lines if "a posé" in l]

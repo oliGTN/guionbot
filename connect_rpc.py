@@ -1800,6 +1800,7 @@ async def deploy_tb(txt_allyCode, zone_id, list_defId):
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en récupérant les infos joueur de "+txt_allyCode
+    player_id = dict_player["playerId"]
 
     list_unit_ids = []
     for unit in dict_player["rosterUnit"]:
@@ -1812,7 +1813,7 @@ async def deploy_tb(txt_allyCode, zone_id, list_defId):
         return 1, "Plus rien à déployer"
 
     # Remove already deployed units
-    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, True)
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
@@ -1857,7 +1858,7 @@ async def deploy_tb(txt_allyCode, zone_id, list_defId):
         elif process.returncode != 0:
             return 1, "Erreur en déployant en TB - code="+str(process.returncode)
 
-    return 0, "Déploiement OK en " + zone
+    return 0, "Déploiement OK en " + zone_id
 
 async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
     dict_unitsList = godata.get("unitsList_dict.json")
@@ -1955,12 +1956,79 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
 
     return 0, "Le bot a posé "+str(list_defId)+" en " + zone_id
 
-async def platoon_tb(allyCode, zone_name, platoon_id, list_defId):
+async def platoon_tb(txt_allyCode, zone_id, platoon_id, list_defId):
+    # get player roster
+    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en se connectant au bot"
+
+    dict_roster = {}
+    for unit in dict_player["rosterUnit"]:
+        full_defId = unit["definitionId"]
+        defId = full_defId.split(":")[0]
+        dict_roster[defId] = unit
+
+    # get guild tw info, including player deployed units
+    err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
+    if err_code != 0:
+        goutils.log2("ERR", err_txt)
+        return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
+
+    goutils.log2("DBG", "")
+    if not "territoryBattleStatus" in dict_guild:
+        return 1, "Pas de BT en cours"
+
+    goutils.log2("DBG", "")
+    for tb in dict_guild["territoryBattleStatus"]:
+        if tb["selected"]:
+            break
+    tb_id = tb["instanceId"]
+
+    goutils.log2("DBG", "")
+    zone_param = tb_id+":"+zone_id
+
+    # add the squad id to the unit id
+    list_id_squad = []
+    list_unit_id = []
+    goutils.log2("DBG", "")
+    for reconZone in tb["reconZoneStatus"]:
+        goutils.log2("DBG", reconZone["zoneStatus"]["zoneId"])
+        if reconZone["zoneStatus"]["zoneId"] != zone_id:
+            continue
+        for platoon in reconZone["platoon"]:
+            if platoon["id"] != platoon_id:
+                continue
+            for squad in platoon["squad"]:
+                squad_id = squad["id"]
+                for unit in squad["unit"]:
+                    if not unit["memberId"] == "":
+                        continue
+                    unit_defId = unit["unitIdentifier"].split(':')[0]
+                    if unit_defId in list_arg_units:
+                        unit_id = dict_roster[unit_defId]["id"]
+                        list_id_squad.append([unit_id, squad_id])
+                        list_unit_id.append(unit_id)
+                        list_arg_units.remove(unit_defId)
+        goutils.log2("DBG", list_id_squad)
+
+    goutils.log2("DBG", "")
+    if "playerStatus" in tb:
+        if "unitStatus" in tb["playerStatus"]:
+            for unit in tb["playerStatus"]["unitStatus"]:
+                if unit["unitId"] in list_unit_id:
+                    return 1, "ERR: "+unit["unitId"]+" est déjà déployé par "+txt_allyCode
+
+    goutils.log2("DBG", "")
+    if len(list_id_squad) == 0:
+        return 1, "ERR: plus rien à déployer"
+
+
     # Launch RPC command
-    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ str(allyCode)+" "+ zone_name+" "+ platoon_id+" "+" ".join(list_defId)
+    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ txt_allyCode+" "+ zone_param+" "+ platoon_id+" "+" ".join(list_arg_units)
     goutils.log2("DBG", "process_params="+process_cmd)
 
-    process = await asyncio.create_subprocess_shell(process_cmd)
+    #process = await asyncio.create_subprocess_shell(process_cmd)
     while process.returncode == None:
         goutils.log2("DBG", "waiting platoons_tb...")
         await asyncio.sleep(1)
@@ -2201,6 +2269,7 @@ async def get_metadata():
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     return 0, "", metadata
+
 
 
 
