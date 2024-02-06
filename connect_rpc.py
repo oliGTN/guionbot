@@ -1825,7 +1825,8 @@ async def deploy_tb(txt_allyCode, zone_id, list_defId):
             tb_id = tb["instanceId"]
             for zone in tb["conflictZoneStatus"]:
                 zone_status = zone["zoneStatus"]
-                dict_zone_states[zone_status["zoneId"]] = zone_status["zoneState"]
+                if "commandState" in zone["zoneStatus"]:
+                    dict_zone_states[zone_status["zoneId"]] = zone_status["commandState"]
             if "playerStatus" in tb:
                 if "unitStatus" in tb["playerStatus"]:
                     for unit in tb["playerStatus"]["unitStatus"]:
