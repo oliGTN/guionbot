@@ -2049,7 +2049,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     elif process.returncode!=0:
         return 1, "Erreur en déployant les pelotons en BT - code="+str(process.returncode)
 
-    return 0, "Le bot a posé "+str(deployed_defIds)+" en " + zone_id, [dict_player, dict_guild]
+    return 0, "Le bot a posé "+str(deployed_defIds)+" en " + zone_id
 
 async def update_K1_players():
     url = "http://localhost:8000/leaderboard"
