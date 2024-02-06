@@ -1793,7 +1793,7 @@ async def get_tw_active_players(guild_id, force_update):
 
     return 0, "", list_active_players
 
-async def deploy_tb(txt_allyCode, zone_id, list_defId):
+async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
     # transform list of defId (LOBOT) into unit id (dkh65_TR-CxrT5jk547)
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
@@ -1806,7 +1806,7 @@ async def deploy_tb(txt_allyCode, zone_id, list_defId):
     for unit in dict_player["rosterUnit"]:
         full_defId = unit["definitionId"]
         defId = full_defId.split(":")[0]
-        if defId in list_defId:
+        if defId in requested_defIds:
             list_unit_ids.append(unit["id"])
 
     if len(list_unit_ids) == 0:
@@ -1861,7 +1861,7 @@ async def deploy_tb(txt_allyCode, zone_id, list_defId):
 
     return 0, "Déploiement OK en " + zone_id
 
-async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
+async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     # get player roster
@@ -1909,7 +1909,7 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
 
     list_unit_ids = []
     team_combatType = None
-    for defId in list_defId:
+    for defId in requested_defIds:
         unit_id = dict_roster[defId]["id"]
         unit_level = str(dict_roster[defId]["currentLevel"])
         unit_tier = str(dict_roster[defId]["currentTier"])
@@ -1955,11 +1955,12 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, list_defId):
     elif process.returncode!=0:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
 
-    return 0, "Le bot a posé "+str(list_defId)+" en " + zone_id
+    return 0, "Le bot a posé "+str(requested_defIds)+" en " + zone_id
 
-async def platoon_tb(txt_allyCode, zone_id, platoon_id, list_defId):
+async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     # get player roster
-    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
+    # use CACHE data as unit IDs do not change often
+    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, True)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au bot"
@@ -1970,31 +1971,32 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, list_defId):
         defId = full_defId.split(":")[0]
         dict_roster[defId] = unit
 
-    # get guild tw info, including player deployed units
+    # get guild tb info, including player deployed units
+    # use CACHE data to speed up the command, with the risk that another player deploys
+    # the same unit at the same place
     err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
 
-    goutils.log2("DBG", "")
     if not "territoryBattleStatus" in dict_guild:
         return 1, "Pas de BT en cours"
 
-    goutils.log2("DBG", "")
     for tb in dict_guild["territoryBattleStatus"]:
         if tb["selected"]:
             break
     tb_id = tb["instanceId"]
 
-    goutils.log2("DBG", "")
     zone_param = tb_id+":"+zone_id
 
     # add the squad id to the unit id
+    # look for the required unitDefId, in the right zone
+    # then take first occurrence not taken, and allocate the squad
     list_id_squad = []
     list_unit_id = []
-    goutils.log2("DBG", "")
+    deployed_defIds = []
+    remaining_defIds = requested_defIds.copy()
     for reconZone in tb["reconZoneStatus"]:
-        goutils.log2("DBG", reconZone["zoneStatus"]["zoneId"])
         if reconZone["zoneStatus"]["zoneId"] != zone_id:
             continue
         for platoon in reconZone["platoon"]:
@@ -2003,33 +2005,32 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, list_defId):
             for squad in platoon["squad"]:
                 squad_id = squad["id"]
                 for unit in squad["unit"]:
-                    if not unit["memberId"] == "":
+                    if unit["memberId"] != "":
+                        # unit already taken by a player
                         continue
                     unit_defId = unit["unitIdentifier"].split(':')[0]
-                    if unit_defId in list_arg_units:
+                    if unit_defId in remaining_defIds:
                         unit_id = dict_roster[unit_defId]["id"]
-                        list_id_squad.append([unit_id, squad_id])
+                        list_id_squad.append(unit_id+":"+squad_id)
                         list_unit_id.append(unit_id)
-                        list_arg_units.remove(unit_defId)
-        goutils.log2("DBG", list_id_squad)
+                        deployed_defIds.append(unit_defId)
+                        remaining_defIds.remove(unit_defId)
 
-    goutils.log2("DBG", "")
     if "playerStatus" in tb:
         if "unitStatus" in tb["playerStatus"]:
             for unit in tb["playerStatus"]["unitStatus"]:
                 if unit["unitId"] in list_unit_id:
                     return 1, "ERR: "+unit["unitId"]+" est déjà déployé par "+txt_allyCode
 
-    goutils.log2("DBG", "")
     if len(list_id_squad) == 0:
         return 1, "ERR: plus rien à déployer"
 
 
     # Launch RPC command
-    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ txt_allyCode+" "+ zone_param+" "+ platoon_id+" "+" ".join(list_arg_units)
+    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ txt_allyCode+" "+ zone_param+" "+ platoon_id+" "+" ".join(list_id_squad)
     goutils.log2("DBG", "process_params="+process_cmd)
 
-    #process = await asyncio.create_subprocess_shell(process_cmd)
+    process = await asyncio.create_subprocess_shell(process_cmd)
     while process.returncode == None:
         goutils.log2("DBG", "waiting platoons_tb...")
         await asyncio.sleep(1)
@@ -2048,7 +2049,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, list_defId):
     elif process.returncode!=0:
         return 1, "Erreur en déployant les pelotons en BT - code="+str(process.returncode)
 
-    return 0, "Le bot a posé "+str(list_defId)+" en " + zone_name
+    return 0, "Le bot a posé "+str(deployed_defIds)+" en " + zone_id, [dict_player, dict_guild]
 
 async def update_K1_players():
     url = "http://localhost:8000/leaderboard"
