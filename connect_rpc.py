@@ -1845,8 +1845,10 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
         else:
             zone_param = tb_id+":"+zone_id
 
+    if len(list_unit_ids) == 0:
+        return 1, "Plus rien à déployer"
 
-    # Launch the actuual command
+    # Launch the actual command
     process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone_param]+list_unit_ids
     goutils.log2("DBG", process_cmd_list)
     process = subprocess.run(process_cmd_list)
@@ -1856,10 +1858,12 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
             return 1, "Erreur en déployant en TB - pas de TB en cours"
         elif process.returncode == 203:
             return 1, "Erreur en déployant en TB - rien à déployer"
+        elif process.returncode == 44:
+            return 1, "Erreur en déployant en TB - incohérence des ordres de zone (ouvert / bloqué), essayez avec le territoire ouvert"
         elif process.returncode != 0:
             return 1, "Erreur en déployant en TB - code="+str(process.returncode)
 
-    return 0, "Déploiement OK en " + zone_id
+    return 0, "Déploiement OK de "+str(len(list_unit_ids))+" unités en " + zone_id
 
 async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
     dict_unitsList = godata.get("unitsList_dict.json")
