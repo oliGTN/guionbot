@@ -301,10 +301,13 @@ async def bot_loop_5minutes(bot):
                     tw_id = dict_tw_alerts["tw_id"]
 
                     # Check event for TW start, and load opponent guild
-                    if not manage_events.exists("tw_start", guild_id, tw_id):
-                        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
-                        await go.load_guild_from_id(guild_id, True, True)
-                        manage_events.create_event("tw_start", guild_id, tw_id)
+                    # Need to put it into a queue to not block the rest of the loop processing
+                    #if not manage_events.exists("tw_start", guild_id, tw_id):
+                    #    ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
+                    #    goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
+                    #    opp_guild_id = dict_guild["profile"]["id"]
+                    #    await go.load_guild_from_id(opp_guild_id, True, True)
+                    #    manage_events.create_event("tw_start", guild_id, tw_id)
 
                     # Display TW alerts, messages...
                     [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
