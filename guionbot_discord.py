@@ -302,7 +302,7 @@ async def bot_loop_5minutes(bot):
 
                     # Check event for TW start, and load opponent guild
                     if not manage_events.exists("tw_start", guild_id, tw_id):
-                        ec, et, dict_guild = await get_guild_data_from_id(guild_id, -1)
+                        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
                         await go.load_guild(guid_id, True, True)
                         manage_events.create_event("tw_start", guild_id, tw_id)
 
