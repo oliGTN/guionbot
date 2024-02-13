@@ -283,28 +283,33 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
     goutils.log2("DBG", 'query: '+query)
     db_result = connect_mysql.get_value(query)
 
-    prev_dict_guild = None
     if db_result == None or db_result == "":
         goutils.log2("WAR", 'Guild ID not found for '+txt_allyCode)
-        guild_id = ""
+        ec, et, dict_guild = await connect_rpc.get_extguild_data_from_ac(txt_allyCode, False)
+        if ec != 0:
+            goutils.log2("ERR", "Cannot get guild data for "+txt_allyCode)
+            return 1, "ERR Cannot get guild data for "+txt_allyCode, None
+        guild_id = dict_guild["profile"]["id"]
     else:
         guild_id = db_result
-        goutils.log2("INFO", 'Guild ID for '+txt_allyCode+' is '+guild_id)
 
+    goutils.log2("INFO", 'Guild ID for '+txt_allyCode+' is '+guild_id)
+
+    return await load_guild_from_id(guild_id, load_players, cmd_request)
+
+async def load_guild_from_id(guild_id, load_players, cmd_request):
+    #Get RPC guild data
+    goutils.log2('INFO', 'Requesting RPC data for guild ' + guild_id)
+    ec, et, dict_guild = await connect_rpc.get_extguild_data_from_id(guild_id, False)
+    if ec != 0:
         json_file = "GUILDS/"+guild_id+".json"
         if os.path.isfile(json_file):
+            goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
             prev_dict_guild = json.load(open(json_file, 'r'))
-
-    #Get current guild for the player
-    goutils.log2('INFO', 'Requesting RPC data for guild of ' + txt_allyCode)
-    ec, et, dict_guild = await connect_rpc.get_extguild_data_from_ac(txt_allyCode, False)
-    if ec != 0:
-        goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
-        dict_guild = prev_dict_guild
-
-    if dict_guild == None:
-        goutils.log2("ERR", "Cannot get guild data for "+txt_allyCode)
-        return 1, "ERR Cannot get guild data for "+txt_allyCode, None
+            dict_guild = prev_dict_guild
+        else:
+            goutils.log2("ERR", "Cannot get guild data for "+txt_allyCode)
+            return 1, "ERR Cannot get guild data for "+txt_allyCode, None
 
     guild_name = dict_guild["profile"]['name']
     guild_id = dict_guild["profile"]['id']
@@ -2889,7 +2894,7 @@ async def get_tw_alerts(guild_id, force_update):
 
     #Check if the guild can use RPC
     if not guild_id in connect_rpc.get_dict_bot_accounts():
-        return 1, "ERR: serveur discord inconnu du bot", []
+        return 1, "ERR: serveur discord inconnu du bot", None
 
     query = "SELECT name, twChanOut_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
@@ -2900,12 +2905,12 @@ async def get_tw_alerts(guild_id, force_update):
     guildName = db_data[0]
     twChannel_id = db_data[1]
     if twChannel_id == 0:
-        return 1, "ERR: salon discord non configuré", []
+        return 1, "ERR: salon discord non configuré", None
 
     rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
-        return 2, "ERR: pas de GT en cours", []
+        return 2, "ERR: pas de GT en cours", None
 
     tw_timestamp = tw_id.split(":")[1][1:]
 
@@ -3051,7 +3056,7 @@ async def get_tw_alerts(guild_id, force_update):
 
             list_tw_alerts[1]["Home:"+territory_name] = msg
 
-    return 0, "", list_tw_alerts
+    return 0, "", {"tw_id": tw_id, "alerts": list_tw_alerts}
 
 ############################################
 # develop_teams
@@ -4876,13 +4881,17 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 continue
 
             count_opponent+=1
-            #Get fastest ennemy
+            #Get fastest unit in enemy squad
             query = "SELECT MAX(stat5) FROM roster " \
                     "JOIN players on players.allyCode=roster.allyCode "\
                     "WHERE players.name='"+opp_player_name+"' AND guildName='"+opp_guild_name+"' "\
                     "AND defId IN "+str(tuple(required_opp_units))
             goutils.log2("DBG", query)
-            opp_geo_max_speed = int(connect_mysql.get_value(query)*1e-8)
+            db_data = connect_mysql.get_value(query)
+            if db_data == None:
+                return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
+
+            opp_geo_max_speed = int(db_data*1e-8)
             output_txt += "\nVitesse max des géos de "+opp_player_name+" = "+str(opp_geo_max_speed)
 
             if opp_geo_max_speed < (my_Piett_speed-40):
@@ -4957,7 +4966,10 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                         "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
                         "AND defId='"+fifth_unit_id+"'"
                 goutils.log2("DBG", query)
-                fifth_unit_speed = int(connect_mysql.get_value(query)*1e-8)
+                db_data = connect_mysql.get_value(query)
+                if db_data == None:
+                    return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
+                fifth_unit_speed = int(db_data*1e-8)
 
                 output_txt += "\nVitesse du 5e perso ("+fifth_unit_id+") de "+opp_player_name+" = "+str(fifth_unit_speed)
                 if fifth_unit_speed <= (my_Thrawn_speed-11):

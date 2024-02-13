@@ -32,6 +32,7 @@ import connect_rpc
 import portraits
 import data
 import manage_mods
+import manage_events
 
 # Generic configuration
 TOKEN = config.DISCORD_BOT_TOKEN
@@ -289,11 +290,24 @@ async def bot_loop_5minutes(bot):
 
         dict_tw_alerts = {}
         for guild_id in db_data:
+            #################################
+            # Manage TW alerts and start of TW
+            #################################
             try:
                 #CHECK ALERTS FOR TERRITORY WAR
-                ec, et, list_tw_alerts = await go.get_tw_alerts(guild_id, -1)
+                ec, et, dict_tw_alerts = await go.get_tw_alerts(guild_id, -1)
                 if ec == 0:
-                    [channel_id, dict_messages, tw_ts] = list_tw_alerts
+                    # TW ongoing
+                    tw_id = dict_tw_alerts["tw_id"]
+
+                    # Check event for TW start, and load opponent guild
+                    if not manage_events.exists("tw_start", guild_id, tw_id):
+                        ec, et, dict_guild = await get_guild_data_from_id(guild_id, -1)
+                        await go.load_guild(guid_id, True, True)
+                        manage_events.create_event("tw_start", guild_id, tw_id)
+
+                    # Display TW alerts, messages...
+                    [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
                     tw_bot_channel = bot.get_channel(channel_id)
 
                     #sort dict_messages
@@ -363,6 +377,9 @@ async def bot_loop_5minutes(bot):
                 if not bot_test_mode:
                     await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
+            #################################
+            # Manage TB alerts
+            #################################
             try:
                 if not guild_id in dict_tb_alerts_previously_done:
                     dict_tb_alerts_previously_done[guild_id] = []
@@ -388,6 +405,9 @@ async def bot_loop_5minutes(bot):
                 if not bot_test_mode:
                     await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
+            #################################
+            # Check progress of platoons
+            #################################
             try:
                 #Check if guild can use RPC
                 #get bot config from DB
@@ -531,14 +551,14 @@ async def bot_loop_60minutes(bot):
             await send_alert_to_admins(None, "New LocalizationBundle")
         latestLocalizationBundleVersion = LocalizationBundleVersion
 
-    GameDataVersion = metadata["latestGamedataVersion"]
-    goutils.log2("INFO", "GameDataVersion="+GameDataVersion)
-    if GameDataVersion != latestGamedataVersion \
+    GamedataVersion = metadata["latestGamedataVersion"]
+    goutils.log2("INFO", "GamedataVersion="+GamedataVersion)
+    if GamedataVersion != latestGamedataVersion \
         and latestGamedataVersion != "":
 
         if not bot_test_mode:
-            await send_alert_to_admins(None, "New GameDataVersion")
-        latestGameDataVersion = GamedataVersion
+            await send_alert_to_admins(None, "New GamedataVersion")
+        latestGamedataVersion = GamedataVersion
 
 
 ################################################
