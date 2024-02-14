@@ -552,7 +552,7 @@ async def bot_loop_60minutes(bot):
 
         if not bot_test_mode:
             await send_alert_to_admins(None, "New LocalizationBundle")
-        latestLocalizationBundleVersion = LocalizationBundleVersion
+    latestLocalizationBundleVersion = LocalizationBundleVersion
 
     GamedataVersion = metadata["latestGamedataVersion"]
     goutils.log2("INFO", "GamedataVersion="+GamedataVersion)
@@ -561,7 +561,7 @@ async def bot_loop_60minutes(bot):
 
         if not bot_test_mode:
             await send_alert_to_admins(None, "New GamedataVersion")
-        latestGamedataVersion = GamedataVersion
+    latestGamedataVersion = GamedataVersion
 
 
 ################################################
