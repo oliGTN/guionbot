@@ -1991,8 +1991,6 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
             break
     tb_id = tb["instanceId"]
 
-    zone_param = tb_id+":"+zone_id
-
     # add the squad id to the unit id
     # look for the required unitDefId, in the right zone
     # then take first occurrence not taken, and allocate the squad
@@ -2015,7 +2013,8 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                     unit_defId = unit["unitIdentifier"].split(':')[0]
                     if unit_defId in remaining_defIds:
                         unit_id = dict_roster[unit_defId]["id"]
-                        list_id_squad.append(unit_id+":"+squad_id)
+                        #list_id_squad.append(unit_id+":"+squad_id) #this format for the command-line RPC
+                        list_id_squad.append([unit_id, squad_id]) # this format for the POST RPC
                         list_unit_id.append(unit_id)
                         deployed_defIds.append(unit_defId)
                         remaining_defIds.remove(unit_defId)
@@ -2030,28 +2029,32 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
         return 1, "ERR: plus rien à déployer"
 
 
-    # Launch RPC command
-    process_cmd = "/home/pi/GuionBot/warstats/platoons_tb.sh "+ txt_allyCode+" "+ zone_param+" "+ platoon_id+" "+" ".join(list_id_squad)
-    goutils.log2("DBG", "process_params="+process_cmd)
+    # RPC REQUEST for platoonsTB
+    url = "http://localhost:8000/platoonsTB"
+    params = {"allyCode": txt_allyCode,
+              "tb_id": tb_id,
+              "zone_id": zone_id,
+              "platoon_id": platoon_id,
+              "units": list_id_squad}
+    req_data = json.dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "POST platoonsTB status="+str(resp.status))
+                if resp.status==200:
+                    #normale case
+                    pass
+                elif resp.status==201:
+                    return 1, "ERR: rien à déployer"
+                else:
+                    return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status)
 
-    process = await asyncio.create_subprocess_shell(process_cmd)
-    while process.returncode == None:
-        goutils.log2("DBG", "waiting platoons_tb...")
-        await asyncio.sleep(1)
-    goutils.log2("DBG", "platoons_tb code="+str(process.returncode))
-
-    if process.returncode==2:
-        return 1, "Erreur en déployant les pelotons en BT - (usage)"
-    elif process.returncode==100:
-        return 1, "Erreur en déployant les pelotons en BT - (pas de BT en cours)"
-    elif process.returncode==103:
-        return 1, "Erreur en déployant les pelotons en BT - (emplacement déjà occupé)"
-    elif process.returncode==101:
-        return 1, "Erreur en déployant les pelotons en BT - (toon déjà déployé)"
-    elif process.returncode==102:
-        return 1, "Erreur en déployant les pelotons en BT - (rien à déployer)"
-    elif process.returncode!=0:
-        return 1, "Erreur en déployant les pelotons en BT - code="+str(process.returncode)
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
 
     return 0, "Le bot a posé "+str(deployed_defIds)+" en " + zone_id
 
