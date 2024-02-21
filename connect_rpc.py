@@ -711,7 +711,11 @@ async def get_actual_tb_platoons(guild_id, force_update):
 
                             player_id = unit["memberId"]
                             if player_id != '':
-                                player_name = dict_member_by_id[player_id]
+                                if player_id in dict_member_by_id:
+                                    player_name = dict_member_by_id[player_id]
+                                else:
+                                    # player with platoons but not in the guild: has left
+                                    player_name = "Joueur Inconnu"
                                 dict_platoons[platoon_name][unit_name].append(player_name)
                             else:
                                 dict_platoons[platoon_name][unit_name].append('')
