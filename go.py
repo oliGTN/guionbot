@@ -2924,33 +2924,42 @@ async def get_tw_alerts(guild_id, force_update):
         longest_opp_player_name = longest_opp_player_name.replace("'", "''")
         list_open_tw_territories = set([x[0] for x in list_opponent_squads])
 
-        for territory in list_open_tw_territories:
-            list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0)]
-            list_opp_remaining_squads_terr = [x for x in list_opponent_squads if (x[0]==territory and len(x[2])>0 and not x[3])]
+        for territory_name in list_open_tw_territories:
+            territory = [x for x in list_opp_territories if x[0]==territory_name][0]
+            orders = territory[5]
+            state = territory[6]
+
+            list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory_name and len(x[2])>0)]
+            list_opp_remaining_squads_terr = [x for x in list_opponent_squads if (x[0]==territory_name and len(x[2])>0 and not x[3])]
             counter_leaders = Counter([x[2][0]["unitId"] for x in list_opp_squads_terr])
             counter_remaining_leaders = Counter([x[2][0]["unitId"] for x in list_opp_remaining_squads_terr])
 
-            n_territory = int(territory[1])
-            if territory[0] == "T" and int(territory[1]) > 2:
+            n_territory = int(territory_name[1])
+            if territory_name[0] == "T" and int(territory_name[1]) > 2:
                 n_territory -= 2
 
-            #Display position of territory
+            #Display position of territory_name
             if n_territory == 1:
                 msg = "__Le 1er territoire "
             else:
                 msg = "__Le "+str(n_territory)+"e territoire "
 
             #Display short name of territory then char/ship
-            if territory[0] == "T" and int(territory[1]) < 3:
+            if territory_name[0] == "T" and int(territory_name[1]) < 3:
                 msg += "du haut__"
-            elif territory[0] == "T":
+            elif territory_name[0] == "T":
                 msg += "du milieu__"
-            elif territory[0] == "F":
+            elif territory_name[0] == "F":
                 msg += "des vaisseaux__"
             else:
                 msg += "du bas__"
 
-            msg += " ("+territory+") est ouvert. Avec ces adversaires :"
+            if orders == None:
+                txt_orders = ""
+            else:
+                txt_orders = " - " + orders
+
+            msg += " ("+territory_name+") est ouvert"+txt_orders+".\nAvec ces adversaires :"
 
             #Display the leaders
             territory_done = True
@@ -2968,9 +2977,13 @@ async def get_tw_alerts(guild_id, force_update):
 
             #Display an emoji depending on done or in progress
             if territory_done:
-                list_tw_alerts[1][territory] = "\N{WHITE HEAVY CHECK MARK}"+msg.replace("ouvert", "terminé")
+                msg = '\N{WHITE HEAVY CHECK MARK}'+msg.replace("ouvert", "terminé")
+            elif state=="IGNORED":
+                msg = '\N{PROHIBITED SIGN}'+msg
             else:
-                list_tw_alerts[1][territory] = "\N{WHITE RIGHT POINTING BACKHAND INDEX}"+msg
+                msg = '\N{WHITE RIGHT POINTING BACKHAND INDEX}'+msg
+
+            list_tw_alerts[1][territory_name] = msg
 
 
     list_def_territories = rpc_data["homeGuild"]["list_territories"]
