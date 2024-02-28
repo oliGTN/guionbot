@@ -1763,11 +1763,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.check(admin_command)
     async def test(self, ctx, *args):
         await ctx.message.add_reaction(emoji_thumb)
-        await bot_loop_60minutes(bot)
-        #for g in bot.guilds:
-        #    for m in g.members:
-        #        if m.id == 1062721696857067591:
-        #            print(g.name, m.name, m.top_role.permissions.administrator, m.guild_permissions.administrator)
+        for g in bot.guilds:
+            for m in g.members:
+                if m.guild_permissions.administrator and not m.bot:
+                    query = "SELECT allyCode FROM player_discord WHERE discord_id="+str(m.id)
+                    db_data = connect_mysql.get_column(query)
+                    print(g.name, m.name, m.id, m.guild_permissions.administrator, db_data)
         await ctx.message.add_reaction(emoji_check)
 
 ##############################################################
