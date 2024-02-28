@@ -925,8 +925,11 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                             else:
                                 activity_txt = activity["warSquad"]["squadStatus"]
                         else:
+                            scoreDelta = activity["zoneData"]["scoreDelta"]
                             scoretotal = activity["zoneData"]["scoreTotal"]
-                            activity_txt = "Score: "+scoretotal
+                            activity_txt = "Score en "+zone_name+" : "+scoretotal+" (+"+scoreDelta+")"
+                            if int(scoreDelta)>100:
+                                activity_txt += " > zone terminée \N{THUMBS UP SIGN}"
 
                         if event_ts > chatLatest_ts:
                             list_tw_logs.append([event_ts, activity_txt])
