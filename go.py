@@ -4851,8 +4851,9 @@ def store_eb_allocations(guild_id, tb_name, phases, allocations):
     return 0, ""
 
 async def check_tw_counter(txt_allyCode, guild_id, counter_type):
-    if not counter_type in ['SEEvsJMK', 'ITvsGEOS']:
-        return 1, "Counter inconnu: "+counter_type
+    known_counters = ['SEEvsJMK', 'ITvsGEOS']
+    if not counter_type in known_counters:
+        return 1, "Counter inconnu: "+counter_type+" (dans la liste "+str(known_counters)+")"
 
     # Get TW data and opponent teams
     rpc_data = await connect_rpc.get_tw_status(guild_id, 0)
@@ -4897,7 +4898,8 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
             #Get fastest unit in enemy squad
             query = "SELECT MAX(stat5) FROM roster " \
                     "JOIN players on players.allyCode=roster.allyCode "\
-                    "WHERE players.name='"+opp_player_name+"' AND guildName='"+opp_guild_name+"' "\
+                    "WHERE players.name='"+opp_player_name.replace("'", "''")+"' "\
+                    "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
                     "AND defId IN "+str(tuple(required_opp_units))
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_value(query)
