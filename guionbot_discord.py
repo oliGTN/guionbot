@@ -875,6 +875,10 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                 #EB message by player
                 for embed in message.embeds:
                     dict_embed = embed.to_dict()
+                    if 'description' in dict_embed:
+                        if dict_embed['description'].startswith(":exclamation: Our guild needs more"):
+                            #no need to read this
+                            continue
                     if 'fields' in dict_embed:
                         #on garde le nom de la BT mais on met X comme numéro de phase
                         #le numéro de phase sera affecté plus tard
