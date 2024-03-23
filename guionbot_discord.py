@@ -1863,7 +1863,10 @@ class TbCog(commands.GroupCog, name="bt"):
             lines = [l for l in lines if "a posé" in l]
             txt = "\n".join(lines)
 
-            txt = emoji_check+" succès des déploiements :\n"+txt
+            if txt=='':
+                txt = emoji_check+" rien à déployer"
+            else:
+                txt = emoji_check+" succès des déploiements :\n"+txt
             await interaction.edit_original_response(content=txt)
 
 
