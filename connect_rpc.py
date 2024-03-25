@@ -18,6 +18,10 @@ import go
 import manage_events
 import connect_gsheets
 
+#GLOBAL variables for previous statuses
+prev_dict_guild = None
+
+
 dict_sem={}
 async def acquire_sem(id):
     id=str(id)
@@ -1044,6 +1048,8 @@ async def tag_tb_undeployed_players(guild_id, force_update):
 
 ##############################################################
 async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update):
+    global prev_dict_guild
+
     dict_tb = godata.get("tb_definition.json")
 
     ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], force_update)
@@ -1054,6 +1060,7 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
     mapstats=rpc_data[1]
     dict_all_events=rpc_data[2]
     guildName = dict_guild["profile"]["name"]
+    guildId = dict_guild["profile"]["id"]
 
     #get guild members
     dict_members_by_id={}
@@ -1089,6 +1096,8 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
         # Check if previous TB has ended properly, with associated actions
         latest_tb_end_ts = 0
         latest_tb_id = ""
+
+        #Get the latest (=max) TB timestamp in known TB results
         if "territoryBattleResult" in dict_guild:
             for battleResult in dict_guild["territoryBattleResult"]:
                 tb_end_ts = int(battleResult["endTime"])
@@ -1097,10 +1106,20 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                     latest_tb_id = battleResult["instanceId"]
 
         if latest_tb_end_ts > 0:
-            goutils.log2("INFO", "Close TB "+latest_tb_id+" for guild "+guild_id)
             if not manage_events.exists("tb_end", guild_id, latest_tb_id):
                 # the closure is not done yet
+                goutils.log2("INFO", "Close TB "+latest_tb_id+" for guild "+guild_id)
+
+                #Copy gsheets
                 await connect_gsheets.close_tb_gwarstats(guild_id)
+
+                #Save guild file
+                if prev_dict_guild != None:
+                    guild_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
+                    fjson = open(guild_filename, 'w')
+                    fjson.write(json.dumps(prev_dict_guild, indent=4))
+                    fjson.close()
+                prev_dict_guild = dict_guild
 
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
 
@@ -1807,6 +1826,8 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en récupérant les infos joueur de "+txt_allyCode
+
+    player_name = dict_player["name"]
     player_id = dict_player["playerId"]
 
     list_unit_ids = []
@@ -1879,8 +1900,9 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au bot"
+        return 1, "Erreur en se connectant au compte "+txt_allyCode
 
+    player_name = dict_player["name"]
     dict_roster = {}
     for unit in dict_player["rosterUnit"]:
         full_defId = unit["definitionId"]
@@ -1911,7 +1933,7 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
         zone_param = tw_id+":"+zone_id
 
     if not "playerStatus" in tw:
-        return 1, "ERR: " + txt_allyCode+" n'a pas rejoint la GT"
+        return 1, "ERR: " + player_name+" n'a pas rejoint la GT"
 
     list_used_units = []
     if "unitStatus" in tw["playerStatus"]:
@@ -1925,7 +1947,7 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
         unit_level = str(dict_roster[defId]["currentLevel"])
         unit_tier = str(dict_roster[defId]["currentTier"])
         if unit_id in list_used_units:
-            return 1, "ERR: " + txt_allyCode + " a déjà déployé " + defId
+            return 1, "ERR: " + player_name + " a déjà déployé " + defId
 
         list_unit_ids.append(defId+":"+unit_id+":"+unit_level+":"+unit_tier)
         unit_combatType = dict_unitsList[defId]["combatType"]
@@ -1958,15 +1980,17 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
     if process.returncode==202:
         return 1, "Erreur en déployant en GT - pas de GT en cours"
     elif process.returncode==203:
-        return 1, "Erreur en déployant en GT - le bot n'a pas tous les persos demandés"
+        return 1, "Erreur en déployant en GT - "+player_name+" n'a pas tous les persos demandés"
     elif process.returncode==204:
         return 1, "Erreur en déployant en GT - au moins un perso est déjà déployé"
     elif process.returncode==205:
-        return 1, "Erreur en déployant en GT - le bot n'a pas rejoint la GT"
+        return 1, "Erreur en déployant en GT - "+player_name+" n'a pas rejoint la GT"
+    elif process.returncode==94:
+        return 1, "Erreur en déployant en GT - version du client incompatible (contacter l'admin)"
     elif process.returncode!=0:
         return 1, "Erreur en déployant en GT - code="+str(process.returncode)
 
-    return 0, "Le bot a posé "+str(requested_defIds)+" en " + zone_id
+    return 0, player_name+" a posé "+str(requested_defIds)+" en " + zone_id
 
 async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     # get player roster
@@ -1974,8 +1998,9 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, True)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au bot"
-
+        return 1, "Erreur en se connectant au compte "+txt_allyCode
+    
+    player_name = dict_player["name"]
     dict_roster = {}
     for unit in dict_player["rosterUnit"]:
         full_defId = unit["definitionId"]
@@ -2063,7 +2088,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
 
-    return 0, "Le bot a posé "+str(deployed_defIds)+" en " + zone_id
+    return 0, player_name+" a posé "+str(deployed_defIds)+" en " + zone_id
 
 async def update_K1_players():
     url = "http://localhost:8000/leaderboard"
