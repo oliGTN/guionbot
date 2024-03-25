@@ -2916,6 +2916,9 @@ async def get_tw_alerts(guild_id, force_update):
 
     list_tw_alerts = [twChannel_id, {}, tw_timestamp]
 
+    ########################################
+    # OPPONENT territories
+    ########################################
     list_opponent_squads = rpc_data["awayGuild"]["list_teams"]
     list_opp_territories = rpc_data["awayGuild"]["list_territories"]
     if len(list_opponent_squads) > 0:
@@ -2985,7 +2988,10 @@ async def get_tw_alerts(guild_id, force_update):
 
             list_tw_alerts[1][territory_name] = msg
 
-
+    ########################################
+    # HOME territories
+    ########################################
+    list_def_squads = rpc_data["homeGuild"]["list_teams"]
     list_def_territories = rpc_data["homeGuild"]["list_territories"]
     list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
     nb_full = len(list_full_territories)
@@ -2998,6 +3004,9 @@ async def get_tw_alerts(guild_id, force_update):
             filled = territory[2]
             orders = territory[5]
             state = territory[6]
+
+            list_def_squads_terr = [x for x in list_def_squads if (x[0]==territory_name and len(x[2])>0)]
+            counter_leaders = Counter([x[2][0]["unitId"] for x in list_def_squads_terr])
 
             n_territory = int(territory_name[1])
             if territory_name[0] == "T" and int(territory_name[1]) > 2:
@@ -3030,8 +3039,15 @@ async def get_tw_alerts(guild_id, force_update):
                 msg += '\U000027A1\U0000FE0F' #right pointing arrow on blue background
 
             msg += "**DEFENSE** - "+territory_fullname+" ("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
+            #Display the leaders
+            for leader in counter_leaders:
+                if leader in dict_unitsList:
+                    leader_name = dict_unitsList[leader]["name"]
+                else:
+                    leader_name = leader
+                msgleader = leader_name+": "+str(counter_leaders[leader])
+                msg += "- "+msgleader+"\n"
 
-            #list_tw_alerts[1]["Placement:"+territory_name] = msg
 
         #Global Defense filling message
         if nb_full==10:
