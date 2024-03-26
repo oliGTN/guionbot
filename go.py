@@ -3006,9 +3006,6 @@ async def get_tw_alerts(guild_id, force_update):
             orders = territory[5]
             state = territory[6]
 
-            list_def_squads_terr = [x for x in list_def_squads if (x[0]==territory_name and len(x[2])>0)]
-            counter_leaders = Counter([x[2][0]["unitId"] for x in list_def_squads_terr])
-
             n_territory = int(territory_name[1])
             if territory_name[0] == "T" and int(territory_name[1]) > 2:
                 n_territory -= 2
@@ -3042,17 +3039,32 @@ async def get_tw_alerts(guild_id, force_update):
 
             terr_msg += "**DEFENSE** - "+territory_fullname+" ("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
 
-            msg += terr_msg
-            msg_light += terr_msg
-
+            #detect leaders
+            list_def_squads_terr = [x for x in list_def_squads if (x[0]==territory_name and len(x[2])>0)]
+            counter_leaders = Counter([x[2][0]["unitId"] for x in list_def_squads_terr])
+            #sort by values
+            counter_leaders = dict(sorted(dict(counter_leaders).items(), key=lambda x:-x[1]))
+            
             #Display the leaders
+            leader_count=0
+            msg_leaders=""
+            msg_leaders_light=""
             for leader in counter_leaders:
                 if leader in dict_unitsList:
                     leader_name = dict_unitsList[leader]["name"]
                 else:
                     leader_name = leader
                 msgleader = leader_name+": "+str(counter_leaders[leader])
-                msg += "- "+msgleader+"\n"
+                msg_leaders += "- "+msgleader+"\n"
+                if leader_count<3:
+                    msg_leaders_light += "- "+msgleader+"\n"
+                elif leader_count==3:
+                    msg_leaders_light += "- ...\n"
+                else:
+                    pass
+                leader_count+=1
+            msg+=terr_msg+msg_leaders
+            msg_light+=terr_msg+msg_leaders_light
 
         if len(msg) > 1900:
             msg=msg_light
