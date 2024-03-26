@@ -2998,6 +2998,7 @@ async def get_tw_alerts(guild_id, force_update):
     if len(list_def_territories) > 0:
         #Alert for defense fully set OR new orders
         msg = ""
+        msg_light = ""
         for territory in list_def_territories:
             territory_name = territory[0]
             size = territory[1]
@@ -3031,14 +3032,19 @@ async def get_tw_alerts(guild_id, force_update):
             else:
                 txt_orders = " - " + orders
 
+            terr_msg=""
             if filled == size:
-                msg += '\N{WHITE HEAVY CHECK MARK}'
+                terr_msg += '\N{WHITE HEAVY CHECK MARK}'
             elif state=="IGNORED":
-                msg += '\N{PROHIBITED SIGN}'
+                terr_msg += '\N{PROHIBITED SIGN}'
             else:
-                msg += '\U000027A1\U0000FE0F' #right pointing arrow on blue background
+                terr_msg += '\U000027A1\U0000FE0F' #right pointing arrow on blue background
 
-            msg += "**DEFENSE** - "+territory_fullname+" ("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
+            terr_msg += "**DEFENSE** - "+territory_fullname+" ("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
+
+            msg += terr_msg
+            msg_light += terr_msg
+
             #Display the leaders
             for leader in counter_leaders:
                 if leader in dict_unitsList:
@@ -3048,6 +3054,8 @@ async def get_tw_alerts(guild_id, force_update):
                 msgleader = leader_name+": "+str(counter_leaders[leader])
                 msg += "- "+msgleader+"\n"
 
+        if len(msg) > 1900:
+            msg=msg_light
 
         #Global Defense filling message
         if nb_full==10:
