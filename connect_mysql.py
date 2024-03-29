@@ -481,8 +481,8 @@ async def update_player(dict_player):
             c_forceAlignment = dict_unitsList[c_defId]['forceAlignment']
             c_gear = character['currentTier']
             if not "gp" in character:
-                goutils.log2("ERR", p_playerId+":"+character_id)
-                return 1, "ERR", p_playerId+":"+character_id
+                goutils.log2("ERR no gp for ", p_playerId+":"+character_id)
+                return 1, "ERR no gp for "+ p_playerId+":"+character_id
             c_gp = character['gp']
             c_level = character['currentLevel']
             c_rarity = character['currentRarity']
