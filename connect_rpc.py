@@ -627,7 +627,10 @@ async def join_tw(guild_id):
                 goutils.log2("DBG", "POST joinTW status="+str(resp.status))
                 if resp.status==200:
                     #normale case
-                    pass
+                    rpc_response = await(resp.json())
+                    if rpc_response!=None and "err_code" in rpc_response:
+                        err_txt = rpc_response["err_txt"]
+                        return 1, "Erreur en rejoignant la GT - "+err_txt
                 elif resp.status==202:
                     return 0, "Aucune GT en cours"
                 else:
