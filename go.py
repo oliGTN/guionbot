@@ -2973,7 +2973,9 @@ async def get_tw_alerts(guild_id, force_update):
                     leader_name = leader
                 msgleader = leader_name+": "+str(counter_remaining_leaders[leader])+"/"+str(counter_leaders[leader])
                 if counter_remaining_leaders[leader] == 0:
-                    msg += "\n- ~~"+msgleader+"~~"
+                    # remove the display completely, to have simpler reading
+                    pass
+                    #msg += "\n- ~~"+msgleader+"~~"
                 else:
                     msg += "\n- "+msgleader
                     territory_done = False
