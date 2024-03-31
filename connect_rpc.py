@@ -1122,12 +1122,13 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                     fjson = open(guild_filename, 'w')
                     fjson.write(json.dumps(prev_dict_guild, indent=4))
                     fjson.close()
-                prev_dict_guild = dict_guild
 
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
 
 
         return 1, "No TB on-going", None
+
+    prev_dict_guild = dict_guild
 
     query = "SELECT name, char_gp, ship_gp, playerId FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
     goutils.log2("DBG", query)
@@ -1715,6 +1716,8 @@ async def get_tw_opponent_leader(guild_id):
 # }
 ########################################
 async def get_tw_status(guild_id, force_update):
+    global prev_dict_guild
+
     dict_tw=godata.dict_tw
 
     ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
@@ -1739,7 +1742,35 @@ async def get_tw_status(guild_id, force_update):
                 tw_round = battleStatus["currentRound"]
 
     if tw_id == None:
+        # Check if previous TW has ended properly, with associated actions
+        latest_tw_end_ts = 0
+        latest_tw_id = ""
+
+        #Get the latest (=max) TW timestamp in known TW results
+        if "territoryWarResult" in dict_guild:
+            for battleResult in dict_guild["territoryWarResult"]:
+                tw_end_ts = int(battleResult["endTime"])
+                if tw_end_ts > latest_tw_end_ts:
+                    latest_tw_end_ts = tw_end_ts
+                    latest_tw_id = battleResult["instanceId"]
+
+        if not manage_events.exists("tw_end", guild_id, latest_tw_id):
+            # the closure is not done yet
+            goutils.log2("INFO", "Close TW "+latest_tw_id+" for guild "+guild_id)
+
+            #Copy gsheets
+            await connect_gsheets.close_tb_gwarstats(guild_id)
+
+            #Save guild file
+            if prev_dict_guild != None:
+                guild_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
+                fjson = open(guild_filename, 'w')
+                fjson.write(json.dumps(prev_dict_guild, indent=4))
+                fjson.close()
+
         return {"tw_id": None}
+
+    prev_dict_guild = dict_guild
 
     opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
     opp_guildId = battleStatus["awayGuild"]["profile"]["id"]
