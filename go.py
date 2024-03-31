@@ -2962,9 +2962,10 @@ async def get_tw_alerts(guild_id, force_update):
             else:
                 txt_orders = " - " + orders
 
-            msg += " ("+territory_name+") est ouvert"+txt_orders+".\nAvec ces adversaires :"
+            msg += " ("+territory_name+") est ouvert"+txt_orders+"."
 
             #Display the leaders
+            intro_leaders_done = False
             territory_done = True
             for leader in counter_leaders:
                 if leader in dict_unitsList:
@@ -2977,6 +2978,9 @@ async def get_tw_alerts(guild_id, force_update):
                     pass
                     #msg += "\n- ~~"+msgleader+"~~"
                 else:
+                    if not intro_leaders_done:
+                        msg += "\nAvec ces adversaires :"
+                        intro_leaders_done = True
                     msg += "\n- "+msgleader
                     territory_done = False
 
