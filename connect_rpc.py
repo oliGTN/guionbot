@@ -1725,6 +1725,8 @@ async def get_tw_status(guild_id, force_update):
         goutils.log2("ERR", et)
         return {"tw_id": None}
 
+    guildId = dict_guild["profile"]["id"]
+
     dict_members_by_id={}
     for member in dict_guild["member"]:
         dict_members_by_id[member["playerId"]] = member["playerName"]
