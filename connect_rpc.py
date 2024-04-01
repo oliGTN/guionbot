@@ -1760,9 +1760,6 @@ async def get_tw_status(guild_id, force_update):
             # the closure is not done yet
             goutils.log2("INFO", "Close TW "+latest_tw_id+" for guild "+guild_id)
 
-            #Copy gsheets
-            await connect_gsheets.close_tb_gwarstats(guild_id)
-
             #Save guild file
             if prev_dict_guild != None:
                 guild_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
