@@ -1762,10 +1762,12 @@ async def get_tw_status(guild_id, force_update):
 
             #Save guild file
             if prev_dict_guild != None:
-                guild_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
+                guild_filename = "EVENTS/"+guildId+"_"+latest_tw_id+"_guild.json"
                 fjson = open(guild_filename, 'w')
                 fjson.write(json.dumps(prev_dict_guild, indent=4))
                 fjson.close()
+
+            manage_events.create_event("tw_end", guild_id, latest_tw_id)
 
         return {"tw_id": None}
 
