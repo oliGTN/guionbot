@@ -4826,6 +4826,14 @@ def store_eb_allocations(guild_id, tb_name, phases, allocations):
         query+= "VALUES('"+guild_id+"', '"+tb_name+"', '"+phase_txt+"')"
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
+
+        #Get the newly created conf ID
+        query = "SELECT id FROM platoon_config \n"
+        query+= "WHERE guild_id='"+guild_id+"' \n"
+        query+= "AND tb_name='"+tb_name+"'\n"
+        query+= "AND phases='"+phase_txt+"'"
+        goutils.log2("DBG", query)
+        conf_id = connect_mysql.get_value(query)
     else:
         #update timestamp
         query = "UPDATE platoon_config SET timestamp=CURRENT_TIMESTAMP() WHERE id="+str(conf_id)
