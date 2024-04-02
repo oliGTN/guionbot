@@ -33,6 +33,7 @@ import portraits
 import data
 import manage_mods
 import manage_events
+import emojis
 
 # Generic configuration
 TOKEN = config.DISCORD_BOT_TOKEN
@@ -68,23 +69,6 @@ intents.presences = True
 intents.message_content = True
 #bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 bot = MyClient(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
-
-
-#https://til.secretgeek.net/powershell/emoji_list.html
-emoji_thumb = '\N{THUMBS UP SIGN}'
-emoji_thumbdown = '\N{THUMBS DOWN SIGN}'
-emoji_check = '\N{WHITE HEAVY CHECK MARK}'
-emoji_error = '\N{CROSS MARK}'
-emoji_hourglass = '\N{HOURGLASS}'
-emoji_letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER B}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER C}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER D}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER E}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER F}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER G}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER H}', \
-                 '\N{REGIONAL INDICATOR SYMBOL LETTER I}']
 
 dict_BT_missions={}
 dict_BT_missions['HLS']={}
@@ -674,73 +658,41 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     current_tb_phase = [None, None, None] # DS/MS/LS or top/mid/bot, gives the number [1,6] of the phase
     detect_previous_BT = False
     
-    async for message in tb_channel.history(limit=500):
-        if message.author.name == "EchoStation":
-            if message.content.startswith('```prolog'):
-                #EB message by territory
-                ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
-                territory_position = ret_re.group(1)
-                  
-                for embed in message.embeds:
-                    dict_embed = embed.to_dict()
-                    if 'fields' in dict_embed:
-                        #on garde le nom de la BT mais on met X comme numéro de phase
-                        #le numéro de phase sera affecté plus tard
-                        platoon_num = dict_embed["description"].split(" ")[2][0]
+    # Read history of messages
+    try:
+        async for message in tb_channel.history(limit=500):
+            if message.author.name == "EchoStation":
+                if message.content.startswith('```prolog'):
+                    #EB message by territory
+                    ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
+                    territory_position = ret_re.group(1)
+                      
+                    for embed in message.embeds:
+                        dict_embed = embed.to_dict()
+                        if 'fields' in dict_embed:
+                            #on garde le nom de la BT mais on met X comme numéro de phase
+                            #le numéro de phase sera affecté plus tard
+                            platoon_num = dict_embed["description"].split(" ")[2][0]
 
-                        platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
-                        for dict_player in dict_embed['fields']:
-                            player_name = dict_player['name']
-                            #print(player_name)
-                            for character in dict_player['value'].split('\n'):
-                                char_name = character[1:-1]
-                                if char_name[0:4]=='*` *':
-                                    char_name=char_name[4:]
-                                if "* `" in char_name:
-                                    char_name=char_name[:char_name.index("* `")]
-                                if not platoon_name in dict_platoons_allocation:
-                                    dict_platoons_allocation[
-                                        platoon_name] = {}
-
-                                #as the name may be in English, or approximative, best to go through the alias search
-                                list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
-                                char_name = dict_id_name[char_name][0][1]
-                                #if char_name.startswith("Ini"):
-                                #    print(char_name)
-
-                                if not char_name in dict_platoons_allocation[
-                                        platoon_name]:
-                                    dict_platoons_allocation[platoon_name][
-                                        char_name] = []
-                                dict_platoons_allocation[platoon_name][
-                                    char_name].append(player_name)
-                
-            elif message.content.startswith('Common units:'):
-                #EB message by unit / Common units
-                for embed in message.embeds:
-                    dict_embed = embed.to_dict()
-                    if 'fields' in dict_embed:
-                        # on garde le nom de la BT mais on met X comme numéro de phase
-                        # le numéro de phase sera affecté plus tard
-
-                        for dict_char in dict_embed['fields']:
-                            char_name = re.search(':.*: (.*)', dict_char['name']).group(1)
-
-                            for line in dict_char['value'].split('\n'):
-                                if line.startswith("**"):
-                                    platoon_pos = line.split(" ")[0][2:]
-                                    platoon_num = line.split(" ")[2][1]
-                                    platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
-                                else:
-                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
-                                    player_name = ret_re.group(3).strip()
-                                    
+                            platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
+                            for dict_player in dict_embed['fields']:
+                                player_name = dict_player['name']
+                                #print(player_name)
+                                for character in dict_player['value'].split('\n'):
+                                    char_name = character[1:-1]
+                                    if char_name[0:4]=='*` *':
+                                        char_name=char_name[4:]
+                                    if "* `" in char_name:
+                                        char_name=char_name[:char_name.index("* `")]
                                     if not platoon_name in dict_platoons_allocation:
-                                        dict_platoons_allocation[platoon_name] = {}
+                                        dict_platoons_allocation[
+                                            platoon_name] = {}
 
                                     #as the name may be in English, or approximative, best to go through the alias search
                                     list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
                                     char_name = dict_id_name[char_name][0][1]
+                                    #if char_name.startswith("Ini"):
+                                    #    print(char_name)
 
                                     if not char_name in dict_platoons_allocation[
                                             platoon_name]:
@@ -748,27 +700,184 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                             char_name] = []
                                     dict_platoons_allocation[platoon_name][
                                         char_name].append(player_name)
+                    
+                elif message.content.startswith('Common units:'):
+                    #EB message by unit / Common units
+                    for embed in message.embeds:
+                        dict_embed = embed.to_dict()
+                        if 'fields' in dict_embed:
+                            # on garde le nom de la BT mais on met X comme numéro de phase
+                            # le numéro de phase sera affecté plus tard
 
-            elif message.content.startswith('Rare Units:'):
-                #EB message by unit / Rare units
-                for embed in message.embeds:
-                    dict_embed = embed.to_dict()
-                    if 'fields' in dict_embed:
-                        # on garde le nom de la BT mais on met X comme numéro de phase
-                        # le numéro de phase sera affecté plus tard
-                        char_name = dict_embed['author']['name']
-                        
-                        for dict_platoon in dict_embed['fields']:
-                            ret_re = re.search('(.*) - .*', dict_platoon['name'])
-                            if ret_re != None:
-                                territory_position = ret_re.group(1)
-                                platoon_name = tbs_name + "X-" + territory_position + \
-                                                "-" + dict_platoon['name'][-1]
-                                    
-                                for line in dict_platoon['value'].split('\n'):
-                                    ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
-                                    player_name = ret_re.group(3).strip()
+                            for dict_char in dict_embed['fields']:
+                                char_name = re.search(':.*: (.*)', dict_char['name']).group(1)
+
+                                for line in dict_char['value'].split('\n'):
+                                    if line.startswith("**"):
+                                        platoon_pos = line.split(" ")[0][2:]
+                                        platoon_num = line.split(" ")[2][1]
+                                        platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
+                                    else:
+                                        ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
+                                        player_name = ret_re.group(3).strip()
                                         
+                                        if not platoon_name in dict_platoons_allocation:
+                                            dict_platoons_allocation[platoon_name] = {}
+
+                                        #as the name may be in English, or approximative, best to go through the alias search
+                                        list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
+                                        char_name = dict_id_name[char_name][0][1]
+
+                                        if not char_name in dict_platoons_allocation[
+                                                platoon_name]:
+                                            dict_platoons_allocation[platoon_name][
+                                                char_name] = []
+                                        dict_platoons_allocation[platoon_name][
+                                            char_name].append(player_name)
+
+                elif message.content.startswith('Rare Units:'):
+                    #EB message by unit / Rare units
+                    for embed in message.embeds:
+                        dict_embed = embed.to_dict()
+                        if 'fields' in dict_embed:
+                            # on garde le nom de la BT mais on met X comme numéro de phase
+                            # le numéro de phase sera affecté plus tard
+                            char_name = dict_embed['author']['name']
+                            
+                            for dict_platoon in dict_embed['fields']:
+                                ret_re = re.search('(.*) - .*', dict_platoon['name'])
+                                if ret_re != None:
+                                    territory_position = ret_re.group(1)
+                                    platoon_name = tbs_name + "X-" + territory_position + \
+                                                    "-" + dict_platoon['name'][-1]
+                                        
+                                    for line in dict_platoon['value'].split('\n'):
+                                        ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
+                                        player_name = ret_re.group(3).strip()
+                                            
+                                        if char_name[0:4]=='*` *':
+                                            char_name=char_name[4:]
+                                        if not platoon_name in dict_platoons_allocation:
+                                            dict_platoons_allocation[
+                                                platoon_name] = {}
+
+                                        #as the name may be in English, or approximative, best to go through the alias search
+                                        list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
+                                        char_name = dict_id_name[char_name][0][1]
+
+                                        if not char_name in dict_platoons_allocation[
+                                                platoon_name]:
+                                            dict_platoons_allocation[platoon_name][
+                                                char_name] = []
+                                        dict_platoons_allocation[platoon_name][
+                                            char_name].append(player_name)
+
+                elif message.content.startswith(":information_source: **Overview**"):
+                    #Overview of the EB posts. Gives the territory names
+                    # this name helps allocatting the phase
+                    # In case of single-territory, helps recovering its position
+                    for line in message.content.split("\n"):
+                        if line.startswith(":"):
+                            ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
+                            if ret_re != None:
+                                territory_name = ret_re.group(1)
+                                territory_position = ret_re.group(2) #top, bottom, mid
+                                if territory_position == 'bottom':
+                                    territory_position = 'bot'
+                                
+                                if territory_name in dict_BT_missions[tbs_name]:
+                                    territory_name_position = dict_BT_missions[tbs_name][territory_name]
+                                    territory_phase = territory_name_position.split("-")[0][-1]
+                                    if territory_position in ["left", "top"]:
+                                        territory_pos = 0
+                                    elif territory_position in ["mid"]:
+                                        territory_pos = 1
+                                    else: #if territory_position in ["right", "bot"]:
+                                        territory_pos = 2
+
+                                    if current_tb_phase[territory_pos]!=None and current_tb_phase[territory_pos]<territory_phase:
+                                        detect_previous_BT = True
+                                        break
+                                    current_tb_phase[territory_pos] = territory_phase
+
+                                    #Check if this mission/territory has been allocated in previous message
+                                    existing_platoons = [i for i in dict_platoons_allocation.keys()
+                                                         if i.startswith(territory_name_position)]
+
+                                    if True: #len(existing_platoons) == 0:                    
+                                        #TODO risk of regression here. Check kept for provision
+                                        #necessary to remove the check when same zone has different allocations among several days
+                                        # with the right name for the territory, modify dictionary
+                                        keys_to_rename=[]                         
+                                        for platoon_name in dict_platoons_allocation:
+                                            if platoon_name.startswith(tbs_name + "X-"+territory_position):
+                                                keys_to_rename.append(platoon_name)
+                                            if platoon_name.startswith(tbs_name + "X-PLATOON"):
+                                                keys_to_rename.append(platoon_name)
+                                        for key in keys_to_rename:
+                                            new_key = territory_name_position+key[-2:]
+                                            if new_key in dict_platoons_allocation:
+                                                #Case of a platoon allocated twice
+                                                # - either part day1 and part day 2
+                                                # - or day2 replaces day1
+                                                #Anyway the logic is to add, in the day2 allocations (key),
+                                                # all allocations from day1 (new_key) that are not in conflict
+                                                # (day2 has priority)
+
+                                                for charname in dict_platoons_allocation[new_key]:
+                                                    if charname in dict_platoons_allocation[key]:
+                                                        added_players = [i for i in dict_platoons_allocation[new_key][charname] if i != 'Filled in another phase']
+                                                        players = dict_platoons_allocation[key][charname]
+                                                        for player in added_players:
+                                                            if "Filled in another phase" in players:
+                                                                players.remove("Filled in another phase")
+                                                                players.append(player)
+                                                            else:
+                                                                #platoon already full, previous player is ignored
+                                                                pass
+                                                        dict_platoons_allocation[key][charname] = players
+                                                    else:
+                                                        #should not happen, but just in case...
+                                                        dict_platoons_allocation[key][charname] = dict_platoons_allocation[new_key][charname]
+
+                                            # Now that the key is well defined, rename it
+                                            dict_platoons_allocation[new_key] = \
+                                                    dict_platoons_allocation[key]
+                                            del dict_platoons_allocation[key]
+                                                
+                                else:
+                                    goutils.log2("WAR", "Unknown mission "+territory_name+" for TB "+tbs_name)
+
+                    #if detect_previous_BT:
+                    #    #out of the main message reading loop
+                    #    break
+
+                    # Assumption of a single Echostation allocation per phase
+                    # no need to detect platoons from previous phases
+                    break
+
+                #elif message.content.startswith("<@") or message.content.startswith("Filled in another phase"):
+                else: #try to manage any message as EchoBot allocation may be sent without the "include @mentions" option
+                    #EB message by player
+                    for embed in message.embeds:
+                        dict_embed = embed.to_dict()
+                        if 'description' in dict_embed:
+                            if dict_embed['description'].startswith(":exclamation: Our guild needs more"):
+                                #no need to read this
+                                continue
+                        if 'fields' in dict_embed:
+                            #on garde le nom de la BT mais on met X comme numéro de phase
+                            #le numéro de phase sera affecté plus tard
+                            player_name = re.search('\*\*(.*)\*\*',
+                                    dict_embed['description']).group(1)
+
+                            for dict_platoon in dict_embed['fields']:
+                                platoon_pos = dict_platoon['name'].split(" ")[0]
+                                platoon_num = dict_platoon['name'][-1]
+                                platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
+
+                                for character in dict_platoon['value'].split('\n'):
+                                    char_name = character[1:-1]
                                     if char_name[0:4]=='*` *':
                                         char_name=char_name[4:]
                                     if not platoon_name in dict_platoons_allocation:
@@ -779,133 +888,13 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                     list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
                                     char_name = dict_id_name[char_name][0][1]
 
-                                    if not char_name in dict_platoons_allocation[
-                                            platoon_name]:
-                                        dict_platoons_allocation[platoon_name][
-                                            char_name] = []
-                                    dict_platoons_allocation[platoon_name][
-                                        char_name].append(player_name)
+                                    if not char_name in dict_platoons_allocation[platoon_name]:
+                                        dict_platoons_allocation[platoon_name][char_name] = []
+                                    dict_platoons_allocation[platoon_name][char_name].append(player_name)
 
-            elif message.content.startswith(":information_source: **Overview**"):
-                #Overview of the EB posts. Gives the territory names
-                # this name helps allocatting the phase
-                # In case of single-territory, helps recovering its position
-                for line in message.content.split("\n"):
-                    if line.startswith(":"):
-                        ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
-                        if ret_re != None:
-                            territory_name = ret_re.group(1)
-                            territory_position = ret_re.group(2) #top, bottom, mid
-                            if territory_position == 'bottom':
-                                territory_position = 'bot'
-                            
-                            if territory_name in dict_BT_missions[tbs_name]:
-                                territory_name_position = dict_BT_missions[tbs_name][territory_name]
-                                territory_phase = territory_name_position.split("-")[0][-1]
-                                if territory_position in ["left", "top"]:
-                                    territory_pos = 0
-                                elif territory_position in ["mid"]:
-                                    territory_pos = 1
-                                else: #if territory_position in ["right", "bot"]:
-                                    territory_pos = 2
-
-                                if current_tb_phase[territory_pos]!=None and current_tb_phase[territory_pos]<territory_phase:
-                                    detect_previous_BT = True
-                                    break
-                                current_tb_phase[territory_pos] = territory_phase
-
-                                #Check if this mission/territory has been allocated in previous message
-                                existing_platoons = [i for i in dict_platoons_allocation.keys()
-                                                     if i.startswith(territory_name_position)]
-
-                                if True: #len(existing_platoons) == 0:                    
-                                    #TODO risk of regression here. Check kept for provision
-                                    #necessary to remove the check when same zone has different allocations among several days
-                                    # with the right name for the territory, modify dictionary
-                                    keys_to_rename=[]                         
-                                    for platoon_name in dict_platoons_allocation:
-                                        if platoon_name.startswith(tbs_name + "X-"+territory_position):
-                                            keys_to_rename.append(platoon_name)
-                                        if platoon_name.startswith(tbs_name + "X-PLATOON"):
-                                            keys_to_rename.append(platoon_name)
-                                    for key in keys_to_rename:
-                                        new_key = territory_name_position+key[-2:]
-                                        if new_key in dict_platoons_allocation:
-                                            #Case of a platoon allocated twice
-                                            # - either part day1 and part day 2
-                                            # - or day2 replaces day1
-                                            #Anyway the logic is to add, in the day2 allocations (key),
-                                            # all allocations from day1 (new_key) that are not in conflict
-                                            # (day2 has priority)
-
-                                            for charname in dict_platoons_allocation[new_key]:
-                                                if charname in dict_platoons_allocation[key]:
-                                                    added_players = [i for i in dict_platoons_allocation[new_key][charname] if i != 'Filled in another phase']
-                                                    players = dict_platoons_allocation[key][charname]
-                                                    for player in added_players:
-                                                        if "Filled in another phase" in players:
-                                                            players.remove("Filled in another phase")
-                                                            players.append(player)
-                                                        else:
-                                                            #platoon already full, previous player is ignored
-                                                            pass
-                                                    dict_platoons_allocation[key][charname] = players
-                                                else:
-                                                    #should not happen, but just in case...
-                                                    dict_platoons_allocation[key][charname] = dict_platoons_allocation[new_key][charname]
-
-                                        # Now that the key is well defined, rename it
-                                        dict_platoons_allocation[new_key] = \
-                                                dict_platoons_allocation[key]
-                                        del dict_platoons_allocation[key]
-                                            
-                            else:
-                                goutils.log2("WAR", "Unknown mission "+territory_name+" for TB "+tbs_name)
-
-                #if detect_previous_BT:
-                #    #out of the main message reading loop
-                #    break
-
-                # Assumption of a single Echostation allocation per phase
-                # no need to detect platoons from previous phases
-                break
-
-            #elif message.content.startswith("<@") or message.content.startswith("Filled in another phase"):
-            else: #try to manage any message as EchoBot allocation may be sent without the "include @mentions" option
-                #EB message by player
-                for embed in message.embeds:
-                    dict_embed = embed.to_dict()
-                    if 'description' in dict_embed:
-                        if dict_embed['description'].startswith(":exclamation: Our guild needs more"):
-                            #no need to read this
-                            continue
-                    if 'fields' in dict_embed:
-                        #on garde le nom de la BT mais on met X comme numéro de phase
-                        #le numéro de phase sera affecté plus tard
-                        player_name = re.search('\*\*(.*)\*\*',
-                                dict_embed['description']).group(1)
-
-                        for dict_platoon in dict_embed['fields']:
-                            platoon_pos = dict_platoon['name'].split(" ")[0]
-                            platoon_num = dict_platoon['name'][-1]
-                            platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
-
-                            for character in dict_platoon['value'].split('\n'):
-                                char_name = character[1:-1]
-                                if char_name[0:4]=='*` *':
-                                    char_name=char_name[4:]
-                                if not platoon_name in dict_platoons_allocation:
-                                    dict_platoons_allocation[
-                                        platoon_name] = {}
-
-                                #as the name may be in English, or approximative, best to go through the alias search
-                                list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
-                                char_name = dict_id_name[char_name][0][1]
-
-                                if not char_name in dict_platoons_allocation[platoon_name]:
-                                    dict_platoons_allocation[platoon_name][char_name] = []
-                                dict_platoons_allocation[platoon_name][char_name].append(player_name)
-
+    except discorderrors.Forbidden as e:
+        goutils.log2("WAR", "Cannot read history of messages in "+str(tbChannel_id))
+        return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
 
     #cleanup btX platoons
     tmp_d = dict_platoons_allocation.copy()
@@ -914,7 +903,28 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
             del tmp_d[platoon]
     dict_platoons_allocation = tmp_d
 
-    return current_tb_phase, dict_platoons_allocation
+    return 0, "", {"allocation_tb_phases": current_tb_phase,
+                   "dict_platoons_allocation": dict_platoons_allocation}
+
+#####################
+# IN - guild_id: the game guild ID
+# IN - tbChannel_id: the discord channel where to get Echobot allocations
+# OUT - full_txt
+#####################
+async def get_platoons(guild_id, tbs_round, tbChannel_id):
+
+    ec, et, ret = await get_eb_allocation(tbChannel_id, tbs_round)
+    if ec != 0:
+        return ec, et
+
+    allocation_tb_phases = ret["allocation_tb_phases"]
+    dict_platoon_allocations = ret["dict_platoon_allocations"]
+    goutils.log2("DBG", "")
+    tbs_name = tbs_round[:-1]
+    goutils.log2("DBG", "")
+    ec, et = go.store_eb_allocations(guild_id, tbs_name, "?/?/?", dict_platoons_allocation)
+    goutils.log2("DBG", "")
+    return ec, et
 
 #####################
 # IN - guild_id: the game guild ID
@@ -936,13 +946,20 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_nam
         goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
         tb_name = tbs_round[:-1]
 
-        allocation_tb_phases, dict_platoons_allocation = await get_eb_allocation(tbChannel_id, tbs_round)
+        # Read platoon allocations allocations
+        ec, et, ret = await get_eb_allocation(tbChannel_id, tbs_round)
+        if ec != 0:
+            return ec, et
+
+        allocation_tb_phases = ret["allocation_tb_phases"]
+        dict_platoon_allocations = ret["dict_platoon_allocations"]
+
         # TODO manage storage only if not every time
         # and if get_eb_allocations is also not done every time
         #ec, et = go.store_eb_allocations(guild_id, tb_name, allocation_tb_phases, dict_platoons_allocation)
         #if ec != 0:
         #    await ctx.send(et)
-        #    await ctx.message.add_reaction(emoji_error)
+        #    await ctx.message.add_reaction(emojis.redcross)
         #    return
 
         for platoon in dict_platoons_allocation:
@@ -1069,7 +1086,7 @@ async def manage_me(ctx, alias, allow_tw):
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -1267,8 +1284,10 @@ async def on_reaction_add(reaction, user):
     message = reaction.message
     if isinstance(message.channel, DMChannel):
         guild_name = "DM"
+        channel_name = "DM"
     else:
         guild_name = message.channel.guild.name
+        channel_name = guild_name+"/"+message.channel.name
 
     author = message.author.display_name
     emoji = reaction.emoji
@@ -1276,9 +1295,30 @@ async def on_reaction_add(reaction, user):
     goutils.log2("DBG", "message: "+str(message.content))
     goutils.log2("DBG", "author of the message: "+str(author))
     goutils.log2("DBG", "emoji: "+str(emoji))
+    goutils.log2("DBG", "emoji: "+str(ord(emoji)))
     goutils.log2("DBG", "user of the reaction: "+str(user))
 
-    
+    # Manage cycle arrows to re-launch a command
+    if emoji == emojis.cyclearrows:
+        # re-launch the command
+        lower_msg = message.content.lower().strip()
+        if lower_msg.startswith("go."):
+            command_name = lower_msg.split(" ")[0].split(".")[1]
+            goutils.log2("INFO", "Command "+message.content+" re-launched by "+user.display_name+" in "+channel_name)
+
+            try:
+                await bot.process_commands(message)
+            except Exception as e:
+                goutils.log2("ERR", sys.exc_info()[0])
+                goutils.log2("ERR", e)
+                goutils.log2("ERR", traceback.format_exc())
+                if not bot_test_mode:
+                    await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
+
+            #remove user reaction, add it from bot (so it may be reclickable)
+            await message.remove_reaction(emojis.cyclearrows, user)
+            await message.add_reaction(emojis.cyclearrows)
+
     # Manage the thumb up to messages sent to admins
     if message.content in list_alerts_sent_to_admin \
         and emoji == '\N{THUMBS UP SIGN}' \
@@ -1292,7 +1332,7 @@ async def on_reaction_add(reaction, user):
     for [rgt_user, list_msg_sizes] in list_tw_opponent_msgIDs:
         list_msg = [x[0] for x in list_msg_sizes]
         if message in list_msg:
-            if emoji in emoji_letters and rgt_user == user:
+            if emoji in emojis.letters and rgt_user == user:
                 img1_url = list_msg[0].attachments[0].url
                 img1_size = list_msg_sizes[0][1][0]
 
@@ -1300,7 +1340,7 @@ async def on_reaction_add(reaction, user):
                 img2_url = message.attachments[0].url
                 img2_sizes = list_msg_sizes[img2_position][1]
 
-                letter_position = emoji_letters.index(emoji)
+                letter_position = emojis.letters.index(emoji)
                 if img1_url == img2_url:
                     letter_position += 1
 
@@ -1381,26 +1421,26 @@ async def on_message(message):
 ##############################################################
 @bot.event
 async def on_command_error(ctx, error):
-    await ctx.message.add_reaction(emoji_thumb)
+    await ctx.message.add_reaction(emojis.thumb)
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("ERR: commande inconnue")
-        await ctx.message.add_reaction(emoji_error)
+        await ctx.message.add_reaction(emojis.redcross)
     elif isinstance(error, commands.errors.MissingRequiredArgument):
         cmd_name = ctx.command.name
         await ctx.send("ERR: argument manquant. Consultez l'aide avec go.help "+cmd_name)
-        await ctx.message.add_reaction(emoji_error)
+        await ctx.message.add_reaction(emojis.redcross)
     elif isinstance(error, commands.errors.UnexpectedQuoteError) \
       or isinstance(error, commands.errors.InvalidEndOfQuotedStringError):
         cmd_name = ctx.command.name
         await ctx.send("ERR: erreur de guillemets. Les guillemets vont pas paires et doivent être précédés ou suivis d'un espace.")
-        await ctx.message.add_reaction(emoji_error)
+        await ctx.message.add_reaction(emojis.redcross)
     elif isinstance(error, commands.CheckFailure):
         if not bot_test_mode:
             await ctx.send("ERR: commande interdite")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
     else:
         await ctx.send("ERR: erreur inconnue")
-        await ctx.message.add_reaction(emoji_error)
+        await ctx.message.add_reaction(emojis.redcross)
         goutils.log2("ERR", error)
         goutils.log2("ERR", traceback.format_exception(error))
 
@@ -1597,7 +1637,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='cmd', help='Shell sur le serveur')
     @commands.check(admin_command)
     async def cmd(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         arg = " ".join(args)
         stream = os.popen(arg)
@@ -1606,7 +1646,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         goutils.log("INFO", "go.cmd", 'output: ' + output)
         for txt in goutils.split_txt(output, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
         
     ##############################################################
     # Command: info
@@ -1617,7 +1657,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='info', help='Statut du bot')
     @commands.check(admin_command)
     async def info(self, ctx):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         # get the DB information
         query = "SELECT guilds.name AS Guilde, \
@@ -1642,7 +1682,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             await ctx.send("``` " + txt[1:] + "```")
         await ctx.send("et au total "+str(total_guilds)+" guildes et "+str(total_players)+" joueur connus")
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: sql
@@ -1657,7 +1697,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='sql', help='Requête SQL dans la database')
     @commands.check(admin_command)
     async def sql(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         arg = " ".join(args)
         output = connect_mysql.text_query(arg)
@@ -1672,7 +1712,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         else:
             await ctx.send('*Aucun résultat*')
         
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
         
     ##############################################################
     # Command: fsj
@@ -1688,13 +1728,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                       "Exemple: go.fsj me clearcache")
     @commands.check(admin_command)
     async def fsj(self, ctx, allyCode, *options):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             clear_cache = (len(options)>0)
             query = "SELECT CURRENT_TIMESTAMP"
@@ -1703,7 +1743,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             e, t, player_before = await go.load_player( allyCode, -1, True)
             if e!=0:
                 await ctx.send(t)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             if clear_cache:
@@ -1714,7 +1754,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             e, t, player_now = await go.load_player( allyCode, 1, False)
             if e!=0:
                 await ctx.send(t)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             delta_player = goutils.delta_dict_player(player_before, player_now)
@@ -1736,7 +1776,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             else:
                 await ctx.send('*Aucune mise à jour*')
         
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
 
 
     ##############################################################
@@ -1748,13 +1788,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='servers', help='Liste des serveurs discord du bot')
     @commands.check(admin_command)
     async def servers(self, ctx):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
         output_txt = ""
         for g in bot.guilds:
             output_txt += g.name+ " ("+str(g.id)+")\n"
 
         await ctx.send(output_txt)
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: test
@@ -1766,14 +1806,58 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(admin_command)
     async def test(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
+        ##############################
+        # display guilds from the bot
+        ##########
         for g in bot.guilds:
             for m in g.members:
                 if m.guild_permissions.administrator and not m.bot:
                     query = "SELECT allyCode FROM player_discord WHERE discord_id="+str(m.id)
                     db_data = connect_mysql.get_column(query)
                     print(g.name, m.name, m.id, m.guild_permissions.administrator, db_data)
-        await ctx.message.add_reaction(emoji_check)
+
+        ###########################
+        # get platoon allocations
+        ##########
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        tbChannel_id = bot_infos["tbChanRead_id"]
+        if tbChannel_id==0:
+            await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
+        if ec != 0:
+            await ctx.send('ERR: '+ret_txt)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        if not "territoryBattleStatus" in dict_guild:
+            await ctx.send('ERR: pas de BT en cours')
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        tb_defId = dict_guild["territoryBattleStatus"][0]["definitionId"]
+        dict_tb = data.get("tb_definition.json")
+        tb_name = dict_tb[tb_defId]["shortname"]
+        tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
+        tbs_round=tb_name+str(tb_currentRound)
+
+        ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id)
+        if ec != 0:
+            await ctx.send('ERR: '+ret_txt)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        await ctx.message.add_reaction(emojis.check)
 
 ##############################################################
 # Class: TwCog - for Google accounts
@@ -1795,7 +1879,7 @@ class TwCog(commands.GroupCog, name="gt"):
         #get player config from DB
         ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
+            txt = emojis.redcross+" ERR: "+et
             await interaction.edit_original_response(content=txt)
             return
 
@@ -1808,10 +1892,10 @@ class TwCog(commands.GroupCog, name="gt"):
         # Launch the actual command
         ec, et = await go.deploy_def_tw(guild_id, txt_allyCode, zone, characters)
         if ec == 0:
-            txt = emoji_check+" "+et
+            txt = emojis.check+" "+et
             await interaction.edit_original_response(content=txt)
         else:
-            await interaction.edit_original_response(content=emoji_error+" "+et)
+            await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
 ##############################################################
 # Class: TbCog - for Google accounts
@@ -1831,7 +1915,7 @@ class TbCog(commands.GroupCog, name="bt"):
         ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
         goutils.log2("DBG", "")
         if ec!=0:
-            txt = emoji_error+" ERR: "+et
+            txt = emojis.redcross+" ERR: "+et
             await interaction.edit_original_response(content=txt)
             return
 
@@ -1841,7 +1925,7 @@ class TbCog(commands.GroupCog, name="bt"):
         tbChannel_id = bot_infos["tbChanRead_id"]
         goutils.log2("DBG", "")
         if tbChannel_id==0:
-            txt = emoji_error+" ERR: warbot mal configuré (tbChannel_id=0)"
+            txt = emojis.redcross+" ERR: warbot mal configuré (tbChannel_id=0)"
             await interaction.edit_original_response(content=txt)
             return
 
@@ -1854,7 +1938,7 @@ class TbCog(commands.GroupCog, name="bt"):
         goutils.log2("DBG", "")
         if ec != 0:
             goutils.log2("DBG", "")
-            txt = emoji_error+" ERR: "+ret_txt
+            txt = emojis.redcross+" ERR: "+ret_txt
             await interaction.edit_original_response(content=txt)
         else:
             goutils.log2("DBG", "")
@@ -1864,9 +1948,9 @@ class TbCog(commands.GroupCog, name="bt"):
             txt = "\n".join(lines)
 
             if txt=='':
-                txt = emoji_check+" rien à déployer"
+                txt = emojis.check+" rien à déployer"
             else:
-                txt = emoji_check+" succès des déploiements :\n"+txt
+                txt = emojis.check+" succès des déploiements :\n"+txt
             await interaction.edit_original_response(content=txt)
 
 
@@ -1892,7 +1976,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         goutils.log2("DBG", query)
         allyCode = str(connect_mysql.get_value(query))
         if allyCode == "None":
-            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
             return
 
         #Run the function
@@ -1900,18 +1984,18 @@ class ModsCog(commands.GroupCog, name="mods"):
         try:
             html_content = file_content.decode('utf-8')
         except :
-            await interaction.edit_original_response(content=emoji_error+" ERR impossible de lire le contenu du fichier "+fichier.url)
+            await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
             return
 
         ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
 
         if ec == 0:
-            txt = emoji_check+" "+et
+            txt = emojis.check+" "+et
             if simulation:
                 txt = "[SIMULATION]"+txt
             await interaction.edit_original_response(content=txt)
         else:
-            await interaction.edit_original_response(content=emoji_error+" "+et)
+            await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
     @app_commands.command(name="enregistre-conf")
     @app_commands.rename(conf_name="nom-conf")
@@ -1927,7 +2011,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
         allyCode = str(connect_mysql.get_value(query))
         if allyCode == "None":
-            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
             return
 
         #transform list_alias parameter into list
@@ -1937,9 +2021,9 @@ class ModsCog(commands.GroupCog, name="mods"):
         ec, et = await manage_mods.create_mod_config(conf_name, allyCode, list_alias)
 
         if ec == 0:
-            await interaction.edit_original_response(content=emoji_check+" "+et)
+            await interaction.edit_original_response(content=emojis.check+" "+et)
         else:
-            await interaction.edit_original_response(content=emoji_error+" "+et)
+            await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
     @app_commands.command(name="applique-conf")
     @app_commands.rename(conf_name="nom-conf")
@@ -1954,19 +2038,19 @@ class ModsCog(commands.GroupCog, name="mods"):
         query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
         allyCode = str(connect_mysql.get_value(query))
         if allyCode == "None":
-            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
             return
 
         #Run the function
         ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
 
         if ec == 0:
-            txt = emoji_check+" "+et
+            txt = emojis.check+" "+et
             if simulation:
                 txt = "[SIMULATION]"+txt
             await interaction.edit_original_response(content=txt)
         else:
-            await interaction.edit_original_response(content=emoji_error+" "+et)
+            await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
     @app_commands.command(name="exporte-liste")
     async def export_modoptimizer(self, interaction: discord.Interaction):
@@ -1978,14 +2062,14 @@ class ModsCog(commands.GroupCog, name="mods"):
         query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
         allyCode = str(connect_mysql.get_value(query))
         if allyCode == "None":
-            await interaction.edit_original_response(content=emoji_error+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
             return
 
         #Run the function
         ec, et, dict_export = await manage_mods.get_modopti_export(allyCode)
 
         if ec != 0:
-            await interaction.edit_original_response(content=emoji_error+" "+et)
+            await interaction.edit_original_response(content=emojis.redcross+" "+et)
         else:
             export_path="/tmp/modoptiProgress_"+allyCode+".json"
             export_file = open(export_path, "w")
@@ -1994,7 +2078,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             export_file.write(export_txt)
             export_file.close()
 
-            await interaction.edit_original_response(content=emoji_check+" fichier prêt", 
+            await interaction.edit_original_response(content=emojis.check+" fichier prêt", 
                                                      attachments=[discord.File(export_path)])
 
 ##############################################################
@@ -2020,7 +2104,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                          "Exemple: go.logs a perdu\n" \
                                          "Exemple: go.logs TM")
     async def logs(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         args = list(args)
         if "-i" in args:
@@ -2034,14 +2118,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2050,7 +2134,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False)
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         list_chat_events = ret_data["CHAT"][1]
@@ -2081,7 +2165,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await ctx.send('`'+txt+'`')
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: vdp
@@ -2098,7 +2182,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                       "Exemple : go.vdp #batailles-des-territoires > liste les déploiements dans le salon spécifié\n"\
                       "Exemple : go.vdp deploybot")
     async def vdp(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Gestion des paramètres : "deploybot" ou le nom d'un salon
         display_mentions=False
@@ -2120,27 +2204,27 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 display_mentions=True
         elif len(args)>1:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help vdp")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
         tbChannel_id = bot_infos["tbChanRead_id"]
         if tbChannel_id==0:
             await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         if deploy_bot:
@@ -2153,31 +2237,31 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_name, display_mentions)
         if ec != 0:
             await ctx.send('ERR: '+ret_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
 
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         
     #######################################
     @commands.command(name='bot.enable',
             brief="Active le compte warbot",
             help="Active le compte bot pour permettre de suivre la guilde")
     async def botenable(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2186,29 +2270,29 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et = await connect_rpc.unlock_bot_account(guild_id)
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     @commands.command(name='bot.disable',
             brief="Désactive le compte warbot",
             help="Désactive le compte bot pour permettre de le jouer")
     async def botdisable(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2217,29 +2301,29 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et = await connect_rpc.lock_bot_account(guild_id)
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     @commands.command(name='bot.jointw',
             brief="Inscrit le bot à la GT",
             help="Inscrit le bot à la GT en cours")
     async def botjointw(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2248,29 +2332,29 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et = await connect_rpc.join_tw(guild_id)
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         await ctx.send(et)
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     @commands.command(name='bot.deftw',
                       brief="Défense GT pour le warbot",
                       help="Pose des teams en défense GT pour le warbot")
     async def botdeftw(self, ctx, zone, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2280,29 +2364,29 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et = await go.deploy_def_tw(guild_id, txt_allyCode, zone, characters)
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         await ctx.send(et)
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     @commands.command(name='bot.lastdeftw',
                       brief="Précédente défense GT pour le warbot",
                       help="Affiche les défenses de la dernière fois, pour aider à poser des teams en défense GT pour le warbot")
     async def lastbotdeftw(self, ctx):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2312,14 +2396,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et = await go.get_previous_tw_defense(txt_allyCode, guild_id, "go.bot.deftw {0} {1}")
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         txt_lines = et.split('\n')
         for txt_line in txt_lines:
             if txt_line.strip() != "":
                 await ctx.send(txt_line)
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     #######################################################
     # Deploy the toon(s) represented by caracters in the zone in TB
@@ -2330,19 +2414,19 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Déploie le warbot en BT",
             help="Déploie des persos en BT")
     async def botdeploytb(self, ctx, zone, characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2352,23 +2436,23 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, characters)
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         await ctx.send(et)
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     @commands.check(officer_command)
     @commands.command(name='tbrappel',
             brief="Tag les joueurs qui n'ont pas tout déployé en BT",
             help="go.tbrappel > tag les joueurs qui n'ont pas tout déployé")
     async def tbrappel(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         display_mentions=True
@@ -2390,7 +2474,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2413,10 +2497,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
 
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     #######################################################
     # twrappel: creates a reminder for players not enough active in TW
@@ -2427,12 +2511,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Tag les joueurs qui n'ont pas assez attaqué en GT",
             help="go.twrappel 3 2 > tag les joueurs qui ont fait moins de 3 attaques au sol ou moins de 2 en vaisseaux")
     async def twrappel(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #Sortie sur un autre channel si donné en paramètre
@@ -2448,7 +2532,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         if len(args) != 2:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help twrappel")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         min_char = int(args[0])
@@ -2458,7 +2542,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2500,10 +2584,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
 
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     #######################################################
     # raidrappel: creates a reminder for players not enough active in raid
@@ -2514,12 +2598,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Tag les joueurs qui n'ont pas assez attaqué en raid",
             help="go.raidrappel")
     async def raidrappel(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #Sortie sur un autre channel si donné en paramètre
@@ -2545,14 +2629,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 target_progress=100
         elif len(args) != 0:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help raidrappel")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2561,7 +2645,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         raid_id, expire_time, list_inactive_players, guild_score, potential_score = await connect_rpc.get_raid_status(guild_id, target_progress, True)
         if raid_id == None:
             await ctx.send("Aucun raid en cours")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         dict_players_by_IG = connect_mysql.load_config_players()[0]
@@ -2583,7 +2667,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await output_channel.send(txt)
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ####################################################
     # Command tbs
@@ -2594,7 +2678,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
                  "TB status \"2:1 3:3 1:2\" [-estime]")
     async def tbs(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         # Manage command parameters
         options = list(args)
@@ -2612,14 +2696,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2639,10 +2723,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                             file=File(fp=image_binary, filename='image.png'))
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
 
     ##############################################################
@@ -2659,17 +2743,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                       "Exemple: go.spg all JMK\n"\
                       "Exemple: go.spg F1 -v Executor")
     async def spgt(self, ctx, tw_zone, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         if not tw_zone in ['all']+list(data.dict_tw.keys()):
             await ctx.send("ERR: zone GT inconnue")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         list_options = []
@@ -2686,7 +2770,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
                 if ec!=0:
                     await ctx.send("ERR: "+et)
-                    await ctx.message.add_reaction(emoji_error)
+                    await ctx.message.add_reaction(emojis.redcross)
                     return
 
                 guild_id = bot_infos["guild_id"]
@@ -2701,14 +2785,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             
         if ret_cmd[0:3] == 'ERR':
             await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             #texte classique
             for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                 await ctx.send("```"+txt+"```")
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: bot.gettwlogs
@@ -2721,19 +2805,19 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                  brief="Télécharge le fichier JSON complet des logs de la dernière GT",
                  help="Télécharge le fichier JSON complet des logs de la dernière GT")
     async def botgettwlogs(self, ctx):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2759,7 +2843,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         file = discord.File(archive_path)
         await ctx.send(file=file, content="Dernier fichier trouvé : "+latest_log)
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: gettwbest
@@ -2772,19 +2856,19 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                       brief="Affiche les meilleures défenses de la GT",
                       help="Affiche les meilleures défenses de la GT")
     async def gettwbest(self, ctx):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2828,7 +2912,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                             image_binary.seek(0)
                             await ctx.send(content = txt, file=File(fp=image_binary, filename='image.png'))
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
 ##############################################################
 # Class: OfficerCog
@@ -2850,31 +2934,31 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                              "Exemple: go.tagcount #avertos\n" \
                                              "Exemple: go.tagcount #avertos -pédagogique")
     async def tagcount(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         args = list(args)
         if len(args) == 0 or len(args)>2:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tagcount")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         channel_param = args[0]
         if not channel_param.startswith("<#") and not channel_param.endswith(">"):
             await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         channel_id = channel_param[2:-1]
         if not channel_id.isnumeric():
             await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         if len(args)==2:
             filter_txt = args[1]
             if not filter_txt[0]=="-":
                 await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
             filter_txt = filter_txt[1:]
         else:
@@ -2914,7 +2998,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
              await ctx.send(txt)
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: lgs
@@ -2926,19 +3010,19 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
     @commands.command(name='lgs', brief="Lit les dernières infos du google sheet",
                       help="Lit les dernières infos du google sheet")
     async def lgs(self, ctx):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -2949,9 +3033,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         if err_code == 1:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
 
 
     ##############################################################
@@ -2970,7 +3054,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                       "Exemple : go.tpg me Mara +SK ---> ceux qui ont Mara et SK\n"\
                       "Exemple : go.tpg me JMK / Jabba ceux qui ont JMK, puis ceux qui ont Jabba (commande lancée 2 fois)")
     async def tpg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Check arguments
         args = list(args)
@@ -2982,7 +3066,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
                 await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             tw_mode = True
@@ -2992,7 +3076,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             guild_id = bot_infos["guild_id"]
@@ -3000,13 +3084,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         if "-TB" in args:
             if tw_mode:
                 await ctx.send("ERR: impossible d'utiliser les options -TW et -TB en même temps")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
                 await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TB")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             tb_mode = True
@@ -3016,7 +3100,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             guild_id = bot_infos["guild_id"]
@@ -3026,14 +3110,14 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')] if x!='']
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = await manage_me(ctx, allyCode, False)
                 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             with_mentions = officer_command(ctx)
             err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
@@ -3041,7 +3125,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                                                                              with_mentions)
             if err != 0:
                 await ctx.send(errtxt)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
             else:
                 for list_ids in list_list_ids:
                     intro_txt = list_ids[0]
@@ -3050,7 +3134,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     else:
                         await ctx.send(intro_txt +" : aucun joueur")
 
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
 
 ##############################################################
 # Member slash commands (duplicate of MemberCog
@@ -3076,24 +3160,24 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.gtcontrej 123456789 ITvsGEOS\n"\
                            "Exemple: go.gtcontrej 123456789 SEEvsJMK")
     async def gtcontrej(self, ctx, allyCode, counter_type):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send("ERR: vous devez avoir un warbot pour utiliser cette commande")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
@@ -3101,11 +3185,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         ec, txt = await go.check_tw_counter(allyCode, guild_id, counter_type)
         if ec != 0:
             await ctx.send(txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         await ctx.send(txt)
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     @commands.check(member_command)
     @commands.command(name='register',
@@ -3114,7 +3198,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.register 123456789\n"\
                            "Exemple: go.register 123456789 @chatondu75")
     async def register(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         ac = args[0]
 
@@ -3128,7 +3212,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         else:
             await ctx.send("ERR: merci de renseigner un code allié")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         discord_id_txt = str(ctx.author.id)
@@ -3147,7 +3231,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         e, t, dict_player = await go.load_player(allyCode, -1, False)
         if e != 0:
             await ctx.send(t)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         player_name = dict_player["name"]
@@ -3165,7 +3249,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         connect_mysql.simple_execute(query)
 
         await ctx.send("Enregistrement de "+player_name+" réussi pour <@"+discord_id_txt+">")
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # display kit
@@ -3177,19 +3261,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       help="Affiche le kit d'un perso\n\n"\
                            "Exemple: go.kit kitfisto")
     async def kit(self, ctx, alias):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         ec, et = go.print_unit_kit(alias)
 
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         for txt in goutils.split_txt(et, MAX_MSG_SIZE):
              await ctx.send(txt)
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: qui
@@ -3208,20 +3292,20 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.qui @chaton372\n"\
                            "Exemple: go.qui -TW")
     async def qui(self, ctx, *alias):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         full_alias = " ".join(alias)
         allyCode = await manage_me(ctx, full_alias, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         # Get player info
         e, t, dict_player = await go.load_player(allyCode, 0, False)
         if e!=0:
             await ctx.send("ERR: "+t)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #Look in DB
@@ -3303,7 +3387,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         await ctx.send(txt)
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: vtg
@@ -3322,32 +3406,32 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.vtg 192126111 PADME NS DR\n"\
                            "Exemple: go.vtg me NS")
     async def vtg(self, ctx, allyCode, *teams):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = await manage_me(ctx, allyCode, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
         gfile_name = bot_infos["gfile_name"]
         if gfile_name == None:
             await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         teams = list(teams)
@@ -3355,13 +3439,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
                 await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             #Ensure command is launched from a server which is linked to a warbot
             if guild_id == None:
                 await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             tw_mode = True
@@ -3378,10 +3462,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: vtj
@@ -3400,31 +3484,31 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.vtj 192126111 PADME NS DR\n"\
                       "Exemple: go.vtj me NS")
     async def vtj(self, ctx, allyCode, *teams):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
         gfile_name = bot_infos["gfile_name"]
         if gfile_name == None:
             await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         teams = list(teams)
@@ -3432,13 +3516,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
                 await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             #Ensure command is launched from a server which is linked to a warbot
             if guild_id == None:
                 await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             tw_mode = True
@@ -3452,7 +3536,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         err, txt, images = await go.print_vtj(teams, allyCode, guild_id, gfile_name, tw_mode)
         if err != 0:
             await ctx.send(txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
                 await ctx.send(sub_txt)
@@ -3465,7 +3549,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         file=File(fp=image_binary, filename='image.png'))
 
             #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
 
     @commands.check(member_command)
     @commands.command(name='fegv',
@@ -3473,13 +3557,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Donne les Farmings d'Eclats pour le Guide de Voyage\n\n"\
                       "Exemple: go.fegv me")
     async def fegv(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             err_code, ret_cmd = go.print_fegv( allyCode)
             if err_code == 0:
@@ -3487,7 +3571,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send("`"+txt+"`")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
             else:
                 await ctx.send(ret_cmd)
 
@@ -3498,31 +3582,31 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Donne le progrès de farming d'une team chez un joueur\n\n"\
                       "Exemple: go.ftj me ROTE")
     async def ftj(self, ctx, allyCode, team):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
         gfile_name = bot_infos["gfile_name"]
         if gfile_name == None:
             await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         # Actual command
@@ -3532,7 +3616,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send("`"+txt+"`")
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(ret_cmd)
 
@@ -3551,13 +3635,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvj me SEE\n"\
                       "Exemple: go.gvj me thrawn JKL")
     async def gvj(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             if len(characters) == 0:
                 characters = ["all"]
@@ -3568,10 +3652,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send("`"+txt+"`")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
             else:
                 await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: raf
@@ -3588,13 +3672,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.raf me SEE\n"\
                       "Exemple: go.raf me thrawn JKL")
     async def raf(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             if len(characters) == 0:
                 characters = ["all"]
@@ -3605,10 +3689,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send("`"+txt+"`")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
             else:
                 await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: gvg
@@ -3626,13 +3710,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvg me thrawn JKL\n"\
                       "La commande n'affiche que les 40 premiers.")
     async def gvg(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, True)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             if len(characters) == 0:
                 characters = ["all"]
@@ -3643,10 +3727,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send("`"+txt+"`")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
             else:
                 await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: gvs
@@ -3661,17 +3745,17 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvs me Profundity\n"\
                       "Exemple: go.gvg 123456789 Jabba")
     async def gvs(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             if len(characters) != 1:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help gvs")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             err_code, ret_cmd = await go.print_gvs( characters, allyCode)
@@ -3680,10 +3764,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send("`"+txt+"`")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
             else:
                 await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: spj
@@ -3701,13 +3785,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
                       "Exemple: go.spj me -p all")
     async def spj(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             list_options = []
             list_characters = []
@@ -3728,14 +3812,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
             else:
                 #texte classique
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("```"+txt+"```")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
     
     ##############################################################
     # Command: spg
@@ -3752,13 +3836,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.spg me JKR -étoiles\n"\
                       "Exemple: go.spg me -v \"Dark Maul\"")
     async def spg(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, True)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             list_options = []
             list_characters = []
@@ -3779,14 +3863,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 
             if ret_cmd[0:3] == 'ERR':
                 await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
             else:
                 #texte classique
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("```"+txt+"```")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: gdp
@@ -3804,19 +3888,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await bot_commands.gdp(ctx, allyCode)
 
         """
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         # Display the chart
         e, err_txt, image = await go.get_gp_distribution(allyCode)
         if e != 0:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             with BytesIO() as image_binary:
                 image.save(image_binary, 'PNG')
@@ -3824,14 +3908,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(content = "",
                        file=File(fp=image_binary, filename='image.png'))
 
-            await ctx.message.add_reaction(emoji_hourglass)
+            await ctx.message.add_reaction(emojis.hourglass)
 
             # Now load all players from the guild
             await go.load_guild( allyCode, True, True)
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.remove_reaction(emoji_hourglass, bot.user)
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.remove_reaction(emojis.hourglass, bot.user)
+            await ctx.message.add_reaction(emojis.check)
         """
 
     ##############################################################
@@ -3847,19 +3931,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ggac 123456789\n"\
                       "Exemple: go.ggac -TW")
     async def ggac(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         # Display the chart
         e, err_txt, image = await go.get_gac_distribution(allyCode)
         if e != 0:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             with BytesIO() as image_binary:
                 image.save(image_binary, 'PNG')
@@ -3867,14 +3951,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(content = "",
                        file=File(fp=image_binary, filename='image.png'))
 
-            await ctx.message.add_reaction(emoji_hourglass)
+            await ctx.message.add_reaction(emojis.hourglass)
 
             # Now load all players from the guild
             await go.load_guild( allyCode, True, True)
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.remove_reaction(emoji_hourglass, bot.user)
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.remove_reaction(emojis.hourglass, bot.user)
+            await ctx.message.add_reaction(emojis.check)
 
                 
     ##############################################################
@@ -3892,13 +3976,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ggv me FARM\n"\
                       "Exemple: go.ggv 123456789 JMK")
     async def ggv(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         if len(characters) == 0:
@@ -3908,14 +3992,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
         if err_code != 0:
             await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
         
         #Seoncd, display the graph
         err_code, err_txt, image = go.get_gv_graph( allyCode, characters)
         if err_code != 0:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #Display the output image
@@ -3925,7 +4009,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(content = "",
                    file=File(fp=image_binary, filename='image.png'))
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
         
 
     ##############################################################
@@ -3942,7 +4026,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.graphj me modq #graph sur 12 mois\n" \
                       "Exemple: go.graphj me -Y modq #graph sur un an")
     async def graphj(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         args = list(args)
         if len(args) >= 2:
@@ -3958,32 +4042,32 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 is_year = True
             if len(list_params)<1:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             parameter = list_params[0]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             e, err_txt, image = go.get_player_time_graph( allyCode, False, parameter, is_year)
             if e != 0:
                 await ctx.send(err_txt)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
             else:
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
                     image_binary.seek(0)
                     await ctx.send(content = "",
                            file=File(fp=image_binary, filename='image.png'))
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: graphg
@@ -3999,7 +4083,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.graphg me modq #graph sur 12 mois\n" \
                       "Exemple: go.graphg me -Y modq #graph sur un an")
     async def graphg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         args = list(args)
         if len(args) >= 2:
@@ -4015,32 +4099,32 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 is_year = True
             if len(list_params)<1:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphg")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             parameter = list_params[0]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphg")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             e, err_txt, image = go.get_player_time_graph( allyCode, True, parameter, is_year)
             if e != 0:
                 await ctx.send(err_txt)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
             else:
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
                     image_binary.seek(0)
                     await ctx.send(content = "",
                            file=File(fp=image_binary, filename='image.png'))
-                await ctx.message.add_reaction(emoji_check)
+                await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: statqj
@@ -4053,24 +4137,24 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Affiche le StatQ d'un Joueur\n\n"\
                       "Exemple: go.statqj me")
     async def statqj(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             e, t, player_now = await go.load_player( allyCode, 1, False)
             if e!=0:
                 await ctx.send(t)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
             
             ec, et, statq, list_statq = await connect_mysql.get_player_statq(allyCode)
             if ec!=0:
                 await ctx.send(et)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             #get real unit names
@@ -4087,7 +4171,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             await ctx.send("StatQ = "+str(round(statq, 2)))
 
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: statqg
@@ -4100,12 +4184,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Affiche le StatQ de la guilde\n\n"\
                       "Exemple: go.statqg me")
     async def statqg(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         query = "SELECT name, statq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY statq DESC, name"
@@ -4119,7 +4203,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: ppj
@@ -4134,13 +4218,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ppj 123456789 JKR\n"\
                       "Exemple: go.ppj me -v \"Dark Maul\" Bastila\n")
     async def ppj(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = await manage_me(ctx, allyCode, False)
 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             if len(characters) > 0:
                 e, ret_cmd, images = await go.get_character_image( [[list(characters),
@@ -4155,17 +4239,17 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                                    file=File(fp=image_binary, filename='image.png'))
 
                     #Icône de confirmation de fin de commande dans le message d'origine
-                    await ctx.message.add_reaction(emoji_check)
+                    await ctx.message.add_reaction(emojis.check)
 
                 else:
                     ret_cmd += 'ERR: merci de préciser un ou plusieurs persos'
                     await ctx.send(ret_cmd)
-                    await ctx.message.add_reaction(emoji_error)
+                    await ctx.message.add_reaction(emojis.redcross)
 
             else:
                 ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
                 await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emoji_error)                
+                await ctx.message.add_reaction(emojis.redcross)                
                 
     ##############################################################
     # Command: rgt
@@ -4183,37 +4267,37 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Image d'un Résultat en Guerre de Territoire\n"\
                       "Exemple: go.rgt me GAS echo cra fives rex VS DR\n")
     async def rgt(self, ctx, *options):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
             await ctx.send("ERR: commande non autorisée depuis un DM")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         guild_id = bot_infos["guild_id"]
         if guild_id == None:
             await ctx.send("ERR: vous devez avoir un warbot pour lancer cette commande")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         # Extract command options
         if not ("VS" in options):
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rgt")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         pos_vs = options.index("VS")
         if pos_vs < 2:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rgt")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode_attack = options[0]
@@ -4222,12 +4306,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         allyCode_attack = await manage_me(ctx, allyCode_attack, False)
         if allyCode_attack[0:3] == 'ERR':
             await ctx.send(allyCode_attack)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         if len(options) != (pos_vs+2):
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help rgt")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         #only a character is given
@@ -4265,8 +4349,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     new_msg = await ctx.send(content = ret_cmd,
                            file=File(fp=image_binary, filename='image.png'))
                     for letter_idx in range(len(sizes)-first_image):
-                        emoji_letter = emoji_letters[letter_idx]
-                        await new_msg.add_reaction(emoji_letter)
+                        emojis.letter = emojis.letters[letter_idx]
+                        await new_msg.add_reaction(emojis.letter)
                     cur_list_msgIDs.append([new_msg, sizes])
                 first_image = False
 
@@ -4274,10 +4358,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             list_tw_opponent_msgIDs.append([ctx.author, cur_list_msgIDs])
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: gsp
@@ -4297,11 +4381,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gsp me GAS:R5+ vitesse (pour filtrer sur les GAS R5 et plus)\n" \
                       "Exemple: go.gsp me GAS:R7- vitesse (pour filtrer sur les GAS R7 et moins)")
     async def gsp(self, ctx, *options):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         if len(options) != 3:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help gsp")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = options[0]
@@ -4311,7 +4395,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         e, err_txt, image = await go.get_stat_graph( allyCode, alias, stat)
@@ -4322,10 +4406,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(content = err_txt,
                        file=File(fp=image_binary, filename='image.png'))
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: erj
@@ -4339,12 +4423,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Evolution du roster d'un joueur sur 30 jours\n"\
                       "Exemple: go.erj me")
     async def erj(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         e, ret_cmd = await go.print_erx( allyCode, 30, False)
@@ -4354,10 +4438,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: erg
@@ -4371,12 +4455,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Evolution du roster d'un joueur sur 30 jours\n"\
                       "Exemple: go.erg me")
     async def erg(self, ctx, allyCode):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         e, ret_cmd = await go.print_erx( allyCode, 30, True)
@@ -4386,10 +4470,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: loj
@@ -4405,7 +4489,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.loj 123456789 Mara\n"\
                       "Exemple: go.loj 123456789 mode:GA")
     async def loj(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         if len(args) == 1:
             allyCode = args[0]
@@ -4415,13 +4499,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             list_characters = args[1:]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help loj")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode= await manage_me(ctx, allyCode, False)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, False)
@@ -4434,13 +4518,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         elif e == 0:
             await ctx.send("Aucun omicron trouvé pour "+allyCode)
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: log
@@ -4456,7 +4540,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.log 123456789 Mara\n"\
                       "Exemple: go.log 123456789 mode:TW")
     async def log(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         if len(args) == 1:
             allyCode = args[0]
@@ -4466,13 +4550,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             list_characters = args[1:]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help log")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode= await manage_me(ctx, allyCode, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, True)
@@ -4485,13 +4569,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         elif len(txt_lines)==0:
             await ctx.send("Aucun omicron détecté")
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: dtcg
@@ -4506,7 +4590,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.dtcg 123456789 \n"\
                       "Exemple: go.dtcg 123456789 Boushh")
     async def dtcg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         if len(args) == 1:
             allyCode = args[0]
@@ -4516,13 +4600,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             filter_txt = args[1]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help dtcg")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode= await manage_me(ctx, allyCode, True)
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         with_mentions = officer_command(ctx)
@@ -4532,13 +4616,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         elif len(output_txt)==0:
             await ctx.send("Aucun datacron détecté")
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
         else:
             await ctx.send(err_txt)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: ntg
@@ -4556,24 +4640,24 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple : go.ntg me 27\n"\
                       "Exemple : go.ntg 123456789 23 toto123 345123678")
     async def ntg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         if len(args) < 2:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
         else:
             ac_guild = await manage_me(ctx, args[0], True)
             if ac_guild[0:3] == 'ERR':
                 await ctx.send(ac_guild)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             try:
                 team_count = int(args[1])
             except Exception as e:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ntg")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             list_ac_nonplayers = []
@@ -4581,7 +4665,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 ac = await manage_me(ctx, player, False)
                 if ac[0:3] == 'ERR':
                     await ctx.send(ac)
-                    await ctx.message.add_reaction(emoji_error)
+                    await ctx.message.add_reaction(emojis.redcross)
                     return
                 list_ac_nonplayers.append(ac)
 
@@ -4626,7 +4710,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             pg_teams = "**Nombre de teams recommandé à poser en défense pour la GT**\n" + pg_teams
             await ctx.send(pg_teams)
-            await ctx.message.add_reaction(emoji_check)
+            await ctx.message.add_reaction(emojis.check)
 
 
     ##############################################################
@@ -4642,7 +4726,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                               "Exemple : go.cpg me SEE Maul GAS > une liste spécifique\n" \
                               "Exemple : go.cpg -TW SEE Maul GAS > compare avec la guilde adverse en TW")
     async def cpg(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         #Check arguments
         args = list(args)
@@ -4651,33 +4735,33 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
                 await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             #get bot config from DB
             ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send('ERR: '+et)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             guild_id = bot_infos["guild_id"]
             if guild_id == None:
                 await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             tw_mode = True
             ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
             if ec != 0:
                 await ctx.send(et)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             ec, et, bot_player = await connect_rpc.get_bot_player_data(guild_id, False)
             if ec != 0:
                 await ctx.send(et)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
             allyCode = str(bot_player["allyCode"])
         else:
@@ -4688,7 +4772,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         if "-TW" in args[1:]:
             await ctx.send("ERR: l'option -TW doit être utilisée en première position. Consulter go.help cpg pour plus d'infos.")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         if len(args) == 1:
@@ -4700,14 +4784,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         # get the DB information for home guild
         ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, guild_id, tw_mode)
         if ec != 0:
             await ctx.send(et)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         dict_units = data.get("unitsList_dict.json")
@@ -4764,7 +4848,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 list_msg.append(new_msg)
 
             #Icône d'attente
-            await ctx.message.add_reaction(emoji_hourglass)
+            await ctx.message.add_reaction(emojis.hourglass)
 
             # Now load all players from the guild
             await go.load_guild(opp_allyCode, True, True)
@@ -4816,9 +4900,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
 
-            await ctx.message.remove_reaction(emoji_hourglass, bot.user)
+            await ctx.message.remove_reaction(emojis.hourglass, bot.user)
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: shard
@@ -4834,11 +4918,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple : go.shard me ship -123456789 > retire le joueur 123456789 de la liste des joueurs  de l'arène de vaisseaux\n"\
                       "Exemple : go.shard me char > affiche la liste des joueurs connus de l'arène de persos")
     async def shard(self, ctx, *args):
-        await ctx.message.add_reaction(emoji_thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
         if len(args) != 3 and len(args) != 2:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         allyCode = args[0]
@@ -4846,13 +4930,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 
         if allyCode[0:3] == 'ERR':
             await ctx.send(allyCode)
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         shard_type = args[1]
         if shard_type != "char" and shard_type != "ship":
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
-            await ctx.message.add_reaction(emoji_error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         # get the DB information
@@ -4883,19 +4967,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             if shardmate_ac[0:3] == 'ERR':
                 await ctx.send(shardmate_ac)
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
 
             if remove_player:
                 await ctx.send("Suppression du shard pas encore implémentée, demander à l'admin")
-                await ctx.message.add_reaction(emoji_error)
+                await ctx.message.add_reaction(emojis.redcross)
                 return
             else:
                 #First ensure that the player exists in DB
                 e, t, player_now = await go.load_player(shardmate_ac, -1, False)
                 if e!=0:
                     await ctx.send(t)
-                    await ctx.message.add_reaction(emoji_error)
+                    await ctx.message.add_reaction(emojis.redcross)
                     return
 
                 ec, et, ret = connect_mysql.add_player_to_shard(shardmate_ac, player_shard, shard_type, force_merge)
@@ -4916,7 +5000,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     output_txt = et
                     await ctx.send(et)
 
-        await ctx.message.add_reaction(emoji_check)
+        await ctx.message.add_reaction(emojis.check)
 
 
 ##############################################################
