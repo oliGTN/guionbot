@@ -1275,14 +1275,30 @@ async def on_disconnect():
 # Output: none
 ##############################################################
 @bot.event
-async def on_reaction_add(reaction, user):
+async def on_raw_reaction_add(payload):
+    message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+    emoji = payload.emoji.name
+    reaction = discord.utils.get(message.reactions, emoji=emoji)
+    user = payload.member
+    
+    await manage_reaction_add(user, message, reaction, emoji)
+
+#@bot.event
+#async def on_reaction_add(reaction, user):
+#    message = reaction.message
+#    emoji = reaction.emoji
+#
+#    goutils.log2("DBG", "")
+"    await manage_reaction_add(user, message, reaction, emoji)
+#    goutils.log2("DBG", "")
+
+async def manage_reaction_add(user, message, reaction, emoji):
     global list_alerts_sent_to_admin
 
     #prevent reacting to bot's reactions
     if user == bot.user:
         return
 
-    message = reaction.message
     if isinstance(message.channel, DMChannel):
         guild_name = "DM"
         channel_name = "DM"
@@ -1291,7 +1307,6 @@ async def on_reaction_add(reaction, user):
         channel_name = guild_name+"/"+message.channel.name
 
     author = message.author.display_name
-    emoji = reaction.emoji
     goutils.log2("DBG", "guild_name: "+guild_name)
     goutils.log2("DBG", "message: "+str(message.content))
     goutils.log2("DBG", "author of the message: "+str(author))
