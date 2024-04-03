@@ -643,7 +643,7 @@ async def send_alert_to_echocommanders(guild_id, message):
 # Output: current_tb_phase # ["2", "1", "2"]
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
-async def get_eb_allocation(tbChannel_id, tbs_round):
+async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
     dict_units = data.get("unitsList_dict.json")
 
     # Lecture des affectation ECHOBOT
@@ -661,7 +661,7 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     # Read history of messages
     try:
         async for message in tb_channel.history(limit=500):
-            if message.author.name == "EchoStation":
+            if message.author.name == "EchoStation" or message.author.id == echostation_id:
                 if message.content.startswith('```prolog'):
                     #EB message by territory
                     ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
@@ -688,7 +688,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[
                                             platoon_name] = {}
 
-                                    #as the name may be in English, or approximative, best to go through the alias search
+                                    #as the name may be in English, or approximative,
+                                    # best to go through the alias search
                                     list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
                                     char_name = dict_id_name[char_name][0][1]
                                     #if char_name.startswith("Ini"):
@@ -884,7 +885,8 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
                                         dict_platoons_allocation[
                                             platoon_name] = {}
 
-                                    #as the name may be in English, or approximative, best to go through the alias search
+                                    #as the name may be in English, or approximative,
+                                    # best to go through the alias search
                                     list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
                                     char_name = dict_id_name[char_name][0][1]
 
@@ -895,6 +897,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
     except discorderrors.Forbidden as e:
         goutils.log2("WAR", "Cannot read history of messages in "+str(tbChannel_id))
         return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
+
+    if current_tb_phase == [None, None, None]:
+        return 1, "Aucune affectation détectée dans <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
 
     #cleanup btX platoons
     tmp_d = dict_platoons_allocation.copy()
@@ -911,9 +916,9 @@ async def get_eb_allocation(tbChannel_id, tbs_round):
 # IN - tbChannel_id: the discord channel where to get Echobot allocations
 # OUT - full_txt
 #####################
-async def get_platoons(guild_id, tbs_round, tbChannel_id):
+async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
 
-    ec, et, ret = await get_eb_allocation(tbChannel_id, tbs_round)
+    ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
     if ec != 0:
         return ec, et
 
@@ -932,10 +937,13 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id):
 # IN - display_mentions: True if player names are replaced by @discord_name
 # OUT - full_txt
 #####################
-async def check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_name, display_mentions):
+async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions):
     #Read actual platoons in game
     tbs_round, dict_platoons_done, list_open_territories = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+
     goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+    for platoon in dict_platoons_done:
+        goutils.log2("DBG", "dict_platoons_done["+platoon+"]="+str(dict_platoons_done[platoon]))
 
     #Recuperation des dernieres donnees sur gdrive
     dict_players_by_IG = connect_mysql.load_config_players()[0]
@@ -947,20 +955,13 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_nam
         tb_name = tbs_round[:-1]
 
         # Read platoon allocations allocations
-        ec, et, ret = await get_eb_allocation(tbChannel_id, tbs_round)
+        ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
+        goutils.log2("DBG", "")
         if ec != 0:
             return ec, et
 
         allocation_tb_phases = ret["allocation_tb_phases"]
         dict_platoons_allocation = ret["dict_platoons_allocation"]
-
-        # TODO manage storage only if not every time
-        # and if get_eb_allocations is also not done every time
-        #ec, et = go.store_eb_allocations(guild_id, tb_name, allocation_tb_phases, dict_platoons_allocation)
-        #if ec != 0:
-        #    await ctx.send(et)
-        #    await ctx.message.add_reaction(emojis.redcross)
-        #    return
 
         for platoon in dict_platoons_allocation:
             goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
@@ -1829,6 +1830,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         guild_id = bot_infos["guild_id"]
         tbChannel_id = bot_infos["tbChanRead_id"]
+        echostation_id = bot_infos["echostation_id"]
         if tbChannel_id==0:
             await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
             await ctx.message.add_reaction(emojis.redcross)
@@ -1923,6 +1925,7 @@ class TbCog(commands.GroupCog, name="bt"):
         guild_id = bot_infos["guild_id"]
         goutils.log2("DBG", "")
         tbChannel_id = bot_infos["tbChanRead_id"]
+        echostation_id = bot_infos["echostation_id"]
         goutils.log2("DBG", "")
         if tbChannel_id==0:
             txt = emojis.redcross+" ERR: warbot mal configuré (tbChannel_id=0)"
@@ -2222,6 +2225,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         guild_id = bot_infos["guild_id"]
         tbChannel_id = bot_infos["tbChanRead_id"]
+        echostation_id = bot_infos["echostation_id"]
         if tbChannel_id==0:
             await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
             await ctx.message.add_reaction(emojis.redcross)
@@ -2234,7 +2238,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             allyCode = None
             player_name = None
 
-        ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_name, display_mentions)
+        ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions)
         if ec != 0:
             await ctx.send('ERR: '+ret_txt)
             await ctx.message.add_reaction(emojis.redcross)
