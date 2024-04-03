@@ -1153,7 +1153,7 @@ def get_warbot_info(server_id, channel_id):
     if db_data == None:
         if channel_id != None:
             #no warbot found from server, try it from the channel
-            query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name FROM guild_bot_infos \n"
+            query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
             query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
             query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
             query+= "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bot_infos.guild_id \n"
@@ -1173,7 +1173,8 @@ def get_warbot_info(server_id, channel_id):
                    "tbChanOut_id": db_data[4],
                    "tbRoleOut": db_data[5],
                    "guild_name": db_data[6],
-                   "gfile_name": db_data[7]}
+                   "gfile_name": db_data[7],
+                   "echostation_id": db_data[8]}
 
 def get_warbot_info_from_guild(guild_id):
     query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, server_id, gfile_name FROM guild_bot_infos \n"
@@ -1201,7 +1202,7 @@ def get_warbot_info_from_guild(guild_id):
 #  google account linked to this channel
 ########################################
 def get_google_player_info(channel_id):
-    query = "SELECT guildId, players.allyCode, players.name, tbChanRead_id FROM user_bot_infos \n"
+    query = "SELECT guildId, players.allyCode, players.name, tbChanRead_id, echostation_id FROM user_bot_infos \n"
     query+= "JOIN players ON players.allyCode=user_bot_infos.allyCode \n"
     query+= "JOIN guild_bot_infos ON guild_bot_infos.guild_id=players.guildId \n"
     query+= "WHERE channel_id="+str(channel_id)
@@ -1213,5 +1214,6 @@ def get_google_player_info(channel_id):
     return 0, "", {"guild_id": db_data[0],
                    "allyCode": db_data[1],
                    "player_name": db_data[2],
-                   "tbChanRead_id": db_data[3]}
+                   "tbChanRead_id": db_data[3],
+                   "echostation_id": db_data[4]}
 
