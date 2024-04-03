@@ -110,6 +110,7 @@ for unit in game_data["units"]:
         continue
 
     for loc in [FRE_FR, ENG_US]:
+        # unit["nameKey"] is a generic variable "UNIT_LOBOT_NAME", to read in the loc dictionary
         if unit["nameKey"] in loc:
             loc_name = loc[unit["nameKey"]]
         else:
@@ -135,7 +136,8 @@ for unit in game_data["units"]:
                         prio_found = False
                         for prio in priority_names:
                             if prio in unit['baseId']:
-                                unitsAlias_dict[name] = [loc[unitsList_dict[unit['baseId']]['nameKey']], unit['baseId']]
+                                # the main language in French
+                                unitsAlias_dict[name] = [FRE_FR[unitsList_dict[unit['baseId']]['nameKey']], unit['baseId']]
                                 prio_found = True
                             elif prio in unitsAlias_dict[name][1]:
                                 prio_found = True
@@ -147,7 +149,7 @@ for unit in game_data["units"]:
                     pass
             else:
                 if unitsList_dict[unit['baseId']]['nameKey'] in loc:
-                    unit_name = loc[unitsList_dict[unit['baseId']]['nameKey']]
+                    unit_name = FRE_FR[unitsList_dict[unit['baseId']]['nameKey']]
                 else:
                     unit_name = unitsList_dict[unit['baseId']]['nameKey']
                 unitsAlias_dict[name] = [unit_name, unit['baseId']]
