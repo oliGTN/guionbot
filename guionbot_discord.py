@@ -1289,7 +1289,7 @@ async def on_raw_reaction_add(payload):
 #    emoji = reaction.emoji
 #
 #    goutils.log2("DBG", "")
-"    await manage_reaction_add(user, message, reaction, emoji)
+#    await manage_reaction_add(user, message, reaction, emoji)
 #    goutils.log2("DBG", "")
 
 async def manage_reaction_add(user, message, reaction, emoji):
