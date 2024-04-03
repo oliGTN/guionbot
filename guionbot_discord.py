@@ -918,7 +918,7 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id):
         return ec, et
 
     allocation_tb_phases = ret["allocation_tb_phases"]
-    dict_platoon_allocations = ret["dict_platoon_allocations"]
+    dict_platoons_allocation = ret["dict_platoons_allocation"]
     goutils.log2("DBG", "")
     tbs_name = tbs_round[:-1]
     goutils.log2("DBG", "")
@@ -952,7 +952,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, allyCode, player_nam
             return ec, et
 
         allocation_tb_phases = ret["allocation_tb_phases"]
-        dict_platoon_allocations = ret["dict_platoon_allocations"]
+        dict_platoons_allocation = ret["dict_platoons_allocation"]
 
         # TODO manage storage only if not every time
         # and if get_eb_allocations is also not done every time
