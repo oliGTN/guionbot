@@ -2833,11 +2833,63 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         files = [os.path.join(search_dir, f) for f in files] # add path to each file
         files = list(filter(os.path.isfile, files))
         files = list(filter(lambda f: guild_id+"_TERRITORY_WAR_EVENT" in f, files))
+        files = list(filter(lambda f: "_events" in f, files))
         files.sort(key=lambda x: os.path.getmtime(x))
         latest_log = files[-1]
 
         #create zip archive
         archive_path="/tmp/TWlogs_"+guild_name+".zip"
+        with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zipped:
+            zipped.write(latest_log)
+        file = discord.File(archive_path)
+        await ctx.send(file=file, content="Dernier fichier trouvé : "+latest_log)
+
+        await ctx.message.add_reaction(emojis.check)
+
+    ##############################################################
+    # Command: bot.gettblogs
+    # Parameters: none
+    # Purpose: send file of events for latest TB
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='bot.gettblogs',
+                 brief="Télécharge le fichier JSON complet des logs de la dernière BT",
+                 help="Télécharge le fichier JSON complet des logs de la dernière BT")
+    async def botgettblogs(self, ctx):
+        await ctx.message.add_reaction(emojis.thumb)
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        guild_name = bot_infos["guild_name"]
+
+        if guild_id == None:
+            await ctx.send('ERR: Guilde non déclarée dans le bot')
+            return
+
+        #Look for latest TB event file for this guild
+        search_dir = "EVENTS/"
+        files = os.listdir(search_dir)
+        files = [os.path.join(search_dir, f) for f in files] # add path to each file
+        files = list(filter(os.path.isfile, files))
+        files = list(filter(lambda f: guild_id+"_TB_EVENT" in f, files))
+        files = list(filter(lambda f: "_events" in f, files))
+        files.sort(key=lambda x: os.path.getmtime(x))
+        latest_log = files[-1]
+
+        #create zip archive
+        archive_path="/tmp/TBlogs_"+guild_name+".zip"
         with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zipped:
             zipped.write(latest_log)
         file = discord.File(archive_path)
@@ -2853,7 +2905,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     ##############################################################
     @commands.check(officer_command)
     @commands.command(name='gettwbest',
-                      brief="Affiche les meilleures défenses de la GT",
+                      brief="Affiche les meilleures défenses de la BT",
                       help="Affiche les meilleures défenses de la GT")
     async def gettwbest(self, ctx):
         await ctx.message.add_reaction(emojis.thumb)
