@@ -1502,28 +1502,40 @@ async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
 
     return 0, ret_print_vtx, images
 
-def print_fegv(txt_allyCode):
-    query = "SELECT gt.name, unit_id, rarity_reco, rarity FROM guild_teams as gt " \
-          + "JOIN guild_subteams as gst ON gst.team_id=gt.id " \
-          + "JOIN guild_team_roster as gtr ON gtr.subteam_id=gst.id " \
-          + "LEFT JOIN roster ON (unit_id=defId AND allyCode="+txt_allyCode+") " \
-          + "WHERE gt.name IN( " \
-          + "SELECT DISTINCT(gt.name) FROM guild_teams as gt " \
-          + "JOIN guild_subteams as gst ON gst.team_id=gt.id " \
-          + "JOIN guild_team_roster as gtr ON gtr.subteam_id=gst.id " \
-          + "LEFT JOIN roster ON (gt.name=CONCAT(defId, '-GV') AND allyCode="+txt_allyCode+") " \
-          + "WHERE gt.name LIKE '%-GV' " \
-          + "AND (isnull(rarity) OR rarity<GVrarity) " \
-          + ") " \
-          + "AND (isnull(rarity) OR rarity<rarity_reco) "
+def print_fegv(txt_allyCode, show_all=False):
+    if not show_all:
+        #Get all characters from Journey Guide, and current status for the player
+        query = "SELECT gt.name, unit_id, rarity_reco, rarity FROM guild_teams as gt " \
+              + "JOIN guild_subteams as gst ON gst.team_id=gt.id " \
+              + "JOIN guild_team_roster as gtr ON gtr.subteam_id=gst.id " \
+              + "LEFT JOIN roster ON (unit_id=defId AND allyCode="+txt_allyCode+") " \
+              + "WHERE gt.name IN( " \
+              + "SELECT DISTINCT(gt.name) FROM guild_teams as gt " \
+              + "JOIN guild_subteams as gst ON gst.team_id=gt.id " \
+              + "JOIN guild_team_roster as gtr ON gtr.subteam_id=gst.id " \
+              + "LEFT JOIN roster ON (gt.name=CONCAT(defId, '-GV') AND allyCode="+txt_allyCode+") " \
+              + "WHERE gt.name LIKE '%-GV' " \
+              + "AND (isnull(rarity) OR rarity<GVrarity) " \
+              + ") " \
+              + "AND (isnull(rarity) OR rarity<rarity_reco) "
+    else:
+        #Get all characters, and current status for the player
+        query = "SELECT 'farm', T.defId, 7, rarity FROM (SELECT DISTINCT defId FROM roster) T " \
+              + "LEFT JOIN roster ON (T.defId=roster.defId AND allyCode="+txt_allyCode+") " \
+              + "WHERE (isnull(rarity) OR rarity<7) "
+
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
     dict_unitsList = godata.get("unitsList_dict.json")
 
     ret_print_fegv = ""
     for line in ret_db:
-        gv_target_id = line[0][:-3]
-        gv_target_name = dict_unitsList[gv_target_id]['name']
+        if show_all:
+            gv_target_name = 'farm'
+        else:
+            gv_target_id = line[0][:-3]
+            gv_target_name = dict_unitsList[gv_target_id]['name']
+
         character_id = line[1]
         character_name = dict_unitsList[character_id]['name']
 

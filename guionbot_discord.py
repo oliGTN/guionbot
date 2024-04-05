@@ -3619,10 +3619,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.check(member_command)
     @commands.command(name='fegv',
                  brief="Donne les Farming d'Eclats pour le Guide de Voyage",
-                 help="Donne les Farmings d'Eclats pour le Guide de Voyage\n\n"\
-                      "Exemple: go.fegv me")
-    async def fegv(self, ctx, allyCode):
+                 help="Donne les Farmings d'Eclats pour le Guide de Voyage, ou pour tous les persos quiexistent avec l'option -all\n\n"\
+                      "Exemple: go.fegv me\n"\
+                      "         go.fegv me -all")
+    async def fegv(self, ctx, allyCode, *args):
         await ctx.message.add_reaction(emojis.thumb)
+
+        #Check arguments
+        args = list(args)
+
+        show_all=False
+        if "-all" in args:
+            show_all=True
+            args.remove("-all")
 
         allyCode = await manage_me(ctx, allyCode, False)
 
@@ -3630,7 +3639,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emojis.redcross)
         else:
-            err_code, ret_cmd = go.print_fegv( allyCode)
+            err_code, ret_cmd = go.print_fegv( allyCode, show_all=show_all)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
                     await ctx.send("`"+txt+"`")
