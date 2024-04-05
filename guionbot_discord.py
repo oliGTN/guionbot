@@ -1871,7 +1871,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
         tbs_round=tb_name+str(tb_currentRound)
 
-        ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id)
+        ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
         if ec != 0:
             await ctx.send('ERR: '+ret_txt)
             await ctx.message.add_reaction(emojis.redcross)
