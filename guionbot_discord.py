@@ -1310,15 +1310,18 @@ async def manage_reaction_add(user, message, reaction, emoji):
     goutils.log2("DBG", "guild_name: "+guild_name)
     goutils.log2("DBG", "message: "+str(message.content))
     goutils.log2("DBG", "author of the message: "+str(author))
-    goutils.log2("DBG", "emoji: "+str(emoji))
-    goutils.log2("DBG", "emoji: "+str(ord(emoji)))
+    goutils.log2("DBG", "emoji: "+str(emoji)+" (unicode: "+hex(ord(emoji))+")")
     goutils.log2("DBG", "user of the reaction: "+str(user))
 
     # Manage cycle arrows to re-launch a command
     if emoji == emojis.cyclearrows:
-        # re-launch the command
+        # re-launch the command if it is a gobot command, originally launched by the author of the reaction
         lower_msg = message.content.lower().strip()
-        if lower_msg.startswith("go."):
+        if lower_msg.startswith("go.") and message.author==user:
+            #remove user reaction, add temporary hourglass from bot
+            await message.remove_reaction(emojis.cyclearrows, user)
+            await message.add_reaction(emojis.hourglass)
+
             command_name = lower_msg.split(" ")[0].split(".")[1]
             goutils.log2("INFO", "Command "+message.content+" re-launched by "+user.display_name+" in "+channel_name)
 
@@ -1331,8 +1334,8 @@ async def manage_reaction_add(user, message, reaction, emoji):
                 if not bot_test_mode:
                     await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
-            #remove user reaction, add it from bot (so it may be reclickable)
-            await message.remove_reaction(emojis.cyclearrows, user)
+            #remove hourglass, add the cyclearrow reaction from bot (so it may be reclickable)
+            await message.remove_reaction(emojis.hourglass, bot.user)
             await message.add_reaction(emojis.cyclearrows)
 
     # Manage the thumb up to messages sent to admins
