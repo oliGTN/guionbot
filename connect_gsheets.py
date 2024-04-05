@@ -860,6 +860,8 @@ async def update_gwarstats(guild_id):
     #loop on each player
     line = player_row1 + 2
     for playername in sorted_dict_tb_players:
+        cells.append(gspread.cell.Cell(row=line, col=player_col1, value="#"+str(line-player_row1-1)))
+
         # player name
         player = dict_tb_players[playername]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=playername))
@@ -942,6 +944,7 @@ async def update_gwarstats(guild_id):
 
     # erase the table up to 50th line
     while line<player_row1+52:
+        cells.append(gspread.cell.Cell(row=line, col=player_col1, value=""))
         cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=""))
         cells.append(gspread.cell.Cell(row=line, col=player_col1+2, value=""))
         cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=""))
