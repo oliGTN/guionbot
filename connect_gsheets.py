@@ -951,6 +951,11 @@ async def update_gwarstats(guild_id):
         cells.append(gspread.cell.Cell(row=line, col=player_col1+4, value=""))
         cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=""))
         cells.append(gspread.cell.Cell(row=line, col=player_col1+7, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+9, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+10, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+11, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+12, value=""))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+13, value=""))
         line += 1
 
 
