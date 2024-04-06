@@ -24,9 +24,8 @@ LOG_LEVEL="DBG"
 # This token comes from https://discord.com/developers/ then settings / Bot / Token
 DISCORD_BOT_TOKEN=""
 
-# Channel ID to read EchoBot allocations, and EchoBot Discord name
-EB_PROFILE="EchoStation#0000"
-
+# Discord ID of other bots
+EB_DISCORD_ID=1234567890
 JBOT_DISCORD_ID=1234567890
 WOOKIEBOTBOT_DISCORD_ID=1234567890
 
