@@ -956,6 +956,15 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                     if event_ts > chatLatest_ts:
                         list_tb_logs.append([event_ts, activity_txt])
 
+                elif "COVERT_COMPLETE" in activity["zoneData"]["activityLogMessage"]["key"]:
+                    zone_data = activity["zoneData"]
+                    zone_id = zone_data["zoneId"]
+                    zone_name = dict_tb[zone_id]["name"]
+
+                    activity_txt = "SPECIAL: "+author+" victoire en "+zone_name
+                    if event_ts > chatLatest_ts:
+                        list_tb_logs.append([event_ts, activity_txt])
+
                 elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
                     zone_data = activity["zoneData"]
                     zone_id = zone_data["zoneId"]
