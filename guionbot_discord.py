@@ -924,11 +924,8 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
 
     allocation_tb_phases = ret["allocation_tb_phases"]
     dict_platoons_allocation = ret["dict_platoons_allocation"]
-    goutils.log2("DBG", "")
     tbs_name = tbs_round[:-1]
-    goutils.log2("DBG", "")
     ec, et = go.store_eb_allocations(guild_id, tbs_name, "?/?/?", dict_platoons_allocation)
-    goutils.log2("DBG", "")
     return ec, et
 
 #####################
@@ -1384,52 +1381,86 @@ async def manage_reaction_add(user, message, reaction, emoji):
 ##############################################################
 @bot.event
 async def on_message(message):
-    if isinstance(message.channel, DMChannel):
-        channel_name = "DM"
-    else:
-        channel_name = message.guild.name+"/"+message.channel.name
+    try:
+        if isinstance(message.channel, DMChannel):
+            channel_name = "DM"
+        else:
+            channel_name = message.guild.name+"/"+message.channel.name
 
-    lower_msg = message.content.lower().strip()
-    if lower_msg.startswith("go."):
-        command_name = lower_msg.split(" ")[0].split(".")[1]
-        goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
+        lower_msg = message.content.lower().strip()
+        if lower_msg.startswith("go."):
+            command_name = lower_msg.split(" ")[0].split(".")[1]
+            goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
 
-        try:
             await bot.process_commands(message)
-        except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
-    #Read messages from Juke's bot
-    if message.author.id == config.JBOT_DISCORD_ID:
-        for embed in message.embeds:
-            dict_embed = embed.to_dict()
+        #Read messages from Juke's bot
+        if message.author.id == config.JBOT_DISCORD_ID:
+            for embed in message.embeds:
+                dict_embed = embed.to_dict()
 
-            if 'title' in dict_embed:
-                embed = dict_embed['title']
-                if embed.endswith("'s unit status"):
-                    pos_name = embed.index("'s unit status")
-                    player_name = embed[:pos_name]
+                if 'title' in dict_embed:
+                    embed = dict_embed['title']
+                    if embed.endswith("'s unit status"):
+                        pos_name = embed.index("'s unit status")
+                        player_name = embed[:pos_name]
 
-            if 'description' in dict_embed:
-                embed = dict_embed['description']
-                for line in embed.split('\n'):
-                    if "%` for " in line:
-                        unlocked = line.startswith(":white_check_mark:")
-                        if line.endswith(":star:"):
-                            line = line[:-8]
-                        line_tab = line.split("`")
-                        progress_txt = line_tab[1]
-                        progress = int(progress_txt[:-1])
-                        pos_name = line.index("%` for ") + 7
-                        character_name = line[pos_name:]
+                if 'description' in dict_embed:
+                    embed = dict_embed['description']
+                    for line in embed.split('\n'):
+                        if "%` for " in line:
+                            unlocked = line.startswith(":white_check_mark:")
+                            if line.endswith(":star:"):
+                                line = line[:-8]
+                            line_tab = line.split("`")
+                            progress_txt = line_tab[1]
+                            progress = int(progress_txt[:-1])
+                            pos_name = line.index("%` for ") + 7
+                            character_name = line[pos_name:]
 
-                        connect_mysql.update_gv_history("", player_name, character_name, False,
-                                                        progress, unlocked, "j.bot")
+                            connect_mysql.update_gv_history("", player_name, character_name, False,
+                                                            progress, unlocked, "j.bot")
 
+        #Read messages from Echobot
+        if message.author.id == config.EB_DISCORD_ID:
+            for embed in message.embeds:
+                dict_embed = embed.to_dict()
+                if "author" in dict_embed:
+                    embed_author = dict_embed["author"]
+                    if "name" in embed_author:
+                        author_name = embed_author["name"]
+                        if author_name.startswith("Use one of the buttons below"):
+                            #This is the EB message after a list of messages for EB allocation
+                            # Time to lauch the reading of allocations
+                            tbChanRead_id = message.channel.id
+                            query = "SELECT guild_id, echostation_id FROM guild_bot_infos " \
+                                    "WHERE tbChanRead_id="+str(tbChanRead_id)
+                            goutils.log2("DBG", query)
+                            db_data = connect_mysql.get_line(query)
+                            guild_id = db_data[0]
+                            echostation_id = db_data[1]
+                            if guild_id != None:
+                                    # Get guild information
+                                    ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
+                                    if ec != 0:
+                                        goutils.log2('ERR', ret_txt)
+                                    else:
+                                        #Get TB info
+                                        if not "territoryBattleStatus" in dict_guild:
+                                            goutils.log2('WAR', "pas de BT en cours")
+                                        else:
+                                            tb_defId = dict_guild["territoryBattleStatus"][0]["definitionId"]
+                                            dict_tb = data.get("tb_definition.json")
+                                            tb_name = dict_tb[tb_defId]["shortname"]
+                                            tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
+                                            tbs_round=tb_name+str(tb_currentRound)
+                                            ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
+    except Exception as e:
+        goutils.log2("ERR", str(sys.exc_info()[0]))
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
+        if not bot_test_mode:
+            await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
 ##############################################################
 # Event: on_error_command
@@ -1810,9 +1841,14 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emojis.thumb)
         output_txt = ""
         for g in bot.guilds:
-            output_txt += g.name+ " ("+str(g.id)+")\n"
+            for m in g.members:
+                if m.guild_permissions.administrator and not m.bot:
+                    query = "SELECT allyCode FROM player_discord WHERE discord_id="+str(m.id)
+                    db_data = connect_mysql.get_column(query)
+                    output_txt += g.name+ " ("+str(g.id)+"), "+m.name+" ("+str(m.id)+"), "+str(m.guild_permissions.administrator)+", "+str(db_data)+"\n"
 
-        await ctx.send(output_txt)
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            await ctx.send(txt)
         await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
@@ -1826,15 +1862,6 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.check(admin_command)
     async def test(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
-        ##############################
-        # display guilds from the bot
-        ##########
-        for g in bot.guilds:
-            for m in g.members:
-                if m.guild_permissions.administrator and not m.bot:
-                    query = "SELECT allyCode FROM player_discord WHERE discord_id="+str(m.id)
-                    db_data = connect_mysql.get_column(query)
-                    print(g.name, m.name, m.id, m.guild_permissions.administrator, db_data)
 
         ###########################
         # get platoon allocations
@@ -2257,6 +2284,57 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             await ctx.message.add_reaction(emojis.check)
         
+    @commands.check(officer_command)
+    @commands.command(name='laeb',
+                 brief="Lit des Allocations de EchoBot",
+                 help="Lit des Allocations de BT de EchoBot dans le salon dédié\n\n"\
+                      "Exemple : go.laeb")
+    async def laeb(self, ctx, *args):
+        await ctx.message.add_reaction(emojis.thumb)
+
+        ###########################
+        # get platoon allocations
+        ##########
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send('ERR: '+et)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        guild_id = bot_infos["guild_id"]
+        tbChannel_id = bot_infos["tbChanRead_id"]
+        echostation_id = bot_infos["echostation_id"]
+        if tbChannel_id==0:
+            await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
+        if ec != 0:
+            await ctx.send('ERR: '+ret_txt)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        if not "territoryBattleStatus" in dict_guild:
+            await ctx.send('ERR: pas de BT en cours')
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        tb_defId = dict_guild["territoryBattleStatus"][0]["definitionId"]
+        dict_tb = data.get("tb_definition.json")
+        tb_name = dict_tb[tb_defId]["shortname"]
+        tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
+        tbs_round=tb_name+str(tb_currentRound)
+
+        ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
+        if ec != 0:
+            await ctx.send('ERR: '+ret_txt)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        await ctx.message.add_reaction(emojis.check)
+
     #######################################
     @commands.command(name='bot.enable',
             brief="Active le compte warbot",
