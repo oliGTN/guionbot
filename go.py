@@ -4824,38 +4824,30 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
 def store_eb_allocations(guild_id, tb_name, phases, allocations):
     phase_txt = "/".join(phases)
 
-    #Check if config exists
+    #Remove all previous configs for this guild
+    query = "DELETE FROM platoon_allocations " \
+            "WHERE config_id IN (SELECT id FROM platoon_config WHERE guild_id='"+guild_id+"')"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
+    query = "DELETE FROM platoon_config " \
+            "WHERE guild_id='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
+    #Create config
+    query = "INSERT INTO platoon_config(guild_id, tb_name, phases) \n"
+    query+= "VALUES('"+guild_id+"', '"+tb_name+"', '"+phase_txt+"')"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
+    #Get the newly created conf ID
     query = "SELECT id FROM platoon_config \n"
     query+= "WHERE guild_id='"+guild_id+"' \n"
     query+= "AND tb_name='"+tb_name+"'\n"
     query+= "AND phases='"+phase_txt+"'"
     goutils.log2("DBG", query)
     conf_id = connect_mysql.get_value(query)
-
-    if conf_id == None:
-        #Create config
-        query = "INSERT INTO platoon_config(guild_id, tb_name, phases) \n"
-        query+= "VALUES('"+guild_id+"', '"+tb_name+"', '"+phase_txt+"')"
-        goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
-
-        #Get the newly created conf ID
-        query = "SELECT id FROM platoon_config \n"
-        query+= "WHERE guild_id='"+guild_id+"' \n"
-        query+= "AND tb_name='"+tb_name+"'\n"
-        query+= "AND phases='"+phase_txt+"'"
-        goutils.log2("DBG", query)
-        conf_id = connect_mysql.get_value(query)
-    else:
-        #update timestamp
-        query = "UPDATE platoon_config SET timestamp=CURRENT_TIMESTAMP() WHERE id="+str(conf_id)
-        goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
-
-    #Remove previous allocations
-    query = "DELETE FROM platoon_allocations WHERE config_id="+str(conf_id)
-    goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
 
     #Prepare the dict to transform names into unit ID
     dict_units = godata.get("unitsList_dict.json")
@@ -4884,6 +4876,7 @@ def store_eb_allocations(guild_id, tb_name, phases, allocations):
 
     #Store new allocations
     for platoon_name in allocations:
+        print(platoon_name+":"+str(allocations[platoon_name]))
         platoon_zone = platoon_name[:-2]
         platoon_position = platoon_name[-1]
         zone_id = dict_zones[platoon_zone]+"_recon01"
@@ -4905,10 +4898,10 @@ def store_eb_allocations(guild_id, tb_name, phases, allocations):
                     ac = "-1"
                 else:
                     ac = str(dict_players[p_name])
-                    query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id) \n"
-                    query+= "VALUES("+str(conf_id)+", "+ac+", '"+unit_id+"', '"+zone_id+"', '"+platoon_id+"')"
-                    goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id) \n"
+                query+= "VALUES("+str(conf_id)+", "+ac+", '"+unit_id+"', '"+zone_id+"', '"+platoon_id+"')"
+                goutils.log2("DBG", query)
+                connect_mysql.simple_execute(query)
 
     return 0, ""
 
