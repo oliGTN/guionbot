@@ -1139,9 +1139,10 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
 
     prev_dict_guild = dict_guild
 
-    query = "SELECT name, char_gp, ship_gp, playerId FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
+    query = "SELECT name, char_gp, ship_gp, playerId, guildMemberlevel "\
+            "FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
     goutils.log2("DBG", query)
-    list_playername_gp_id = connect_mysql.get_table(query)
+    list_playername_gp_id_role = connect_mysql.get_table(query)
 
     dict_tb_players = {}
     dict_strike_zones = {}
@@ -1153,32 +1154,38 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                   "type": tb_type, 
                   "name": dict_tb[tb_type]["name"]}
 
-    for playername_gp_id in list_playername_gp_id:
+    for playername_gp_id_role in list_playername_gp_id_role:
+        player_name = playername_gp_id_role[0]
+        player_char_gp = playername_gp_id_role[1]
+        player_ship_gp = playername_gp_id_role[2]
+        player_id = playername_gp_id_role[3]
+        player_role = playername_gp_id_role[4]
+
         #test if player participates to TB - if joined guild after start of TB
-        player_id = playername_gp_id[3]
         if not player_id in dict_members_by_id:
             #Player already left
             continue
 
-        guildJoinTime = int(dict_members_by_id[playername_gp_id[3]]["guildJoinTime"]) * 1000
+        guildJoinTime = int(dict_members_by_id[player_id]["guildJoinTime"]) * 1000
         if guildJoinTime > tb_startTime:
             #Player joined after start of TB
             continue
 
-        dict_tb_players[playername_gp_id[0]] = {}
-        dict_tb_players[playername_gp_id[0]]["char_gp"] = playername_gp_id[1]
-        dict_tb_players[playername_gp_id[0]]["ship_gp"] = playername_gp_id[2]
-        dict_tb_players[playername_gp_id[0]]["mix_gp"] = playername_gp_id[1] + playername_gp_id[2]
-        dict_tb_players[playername_gp_id[0]]["score"] = {"deployedShips": 0,
-                                                      "deployedChars": 0,
-                                                      "deployedMix": 0,
-                                                      "deployed": 0,
-                                                      "Platoons": 0,
-                                                      "strikes": 0} 
-        dict_tb_players[playername_gp_id[0]]["strikes"] = {} # "conflixtX_strikeY": "1/4"
-        dict_tb_players[playername_gp_id[0]]["strike_attempts"] = 0
-        dict_tb_players[playername_gp_id[0]]["coverts"] = {} # "conflixtX_covertY": True
-        dict_tb_players[playername_gp_id[0]]["covert_attempts"] = 0
+        dict_tb_players[player_name] = {}
+        dict_tb_players[player_name]["char_gp"] = player_char_gp
+        dict_tb_players[player_name]["ship_gp"] = player_ship_gp
+        dict_tb_players[player_name]["mix_gp"] = player_char_gp + player_ship_gp
+        dict_tb_players[player_name]["role"] = player_role
+        dict_tb_players[player_name]["score"] = {"deployedShips": 0,
+                                                 "deployedChars": 0,
+                                                 "deployedMix": 0,
+                                                 "deployed": 0,
+                                                 "Platoons": 0,
+                                                 "strikes": 0} 
+        dict_tb_players[player_name]["strikes"] = {} # "conflixtX_strikeY": "1/4"
+        dict_tb_players[player_name]["strike_attempts"] = 0
+        dict_tb_players[player_name]["coverts"] = {} # "conflixtX_covertY": True
+        dict_tb_players[player_name]["covert_attempts"] = 0
 
     completed_stars = 0 # stars on completed (closed) zones
     for zone in battleStatus["conflictZoneStatus"]:
@@ -1356,16 +1363,28 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
                         dict_tb_players[playerName]["score"]["deployedChars"] += bonus_chars
                         dict_tb_players[playerName]["score"]["deployedMix"] = dict_tb_players[playerName]["score"]["deployed"]
 
-    dict_remaining_deploy = {"ships": 0, "chars": 0, "mix": 0}
+    dict_remaining_deploy = {"ships": {"all": 0, "officers": 0},
+                             "chars": {"all": 0, "officers": 0},
+                             "mix":   {"all": 0, "officers": 0}}
     for playerName in dict_tb_players:
         playerData = dict_tb_players[playerName]
-        dict_remaining_deploy["ships"] += playerData["ship_gp"] - playerData["score"]["deployedShips"]
-        dict_remaining_deploy["chars"] += playerData["char_gp"] - playerData["score"]["deployedChars"]
-        dict_remaining_deploy["mix"] += playerData["mix_gp"] - playerData["score"]["deployedMix"]
+        player_remain_deploy_ships = playerData["ship_gp"] - playerData["score"]["deployedShips"]
+        player_remain_deploy_chars = playerData["char_gp"] - playerData["score"]["deployedChars"]
+        player_remain_deploy_mix   = playerData["mix_gp"]  - playerData["score"]["deployedMix"]
+
+        dict_remaining_deploy["ships"]["all"] += player_remain_deploy_ships
+        dict_remaining_deploy["chars"]["all"] += player_remain_deploy_chars
+        dict_remaining_deploy["mix"]["all"] += player_remain_deploy_mix
+
+        if playerData["role"] > 2:
+            #This member is an officier of the guild
+            dict_remaining_deploy["ships"]["officers"] += player_remain_deploy_ships
+            dict_remaining_deploy["chars"]["officers"] += player_remain_deploy_chars
+            dict_remaining_deploy["mix"]["officers"] += player_remain_deploy_mix
         
-    dict_phase["availableShipDeploy"] = dict_remaining_deploy["ships"]
-    dict_phase["availableCharDeploy"] = dict_remaining_deploy["chars"]
-    dict_phase["availableMixDeploy"] = dict_remaining_deploy["mix"]
+    dict_phase["availableShipDeploy"] = dict_remaining_deploy["ships"]["all"]
+    dict_phase["availableCharDeploy"] = dict_remaining_deploy["chars"]["all"]
+    dict_phase["availableMixDeploy"] = dict_remaining_deploy["mix"]["all"]
 
     list_deployment_types = []
     for zone_name in dict_open_zones:
@@ -1527,7 +1546,7 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
 
         full_zones = 0
         for zone_type in ["ships", "chars", "mix"]:
-            while (dict_remaining_deploy[zone_type] > 0) and (full_zones < len(dict_zones_by_type[zone_type])):
+            while (dict_remaining_deploy[zone_type]["all"] > 0) and (full_zones < len(dict_zones_by_type[zone_type])):
                 #find closest star
                 min_dist_star = -1
                 min_zone_name = ""
@@ -1552,9 +1571,9 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
 
                 #deploy in the found zone
                 if min_zone_name != "":
-                    deploy_value = min(min_dist_star, dict_remaining_deploy[zone_type])
+                    deploy_value = min(min_dist_star, dict_remaining_deploy[zone_type]["all"])
                     dict_open_zones[min_zone_name]["deployment"] += deploy_value
-                    dict_remaining_deploy[zone_type] -= deploy_value
+                    dict_remaining_deploy[zone_type]["all"] -= deploy_value
 
     else:
         targets_zone_stars = targets_zone_stars.strip()
@@ -1606,21 +1625,21 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
 
             target_star_score = dict_tb[zone_name]["scores"][target_stars-1]
             if dict_tb[zone_name]["type"] == "ships":
-                deploy_consumption = max(0, min(dict_remaining_deploy["ships"], target_star_score - score_with_estimated_strikes))
-                dict_remaining_deploy["ships"] -= deploy_consumption
+                deploy_consumption = max(0, min(dict_remaining_deploy["ships"]["all"], target_star_score - score_with_estimated_strikes))
+                dict_remaining_deploy["ships"]["all"] -= deploy_consumption
             elif dict_tb[zone_name]["type"] == "chars":
-                deploy_consumption = max(0, min(dict_remaining_deploy["chars"], target_star_score - score_with_estimated_strikes))
-                dict_remaining_deploy["chars"] -= deploy_consumption
+                deploy_consumption = max(0, min(dict_remaining_deploy["chars"]["all"], target_star_score - score_with_estimated_strikes))
+                dict_remaining_deploy["chars"]["all"] -= deploy_consumption
             else:
-                deploy_consumption = max(0, min(dict_remaining_deploy["mix"], target_star_score - score_with_estimated_strikes))
-                dict_remaining_deploy["mix"] -= deploy_consumption
+                deploy_consumption = max(0, min(dict_remaining_deploy["mix"]["all"], target_star_score - score_with_estimated_strikes))
+                dict_remaining_deploy["mix"]["all"] -= deploy_consumption
 
             dict_open_zones[zone_name]["deployment"] = deploy_consumption
             score_with_estimations = score_with_estimated_strikes + deploy_consumption
 
-    dict_phase["remainingShipDeploy"] = dict_remaining_deploy["ships"]
-    dict_phase["remainingCharDeploy"] = dict_remaining_deploy["chars"]
-    dict_phase["remainingMixDeploy"] = dict_remaining_deploy["mix"]
+    dict_phase["remainingShipDeploy"] = dict_remaining_deploy["ships"]["all"]
+    dict_phase["remainingCharDeploy"] = dict_remaining_deploy["chars"]["all"]
+    dict_phase["remainingMixDeploy"] = dict_remaining_deploy["mix"]["all"]
 
     #Compute estimated stars per zone
     for zone_name in dict_open_zones:
@@ -2286,7 +2305,10 @@ async def get_raid_status(guild_id, target_percent, force_update):
         if member_id in dict_raid_members_by_id:
             score = int(dict_raid_members_by_id[member_id]["memberProgress"])
         else:
-            score = 0
+            #If the member if not in the raid status, it probably indicates
+            # that he joined the guild too late to participate
+            # No need to report that member in the status
+            continue
 
         if member_id in dict_estimates:
             estimated_score = dict_estimates[member_id]
