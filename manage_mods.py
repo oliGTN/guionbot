@@ -323,14 +323,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
             initial_dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot, "rarity": mod_rarity}
 
     #Get the free space in mod inventory
-    mod_inventory_spares = 500 - len(initialdata["inventory"]["unequippedMod"])
+    #mod_inventory_spares = 500 - len(initialdata["inventory"]["unequippedMod"])
 
     #Get credits
-    player_credits = 0
-    for currency in initialdata["inventory"]["currencyItem"]:
-        if currency["currency"]=="GRIND":
-            player_credits = currency["quantity"]
-            break
+    #player_credits = 0
+    #for currency in initialdata["inventory"]["currencyItem"]:
+    #    if currency["currency"]=="GRIND":
+    #        player_credits = currency["quantity"]
+    #        break
 
     cur_dict_player = copy.deepcopy(initial_dict_player)
     cur_dict_player_mods = copy.deepcopy(initial_dict_player_mods)
@@ -440,7 +440,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     goutils.log2("INFO", "Max unallocated: "+str(max_unallocated))
 
     if is_simu:
-        ret_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(max_unallocated)+" places nécessaires dans l'inventaire et "+str(mod_inventory_spares)+" places disponibles. "+str(unequip_cost)+" crédits nécessaires et "+str(player_credits)+" disponibles."
+        ret_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(max_unallocated)+" places nécessaires dans l'inventaire et "+str(unequip_cost)+" crédits."
     else:
         ret_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
     
