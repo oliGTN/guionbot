@@ -2026,7 +2026,12 @@ class ModsCog(commands.GroupCog, name="mods"):
             await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
             return
 
-        ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
+        try:
+            ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
         if ec == 0:
             txt = emojis.check+" "+et
