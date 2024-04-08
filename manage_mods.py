@@ -426,7 +426,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
             if not is_simu:
                 ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
                 if ec!=0:
-                    return ec, et
+                    return ec, str([target_char_id, mods_to_add, mods_to_remove])+": "+et
 
             unit_count += 1
         elif len(mods_to_remove) > 0:
