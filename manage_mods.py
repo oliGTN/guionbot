@@ -322,6 +322,16 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
             initial_dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
             initial_dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot, "rarity": mod_rarity}
 
+    #Get the free space in mod inventory
+    mod_inventory_spares = 500 - len(initialdata["inventory"]["unequippedMod"])
+
+    #Get credits
+    player_credits = 0
+    for currency in initialdata["inventory"]["currencyItem"]:
+        if currency["currency"]=="GRIND":
+            player_credits = currency["quantity"]
+            break
+
     cur_dict_player = copy.deepcopy(initial_dict_player)
     cur_dict_player_mods = copy.deepcopy(initial_dict_player_mods)
 
@@ -430,7 +440,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     goutils.log2("INFO", "Max unallocated: "+str(max_unallocated))
 
     if is_simu:
-        ret_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos ("+str(max_unallocated)+" places nécessaires dans l'inventaire, et "+str(unequip_cost)+" crédits)"
+        ret_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(max_unallocated)+" places nécessaires dans l'inventaire et "+str(mod_inventory_spares)+" places disponibles. "+str(unequip_cost)+" crédits nécessaires et "+str(player_credits)+" disponibles."
     else:
         ret_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
     
@@ -955,21 +965,26 @@ def mod_to_modopti(mod, unit_defId):
                                            mod["primaryStat"],
                                            modopti_mod)
 
-    if "secondaryStat" in mod:
-        pos_sec_stat = 1
-        for sec_stat in mod["secondaryStat"]:
-            modopti_mod = add_stats_to_modopti_mod("secondaryType_"+str(pos_sec_stat),
-                                                   "secondaryValue_"+str(pos_sec_stat),
-                                                   "secondaryRoll_"+str(pos_sec_stat),
-                                                   sec_stat,
-                                                   modopti_mod)
+    if not "secondaryStat" in mod:
+        #Create empty table, to ensure creating empty values for secondary stats
+        mod["secondaryStat"] = []
 
-            pos_sec_stat += 1
+    #Loop through secondary values
+    pos_sec_stat = 1
+    for sec_stat in mod["secondaryStat"]:
+        modopti_mod = add_stats_to_modopti_mod("secondaryType_"+str(pos_sec_stat),
+                                               "secondaryValue_"+str(pos_sec_stat),
+                                               "secondaryRoll_"+str(pos_sec_stat),
+                                               sec_stat,
+                                               modopti_mod)
 
-        for empty_pos in range(pos_sec_stat-1,5):
-            modopti_mod["secondaryType_"+str(empty_pos)] = ""
-            modopti_mod["secondaryValue_"+str(empty_pos)] = ""
-            modopti_mod["secondaryRoll_"+str(empty_pos)] = ""
+        pos_sec_stat += 1
+
+    #Create empty secondary values (otherwise Mod Optimizer crashes)
+    for empty_pos in range(pos_sec_stat,5):
+        modopti_mod["secondaryType_"+str(empty_pos)] = ""
+        modopti_mod["secondaryValue_"+str(empty_pos)] = ""
+        modopti_mod["secondaryRoll_"+str(empty_pos)] = ""
 
     modopti_mod["mod_uid"] = mod["id"]
     modopti_mod["slot"] = dict_shape_by_slot[mod_list[mod_defId]["slot"]]
