@@ -22,6 +22,7 @@ from texttable import Texttable
 import zipfile
 import typing
 import json
+import threading
 
 import bot_commands
 import go
@@ -286,16 +287,27 @@ async def bot_loop_5minutes(bot):
 
                     # Check event for TW start, and load opponent guild
                     # Need to put it into a queue to not block the rest of the loop processing
-                    #if not manage_events.exists("tw_start", guild_id, tw_id):
-                    #    ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
-                    #    goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
-                    #    opp_guild_id = dict_guild["profile"]["id"]
-                    #    await go.load_guild_from_id(opp_guild_id, True, True)
-                    #    manage_events.create_event("tw_start", guild_id, tw_id)
+                    swgohgg_opp_url = None
+                    if not manage_events.exists("tw_start", guild_id, tw_id):
+                        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
+                        goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
+                        opp_guild_id = dict_guild["profile"]["id"]
+
+                        #Fire and forget guild loading in the background
+                        _thread = threading.Thread(target=asyncio.run, args=(go.load_guild_from_id(opp_guild_id, True, True),))
+                        _thread.start()
+
+                        #Display swgoh.gg link to opponent guild
+                        swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id
+
+                        manage_events.create_event("tw_start", guild_id, tw_id)
 
                     # Display TW alerts, messages...
                     [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
                     tw_bot_channel = bot.get_channel(channel_id)
+
+                    if swgohgg_opp_url != None:
+                        await tw_bot_channel.send("Guilde adverse : "+swgohgg_opp_url)
 
                     #sort dict_messages
                     # defense then lost territories then attack
@@ -1863,46 +1875,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def test(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
-        ###########################
-        # get platoon allocations
-        ##########
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-        tbChannel_id = bot_infos["tbChanRead_id"]
-        echostation_id = bot_infos["echostation_id"]
-        if tbChannel_id==0:
-            await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
-        if ec != 0:
-            await ctx.send('ERR: '+ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        if not "territoryBattleStatus" in dict_guild:
-            await ctx.send('ERR: pas de BT en cours')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        tb_defId = dict_guild["territoryBattleStatus"][0]["definitionId"]
-        dict_tb = data.get("tb_definition.json")
-        tb_name = dict_tb[tb_defId]["shortname"]
-        tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
-        tbs_round=tb_name+str(tb_currentRound)
-
-        ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
-        if ec != 0:
-            await ctx.send('ERR: '+ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+        gid = 'fid2IlOUQ8eNFR8SEHlq6Q'
 
         await ctx.message.add_reaction(emojis.check)
 
@@ -4130,6 +4103,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Graphique de GV d'un perso",
                  help="Graphique de GV d'un perso\n\n"\
                       "Exemple: go.ggv me SEE\n"\
+                      "Exemple: go.ggv me/chaton75 SEE\n"\
                       "Exemple: go.ggv me FARM\n"\
                       "Exemple: go.ggv 123456789 JMK")
     async def ggv(self, ctx, allyCode, *characters):
