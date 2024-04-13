@@ -291,7 +291,7 @@ async def bot_loop_5minutes(bot):
                     if not manage_events.exists("tw_start", guild_id, tw_id):
                         ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
                         goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
-                        opp_guild_id = dict_guild["profile"]["id"]
+                        opp_guild_id = dict_guild["territoryWarStatus"]["awayGuild"]["profile"]["id"]
 
                         #Fire and forget guild loading in the background
                         _thread = threading.Thread(target=asyncio.run, args=(go.load_guild_from_id(opp_guild_id, True, True),))
