@@ -3696,7 +3696,9 @@ def get_gv_graph(txt_allyCodes, characters):
     # Have a look at the colormaps here and decide which one you'd like:
     # http://matplotlib.org/1.2.1/examples/pylab_examples/show_colormaps.html
     colormap = plt.cm.gist_ncar
-    plt.gca().set_prop_cycle(plt.cycler('color', plt.cm.jet(np.linspace(0, 1, len(dict_dates)))))
+    color_source = np.linspace(0, 1, len(dict_dates))
+    color_repeat = np.repeat(color_source, 2)
+    plt.gca().set_prop_cycle(plt.cycler('color', plt.cm.jet(color_repeat)))
 
     #add series
     for key in dict_dates:
