@@ -1127,6 +1127,7 @@ def compute_statq_avg(force_all):
                  "   and gear>=12 " \
                  "   and stat"+str(s_id)+" > mod"+str(s_id)+" " \
                  "   and grand_arena_rank='KYBER1' " \
+                 "   and (char_gp+ship_gp)>9000000 " \
                  "   and timestampdiff(DAY,lastUpdated,CURRENT_TIMESTAMP)<30 " \
                  ") \n"
 
