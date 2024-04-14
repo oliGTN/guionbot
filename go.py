@@ -3763,6 +3763,11 @@ def get_gv_graph(txt_allyCodes, characters):
 
             #plot a dashed line for the extrapolation
             ax.plot(list_dates_fit, list_values_fit, linestyle="dashed")
+        else:
+            #in case no extrapolayion is possible, we still need to draw a line to ensure 
+            # color alternance
+            # So... just redraw the same, without the label to prevent double in legend
+            ax.plot(dict_dates[key], dict_values[key], marker=marker)
 
 
     #format dates on X axis
