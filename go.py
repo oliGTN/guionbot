@@ -3604,20 +3604,21 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
 # IN characters: list of GV characters
 # OUT: image of the graph
 #######################################################
-def get_gv_graph(txt_allyCode, characters):
+def get_gv_graph(txt_allyCodes, characters):
     if "FARM" in characters:
         character_ids_txt = "farm perso"
-    elif not "all" in characters:
+    elif "all" in characters:
+        character_ids_txt = "tout le guide"
+    else:
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
         character_ids_txt = str(tuple(list_character_ids)).replace(',)', ')')
-    else:
-        character_ids_txt = "tout le guide"
 
+    sql_allyCodes = str(tuple(txt_allyCodes)).replace(',)', ')')
     query = "SELECT date, defId, progress, source, name FROM gv_history " \
           + "JOIN players ON players.allyCode = gv_history.allyCode " \
-          + "WHERE gv_history.allyCode="+txt_allyCode+" " \
+          + "WHERE gv_history.allyCode IN "+sql_allyCodes+" " \
           + "AND progress<=100 " # to filter out entries from RAF command
     if "FARM" in characters:
           query += "AND defId='FARM' "
@@ -3634,7 +3635,7 @@ def get_gv_graph(txt_allyCode, characters):
     dict_dates={}
     dict_values={}
 
-    if len(characters) == 1 and characters[0]!="all":
+    if len(txt_allyCodes)==1 and len(characters)==1 and characters[0]!="all":
         #display the one character progress, with both j.bot and go.bot
         for line in ret_db:
             if min_date==None or line[0]<min_date:
@@ -3648,9 +3649,27 @@ def get_gv_graph(txt_allyCode, characters):
             dict_dates[line[3]].append(line[0])
             dict_values[line[3]].append(line[2])
 
-            player_name = line[4]
+        graph_title = "Progrès de "+character_ids_txt
 
-    else: #more than one character, all characters displayed only with go.bot
+    elif len(txt_allyCodes)>1 and len(characters)==1 and characters[0]!="all":
+        #more than one player, one character, use only go.bot
+        for line in ret_db:
+            if line[3] == "go.bot":
+                if min_date==None or line[0]<min_date:
+                    min_date = line[0]
+                if max_date==None or line[0]>max_date:
+                    max_date = line[0]
+
+                if not line[4] in dict_dates:
+                    dict_dates[line[4]] = []
+                    dict_values[line[4]] = []
+                dict_dates[line[4]].append(line[0])
+                dict_values[line[4]].append(line[2])
+
+        graph_title = "Progrès de "+character_ids_txt
+
+    elif len(txt_allyCodes)==1 and (len(characters)>1 or characters[0]=="all"):
+        #one player, more than one character, use only go.bot
         for line in ret_db:
             if line[3] == "go.bot":
                 if min_date==None or line[0]<min_date:
@@ -3664,7 +3683,12 @@ def get_gv_graph(txt_allyCode, characters):
                 dict_dates[line[1]].append(line[0])
                 dict_values[line[1]].append(line[2])
 
-                player_name = line[4]
+        graph_title = "Progrès pour "+line[4]
+
+    else:
+        #probably more than one player and more than one character
+        # Cannot display
+        return 1, "WAR: impossible d'afficher un graph pour plusieurs joueurs et plusieurs persos", None
 
     #create plot
     fig, ax = plt.subplots()
@@ -3742,12 +3766,7 @@ def get_gv_graph(txt_allyCode, characters):
     #format dates on X axis
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
-    #add title
-    if len(characters)==1:
-        title = "Progrès de "+character_ids_txt+" pour "+player_name
-    else:
-        title = "Progrès pour "+player_name
-    fig.suptitle(title)
+    fig.suptitle(graph_title)
 
     # Shrink current axis by 20%
     box = ax.get_position()
