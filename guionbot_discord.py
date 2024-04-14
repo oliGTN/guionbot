@@ -1076,116 +1076,125 @@ async def get_channel_from_channelname(ctx, channel_name):
 # Output: code allié (string)
 ##############################################################
 async def manage_me(ctx, alias, allow_tw):
-    #Special case of 'me' as allyCode
-    if alias == 'me':
-        dict_players_by_ID = connect_mysql.load_config_players()[1]
-        #print(dict_players_by_ID)
-        if ctx.author.id in dict_players_by_ID:
-            ret_allyCode_txt = str(dict_players_by_ID[ctx.author.id]["main"][0])
-        else:
-            ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
-    elif alias == "-TW":
-        if not allow_tw:
-            return "ERR: l'option -TW n'est pas utilisable avec cette commande"
+    table_alias = alias.split('/')
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            return "ERR: commande non autorisée depuis un DM avec l'option -TW"
+    ret_allyCode = []
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-
-        #Launch the actuel search
-        ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
-        if ec != 0:
-            return "ERR: "+et
-
-        ret_allyCode_txt = allyCode
-
-    elif alias.startswith('<@'):
-        # discord @mention
-        if alias.startswith('<@!'):
-            discord_id = int(alias[3:-1])
-        else: # '<@ without the !
-            discord_id = int(alias[2:-1])
-        goutils.log2("INFO", "command launched with discord @mention "+alias)
-        dict_players_by_ID = connect_mysql.load_config_players()[1]
-        if discord_id in dict_players_by_ID:
-            ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
-        else:
-            ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
-
-    elif re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", alias) != None:
-        # 123-456-789 >> allyCode
-        ret_allyCode_txt = alias.replace("-", "")
-
-    elif alias.isnumeric():
-        # number >> allyCode
-        ret_allyCode_txt = alias
-
-    else:
-        # Look for the name among known player names
-        results = connect_mysql.get_table("SELECT name, allyCode FROM players WHERE NOT isnull(name)")
-        list_names = [x[0] for x in results]
-        closest_names_db=difflib.get_close_matches(alias, list_names, 1)
-        if len(closest_names_db) == 0:
-            closest_name_db = ""
-            closest_name_db_score = 0
-        else:
-            closest_name_db = closest_names_db[0]
-            closest_name_db_score = difflib.SequenceMatcher(None, alias, closest_name_db).ratio()
-
-        #check among discord names
-        if ctx != None and ctx.guild != None and (closest_name_db != alias):
-            #Remove text in [] and in ()
-            guild_members_clean = [[x.id, re.sub(r'\([^)]*\)', '',
-                                    re.sub(r'\[[^)]*\]', '',x.display_name)).strip()]
-                                    for x in ctx.guild.members]
-            list_discord_names = [x[1] for x in guild_members_clean]
-            closest_names_discord=difflib.get_close_matches(alias, list_discord_names, 1)
-            if len(closest_names_discord) == 0:
-                closest_name_discord = ""
-                closest_name_discord_score = 0
+    for alias in table_alias:
+        #Special case of 'me' as allyCode
+        if alias == 'me':
+            dict_players_by_ID = connect_mysql.load_config_players()[1]
+            #print(dict_players_by_ID)
+            if ctx.author.id in dict_players_by_ID:
+                ret_allyCode_txt = str(dict_players_by_ID[ctx.author.id]["main"][0])
             else:
-                closest_name_discord = closest_names_discord[0]
-                closest_name_discord_score = difflib.SequenceMatcher(None, alias, closest_name_discord).ratio()
+                ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
+        elif alias == "-TW":
+            if not allow_tw:
+                return "ERR: l'option -TW n'est pas utilisable avec cette commande"
 
-            if closest_name_db_score >= closest_name_discord_score:
-                select_db_name = True
-            else:
-                select_db_name = False
-        else:
-            select_db_name = True
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                return "ERR: commande non autorisée depuis un DM avec l'option -TW"
 
-        if select_db_name:
-            if closest_name_db_score == 0:
-                goutils.log2("WAR", alias +" not found in DB and in discord")
-                ret_allyCode_txt = "ERR: "+alias+" n'a pas été trouvé"
-            else:
-                goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
-                for r in results:
-                    if r[0] == closest_name_db:
-                        ret_allyCode_txt = str(r[1])
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        else:
-            goutils.log2("INFO", alias + " looks like the discord name "+closest_name_discord)
+            guild_id = bot_infos["guild_id"]
 
-            discord_id = [x[0] for x in guild_members_clean if x[1] == closest_name_discord][0]
+            #Launch the actuel search
+            ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
+            if ec != 0:
+                return "ERR: "+et
+
+            ret_allyCode_txt = allyCode
+
+        elif alias.startswith('<@'):
+            # discord @mention
+            if alias.startswith('<@!'):
+                discord_id = int(alias[3:-1])
+            else: # '<@ without the !
+                discord_id = int(alias[2:-1])
+            goutils.log2("INFO", "command launched with discord @mention "+alias)
             dict_players_by_ID = connect_mysql.load_config_players()[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
             else:
-                goutils.log2("ERR", alias + " ne fait pas partie des joueurs enregistrés")
                 ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
+        elif re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", alias) != None:
+            # 123-456-789 >> allyCode
+            ret_allyCode_txt = alias.replace("-", "")
+
+        elif alias.isnumeric():
+            # number >> allyCode
+            ret_allyCode_txt = alias
+
+        else:
+            # Look for the name among known player names
+            results = connect_mysql.get_table("SELECT name, allyCode FROM players WHERE NOT isnull(name)")
+            list_names = [x[0] for x in results]
+            closest_names_db=difflib.get_close_matches(alias, list_names, 1)
+            if len(closest_names_db) == 0:
+                closest_name_db = ""
+                closest_name_db_score = 0
+            else:
+                closest_name_db = closest_names_db[0]
+                closest_name_db_score = difflib.SequenceMatcher(None, alias, closest_name_db).ratio()
+
+            #check among discord names
+            if ctx != None and ctx.guild != None and (closest_name_db != alias):
+                #Remove text in [] and in ()
+                guild_members_clean = [[x.id, re.sub(r'\([^)]*\)', '',
+                                        re.sub(r'\[[^)]*\]', '',x.display_name)).strip()]
+                                        for x in ctx.guild.members]
+                list_discord_names = [x[1] for x in guild_members_clean]
+                closest_names_discord=difflib.get_close_matches(alias, list_discord_names, 1)
+                if len(closest_names_discord) == 0:
+                    closest_name_discord = ""
+                    closest_name_discord_score = 0
+                else:
+                    closest_name_discord = closest_names_discord[0]
+                    closest_name_discord_score = difflib.SequenceMatcher(None, alias, closest_name_discord).ratio()
+
+                if closest_name_db_score >= closest_name_discord_score:
+                    select_db_name = True
+                else:
+                    select_db_name = False
+            else:
+                select_db_name = True
+
+            if select_db_name:
+                if closest_name_db_score == 0:
+                    goutils.log2("WAR", alias +" not found in DB and in discord")
+                    ret_allyCode_txt = "ERR: "+alias+" n'a pas été trouvé"
+                else:
+                    goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
+                    for r in results:
+                        if r[0] == closest_name_db:
+                            ret_allyCode_txt = str(r[1])
+
+            else:
+                goutils.log2("INFO", alias + " looks like the discord name "+closest_name_discord)
+
+                discord_id = [x[0] for x in guild_members_clean if x[1] == closest_name_discord][0]
+                dict_players_by_ID = connect_mysql.load_config_players()[1]
+                if discord_id in dict_players_by_ID:
+                    ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
+                else:
+                    goutils.log2("ERR", alias + " ne fait pas partie des joueurs enregistrés")
+                    ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
+
+        ret_allyCode.append(ret_allyCode_txt)
     
-    return ret_allyCode_txt
+    if len(ret_allyCode)==1:
+        return ret_allyCode[0]
+    else:
+        return ret_allyCode
 
 ##############################################################
 # Function: read_gsheets
@@ -4119,15 +4128,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         if len(characters) == 0:
             characters = ["all"]
 
-        #First run a GVJ to ensure at least on result
-        err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
-        if err_code != 0:
-            await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+        if type(allyCode)==str:
+            allyCodes = [allyCode]
+        else:
+            allyCodes = allyCode
+
+        for allyCode in allyCodes:
+            #First run a GVJ to ensure at least one result
+            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
+            if err_code != 0:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
         
         #Seoncd, display the graph
-        err_code, err_txt, image = go.get_gv_graph( allyCode, characters)
+        err_code, err_txt, image = go.get_gv_graph( allyCodes, characters)
         if err_code != 0:
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emojis.redcross)
