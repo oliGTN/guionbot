@@ -350,7 +350,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
         # "on the unit PRINCESSLEIA, we need to use mods ID1, ID2, ID3"
         target_char_defId = a["unit_id"]
         target_char_id = cur_dict_player["rosterUnit"][target_char_defId]["id"]
-        target_char_level = cur_dict_player["rosterUnit"][target_char_defId]["level"]
+        target_char_level = cur_dict_player["rosterUnit"][target_char_defId]["currentLevel"]
         if target_char_level < 50:
             return ec, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods"
 

@@ -2058,17 +2058,26 @@ class ModsCog(commands.GroupCog, name="mods"):
                          simulation: bool=False):
         await interaction.response.defer(thinking=True)
 
-        channel_id = interaction.channel_id
+        try:
+            channel_id = interaction.channel_id
 
-        #get allyCode
-        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-        allyCode = str(connect_mysql.get_value(query))
-        if allyCode == "None":
-            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
-            return
+            #get allyCode
+            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+            allyCode = str(connect_mysql.get_value(query))
+            if allyCode == "None":
+                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+                return
 
-        #Run the function
-        ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
+            #Run the function
+            goutils.log2("DBG", "")
+            ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
+
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+            ec = 1
+            txt = "Erreur lors de la commande"
 
         if ec == 0:
             txt = emojis.check+" "+et
