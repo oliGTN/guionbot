@@ -1458,6 +1458,12 @@ async def on_message(message):
                                     "WHERE tbChanRead_id="+str(tbChanRead_id)
                             goutils.log2("DBG", query)
                             db_data = connect_mysql.get_line(query)
+
+                            if db_data==None:
+                                #No need to read EchoBot message if the guild is
+                                # not registered as using a warbot
+                                return
+
                             guild_id = db_data[0]
                             echostation_id = db_data[1]
                             if guild_id != None:
