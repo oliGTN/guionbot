@@ -4850,16 +4850,29 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
 def store_eb_allocations(guild_id, tb_name, phases, allocations):
     phase_txt = "/".join(phases)
 
-    #Remove all previous configs for this guild
-    query = "DELETE FROM platoon_allocations " \
-            "WHERE config_id IN (SELECT id FROM platoon_config WHERE guild_id='"+guild_id+"')"
-    goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    if phases[-1] == "1":
+        #1st phase of TB, remove all previous configs for this guild
+        query = "DELETE FROM platoon_allocations " \
+                "WHERE config_id IN (SELECT id FROM platoon_config WHERE guild_id='"+guild_id+"')"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
 
-    query = "DELETE FROM platoon_config " \
-            "WHERE guild_id='"+guild_id+"'"
-    goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+        query = "DELETE FROM platoon_config " \
+                "WHERE guild_id='"+guild_id+"'"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+    else:
+        #Not 1st phase of TB, remove all previous configs for this guild and phase
+        query = "DELETE FROM platoon_allocations " \
+                "WHERE config_id IN (SELECT id FROM platoon_config WHERE guild_id='"+guild_id+"' AND phases='"+phases+"')"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+        query = "DELETE FROM platoon_config " \
+                "WHERE guild_id='"+guild_id+"'" \
+                "AND phases='"+phases+"'"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
 
     #Create config
     query = "INSERT INTO platoon_config(guild_id, tb_name, phases) \n"

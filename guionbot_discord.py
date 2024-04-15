@@ -937,7 +937,7 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
     allocation_tb_phases = ret["allocation_tb_phases"]
     dict_platoons_allocation = ret["dict_platoons_allocation"]
     tbs_name = tbs_round[:-1]
-    ec, et = go.store_eb_allocations(guild_id, tbs_name, "?/?/?", dict_platoons_allocation)
+    ec, et = go.store_eb_allocations(guild_id, tbs_name, tbs_round, dict_platoons_allocation)
     return ec, et
 
 #####################
