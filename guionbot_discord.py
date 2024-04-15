@@ -963,7 +963,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
         goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
         tb_name = tbs_round[:-1]
 
-        # Read platoon allocations allocations
+        # Read platoon allocations
         ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
         goutils.log2("DBG", "")
         if ec != 0:
@@ -972,8 +972,22 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
         allocation_tb_phases = ret["allocation_tb_phases"]
         dict_platoons_allocation = ret["dict_platoons_allocation"]
 
+        goutils.log2("DBG", "allocation_tb_phases="+str(allocation_tb_phases))
         for platoon in dict_platoons_allocation:
             goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
+        
+        # Read DB platoon allocations
+        #ec, et, ret = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+        #goutils.log2("DBG", "")
+        #if ec != 0:
+        #    return ec, et
+
+        #allocation_tb_phases_db = ret["allocation_tb_phases"]
+        #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
+
+        #goutils.log2("DBG", "allocation_tb_phases_db="+str(allocation_tb_phases_db))
+        #for platoon in dict_platoons_allocation_db:
+        #    goutils.log2("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
         
         #Comparaison des dictionnaires
         #Recherche des persos non-affectés

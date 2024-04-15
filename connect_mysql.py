@@ -1218,3 +1218,57 @@ def get_google_player_info(channel_id):
                    "tbChanRead_id": db_data[3],
                    "echostation_id": db_data[4]}
 
+def get_tb_platoon_allocations(guild_id, tbs_round):
+    dict_unitsList = data.get("unitsList_dict.json")
+    dict_tb = data.get("tb_definition.json")
+
+    tb_name = tbs_round[:-1]
+    if tb_name == "ROTE":
+        terr_pos = ["LS", "DS", "MS"]
+    else:
+        terr_pos = ["top", "mid", "bot"]
+
+    query = "SELECT zone_id, platoon_id, unit_id, name FROM platoon_allocations " \
+            "JOIN platoon_config ON platoon_config.id=config_id " \
+            "JOIN players ON players.allyCode=platoon_allocations.allyCode " \
+            "WHERE guild_id='"+guild_id+"' AND phases='"+tbs_round+"'" 
+
+    db_data = get_table(query)
+    if db_data == None:
+        return 1, "Aucune allocation de peloton connue", None
+
+    allocation_tb_phases = [None, None, None]
+    dict_platoons_allocation = {}
+    for line in db_data:
+        zone_id = line[0]
+        platoon_id = line[1]
+        unit_id = line[2]
+        player_name = line[3]
+
+        conflict_id = "_".join(zone_id.split('_')[:-1])
+        conflict_name = dict_tb[conflict_id]["name"] # "ROTE1-DS"
+
+        conflict_position_name = conflict_name.split('-')[-1]
+        conflict_position = terr_pos.index(conflict_position_name)
+        conflict_round = conflict_name.split('-')[0][-1]
+        allocation_tb_phases[conflict_position] = conflict_round
+
+        if tb_name == "ROTE":
+            platoon_position = str(7-int(platoon_id[-1]))
+        else:
+            platoon_position = "hoth-platoon-"+platoon_id[-1]
+
+        platoon_name = conflict_name+"-"+platoon_position
+
+        if not platoon_name in dict_platoons_allocation:
+            dict_platoons_allocation[platoon_name] = {}
+        
+        unit_name = dict_unitsList[unit_id]["name"]
+        if not unit_name in dict_platoons_allocation[platoon_name]:
+            dict_platoons_allocation[platoon_name][unit_name] = []
+
+        if player_name != None:
+            dict_platoons_allocation[platoon_name][unit_name].append(player_name)
+
+    return 0, "", {"allocation_tb_phases": allocation_tb_phases,
+                   "dict_platoons_allocation": dict_platoons_allocation}
