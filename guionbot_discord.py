@@ -1364,7 +1364,7 @@ async def manage_reaction_add(user, message, reaction, emoji):
                 goutils.log2("ERR", e)
                 goutils.log2("ERR", traceback.format_exc())
                 if not bot_test_mode:
-                    await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
+                    await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.message_reaction_add:"+str(sys.exc_info()[0]))
 
             #remove hourglass, add the cyclearrow reaction from bot (so it may be reclickable)
             await message.remove_reaction(emojis.hourglass, bot.user)
@@ -1583,6 +1583,59 @@ async def on_message_edit(before, after):
             print("done - "+str(ec))
             if ec != 0:
                 goutils.log2("ERR", et)
+
+    #Read messages from Echobot
+    # NOT IN PROD (with the if False), because reliability not confirmed
+    if False and after.author.id == config.EB_DISCORD_ID:
+        for embed in after.embeds:
+            dict_embed = embed.to_dict()
+            if 'description' in dict_embed:
+                description=dict_embed['description']
+                dict_ac_did = None
+                for line in description.split('\n'):
+                    print(line)
+                    ret_re = re.search(".*`(\\d{9})`.*<@(\\d*)>.*", line)
+                    if ret_re != None:
+                        allyCode_txt = ret_re.group(1)
+                        allyCode = int(allyCode_txt)
+                        discord_id_txt = ret_re.group(2)
+                        discord_id = int(discord_id_txt)
+                        print("register "+allyCode_txt+" to "+discord_id_txt)
+
+                        #Get guild list of ac/id from the first ac in the list
+                        if dict_ac_did == None:
+                            query = "SELECT players.allyCode, discord_id FROM player_discord " \
+                                    "JOIN players ON players.allyCode=player_discord.allyCode " \
+                                    "WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+") "
+                            goutils.log2("INFO", query)
+                            db_data = connect_mysql.get_table(query)
+
+                            dict_ac_did = {}
+                            for line in db_data:
+                                dict_ac_did[line[0]] = line[1]
+
+                        #Test if already registered
+                        already_registered = False
+                        if allyCode in dict_ac_did:
+                            if dict_ac_did[allyCode] == discord_id:
+                                already_registered = True
+
+                        if not already_registered:
+                            #Actual registration if not only registered
+
+                            #Setup all potential previous accounts as alt
+                            query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
+                            goutils.log2("INFO", query)
+                            #connect_mysql.simple_execute(query)
+
+                            #Add discord id in DB
+                            query = "INSERT INTO player_discord (allyCode, discord_id)\n"
+                            query+= "VALUES("+allyCode_txt+", "+discord_id_txt+") \n"
+                            query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
+                            goutils.log2("DBG", query)
+                            #connect_mysql.simple_execute(query)
+
+                            goutils.log2("INFO", "Registering "+allyCode_txt+" for <@"+discord_id_txt+">")
 
 @bot.event
 async def on_member_update(before, after):
