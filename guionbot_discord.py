@@ -286,16 +286,17 @@ async def bot_loop_5minutes(bot):
                     tw_id = dict_tw_alerts["tw_id"]
 
                     # Check event for TW start, and load opponent guild
-                    # Need to put it into a queue to not block the rest of the loop processing
                     swgohgg_opp_url = None
                     if not manage_events.exists("tw_start", guild_id, tw_id):
                         ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
                         goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
-                        opp_guild_id = dict_guild["territoryWarStatus"]["awayGuild"]["profile"]["id"]
+                        opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
 
                         #Fire and forget guild loading in the background
-                        _thread = threading.Thread(target=asyncio.run, args=(go.load_guild_from_id(opp_guild_id, True, True),))
-                        _thread.start()
+                        # Need to put it into a queue to not block the rest of the loop processing
+                        # But threading does not work well with mysql
+                        #_thread = threading.Thread(target=asyncio.run, args=(go.load_guild_from_id(opp_guild_id, True, True),))
+                        #_thread.start()
 
                         #Display swgoh.gg link to opponent guild
                         swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id

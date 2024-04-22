@@ -5162,14 +5162,16 @@ async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
     dict_orders = {}
     for terr in rpc_data["homeGuild"]["list_territories"]:
         zone_shortId = terr[0]
+        size = terr[1]
+        filled = terr[2]
         cmdMsg = terr[5]
         if cmdMsg == None:
             cmdMsg = "<aucun ordre défini>"
         state = terr[6]
-        if state=="IGNORED":
-            dict_orders[zone_shortId] = "!!INTERDIT!! "+cmdMsg
+        if state=="IGNORED" or size==filled:
+            dict_orders[zone_shortId] = emojis.prohibited+" "+cmdMsg
         else:
-            dict_orders[zone_shortId] = cmdMsg
+            dict_orders[zone_shortId] = "("+str(filled)+"/"+str(size)+") "+cmdMsg
 
     # Get player Id
     query = "SELECT playerId FROM players WHERE allyCode="+txt_allyCode
