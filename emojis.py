@@ -5,6 +5,7 @@ check = '\N{WHITE HEAVY CHECK MARK}'
 redcross = '\N{CROSS MARK}'
 hourglass = '\N{HOURGLASS}'
 cyclearrows = '\U0001F504'
+prohibited = '\N{PROHIBITED SIGN}'
 letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER B}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER C}', \

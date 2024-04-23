@@ -30,6 +30,7 @@ import goutils
 import portraits
 import parallel_work
 import data as godata
+import emojis
 
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 50
