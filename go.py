@@ -768,6 +768,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                         #Add farming info
                         for event in dict_unitsList[character_id]['farmingInfo']:
                             campaignId = event[0]["campaignId"]
+                            campaignMapId = event[0]["campaignMapId"]
                             if campaignId.startswith('C01'):
                                 if campaignId[3:] == 'L':
                                     color_emoji = "\N{Large Yellow Circle}LS"
@@ -779,6 +780,8 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
                                     color_emoji = "\N{LARGE BLUE CIRCLE}"
                                 else:
                                     color_emoji = None
+
+                                color_emoji+= campaignMapId[-1]
 
                                 if event[1] == 1:
                                     speed_emoji = "x1"
