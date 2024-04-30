@@ -790,7 +790,12 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     #Overview of the EB posts. Gives the territory names
                     # this name helps allocatting the phase
                     # In case of single-territory, helps recovering its position
-                    for line in message.content.split("\n"):
+                    message_lines = message.content.split("\n")
+
+                    first_line = message_lines[0]
+                    eb_phase = first_line[-2]
+
+                    for line in message_lines:
                         if line.startswith(":"):
                             ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
                             if ret_re != None:
@@ -921,7 +926,8 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
             del tmp_d[platoon]
     dict_platoons_allocation = tmp_d
 
-    return 0, "", {"allocation_tb_phases": current_tb_phase,
+    return 0, "", {"phase": eb_phase,
+                   "allocation_tb_phases": current_tb_phase,
                    "dict_platoons_allocation": dict_platoons_allocation}
 
 #####################
@@ -935,10 +941,11 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
     if ec != 0:
         return ec, et
 
+    eb_phase = ret["phase"]
     allocation_tb_phases = ret["allocation_tb_phases"]
     dict_platoons_allocation = ret["dict_platoons_allocation"]
     tbs_name = tbs_round[:-1]
-    ec, et = go.store_eb_allocations(guild_id, tbs_name, tbs_round, dict_platoons_allocation)
+    ec, et = go.store_eb_allocations(guild_id, tbs_name, eb_phase, dict_platoons_allocation)
     return ec, et
 
 #####################
@@ -2360,50 +2367,64 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                  help="Lit des Allocations de BT de EchoBot dans le salon dédié\n\n"\
                       "Exemple : go.laeb")
     async def laeb(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        ###########################
-        # get platoon allocations
-        ##########
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            ###########################
+            # get platoon allocations
+            ##########
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            goutils.log2("DBG", "")
+            if ec!=0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        guild_id = bot_infos["guild_id"]
-        tbChannel_id = bot_infos["tbChanRead_id"]
-        echostation_id = bot_infos["echostation_id"]
-        if tbChannel_id==0:
-            await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            goutils.log2("DBG", "")
+            guild_id = bot_infos["guild_id"]
+            tbChannel_id = bot_infos["tbChanRead_id"]
+            echostation_id = bot_infos["echostation_id"]
+            if tbChannel_id==0:
+                await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
-        if ec != 0:
-            await ctx.send('ERR: '+ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            goutils.log2("DBG", "")
+            ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
+            if ec != 0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        if not "territoryBattleStatus" in dict_guild:
-            await ctx.send('ERR: pas de BT en cours')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            goutils.log2("DBG", "")
+            if not "territoryBattleStatus" in dict_guild:
+                await ctx.send('ERR: pas de BT en cours')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        tb_defId = dict_guild["territoryBattleStatus"][0]["definitionId"]
-        dict_tb = data.get("tb_definition.json")
-        tb_name = dict_tb[tb_defId]["shortname"]
-        tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
-        tbs_round=tb_name+str(tb_currentRound)
+            tb_defId = dict_guild["territoryBattleStatus"][0]["definitionId"]
+            dict_tb = data.get("tb_definition.json")
+            tb_name = dict_tb[tb_defId]["shortname"]
+            tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
+            tbs_round=tb_name+str(tb_currentRound)
 
-        ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
-        if ec != 0:
-            await ctx.send('ERR: '+ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            goutils.log2("DBG", "")
+            ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
+            goutils.log2("DBG", "")
+            if ec != 0:
+                await ctx.send('ERR: '+ret_txt)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        await ctx.message.add_reaction(emojis.check)
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
     #######################################
     @commands.command(name='bot.enable',
