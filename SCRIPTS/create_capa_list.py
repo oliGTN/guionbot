@@ -112,6 +112,8 @@ for unit in game_data["units"]:
                 my_capa["omicronMode"] = "TW"
             elif skill["omicronMode"] == "GAC_OMICRON":
                 my_capa["omicronMode"] = "GA"
+            elif skill["omicronMode"] == "GALACTIC_CHALLENGE_OMICRON":
+                my_capa["omicronMode"] = "GC"
             else:
                 print("OmicronMode inconnu : "+skill["omicronMode"])
                 sys.exit(1)
