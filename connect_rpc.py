@@ -659,6 +659,10 @@ async def get_actual_tb_platoons(guild_id, force_update):
         goutils.log2("ERR", err_txt)
         return '', None, None
 
+    return get_actual_tb_platoons_from_dict(dict_guild)
+
+# OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
+async def get_actual_tb_platoons_from_dict(dict_guild):
     guildName = dict_guild["profile"]["name"]
 
     dict_member_by_id = {}
@@ -1497,6 +1501,47 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     dict_phase["charPlayers"] = len(dict_tb_players) - len(finished_players["chars"])
     dict_phase["mixPlayers"] = len(dict_tb_players) - len(finished_players["mix"])
 
+    # Get platoon remaining scores
+    if compute_estimated_platoons:
+        tbs_round, dict_platoons_done, list_open_terr = await get_actual_tb_platoons_from_dict(dict_guild)
+        for zone_name in dict_open_zones:
+            recon_zoneId = zone_name+"_recon01"
+            zone_shortname = dict_tb[zone_name]["name"]
+
+            # Count of actually done platoons
+            zone_done_count = 0
+            for platoon in dict_platoons_done:
+                platoon_done_count = 0
+                for unit in dict_platoons_done[platoon]:
+                    platoon_done_count += len(dict_platoons_done[platoon][unit])
+                if platoon_done_count==15:
+                    zone_done_count+=1
+
+            # Count of target platoons
+            query = "select platoon_id from platoon_allocations as pa " \
+                    "join platoon_config as pc on pc.id=pa.config_id " \
+                    "where guild_id = '"+guild_id+"' and zone_id='"+zone_name+"' " \
+                    "group by platoon_id " \
+                    "having count(*)=15 "
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_column(query)
+            zone_target_count = len(db_data)
+
+            # Compute remaining platoons score
+            if zone_target_count > zone_done_count:
+                platoon_score = dict_tb[zone_name]["platoon_score"]
+                remaining_score = (zone_target_count-zone_done_count) * platoon_score
+            else:
+                remaining_score = 0
+
+            dict_open_zones[zone_name]["remainingPlatoonScore"] = remaining_platoon_score
+
+    #####################################################
+    # Start filling the graph with scores
+    # 1- actual score
+    # 2- estimated fights
+    #####################################################
+
     #compute zone stats apart for deployments
     for zone_name in dict_open_zones:
         current_score = dict_open_zones[zone_name]["score"]
@@ -1535,7 +1580,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 star_for_score += 1
         dict_open_zones[zone_name]["stars"] = star_for_score
 
-    #zone stats
+    # 3- fill with deployment points
     tb_type = dict_phase["type"]
 
     if targets_zone_stars == "":
@@ -1557,6 +1602,8 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                     cur_score = dict_open_zones[zone_name]["score"]
                     if compute_estimated_fights:
                         cur_score += dict_open_zones[zone_name]["estimatedStrikeScore"]
+                    if compute_estimated_platoons:
+                        cur_score += dict_open_zones[zone_name]["remainingPlatoonScore"]
                     cur_score += dict_open_zones[zone_name]["deployment"]
 
                     if cur_score >= dict_tb[zone_name]["scores"][2]:
@@ -1648,6 +1695,8 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
         cur_score = dict_open_zones[zone_name]["score"]
         if compute_estimated_fights:
             cur_score += dict_open_zones[zone_name]["estimatedStrikeScore"]
+        if compute_estimated_platoons:
+            cur_score += dict_open_zones[zone_name]["remainingPlatoonScore"]
         cur_score += dict_open_zones[zone_name]["deployment"]
 
         star_for_score=0
