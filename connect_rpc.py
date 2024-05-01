@@ -647,10 +647,6 @@ async def join_tw(guild_id):
 
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
 async def get_actual_tb_platoons(guild_id, force_update):
-    active_round = "" # "GLS4"
-    dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
-    list_open_territories = [0, 0, 0] # [4, 3, 3]
-
     err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update)
 
     if err_code != 0:
@@ -663,6 +659,10 @@ async def get_actual_tb_platoons(guild_id, force_update):
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
 async def get_actual_tb_platoons_from_dict(dict_guild):
     dict_tb = godata.get("tb_definition.json")
+
+    active_round = "" # "GLS4"
+    dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
+    list_open_territories = [0, 0, 0] # [4, 3, 3]
 
     guildName = dict_guild["profile"]["name"]
 
