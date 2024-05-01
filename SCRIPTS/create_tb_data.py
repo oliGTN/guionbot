@@ -119,6 +119,13 @@ for tb in game_data["territoryBattleDefinition"]:
         covert_id = zone_id.split("_")[-1]
         dict_tb[conflict_id]["coverts"].append(covert_id)
 
+    for r in tb["reconZoneDefinition"]:
+        zone_id = r["zoneDefinition"]["zoneId"]
+        conflict_id = "_".join(zone_id.split("_")[:-1])
+        platoon_score = int(r["platoonDefinition"][0]["reward"]["value"])
+        dict_tb[conflict_id]["platoonScore"] = platoon_score
+
+
 dict_tb_json = json.dumps(dict_tb, indent=4)
 f = open("DATA/tb_definition.json", "w")
 f.write(dict_tb_json)
