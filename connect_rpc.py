@@ -999,7 +999,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
 
 async def tag_tb_undeployed_players(guild_id, force_update):
     dict_tb=godata.get("tb_definition.json")
-    ec, et, tb_data = await get_tb_status(guild_id, "", False, force_update)
+    ec, et, tb_data = await get_tb_status(guild_id, "", force_update)
     if ec!=0:
         return 1, et, None
 
@@ -1059,7 +1059,9 @@ async def tag_tb_undeployed_players(guild_id, force_update):
     return 0, "", {"lines_player": lines_player, "round_endTime": dict_phase["round_endTime"]}
 
 ##############################################################
-async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update):
+async def get_tb_status(guild_id, targets_zone_stars, force_update,
+                        compute_estimated_fights=False,
+                        compute_estimated_platoons=False):
     global prev_dict_guild
 
     dict_tb = godata.get("tb_definition.json")
@@ -1665,7 +1667,7 @@ async def get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, 
 ##########################################"
 async def get_tb_guild_scores(guild_id, force_update):
     dict_tb = godata.get("tb_definition.json")
-    ec, et, tb_data = await get_tb_status(guild_id, "", False, force_update)
+    ec, et, tb_data = await get_tb_status(guild_id, "", force_update)
     if ec!=0:
         return {}, ""
 

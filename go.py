@@ -3961,10 +3961,11 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update):
+async def print_tb_status(guild_id, targets_zone_stars, estimate_fights, force_update):
     dict_tb = godata.get("tb_definition.json")
 
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, targets_zone_stars, compute_estimated_fights, force_update)
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, targets_zone_stars, force_update,
+                                                      compute_estimated_fights=estimate_fights)
     if ec!=0:
         return 1, et, None
 
@@ -4034,7 +4035,7 @@ async def print_tb_status(guild_id, targets_zone_stars, compute_estimated_fights
             estimated_strike_score = max_zone_score - current_score
             score_with_estimated_strikes = max_zone_score
 
-        if compute_estimated_fights and estimated_strike_score > 0:
+        if estimate_fights and estimated_strike_score > 0:
             ret_print_tb_status+="Estimated fights: "+str(round(estimated_strike_score/1000000, 1))+"M "
             ret_print_tb_status+="(in "+str(estimated_strike_fights)+" fights)\n"
 
@@ -4329,7 +4330,7 @@ async def deploy_tb(guild_id, txt_allyCode, zone_shortname, characters):
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
     dict_tb = godata.get("tb_definition.json")
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", False, -1)
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1)
     if ec!=0:
         return 1, et
 
