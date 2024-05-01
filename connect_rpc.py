@@ -659,7 +659,8 @@ async def get_actual_tb_platoons(guild_id, force_update):
         goutils.log2("ERR", err_txt)
         return '', None, None
 
-    return get_actual_tb_platoons_from_dict(dict_guild)
+    tbs_round, dict_platoons_done, list_open_terr = await get_actual_tb_platoons_from_dict(dict_guild)
+    return tbs_round, dict_platoons_done, list_open_terr
 
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
 async def get_actual_tb_platoons_from_dict(dict_guild):
