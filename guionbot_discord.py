@@ -1973,7 +1973,44 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def test(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
-        gid = 'fid2IlOUQ8eNFR8SEHlq6Q'
+        allyCode = args[0]
+        allyCode = await manage_me(ctx, allyCode, False)
+
+        tab_msg = args[1].split('/')
+        msg_id = int(tab_msg[-1])
+        channel_id = int(tab_msg[-2])
+        try:
+            channel = bot.get_channel(channel_id)
+            msg = await channel.fetch_message(msg_id)
+            guild = channel.guild
+        except discord.errors.NotFound as e:
+            goutils.log2("ERR", "msg not found id="+str(msg_id))
+            raise(e)
+            await ctx.message.add_reaction(emojis.error)
+            return
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.message.add_reaction(emojis.error)
+            return
+
+        list_reactive_user_id = []
+        for reaction in msg.reactions:
+            async for user in reaction.users():
+                list_reactive_user_id.append(user.id)
+                guild_member = guild.get_member(user.id)
+                if guild_member==None:
+                    print(f'{user} (NOT IN THE SERVER) has reacted with {reaction.emoji}')
+
+        query = "select name, discord_id from players join player_discord on players.allyCode=player_discord.allyCode where guildName = (select guildName from players where allyCode="+allyCode+")"
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_table(query)
+        for line in db_data:
+            if line[1]==None:
+                print("No discord ID for "+line[0])
+            elif not line[1] in list_reactive_user_id:
+                print(line[0]+" has not reacted to the message")
 
         await ctx.message.add_reaction(emojis.check)
 
