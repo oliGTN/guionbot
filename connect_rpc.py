@@ -1800,10 +1800,14 @@ async def get_tw_status(guild_id, force_update):
 
     dict_tw=godata.dict_tw
 
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
+    #ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
+    ec, et, ret_data = await get_guild_rpc_data(guild_id, "TW", force_update)
     if ec!=0:
         goutils.log2("ERR", et)
         return {"tw_id": None}
+
+    dict_guild = ret_data[0]
+    dict_events = ret_data[2]
 
     guildId = dict_guild["profile"]["id"]
 
@@ -1911,12 +1915,38 @@ async def get_tw_status(guild_id, force_update):
                     commandState = None
                 list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg, commandState])
 
+    #Detect who has attacked what
+    dict_attack_toon_player = {} # key = leader_defId, value = [player_id_1, player_id_2, ...]
+    for event_group_id in dict_events:
+        event_group = dict_events[event_group_id]
+        for event_id in event_group:
+            event = event_group[event_id]
+            event_ts = int(event["timestamp"])
+            if event_group_id.startswith("TERRITORY_WAR_EVENT"):
+                author_id = event["authorId"]
+                data=event["data"][0]
+                activity=data["activity"]
+                if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+                    # deployment
+                    pass
+                else:
+                    if activity["zoneData"]["guildId"] == guildId:
+                        if "warSquad" in activity:
+                            if activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
+                                if "squad" in activity["warSquad"]:
+                                    leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                                    if not leader_id in dict_attack_toon_player:
+                                        dict_attack_toon_player[leader_id] = []
+
+                                    dict_attack_toon_player[leader_id].append(author_id)
+
     return {"tw_id": tw_id, \
             "tw_round": tw_round, \
             "homeGuild": {"list_teams": list_teams["homeGuild"], \
-                         "list_territories": list_territories["homeGuild"]}, \
+                          "list_territories": list_territories["homeGuild"], \
+                          "dict_attack_toon_player": dict_attack_toon_player}, \
             "awayGuild": {"list_teams": list_teams["awayGuild"], \
-                         "list_territories": list_territories["awayGuild"]}, \
+                          "list_territories": list_territories["awayGuild"]}, \
             "opp_guildName": opp_guildName, \
             "opp_guildId": opp_guildId}
 

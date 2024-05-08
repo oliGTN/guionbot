@@ -1365,7 +1365,7 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
         if ec != 0:
             return ec, et
 
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
+        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et
 
@@ -1442,7 +1442,7 @@ async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
         if ec != 0:
             return ec, et
 
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
+        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et, None
     else:
@@ -2325,7 +2325,7 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
 
     #Get reserved TW toons
     if game_mode == "TW":
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, 0)
+        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, 0)
         if ec != 0:
             return 1, et, None
     
@@ -3296,7 +3296,7 @@ async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team
 # IN: tb_mode (True if the bot shall count platoon-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id=None, tw_mode=False, tb_mode=False, with_mentions=False):
+async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id=None, tw_mode=False, tb_mode=False, with_mentions=False, exclude_attacked_leaders=[]):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
@@ -3319,7 +3319,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
     #Manage -TW or -TB option
     dict_used_toon_player = {} # key=toon, value = [playerName1, playerName2...]
     if tw_mode:
-        ec, et, dict_used_toon_player = await get_tw_defense_toons(guild_id, -1)
+        ec, et, dict_used_toon_player, dict_attack_toon_player = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et, None
     elif tb_mode:
@@ -3356,7 +3356,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             return 1, "ERR: impossible de chercher un perso non présent (avec le '-' avant le premier/seul perso) avec l'option -TW", None
 
         #prepare basic query
-        query = "SELECT guildName, name FROM players " \
+        query = "SELECT guildName, name, playerId FROM players " \
               + "WHERE guildName=(" \
               + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") "
         intro_txt = "Ceux"
@@ -3490,9 +3490,13 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         else:
             guildName = allyCodes_in_DB[0][0]
 
+        for leader_id in exclude_attack_leaders:
+            leader_name = "**"+dict_unitsList[leader_id]["name"]+"**"
+            intro_txt += ", et qui n'ont pas attaqué "+leader_name
+
         #Build the list of tags
         list_discord_ids = [intro_txt]
-        for [guildName, player_name] in allyCodes_in_DB:
+        for [guildName, player_name, player_id] in allyCodes_in_DB:
             if player_name == "":
                 continue
 
@@ -3572,7 +3576,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
     #print(output_dict)
     #Manage -TW option
     if tw_mode:
-        ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, -1)
+        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et, None
 
@@ -3888,23 +3892,12 @@ def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
 
     return 0, "", image
 
-async def get_tw_defense_toons(guild_id, force_update):
+async def get_tw_def_attack(guild_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
     if not guild_id in connect_rpc.get_dict_bot_accounts():
         return []
-
-    query = "SELECT name, twChanOut_id FROM guild_bot_infos "
-    query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
-    query+= "WHERE guild_id='"+guild_id+"'"
-    goutils.log2('DBG', query)
-    db_data = connect_mysql.get_line(query)
-
-    guildName = db_data[0]
-    twChannel_id = db_data[1]
-    if twChannel_id == 0:
-        return 1, "ERR: commande inutilisable sur ce serveur\n", None
 
     rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
     tw_id = rpc_data["tw_id"]
@@ -3912,6 +3905,7 @@ async def get_tw_defense_toons(guild_id, force_update):
         return 1, "ERR: aucune GT en cours\n", None
 
     list_defense_squads = rpc_data["homeGuild"]["list_teams"]
+    dict_attack_toon_player = rpc_data["homeGuild"]["dict_attack_toon_player"]
 
     dict_def_toon_player = {}
     for squad in list_defense_squads:
@@ -3923,7 +3917,7 @@ async def get_tw_defense_toons(guild_id, force_update):
 
             dict_def_toon_player[char_id].append(player)
 
-    return 0, "", dict_def_toon_player
+    return 0, "", dict_def_toon_player, dict_attack_toon_player
 
 #############################################################################
 # find_best_toons_in_guild
@@ -4548,7 +4542,7 @@ def print_ability(unit_id, ability_id, ability_type):
 ###########################################
 async def detect_fulldef(guild_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
-    ec, et, dict_def_toon_player = await get_tw_defense_toons(guild_id, force_update)
+    ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, force_update)
     if ec != 0:
         return ec, et, None
 
@@ -4936,10 +4930,13 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
             for p_name in players:
                 if p_name=='':
                     ac = "NULL"
-                if p_name=='Filled in another phase':
+                elif p_name=='Filled in another phase':
                     ac = "-1"
-                else:
+                elif p_name in dict_players:
                     ac = str(dict_players[p_name])
+                else:
+                    #player has left the guild
+                    ac = "999999999"
                 query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id) \n"
                 query+= "VALUES("+str(conf_id)+", "+ac+", '"+unit_id+"', '"+zone_id+"', '"+platoon_id+"')"
                 goutils.log2("DBG", query)
