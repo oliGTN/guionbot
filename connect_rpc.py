@@ -1833,9 +1833,13 @@ async def get_tw_status(guild_id, force_update):
         latest_tw_id = ""
 
         #Get the latest (=max) TW timestamp in known TW results
-        if "territoryWarStatus" in prev_dict_guild:
-            for battleStatus in prev_dict_guild["territoryWarStatus"]:
-                latest_tw_id = battleStatus["instanceId"]
+        if "guildEvents" in dict_guild:
+            for event in dict_guild["guildEvents"]:
+                if event["id"].startswith("TERRITORY_WAR_EVENT"):
+                    tw_end_ts = int(event["instance"]["endTime"])
+                    if tw_end_ts > latest_tw_end_ts:
+                        latest_tw_end_ts = tw_end_ts
+                        latest_tw_id = event["id"]+":"+event["instance"]["id"]
 
         if not manage_events.exists("tw_end", guild_id, latest_tw_id):
             # the closure is not done yet
