@@ -1836,10 +1836,10 @@ async def get_tw_status(guild_id, force_update):
         if "guildEvents" in dict_guild:
             for event in dict_guild["guildEvents"]:
                 if event["id"].startswith("TERRITORY_WAR_EVENT"):
-                    tw_end_ts = int(event["instance"]["endTime"])
+                    tw_end_ts = int(event["instance"][0]["endTime"])
                     if tw_end_ts > latest_tw_end_ts:
                         latest_tw_end_ts = tw_end_ts
-                        latest_tw_id = event["id"]+":"+event["instance"]["id"]
+                        latest_tw_id = event["id"]+":"+event["instance"][0]["id"]
 
         if not manage_events.exists("tw_end", guild_id, latest_tw_id):
             # the closure is not done yet
