@@ -3490,7 +3490,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         else:
             guildName = allyCodes_in_DB[0][0]
 
-        for leader_id in exclude_attack_leaders:
+        for leader_id in exclude_attacked_leaders:
             leader_name = "**"+dict_unitsList[leader_id]["name"]+"**"
             intro_txt += ", et qui n'ont pas attaqué "+leader_name
 
