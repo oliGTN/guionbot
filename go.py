@@ -3319,7 +3319,8 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
     #Manage -TW or -TB option
     dict_used_toon_player = {} # key=toon, value = [playerName1, playerName2...]
     if tw_mode:
-        ec, et, dict_used_toon_player, dict_attack_toon_player = await get_tw_def_attack(guild_id, -1)
+        with_attacks = (len(exclude_attacked_leaders)>0)
+        ec, et, dict_used_toon_player, dict_attack_toon_player = await get_tw_def_attack(guild_id, -1, with_attacks=with_attacks)
         if ec != 0:
             return ec, et, None
     elif tb_mode:
