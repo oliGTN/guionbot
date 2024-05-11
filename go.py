@@ -3349,6 +3349,14 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                         dict_used_toon_player[unit_id] = []
                     dict_used_toon_player[unit_id] += dict_platoons_done[terr][unit_name]
 
+    #get exclude leaders IDs
+    if len(exclude_attacked_leaders)>0:
+        exclude_attacked_leader_ids, dict_id_name, txt = goutils.get_characters_from_alias(exclude_attacked_leaders)
+        if txt != '':
+            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+    else:
+        exclude_attacked_leader_ids = []
+
     list_list_discord_ids=[]
     for list_characters in list_list_characters:
         opposite_search = (list_characters[0][0]=="-")
@@ -3490,7 +3498,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         else:
             guildName = allyCodes_in_DB[0][0]
 
-        for leader_id in exclude_attacked_leaders:
+        for leader_id in exclude_attacked_leader_ids:
             leader_name = "**"+dict_unitsList[leader_id]["name"]+"**"
             intro_txt += ", et qui n'ont pas attaqué "+leader_name
 
@@ -3508,6 +3516,12 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                 if req_char in dict_used_toon_player and \
                     player_name in dict_used_toon_player[req_char]:
                     req_chars_available = False
+
+            # Look of player has attacked an exluded leader
+            for leader_id in exclude_attacked_leader_ids:
+                if leader_id in dict_attack_toon_player:
+                    if player_id in dict_attack_toon_player[leader_id]:
+                        req_chars_available = False
 
             if not req_chars_available:
                 goutils.log2('DBG', "toon used in TW defense or TB platoon, no tag")
@@ -3892,14 +3906,14 @@ def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
 
     return 0, "", image
 
-async def get_tw_def_attack(guild_id, force_update):
+async def get_tw_def_attack(guild_id, force_update, with_attacks=False):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
     if not guild_id in connect_rpc.get_dict_bot_accounts():
         return []
 
-    rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, force_update, with_attacks=with_attacks)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None

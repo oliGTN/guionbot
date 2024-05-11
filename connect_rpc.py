@@ -95,9 +95,12 @@ async def get_guild_rpc_data(guild_id, event_types, force_update):
     else:
         dict_TBmapstats={}
 
-    ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update)
-    if ec!=0:
-        return ec, et, None
+    if event_types!=None and event_types!="":
+        ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update)
+        if ec!=0:
+            return ec, et, None
+    else:
+        dict_events = {}
 
     goutils.log2("DBG", "END get_guild_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
@@ -1795,13 +1798,17 @@ async def get_tw_opponent_leader(guild_id):
 #   "opp_guildId": id
 # }
 ########################################
-async def get_tw_status(guild_id, force_update):
+async def get_tw_status(guild_id, force_update, with_attacks=False):
     global prev_dict_guild
 
     dict_tw=godata.dict_tw
 
     #ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
-    ec, et, ret_data = await get_guild_rpc_data(guild_id, "TW", force_update)
+    if with_attacks:
+        event_types="TW"
+    else:
+        event_types=""
+    ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update)
     if ec!=0:
         goutils.log2("ERR", et)
         return {"tw_id": None}
@@ -1918,28 +1925,29 @@ async def get_tw_status(guild_id, force_update):
 
     #Detect who has attacked what
     dict_attack_toon_player = {} # key = leader_defId, value = [player_id_1, player_id_2, ...]
-    for event_group_id in dict_events:
-        event_group = dict_events[event_group_id]
-        for event_id in event_group:
-            event = event_group[event_id]
-            event_ts = int(event["timestamp"])
-            if event_group_id.startswith("TERRITORY_WAR_EVENT"):
-                author_id = event["authorId"]
-                data=event["data"][0]
-                activity=data["activity"]
-                if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
-                    # deployment
-                    pass
-                else:
-                    if activity["zoneData"]["guildId"] == guildId:
-                        if "warSquad" in activity:
-                            if activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
-                                if "squad" in activity["warSquad"]:
-                                    leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
-                                    if not leader_id in dict_attack_toon_player:
-                                        dict_attack_toon_player[leader_id] = []
+    if with_attacks:
+        for event_group_id in dict_events:
+            event_group = dict_events[event_group_id]
+            for event_id in event_group:
+                event = event_group[event_id]
+                event_ts = int(event["timestamp"])
+                if event_group_id.startswith("TERRITORY_WAR_EVENT"):
+                    author_id = event["authorId"]
+                    data=event["data"][0]
+                    activity=data["activity"]
+                    if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+                        # deployment
+                        pass
+                    else:
+                        if activity["zoneData"]["guildId"] == guildId:
+                            if "warSquad" in activity:
+                                if activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
+                                    if "squad" in activity["warSquad"]:
+                                        leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
+                                        if not leader_id in dict_attack_toon_player:
+                                            dict_attack_toon_player[leader_id] = []
 
-                                    dict_attack_toon_player[leader_id].append(author_id)
+                                        dict_attack_toon_player[leader_id].append(author_id)
 
     return {"tw_id": tw_id, \
             "tw_round": tw_round, \

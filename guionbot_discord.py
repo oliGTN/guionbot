@@ -3328,9 +3328,11 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                  brief="Tag les possesseurs d'un Perso dans la Guilde",
                  help="Tag les possesseurs d'un Perso dans la Guilde\n\n"\
                       "(ajouter '-TW' pour prendre en compte les persos posés en défense de GT)\n"\
+                      "(OU ajouter '-TB' pour prendre en compte les persos posés en pelotons de BT)\n"\
                       "Exemple : go.tpg me SEE ---> ceux qui ont SEE\n"\
                       "Exemple : go.tpg me SEE:G13 ---> ceux qui ont SEE au moins G13\n"\
                       "Exemple : go.tpg me Mara +SK ---> ceux qui ont Mara et SK\n"\
+                      "Exemple : go.tpg me Mara -SK ---> ceux qui ont Mara et qui n'ont pas SK\n"\
                       "Exemple : go.tpg me JMK / Jabba ceux qui ont JMK, puis ceux qui ont Jabba (commande lancée 2 fois)")
     async def tpg(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
@@ -3386,6 +3388,30 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
         if len(args) >= 2:
             allyCode = args[0]
+
+            # Arg management
+            # Either we get several checks for general usage or TW defense, separated by a "/"
+            # Or we have a unique check during TW, with atack checking
+            all_args = " ".join(args[1:])
+            if "/" in all_args and "!" in all_args:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            exclude_attacked_leaders = []
+            if "!" in all_args:
+                if not tw_mode:
+                    await ctx.send("ERR: impossible d'utiliser l'option ! sans option -TW")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                for arg in args[1:]:
+                    if arg[0] == "!":
+                        exclude_attacked_leaders.append(arg[1:])
+
+                for leader in exclude_attacked_leaders:
+                    args.remove("!"+leader)
+
             character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')] if x!='']
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
@@ -3401,7 +3427,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             with_mentions = officer_command(ctx)
             err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
                                                                              guild_id, tw_mode, tb_mode,
-                                                                             with_mentions)
+                                                                             with_mentions, 
+                                                                             exclude_attacked_leaders=exclude_attacked_leaders)
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emojis.redcross)
