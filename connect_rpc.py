@@ -1787,11 +1787,11 @@ async def get_tw_opponent_leader(guild_id):
 # {
 #   "tw_id": None / "TERRITORY_WAR_EVENT_C:01681236000000", 
 #   "tw_round": tw_round, 
-#   "homeGuild": {"list_teams": [["T1", "Karcot", ["GENERALSKYWALGER", "ARCTROOPER", ...], <is_beaten>, <fights>],
+#   "homeGuild": {"list_defenses": [["T1", "Karcot", ["GENERALSKYWALGER", "ARCTROOPER", ...], <is_beaten>, <fights>],
 #                                ["T1", "JeanLuc"...
 #                 "list_territories": [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>, <status>], ...]
 #                }, 
-#   "awayGuild": {"list_teams": ...,
+#   "awayGuild": {"list_defenses": ...,
 #                 "list_territories": ...
 #                }, 
 #   "opp_guildName": name, 
@@ -1868,12 +1868,12 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
     opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
     opp_guildId = battleStatus["awayGuild"]["profile"]["id"]
 
-    list_teams = {}
+    list_defenses = {}
     list_territories = {}
 
     capa_list = godata.get("unit_capa_list.json")
     for guild in ["homeGuild", "awayGuild"]:
-        list_teams[guild] = []
+        list_defenses[guild] = []
         list_territories[guild] = []
         if guild in cur_tw:
             for zone in cur_tw[guild]["conflictStatus"]:
@@ -1903,7 +1903,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                         is_beaten = (squad["squadStatus"]=="SQUADDEFEATED")
                         fights = squad["successfulDefends"]
                         team_gp = squad["power"]
-                        list_teams[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights, team_gp])
+                        list_defenses[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights, team_gp])
 
                         if is_beaten:
                             victories+=1
@@ -1924,7 +1924,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                 list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg, commandState])
 
     #Detect who has attacked what
-    dict_attack_toon_player = {} # key = leader_defId, value = [player_id_1, player_id_2, ...]
+    list_attacks = []
     if with_attacks:
         for event_group_id in dict_events:
             event_group = dict_events[event_group_id]
@@ -1933,6 +1933,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                 event_ts = int(event["timestamp"])
                 if event_group_id.startswith("TERRITORY_WAR_EVENT"):
                     author_id = event["authorId"]
+                    attacker_name = event["authorName"]
                     data=event["data"][0]
                     activity=data["activity"]
                     if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
@@ -1943,19 +1944,40 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                             if "warSquad" in activity:
                                 if activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
                                     if "squad" in activity["warSquad"]:
-                                        leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"].split(":")[0]
-                                        if not leader_id in dict_attack_toon_player:
-                                            dict_attack_toon_player[leader_id] = []
+                                        zone_id = activity["zoneData"]["zoneId"]
+                                        zone_shortname = dict_tw[zone_id]
+                                        defenser_name = activity["warSquad"]["playerName"]
+                                        team_gp = activity["warSquad"]["power"]
+                                        squad = activity["warSquad"]["squad"]
+                                        list_chars = []
+                                        for c in squad["cell"]:
+                                            unit_id = c["unitDefId"].split(":")[0]
+                                            my_unit = {"unitDefId": c["unitDefId"],
+                                                       "unitId": unit_id,
+                                                       "level": c["unitBattleStat"]["level"],
+                                                       "gear": c["unitBattleStat"]["tier"],
+                                                       "relic": c["unitBattleStat"]["unitRelicTier"],
+                                                       "turnMeter": c["unitState"]["turnPercent"]}
+                                            if "skill" in c["unitBattleStat"]:
+                                                my_unit["skill"] = c["unitBattleStat"]["skill"]
+                                            if "purchaseAbilityId" in c["unitBattleStat"]:
+                                                my_unit["purchaseAbilityId"] = c["unitBattleStat"]["purchaseAbilityId"]
 
-                                        dict_attack_toon_player[leader_id].append(author_id)
+                                            list_chars.append(my_unit)
+
+                                        list_attacks.append({"zone": zone_shortname, 
+                                                              "attacker": attacker_name, 
+                                                              "defenser": defenser_name,
+                                                              "list_chars": list_chars, 
+                                                              "gp": team_gp})
 
     return {"tw_id": tw_id, \
             "tw_round": tw_round, \
-            "homeGuild": {"list_teams": list_teams["homeGuild"], \
-                          "list_territories": list_territories["homeGuild"], \
-                          "dict_attack_toon_player": dict_attack_toon_player}, \
-            "awayGuild": {"list_teams": list_teams["awayGuild"], \
-                          "list_territories": list_territories["awayGuild"]}, \
+            "homeGuild": {"list_defenses": list_defenses["homeGuild"], \
+                          "list_territories": list_territories["homeGuild"]}, \
+            "awayGuild": {"list_defenses": list_defenses["awayGuild"], \
+                          "list_territories": list_territories["awayGuild"], \
+                          "list_attacks": list_attacks}, \
             "opp_guildName": opp_guildName, \
             "opp_guildId": opp_guildId}
 

@@ -3161,7 +3161,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         ret = await connect_rpc.get_tw_status(guild_id, 0)
 
         for home_away in [["homeGuild", "notre défense"], ["awayGuild", "la défense adverse"]]:
-            list_team_home=ret[home_away[0]]["list_teams"]
+            list_team_home=ret[home_away[0]]["list_defenses"]
             best_teams = go.filter_tw_best_teams(list_team_home)
             for unit_type in [["ships", "vaisseaux"], ["chars", "terrestre"]]:
                 for beaten_txt in [["beaten", "vaincue"], ["remaining", "invaincue"]]:
@@ -3425,10 +3425,17 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.message.add_reaction(emojis.redcross)
         else:
             with_mentions = officer_command(ctx)
-            err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
-                                                                             guild_id, tw_mode, tb_mode,
-                                                                             with_mentions, 
-                                                                             exclude_attacked_leaders=exclude_attacked_leaders)
+            try:
+                err, errtxt, list_list_ids = \
+                    await go.tag_players_with_character(allyCode, character_list,
+                                                        guild_id, tw_mode, tb_mode,
+                                                        with_mentions, 
+                                                        exclude_attacked_leaders=exclude_attacked_leaders)
+            except Exception as e:
+                goutils.log2("ERR", str(sys.exc_info()[0]))
+                goutils.log2("ERR", e)
+                goutils.log2("ERR", traceback.format_exc())
+
             if err != 0:
                 await ctx.send(errtxt)
                 await ctx.message.add_reaction(emojis.redcross)

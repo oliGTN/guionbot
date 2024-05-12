@@ -1990,7 +1990,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             if tw_id == None:
                 return "ERR: no TW ongoing"
 
-            list_opponent_squads = rpc_data["awayGuild"]["list_teams"]
+            list_opponent_squads = rpc_data["awayGuild"]["list_defenses"]
             tuple_opp_players = tuple(set([x[1] for x in list_opponent_squads]))
             if len(tuple_opp_players)==0:
                 return "ERR: impossible de détecter les adversaires sur cette zone"
@@ -2412,7 +2412,7 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
 
-    list_opponent_squads = rpc_data["awayGuild"]["list_teams"]
+    list_opponent_squads = rpc_data["awayGuild"]["list_defenses"]
     if len(list_opponent_squads) == 0:
         goutils.log2("ERR", "aucune phase d'attaque en cours en GT")
         return 1, "ERR: aucune phase d'attaque en cours en GT\n", None
@@ -2935,7 +2935,7 @@ async def get_tw_alerts(guild_id, force_update):
     ########################################
     # OPPONENT territories
     ########################################
-    list_opponent_squads = rpc_data["awayGuild"]["list_teams"]
+    list_opponent_squads = rpc_data["awayGuild"]["list_defenses"]
     list_opp_territories = rpc_data["awayGuild"]["list_territories"]
     if len(list_opponent_squads) > 0:
         list_opponent_players = [x[1] for x in list_opponent_squads]
@@ -3013,7 +3013,7 @@ async def get_tw_alerts(guild_id, force_update):
     ########################################
     # HOME territories
     ########################################
-    list_def_squads = rpc_data["homeGuild"]["list_teams"]
+    list_def_squads = rpc_data["homeGuild"]["list_defenses"]
     list_def_territories = rpc_data["homeGuild"]["list_territories"]
     list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
     nb_full = len(list_full_territories)
@@ -3350,7 +3350,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                         dict_used_toon_player[unit_id] = []
                     dict_used_toon_player[unit_id] += dict_platoons_done[terr][unit_name]
 
-    #get exclude leaders IDs
+    #get exclude attacked toon IDs
     if len(exclude_attacked_leaders)>0:
         exclude_attacked_leader_ids, dict_id_name, txt = goutils.get_characters_from_alias(exclude_attacked_leaders)
         if txt != '':
@@ -3521,7 +3521,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             # Look of player has attacked an exluded leader
             for leader_id in exclude_attacked_leader_ids:
                 if leader_id in dict_attack_toon_player:
-                    if player_id in dict_attack_toon_player[leader_id]:
+                    if player_name in dict_attack_toon_player[leader_id]:
                         req_chars_available = False
 
             if not req_chars_available:
@@ -3919,8 +3919,8 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False):
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
 
-    list_defense_squads = rpc_data["homeGuild"]["list_teams"]
-    dict_attack_toon_player = rpc_data["homeGuild"]["dict_attack_toon_player"]
+    list_defense_squads = rpc_data["homeGuild"]["list_defenses"]
+    list_attack_squads = rpc_data["awayGuild"]["list_attacks"]
 
     dict_def_toon_player = {}
     for squad in list_defense_squads:
@@ -3931,6 +3931,16 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False):
                 dict_def_toon_player[char_id] = []
 
             dict_def_toon_player[char_id].append(player)
+
+    dict_attack_toon_player = {}
+    for squad in list_attack_squads:
+        player = squad["attacker"]
+        for char in squad["list_chars"]:
+            char_id = char["unitId"]
+            if not char_id in dict_attack_toon_player:
+                dict_attack_toon_player[char_id] = []
+
+            dict_attack_toon_player[char_id].append(player)
 
     return 0, "", dict_def_toon_player, dict_attack_toon_player
 
@@ -4970,7 +4980,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
     if tw_id == None:
         return 2, "ERR: pas de GT en cours"
 
-    list_opponent_squads = [x for x in rpc_data["awayGuild"]["list_teams"] if not x[3]]
+    list_opponent_squads = [x for x in rpc_data["awayGuild"]["list_defenses"] if not x[3]]
     opp_guild_name = rpc_data["opp_guildName"]
 
     # Get data for this player
