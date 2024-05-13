@@ -3980,11 +3980,12 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-async def print_tb_status(guild_id, targets_zone_stars, estimate_fights, force_update):
+async def print_tb_status(guild_id, targets_zone_stars, force_update, estimate_fights=False, estimate_platoons=False):
     dict_tb = godata.get("tb_definition.json")
 
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, targets_zone_stars, force_update,
-                                                      compute_estimated_fights=estimate_fights)
+                                                      compute_estimated_fights=estimate_fights,
+                                                      compute_estimated_platoons=estimate_platoons)
     if ec!=0:
         return 1, et, None
 
@@ -4045,6 +4046,18 @@ async def print_tb_status(guild_id, targets_zone_stars, estimate_fights, force_u
         cur_strike_fights = sum(dict_open_zones[zone_name]["strikeFights"].values())
         ret_print_tb_status+="(including "+str(round(cur_strike_score/1000000, 1))+"M in "+str(cur_strike_fights)+" fights)\n"
 
+        # Estimated platoons - LIGHT GREEN
+        if estimate_platoons:
+            estimated_platoon_score = dict_open_zones[zone_name]["remainingPlatoonScore"]
+            score_with_estimated_platoons = current_score + estimated_platoon_score
+
+            if score_with_estimated_platoons > max_zone_score:
+                estimated_platoon_score = max_zone_score - current_score
+                score_with_estimated_platoons = max_zone_score
+
+            if estimated_platoon_score > 0:
+                ret_print_tb_status+="Estimated platoons: "+str(round(estimated_platoon_score/1000000, 1))+"M \n"
+
         # Estimated fights - ORANGE
         estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
         estimated_strike_fights = dict_open_zones[zone_name]["estimatedStrikeFights"]
@@ -4073,8 +4086,8 @@ async def print_tb_status(guild_id, targets_zone_stars, estimate_fights, force_u
 
         #create image
         img = draw_tb_previsions(dict_tb[zone_name]["name"], dict_tb[zone_name]["scores"],
-                                 current_score, estimated_strike_score, deploy_consumption,
-                                 max_strike_score)
+                                 current_score, estimated_platoon_score, estimated_strike_score, 
+                                 deploy_consumption, max_strike_score)
         list_images.append(img)
 
     ret_print_tb_status += "----------------------------\n"
@@ -4103,7 +4116,7 @@ def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, p
         delta_score = max_score - start_score
     else:
         end_score = int(end_score)
-    if delta_score <= 0:
+    if delta_score <= 10: # allows rounding error (10 over some M points)
         return start_score
 
     #colored rectangle
@@ -4126,17 +4139,18 @@ def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, p
 
     return end_score
 
-def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes, deployments, max_strikes):
+def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_platoons, estimated_strikes, deployments, max_strikes):
     goutils.log2("DBG", "draw_tb_previsions("+zone_name+", "+str(zone_scores)+", "+str(current_score)+", "+str(estimated_strikes)+", "+str(deployments)+", "+str(max_strikes)+")")
-    zone_img = Image.new('RGB', (500, 220), (255, 255, 255))
+    zone_img = Image.new('RGB', (500, 240), (255, 255, 255))
     zone_img_draw = ImageDraw.Draw(zone_img)
 
     score_3stars = zone_scores[2]
 
     current_score = draw_score_zone(zone_img_draw, 0, current_score, score_3stars, "darkgreen", 1)
-    eststrike_score = draw_score_zone(zone_img_draw, current_score, estimated_strikes, score_3stars, "orange", 2)
-    deployment_score = draw_score_zone(zone_img_draw, eststrike_score, deployments, score_3stars, "yellow", 3)
-    final_score = draw_score_zone(zone_img_draw, deployment_score, max_strikes-estimated_strikes, score_3stars, "red", 4)
+    estplatoon_score = draw_score_zone(zone_img_draw, current_score, estimated_platoons, score_3stars, "lightgreen", 2)
+    eststrike_score = draw_score_zone(zone_img_draw, estplatoon_score, estimated_strikes, score_3stars, "orange", 3)
+    deployment_score = draw_score_zone(zone_img_draw, eststrike_score, deployments, score_3stars, "yellow", 4)
+    final_score = draw_score_zone(zone_img_draw, deployment_score, max_strikes-estimated_strikes, score_3stars, "red", 5)
 
     #Draw stars
     active_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star.png")
@@ -4172,8 +4186,10 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_strikes,
         zone_img_draw.text((x_txt, 115), score_star_txt, "black", font=font)
 
     #legend
-    zone_img_draw.rectangle((250, 10, 260, 20), fill="darkgreen")
-    zone_img_draw.text((265, 10), "Score actuel", "black", font=font)
+    zone_img_draw.rectangle((150, 10, 160, 20), fill="darkgreen")
+    zone_img_draw.text((165, 10), "Score actuel", "black", font=font)
+    zone_img_draw.rectangle((250, 10, 260, 20), fill="lightgreen")
+    zone_img_draw.text((265, 10), "Pelotons", "black", font=font)
     zone_img_draw.rectangle((250, 30, 260, 40), fill="yellow")
     zone_img_draw.text((265, 30), "Déploiement", "black", font=font)
     zone_img_draw.rectangle((350, 10, 360, 20), fill="orange")
@@ -4858,7 +4874,6 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
     for line in file_content.split("\n")[1:]:
         fields = line.split('"')
         if len(fields)<4:
-            print("b")
             break
         allyCode_txt = fields[3]
         columns = line.split(",")
@@ -4937,7 +4952,6 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
 
     #Store new allocations
     for platoon_name in allocations:
-        print(platoon_name+":"+str(allocations[platoon_name]))
         platoon_zone = platoon_name[:-2]
         platoon_position = platoon_name[-1]
         zone_id = dict_zones[platoon_zone]+"_recon01"

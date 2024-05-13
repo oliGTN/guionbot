@@ -1089,6 +1089,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     for member in dict_guild["member"]:
         dict_members_by_id[member["playerId"]] = member
 
+    # Get TB id, basic infos and TB events
     tb_ongoing=False
     if "territoryBattleStatus" in dict_guild:
         for battleStatus in dict_guild["territoryBattleStatus"]:
@@ -1515,30 +1516,33 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             # Count of actually done platoons
             zone_done_count = 0
             for platoon in dict_platoons_done:
-                platoon_done_count = 0
-                for unit in dict_platoons_done[platoon]:
-                    platoon_done_count += len(dict_platoons_done[platoon][unit])
-                if platoon_done_count==15:
-                    zone_done_count+=1
+                if platoon.startswith(zone_shortname):
+                    platoon_done_count = 0
+                    for unit in dict_platoons_done[platoon]:
+                        for player in dict_platoons_done[platoon][unit]:
+                            if player!='':
+                                platoon_done_count += 1
+                    if platoon_done_count==15:
+                        zone_done_count+=1
 
             # Count of target platoons
-            query = "select platoon_id from platoon_allocations as pa " \
-                    "join platoon_config as pc on pc.id=pa.config_id " \
-                    "where guild_id = '"+guild_id+"' and zone_id='"+zone_name+"' " \
-                    "group by platoon_id " \
-                    "having count(*)=15 "
+            query = "SELECT platoon_id FROM platoon_allocations AS pa " \
+                    "JOIN platoon_config AS pc ON pc.id=pa.config_id " \
+                    "WHERE guild_id = '"+guild_id+"' AND zone_id='"+recon_zoneId+"' " \
+                    "GROUP BY platoon_id " \
+                    "HAVING count(*)=15 "
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_column(query)
             zone_target_count = len(db_data)
 
             # Compute remaining platoons score
             if zone_target_count > zone_done_count:
-                platoon_score = dict_tb[zone_name]["platoon_score"]
+                platoon_score = dict_tb[zone_name]["platoonScore"]
                 remaining_score = (zone_target_count-zone_done_count) * platoon_score
             else:
                 remaining_score = 0
 
-            dict_open_zones[zone_name]["remainingPlatoonScore"] = remaining_platoon_score
+            dict_open_zones[zone_name]["remainingPlatoonScore"] = remaining_score
 
     #####################################################
     # Start filling the graph with scores

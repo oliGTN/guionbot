@@ -1971,6 +1971,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='test', help='Réservé aux admins')
     @commands.check(admin_command)
     async def test(self, ctx, *args):
+        for g in bot.guilds:
+            print(g.name, g.owner)
+
+    @commands.command(name='reactioncheck', help='Liste ceux qui ont raégit à un message')
+    @commands.check(admin_command)
+    async def reactioncheck(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
         allyCode = args[0]
@@ -2903,16 +2909,20 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='tbs',
             brief="Statut de la BT",
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
-                 "TB status \"2:1 3:3 1:2\" [-estime]")
+                 "TB status \"2:1 3:3 1:2\" [-estime] [-pelotons]")
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
         # Manage command parameters
         options = list(args)
         estimate_fights = False
-        for arg in options:
+        estimate_platoons = False
+        for arg in args:
             if arg.startswith("-e"):
                 estimate_fights = True
+                options.remove(arg)
+            elif arg.startswith("-p"):
+                estimate_platoons = True
                 options.remove(arg)
 
         if len(options) == 0:
@@ -2936,7 +2946,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         guild_id = bot_infos["guild_id"]
 
         # Main call
-        err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, estimate_fights, 0)
+        err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, 0,
+                                                             estimate_fights=estimate_fights,
+                                                             estimate_platoons=estimate_platoons)
         if err_code == 0:
             for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                 await ctx.send(txt)
