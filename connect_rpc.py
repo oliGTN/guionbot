@@ -1509,38 +1509,50 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     # Get platoon remaining scores
     if compute_estimated_platoons:
         tbs_round, dict_platoons_done, list_open_terr = await get_actual_tb_platoons_from_dict(dict_guild)
+        tb_name = tbs_round[:-1]
+        err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tb_name+"0")
+        dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
         for zone_name in dict_open_zones:
             recon_zoneId = zone_name+"_recon01"
             zone_shortname = dict_tb[zone_name]["name"]
 
-            # Count of actually done platoons
-            zone_done_count = 0
+
+            # Fill done platoons with allocations
+            zone_done_count=0
+            zone_target_count=0
             for platoon in dict_platoons_done:
                 if platoon.startswith(zone_shortname):
-                    platoon_done_count = 0
+                    current_platoon_count=0
+                    future_platoon_count=0
                     for unit in dict_platoons_done[platoon]:
-                        for player in dict_platoons_done[platoon][unit]:
-                            if player!='':
-                                platoon_done_count += 1
-                    if platoon_done_count==15:
-                        zone_done_count+=1
+                        empty_players = dict_platoons_done[platoon][unit].count('')
+                        current_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
+                        future_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
 
-            # Count of target platoons
-            query = "SELECT platoon_id FROM platoon_allocations AS pa " \
-                    "JOIN platoon_config AS pc ON pc.id=pa.config_id " \
-                    "WHERE guild_id = '"+guild_id+"' AND zone_id='"+recon_zoneId+"' " \
-                    "GROUP BY platoon_id " \
-                    "HAVING count(*)=15 "
-            goutils.log2("DBG", query)
-            db_data = connect_mysql.get_column(query)
-            zone_target_count = len(db_data)
+                        dict_platoon_allocations = dict_platoons_allocation[platoon]
+                        if unit in dict_platoon_allocations:
+                            #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
+                            for i in range(empty_players):
+                                target_players = dict_platoon_allocations[unit]
+                                for player in target_players:
+                                    if not player in dict_platoons_done[platoon][unit]:
+                                        dict_platoons_done[platoon][unit].remove('')
+                                        dict_platoons_done[platoon][unit].append(player)
+                                        dict_platoon_allocations[unit].remove(player)
+                                        future_platoon_count += 1
+                                        break
 
+                            #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
+                    #print(current_platoon_count, future_platoon_count)
+                    zone_done_count += (current_platoon_count==15)
+                    zone_target_count += (future_platoon_count==15)
+
+                                
             # Compute remaining platoons score
+            remaining_score = 0
             if zone_target_count > zone_done_count:
                 platoon_score = dict_tb[zone_name]["platoonScore"]
                 remaining_score = (zone_target_count-zone_done_count) * platoon_score
-            else:
-                remaining_score = 0
 
             dict_open_zones[zone_name]["remainingPlatoonScore"] = remaining_score
 
