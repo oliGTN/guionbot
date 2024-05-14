@@ -1218,11 +1218,13 @@ def get_google_player_info(channel_id):
                    "tbChanRead_id": db_data[3],
                    "echostation_id": db_data[4]}
 
+# IN: tbs_round > ROTE1 to ROTE6, or ROTE0 to get the latest data
 def get_tb_platoon_allocations(guild_id, tbs_round):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_tb = data.get("tb_definition.json")
 
     tb_name = tbs_round[:-1]
+    tb_phase = int(tbs_round[-1])
     if tb_name == "ROTE":
         terr_pos = ["LS", "DS", "MS"]
     else:
@@ -1231,7 +1233,13 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
     query = "SELECT zone_id, platoon_id, unit_id, name FROM platoon_allocations " \
             "JOIN platoon_config ON platoon_config.id=config_id " \
             "JOIN players ON players.allyCode=platoon_allocations.allyCode " \
-            "WHERE guild_id='"+guild_id+"' AND phases='"+tbs_round+"'" 
+            "WHERE guild_id='"+guild_id+"' "
+    if tb_phase>0:
+        # Get the data for specific phase
+        query += "AND phases="+str(tb_phase) 
+    else:
+        # Get the data for latest stored data of this guild
+        query += "AND ABS(timestampdiff(SECOND, timestamp, (select max(timestamp) from platoon_config WHERE guild_id='"+guild_id+"')))<5"
 
     db_data = get_table(query)
     if db_data == None:
