@@ -4057,6 +4057,8 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update, estimate_f
 
             if estimated_platoon_score > 0:
                 ret_print_tb_status+="Estimated platoons: "+str(round(estimated_platoon_score/1000000, 1))+"M \n"
+        else:
+            estimated_platoon_score = 0
 
         # Estimated fights - ORANGE
         estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
