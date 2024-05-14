@@ -5325,3 +5325,19 @@ def filter_tw_best_teams(tw_teams):
 
     return best_teams
 
+async def set_tb_targets(guild_id, tb_phase_target):
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", 0)
+    if ec!=0:
+        return 1, et
+
+    dict_phase = tb_data["phase"]
+    dict_strike_zones = tb_data["strike_zones"]
+    dict_tb_players = tb_data["players"]
+    dict_open_zones = tb_data["open_zones"]
+
+    list_targets=[]
+    for t in tb_phase_target:
+        list_targets.append(t.split(':'))
+    err_code, err_txt = connect_gsheets.set_tb_targets(guild_id, list_targets)
+
+    return err_code, err_txt

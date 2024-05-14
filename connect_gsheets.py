@@ -539,6 +539,99 @@ def get_tb_triggers(guild_id, force_load):
 
     return [daily_targets, margin]
 
+# IN: list_targets=[["ROTE1-DS", 3], ["ROTE2-MS", 3], ...]
+def set_tb_targets(guild_id, list_targets):
+    gfile_name = get_gfile_name(guild_id)
+    try:
+        get_gapi_client()
+        file = client.open(gfile_name)
+        feuille=file.worksheet("BT")
+    except:
+        goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+        return 1, "Cannot read BT sheet"
+    
+    #parsing title row
+    col_top=0
+    col_mid=0
+    col_bot=0
+    col_margin=0
+    top_column_title='Top'
+    mid_column_title='Mid'
+    bot_column_title='Bot'
+    margin_column_title='Marge'
+
+    #Detect columns
+    c = 1
+    first_row=feuille.row_values(1)
+    for value in first_row:
+        if value==top_column_title:
+            col_top=c
+        elif value==mid_column_title:
+            col_mid=c
+        elif value==bot_column_title:
+            col_bot=c
+        elif value==margin_column_title:
+            col_margin=c
+        c+=1
+
+    if      (col_top > 0) \
+        and (col_mid > 0) \
+        and (col_bot > 0) \
+        and (col_margin > 0):
+    
+        #detect TB targets per day
+        daily_names=feuille.col_values(col_top-1)
+        top_stars=feuille.col_values(col_top)
+        mid_stars=feuille.col_values(col_mid)
+        bot_stars=feuille.col_values(col_bot)
+    else:
+        return 1, "Cannot read BT sheet"
+
+    cells = []
+    for target in list_targets:
+        try:
+            zone=target[0]
+            tbs_round = zone.split('-')[0]
+            tb_name = tbs_round[:-1]
+            tb_phase = tbs_round[-1]
+            side = zone.split('-')[1]
+            stars = int(target[1])
+        except:
+            goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+            return 1, "Cannot read BT targets"
+
+        l = 1
+        for daily_name in daily_names:
+            top_target = top_stars[l-1] + '-' + top_stars[l]
+            mid_target = mid_stars[l-1] + '-' + mid_stars[l]
+            bot_target = bot_stars[l-1] + '-' + bot_stars[l]
+
+            if daily_name!='':
+                if top_stars[l-1] in [top_column_title, "DS"]:
+                    current_tb_name = daily_name
+                if current_tb_name==tb_name:
+                    if daily_name!='':
+                        current_tb_phase = daily_name[-1]
+                    if current_tb_phase==tb_phase:
+                        if top_target!='' or mid_target!='' or bot_target!='' and current_tb_phase==tb_phase:
+                            if side in ["top", "DS"]:
+                                c=col_top
+                            elif side in ["mid", "MS"]:
+                                c=col_mid
+                            else: # side in ["bot", "LS"]:
+                                c=col_bot
+
+                            cells.append(gspread.cell.Cell(row=l+1, col=c, value=stars))
+
+            l+=1
+
+    feuille.update_cells(cells)
+
+    # recreate CACHE file (return value is not useful)
+    ret = get_tb_triggers(guild_id, True)
+    
+    return 0, ""
+
 def load_tb_teams(guild_id, force_load):
     gfile_name = get_gfile_name(guild_id)
 

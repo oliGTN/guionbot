@@ -2909,7 +2909,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='tbs',
             brief="Statut de la BT",
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
-                 "TB status \"2:1 3:3 1:2\" [-estime] [-pelotons]")
+                 "go.tbs \"DS:1 LS:3 MS:2\" [-estime] [-pelotons]")
     async def tbs(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
@@ -2961,6 +2961,49 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                         await ctx.send(content = "",
                             file=File(fp=image_binary, filename='image.png'))
 
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emojis.check)
+        else:
+            await ctx.send(ret_txt)
+            await ctx.message.add_reaction(emojis.redcross)
+
+    ####################################################
+    # Command tbo
+    ####################################################
+    @commands.check(officer_command)
+    @commands.command(name='tbo',
+            brief="Objectif de phase de la BT",
+            help="Objectif de la phase de BT en fonctions des zone:étoiles demandés\n" \
+                 "go.tbo DS:1 LS:3 MS:2")
+    async def tbo(self, ctx, *args):
+        await ctx.message.add_reaction(emojis.thumb)
+
+        # Manage command parameters
+        if len(args) == 0:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbo")
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+        else:
+            tb_phase_target = args
+
+        #Ensure command is launched from a server, not a DM
+        if ctx.guild == None:
+            await ctx.send('ERR: commande non autorisée depuis un DM')
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        if ec!=0:
+            await ctx.send("ERR: "+et)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        guild_id = bot_infos["guild_id"]
+
+        # Main call
+        err_code, ret_txt = await go.set_tb_targets(guild_id, tb_phase_target)
+        if err_code == 0:
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emojis.check)
         else:
