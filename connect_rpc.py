@@ -1691,21 +1691,24 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
             current_score = dict_open_zones[zone_name]["score"]
             estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
-            score_with_estimated_strikes = current_score + estimated_strike_score
+            if compute_estimated_platoons:
+                estimated_platoon_score = dict_open_zones[zone_name]["remainingPlatoonScore"]
+            else:
+                estimated_platoon_score = 0
+            score_with_estimations = current_score + estimated_strike_score + estimated_platoon_score
 
             target_star_score = dict_tb[zone_name]["scores"][target_stars-1]
             if dict_tb[zone_name]["type"] == "ships":
-                deploy_consumption = max(0, min(dict_remaining_deploy["ships"]["all"], target_star_score - score_with_estimated_strikes))
+                deploy_consumption = max(0, min(dict_remaining_deploy["ships"]["all"], target_star_score - score_with_estimations))
                 dict_remaining_deploy["ships"]["all"] -= deploy_consumption
             elif dict_tb[zone_name]["type"] == "chars":
-                deploy_consumption = max(0, min(dict_remaining_deploy["chars"]["all"], target_star_score - score_with_estimated_strikes))
+                deploy_consumption = max(0, min(dict_remaining_deploy["chars"]["all"], target_star_score - score_with_estimations))
                 dict_remaining_deploy["chars"]["all"] -= deploy_consumption
             else:
-                deploy_consumption = max(0, min(dict_remaining_deploy["mix"]["all"], target_star_score - score_with_estimated_strikes))
+                deploy_consumption = max(0, min(dict_remaining_deploy["mix"]["all"], target_star_score - score_with_estimations))
                 dict_remaining_deploy["mix"]["all"] -= deploy_consumption
 
             dict_open_zones[zone_name]["deployment"] = deploy_consumption
-            score_with_estimations = score_with_estimated_strikes + deploy_consumption
 
     dict_phase["remainingShipDeploy"] = dict_remaining_deploy["ships"]["all"]
     dict_phase["remainingCharDeploy"] = dict_remaining_deploy["chars"]["all"]
