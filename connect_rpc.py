@@ -1529,20 +1529,21 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                         current_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
                         future_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
 
-                        dict_platoon_allocations = dict_platoons_allocation[platoon]
-                        if unit in dict_platoon_allocations:
-                            #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
-                            for i in range(empty_players):
-                                target_players = dict_platoon_allocations[unit]
-                                for player in target_players:
-                                    if not player in dict_platoons_done[platoon][unit]:
-                                        dict_platoons_done[platoon][unit].remove('')
-                                        dict_platoons_done[platoon][unit].append(player)
-                                        dict_platoon_allocations[unit].remove(player)
-                                        future_platoon_count += 1
-                                        break
+                        if platoon in dict_platoons_allocation:
+                            dict_platoon_allocations = dict_platoons_allocation[platoon]
+                            if unit in dict_platoon_allocations:
+                                #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
+                                for i in range(empty_players):
+                                    target_players = dict_platoon_allocations[unit]
+                                    for player in target_players:
+                                        if not player in dict_platoons_done[platoon][unit]:
+                                            dict_platoons_done[platoon][unit].remove('')
+                                            dict_platoons_done[platoon][unit].append(player)
+                                            dict_platoon_allocations[unit].remove(player)
+                                            future_platoon_count += 1
+                                            break
 
-                            #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
+                                #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
                     #print(current_platoon_count, future_platoon_count)
                     zone_done_count += (current_platoon_count==15)
                     zone_target_count += (future_platoon_count==15)
