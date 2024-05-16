@@ -3362,8 +3362,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         guild_id = bot_infos["guild_id"]
 
         #Launch the actual command
-        data.reset_data()
         err_code, err_txt = await read_gsheets(guild_id)
+        data.reset_data()
 
         if err_code == 1:
             await ctx.send(err_txt)

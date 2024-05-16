@@ -629,6 +629,7 @@ def set_tb_targets(guild_id, list_targets):
 
     # recreate CACHE file (return value is not useful)
     ret = get_tb_triggers(guild_id, True)
+    data.reset_data()
     
     return 0, ""
 
