@@ -2809,7 +2809,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             else: # type = list
                 list_inactive_players = ret_data
                 output_txt="N'oubliez pas de vous inscrire pour la GT svp : \n"
-                for p_name in list_inactive_players:
+                for p in list_inactive_players:
                     p_name = dict_players_by_IG[p][1]
                     output_txt_player = p_name+"\n"
 
