@@ -1361,9 +1361,10 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
 
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et
+        list_active_players = ret_dict["active"]
 
         ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
@@ -1438,9 +1439,10 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
 async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode):
     #Manage -TW option
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et
+        list_active_players = ret_dict["active"]
 
         ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
@@ -3304,9 +3306,10 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et, None
+        list_active_players = ret_dict["active"]
 
     if with_mentions:
         #get list of allyCodes and player tags
@@ -3551,9 +3554,10 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, 0)
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et
+        list_active_players = ret_dict["active"]
 
     #get units from alias
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_characters)
@@ -4653,25 +4657,35 @@ async def detect_fulldef(guild_id, force_update):
 
     return 0, "", dict_fulldef
 
-async def get_tw_insufficient_attacks(guild_id, min_char_attacks, min_ship_attacks):
-    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, 0)
+# OUT: 1 > error | 2 > missing arguments
+async def get_tw_insufficient_attacks(guild_id, args):
+    ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
+    if ec != 0:
+        return ec, et, None
+    list_active_players = ret_dict["active"]
+    tw_round = ret_dict["round"]
+
+    if tw_round == None:
+        return 1, "ERR: pas de GT en cours", None
+    elif tw_round==0:
+        # sign up phase. Only check missing members
+        list_inactive_players = ret_dict["inactive"]
+        return 0, "", list_inactive_players
+
+    if len(args) != 2:
+        return 2, "need 2 values in args", None
+
+    min_char_attacks = args[0]
+    min_ship_attacks = args[1]
+
+    # Called with use_cache_data = -1 as RPC call was just made in get_tw_active
+    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1)
     if ec != 0:
         return ec, et, None
 
     ec, et, dict_fulldef = await detect_fulldef(guild_id, -1)
     if ec != 0:
         return ec, et, None
-
-    # Called with use_cache_data = -1 as RPC call was just made in get_tw_participation
-    ec, et, list_active_players = await connect_rpc.get_tw_active_players(guild_id, -1)
-    if ec != 0:
-        return ec, et, None
-
-    # Called with use_cache_data = -1 as RPC call was just made in get_tw_participation
-    rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
-    tw_id = rpc_data["tw_id"]
-    if tw_id == None:
-        return "ERR: no TW ongoing"
 
     dict_players = connect_mysql.load_config_players()[0]
 

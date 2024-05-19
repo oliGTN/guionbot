@@ -2762,14 +2762,6 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     output_channel = ctx.message.channel
                 args.remove(arg)
 
-        if len(args) != 2:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help twrappel")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        min_char = int(args[0])
-        min_ship = int(args[1])
-
         #get bot config from DB
         ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
@@ -2780,43 +2772,55 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         guild_id = bot_infos["guild_id"]
 
         # Launch the actual command
-        err_code, err_txt, d_attacks = await go.get_tw_insufficient_attacks(guild_id, min_char, min_ship)
+        err_code, err_txt, d_attacks = await go.get_tw_insufficient_attacks(guild_id, args)
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
-            output_txt="La guilde a besoin de vous pour la GT svp : \n"
-            for [p, values] in sorted(d_attacks.items(), key=lambda x: x[1][2]):
-                char_attacks = values[0]
-                ship_attacks = values[1]
-                fulldef = values[2]
 
-                if (p in dict_players_by_IG) and fulldef!=1:
+            if type(ret_data) == dict:
+                d_attacks = ret_data
+                output_txt="La guilde a besoin de vous pour la GT svp : \n"
+                for [p, values] in sorted(d_attacks.items(), key=lambda x: x[1][2]):
+                    char_attacks = values[0]
+                    ship_attacks = values[1]
+                    fulldef = values[2]
+
+                    if (p in dict_players_by_IG) and fulldef!=1:
+                        p_name = dict_players_by_IG[p][1]
+                    else:
+                        #No tag for full defs
+                        p_name= "**" + p + "**"
+
+                    if char_attacks==None and ship_attacks==None:
+                        #Nothing to report
+                        continue
+                    elif char_attacks!=None and ship_attacks!=None:
+                        output_txt_player = p_name+": "+str(char_attacks)+" toons et "+str(ship_attacks)+" vaisseaux"
+                    elif char_attacks==None and ship_attacks!=None:
+                        output_txt_player = p_name+": "+str(ship_attacks)+" vaisseaux"
+                    else: #char_attacks!=None and ship_attacks==None:
+                        output_txt_player = p_name+": "+str(char_attacks)+" toons"
+
+                    if fulldef==1:
+                        output_txt_player += " >> détecté full def"
+                    elif fulldef==0:
+                        output_txt_player += " >> peut-être full def"
+
+                    output_txt += output_txt_player+"\n"
+            else: # type = list
+                list_inactive_players = ret_data
+                output_txt="N'oubliez pas de vous inscrire pour la GT svp : \n"
+                for p_name in list_inactive_players:
                     p_name = dict_players_by_IG[p][1]
-                else:
-                    #No tag for full defs
-                    p_name= "**" + p + "**"
-
-                if char_attacks==None and ship_attacks==None:
-                    #Nothing to report
-                    continue
-                elif char_attacks!=None and ship_attacks!=None:
-                    output_txt_player = p_name+": "+str(char_attacks)+" toons et "+str(ship_attacks)+" vaisseaux"
-                elif char_attacks==None and ship_attacks!=None:
-                    output_txt_player = p_name+": "+str(ship_attacks)+" vaisseaux"
-                else: #char_attacks!=None and ship_attacks==None:
-                    output_txt_player = p_name+": "+str(char_attacks)+" toons"
-
-                if fulldef==1:
-                    output_txt_player += " >> détecté full def"
-                elif fulldef==0:
-                    output_txt_player += " >> peut-être full def"
-
-                output_txt += output_txt_player+"\n"
-
+                    output_txt_player = p_name+"\n"
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
 
             await ctx.message.add_reaction(emojis.check)
+
+        elif err_code==2:
+            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help twrappel")
+            await ctx.message.add_reaction(emojis.redcross)
         else:
             await ctx.send(err_txt)
             await ctx.message.add_reaction(emojis.redcross)

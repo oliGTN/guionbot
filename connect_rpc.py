@@ -1145,7 +1145,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                     fjson.write(json.dumps(prev_dict_guild[guild_id], indent=4))
                     fjson.close()
 
-                    mapstats_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
+                    mapstats_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_mapstats.json"
                     fjson = open(mapstats_filename, 'w')
                     fjson.write(json.dumps(prev_mapstats[guild_id], indent=4))
                     fjson.close()
@@ -2015,6 +2015,9 @@ async def get_tw_active_players(guild_id, force_update):
     if ec!=0:
         return 1, et, None
 
+    if not "territoryWarStatus" in dict_guild:
+        return 0, "", {"active": [], "inactive": [], "round": None}
+
     dict_members={}
     list_active_players = []
     for member in dict_guild["member"]:
@@ -2022,7 +2025,14 @@ async def get_tw_active_players(guild_id, force_update):
     for member in dict_guild["territoryWarStatus"][0]["optedInMember"]:
         list_active_players.append(dict_members[member["memberId"]])
 
-    return 0, "", list_active_players
+    list_inactive_players = []
+    for member in dict_guild["member"]:
+        if not member["playerName"] in list_active_players:
+            list_inactive_players.append(member["playerName"])
+
+    tw_round = dict_guild["territoryWarStatus"][0]["currentRound"]
+
+    return 0, "", {"active": list_active_players, "inactive": list_inactive_players, "round": tw_round}
 
 async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
