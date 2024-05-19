@@ -1686,15 +1686,10 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             if target_stars <0 or target_stars > 3:
                 return 1, target_zone_stars + " --> la cible d'étoiles doit être entre 0 et 3", None
 
-            #Targeting 0 stars or 1 is the same target (having the star or just below it)
-            if target_stars == 0:
-                target_stars = 1
-
             #Check if the zone is not used twice in the option
             if target_zone_name in already_computed_zones:
                 return 1, target_zone_stars+" --> zone utilisée 2 fois : " + target_zone_name, None
             already_computed_zones.append(target_zone_name)
-
 
 
             current_score = dict_open_zones[zone_name]["score"]
@@ -1705,7 +1700,12 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 estimated_platoon_score = 0
             score_with_estimations = current_score + estimated_strike_score + estimated_platoon_score
 
-            target_star_score = dict_tb[zone_name]["scores"][target_stars-1]
+            #Targeting 0 stars is targeting score for 1 star, or almost
+            if target_stars == 0:
+                target_star_score = dict_tb[zone_name]["scores"][0] - 10
+            else:
+                target_star_score = dict_tb[zone_name]["scores"][target_stars-1]
+
             if dict_tb[zone_name]["type"] == "ships":
                 deploy_consumption = max(0, min(dict_remaining_deploy["ships"]["all"], target_star_score - score_with_estimations))
                 dict_remaining_deploy["ships"]["all"] -= deploy_consumption
