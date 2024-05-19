@@ -2772,7 +2772,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         guild_id = bot_infos["guild_id"]
 
         # Launch the actual command
-        err_code, err_txt, d_attacks = await go.get_tw_insufficient_attacks(guild_id, args)
+        err_code, err_txt, ret_data = await go.get_tw_insufficient_attacks(guild_id, args)
         if err_code == 0:
             dict_players_by_IG = connect_mysql.load_config_players()[0]
 
