@@ -366,17 +366,16 @@ async def bot_loop_5minutes(bot):
                                     if not bot_test_mode:
                                         await old_msg.edit(content=msg_txt)
 
-                else:
-                    goutils.log2("INFO", "["+guild_id+"] TW alerts could not be detected")
-                    goutils.log2("ERR", "["+guild_id+"] "+et)
 
-                    if ec == 2:
-                        #TW is over
-                        #Delete potential previous tw_messages
-                        query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
-                        query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
-                        goutils.log2("DBGO", query)
-                        connect_mysql.simple_execute(query)
+                elif ec == 2:
+                    #TW is over
+                    #Delete potential previous tw_messages
+                    query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
+                    query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
+                    goutils.log2("DBGO", query)
+                    connect_mysql.simple_execute(query)
+                else:
+                    goutils.log2("DBG", "["+guild_id+"] "+et)
 
             except Exception as e:
                 goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
