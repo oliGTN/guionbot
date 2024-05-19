@@ -19,7 +19,8 @@ import manage_events
 import connect_gsheets
 
 #GLOBAL variables for previous statuses
-prev_dict_guild = None
+prev_dict_guild = {} #key=guild_id
+prev_mapstats = {} #key=guild_id
 
 
 dict_sem={}
@@ -1071,6 +1072,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                         compute_estimated_fights=False,
                         compute_estimated_platoons=False):
     global prev_dict_guild
+    global prev_mapstats
 
     dict_tb = godata.get("tb_definition.json")
 
@@ -1137,10 +1139,15 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 await connect_gsheets.close_tb_gwarstats(guild_id)
 
                 #Save guild file
-                if prev_dict_guild != None:
+                if guild_id in prev_dict_guild:
                     guild_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
                     fjson = open(guild_filename, 'w')
-                    fjson.write(json.dumps(prev_dict_guild, indent=4))
+                    fjson.write(json.dumps(prev_dict_guild[guild_id], indent=4))
+                    fjson.close()
+
+                    mapstats_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
+                    fjson = open(mapstats_filename, 'w')
+                    fjson.write(json.dumps(prev_mapstats[guild_id], indent=4))
                     fjson.close()
 
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
@@ -1148,7 +1155,8 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
         return 1, "No TB on-going", None
 
-    prev_dict_guild = dict_guild
+    prev_dict_guild[guild_id] = dict_guild
+    prev_mapstats[guild_id] = mapstats
 
     query = "SELECT name, char_gp, ship_gp, playerId, guildMemberlevel "\
             "FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
@@ -1820,6 +1828,7 @@ async def get_tw_opponent_leader(guild_id):
 ########################################
 async def get_tw_status(guild_id, force_update, with_attacks=False):
     global prev_dict_guild
+    global prev_mapstats
 
     dict_tw=godata.dict_tw
 
@@ -1873,17 +1882,17 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
             goutils.log2("INFO", "Close TW "+latest_tw_id+" for guild "+guild_id)
 
             #Save guild file
-            if prev_dict_guild != None:
+            if guild_id in prev_dict_guild:
                 guild_filename = "EVENTS/"+guildId+"_"+latest_tw_id+"_guild.json"
                 fjson = open(guild_filename, 'w')
-                fjson.write(json.dumps(prev_dict_guild, indent=4))
+                fjson.write(json.dumps(prev_dict_guild[guild_id], indent=4))
                 fjson.close()
 
             manage_events.create_event("tw_end", guild_id, latest_tw_id)
 
         return {"tw_id": None}
 
-    prev_dict_guild = dict_guild
+    prev_dict_guild[guild_id] = dict_guild
 
     opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
     opp_guildId = battleStatus["awayGuild"]["profile"]["id"]

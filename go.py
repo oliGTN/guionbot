@@ -191,7 +191,7 @@ async def load_player(ac_or_id, force_update, no_db):
                 recent_player = 0
 
             json_file = "PLAYERS/"+playerId+".json"
-            goutils.log2("INFO", 'reading file ' + json_file + '...')
+            goutils.log2("DBG", 'reading file ' + json_file + '...')
             if os.path.isfile(json_file):
                 if os.path.getsize(json_file) == 0:
                     goutils.log2("DBG", "... empty file, delete it")
@@ -215,7 +215,7 @@ async def load_player(ac_or_id, force_update, no_db):
 
 
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
-        goutils.log2("INFO", 'Requesting RPC data for player ' + ac_or_id + '...')
+        goutils.log2("DBG", 'Requesting RPC data for player ' + ac_or_id + '...')
         ec, et, dict_player_list = await connect_rpc.get_extplayer_data(ac_or_id)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
@@ -249,7 +249,7 @@ async def load_player(ac_or_id, force_update, no_db):
         playerId = dict_player["playerId"]
         player_name = dict_player["name"]
 
-        goutils.log2("INFO", "success retrieving "+player_name+" from RPC")
+        goutils.log2("DBG", "success retrieving "+player_name+" from RPC")
         
         if not no_db:
             # compute differences
@@ -264,14 +264,14 @@ async def load_player(ac_or_id, force_update, no_db):
             # update DB
             ec, et = await connect_mysql.update_player(delta_dict_player)
             if ec == 0:
-                goutils.log2("INFO", "success updating "+dict_player['name']+" in DB")
+                goutils.log2("DBG", "success updating "+dict_player['name']+" in DB")
             else:
                 return 1, 'ERR: update_player '+ac_or_id+' returned an error', None
                 
     else:
         dict_player = prev_dict_player
         player_name = dict_player["name"]
-        goutils.log2('INFO', player_name + ' loaded from existing XML OK')
+        goutils.log2('DBG', player_name + ' loaded from existing XML OK')
     
     goutils.log2('DBG', "END")
     return 0, "", dict_player
@@ -294,13 +294,13 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
     else:
         guild_id = db_result
 
-    goutils.log2("INFO", 'Guild ID for '+txt_allyCode+' is '+guild_id)
+    goutils.log2("DBG", 'Guild ID for '+txt_allyCode+' is '+guild_id)
 
     return await load_guild_from_id(guild_id, load_players, cmd_request)
 
 async def load_guild_from_id(guild_id, load_players, cmd_request):
     #Get RPC guild data
-    goutils.log2('INFO', 'Requesting RPC data for guild ' + guild_id)
+    goutils.log2('DBG', 'Requesting RPC data for guild ' + guild_id)
     ec, et, dict_guild = await connect_rpc.get_extguild_data_from_id(guild_id, False)
     if ec != 0:
         json_file = "GUILDS/"+guild_id+".json"
