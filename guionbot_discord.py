@@ -2808,10 +2808,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     output_txt += output_txt_player+"\n"
             else: # type = list
                 list_inactive_players = ret_data
-                output_txt="N'oubliez pas de vous inscrire pour la GT svp : \n"
-                for p in list_inactive_players:
-                    p_name = dict_players_by_IG[p][1]
-                    output_txt += p_name+"\n"
+                if len(list_inactive_players)== 0:
+                    output_txt="Tous les joueurs sont inscrits à la GT"
+                else:
+                    output_txt="N'oubliez pas de vous inscrire pour la GT svp : \n"
+                    for p in list_inactive_players:
+                        p_name = dict_players_by_IG[p][1]
+                        output_txt += p_name+"\n"
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await output_channel.send(txt)
