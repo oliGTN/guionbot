@@ -2754,12 +2754,15 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         #Sortie sur un autre channel si donné en paramètre
         args = list(args)
         output_channel = ctx.message.channel
+        display_mentions=False
         for arg in args:
             if arg.startswith('<#'):
                 output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                display_mentions=True
                 if output_channel == None:
                     await ctx.send('**ERR**: '+err_msg)
                     output_channel = ctx.message.channel
+                    display_mentions=False
                 args.remove(arg)
 
         #get bot config from DB
@@ -2784,7 +2787,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     ship_attacks = values[1]
                     fulldef = values[2]
 
-                    if (p in dict_players_by_IG) and fulldef!=1:
+                    if (p in dict_players_by_IG) and fulldef!=1 and display_mentions:
                         p_name = dict_players_by_IG[p][1]
                     else:
                         #No tag for full defs
@@ -2813,7 +2816,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 else:
                     output_txt="N'oubliez pas de vous inscrire pour la GT svp : \n"
                     for p in list_inactive_players:
-                        p_name = dict_players_by_IG[p][1]
+                        if display_mentions:
+                            p_name = dict_players_by_IG[p][1]
+                        else:
+                            p_name= "**" + p + "**"
                         output_txt += p_name+"\n"
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
