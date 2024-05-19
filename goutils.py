@@ -459,12 +459,12 @@ def delta_dict_player(dict1, dict2):
 
     #basic checks
     if dict1 == None:
-        log("DBG", "delta_dict_player", "dict1 is empty, so dict2 is a full delta")
+        log2("DBG", "dict1 is empty, so dict2 is a full delta")
         connect_mysql.insert_roster_evo(allyCode, "all", "adding full roster")
         return dict2
 
     if dict1['allyCode'] != dict2['allyCode']:
-        log("ERR", "delta_dict_player", "cannot compare 2 dict_players for different players")
+        log2("ERR", "cannot compare 2 dict_players for different players")
         return dict2
 
     delta_dict = {}
@@ -479,7 +479,7 @@ def delta_dict_player(dict1, dict2):
             dict1[info] = None
 
         if dict2[info] != dict1[info]:
-            log("INFO", "delta_dict_player", info+" has changed for "+str(allyCode))
+            log2("DBG", info+" has changed for "+str(allyCode))
         delta_dict[info] = dict2[info]
 
         #manage missing elements
@@ -491,11 +491,11 @@ def delta_dict_player(dict1, dict2):
         character = dict2['rosterUnit'][character_id]
         if character_id in dict1['rosterUnit']:
             if character != dict1['rosterUnit'][character_id]:
-                log2("INFO", "character "+character_id+" has changed for "+str(allyCode))
+                log2("DBG", "character "+character_id+" has changed for "+str(allyCode))
                 detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
                 delta_dict['rosterUnit'][character_id] = character
         else:
-            log2("INFO", "new character "+character_id+" for "+str(allyCode))
+            log2("DBG", "new character "+character_id+" for "+str(allyCode))
             connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
             delta_dict['rosterUnit'][character_id] = character
 
@@ -530,13 +530,13 @@ def detect_delta_roster_element(allyCode, char1, char2):
         for rarity_step in range(max(char1['currentRarity']+1, 4),
                                  char2['currentRarity']+1):
             evo_txt = "rarity changed to "+str(rarity_step)
-            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #LEVEL
     if (char1["currentLevel"] != char2["currentLevel"]) and (char2["currentLevel"] == 85):
         evo_txt = "level changed to 85"
-        log("INFO", "delta_roster_element", defId+": "+evo_txt)
+        log2("DBG", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #GEAR / RELIC
@@ -553,7 +553,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
             evo_txt = "gear changed to "+extended_gear_to_txt(gear_step)
-            log2("INFO", defId+": "+evo_txt)
+            log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ULTIMATE
@@ -569,7 +569,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
                 char2_ulti = True
     if (not char1_ulti) and char2_ulti:
         evo_txt = "ultimate unlocked"
-        log2("INFO", defId+": "+evo_txt)
+        log2("DBG", defId+": "+evo_txt)
         connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ZETAS
@@ -596,21 +596,21 @@ def detect_delta_roster_element(allyCode, char1, char2):
 
         if skill2_isZeta and (skill1 == None or not skill1_isZeta):
             evo_txt = "new zeta "+get_capa_from_id(defId, skill_id)
-            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
             if not "omicronMode" in dict_capas[defId][skill_id]:
                 log2("ERR", skill_id+" detected as omicron but no omicronMode")
             evo_txt = "new omicron "+get_capa_from_id(defId, skill_id)
             evo_txt += " for " + dict_capas[defId][skill_id]["omicronMode"]
-            log("INFO", "delta_roster_element", defId+": "+evo_txt)
+            log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
 def roster_from_list_to_dict(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
 
     if type(dict_player['rosterUnit']) == dict:
-        log("DBG", "roster_from_list_to_dict", "no transformation needed for "+txt_allyCode)
+        log2("DBG", "no transformation needed for "+txt_allyCode)
         return dict_player
 
     dict_roster = {}
@@ -618,7 +618,7 @@ def roster_from_list_to_dict(dict_player):
         dict_roster[character['definitionId'].split(":")[0]] = character
 
     dict_player['rosterUnit'] = dict_roster
-    log("DBG", "roster_from_list_to_dict", "transformation complete for "+txt_allyCode)
+    log2("DBG", "transformation complete for "+txt_allyCode)
 
     return dict_player
 
