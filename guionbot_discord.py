@@ -1511,6 +1511,7 @@ async def on_message(message):
                                             tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
                                             tbs_round=tb_name+str(tb_currentRound)
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
+
     except Exception as e:
         goutils.log2("ERR", str(sys.exc_info()[0]))
         goutils.log2("ERR", e)
@@ -1570,87 +1571,120 @@ async def on_message_delete(message):
 
 @bot.event
 async def on_message_edit(before, after):
-    if isinstance(before.channel, DMChannel):
-        channel_name = "DM"
-    else:
-        channel_name = before.guild.name+"/"+before.channel.name
+    try:
+        if isinstance(before.channel, DMChannel):
+            channel_name = "DM"
+        else:
+            channel_name = before.guild.name+"/"+before.channel.name
 
-    goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
-                         "BEFORE:\n" + before.content + "\n" +\
-                         "AFTER:\n" + after.content)
+        goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
+                             "BEFORE:\n" + before.content + "\n" +\
+                             "AFTER:\n" + after.content)
 
-    #Read messages from WookieBoot
-    if after.author.id == config.WOOKIEBOT_DISCORD_ID:
-        for attachment in after.attachments:
-            raid_shortname = attachment.filename.split("_")[0]
-            if raid_shortname=="krayt":
-                raid_name = "kraytdragon"
-            elif raid_shortname=="endor":
-                raid_name = "speederbike"
-            else:
-                raid_name = raid_shortname
+        #Read messages from WookieBoot
+        if after.author.id == config.WOOKIEBOT_DISCORD_ID:
+            for attachment in after.attachments:
+                raid_shortname = attachment.filename.split("_")[0]
+                if raid_shortname=="krayt":
+                    raid_name = "kraytdragon"
+                elif raid_shortname=="endor":
+                    raid_name = "speederbike"
+                else:
+                    raid_name = raid_shortname
 
-            goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
-            file_content = await attachment.read()
-            file_txt = file_content.decode('utf-8')
-            print("launch update...")
-            ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
-            print("done - "+str(ec))
-            if ec != 0:
-                goutils.log2("ERR", et)
+                goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
+                file_content = await attachment.read()
+                file_txt = file_content.decode('utf-8')
+                print("launch update...")
+                ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
+                print("done - "+str(ec))
+                if ec != 0:
+                    goutils.log2("ERR", et)
 
-    #Read messages from Echobot
-    # NOT IN PROD (with the if False), because reliability not confirmed
-    if False and after.author.id == config.EB_DISCORD_ID:
-        for embed in after.embeds:
-            dict_embed = embed.to_dict()
-            if 'description' in dict_embed:
-                description=dict_embed['description']
-                dict_ac_did = None
-                for line in description.split('\n'):
-                    print(line)
-                    ret_re = re.search(".*`(\\d{9})`.*<@(\\d*)>.*", line)
-                    if ret_re != None:
-                        allyCode_txt = ret_re.group(1)
-                        allyCode = int(allyCode_txt)
-                        discord_id_txt = ret_re.group(2)
-                        discord_id = int(discord_id_txt)
-                        print("register "+allyCode_txt+" to "+discord_id_txt)
+        #Read messages from Echobot
+        # NOT IN PROD (with the if False), because reliability not confirmed
+        if False and after.author.id == config.EB_DISCORD_ID:
+            for embed in after.embeds:
+                dict_embed = embed.to_dict()
+                if 'description' in dict_embed:
+                    description=dict_embed['description']
+                    dict_ac_did = None
+                    for line in description.split('\n'):
+                        print(line)
+                        ret_re = re.search(".*`(\\d{9})`.*<@(\\d*)>.*", line)
+                        if ret_re != None:
+                            allyCode_txt = ret_re.group(1)
+                            allyCode = int(allyCode_txt)
+                            discord_id_txt = ret_re.group(2)
+                            discord_id = int(discord_id_txt)
+                            print("register "+allyCode_txt+" to "+discord_id_txt)
 
-                        #Get guild list of ac/id from the first ac in the list
-                        if dict_ac_did == None:
-                            query = "SELECT players.allyCode, discord_id FROM player_discord " \
-                                    "JOIN players ON players.allyCode=player_discord.allyCode " \
-                                    "WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+") "
-                            goutils.log2("INFO", query)
-                            db_data = connect_mysql.get_table(query)
+                            #Get guild list of ac/id from the first ac in the list
+                            if dict_ac_did == None:
+                                query = "SELECT players.allyCode, discord_id FROM player_discord " \
+                                        "JOIN players ON players.allyCode=player_discord.allyCode " \
+                                        "WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+") "
+                                goutils.log2("INFO", query)
+                                db_data = connect_mysql.get_table(query)
 
-                            dict_ac_did = {}
-                            for line in db_data:
-                                dict_ac_did[line[0]] = line[1]
+                                dict_ac_did = {}
+                                for line in db_data:
+                                    dict_ac_did[line[0]] = line[1]
 
-                        #Test if already registered
-                        already_registered = False
-                        if allyCode in dict_ac_did:
-                            if dict_ac_did[allyCode] == discord_id:
-                                already_registered = True
+                            #Test if already registered
+                            already_registered = False
+                            if allyCode in dict_ac_did:
+                                if dict_ac_did[allyCode] == discord_id:
+                                    already_registered = True
 
-                        if not already_registered:
-                            #Actual registration if not only registered
+                            if not already_registered:
+                                #Actual registration if not only registered
 
-                            #Setup all potential previous accounts as alt
-                            query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
-                            goutils.log2("INFO", query)
-                            #connect_mysql.simple_execute(query)
+                                #Setup all potential previous accounts as alt
+                                query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
+                                goutils.log2("INFO", query)
+                                #connect_mysql.simple_execute(query)
 
-                            #Add discord id in DB
-                            query = "INSERT INTO player_discord (allyCode, discord_id)\n"
-                            query+= "VALUES("+allyCode_txt+", "+discord_id_txt+") \n"
-                            query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
-                            goutils.log2("DBG", query)
-                            #connect_mysql.simple_execute(query)
+                                #Add discord id in DB
+                                query = "INSERT INTO player_discord (allyCode, discord_id)\n"
+                                query+= "VALUES("+allyCode_txt+", "+discord_id_txt+") \n"
+                                query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
+                                goutils.log2("DBG", query)
+                                #connect_mysql.simple_execute(query)
 
-                            goutils.log2("INFO", "Registering "+allyCode_txt+" for <@"+discord_id_txt+">")
+                                goutils.log2("INFO", "Registering "+allyCode_txt+" for <@"+discord_id_txt+">")
+
+        #Read messages from FFDroid
+        if after.author.id == config.FFDROID_DISCORD_ID:
+            ret_re = re.search("Absence registered to (.*): (\d{4}-\d{2}-\d{2}) (\d{4}-\d{2}-\d{2}) :", after.content)
+            if ret_re != None:
+                player_name = ret_re.group(1)
+                start_date = ret_re.group(2)
+                end_date = ret_re.group(3)
+                caller_id = after.interaction.user.id
+                query = "SELECT allyCode FROM players " \
+                        "WHERE name='"+player_name+"' " \
+                        "AND guildId IN ( " \
+                        "   SELECT guildId FROM players " \
+                        "   JOIN player_discord ON players.allyCode = player_discord.allyCode " \
+                        "   WHERE discord_id="+str(caller_id)+") "
+                goutils.log2("DBG", query)
+                db_data = connect_mysql.get_value(query)
+                print(db_data)
+                if db_data != None:
+                    allyCode = db_data
+
+                    query = "INSERT INTO attendency(allyCode, startDate, endDate) " \
+                            "VALUES("+str(allyCode)+", '"+start_date+"', '"+end_date+"') "
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
+
+                    await after.channel.send("Absence enregistrée pour "+player_name+" entre le "+start_date+" et le "+end_date)
+
+    except Exception as e:
+        goutils.log2("ERR", str(sys.exc_info()[0]))
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
 
 @bot.event
 async def on_member_update(before, after):
