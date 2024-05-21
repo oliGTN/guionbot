@@ -925,7 +925,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                                         activity_txt = "\N{CROSS MARK}"+activity_txt
 
                                 else:
-                                    activity_txt += " (mode avion)"
+                                    activity_txt += " (abandon)"
                                     activity_txt = "\N{CROSS MARK}"+activity_txt
 
 
