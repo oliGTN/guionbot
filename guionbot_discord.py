@@ -3444,6 +3444,23 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         tb_mode = False
         guild_id = None
 
+        output_channel = ctx.message.channel
+        with_mentions = False
+        for arg in args:
+            if arg.startswith('<#'):
+                if not officer_command(ctx):
+                    await ctx.send("ERR: l'envoi des résultats dans un autre channel est réservé aux officiers")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                with_mentions = True
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+                    with_mentions = False
+                args.remove(arg)
+
         if "-TW" in args:
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
@@ -3525,7 +3542,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emojis.redcross)
         else:
-            with_mentions = officer_command(ctx)
             try:
                 err, errtxt, list_list_ids = \
                     await go.tag_players_with_character(allyCode, character_list,
@@ -3544,9 +3560,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 for list_ids in list_list_ids:
                     intro_txt = list_ids[0]
                     if len(list_ids) > 1:
-                        await ctx.send(intro_txt +" :\n" +' / '.join(list_ids[1:])+"\n--> "+str(len(list_ids)-1)+" joueur(s)")
+                        await output_channel.send(intro_txt +" :\n" +' / '.join(list_ids[1:])+"\n--> "+str(len(list_ids)-1)+" joueur(s)")
                     else:
-                        await ctx.send(intro_txt +" : aucun joueur")
+                        await output_channel.send(intro_txt +" : aucun joueur")
 
                 await ctx.message.add_reaction(emojis.check)
 
