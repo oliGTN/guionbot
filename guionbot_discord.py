@@ -1584,6 +1584,8 @@ async def on_message_edit(before, after):
         #Read messages from WookieBoot
         if after.author.id == config.WOOKIEBOT_DISCORD_ID:
             for attachment in after.attachments:
+                if not attachment.filename.endswith(".csv"):
+                    continue
                 raid_shortname = attachment.filename.split("_")[0]
                 if raid_shortname=="krayt":
                     raid_name = "kraytdragon"
