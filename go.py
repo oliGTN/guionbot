@@ -4675,8 +4675,8 @@ async def get_tw_insufficient_attacks(guild_id, args):
     if len(args) != 2:
         return 2, "need 2 values in args", None
 
-    min_char_attacks = args[0]
-    min_ship_attacks = args[1]
+    min_char_attacks = int(args[0])
+    min_ship_attacks = int(args[1])
 
     # Called with use_cache_data = -1 as RPC call was just made in get_tw_active
     ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1)
