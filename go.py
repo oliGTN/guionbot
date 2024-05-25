@@ -5116,33 +5116,62 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 continue
 
             count_opponent+=1
-            if fifth_unit_id == "SHAAKTI":
-                output_txt += "\nLe 5e perso de "+opp_player_name+" est Shaak-Ti > "+emoji_check
-            elif fifth_unit_id == "AAYLASECURA":
-                output_txt += "\nLe 5e perso de "+opp_player_name+" est Aayla > "+emoji_cross
-            elif fifth_unit_id == "R2D2_LEGENDARY":
-                output_txt += "\nLe 5e perso de "+opp_player_name+" est R2-D2 > "+emoji_cross
-            else:
-                #Get speed of 5th ennemy
-                query = "SELECT stat5  FROM roster " \
-                        "JOIN players on players.allyCode=roster.allyCode "\
-                        "WHERE players.name='"+opp_player_name.replace("'", "''")+"' "\
-                        "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
-                        "AND defId='"+fifth_unit_id+"'"
-                goutils.log2("DBG", query)
-                db_data = connect_mysql.get_value(query)
-                if db_data == None:
-                    return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
-                fifth_unit_speed = int(db_data*1e-8)
 
+            #Get speed of ennemy GK
+            query = "SELECT stat5 FROM roster " \
+                    "JOIN players on players.allyCode=roster.allyCode "\
+                    "WHERE players.name='"+opp_player_name.replace("'", "''")+"' "\
+                    "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
+                    "AND defId='GENERALKENOBI' "
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_value(query)
+            if db_data == None:
+                return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
+            gk_speed = int(db_data/100000000)
+
+            if gk_speed > (my_Thrawn_speed-11):
+                output_txt += "\nVitesse du General Kenobi de "+opp_player_name+" = "+str(fifth_unit_speed)
+                output_txt += " > "+emoji_cross
+                continue
+
+            # Check specific 5th units for which the speed is not relevant
+            if fifth_unit_id == "SHAAKTI":
+                # She cannot oppose the counter
+                output_txt += "\nLe 5e perso de "+opp_player_name+" est Shaak-Ti > "+emoji_check
+                continue
+            elif fifth_unit_id == "AAYLASECURA":
+                # stun ability is a nogo
+                output_txt += "\nLe 5e perso de "+opp_player_name+" est Aayla > "+emoji_cross
+                continue
+            elif fifth_unit_id == "R2D2_LEGENDARY":
+                # stun ability is a nogo
+                output_txt += "\nLe 5e perso de "+opp_player_name+" est R2-D2 > "+emoji_cross
+                continue
+
+            #Get speed of 5th ennemy
+            query = "SELECT stat5, omicron_type  FROM roster " \
+                    "JOIN players on players.allyCode=roster.allyCode "\
+                    "LEFT JOIN roster_skills ON (roster_skills.roster_id=roster.id AND roster_skills.level=omicron_tier) " \
+                    "WHERE players.name='"+opp_player_name.replace("'", "''")+"' "\
+                    "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
+                    "AND defId='"+fifth_unit_id+"' "
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_line(query)
+            if db_data == None:
+                return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
+
+            fifth_unit_speed = int(db_data[0]/100000000)
+            fifth_unit_omicrontype = db_data[1]
+            if fifth_unit_speed > (my_Thrawn_speed-11):
                 output_txt += "\nVitesse du 5e perso ("+fifth_unit_id+") de "+opp_player_name+" = "+str(fifth_unit_speed)
-                if fifth_unit_speed <= (my_Thrawn_speed-11):
-                    if fifth_unit_id == "MACEWINDU":
-                        output_txt += " > "+emoji_frowning+" attention si omicron !"
-                    else:
-                        output_txt += " > "+emoji_check
-                else:
-                    output_txt += " > "+emoji_cross
+                output_txt += " > "+emoji_cross
+                continue
+
+            if fifth_unit_id == "MACEWINDU" and fifth_unit_omicrontype=='TW':
+                output_txt += "\n"+opp_player_name+" > "+emoji_frowning+" attention omicron Windu !"
+                continue
+
+            output_txt += "\n"+opp_player_name+" > "+emoji_check
 
         if count_opponent==0:
             output_txt += "Aucun adversaire détecté"
