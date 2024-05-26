@@ -1366,9 +1366,10 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
             return ec, et
         list_active_players = ret_dict["active"]
 
-        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
+        ec, et, ret_data = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et
+        dict_def_toon_player = ret_data["homeDef"]
 
     else:
         dict_def_toon_player = {}
@@ -1444,9 +1445,10 @@ async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
             return ec, et
         list_active_players = ret_dict["active"]
 
-        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
+        ec, et, ret_data = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et, None
+        dict_def_toon_player = ret_data["homeDef"]
     else:
         dict_def_toon_player = {}
         list_active_players = None
@@ -2327,9 +2329,10 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
 
     #Get reserved TW toons
     if game_mode == "TW":
-        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, 0)
+        ec, et, ret_data = await get_tw_def_attack(guild_id, 0)
         if ec != 0:
             return 1, et, None
+        dict_def_toon_player = ret_data["homeDef"]
     
     #transform aliases into IDs
     if not is_ID:
@@ -3323,9 +3326,11 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
     dict_used_toon_player = {} # key=toon, value = [playerName1, playerName2...]
     if tw_mode:
         with_attacks = (len(exclude_attacked_leaders)>0)
-        ec, et, dict_used_toon_player, dict_attack_toon_player = await get_tw_def_attack(guild_id, -1, with_attacks=with_attacks)
+        ec, et, ret_data = await get_tw_def_attack(guild_id, -1, with_attacks=with_attacks)
         if ec != 0:
             return ec, et, None
+        dict_def_toon_player = ret_data["homeDef"]
+        dict_attack_toon_player = ret_data["awayAttack"]
     elif tb_mode:
         dict_alias = godata.get("unitsAlias_dict.json")
         tbs_round, dict_platoons_done, list_open_terr = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
@@ -3545,7 +3550,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 # IN: txt_allyCode (to identify the guild)
 # IN: list_characters alias
 # IN: guild_id
-# IN: tw_mode (True if the bot shall manage registered players and display count for adversary
+# IN: tw_mode - "homeGuild" if the bot shall manage registered players and get defense toons for "us"
+#               "awayGuild" if the bot shall get seen defense for TW opponent
+#               None otherwise
 # OUT: err_code, err_txt, {'unit name': [total, in TW defense], ...}
 ################################################################
 async def count_players_with_character(txt_allyCode, list_characters, guild_id, tw_mode):
@@ -3553,7 +3560,8 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
-    if tw_mode:
+    if tw_mode == "homeGuild":
+        # For "us", we can detect players who registered to the TW
         ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
             return ec, et
@@ -3573,7 +3581,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
           + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
           + "AND defId in "+str(tuple(list_character_ids)).replace(",)", ")")+" " 
 
-    if tw_mode:
+    if tw_mode == "homeGuild":
         query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+" "
 
     query +="GROUP BY defId, rarity, gear, relic_currentTier " \
@@ -3594,10 +3602,11 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
 
     #print(output_dict)
     #Manage -TW option
-    if tw_mode:
-        ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, -1)
+    if tw_mode=="homeGuild":
+        ec, et, ret_data = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et, None
+        dict_def_toon_player = ret_data["homeDef"]
 
         for unit_id in output_dict:
             if unit_id in dict_def_toon_player:
@@ -3946,7 +3955,8 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False):
 
             dict_attack_toon_player[char_id].append(player)
 
-    return 0, "", dict_def_toon_player, dict_attack_toon_player
+    return 0, "", {"homeDef": dict_def_toon_player, 
+                   "awayAttack": dict_attack_toon_player}
 
 #############################################################################
 # find_best_toons_in_guild
@@ -4589,9 +4599,10 @@ def print_ability(unit_id, ability_id, ability_type):
 ###########################################
 async def detect_fulldef(guild_id, force_update):
     dict_unitsList = godata.get("unitsList_dict.json")
-    ec, et, dict_def_toon_player, da = await get_tw_def_attack(guild_id, force_update)
+    ec, et, ret_data = await get_tw_def_attack(guild_id, force_update)
     if ec != 0:
         return ec, et, None
+    dict_def_toon_player = ret_data["homeDef"]
 
     # Get the count of units and capital ships in the guild
     query = "SELECT defId, count(*) FROM roster " \

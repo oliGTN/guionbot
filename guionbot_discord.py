@@ -5236,7 +5236,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         # get the DB information for home guild
-        ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, guild_id, tw_mode)
+        if tw_mode:
+            ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, guild_id, "homeGuild")
+        else:
+            ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, guild_id, None)
         if ec != 0:
             await ctx.send(et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -5301,7 +5304,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             # Now load all players from the guild
             await go.load_guild(opp_allyCode, True, True)
 
-            ec, et, opp_dict = await go.count_players_with_character(opp_allyCode, unit_list, None, False)
+            ec, et, opp_dict = await go.count_players_with_character(opp_allyCode, unit_list, None, "awayGuild")
             for unit_id in opp_dict:
                 if not unit_id in output_dict:
                     output_dict[unit_id] = {}
