@@ -5174,186 +5174,214 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                               "Exemple : go.cpg me SEE Maul GAS > une liste spécifique\n" \
                               "Exemple : go.cpg -TW SEE Maul GAS > compare avec la guilde adverse en TW")
     async def cpg(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Check arguments
-        args = list(args)
+            #Check arguments
+            args = list(args)
 
-        if args[0] == "-TW":
-            #Ensure command is launched from a server, not a DM
-            if ctx.guild == None:
-                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+            if len(args) == 0:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.cpg cpg")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-            if ec!=0:
-                await ctx.send('ERR: '+et)
+
+            if args[0] == "-TW":
+                #Ensure command is launched from a server, not a DM
+                if ctx.guild == None:
+                    await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                #get bot config from DB
+                ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+                if ec!=0:
+                    await ctx.send('ERR: '+et)
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                guild_id = bot_infos["guild_id"]
+                if guild_id == None:
+                    await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                tw_mode = True
+                ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
+                if ec != 0:
+                    await ctx.send(et)
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                ec, et, bot_player = await connect_rpc.get_bot_player_data(guild_id, False)
+                if ec != 0:
+                    await ctx.send(et)
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+                allyCode = str(bot_player["allyCode"])
+            else:
+                tw_mode = False
+                allyCode = args[0]
+                allyCode = await manage_me(ctx, allyCode, False)
+                guild_id = None
+
+            if "-TW" in args[1:]:
+                await ctx.send("ERR: l'option -TW doit être utilisée en première position. Consulter go.help cpg pour plus d'infos.")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            guild_id = bot_infos["guild_id"]
-            if guild_id == None:
-                await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+            if len(args) == 1:
+                #default list
+                unit_list = ['executor', 'profundity', 'leviathan', 'GLrey', 'SLKR', 'JML', 'SEE', 'JMK', 'LV', 'Jabba', 'glLeia']
+            else:
+                unit_list = args[1:]
+
+                    
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            tw_mode = True
-            ec, et, opp_allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
+            # get the DB information for home guild
+            if tw_mode:
+                ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, None, "homeGuild")
+            else:
+                ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, None, None)
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            ec, et, bot_player = await connect_rpc.get_bot_player_data(guild_id, False)
-            if ec != 0:
-                await ctx.send(et)
-                await ctx.message.add_reaction(emojis.redcross)
-                return
-            allyCode = str(bot_player["allyCode"])
-        else:
-            tw_mode = False
-            allyCode = args[0]
-            allyCode = await manage_me(ctx, allyCode, False)
-            guild_id = None
+            dict_units = data.get("unitsList_dict.json")
+            if not tw_mode:
+                output_table = [["Perso", "Gear", "Total"]]
+                for unit_id in output_dict:
+                    unit_name = dict_units[unit_id]['name']
+                    unit_gear=''
+                    unit_total=''
+                    for gear in output_dict[unit_id]:
+                        total = output_dict[unit_id][gear][0]
 
-        if "-TW" in args[1:]:
-            await ctx.send("ERR: l'option -TW doit être utilisée en première position. Consulter go.help cpg pour plus d'infos.")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+                        if dict_units[unit_id]['combatType'] == 2:
+                            #ship, we keep only rarity
+                            gear = gear[:2]
 
-        if len(args) == 1:
-            #default list
-            unit_list = ['executor', 'profundity', 'leviathan', 'GLrey', 'SLKR', 'JML', 'SEE', 'JMK', 'LV', 'Jabba', 'glLeia']
-        else:
-            unit_list = args[1:]
+                        unit_gear += gear+"\n"
+                        unit_total += str(total)+"\n"
+                    output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip()])
 
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+                t = Texttable()
+                t.add_rows(output_table)
 
-        # get the DB information for home guild
-        if tw_mode:
-            ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, guild_id, "homeGuild")
-        else:
-            ec, et, output_dict = await go.count_players_with_character(allyCode, unit_list, guild_id, None)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+                for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
+                    await ctx.send('`' + txt + '`')
+            else:
+                #display first the home stats
+                output_table = [["Perso", "Gear", "Inscrits\n(posé en def)", "Adversaire\n(vu en def)"]]
+                for unit_id in output_dict:
+                    unit_name = dict_units[unit_id]['name']
+                    unit_gear=''
+                    unit_total=''
+                    unit_def=''
+                    for gear in output_dict[unit_id]:
+                        total = output_dict[unit_id][gear][0]
+                        def_count = output_dict[unit_id][gear][1]
 
-        dict_units = data.get("unitsList_dict.json")
-        if not tw_mode:
-            output_table = [["Perso", "Gear", "Total"]]
-            for unit_id in output_dict:
-                unit_name = dict_units[unit_id]['name']
-                unit_gear=''
-                unit_total=''
-                for gear in output_dict[unit_id]:
-                    total = output_dict[unit_id][gear][0]
+                        if dict_units[unit_id]['combatType'] == 2:
+                            gear = gear[:2]
 
-                    if dict_units[unit_id]['combatType'] == 2:
-                        #ship, we keep only rarity
-                        gear = gear[:2]
+                        unit_gear += gear+"\n"
+                        unit_total += str(total)+" ("+str(def_count)+")\n"
+                    output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip(), '?'])
 
-                    unit_gear += gear+"\n"
-                    unit_total += str(total)+"\n"
-                output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip()])
+                t = Texttable()
+                t.add_rows(output_table)
 
-            t = Texttable()
-            t.add_rows(output_table)
+                list_msg = []
+                for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
+                    new_msg = await ctx.send('`' + txt + '`')
+                    list_msg.append(new_msg)
 
-            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
-                await ctx.send('`' + txt + '`')
-        else:
-            #display first the home stats
-            output_table = [["Perso", "Gear", "Inscrits", "Défense", "Adversaire"]]
-            for unit_id in output_dict:
-                unit_name = dict_units[unit_id]['name']
-                unit_gear=''
-                unit_total=''
-                unit_def=''
-                for gear in output_dict[unit_id]:
-                    total = output_dict[unit_id][gear][0]
-                    def_count = output_dict[unit_id][gear][1]
+                #Icône d'attente
+                await ctx.message.add_reaction(emojis.hourglass)
 
-                    if dict_units[unit_id]['combatType'] == 2:
-                        gear = gear[:2]
-                    if def_count == None:
-                        def_count=''
+                # Now load all players from the guild
+                await go.load_guild(opp_allyCode, True, True)
 
-                    unit_gear += gear+"\n"
-                    unit_total += str(total)+"\n"
-                    unit_def += str(def_count)+"\n"
-                output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip(), unit_def.rstrip(), '?'])
+                ec, et, opp_dict = await go.count_players_with_character(opp_allyCode, unit_list, guild_id, "awayGuild")
+                for unit_id in opp_dict:
+                    if unit_id=='CAPITALEXECUTOR':
+                        print(output_dict)
+                        print(opp_dict)
+                    if not unit_id in output_dict:
+                        output_dict[unit_id] = {}
+                    for gear in opp_dict[unit_id]:
+                        if not gear in output_dict[unit_id]:
+                            output_dict[unit_id][gear] = ['', '']
+                        opp_total = opp_dict[unit_id][gear][0]
+                        opp_def = opp_dict[unit_id][gear][1]
+                        output_dict[unit_id][gear].append(opp_total)
+                        output_dict[unit_id][gear].append(opp_def)
 
-            t = Texttable()
-            t.add_rows(output_table)
+                #Remove previous table
+                for msg in list_msg:
+                    await msg.delete()
 
-            list_msg = []
-            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
-                new_msg = await ctx.send('`' + txt + '`')
-                list_msg.append(new_msg)
+                #display the home + away stats
+                output_table = [["Perso", "Gear", "Inscrits\n(posé en def)", "Adversaire\n(vu en def)"]]
+                for unit_id in output_dict:
+                    unit_name = dict_units[unit_id]['name']
+                    unit_gear=''
+                    unit_total=''
+                    unit_def=''
+                    opp_total=''
+                    for gear in output_dict[unit_id]:
+                        # gear 
+                        if dict_units[unit_id]['combatType'] == 1:
+                            unit_gear += gear+"\n"
+                        else:
+                            unit_gear += gear[:2]+"\n"
+ 
+                        #Home count
+                        total = output_dict[unit_id][gear][0]
+                        def_count = output_dict[unit_id][gear][1]
+                        if total != '' and total > 0:
+                            unit_total += str(total)+" ("+str(def_count)+")\n"
+                        else:
+                            unit_total += "\n"
 
-            #Icône d'attente
-            await ctx.message.add_reaction(emojis.hourglass)
+                        # Opponent count
+                        if len(output_dict[unit_id][gear])==3:
+                            total = output_dict[unit_id][gear][2]
+                            def_count = 0
+                        elif len(output_dict[unit_id][gear])==4:
+                            total = output_dict[unit_id][gear][2]
+                            def_count = output_dict[unit_id][gear][3]
+                        else:
+                            total = 0
 
-            # Now load all players from the guild
-            await go.load_guild(opp_allyCode, True, True)
+                        if total > 0:
+                            opp_total += str(total)+" ("+str(def_count)+")\n"
+                        else:
+                            opp_total += "\n"
 
-            ec, et, opp_dict = await go.count_players_with_character(opp_allyCode, unit_list, None, "awayGuild")
-            for unit_id in opp_dict:
-                if not unit_id in output_dict:
-                    output_dict[unit_id] = {}
-                for gear in opp_dict[unit_id]:
-                    if not gear in output_dict[unit_id]:
-                        output_dict[unit_id][gear] = ['', '']
-                    opp_total = opp_dict[unit_id][gear][0]
-                    output_dict[unit_id][gear].append(opp_total)
+                    output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip(), opp_total.rstrip()])
 
-            #Remove previous table
-            for msg in list_msg:
-                await msg.delete()
+                t = Texttable()
+                t.add_rows(output_table)
 
-            #display the home + away stats
-            output_table = [["Perso", "Gear", "Inscrits", "Défense", "Adversaire"]]
-            for unit_id in output_dict:
-                unit_name = dict_units[unit_id]['name']
-                unit_gear=''
-                unit_total=''
-                unit_def=''
-                opp_total=''
-                for gear in output_dict[unit_id]:
-                    total = output_dict[unit_id][gear][0]
-                    def_count = output_dict[unit_id][gear][1]
-                    if len(output_dict[unit_id][gear])==3:
-                        opp_count = output_dict[unit_id][gear][2]
-                    else:
-                        opp_count = ""
+                for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
+                    await ctx.send('`' + txt + '`')
 
-                    if dict_units[unit_id]['combatType'] == 2:
-                        gear = gear[:2]
-                    if def_count == None:
-                        def_count=''
+                await ctx.message.remove_reaction(emojis.hourglass, bot.user)
 
-                    unit_gear += gear+"\n"
-                    unit_total += str(total)+"\n"
-                    unit_def += str(def_count)+"\n"
-                    opp_total += str(opp_count)+"\n"
-                output_table.append([unit_name, unit_gear.rstrip(), unit_total.rstrip(), unit_def.rstrip(), opp_total.rstrip()])
-
-            t = Texttable()
-            t.add_rows(output_table)
-
-            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
-                await ctx.send('`' + txt + '`')
-
-            await ctx.message.remove_reaction(emojis.hourglass, bot.user)
-
-        await ctx.message.add_reaction(emojis.check)
+            await ctx.message.add_reaction(emojis.check)
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
 
     ##############################################################
     # Command: shard

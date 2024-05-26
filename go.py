@@ -3549,7 +3549,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 # count_players_with_character
 # IN: txt_allyCode (to identify the guild)
 # IN: list_characters alias
-# IN: guild_id
+# IN: guild_id (required to get home guild data when allyCode is in the TW opponent guild)
 # IN: tw_mode - "homeGuild" if the bot shall manage registered players and get defense toons for "us"
 #               "awayGuild" if the bot shall get seen defense for TW opponent
 #               None otherwise
@@ -3559,6 +3559,9 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
+
+    if guild_id == None:
+        guild_id = dict_guild["profile"]["id"]
 
     if tw_mode == "homeGuild":
         # For "us", we can detect players who registered to the TW
@@ -3598,39 +3601,33 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
 
         if not unit_id in output_dict:
             output_dict[unit_id] = {}
-        output_dict[unit_id][unit_gear] = [line[2], None]
+        output_dict[unit_id][unit_gear] = [line[2], 0]
 
     #print(output_dict)
     #Manage -TW option
-    if tw_mode=="homeGuild":
+    if tw_mode != None:
         ec, et, ret_data = await get_tw_def_attack(guild_id, -1)
         if ec != 0:
             return ec, et, None
-        dict_def_toon_player = ret_data["homeDef"]
+        if tw_mode == "homeGuild":
+            dict_def_toon_player = ret_data["homeDef"]
+        else: # awayGuild
+            dict_def_toon_player = ret_data["awayDef"]
 
         for unit_id in output_dict:
             if unit_id in dict_def_toon_player:
-                list_def_players = dict_def_toon_player[unit_id]
-
-                query = "SELECT defId, " \
-                      + "CASE WHEN gear<10 THEN CONCAT(rarity, '*G0', gear) " \
-                      + "WHEN gear<13 THEN CONCAT(rarity, '*G', gear) " \
-                      + "ELSE CONCAT(rarity, '*R', relic_currentTier-2) END, " \
-                      + "count(*) FROM players " \
-                      + "JOIN roster ON roster.allyCode = players.allyCode " \
-                      + "WHERE guildName=(" \
-                      + "SELECT guildName from players WHERE allyCode="+txt_allyCode+") " \
-                      + "AND defId='"+unit_id+"' " \
-                      + "AND name in "+str(tuple(list_def_players)).replace(",)", ")")+" " \
-                      + "GROUP BY defId, gear, relic_currentTier "
-                goutils.log2("DBG", query)
-                db_data = connect_mysql.get_table(query)
-
-                for line in db_data:
-                    unit_id = line[0]
-                    unit_gear = line[1]
-                    unit_count = line[2]
-                    output_dict[unit_id][unit_gear][1] = unit_count
+                for player in dict_def_toon_player[unit_id]:
+                    unit = dict_def_toon_player[unit_id][player]
+                    unit_stars = unit["unitDefId"].split(':')[1]
+                    unit_gear = str(godata.dict_rarity[unit_stars]) + "*"
+                    if unit["gear"] < 10:
+                        unit_gear += 'G0'+str(unit["gear"])
+                    elif unit["gear"] < 13:
+                        unit_gear += 'G'+str(unit["gear"])
+                    else:
+                        unit_gear += 'R'+str(unit["relic"]-2)
+                    if unit_gear in output_dict[unit_id]:
+                        output_dict[unit_id][unit_gear][1] += 1
 
     return 0, "", output_dict
 
@@ -3932,18 +3929,29 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False):
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
 
-    list_defense_squads = rpc_data["homeGuild"]["list_defenses"]
+    list_home_def_squads = rpc_data["homeGuild"]["list_defenses"]
+    list_away_def_squads = rpc_data["awayGuild"]["list_defenses"]
     list_attack_squads = rpc_data["awayGuild"]["list_attacks"]
 
-    dict_def_toon_player = {}
-    for squad in list_defense_squads:
+    dict_home_def_toon_player = {}
+    for squad in list_home_def_squads:
         player = squad[1]
         for char in squad[2]:
             char_id = char["unitId"]
-            if not char_id in dict_def_toon_player:
-                dict_def_toon_player[char_id] = []
+            if not char_id in dict_home_def_toon_player:
+                dict_home_def_toon_player[char_id] = {}
 
-            dict_def_toon_player[char_id].append(player)
+            dict_home_def_toon_player[char_id][player] = char
+
+    dict_away_def_toon_player = {}
+    for squad in list_away_def_squads:
+        player = squad[1]
+        for char in squad[2]:
+            char_id = char["unitId"]
+            if not char_id in dict_away_def_toon_player:
+                dict_away_def_toon_player[char_id] = {}
+
+            dict_away_def_toon_player[char_id][player] = char
 
     dict_attack_toon_player = {}
     for squad in list_attack_squads:
@@ -3955,7 +3963,8 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False):
 
             dict_attack_toon_player[char_id].append(player)
 
-    return 0, "", {"homeDef": dict_def_toon_player, 
+    return 0, "", {"homeDef": dict_home_def_toon_player, 
+                   "awayDef": dict_away_def_toon_player, 
                    "awayAttack": dict_attack_toon_player}
 
 #############################################################################
