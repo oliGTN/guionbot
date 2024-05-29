@@ -2959,61 +2959,66 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
                  "go.tbs \"DS:1 LS:3 MS:2\" [-estime] [-pelotons]")
     async def tbs(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        # Manage command parameters
-        options = list(args)
-        estimate_fights = False
-        estimate_platoons = False
-        for arg in args:
-            if arg.startswith("-e"):
-                estimate_fights = True
-                options.remove(arg)
-            elif arg.startswith("-p"):
-                estimate_platoons = True
-                options.remove(arg)
+            # Manage command parameters
+            options = list(args)
+            estimate_fights = False
+            estimate_platoons = False
+            for arg in args:
+                if arg.startswith("-e"):
+                    estimate_fights = True
+                    options.remove(arg)
+                elif arg.startswith("-p"):
+                    estimate_platoons = True
+                    options.remove(arg)
 
-        if len(options) == 0:
-            tb_phase_target = ""
-        else:
-            tb_phase_target = options[0]
+            if len(options) == 0:
+                tb_phase_target = ""
+            else:
+                tb_phase_target = options[0]
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        guild_id = bot_infos["guild_id"]
+            guild_id = bot_infos["guild_id"]
 
-        # Main call
-        err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, 0,
-                                                             estimate_fights=estimate_fights,
-                                                             estimate_platoons=estimate_platoons)
-        if err_code == 0:
-            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                await ctx.send(txt)
+            # Main call
+            err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, 0,
+                                                                 estimate_fights=estimate_fights,
+                                                                 estimate_platoons=estimate_platoons)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                    await ctx.send(txt)
 
-            if images != None:
-                for image in images:
-                    with BytesIO() as image_binary:
-                        image.save(image_binary, 'PNG')
-                        image_binary.seek(0)
-                        await ctx.send(content = "",
-                            file=File(fp=image_binary, filename='image.png'))
+                if images != None:
+                    for image in images:
+                        with BytesIO() as image_binary:
+                            image.save(image_binary, 'PNG')
+                            image_binary.seek(0)
+                            await ctx.send(content = "",
+                                file=File(fp=image_binary, filename='image.png'))
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emojis.check)
-        else:
-            await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emojis.check)
+            else:
+                await ctx.send(ret_txt)
+                await ctx.message.add_reaction(emojis.redcross)
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
     ####################################################
     # Command tbo

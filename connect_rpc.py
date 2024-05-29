@@ -1015,11 +1015,12 @@ async def tag_tb_undeployed_players(guild_id, force_update):
     dict_phase = tb_data["phase"]
     dict_strike_zones = tb_data["strike_zones"]
     dict_tb_players = tb_data["players"]
-    dict_open_zones = tb_data["open_zones"]
+    list_open_zones = tb_data["open_zones"]
+    dict_zones = tb_data["zones"]
 
     dict_deployment_types = {}
-    for zone_name in dict_open_zones:
-        zone = dict_open_zones[zone_name]
+    for zone_name in list_open_zones:
+        zone = dict_zones[zone_name]
         zone_deployment_type = dict_tb[zone_name]["type"]
         if zone["score"] < dict_tb[zone_name]["scores"][2]:
             zone_deployment_useful = True
@@ -1166,7 +1167,8 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_covert_zones = {}
-    dict_open_zones = {}
+    list_open_zones = []
+    dict_zones = {}
     dict_phase = {"id": battle_id, 
                   "round": tb_round, 
                   "round_endTime": tb_round_endTime, 
@@ -1208,20 +1210,23 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
     completed_stars = 0 # stars on completed (closed) zones
     for zone in battleStatus["conflictZoneStatus"]:
+        zone_stars = 0
         zone_name = zone["zoneStatus"]["zoneId"]
         zone_score = int(zone["zoneStatus"]["score"])
         if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
-            dict_open_zones[zone_name] = {"score": zone_score}
+            list_open_zones.append(zone_name)
         elif zone["zoneStatus"]["zoneState"] == "ZONECOMPLETE":
             for star_score in dict_tb[zone_name]["scores"]:
                 if zone_score >= star_score:
-                    completed_stars += 1
+                    zone_stars += 1
+        completed_stars += zone_stars
+        dict_zones[zone_name] = {"score": zone_score, "completed_stars": zone_stars}
     dict_phase["prev_stars"] = completed_stars
 
     #sort the dict to display zones in the same order as the game
-    dict_open_zones = dict(sorted(dict_open_zones.items(), key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x[0]]["name"].split("-")[1]]))
+    list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1]])
 
-    if len(dict_open_zones)==0:
+    if len(list_open_zones)==0:
         return 1, "No TB on-going", None
 
     total_players_guild = len(dict_tb_players)
@@ -1286,7 +1291,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 # Strike partially or completely succesful
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 strike_name = event_data["activity"][zoneData_key]["sourceZoneId"]
-                if zone_name in dict_open_zones:
+                if zone_name in list_open_zones:
                     score = int(event_data["activity"][zoneData_key]["scoreDelta"])
                     dict_tb_players[playerName]["score"]["strikes"] += score
 
@@ -1302,14 +1307,14 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             elif "RECON_CONTRIBUTION" in event_key:
                 #Complete a platoon
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
-                if zone_name in dict_open_zones:
+                if zone_name in list_open_zones:
                     score = int(event_data["activity"][zoneData_key]["scoreDelta"])
                     dict_tb_players[playerName]["score"]["Platoons"] += score
 
             elif "DEPLOY" in event_key:
                 #Deployment (strike or platoon)
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
-                if zone_name in dict_open_zones:
+                if zone_name in list_open_zones:
                     score = int(event_data["activity"][zoneData_key]["scoreDelta"])
                     if dict_tb[zone_name]["type"] == "ships":
                         dict_tb_players[playerName]["score"]["deployedShips"] += score
@@ -1324,7 +1329,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 # Special mission
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 strike_name = event_data["activity"][zoneData_key]["sourceZoneId"]
-                if zone_name in dict_open_zones:
+                if zone_name in list_open_zones:
                     strike_shortname="_".join(strike_name.split("_")[-2:])
                     dict_tb_players[playerName]["coverts"][strike_shortname] = True
 
@@ -1406,7 +1411,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     dict_phase["availableMixDeploy"] = dict_remaining_deploy["mix"]["all"]
 
     list_deployment_types = []
-    for zone_name in dict_open_zones:
+    for zone_name in list_open_zones:
         zone_deployment_type = dict_tb[zone_name]["type"]
         if not zone_deployment_type in list_deployment_types:
             list_deployment_types.append(zone_deployment_type)
@@ -1439,12 +1444,14 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 finished_players["mix"].append(playerName)
 
     # Loop by zone then by strike in the zone
-    for zone in dict_open_zones:
+    for zone in list_open_zones:
+        # Get total strikes for the phase
         total_strikes = 0
-        for z in dict_open_zones:
+        for z in list_open_zones:
             for s in dict_tb[z]["strikes"]:
                 total_strikes+=1
 
+        # Compute stats for the zone
         for strike in dict_tb[zone]["strikes"]:
             strike_shortname = "conflict0"+zone[-1]+"_"+strike
             strike_name = zone+"_"+strike
@@ -1520,7 +1527,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
         tb_name = tbs_round[:-1]
         err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
         dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
-        for zone_name in dict_open_zones:
+        for zone_name in list_open_zones:
             recon_zoneId = zone_name+"_recon01"
             zone_shortname = dict_tb[zone_name]["name"]
 
@@ -1563,7 +1570,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 platoon_score = dict_tb[zone_name]["platoonScore"]
                 remaining_score = (zone_target_count-zone_done_count) * platoon_score
 
-            dict_open_zones[zone_name]["remainingPlatoonScore"] = remaining_score
+            dict_zones[zone_name]["remainingPlatoonScore"] = remaining_score
 
     #####################################################
     # Start filling the graph with scores
@@ -1572,8 +1579,8 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     #####################################################
 
     #compute zone stats apart for deployments
-    for zone_name in dict_open_zones:
-        current_score = dict_open_zones[zone_name]["score"]
+    for zone_name in list_open_zones:
+        current_score = dict_zones[zone_name]["score"]
 
         estimated_strike_score = 0
         estimated_strike_fights = 0
@@ -1595,19 +1602,19 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             covert_name = zone_name + "_" + covert
             cur_covert_fights[covert] = dict_covert_zones[covert_name]["participation"]
 
-        dict_open_zones[zone_name]["strikeScore"] = cur_strike_score
-        dict_open_zones[zone_name]["strikeFights"] = cur_strike_fights
-        dict_open_zones[zone_name]["covertFights"] = cur_covert_fights
-        dict_open_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
-        dict_open_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
-        dict_open_zones[zone_name]["maxStrikeScore"] = max_strike_score
-        dict_open_zones[zone_name]["deployment"] = 0
+        dict_zones[zone_name]["strikeScore"] = cur_strike_score
+        dict_zones[zone_name]["strikeFights"] = cur_strike_fights
+        dict_zones[zone_name]["covertFights"] = cur_covert_fights
+        dict_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
+        dict_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
+        dict_zones[zone_name]["maxStrikeScore"] = max_strike_score
+        dict_zones[zone_name]["deployment"] = 0
 
         star_for_score=0
         for star_score in dict_tb[zone_name]["scores"]:
             if current_score >= star_score:
                 star_for_score += 1
-        dict_open_zones[zone_name]["stars"] = star_for_score
+        dict_zones[zone_name]["stars"] = star_for_score
 
     # 3- fill with deployment points
     tb_type = dict_phase["type"]
@@ -1616,7 +1623,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
         #original warstats logic: closest star, then next closest star...
         #split the zones by type
         dict_zones_by_type = {"ships": [], "chars": [], "mix": []}
-        for zone_name in dict_open_zones:
+        for zone_name in list_open_zones:
             zone_type = dict_tb[zone_name]["type"]
             dict_zones_by_type[zone_type].append(zone_name)
 
@@ -1628,12 +1635,12 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 min_zone_name = ""
                 full_zones = 0
                 for zone_name in dict_zones_by_type[zone_type]:
-                    cur_score = dict_open_zones[zone_name]["score"]
+                    cur_score = dict_zones[zone_name]["score"]
                     if compute_estimated_fights:
-                        cur_score += dict_open_zones[zone_name]["estimatedStrikeScore"]
+                        cur_score += dict_zones[zone_name]["estimatedStrikeScore"]
                     if compute_estimated_platoons:
-                        cur_score += dict_open_zones[zone_name]["remainingPlatoonScore"]
-                    cur_score += dict_open_zones[zone_name]["deployment"]
+                        cur_score += dict_zones[zone_name]["remainingPlatoonScore"]
+                    cur_score += dict_zones[zone_name]["deployment"]
 
                     if cur_score >= dict_tb[zone_name]["scores"][2]:
                         full_zones += 1
@@ -1650,7 +1657,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 #deploy in the found zone
                 if min_zone_name != "":
                     deploy_value = min(min_dist_star, dict_remaining_deploy[zone_type]["all"])
-                    dict_open_zones[min_zone_name]["deployment"] += deploy_value
+                    dict_zones[min_zone_name]["deployment"] += deploy_value
                     dict_remaining_deploy[zone_type]["all"] -= deploy_value
 
     else:
@@ -1668,7 +1675,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
             zone_found = False
             list_zone_names = []
-            for zone_name in dict_open_zones:
+            for zone_name in list_open_zones:
                 list_zone_names.append(dict_tb[zone_name]["name"])
                 if dict_tb[zone_name]["name"].endswith("-"+target_zone_shortname):
                     target_zone_name = dict_tb[zone_name]["name"]
@@ -1692,10 +1699,10 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             already_computed_zones.append(target_zone_name)
 
 
-            current_score = dict_open_zones[zone_name]["score"]
-            estimated_strike_score = dict_open_zones[zone_name]["estimatedStrikeScore"]
+            current_score = dict_zones[zone_name]["score"]
+            estimated_strike_score = dict_zones[zone_name]["estimatedStrikeScore"]
             if compute_estimated_platoons:
-                estimated_platoon_score = dict_open_zones[zone_name]["remainingPlatoonScore"]
+                estimated_platoon_score = dict_zones[zone_name]["remainingPlatoonScore"]
             else:
                 estimated_platoon_score = 0
             score_with_estimations = current_score + estimated_strike_score + estimated_platoon_score
@@ -1716,31 +1723,32 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 deploy_consumption = max(0, min(dict_remaining_deploy["mix"]["all"], target_star_score - score_with_estimations))
                 dict_remaining_deploy["mix"]["all"] -= deploy_consumption
 
-            dict_open_zones[zone_name]["deployment"] = deploy_consumption
+            dict_zones[zone_name]["deployment"] = deploy_consumption
 
     dict_phase["remainingShipDeploy"] = dict_remaining_deploy["ships"]["all"]
     dict_phase["remainingCharDeploy"] = dict_remaining_deploy["chars"]["all"]
     dict_phase["remainingMixDeploy"] = dict_remaining_deploy["mix"]["all"]
 
     #Compute estimated stars per zone
-    for zone_name in dict_open_zones:
-        cur_score = dict_open_zones[zone_name]["score"]
+    for zone_name in list_open_zones:
+        cur_score = dict_zones[zone_name]["score"]
         if compute_estimated_fights:
-            cur_score += dict_open_zones[zone_name]["estimatedStrikeScore"]
+            cur_score += dict_zones[zone_name]["estimatedStrikeScore"]
         if compute_estimated_platoons:
-            cur_score += dict_open_zones[zone_name]["remainingPlatoonScore"]
-        cur_score += dict_open_zones[zone_name]["deployment"]
+            cur_score += dict_zones[zone_name]["remainingPlatoonScore"]
+        cur_score += dict_zones[zone_name]["deployment"]
 
         star_for_score=0
         for star_score in dict_tb[zone_name]["scores"]:
             if cur_score >= star_score:
                 star_for_score += 1
-        dict_open_zones[zone_name]["estimatedStars"] = star_for_score
+        dict_zones[zone_name]["estimatedStars"] = star_for_score
 
     return 0, "", {"phase": dict_phase, 
                    "strike_zones": dict_strike_zones, 
                    "players": dict_tb_players, 
-                   "open_zones": dict_open_zones}
+                   "open_zones": list_open_zones,
+                   "zones": dict_zones}
 
 ##########################################"
 # OUT: dict_territory_scores = {"tb3_mixed_phase03_conflit02": 24500000, ...}
@@ -1755,18 +1763,19 @@ async def get_tb_guild_scores(guild_id, force_update):
     dict_phase = tb_data["phase"]
     dict_strike_zones = tb_data["strike_zones"]
     dict_tb_players = tb_data["players"]
-    dict_open_zones = tb_data["open_zones"]
+    list_open_zones = tb_data["open_zones"]
+    dict_zones = tb_data["zones"]
 
     active_round = dict_tb[dict_phase["type"]]["shortname"]+str(dict_phase["round"])
     dict_territory_scores = {}
-    for zone in dict_open_zones:
+    for zone in list_open_zones:
         zone_name_tab = dict_tb[zone]["name"].split("-")
         zone_name = zone_name_tab[0][:-1]
         zone_name += "-P"
         zone_name += zone_name_tab[0][-1]
         zone_name += "-"
         zone_name += zone_name_tab[1]
-        zone_score = dict_open_zones[zone]["score"]
+        zone_score = dict_zones[zone]["score"]
         dict_territory_scores[zone] = zone_score
 
     return dict_territory_scores, active_round

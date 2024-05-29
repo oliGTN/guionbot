@@ -751,7 +751,8 @@ async def update_gwarstats(guild_id):
     dict_phase = tb_data["phase"]
     dict_strike_zones = tb_data["strike_zones"]
     dict_tb_players = tb_data["players"]
-    dict_open_zones = tb_data["open_zones"]
+    list_open_zones = tb_data["open_zones"]
+    dict_zones = tb_data["zones"]
 
     try:
         get_gapi_client()
@@ -822,8 +823,8 @@ async def update_gwarstats(guild_id):
     cells.append(gspread.cell.Cell(row=1, col=8, value=now.strftime("%d/%m/%Y %H:%M:%S")))
 
     i_zone = 0
-    for zone_fullname in dict_open_zones:
-        zone = dict_open_zones[zone_fullname]
+    for zone_fullname in list_open_zones:
+        zone = dict_zones[zone_fullname]
         zone_shortname = dict_tb[zone_fullname]["name"]
         cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=zone_shortname))
 
@@ -947,7 +948,7 @@ async def update_gwarstats(guild_id):
 
     # first loop to get the total strikes of the phase
     total_strikes = 0
-    for zone_fullname in dict_open_zones:
+    for zone_fullname in list_zones:
         for strike in dict_tb[zone_fullname]["strikes"]:
             total_strikes += 1
 
@@ -979,7 +980,7 @@ async def update_gwarstats(guild_id):
         # strikes
         i_zone = 1
         player_strikes = player["strike_attempts"]
-        for zone_fullname in dict_open_zones:
+        for zone_fullname in list_open_zones:
             strike_txt = ""
             conflict = zone_fullname.split("_")[-1]
 
@@ -1013,7 +1014,7 @@ async def update_gwarstats(guild_id):
         total_coverts = 0
         covert_txt = ""
         i_zone = 1
-        for zone_fullname in dict_open_zones:
+        for zone_fullname in list_open_zones:
             conflict = zone_fullname.split("_")[-1]
 
             #loop on all existing coverts in the TB dictionary
