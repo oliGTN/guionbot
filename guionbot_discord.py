@@ -803,7 +803,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     eb_phase = first_line[-2]
 
                     for line in message_lines:
-                        if line.startswith(":"):
+                        if ":globe_with_meridians:" in line:
                             ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
                             if ret_re != None:
                                 territory_name = ret_re.group(1)
