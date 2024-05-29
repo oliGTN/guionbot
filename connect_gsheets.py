@@ -754,6 +754,8 @@ async def update_gwarstats(guild_id):
     list_open_zones = tb_data["open_zones"]
     dict_zones = tb_data["zones"]
 
+    tb_round = dict_phase["round"]
+
     try:
         get_gapi_client()
         file = client.open(gfile_name)
@@ -944,7 +946,7 @@ async def update_gwarstats(guild_id):
         cells.append(gspread.cell.Cell(row=player_row1, col=player_col1+3, value="Fleet deployment"))
         cells.append(gspread.cell.Cell(row=player_row1, col=player_col1+6, value="Squad deployment"))
 
-    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["score"]["deployed"] + x[1]["score"]["strikes"], reverse=True))
+    sorted_dict_tb_players = dict(sorted(dict_tb_players.items(), key=lambda x: x[1]["rounds"][tb_round-1]["score"]["deployed"] + x[1]["rounds"][tb_round-1]["score"]["strikes"], reverse=True))
 
     # first loop to get the total strikes of the phase
     total_strikes = 0
@@ -958,7 +960,7 @@ async def update_gwarstats(guild_id):
         cells.append(gspread.cell.Cell(row=line, col=player_col1, value="#"+str(line-player_row1-1)))
 
         # player name
-        player = dict_tb_players[playername]
+        player = dict_tb_players[playername]["rounds"][tb_round-1]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=playername))
 
         # player score

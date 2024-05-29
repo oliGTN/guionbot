@@ -4013,8 +4013,6 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update, estimate_f
         return 1, et, None
 
     dict_phase = tb_data["phase"]
-    dict_strike_zones = tb_data["strike_zones"]
-    dict_tb_players = tb_data["players"]
     list_open_zones = tb_data["open_zones"]
     dict_zones = tb_data["zones"]
  
@@ -4396,8 +4394,6 @@ async def deploy_tb(guild_id, txt_allyCode, zone_shortname, characters):
         return 1, et
 
     dict_phase = tb_data["phase"]
-    dict_strike_zones = tb_data["strike_zones"]
-    dict_tb_players = tb_data["players"]
     list_open_zones = tb_data["open_zones"]
 
     tb_type = dict_phase["type"]
@@ -5395,8 +5391,6 @@ async def set_tb_targets(guild_id, tb_phase_target):
         return 1, et
 
     dict_phase = tb_data["phase"]
-    dict_strike_zones = tb_data["strike_zones"]
-    dict_tb_players = tb_data["players"]
 
     list_targets=[]
     for t in tb_phase_target:
