@@ -960,28 +960,29 @@ async def update_gwarstats(guild_id):
         cells.append(gspread.cell.Cell(row=line, col=player_col1, value="#"+str(line-player_row1-1)))
 
         # player name
-        player = dict_tb_players[playername]["rounds"][tb_round-1]
+        player = dict_tb_players[playername]
+        player_round = player["rounds"][tb_round-1]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+1, value=playername))
 
         # player score
-        total_score = player["score"]["deployed"] + player["score"]["strikes"]
+        total_score = player_round["score"]["deployed"] + player_round["score"]["strikes"]
         cells.append(gspread.cell.Cell(row=line, col=player_col1+2, value=total_score))
 
         # deployments
         if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
-            cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=player["score"]["deployedMix"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=player_round["score"]["deployedMix"]))
             cells.append(gspread.cell.Cell(row=line, col=player_col1+4, value=player["mix_gp"]))
             cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=""))
             cells.append(gspread.cell.Cell(row=line, col=player_col1+7, value=""))
         else:
-            cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=player["score"]["deployedShips"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+3, value=player_round["score"]["deployedShips"]))
             cells.append(gspread.cell.Cell(row=line, col=player_col1+4, value=player["ship_gp"]))
-            cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=player["score"]["deployedChars"]))
+            cells.append(gspread.cell.Cell(row=line, col=player_col1+6, value=player_round["score"]["deployedChars"]))
             cells.append(gspread.cell.Cell(row=line, col=player_col1+7, value=player["char_gp"]))
 
         # strikes
         i_zone = 1
-        player_strikes = player["strike_attempts"]
+        player_strikes = player_round["strike_attempts"]
         for zone_fullname in list_open_zones:
             strike_txt = ""
             conflict = zone_fullname.split("_")[-1]
@@ -993,8 +994,8 @@ async def update_gwarstats(guild_id):
                 max_waves = dict_tb[zone_fullname]["strikes"][strike][0]
                 zone_total_strikes += 1
                 conflict_strike = conflict+"_"+strike
-                if conflict_strike in player["strikes"]:
-                    strike_txt += player["strikes"][conflict_strike]+" "
+                if conflict_strike in player_round["strikes"]:
+                    strike_txt += player_round["strikes"][conflict_strike]+" "
                     zone_player_strikes+=1
                 else:
                     strike_txt += "?/"+str(max_waves)+" "
@@ -1023,12 +1024,12 @@ async def update_gwarstats(guild_id):
             for covert in dict_tb[zone_fullname]["coverts"]:
                 total_coverts += 1
                 conflict_covert = conflict+"_"+covert
-                if conflict_covert in player["coverts"]:
+                if conflict_covert in player_round["coverts"]:
                     covert_txt += "Y "
                 else:
                     covert_txt += "? "
             i_zone += 1
-        player_coverts = player["covert_attempts"]
+        player_coverts = player_round["covert_attempts"]
         if player_coverts == total_coverts:
             #everything is done, so we know what is failed
             covert_txt = covert_txt.replace("?", "n")
