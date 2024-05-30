@@ -1039,31 +1039,32 @@ async def tag_tb_undeployed_players(guild_id, force_update):
         await asyncio.sleep(0)
 
         player = dict_tb_players[playerName]
+        player_score = player["rounds"][tb_round-1]["score"]
         undeployed_player = False
 
         ret_print_player = ""
 
         if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
             if dict_deployment_types["mix"]:
-                ratio_deploy_mix = player["score"]["deployedMix"] / player["mix_gp"]
+                ratio_deploy_mix = player_score["deployedMix"] / player["mix_gp"]
                 if ratio_deploy_mix < 0.99:
                     undeployed_player = True
-                    ret_print_player += "{:,}".format(dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedMix"]) \
-                                       +"/" + "{:,}".format(dict_tb_players[playerName]["mix_gp"]) + " "
+                    ret_print_player += "{:,}".format(player_score["deployedMix"]) \
+                                       +"/" + "{:,}".format(player["mix_gp"]) + " "
         else:
             if dict_deployment_types["ships"]:
-                ratio_deploy_ships = player["score"]["deployedShips"] / player["ship_gp"]
+                ratio_deploy_ships = player_score["deployedShips"] / player["ship_gp"]
                 if ratio_deploy_ships < 0.99:
                     undeployed_player = True
-                    ret_print_player += "Fleet: {:,}".format(dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedShips"]) \
-                                       +"/" + "{:,}".format(dict_tb_players[playerName]["ship_gp"]) + " "
+                    ret_print_player += "Fleet: {:,}".format(player_score["deployedShips"]) \
+                                       +"/" + "{:,}".format(player["ship_gp"]) + " "
 
             if dict_deployment_types["chars"]:
-                ratio_deploy_chars = player["score"]["deployedChars"] / player["char_gp"]
+                ratio_deploy_chars = player_score["deployedChars"] / player["char_gp"]
                 if ratio_deploy_chars < 0.99:
                     undeployed_player = True
-                    ret_print_player += "Squad: {:,}".format(dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedChars"]) \
-                                       +"/" + "{:,}".format(dict_tb_players[playerName]["char_gp"]) + " "
+                    ret_print_player += "Squad: {:,}".format(player_score["deployedChars"]) \
+                                       +"/" + "{:,}".format(player["char_gp"]) + " "
 
         if undeployed_player:
             lines_player.append([playerName, ret_print_player])

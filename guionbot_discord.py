@@ -2715,60 +2715,66 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Tag les joueurs qui n'ont pas tout déployé en BT",
             help="go.tbrappel > tag les joueurs qui n'ont pas tout déployé")
     async def tbrappel(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        display_mentions=True
-        #Sortie sur un autre channel si donné en paramètre
-        if len(args) == 1:
-            if args[0].startswith('no'):
+            display_mentions=True
+            #Sortie sur un autre channel si donné en paramètre
+            if len(args) == 1:
+                if args[0].startswith('no'):
+                    display_mentions=False
+                    output_channel = ctx.message.channel
+                else:
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+                    if output_channel == None:
+                        await ctx.send('**ERR**: '+err_msg)
+                        output_channel = ctx.message.channel
+            else:
                 display_mentions=False
                 output_channel = ctx.message.channel
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+
+            # Launch the actual command
+            err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(guild_id, 0)
+            if err_code == 0:
+                lines = ret_data["lines_player"]
+                endTime = ret_data["round_endTime"]
+                dict_players_by_IG = connect_mysql.load_config_players()[0]
+                expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
+                output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
+                for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
+                    if (p in dict_players_by_IG) and display_mentions:
+                        p_name = dict_players_by_IG[p][1]
+                    else:
+                        p_name= "**" + p + "**"
+                    output_txt += p_name+": "+txt+"\n"
+
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await output_channel.send(txt)
+
+                await ctx.message.add_reaction(emojis.check)
             else:
-                output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
-        else:
-            display_mentions=False
-            output_channel = ctx.message.channel
+                await ctx.send(ret_txt)
+                await ctx.message.add_reaction(emojis.redcross)
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-
-        # Launch the actual command
-        err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(guild_id, 0)
-        if err_code == 0:
-            lines = ret_data["lines_player"]
-            endTime = ret_data["round_endTime"]
-            dict_players_by_IG = connect_mysql.load_config_players()[0]
-            expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
-            output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
-            for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
-                if (p in dict_players_by_IG) and display_mentions:
-                    p_name = dict_players_by_IG[p][1]
-                else:
-                    p_name= "**" + p + "**"
-                output_txt += p_name+": "+txt+"\n"
-
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await output_channel.send(txt)
-
-            await ctx.message.add_reaction(emojis.check)
-        else:
-            await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
     #######################################################
     # twrappel: creates a reminder for players not enough active in TW
