@@ -950,7 +950,7 @@ async def update_gwarstats(guild_id):
 
     # first loop to get the total strikes of the phase
     total_strikes = 0
-    for zone_fullname in list_zones:
+    for zone_fullname in list_open_zones:
         for strike in dict_tb[zone_fullname]["strikes"]:
             total_strikes += 1
 
