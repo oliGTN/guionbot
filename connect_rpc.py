@@ -702,7 +702,8 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                     ret_re = re.search(".*_phase0(\d)_conflict0(\d)", zone_name)
                     zone_position = int(ret_re.group(2))
                     zone_phase = int(ret_re.group(1))
-                    list_open_territories[zone_position-1] = {"phase": zone_phase}
+                    list_open_territories[zone_position-1] = {"phase": zone_phase,
+                                                              "zone_name": dict_tb[zone_name]["name"]}
                     if "commandMessage" in zone["zoneStatus"]:
                         list_open_territories[zone_position-1]["cmdMsg"] = zone["zoneStatus"]["commandMessage"]
                     if "commandState" in zone["zoneStatus"]:

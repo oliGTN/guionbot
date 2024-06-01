@@ -964,6 +964,8 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
 # OUT - full_txt
 #####################
 async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions):
+    dict_tb = data.get("tb_definition.json")
+
     #Read actual platoons in game
     err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
     tbs_round = ret_data["round"]
@@ -982,6 +984,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
     else:
         goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
         tb_name = tbs_round[:-1]
+        tb_id = dict_tb[tb_name]["id"]
 
         # Read platoon allocations
         ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
@@ -1022,8 +1025,26 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
         cur_phase = 0
 
         #Affichage du statut de chaque peloton avant de mettre la liste des joueurs
-        #for terr in list_open_territories:
+        list_terr_status = []
+        for terr in list_open_territories:
+            terr_txt = "__"+terr["zone_name"]+"__: "
+            for i_platoon in range(1,7):
+                platoon_name = terr["zone_name"]+"-"+str(i_platoon)
+                count_done = 0
+                for unit in dict_platoons_done[platoon_name]:
+                    needed_units = len(dict_platoons_done[platoon_name][unit])
+                    missing_units = dict_platoons_done[platoon_name][unit].count('')
+                    count_done += (needed_units - missing_units)
+                terr_txt += str(count_done)+" "
+            if "cmdMsg" in terr:
+                terr_txt += "("+terr["cmdMsg"]+")"
+            list_terr_status.append([terr["zone_name"], terr_txt])
 
+        #sort by zone position
+        list_terr_status = sorted(list_terr_status, key=lambda x:dict_tb[tb_id]["zonePositions"][x[0].split("-")[1]])
+        for terr_status in list_terr_status:
+            full_txt += terr_status[1]+"\n"
+        full_txt += "---\n"
 
         for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x[1][:4], x[0], x[1])):
             allocated_player = missing_platoon[0]
