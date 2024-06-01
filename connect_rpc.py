@@ -666,7 +666,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
     active_round = "" # "GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
-    list_open_territories = [0, 0, 0] # [4, 3, 3]
+    list_open_territories = [{}, {}, {}] # [{"phase":4, "cmdMsg": "full pelotons", "cmdState":"FOCUSED"}, ...]
 
     guildName = dict_guild["profile"]["name"]
 
@@ -680,6 +680,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
         goutils.log2("WAR", "["+guildName+"] no TB in progress")
         return 1, "["+guildName+"] no TB in progress", {}
 
+    open_zone_count = 0
     for battleStatus in dict_guild["territoryBattleStatus"]:
         if battleStatus["selected"]:
             tb_id = battleStatus["definitionId"]
@@ -701,7 +702,13 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                     ret_re = re.search(".*_phase0(\d)_conflict0(\d)", zone_name)
                     zone_position = int(ret_re.group(2))
                     zone_phase = int(ret_re.group(1))
-                    list_open_territories[zone_position-1] = zone_phase
+                    list_open_territories[zone_position-1] = {"phase": zone_phase}
+                    if "commandMessage" in zone["zoneStatus"]:
+                        list_open_territories[zone_position-1]["cmdMsg"] = zone["zoneStatus"]["commandMessage"]
+                    if "commandState" in zone["zoneStatus"]:
+                        list_open_territories[zone_position-1]["cmdState"] = zone["zoneStatus"]["commandState"]
+                    open_zone_count += 1
+
                 if not "platoon" in zone:
                     continue
 
@@ -736,7 +743,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                             else:
                                 dict_platoons[platoon_name][unit_name].append('')
 
-    if max(list_open_territories)==0:
+    if open_zone_count == 0:
         return 1, "No open territory", {}
 
     return 0, "", {"round": active_round, 
@@ -1541,7 +1548,6 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
         err_code, err_txt, ret_data = await get_actual_tb_platoons_from_dict(dict_guild)
         tbs_round = ret_data["round"]
         dict_platoons_done = ret_data["platoons"]
-        list_open_terr = ret_data["open_territories"]
 
         tb_name = tbs_round[:-1]
         err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)

@@ -428,7 +428,6 @@ async def bot_loop_5minutes(bot):
                     err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, -1)
                     tbs_round = ret_data["round"]
                     dict_platoons_done = ret_data["platoons"]
-                    list_open_territories = ret_data["open_territories"]
 
                     if tbs_round == '':
                         goutils.log2("DBG", "["+guild_id+"] No TB in progress")
@@ -1064,11 +1063,11 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
                 position = "bot"
 
             if position == 'top' or position == 'LS':
-                open_for_position = list_open_territories[0]
+                open_for_position = list_open_territories[0]["phase"]
             elif position == 'mid' or position == 'DS':
-                open_for_position = list_open_territories[1]
+                open_for_position = list_open_territories[1]["phase"]
             else:  #bot or 'MS'
-                open_for_position = list_open_territories[2]
+                open_for_position = list_open_territories[2]["phase"]
             if cur_phase < open_for_position:
                 full_txt += txt + ' -- *et c\'est trop tard*\n'
             else:
