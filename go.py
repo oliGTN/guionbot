@@ -3333,7 +3333,11 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         dict_attack_toon_player = ret_data["awayAttack"]
     elif tb_mode:
         dict_alias = godata.get("unitsAlias_dict.json")
-        tbs_round, dict_platoons_done, list_open_terr = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+
+        err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+        tbs_round = ret_data["round"]
+        dict_platoons_done = ret_data["platoons"]
+        list_open_terr = ret_data["open_territories"]
         if tbs_round == "":
             return 1, "Aucune BT en cours", None
 

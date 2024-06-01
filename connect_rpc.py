@@ -657,8 +657,8 @@ async def get_actual_tb_platoons(guild_id, force_update):
         goutils.log2("ERR", err_txt)
         return '', None, None
 
-    tbs_round, dict_platoons_done, list_open_terr = await get_actual_tb_platoons_from_dict(dict_guild)
-    return tbs_round, dict_platoons_done, list_open_terr
+    err_code, err_txt, ret_data = await get_actual_tb_platoons_from_dict(dict_guild)
+    return err_code, err_txt, ret_data
 
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
 async def get_actual_tb_platoons_from_dict(dict_guild):
@@ -678,20 +678,20 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
     if not "territoryBattleStatus" in dict_guild:
         goutils.log2("WAR", "["+guildName+"] no TB in progress")
-        return '', None, None
+        return 1, "["+guildName+"] no TB in progress", {}
 
     for battleStatus in dict_guild["territoryBattleStatus"]:
         if battleStatus["selected"]:
             tb_id = battleStatus["definitionId"]
             if not tb_id in dict_tb:
                 goutils.log2("WAR", "["+guildName+"] TB inconnue du bot")
-                return '', None, None
+                return 1, "["+guildName+"] TB inconnue du bot", {}
 
             tb_name = dict_tb[tb_id]["shortname"]
             active_round = tb_name + str(battleStatus["currentRound"])
 
             if active_round == 0:
-                return '', None, None
+                return 1, "TB in preparation phase", {}
 
             for zone in battleStatus["reconZoneStatus"]:
                 recon_name = zone["zoneStatus"]["zoneId"]
@@ -737,9 +737,11 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                                 dict_platoons[platoon_name][unit_name].append('')
 
     if max(list_open_territories)==0:
-        return '', None, None
+        return 1, "No open territory", {}
 
-    return active_round, dict_platoons, list_open_territories
+    return 0, "", {"round": active_round, 
+                   "platoons": dict_platoons,
+                   "open_territories": list_open_territories}
 
 async def get_guildLog_messages(guild_id, onlyLatest):
 
@@ -1536,7 +1538,11 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
     # Get platoon remaining scores
     if compute_estimated_platoons:
-        tbs_round, dict_platoons_done, list_open_terr = await get_actual_tb_platoons_from_dict(dict_guild)
+        err_code, err_txt, ret_data = await get_actual_tb_platoons_from_dict(dict_guild)
+        tbs_round = ret_data["round"]
+        dict_platoons_done = ret_data["platoons"]
+        list_open_terr = ret_data["open_territories"]
+
         tb_name = tbs_round[:-1]
         err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
         dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
