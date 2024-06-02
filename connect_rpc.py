@@ -678,7 +678,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
     if not "territoryBattleStatus" in dict_guild:
         goutils.log2("WAR", "["+guildName+"] no TB in progress")
-        return 1, "["+guildName+"] no TB in progress", {}
+        return 2, "["+guildName+"] no TB in progress", {}
 
     open_zone_count = 0
     for battleStatus in dict_guild["territoryBattleStatus"]:
@@ -692,7 +692,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
             active_round = tb_name + str(battleStatus["currentRound"])
 
             if active_round == 0:
-                return 1, "TB in preparation phase", {}
+                return 2, "TB in preparation phase", {}
 
             for zone in battleStatus["reconZoneStatus"]:
                 recon_name = zone["zoneStatus"]["zoneId"]

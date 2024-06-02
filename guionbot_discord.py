@@ -426,13 +426,14 @@ async def bot_loop_5minutes(bot):
                         dict_platoons_previously_done[guild_id] = {}
 
                     err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, -1)
-                    tbs_round = ret_data["round"]
-                    dict_platoons_done = ret_data["platoons"]
 
-                    if tbs_round == '':
-                        goutils.log2("DBG", "["+guild_id+"] No TB in progress")
+                    if err_code != 0:
+                        goutils.log2("DBG", "["+guild_id+"] "+err_txt)
                         dict_platoons_previously_done[guild_id] = {}
                     else:
+                        tbs_round = ret_data["round"]
+                        dict_platoons_done = ret_data["platoons"]
+
                         goutils.log2("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
                         goutils.log2("INFO", "["+guild_id+"] End of platoon parsing for TB: round " + tbs_round)
                         new_allocation_detected = False
