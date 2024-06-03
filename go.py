@@ -3329,17 +3329,18 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         ec, et, ret_data = await get_tw_def_attack(guild_id, -1, with_attacks=with_attacks)
         if ec != 0:
             return ec, et, None
-        dict_def_toon_player = ret_data["homeDef"]
+        dict_used_toon_player = ret_data["homeDef"]
         dict_attack_toon_player = ret_data["awayAttack"]
     elif tb_mode:
         dict_alias = godata.get("unitsAlias_dict.json")
 
         err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+        if err_code != 0:
+            return 1, err_txt, None
+
         tbs_round = ret_data["round"]
         dict_platoons_done = ret_data["platoons"]
         list_open_terr = ret_data["open_territories"]
-        if tbs_round == "":
-            return 1, "Aucune BT en cours", None
 
         tb_name = tbs_round[:-1]
         if tb_name == "ROTE":
@@ -3436,9 +3437,6 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             character_id = list_character_ids[0]
             character_name = "**"+dict_unitsList[character_id]["name"]+"**"
 
-            goutils.log2("DBG", character_id)
-            goutils.log2("DBG", opposite_search)
-            goutils.log2("DBG", simple_search)
             if opposite_search and simple_search:
                 intro_txt+= " qui n'ont pas "+character_name
                 query+= "AND NOT allyCode IN ( "
