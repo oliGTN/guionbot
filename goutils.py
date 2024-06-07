@@ -110,6 +110,8 @@ def split_txt(txt, max_size):
     return ret_split_txt
    
 def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_characters_unlocked, dict_tw_def):
+    dict_capas = data.get('unit_capa_list.json')
+
     dict_players={}
 
     cur_playername = ''
@@ -175,7 +177,8 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
 
         line_zeta = line[3]
         line_level = line[4]
-        is_zeta_active = (line_level>=8)
+        line_zeta_tier = dict_capas[line_defId][line_zeta]["zetaTier"]
+        is_zeta_active = (line_level >= line_zeta_tier)
         if line_playername in dict_players:
             if line_teamname in dict_players[line_playername][1]:
                 if line_defId in dict_players[line_playername][1][line_teamname]:
@@ -201,8 +204,8 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
 
         line_omicron = line[3]
         line_level = line[4]
-        line_omicron_tier = line[5]
-        is_omicron_active = (line_level >= line_omicron_tier) and (line_omicron_tier != -1)
+        line_omicron_tier = dict_capas[line_defId][line_zeta]["zetaTier"]
+        is_omicron_active = (line_level >= line_omicron_tier)
         if line_playername in dict_players:
             if line_teamname in dict_players[line_playername][1]:
                 if line_defId in dict_players[line_playername][1][line_teamname]:
