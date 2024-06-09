@@ -4778,8 +4778,6 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
     #target_rarity = 7 by default
 
     dict_unitsList = godata.get("unitsList_dict.json")
-    dict_eqpt = godata.get("eqpt_dict.json")
-    FRE_FR = godata.get("FRE_FR.json")
     shard_droprate = 0.3
     kyro_droprate = 0.2
 
@@ -4852,57 +4850,70 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 
 
     # Kyros
-    needed_eqpt = {} #key=eqpt_id, value=count
+    needed_eqpt = get_needed_eqpt(dict_player, unit_id, target_gear) #key=eqpt_id, value=count
     kyro_energy = 0
-    if unit_gear < target_gear and dict_unitsList[unit_id]["combatType"]==1:
-        # current tier
-        tier_eqpt = dict_unitsList[unit_id]["unitTier"][unit_gear-1]["equipmentSet"]
-        for pos_eqpt in [0, 1, 2, 3, 4, 5]:
-            if unit_eqpt[pos_eqpt]==None:
-                if not tier_eqpt[pos_eqpt] in needed_eqpt:
-                    needed_eqpt[tier_eqpt[pos_eqpt]] = 0
-                needed_eqpt[tier_eqpt[pos_eqpt]] += 1
-            #print(needed_eqpt)
-
-        # other tiers
-        for i_gear in range(unit_gear, target_gear-1):
-            tier_eqpt = dict_unitsList[unit_id]["unitTier"][i_gear]["equipmentSet"]
-            #print(str(i_gear+1)+": "+str(tier_eqpt))
-            for eqpt in tier_eqpt:
-                if not eqpt in needed_eqpt:
-                    needed_eqpt[eqpt] = 0
-                needed_eqpt[eqpt] += 1
-            #print(needed_eqpt)
-
-        #loop to breakdown equipments
-        continue_loop = True
-        while(continue_loop):
-            continue_loop = False
-            eqpt_id_list = list(needed_eqpt.keys())
-            for eqpt_id in eqpt_id_list:
-                if eqpt_id in dict_eqpt and "recipe" in dict_eqpt[eqpt_id]:
-                    continue_loop = True
-                    eqpt_count = needed_eqpt[eqpt_id]
-                    recipe = dict_eqpt[eqpt_id]["recipe"]
-                    for ingredient in recipe:
-                        if not ingredient["id"] in needed_eqpt:
-                            needed_eqpt[ingredient["id"]] = 0
-                        needed_eqpt[ingredient["id"]] += eqpt_count * ingredient["maxQuantity"]
-                    del needed_eqpt[eqpt_id]
-
-        #DEBUG
-        #for eqpt_id in needed_eqpt:
-        #    if eqpt_id == "GRIND":
-        #        print("Credits: "+str(needed_eqpt[eqpt_id]))
-        #    else:
-        #        print("["+eqpt_id+"]"+FRE_FR[dict_eqpt[eqpt_id]["nameKey"]]+": "+str(needed_eqpt[eqpt_id]))
-
-        if "172Salvage" in needed_eqpt:
-            kyro_energy += needed_eqpt["172Salvage"] * 10 / kyro_droprate
-        if "173Salvage" in needed_eqpt:
-            kyro_energy += needed_eqpt["173Salvage"] * 10 / kyro_droprate
+    if "172Salvage" in needed_eqpt:
+        kyro_energy += needed_eqpt["172Salvage"] * 10 / kyro_droprate
+    if "173Salvage" in needed_eqpt:
+        kyro_energy += needed_eqpt["173Salvage"] * 10 / kyro_droprate
 
     return kyro_energy, shard_energy
+
+def get_needed_eqpt(dict_player, list_unit_id, target_gear):
+    dict_unitsList = godata.get("unitsList_dict.json")
+    dict_eqpt = godata.get("eqpt_dict.json")
+
+    needed_eqpt = {} #key=eqpt_id, value=count
+
+    for unit_id in list_unit_id:
+        if unit_id in dict_player["rosterUnit"]:
+            unit_gear = dict_player["rosterUnit"][unit_id]["currentTier"]
+            unit_eqpt = [None, None, None, None, None, None]
+            for eqpt in dict_player["rosterUnit"][unit_id]["equipment"]:
+                unit_eqpt[eqpt["slot"]] = eqpt["equipmentId"]
+        else:
+            unit_rarity = 0
+            unit_gear = 1
+            unit_eqpt = [None, None, None, None, None, None]
+
+
+        if unit_gear < target_gear and dict_unitsList[unit_id]["combatType"]==1:
+            # current tier
+            tier_eqpt = dict_unitsList[unit_id]["unitTier"][unit_gear-1]["equipmentSet"]
+            for pos_eqpt in [0, 1, 2, 3, 4, 5]:
+                if unit_eqpt[pos_eqpt]==None:
+                    if not tier_eqpt[pos_eqpt] in needed_eqpt:
+                        needed_eqpt[tier_eqpt[pos_eqpt]] = 0
+                    needed_eqpt[tier_eqpt[pos_eqpt]] += 1
+                #print(needed_eqpt)
+
+            # other tiers
+            for i_gear in range(unit_gear, target_gear-1):
+                tier_eqpt = dict_unitsList[unit_id]["unitTier"][i_gear]["equipmentSet"]
+                #print(str(i_gear+1)+": "+str(tier_eqpt))
+                for eqpt in tier_eqpt:
+                    if not eqpt in needed_eqpt:
+                        needed_eqpt[eqpt] = 0
+                    needed_eqpt[eqpt] += 1
+                #print(needed_eqpt)
+
+            #loop to breakdown equipments
+            continue_loop = True
+            while(continue_loop):
+                continue_loop = False
+                eqpt_id_list = list(needed_eqpt.keys())
+                for eqpt_id in eqpt_id_list:
+                    if eqpt_id in dict_eqpt and "recipe" in dict_eqpt[eqpt_id]:
+                        continue_loop = True
+                        eqpt_count = needed_eqpt[eqpt_id]
+                        recipe = dict_eqpt[eqpt_id]["recipe"]
+                        for ingredient in recipe:
+                            if not ingredient["id"] in needed_eqpt:
+                                needed_eqpt[ingredient["id"]] = 0
+                            needed_eqpt[ingredient["id"]] += eqpt_count * ingredient["maxQuantity"]
+                        del needed_eqpt[eqpt_id]
+
+    return 0, "", needed_eqpt
 
 def update_raid_estimates_from_wookiebot(raid_name, file_content):
     #print(file_content[:100])

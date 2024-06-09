@@ -3,6 +3,7 @@ import os
 import math
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import json
+import io
 
 import goutils
 import data
@@ -437,3 +438,37 @@ def get_result_image_from_images(img1_url, img1_size, img2_url, img2_sizes, idx_
     result_image = add_vertical(attacker_img, defender_img)
 
     return result_image
+
+def get_image_from_eqpt_id(eqpt_id):
+    dict_eqpt = data.get("eqpt_dict.json")
+    dict_tier_color = {1: "#97d2d3", 
+                       2: "#aff65b",
+                       4: "#51bcf6",
+                       7: "#844df1",
+                       9: "#844df1",
+                       11: "#844df1",
+                       12: "#f1c752"}
+
+    eqpt_img_name = 'IMAGES'+os.path.sep+'EQUIPMENT'+os.path.sep+eqpt_id+'.png'
+    if not os.path.exists(eqpt_img_name):
+        eqpt_asset_id = dict_eqpt[eqpt_id]["iconKey"]
+        eqpt_tier = dict_eqpt[eqpt_id]["tier"]
+        swgohgg_img_url = "https://game-assets.swgoh.gg/" + eqpt_asset_id + ".png"
+        goutils.log2("INFO", "download equipment image from swgoh.gg "+swgohgg_img_url)
+        r = requests.get(swgohgg_img_url, allow_redirects=True)
+        img = Image.open(io.BytesIO(r.content))
+        img = img.resize((34,34)) #should not be useful, but safety net
+
+        #Create background with color of the tier
+        colored_eqpt = Image.new("RGB", (40,40), dict_tier_color[eqpt_tier])
+
+        #put gear image in the center
+        colored_eqpt.paste(img, (3, 3))
+
+        # Save colored gear
+        colored_eqpt.save(eqpt_img_name)
+
+    else:
+        colored_eqpt = Image.open(eqpt_img_name)
+
+    return colored_eqpt
