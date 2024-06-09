@@ -8,7 +8,8 @@ import io
 import goutils
 import data
 
-font = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
+font12 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 12)
+font24 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 
 NAME_HEIGHT = 30
 PORTRAIT_SIZE = 168
@@ -145,6 +146,7 @@ def replace_color(img, c1, c2):
 
     return img
 
+#Add img2 under img1
 def add_vertical(img1, img2):
     if img1 == None:
         return img2
@@ -159,6 +161,7 @@ def add_vertical(img1, img2):
 
     return image
     
+#Add img2 at the right of img1
 def add_horizontal(img1, img2):
     if img1 == None:
         return img2
@@ -274,14 +277,14 @@ def get_image_from_unit(character, crew_units, game_mode):
                 relic_frame_img = relic_frame_img.crop((0, 108, 54, 162))
             relic_frame_img = relic_frame_img.resize((70,70))
             portrait_image.paste(relic_frame_img, (50, 87), relic_frame_img)
-            portrait_draw.text((78,107), str(relic), (255, 255, 255), font=font)
+            portrait_draw.text((78,107), str(relic), (255, 255, 255), font=font24)
         else:
             #LEVEL
             level = character["currentLevel"]
             level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
             level_frame_img = level_frame_img.resize((40,40))
             portrait_image.paste(level_frame_img, (64, 107), level_frame_img)
-            portrait_draw.text((86-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
+            portrait_draw.text((86-8*len(str(level)),112), str(level), (255, 255, 255), font=font24)
 
         #ZETAS
         zetas = 0
@@ -293,7 +296,7 @@ def get_image_from_unit(character, crew_units, game_mode):
             zeta_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_zeta_glow.png')
             zeta_frame_img = zeta_frame_img.resize((60,60))
             portrait_image.paste(zeta_frame_img, (5, 85), zeta_frame_img)
-            portrait_draw.text((29,100), str(zetas), (255, 255, 255), font=font)
+            portrait_draw.text((29,100), str(zetas), (255, 255, 255), font=font24)
 
         #OMICRONS
         omicrons = 0
@@ -309,14 +312,14 @@ def get_image_from_unit(character, crew_units, game_mode):
             omicron_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'tex.skill_omicron.png')
             omicron_frame_img = omicron_frame_img.resize((60,60))
             portrait_image.paste(omicron_frame_img, (106, 85), omicron_frame_img)
-            portrait_draw.text((130,100), str(omicrons), (255, 255, 255), font=font)
+            portrait_draw.text((130,100), str(omicrons), (255, 255, 255), font=font24)
     else:
         #LEVEL
         level = character["currentLevel"]
         level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
         level_frame_img = level_frame_img.resize((40,40))
         portrait_image.paste(level_frame_img, (4, 107), level_frame_img)
-        portrait_draw.text((26-8*len(str(level)),112), str(level), (255, 255, 255), font=font)
+        portrait_draw.text((26-8*len(str(level)),112), str(level), (255, 255, 255), font=font24)
 
         #CREW
         for crew_unit in crew_units:
@@ -409,10 +412,10 @@ def get_image_from_units(list_characters, player_name, tw_territory="", omicron_
             list_portrait_images = []
 
     complete_player_name = player_name + " - " + str(total_gp)
-    w_txt, h_txt = font.getsize(complete_player_name)
+    w_txt, h_txt = font24.getsize(complete_player_name)
     name_img = Image.new('RGB', (w_txt+20, NAME_HEIGHT), (0,0,0))
     name_draw = ImageDraw.Draw(name_img)
-    name_draw.text((10,5), complete_player_name, (255, 255, 255), font=font)
+    name_draw.text((10,5), complete_player_name, (255, 255, 255), font=font24)
 
     team_img = add_vertical(name_img, image_all_portraits)
 
@@ -472,3 +475,46 @@ def get_image_from_eqpt_id(eqpt_id):
         colored_eqpt = Image.open(eqpt_img_name)
 
     return colored_eqpt
+
+def get_image_from_eqpt_count(eqpt_id, needed_count, owned_count=None):
+    dict_eqpt = data.get("eqpt_dict.json")
+    FRE_FR = data.get("FRE_FR.json")
+
+    image = Image.new('RGB', (300, 50), (0,0,0))
+    image_draw = ImageDraw.Draw(image)
+
+    image.paste(get_image_from_eqpt_id(eqpt_id), (5,5))
+    eqpt_nameKey = dict_eqpt[eqpt_id]["nameKey"]
+    eqpt_name = FRE_FR[eqpt_nameKey]
+    eqpt_words = eqpt_name.split(" ")
+
+    line_size = 0
+    MAX_LINE_SIZE=200
+    txt_lines = []
+    cur_line = eqpt_words[0]
+    for word in eqpt_words[1:]:
+        print(cur_line, font12.getsize(cur_line), word)
+        if font12.getsize(cur_line+" "+word)[0] < MAX_LINE_SIZE:
+            cur_line += " " + word
+        else:
+            txt_lines.append(cur_line)
+            cur_line = word
+    txt_lines.append(cur_line)
+
+    line_height = font12.getsize(cur_line)[1]
+    image_draw.text((50,25-(len(txt_lines)*line_height)/2), "\n".join(txt_lines), (255, 255, 255), font=font12)
+    image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height/2), str(needed_count), (255, 255, 255), font=font12)
+
+    return image
+
+def get_image_from_eqpt_list(eqpt_list):
+    list_eqpt_images = []
+    for eqpt in eqpt_list:
+        img = get_image_from_eqpt_count(eqpt[0], eqpt[1])
+        list_eqpt_images.append(img)
+
+    eqpt_list_img = list_eqpt_images[0]
+    for img in list_eqpt_images[1:]:
+        eqpt_list_img = add_vertical(eqpt_list_img, img)
+
+    return eqpt_list_img
