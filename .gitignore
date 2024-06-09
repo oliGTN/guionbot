@@ -4,6 +4,7 @@ config.py
 test_*.py
 SCRIPTS/mysql_backup.sh
 IMAGES/CHARACTERS/*
+IMAGES/EQUIPMENT/*
 IMAGES/GUILD_LOGOS/*
 DATA/*
 DATA
