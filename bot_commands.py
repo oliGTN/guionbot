@@ -11,6 +11,7 @@ import go
 import connect_rpc
 import connect_mysql
 import goutils
+import portraits
 
 # CONSTANTS
 import emojis
@@ -160,6 +161,52 @@ async def gdp(ctx_interaction, allyCode):
 
     #Icône de confirmation de fin de commande dans le message d'origine
     await command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt="chargement des joueurs OK")
+
+##############################################################
+async def farmeqpt(ctx_interaction, allyCode, list_alias):
+    try:
+        resp_msg = await command_ack(ctx_interaction)
+
+        ec, et, allyCode = await manage_me(ctx_interaction, allyCode)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, et)
+            return
+
+        #Get unit IDs from aliases
+        list_unit_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
+        if txt != '':
+            await command_error(ctx_interaction, resp_msg, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt)
+            return
+
+        # Get player data
+        ec, et, d_player = await go.load_player(allyCode, 1, False)
+        if ec != 0:
+            await command_error(ctx_interaction, resp_msg, et)
+            return
+
+        # Get equipment dict
+        ec, et, eqpt = go.get_needed_eqpt(d_player, list_unit_ids, 13)
+
+        # Transform into list
+        eqpt_list = []
+        for k in eqpt:
+            if k == "GRIND":
+                continue
+            eqpt_list.append([k, eqpt[k]])
+
+        # Sort with most needed first
+        eqpt_list.sort(key=lambda x:-x[1])
+
+        # Compute image
+        image = portraits.get_image_from_eqpt_list(eqpt_list)
+
+        # Display the image
+        await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(list_unit_ids)+" au niveau G13", images=[image])
+
+    except Exception as e:
+        goutils.log2("ERR", str(sys.exc_info()[0]))
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
 
 ##############################################################
 async def tpg(ctx_interaction, *args):

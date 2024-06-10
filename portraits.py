@@ -8,6 +8,7 @@ import io
 import goutils
 import data
 
+font8 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 8)
 font12 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 12)
 font24 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 
@@ -456,6 +457,7 @@ def get_image_from_eqpt_id(eqpt_id):
     if not os.path.exists(eqpt_img_name):
         eqpt_asset_id = dict_eqpt[eqpt_id]["iconKey"]
         eqpt_tier = dict_eqpt[eqpt_id]["tier"]
+        eqpt_mk = dict_eqpt[eqpt_id]["mark"]
         swgohgg_img_url = "https://game-assets.swgoh.gg/" + eqpt_asset_id + ".png"
         goutils.log2("INFO", "download equipment image from swgoh.gg "+swgohgg_img_url)
         r = requests.get(swgohgg_img_url, allow_redirects=True)
@@ -467,6 +469,11 @@ def get_image_from_eqpt_id(eqpt_id):
 
         #put gear image in the center
         colored_eqpt.paste(img, (3, 3))
+        img_draw = ImageDraw.Draw(colored_eqpt)
+
+        #put Mk at top right
+        mk_size = font8.getsize(eqpt_mk)
+        img_draw.text((5+40/2-mk_size[0]/2, 5+3), eqpt_mk, (255, 255, 255), font=font8)
 
         # Save colored gear
         colored_eqpt.save(eqpt_img_name)
@@ -493,7 +500,6 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned_count=None):
     txt_lines = []
     cur_line = eqpt_words[0]
     for word in eqpt_words[1:]:
-        print(cur_line, font12.getsize(cur_line), word)
         if font12.getsize(cur_line+" "+word)[0] < MAX_LINE_SIZE:
             cur_line += " " + word
         else:

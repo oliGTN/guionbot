@@ -20,7 +20,7 @@ from requests import get
 import traceback
 from texttable import Texttable
 import zipfile
-import typing
+from typing import List
 import json
 import threading
 
@@ -3617,6 +3617,13 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 async def gdp(interaction: discord.Interaction,
               allycode: str) -> None:
     await bot_commands.gdp(interaction, allycode)
+
+@bot.tree.command(name="farm-equipement")
+async def farmeqpt(interaction: discord.Interaction,
+                   allycode: str,
+                   list_alias_txt: str) -> None:
+    list_alias = list_alias_txt.split(" ")
+    await bot_commands.farmeqpt(interaction, allycode, list_alias)
 
 
 ##############################################################
