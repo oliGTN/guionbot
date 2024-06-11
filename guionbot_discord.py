@@ -1504,6 +1504,7 @@ async def on_message(message):
 
         #Read messages from Echobot
         if message.author.id == config.EB_DISCORD_ID:
+            goutils.log2("INFO", "Detect message from Echobot "+str(message.id))
             for embed in message.embeds:
                 dict_embed = embed.to_dict()
                 if "author" in dict_embed:
@@ -1513,6 +1514,7 @@ async def on_message(message):
                         if author_name.startswith("Use one of the buttons below"):
                             #This is the EB message after a list of messages for EB allocation
                             # Time to lauch the reading of allocations
+                            goutils.log2("INFO", "Read platoons from Echobot "+str(message.id))
                             tbChanRead_id = message.channel.id
                             query = "SELECT guild_id, echostation_id FROM guild_bot_infos " \
                                     "WHERE tbChanRead_id="+str(tbChanRead_id)
