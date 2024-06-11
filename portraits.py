@@ -483,11 +483,14 @@ def get_image_from_eqpt_id(eqpt_id):
 
     return colored_eqpt
 
-def get_image_from_eqpt_count(eqpt_id, needed_count, owned_count=None):
+def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
     dict_eqpt = data.get("eqpt_dict.json")
     FRE_FR = data.get("FRE_FR.json")
 
-    image = Image.new('RGB', (300, 50), (0,0,0))
+    if owned!=None:
+        image = Image.new('RGB', (350, 50), (0,0,0))
+    else:
+        image = Image.new('RGB', (300, 50), (0,0,0))
     image_draw = ImageDraw.Draw(image)
 
     image.paste(get_image_from_eqpt_id(eqpt_id), (5,5))
@@ -509,14 +512,25 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned_count=None):
 
     line_height = font12.getsize(cur_line)[1]
     image_draw.text((50,25-(len(txt_lines)*line_height)/2), "\n".join(txt_lines), (255, 255, 255), font=font12)
-    image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height/2), str(needed_count), (255, 255, 255), font=font12)
+
+    if owned!=None:
+        #needed and owned
+        image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height/2), str(needed_count)+" ("+str(owned)+")", (255, 255, 255), font=font12)
+
+        #Need to farm
+        image_draw.text((50+MAX_LINE_SIZE+70, 25-line_height/2), "> "+str(max(0,needed_count-owned)), (255, 255, 255), font=font12)
+    else:
+        image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height/2), str(needed_count), (255, 255, 255), font=font12)
 
     return image
 
-def get_image_from_eqpt_list(eqpt_list):
+def get_image_from_eqpt_list(eqpt_list, display_owned=False):
     list_eqpt_images = []
     for eqpt in eqpt_list:
-        img = get_image_from_eqpt_count(eqpt[0], eqpt[1])
+        if display_owned:
+            img = get_image_from_eqpt_count(eqpt[0], eqpt[1], owned=eqpt[2])
+        else:
+            img = get_image_from_eqpt_count(eqpt[0], eqpt[1])
         list_eqpt_images.append(img)
 
     eqpt_list_img = list_eqpt_images[0]

@@ -5,6 +5,7 @@ from discord import app_commands, Interaction
 from io import BytesIO
 import re
 import difflib
+import sys
 
 # BOT imports
 import go
@@ -178,7 +179,7 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias):
             await command_error(ctx_interaction, resp_msg, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt)
             return
 
-        # Get player data
+        # Get regular player data
         ec, et, d_player = await go.load_player(allyCode, 1, False)
         if ec != 0:
             await command_error(ctx_interaction, resp_msg, et)
@@ -187,18 +188,42 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias):
         # Get equipment dict
         ec, et, eqpt = go.get_needed_eqpt(d_player, list_unit_ids, 13)
 
+        # Get owned equipment, ONLY for connected users
+        ec, et, player_infos = connect_mysql.get_google_player_info(ctx_interaction.channel.id)
+        if ec==0:
+            # Connected user, get full player data
+            ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode)
+            if ec != 0:
+                await command_error(ctx_interaction, resp_msg, et)
+                return
+
+            #create list of owned equipment
+            player_eqpt = {}
+            for e in i_player["inventory"]["equipment"]:
+                player_eqpt[e["id"]] = e["quantity"]
+
+            display_owned = True
+
+        else:
+            player_eqpt = {}
+            display_owned = False
+
         # Transform into list
         eqpt_list = []
         for k in eqpt:
             if k == "GRIND":
                 continue
-            eqpt_list.append([k, eqpt[k]])
+            if k in player_eqpt:
+                owned = player_eqpt[k]
+            else:
+                owned = 0
+            eqpt_list.append([k, eqpt[k], owned])
 
         # Sort with most needed first
-        eqpt_list.sort(key=lambda x:-x[1])
+        eqpt_list.sort(key=lambda x:x[2]-x[1])
 
         # Compute image
-        image = portraits.get_image_from_eqpt_list(eqpt_list)
+        image = portraits.get_image_from_eqpt_list(eqpt_list, display_owned=display_owned)
 
         # Display the image
         await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(list_unit_ids)+" au niveau G13", images=[image])
