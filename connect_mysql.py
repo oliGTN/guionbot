@@ -1241,6 +1241,7 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
         # Get the data for latest stored data of this guild
         query += "AND ABS(timestampdiff(SECOND, timestamp, (select max(timestamp) from platoon_config WHERE guild_id='"+guild_id+"')))<5"
 
+    goutils.log2("DBG", query)
     db_data = get_table(query)
     if db_data == None:
         return 1, "Aucune allocation de peloton connue", None
