@@ -4933,6 +4933,7 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
     return 0, ""
 
 def store_eb_allocations(guild_id, tb_name, phase, allocations):
+    goutils.log2("INFO", (guild_id, tb_name, phase))
     if phase[-1] == "1":
         #1st phase of TB, remove all previous configs for this guild
         query = "DELETE FROM platoon_allocations " \
