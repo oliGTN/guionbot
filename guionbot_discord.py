@@ -841,7 +841,8 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         for platoon_name in dict_platoons_allocation:
                                             if platoon_name.startswith(tbs_name + "X-"+territory_position):
                                                 keys_to_rename.append(platoon_name)
-                                            if platoon_name.startswith(tbs_name + "X-PLATOON"):
+                                            if platoon_name.startswith(tbs_name + "X-PLATOON") \
+                                            or platoon_name.startswith(tbs_name + "X-OPERATION"):
                                                 keys_to_rename.append(platoon_name)
                                         for key in keys_to_rename:
                                             new_key = territory_name_position+key[-2:]
@@ -989,7 +990,6 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
 
         # Read platoon allocations
         ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
-        goutils.log2("DBG", "")
         if ec != 0:
             return ec, et
 
@@ -1002,7 +1002,6 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
         
         # Read DB platoon allocations
         #ec, et, ret = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
-        #goutils.log2("DBG", "")
         #if ec != 0:
         #    return ec, et
 
@@ -1360,15 +1359,6 @@ async def on_raw_reaction_add(payload):
     user = payload.member
     
     await manage_reaction_add(user, message, reaction, emoji)
-
-#@bot.event
-#async def on_reaction_add(reaction, user):
-#    message = reaction.message
-#    emoji = reaction.emoji
-#
-#    goutils.log2("DBG", "")
-#    await manage_reaction_add(user, message, reaction, emoji)
-#    goutils.log2("DBG", "")
 
 async def manage_reaction_add(user, message, reaction, emoji):
     global list_alerts_sent_to_admin
@@ -2102,13 +2092,11 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             ##########
             #get bot config from DB
             ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-            goutils.log2("DBG", "")
             if ec!=0:
                 await ctx.send('ERR: '+et)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            goutils.log2("DBG", "")
             guild_id = bot_infos["guild_id"]
             tbChannel_id = bot_infos["tbChanRead_id"]
             echostation_id = bot_infos["echostation_id"]
@@ -2117,14 +2105,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            goutils.log2("DBG", "")
             ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
             if ec != 0:
                 await ctx.send('ERR: '+et)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            goutils.log2("DBG", "")
             if not "territoryBattleStatus" in dict_guild:
                 await ctx.send('ERR: pas de BT en cours')
                 await ctx.message.add_reaction(emojis.redcross)
@@ -2136,9 +2122,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
             tbs_round=tb_name+str(tb_currentRound)
 
-            goutils.log2("DBG", "")
             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
-            goutils.log2("DBG", "")
             if ec != 0:
                 await ctx.send('ERR: '+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -2205,7 +2189,6 @@ class TbCog(commands.GroupCog, name="bt"):
         await interaction.response.defer(thinking=True)
 
         #get bot config from DB
-        goutils.log2("DBG", "")
         ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
         if ec!=0:
             txt = emojis.redcross+" ERR: "+et
@@ -2334,7 +2317,6 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             #Run the function
-            goutils.log2("DBG", "")
             ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
 
         except Exception as e:
