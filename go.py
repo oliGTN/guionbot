@@ -3569,11 +3569,13 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
         # For "us", we can detect players who registered to the TW
         ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
         if ec != 0:
-            return ec, et
+            return ec, et, None
         list_active_players = ret_dict["active"]
 
     #get units from alias
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_characters)
+    if txt != '':
+        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
 
     #prepare basic query
     query = "SELECT defId, " \
@@ -3587,7 +3589,12 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
           + "AND defId in "+str(tuple(list_character_ids)).replace(",)", ")")+" " 
 
     if tw_mode == "homeGuild":
-        query += "AND players.name IN "+str(tuple(list_active_players)).replace(",)", ")")+" "
+        list_players_patch = [x.replace("'", "''") for x in list_active_players]
+        list_players_txt = str(list_players_patch)
+        list_players_txt = list_players_txt.replace("[", "(")
+        list_players_txt = list_players_txt.replace("]", ")")
+        list_players_txt = list_players_txt.replace('"', "'")
+        query += "AND players.name IN "+list_players_txt+" "
 
     query +="GROUP BY defId, rarity, gear, relic_currentTier " \
           + "ORDER BY defId, rarity, gear, relic_currentTier"
