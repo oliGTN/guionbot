@@ -151,6 +151,22 @@ async def refresh_cache():
         goutils.log2('ERR', "Unable to refresh shards")
         return 1
 
+    # Refresh the oldest known player
+    query = "SELECT allyCode "\
+           +"FROM players "\
+           +"ORDER BY lastUpdated DESC "\
+           +"LIMIT 1"
+    goutils.log2('DBG', query)
+    ret_db = connect_mysql.get_value(query)
+    
+    if ret_value != None:
+        allyCode = str(ret_db)
+        goutils.log2('INFO', "refresh oldest player " + allyCode)
+        e, t = await load_player(allyCode, 0, False)
+        if e != 0:
+            goutils.log2('ERR', t)
+            return 1
+
     return 0
 
 ##################################
