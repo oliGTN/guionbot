@@ -528,10 +528,15 @@ def get_image_from_eqpt_list(eqpt_list, display_owned=False):
     list_eqpt_images = []
     for eqpt in eqpt_list:
         if display_owned:
-            img = get_image_from_eqpt_count(eqpt[0], eqpt[1], owned=eqpt[2])
+            if eqpt[1]>eqpt[2]:
+                img = get_image_from_eqpt_count(eqpt[0], eqpt[1], owned=eqpt[2])
+            else:
+                img = None
         else:
             img = get_image_from_eqpt_count(eqpt[0], eqpt[1])
-        list_eqpt_images.append(img)
+
+        if img!=None:
+            list_eqpt_images.append(img)
 
     eqpt_list_img = list_eqpt_images[0]
     for img in list_eqpt_images[1:]:
