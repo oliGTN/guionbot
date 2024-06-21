@@ -5062,6 +5062,25 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def dtcg(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
+        args = list(args)
+
+        output_channel = ctx.message.channel
+        with_mentions = False
+        for arg in args:
+            if arg.startswith('<#'):
+                if not officer_command(ctx):
+                    await ctx.send("ERR: l'envoi des résultats dans un autre channel est réservé aux officiers")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                with_mentions = True
+                if output_channel == None:
+                    await ctx.send('**ERR**: '+err_msg)
+                    output_channel = ctx.message.channel
+                    with_mentions = False
+                args.remove(arg)
+
         if len(args) == 1:
             allyCode = args[0]
             filter_txt = None
@@ -5079,11 +5098,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.redcross)
             return
 
-        with_mentions = officer_command(ctx)
         e, err_txt, output_txt = await go.print_guild_dtc(allyCode, filter_txt, with_mentions)
         if e == 0 and len(output_txt) >0:
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await ctx.send(txt)
+                await output_channel.send(txt)
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emojis.check)
