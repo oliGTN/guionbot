@@ -3444,7 +3444,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     elif character_option == "omicron":
                         char_omicron = True
                     else:
-                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
                     
             #Get character_id
             list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
