@@ -154,7 +154,7 @@ async def refresh_cache():
     # Refresh the oldest known player
     query = "SELECT allyCode "\
            +"FROM players "\
-           +"ORDER BY lastUpdated DESC "\
+           +"ORDER BY lastUpdated "\
            +"LIMIT 1"
     goutils.log2('DBG', query)
     ret_db = connect_mysql.get_value(query)
