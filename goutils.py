@@ -418,6 +418,9 @@ def get_capa_id_from_short(character_id, capa_short):
             capa_id += capa_standard[-1]
         else:
             capa_id += '1'
+
+    else:
+        capa_id = None
     
     return capa_id
 

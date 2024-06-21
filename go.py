@@ -3319,6 +3319,7 @@ async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team
 ################################################################
 async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id=None, tw_mode=False, tb_mode=False, with_mentions=False, exclude_attacked_leaders=[]):
     dict_unitsList = godata.get("unitsList_dict.json")
+    dict_capas = godata.get("unit_capa_list.json")
 
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
@@ -3408,17 +3409,31 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             char_rarity = 0
             char_gear = 0
             char_relic = -2
-            char_omicron = False
+            char_zetas = []
+            char_omicrons = []
 
             opposite_search = (character[0]=="-")
             if len(tab_virtual_character) == 1:
                 #regular character, not virtual
                 char_alias = tab_virtual_character[0]
                 simple_search = True
+
+                #Get character_id
+                list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+                if txt != '':
+                    return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+                character_id = list_character_ids[0]
             else:
                 char_alias = tab_virtual_character[0]
                 simple_search = False
 
+                #Get character_id
+                list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+                if txt != '':
+                    return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+                character_id = list_character_ids[0]
+
+                # Read character options
                 for character_option in tab_virtual_character[1:]:
                     if len(character_option)==1 and character_option in "1234567":
                         char_rarity = int(character_option)
@@ -3441,16 +3456,38 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                         else:
                             return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
 
-                    elif character_option == "omicron":
-                        char_omicron = True
+                    elif character_option[0] in "oO":
+                        capa_shortname = character_option[1:]
+                        capa_id = goutils.get_capa_id_from_short(character_id, capa_shortname)
+                        if capa_id == None:
+                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'omicron \""+character_option+"\"", None
+                        character_omicrons = [x for x in dict_capas[character_id] if dict_capas[character_id][x]["omicronTier"]<99 and not "_" in x]
+                        selected_omicrons = [x for x in character_omicrons if x.startswith(capa_id)]
+                        if len(selected_omicrons) == 0:
+                            return 1, "ERR: l'omicron \""+character_option+"\" n'existe pas pour "+character_id, None
+                        elif len(selected_omicrons) > 1:
+                            return 1, "ERR: l'omicron \""+character_option+"\" est ambigu pour "+character_id+" "+str(selected_omicrons), None
+                        capa_id = selected_omicrons[0]
+
+                        char_omicrons.append({"id":capa_id, "tier":dict_capas[character_id][capa_id]["omicronTier"]})
+
+                    elif character_option[0] in "zZ":
+                        capa_shortname = character_option[1:]
+                        capa_id = goutils.get_capa_id_from_short(character_id, capa_shortname)
+                        if capa_id == None:
+                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour la zeta \""+character_option+"\"", None
+                        character_zetas = [x for x in dict_capas[character_id] if dict_capas[character_id][x]["zetaTier"]<99 and not "_" in x]
+                        selected_zetas = [x for x in character_zetas if x.startswith(capa_id)]
+                        if len(selected_zetas) == 0:
+                            return 1, "ERR: la zeta \""+character_option+"\" n'existe pas pour "+character_id, None
+                        elif len(selected_zetas) > 1:
+                            return 1, "ERR: la zeta \""+character_option+"\" est ambigue pour "+character_id+" "+str(selected_zetas), None
+                        capa_id = selected_zetas[0]
+
+                        char_zetas.append({"id":capa_id, "tier":dict_capas[character_id][capa_id]["zetaTier"]})
                     else:
                         return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
                     
-            #Get character_id
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
-            if txt != '':
-                return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
-            character_id = list_character_ids[0]
             character_name = "**"+dict_unitsList[character_id]["name"]+"**"
 
             if opposite_search and simple_search:
@@ -3471,8 +3508,10 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                         intro_txt += ":R"+str(char_relic)
                     elif char_gear>0:
                         intro_txt += ":G"+str(char_gear)
-                    if char_omicron:
-                        intro_txt += ":omicron"
+                    for z in char_zetas:
+                        intro_txt += ":z"+z["id"]
+                    for o in char_omicrons:
+                        intro_txt += ":o"+o["id"]
 
                 if opposite_search:
                     intro_txt += ")"
@@ -3481,9 +3520,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
             query+= "   SELECT players.allyCode FROM players "
             query+= "   JOIN roster ON roster.allyCode = players.allyCode "
-
-            if char_omicron:
-                query+= "   JOIN roster_skills ON roster_id = roster.id "
+            query+= "   JOIN roster_skills ON roster_id = roster.id "
 
             query+= "   WHERE guildName=(" 
             query+= "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " 
@@ -3495,8 +3532,10 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     query+= "      OR gear < "+str(char_gear)+" "
                     query+= "      OR relic_currentTier < "+str(char_relic+2)+" "
 
-                    if char_omicron:
-                        query += "      OR (roster_skills.omicron_tier>0 AND roster_skills.level<roster_skills.omicron_tier) "
+                    for z in char_zetas:
+                        query += "      OR (roster_skills.name='"+z["id"]+"' AND roster_skills.level<"+str(z["tier"])+") "
+                    for o in char_omicrons:
+                        query += "      OR (roster_skills.name='"+o["id"]+"' AND roster_skills.level<"+str(o["tier"])+") "
 
                     query+= "      ) "
 
@@ -3505,8 +3544,10 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                 query+= "      AND gear >= "+str(char_gear)+" "
                 query+= "      AND relic_currentTier >= "+str(char_relic+2)+" "
 
-                if char_omicron:
-                    query += "      AND (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) " 
+                for z in char_zetas:
+                    query += "      AND (roster_skills.name='"+z["id"]+"' AND roster_skills.level>="+str(z["tier"])+") "
+                for o in char_omicrons:
+                    query += "      AND (roster_skills.name='"+o["id"]+"' AND roster_skills.level>="+str(o["tier"])+") "
             query += ") "
             intro_txt += " et"
 
