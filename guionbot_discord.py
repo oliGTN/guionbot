@@ -3460,6 +3460,10 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                       "(OU ajouter '-TB' pour prendre en compte les persos posés en pelotons de BT)\n"\
                       "Exemple : go.tpg me SEE ---> ceux qui ont SEE\n"\
                       "Exemple : go.tpg me SEE:G13 ---> ceux qui ont SEE au moins G13\n"\
+                      "Exemple : go.tpg me Mara:o ---> ceux qui ont Mara omicron\n"\
+                      "Exemple : go.tpg me Sana:z ---> ceux qui ont Sana zeta\n"\
+                      "Exemple : go.tpg me Zorii:zU2 ---> ceux qui ont Sana avec zeta sur Unique 2\n"\
+                      "Exemple : go.tpg me Zorii:zU1:zU2 ---> ceux qui ont Sana avec les 2 zetas\n"\
                       "Exemple : go.tpg me Mara +SK ---> ceux qui ont Mara et SK\n"\
                       "Exemple : go.tpg me Mara -SK ---> ceux qui ont Mara et qui n'ont pas SK\n"\
                       "Exemple : go.tpg me JMK / Jabba ceux qui ont JMK, puis ceux qui ont Jabba (commande lancée 2 fois)")
