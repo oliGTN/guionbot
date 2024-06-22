@@ -162,7 +162,7 @@ async def refresh_cache():
     if ret_db != None:
         allyCode = str(ret_db)
         goutils.log2('INFO', "refresh oldest player " + allyCode)
-        e, t = await load_player(allyCode, 0, False)
+        e, t, d = await load_player(allyCode, 0, False)
         if e != 0:
             goutils.log2('ERR', t)
             return 1
