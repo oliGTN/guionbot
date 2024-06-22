@@ -93,7 +93,8 @@ def get_guild_logo(dict_guild, target_size):
 
     logo_img_name = 'IMAGES'+os.path.sep+'GUILD_LOGOS'+os.path.sep+logo_name+'.png'
     if not os.path.exists(logo_img_name):
-        url = 'https://swgoh.gg/static/img/assets/tex.' + logo_name + ".png"
+        #url = 'https://swgoh.gg/static/img/assets/tex.' + logo_name + ".png"
+        url = 'https://game-assets.swgoh.gg/textures/tex.' + logo_name + ".png"
         goutils.log("INFO", "get_guild_logo", "download guild logo from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(logo_img_name, 'wb')
@@ -458,7 +459,7 @@ def get_image_from_eqpt_id(eqpt_id):
         eqpt_asset_id = dict_eqpt[eqpt_id]["iconKey"]
         eqpt_tier = dict_eqpt[eqpt_id]["tier"]
         eqpt_mk = dict_eqpt[eqpt_id]["mark"]
-        swgohgg_img_url = "https://game-assets.swgoh.gg/" + eqpt_asset_id + ".png"
+        swgohgg_img_url = "https://game-assets.swgoh.gg/textures/" + eqpt_asset_id + ".png"
         goutils.log2("INFO", "download equipment image from swgoh.gg "+swgohgg_img_url)
         r = requests.get(swgohgg_img_url, allow_redirects=True)
         img = Image.open(io.BytesIO(r.content))
