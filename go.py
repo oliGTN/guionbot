@@ -159,7 +159,7 @@ async def refresh_cache():
     goutils.log2('DBG', query)
     ret_db = connect_mysql.get_value(query)
     
-    if ret_value != None:
+    if ret_db != None:
         allyCode = str(ret_db)
         goutils.log2('INFO', "refresh oldest player " + allyCode)
         e, t = await load_player(allyCode, 0, False)
