@@ -52,6 +52,8 @@ for unit in game_data["units"]:
                 skill_id = skillref["skillId"]
                 list_skills.append(skill_id)
 
+    special_count = 0
+    unique_count = 0
     for skill_id in list_skills:
         skill = dict_skills[skill_id]
         my_capa = {}
@@ -63,17 +65,19 @@ for unit in game_data["units"]:
             skill_shortname = "L"
             skill_type = "Leader"
         elif skill_id.startswith("special"):
-            skill_shortname = "S"+skill_id[-1]
-            skill_type = "Spéciale "+skill_id[-1]
+            special_count+=1
+            skill_shortname = "S"+str(special_count)
+            skill_type = "Spéciale "+str(special_count)
         elif skill_id.startswith("uniqueskill_GALACTICLEGEND"):
             skill_shortname = "GL"
             skill_type = "Légende Galactique"
         elif skill_id.startswith("unique"):
-            skill_shortname = "U"+skill_id[-1]
-            skill_type = "Unique "+skill_id[-1]
+            unique_count+=1
+            skill_shortname = "U"+str(unique_count)
+            skill_type = "Unique "+str(unique_count)
         elif skill_id.startswith("hardware"):
-            skill_shortname = "H"+skill_id[-1]
-            skill_type = "Hardware "+skill_id[-1]
+            skill_shortname = "H"
+            skill_type = "Hardware"
         elif skill_id.startswith("contract"):
             skill_shortname = "C"
             skill_type = "Contrat"
@@ -86,6 +90,7 @@ for unit in game_data["units"]:
         ability_name = FRE_FR[ability["nameKey"]]
 
         my_capa["name"] = ability_name
+        my_capa["shortname"] = skill_shortname
         my_capa["type"] = skill_type
 
         my_capa["zetaTier"] = 99
