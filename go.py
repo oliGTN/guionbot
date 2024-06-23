@@ -3405,16 +3405,19 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             while '' in tab_virtual_character:
                 tab_virtual_character.remove('')
 
-            char_rarity = 0
-            char_gear = 0
-            char_relic = -2
+            char_rarity = None
+            char_gear = None
+            char_relic = None
             char_zetas = []
             char_omicrons = []
-            char_ulti = True
+            char_ulti = False
             simple_search = True
 
-            opposite_search = (character[0]=="-")
-            char_alias = tab_virtual_character[0]
+            if character[0]=="-":
+                opposite_search = True
+                char_alias = tab_virtual_character[0][1:]
+            else:
+                char_alias = tab_virtual_character[0]
 
             #Get character_id
             list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
@@ -3431,7 +3434,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                 elif character_option[0] in "gG":
                     if character_option[1:].isnumeric():
                         char_gear = int(character_option[1:])
-                        char_relic = -2
+                        char_relic = None
                         if (char_gear<1) or (char_gear>13):
                             return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
                     else:
@@ -3480,11 +3483,6 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     char_ulti = True
                 else:
                     return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
-                
-            #### TEMPORARY #####
-            if len(char_zetas)+len(char_omicrons)>1:
-                return 1, "ERR: la syntaxe "+character+" est incorrecte, merci de préciser __une seule__ zeta OU __un seul__ omicron (je travaille à corriger cette limitation)", None
-
             character_name = "**"+dict_unitsList[character_id]["name"]+"**"
 
             if opposite_search and simple_search:
@@ -3499,25 +3497,35 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
 
                 if not simple_search:
-                    if char_rarity>0:
+                    if char_rarity != None:
                         intro_txt += ":"+str(char_rarity)+"*"
-                    if char_relic>-2:
+                    if char_relic != None:
                         intro_txt += ":R"+str(char_relic)
-                    elif char_gear>0:
+                    elif char_gear != None:
                         intro_txt += ":G"+str(char_gear)
                     for z in char_zetas:
                         intro_txt += ":zeta("+z["id"]+")"
                     for o in char_omicrons:
                         intro_txt += ":omicron("+o["id"]+")"
+                    if char_ulti:
+                        intro_txt += ":ulti"
 
                 if opposite_search:
                     intro_txt += ")"
 
                 query+= "AND allyCode IN ( "
 
-            query+= "   SELECT players.allyCode FROM players "
+            query+= "   SELECT players.allyCode "
+            query+= "   FROM players "
             query+= "   JOIN roster ON roster.allyCode = players.allyCode "
-            query+= "   JOIN roster_skills ON roster_id = roster.id "
+
+            # Add skills use for filters
+            list_skills = set([x["id"] for x in (char_zetas+char_omicrons)])
+            for skill_name in list_skills:
+                query+= "   LEFT JOIN roster_skills AS rs"+skill_name+" ON (rs"+skill_name+".roster_id = roster.id AND rs"+skill_name+".name='"+skill_name+"')"
+
+            if char_ulti:
+                query+= "   LEFT JOIN roster_skills AS rsULTI ON (rsULTI.roster_id = roster.id AND rsULTI.name='ULTI')"
 
             query+= "   WHERE guildName=(" 
             query+= "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " 
@@ -3525,26 +3533,41 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
             if opposite_search:
                 if not simple_search:
-                    query +="      AND (rarity < "+str(char_rarity)+" "
-                    query+= "      OR gear < "+str(char_gear)+" "
-                    query+= "      OR relic_currentTier < "+str(char_relic+2)+" "
+                    query +="      AND (FALSE " # this "FALSE" is here to allow having a "OR" at each next option
+
+                    if char_rarity!=None:
+                        query +="      OR rarity < "+str(char_rarity)+" "
+
+                    if char_gear!=None:
+                        query+= "      OR gear < "+str(char_gear)+" "
+                    if char_relic!=None:
+                        query+= "      OR relic_currentTier < "+str(char_relic+2)+" "
 
                     for z in char_zetas:
-                        query += "      OR (roster_skills.name='"+z["id"]+"' AND roster_skills.level<"+str(z["tier"])+") "
+                        query += "      OR rs"+skill_name+".level<"+str(z["tier"])+" "
                     for o in char_omicrons:
-                        query += "      OR (roster_skills.name='"+o["id"]+"' AND roster_skills.level<"+str(o["tier"])+") "
+                        query += "      OR rs"+skill_name+".level<"+str(o["tier"])+" "
+
+                    if char_ulti:
+                        query += "      OR isnull(rsULTI.level) "
 
                     query+= "      ) "
 
             else:
-                query+= "      AND rarity >= "+str(char_rarity)+" "
-                query+= "      AND gear >= "+str(char_gear)+" "
-                query+= "      AND relic_currentTier >= "+str(char_relic+2)+" "
+                if char_rarity!=None:
+                    query+= "      AND rarity >= "+str(char_rarity)+" "
+                if char_gear!=None:
+                    query+= "      AND gear >= "+str(char_gear)+" "
+                if char_relic!=None:
+                    query+= "      AND relic_currentTier >= "+str(char_relic+2)+" "
 
                 for z in char_zetas:
-                    query += "      AND (roster_skills.name='"+z["id"]+"' AND roster_skills.level>="+str(z["tier"])+") "
+                    query += "      AND rs"+skill_name+".level>="+str(z["tier"])+" "
                 for o in char_omicrons:
-                    query += "      AND (roster_skills.name='"+o["id"]+"' AND roster_skills.level>="+str(o["tier"])+") "
+                    query += "      AND rs"+skill_name+".level>="+str(o["tier"])+" "
+
+                if char_ulti:
+                    query += "      AND rsULTI.level=1 "
             query += ") "
             intro_txt += " et"
 
