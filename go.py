@@ -3481,6 +3481,10 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                 else:
                     return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
                 
+            #### TEMPORARY #####
+            if len(char_zetas)+len(char_omicrons)>1:
+                return 1, "ERR: la syntaxe "+character+" est incorrecte, merci de préciser __une seule__ zeta OU __un seul__ omicron (je travaille à corriger cette limitation)", None
+
             character_name = "**"+dict_unitsList[character_id]["name"]+"**"
 
             if opposite_search and simple_search:
@@ -3502,9 +3506,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     elif char_gear>0:
                         intro_txt += ":G"+str(char_gear)
                     for z in char_zetas:
-                        intro_txt += ":z"+z["id"]
+                        intro_txt += ":zeta("+z["id"]+")"
                     for o in char_omicrons:
-                        intro_txt += ":o"+o["id"]
+                        intro_txt += ":omicron("+o["id"]+")"
 
                 if opposite_search:
                     intro_txt += ")"
