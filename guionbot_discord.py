@@ -3466,6 +3466,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                       "Exemple : go.tpg me Zorii:zU1:zU2 ---> ceux qui ont Zorii avec les 2 zetas\n"\
                       "Exemple : go.tpg me Mara +SK ---> ceux qui ont Mara et SK\n"\
                       "Exemple : go.tpg me Mara -SK ---> ceux qui ont Mara et qui n'ont pas SK\n"\
+                      "Exemple : go.tpg me -Leia:ulti ---> ceux qui ont Leia mais pas Leia avec ulti\n"\
                       "Exemple : go.tpg me JMK / Jabba ceux qui ont JMK, puis ceux qui ont Jabba (commande lancée 2 fois)")
     async def tpg(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
