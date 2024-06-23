@@ -28,7 +28,7 @@ CREATE TABLE `attendency` (
   `startDate` date NOT NULL,
   `endDate` date NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -58,7 +58,7 @@ CREATE TABLE `events` (
   `event_id` varchar(45) DEFAULT NULL,
   `timestamp` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=96 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -188,7 +188,7 @@ CREATE TABLE `guild_evolutions` (
   `playerId` varchar(24) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=980840 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=981779 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -204,7 +204,7 @@ CREATE TABLE `guild_subteams` (
   `name` varchar(255) DEFAULT NULL,
   `minimum` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3451 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3495 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -229,7 +229,7 @@ CREATE TABLE `guild_team_roster` (
   `zetaList` varchar(255) DEFAULT NULL,
   `omicronList` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18171 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=18444 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -259,7 +259,7 @@ CREATE TABLE `guild_team_roster_zetas` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(2) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1961 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1978 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -277,7 +277,7 @@ CREATE TABLE `guild_teams` (
   `lastUpdated` timestamp NULL DEFAULT current_timestamp(),
   `md5` varchar(32) DEFAULT 'zz',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=617 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=619 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -344,7 +344,7 @@ CREATE TABLE `mod_config_content` (
   `slot` int(1) DEFAULT NULL,
   `rarity` int(1) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14996 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=17465 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -359,7 +359,7 @@ CREATE TABLE `mod_config_list` (
   `name` varchar(255) NOT NULL,
   `allyCode` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -394,22 +394,6 @@ CREATE TABLE `mods` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Temporary table structure for view `omicron_report`
---
-
-DROP TABLE IF EXISTS `omicron_report`;
-/*!50001 DROP VIEW IF EXISTS `omicron_report`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE VIEW `omicron_report` AS SELECT
- 1 AS `PG`,
-  1 AS `defId`,
-  1 AS `N omicrons`,
-  1 AS `Joueurs`,
-  1 AS `%` */;
-SET character_set_client = @saved_cs_client;
-
---
 -- Table structure for table `platoon_allocations`
 --
 
@@ -424,7 +408,7 @@ CREATE TABLE `platoon_allocations` (
   `zone_id` varchar(45) DEFAULT NULL,
   `platoon_id` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9810 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=14265 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -441,7 +425,7 @@ CREATE TABLE `platoon_config` (
   `phases` varchar(12) DEFAULT NULL,
   `timestamp` timestamp NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -549,7 +533,7 @@ CREATE TABLE `roster` (
   `mod28` bigint(20) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=10921635 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11295359 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -566,7 +550,7 @@ CREATE TABLE `roster_evolutions` (
   `defId` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4043180 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=4274810 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -581,13 +565,11 @@ CREATE TABLE `roster_skills` (
   `roster_id` int(11) DEFAULT NULL,
   `name` varchar(45) DEFAULT NULL,
   `level` int(11) DEFAULT NULL,
-  `isZeta` tinyint(4) DEFAULT 0,
   `omicron_type` varchar(4) DEFAULT '',
-  `omicron_tier` tinyint(4) DEFAULT -1,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=59347280 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=60962949 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1299,24 +1281,6 @@ DELIMITER ;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
-
---
--- Final view structure for view `omicron_report`
---
-
-/*!50001 DROP VIEW IF EXISTS `omicron_report`*/;
-/*!50001 SET @saved_cs_client          = @@character_set_client */;
-/*!50001 SET @saved_cs_results         = @@character_set_results */;
-/*!50001 SET @saved_col_connection     = @@collation_connection */;
-/*!50001 SET character_set_client      = utf8mb4 */;
-/*!50001 SET character_set_results     = utf8mb4 */;
-/*!50001 SET collation_connection      = utf8mb4_general_ci */;
-/*!50001 CREATE ALGORITHM=UNDEFINED */
-/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
-/*!50001 VIEW `omicron_report` AS select round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG`,`roster`.`defId` AS `defId`,count(0) AS `N omicrons`,`T`.`c_pg` AS `Joueurs`,100 * count(0) / `T`.`c_pg` AS `%` from (((`players` join `roster` on(`roster`.`allyCode` = `players`.`allyCode`)) join `roster_skills` on(`roster_skills`.`roster_id` = `roster`.`id`)) join (select count(0) AS `c_pg`,round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2 AS `PG` from `players` where to_days(curdate()) - to_days(`players`.`lastUpdated`) < 100 group by round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2) `T` on(`T`.`PG` = round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2)) where `roster_skills`.`omicron_tier` > 0 and `roster_skills`.`level` >= `roster_skills`.`omicron_tier` and to_days(curdate()) - to_days(`players`.`lastUpdated`) < 100 group by `T`.`PG`,`roster`.`defId` order by `roster`.`defId`,round((`players`.`char_gp` + `players`.`ship_gp`) / 1000000 * 2,0) / 2 */;
-/*!50001 SET character_set_client      = @saved_cs_client */;
-/*!50001 SET character_set_results     = @saved_cs_results */;
-/*!50001 SET collation_connection      = @saved_col_connection */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1327,4 +1291,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-05-20  2:18:45
+-- Dump completed on 2024-06-23 22:02:16

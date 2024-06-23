@@ -657,7 +657,6 @@ async def update_player(dict_player):
             for capa in character['skill']:
                 capa_name = capa['id']
                 capa_level = capa['tier']+2
-                capa_isZeta = (dict_capas[character_id][capa_name]["zetaTier"]<99)
                 if capa_level >= dict_capas[character_id][capa_name]["omicronTier"]:
                     capa_omicron_type = dict_capas[character_id][capa_name]["omicronMode"]
                 else:
@@ -676,7 +675,6 @@ async def update_player(dict_player):
 
                 query = "UPDATE roster_skills "\
                        +"SET level = "+str(capa_level)+", "\
-                       +"isZeta = "+str(capa_isZeta)+", "\
                        +"omicron_type = '"+capa_omicron_type+"', "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
@@ -698,7 +696,6 @@ async def update_player(dict_player):
 
                     query = "UPDATE roster_skills "\
                            +"SET level = 1, "\
-                           +"isZeta = 0, "\
                            +"omicron_type = '', "\
                            +"WHERE roster_id = "+str(roster_id)+" "\
                            +"AND name = 'ULTI'"
