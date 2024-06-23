@@ -3480,6 +3480,8 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     char_zetas.append({"id":capa_id, "tier":dict_capas[character_id][capa_id]["zetaTier"]})
 
                 elif character_option.lower() == 'ulti':
+                    if not "GL" in dict_capas[character_id]:
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte, pas d'ulti pour ce perso", None
                     char_ulti = True
                 else:
                     return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
