@@ -1223,7 +1223,6 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
                 guild_team_roster.unit_id, \
                 guild_team_roster_zetas.name as zeta, \
                 roster_skills.level, \
-                roster_skills.omicron_tier \
                 FROM players \
                 JOIN guild_teams \
                 JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
@@ -2683,7 +2682,7 @@ async def print_lox(txt_allyCode, characters, compute_guild):
     query+= "omicron_type as 'mode' FROM roster "
     query+= "JOIN roster_skills ON roster_id = roster.id \n"
     query+= "JOIN players ON players.allyCode=roster.allyCode \n"
-    query+= "WHERE (roster_skills.omicron_tier>0 AND roster_skills.level>=roster_skills.omicron_tier) \n"
+    query+= "WHERE (roster_skills.omicron_type<>'') \n"
     if not get_all:
         query+= "AND ( \n"
         if len(list_character_ids)>0:
@@ -3411,83 +3410,77 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             char_relic = -2
             char_zetas = []
             char_omicrons = []
+            char_ulti = True
+            simple_search = True
 
             opposite_search = (character[0]=="-")
-            if len(tab_virtual_character) == 1:
-                #regular character, not virtual
-                char_alias = tab_virtual_character[0]
-                simple_search = True
+            char_alias = tab_virtual_character[0]
 
-                #Get character_id
-                list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
-                if txt != '':
-                    return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
-                character_id = list_character_ids[0]
-            else:
-                char_alias = tab_virtual_character[0]
+            #Get character_id
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+            if txt != '':
+                return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+            character_id = list_character_ids[0]
+
+            # Read character options
+            for character_option in tab_virtual_character[1:]:
                 simple_search = False
+                if len(character_option)==1 and character_option in "1234567":
+                    char_rarity = int(character_option)
 
-                #Get character_id
-                list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
-                if txt != '':
-                    return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
-                character_id = list_character_ids[0]
-
-                # Read character options
-                for character_option in tab_virtual_character[1:]:
-                    if len(character_option)==1 and character_option in "1234567":
-                        char_rarity = int(character_option)
-
-                    elif character_option[0] in "gG":
-                        if character_option[1:].isnumeric():
-                            char_gear = int(character_option[1:])
-                            char_relic = -2
-                            if (char_gear<1) or (char_gear>13):
-                                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-                        else:
+                elif character_option[0] in "gG":
+                    if character_option[1:].isnumeric():
+                        char_gear = int(character_option[1:])
+                        char_relic = -2
+                        if (char_gear<1) or (char_gear>13):
                             return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
-
-                    elif character_option[0] in "rR":
-                        if character_option[1:].isnumeric():
-                            char_relic = int(character_option[1:])
-                            char_gear = 13
-                            if (char_relic<0) or (char_relic>9):
-                                return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-                        else:
-                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
-
-                    elif character_option[0] in "oO":
-                        capa_shortname = character_option[1:]
-                        capa_id = goutils.get_capa_id_from_short(character_id, capa_shortname)
-                        if capa_id == None:
-                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'omicron \""+character_option+"\"", None
-                        character_omicrons = [x for x in dict_capas[character_id] if dict_capas[character_id][x]["omicronTier"]<99 and not "_" in x]
-                        selected_omicrons = [x for x in character_omicrons if x.startswith(capa_id)]
-                        if len(selected_omicrons) == 0:
-                            return 1, "ERR: l'omicron \""+character_option+"\" n'existe pas pour "+character_id, None
-                        elif len(selected_omicrons) > 1:
-                            return 1, "ERR: l'omicron \""+character_option+"\" est ambigu pour "+character_id+" "+str(selected_omicrons), None
-                        capa_id = selected_omicrons[0]
-
-                        char_omicrons.append({"id":capa_id, "tier":dict_capas[character_id][capa_id]["omicronTier"]})
-
-                    elif character_option[0] in "zZ":
-                        capa_shortname = character_option[1:]
-                        capa_id = goutils.get_capa_id_from_short(character_id, capa_shortname)
-                        if capa_id == None:
-                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour la zeta \""+character_option+"\"", None
-                        character_zetas = [x for x in dict_capas[character_id] if dict_capas[character_id][x]["zetaTier"]<99 and not "_" in x]
-                        selected_zetas = [x for x in character_zetas if x.startswith(capa_id)]
-                        if len(selected_zetas) == 0:
-                            return 1, "ERR: la zeta \""+character_option+"\" n'existe pas pour "+character_id, None
-                        elif len(selected_zetas) > 1:
-                            return 1, "ERR: la zeta \""+character_option+"\" est ambigue pour "+character_id+" "+str(selected_zetas), None
-                        capa_id = selected_zetas[0]
-
-                        char_zetas.append({"id":capa_id, "tier":dict_capas[character_id][capa_id]["zetaTier"]})
                     else:
-                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
-                    
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le gear", None
+
+                elif character_option[0] in "rR":
+                    if character_option[1:].isnumeric():
+                        char_relic = int(character_option[1:])
+                        char_gear = 13
+                        if (char_relic<0) or (char_relic>9):
+                            return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+                    else:
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
+
+                elif character_option[0] in "oO":
+                    capa_shortname = character_option[1:]
+                    capa_id = goutils.get_capa_id_from_short(character_id, capa_shortname)
+                    if capa_id == None:
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'omicron \""+character_option+"\"", None
+                    character_omicrons = [x for x in dict_capas[character_id] if dict_capas[character_id][x]["omicronTier"]<99 and not "_" in x]
+                    selected_omicrons = [x for x in character_omicrons if x.startswith(capa_id)]
+                    if len(selected_omicrons) == 0:
+                        return 1, "ERR: l'omicron \""+character_option+"\" n'existe pas pour "+character_id, None
+                    elif len(selected_omicrons) > 1:
+                        return 1, "ERR: l'omicron \""+character_option+"\" est ambigu pour "+character_id+" "+str(selected_omicrons), None
+                    capa_id = selected_omicrons[0]
+
+                    char_omicrons.append({"id":capa_id, "tier":dict_capas[character_id][capa_id]["omicronTier"]})
+
+                elif character_option[0] in "zZ":
+                    capa_shortname = character_option[1:]
+                    capa_id = goutils.get_capa_id_from_short(character_id, capa_shortname)
+                    if capa_id == None:
+                        return 1, "ERR: la syntaxe "+character+" est incorrecte pour la zeta \""+character_option+"\"", None
+                    character_zetas = [x for x in dict_capas[character_id] if dict_capas[character_id][x]["zetaTier"]<99 and not "_" in x]
+                    selected_zetas = [x for x in character_zetas if x.startswith(capa_id)]
+                    if len(selected_zetas) == 0:
+                        return 1, "ERR: la zeta \""+character_option+"\" n'existe pas pour "+character_id, None
+                    elif len(selected_zetas) > 1:
+                        return 1, "ERR: la zeta \""+character_option+"\" est ambigue pour "+character_id+" "+str(selected_zetas), None
+                    capa_id = selected_zetas[0]
+
+                    char_zetas.append({"id":capa_id, "tier":dict_capas[character_id][capa_id]["zetaTier"]})
+
+                elif character_option.lower() == 'ulti':
+                    char_ulti = True
+                else:
+                    return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
+                
             character_name = "**"+dict_unitsList[character_id]["name"]+"**"
 
             if opposite_search and simple_search:
@@ -5095,6 +5088,8 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
     return 0, ""
 
 async def check_tw_counter(txt_allyCode, guild_id, counter_type):
+    dict_capa = godata.get("unit_capa_list.json")
+
     known_counters = ['SEEvsJMK', 'ITvsGEOS']
     if not counter_type in known_counters:
         return 1, "Counter inconnu: "+counter_type+" (dans la liste "+str(known_counters)+")"
@@ -5196,6 +5191,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
         # Check opponent stats
         required_opp_units = ['JEDIMASTERKENOBI', 'COMMANDERAHSOKA', 'AHSOKATANO', 'GENERALKENOBI']
         fifth_unit_id = None
+        macewindu_U2_omicronTier = dict_capas['MACEWINDU']['U2']["omicronTier"]
         for squad in list_opponent_squads:
             opp_player_name = squad[1]
             opp_units = [x["unitId"] for x in squad[2]]
@@ -5244,9 +5240,9 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 continue
 
             #Get speed of 5th ennemy
-            query = "SELECT stat5, omicron_type  FROM roster " \
+            query = "SELECT stat5, roster_skills.level  FROM roster " \
                     "JOIN players on players.allyCode=roster.allyCode "\
-                    "LEFT JOIN roster_skills ON (roster_skills.roster_id=roster.id AND roster_skills.level=omicron_tier) " \
+                    "LEFT JOIN roster_skills ON (roster_skills.roster_id=roster.id AND roster_skills.name='U2') " \
                     "WHERE players.name='"+opp_player_name.replace("'", "''")+"' "\
                     "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
                     "AND defId='"+fifth_unit_id+"' "
@@ -5256,13 +5252,13 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
 
             fifth_unit_speed = int(db_data[0]/100000000)
-            fifth_unit_omicrontype = db_data[1]
+            fifth_unit_U2level = db_data[1]
             if fifth_unit_speed > (my_Thrawn_speed-11):
                 output_txt += "\nVitesse du 5e perso ("+fifth_unit_id+") de "+opp_player_name+" = "+str(fifth_unit_speed)
                 output_txt += " > "+emoji_cross
                 continue
 
-            if fifth_unit_id == "MACEWINDU" and fifth_unit_omicrontype=='TW':
+            if fifth_unit_id == "MACEWINDU" and fifth_unit_U2level!=None and fifth_unit_U2level>='TW':
                 output_txt += "\n"+opp_player_name+" > "+emoji_frowning+" attention omicron Windu !"
                 continue
 

@@ -654,29 +654,20 @@ async def update_player(dict_player):
                 cursor.execute(query)
 
             ## GET DEFINITION OF CAPACITIES ##
-            c_zeta_count = 0
             for capa in character['skill']:
                 capa_name = capa['id']
                 capa_level = capa['tier']+2
                 capa_isZeta = (dict_capas[character_id][capa_name]["zetaTier"]<99)
-                if "omicronMode" in  dict_capas[character_id][capa_name]:
+                if capa_level >= dict_capas[character_id][capa_name]["omicronTier"]:
                     capa_omicron_type = dict_capas[character_id][capa_name]["omicronMode"]
-                    capa_omicron_tier = dict_capas[character_id][capa_name]["omicronTier"]
                 else:
                     capa_omicron_type = ""
-                    capa_omicron_tier = "-1"
                 
-                capa_shortname = capa_name[0].upper()
-                if capa_shortname in 'SU' and capa_name[-1] in '0123456789':
-                    capa_shortname += capa_name[-1]
-                #goutils.log2("DBG", capa_name + " >> " + capa_shortname)
+                capa_shortname = dict_capas[character_id][capa_name]["shortname"]
                     
                 if capa_name == 'uniqueskill_GALACTICLEGEND01':
                     capa_shortname = 'GL'
                     
-                if capa_isZeta == 1 and capa_level >= 8:
-                    c_zeta_count += 1
-        
                 #launch query to update skills
                 query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
                        +"VALUES("+str(roster_id)+", '"+capa_shortname+"')"
@@ -687,19 +678,10 @@ async def update_player(dict_player):
                        +"SET level = "+str(capa_level)+", "\
                        +"isZeta = "+str(capa_isZeta)+", "\
                        +"omicron_type = '"+capa_omicron_type+"', "\
-                       +"omicron_tier = "+str(capa_omicron_tier)+" "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
                 #goutils.log2("DBG", query)
                 cursor.execute(query)
-
-            #Update zeta count in roster element
-            query = "UPDATE roster "\
-                   +"SET zeta_count = "+str(c_zeta_count)+" "\
-                   +"WHERE allyCode = "+str(p_allyCode)+" "\
-                   +"AND   defId = '"+c_defId+"'"
-            #goutils.log2("DBG", query)
-            cursor.execute(query)
 
             ## CHECK FOR ULTIMATE
             if "purchaseAbilityId" in character:
@@ -718,7 +700,6 @@ async def update_player(dict_player):
                            +"SET level = 1, "\
                            +"isZeta = 0, "\
                            +"omicron_type = '', "\
-                           +"omicron_tier = -1 "\
                            +"WHERE roster_id = "+str(roster_id)+" "\
                            +"AND name = 'ULTI'"
                     #goutils.log2("DBG", query)

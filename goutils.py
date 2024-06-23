@@ -354,7 +354,7 @@ def create_dict_stats(db_stat_data_char, db_stat_data):
 
     return dict_players
     
-def get_capa_from_id(character_id, capa_id):
+def get_capa_name_from_id(character_id, capa_id):
     dict_capas = data.get('unit_capa_list.json')
     if not character_id in dict_capas:
         log2("ERR", "unknown character id "+character_id)
@@ -601,13 +601,13 @@ def detect_delta_roster_element(allyCode, char1, char2):
             skill1 = None
 
         if skill2_isZeta and (skill1 == None or not skill1_isZeta):
-            evo_txt = "new zeta "+get_capa_from_id(defId, skill_id)
+            evo_txt = "new zeta "+get_capa_name_from_id(defId, skill_id)
             log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
             if not "omicronMode" in dict_capas[defId][skill_id]:
                 log2("ERR", skill_id+" detected as omicron but no omicronMode")
-            evo_txt = "new omicron "+get_capa_from_id(defId, skill_id)
+            evo_txt = "new omicron "+get_capa_name_from_id(defId, skill_id)
             evo_txt += " for " + dict_capas[defId][skill_id]["omicronMode"]
             log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
@@ -766,3 +766,4 @@ def remove_format_from_desc(desc):
         desc = desc[:pos_open] + desc[pos_close+1:]
 
     return desc.replace("\\n", "\n")
+

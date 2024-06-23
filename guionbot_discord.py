@@ -1230,7 +1230,7 @@ async def manage_me(ctx, alias, allow_tw):
             if select_db_name:
                 if closest_name_db_score == 0:
                     goutils.log2("WAR", alias +" not found in DB and in discord")
-                    ret_allyCode_txt = "ERR: "+alias+" n'a pas été trouvé"
+                    ret_allyCode_txt = "ERR: le joueur "+alias+" n'a pas été trouvé"
                 else:
                     goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
                     for r in results:
@@ -5040,7 +5040,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send('`' + txt + '`')
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emojis.check)
-        elif len(txt_lines)==0:
+        elif txt_lines!= None and len(txt_lines)==0:
             await ctx.send("Aucun omicron détecté")
             await ctx.message.add_reaction(emojis.check)
         else:
