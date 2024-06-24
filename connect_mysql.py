@@ -675,7 +675,7 @@ async def update_player(dict_player):
 
                 query = "UPDATE roster_skills "\
                        +"SET level = "+str(capa_level)+", "\
-                       +"omicron_type = '"+capa_omicron_type+"', "\
+                       +"omicron_type = '"+capa_omicron_type+"' "\
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
                 #goutils.log2("DBG", query)
@@ -696,7 +696,7 @@ async def update_player(dict_player):
 
                     query = "UPDATE roster_skills "\
                            +"SET level = 1, "\
-                           +"omicron_type = '', "\
+                           +"omicron_type = '' "\
                            +"WHERE roster_id = "+str(roster_id)+" "\
                            +"AND name = 'ULTI'"
                     #goutils.log2("DBG", query)
