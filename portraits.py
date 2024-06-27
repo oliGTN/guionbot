@@ -488,10 +488,7 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
     dict_eqpt = data.get("eqpt_dict.json")
     FRE_FR = data.get("FRE_FR.json")
 
-    if owned!=None:
-        image = Image.new('RGB', (350, 50), (0,0,0))
-    else:
-        image = Image.new('RGB', (300, 50), (0,0,0))
+    image = Image.new('RGB', (400, 50), (0,0,0))
     image_draw = ImageDraw.Draw(image)
 
     image.paste(get_image_from_eqpt_id(eqpt_id), (5,5))
@@ -516,12 +513,40 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
 
     if owned!=None:
         #needed and owned
-        image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height/2), str(needed_count)+" ("+str(owned)+")", (255, 255, 255), font=font12)
+        image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height), str(needed_count)+" ("+str(owned)+")", (255, 255, 255), font=font12)
 
         #Need to farm
-        image_draw.text((50+MAX_LINE_SIZE+70, 25-line_height/2), "> "+str(max(0,needed_count-owned)), (255, 255, 255), font=font12)
+        image_draw.text((50+MAX_LINE_SIZE+70, 25-line_height), "> "+str(max(0,needed_count-owned)), (255, 255, 255), font=font12)
     else:
-        image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height/2), str(needed_count), (255, 255, 255), font=font12)
+        image_draw.text((50+MAX_LINE_SIZE+20, 25-line_height), str(needed_count), (255, 255, 255), font=font12)
+
+    # Farm locations
+    farm_locations = ""
+    if "lookupMission" in dict_eqpt[eqpt_id]:
+        for mission in dict_eqpt[eqpt_id]["lookupMission"]:
+            #print(mission)
+            cId = mission["missionIdentifier"]["campaignId"]
+            if cId.startswith("C01"):
+                if cId[3:] == "L":
+                    mission_farm = "LS-"
+                elif cId[3:] == "D":
+                    mission_farm = "DS-"
+                else: #SP
+                    mission_farm = "FL-"
+
+                cDifficulty = mission["missionIdentifier"]["campaignNodeDifficulty"]
+                mission_farm += cDifficulty[0]
+
+                cMapId = mission["missionIdentifier"]["campaignMapId"]
+                mission_farm += cMapId[-1]
+
+                cMissionId = mission["missionIdentifier"]["campaignMissionId"]
+                mission_farm += "ABCDEFGHIJKL"[int(cMissionId[-2:])-1]
+                #print(mission_farm)
+
+                farm_locations += mission_farm + " "
+
+    image_draw.text((50+MAX_LINE_SIZE+20, 25), farm_locations, (255, 255, 255), font=font12)
 
     return image
 

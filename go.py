@@ -4848,9 +4848,9 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
                                     != "Filled in another phase":
                                 list_missing_platoons.append([allocated_player, platoon_name, perso])
                     else:
-                        list_err.append('ERR: ' + perso +
-                                        ' n\'a pas été affecté ('+platoon_name+')')
-                        goutils.log2("ERR", perso + " n\'a pas été affecté ("+platoon_name+")")
+                        err_msg = perso + " existe dans la zone "+platoon_name+" mais n\'a pas été affecté par le bot"
+                        list_err.append('ERR: ' + err_msg)
+                        goutils.log2("ERR", err_msg)
                         goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
 
     return list_missing_platoons, list_err
