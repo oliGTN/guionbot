@@ -1036,7 +1036,7 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
             "nogo": score_nogo, "list_char": list_char_id, "unlock_rarity": unlock_rarity}
 
 def get_team_header(team_name, objectifs):
-    dict_capa = godata.get("unit_capa_list.json")
+    dict_capas = godata.get("unit_capa_list.json")
 
     entete = ''
 
@@ -1093,7 +1093,7 @@ def get_team_header(team_name, objectifs):
                         req_zetas.remove('')
 
                     #print(goutils.get_capa_from_shorts(perso, req_zetas))
-                    req_zeta_names = [dict_capa[perso][x[1]]["name"]+" ("+x[0]+")" for x in goutils.get_capa_from_shorts(perso, req_zetas)]
+                    req_zeta_names = [dict_capas[perso][x[1]]["name"]+" ("+x[0]+")" for x in goutils.get_capa_from_shorts(perso, req_zetas)]
                     req_omicrons = objectifs[i_level][2][perso][6].split(',')
                     while '' in req_omicrons:
                         req_omicrons.remove('')
@@ -2602,10 +2602,10 @@ async def print_lox(txt_allyCode, characters, compute_guild):
     war_txt = ""
 
     dict_unitsList = godata.get("unitsList_dict.json")
-    dict_capa = godata.get("unit_capa_list.json")
+    dict_capas = godata.get("unit_capa_list.json")
     all_modes = []
-    for unit_id in dict_capa:
-        unit = dict_capa[unit_id]
+    for unit_id in dict_capas:
+        unit = dict_capas[unit_id]
         has_omicron = False
         for ability_id in unit:
             ability = unit[ability_id]
@@ -2652,7 +2652,7 @@ async def print_lox(txt_allyCode, characters, compute_guild):
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
         for unit_id in list_character_ids:
-            unit = dict_capa[unit_id]
+            unit = dict_capas[unit_id]
             has_omicron = False
             for ability_id in unit:
                 ability = unit[ability_id]
@@ -5117,7 +5117,7 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
     return 0, ""
 
 async def check_tw_counter(txt_allyCode, guild_id, counter_type):
-    dict_capa = godata.get("unit_capa_list.json")
+    dict_capas = godata.get("unit_capa_list.json")
 
     known_counters = ['SEEvsJMK', 'ITvsGEOS']
     if not counter_type in known_counters:
