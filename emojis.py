@@ -5,7 +5,7 @@ check = '\N{WHITE HEAVY CHECK MARK}'
 redcross = '\N{CROSS MARK}'
 hourglass = '\N{HOURGLASS}'
 cyclearrows = '\U0001F504'
-prohibited = '\N{PROHIBITED SIGN}'
+prohibited = '\U0001F6AB'
 letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER B}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER C}', \
@@ -15,3 +15,4 @@ letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER G}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER H}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER I}']
+rightpointingindex = "\N{White Right Pointing Backhand Index}"

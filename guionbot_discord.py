@@ -1029,6 +1029,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
         list_terr_status = []
         for terr in list_open_territories:
             terr_txt = "__"+terr["zone_name"]+"__: "
+            count_15 = 0
             for i_platoon in range(1,7):
                 platoon_name = terr["zone_name"]+"-"+str(i_platoon)
                 count_done = 0
@@ -1037,8 +1038,17 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
                     missing_units = dict_platoons_done[platoon_name][unit].count('')
                     count_done += (needed_units - missing_units)
                 terr_txt += str(count_done)+" "
-            if terr["zone_state"] == "ZONELOCKED":
+                if count_done==15:
+                    count_15+=1
+
+            #overall status of the platoon zone
+            if count_15 == 6:
+                terr_txt = emojis.check + terr_txt
+            elif "cmdState" in terr and terr["cmdState"] == "IGNORED":
                 terr_txt = emojis.prohibited + terr_txt
+            else:
+                terr_txt = emojis.rightpointingindex + terr_txt
+
             if "cmdMsg" in terr:
                 terr_txt += "("+terr["cmdMsg"]+")"
             list_terr_status.append([terr["zone_name"], terr_txt])
@@ -1068,7 +1078,6 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
 
                 if not platoon_allowed:
                     platoon_locked = True
-            print(filter_zones, platoon_name, platoon_locked)
 
             # In case the command is meant to display to all
             # AND the platoon is locked or filtered, do not display it
@@ -1090,7 +1099,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
                       ' en ' + platoon_name
 
                 if platoon_locked:
-                    txt += " > PAS DE RAPPEL"
+                    txt = "~~" + txt + "~~"
 
             #Pose auto du bot
             if allyCode!=None and not platoon_locked:

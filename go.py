@@ -4836,11 +4836,13 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open
             phase_names_already_displayed.append(phase_name)
         #print("---"+platoon_name)
         #print(dict_platoons_done[platoon_name])
+        zone_name = platoon_name[:-2]
 
         platoon_locked = False
         for terr in list_open_territories:
-            if terr["zone_name"] == phase_name:
-                platoon_locked = (terr["zone_state"] == "ZONELOCKED")
+            if terr["zone_name"] == zone_name:
+                if "cmdState" in terr:
+                    platoon_locked = (terr["cmdState"] == "IGNORED")
 
         for perso in dict_platoons_done[platoon_name]:
             if '' in dict_platoons_done[platoon_name][perso]:
