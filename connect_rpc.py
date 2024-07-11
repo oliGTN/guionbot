@@ -697,13 +697,15 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
             for zone in battleStatus["reconZoneStatus"]:
                 recon_name = zone["zoneStatus"]["zoneId"]
                 zone_name = "_".join(recon_name.split("_")[:-1])
+                recon_state = zone["zoneStatus"]["zoneState"]
 
                 if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
                     ret_re = re.search(".*_phase0(\d)_conflict0(\d)", zone_name)
                     zone_position = int(ret_re.group(2))
                     zone_phase = int(ret_re.group(1))
                     list_open_territories[zone_position-1] = {"phase": zone_phase,
-                                                              "zone_name": dict_tb[zone_name]["name"]}
+                                                              "zone_name": dict_tb[zone_name]["name"],
+                                                              "zone_state": recon_state}
                     if "commandMessage" in zone["zoneStatus"]:
                         list_open_territories[zone_position-1]["cmdMsg"] = zone["zoneStatus"]["commandMessage"]
                     if "commandState" in zone["zoneStatus"]:
@@ -811,7 +813,7 @@ async def get_guildLog_messages(guild_id, onlyLatest):
                    "TW":   [twlogChan_id, list_tw_logs],
                    "TB":   [tblogChan_id, list_tb_logs]}
 
-async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
+async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=None):
     FRE_FR = godata.get('FRE_FR.json')
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_tw = godata.dict_tw
@@ -821,11 +823,21 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
     list_tw_logs = []
     list_tb_logs = []
     dict_squads={}
+    event_phase = ""
+    phases_work = list(phases)
     for event_group_id in dict_events:
         event_group = dict_events[event_group_id]
         for event_id in event_group:
             event = event_group[event_id]
             event_ts = int(event["timestamp"])
+
+            # Manage optional phases
+            if phases != None:
+                if event_ts >= phases_work[0][0]:
+                    event_phase = phases_work[0][1]
+                    phases_work = phases_work[1:]
+
+            # Processing depends on event type
             if event_group_id.startswith("GUILD_CHAT"):
                 if "message" in event:
                     author = event["authorName"]
@@ -971,7 +983,11 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts):
                     phases_ok = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
                     phases_tot = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
 
-                    activity_txt = "COMBAT: "+author+" "+str(phases_ok)+"/"+str(phases_tot)+" en "+zone_name
+                    if event_phase!="":
+                        activity_txt = event_phase + " - "
+                    else:
+                        activity_txt = ""
+                    activity_txt += "COMBAT: "+author+" "+str(phases_ok)+"/"+str(phases_tot)+" en "+zone_name
                     if event_ts > chatLatest_ts:
                         list_tb_logs.append([event_ts, activity_txt])
 
