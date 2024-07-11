@@ -35,13 +35,13 @@ reverse_guild_logos = ['guild_icon_senate',
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
-        swgohgg_characters_url = 'http://api.swgoh.gg/characters'
+        swgohgg_characters_url = 'https://swgoh.gg/api/characters'
         goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
         r = requests.get(swgohgg_characters_url, allow_redirects=True)
         #print(r.content[:200])
         list_characters = json.loads(r.content.decode('utf-8'))
 
-        swgohgg_ships_url = 'http://api.swgoh.gg/ships'
+        swgohgg_ships_url = 'https://swgoh.gg/api/ships'
         goutils.log2("DBG", "Get data from " + swgohgg_ships_url)
         r = requests.get(swgohgg_ships_url, allow_redirects=True)
         list_ships = json.loads(r.content.decode('utf-8'))
