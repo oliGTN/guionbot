@@ -813,7 +813,7 @@ async def get_guildLog_messages(guild_id, onlyLatest):
                    "TW":   [twlogChan_id, list_tw_logs],
                    "TB":   [tblogChan_id, list_tb_logs]}
 
-async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=None):
+async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
     FRE_FR = godata.get('FRE_FR.json')
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_tw = godata.dict_tw
@@ -832,7 +832,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=None)
             event_ts = int(event["timestamp"])
 
             # Manage optional phases
-            if phases != None:
+            if phases != []:
                 if event_ts >= phases_work[0][0]:
                     event_phase = phases_work[0][1]
                     phases_work = phases_work[1:]
