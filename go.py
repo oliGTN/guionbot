@@ -3073,9 +3073,9 @@ async def get_tw_alerts(guild_id, force_update):
 
             terr_msg=""
             if filled == size:
-                terr_msg += '\N{WHITE HEAVY CHECK MARK}'
+                terr_msg += emojis.check
             elif state=="IGNORED":
-                terr_msg += '\N{PROHIBITED SIGN}'
+                terr_msg += emojis.prohibited
             else:
                 terr_msg += '\U000027A1\U0000FE0F' #right pointing arrow on blue background
 
@@ -4820,10 +4820,10 @@ async def get_tw_insufficient_attacks(guild_id, args):
 ##############################
 # IN: dict_platoons_done
 # IN: dict_platoons_allocation
-# OUT: list_missing_platoons - [["Jerome342", "ROTE1-DS-3", "General Kenobi"], ["Tartufe du 75", "ROTE2-LS-6", "Lobot], ...]
+# OUT: list_missing_platoons - [{"player_name": "Jerome342", "platoon": "ROTE1-DS-3", "locked": True", character_name": "General Kenobi"}, {"player_name": "Tartufe du 75", "platoon": "ROTE2-LS-6", "locked": Flase, "character_name": "Lobot"}, ...]
 # OUT: list_err - ["ERR - ça va pas", "ERR - perso manquant", ...]
 ##############################
-def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
+def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open_territories):
     list_platoon_names = sorted(dict_platoons_done.keys())
     phase_names_already_displayed = []
     list_missing_platoons = []
@@ -4836,6 +4836,12 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
             phase_names_already_displayed.append(phase_name)
         #print("---"+platoon_name)
         #print(dict_platoons_done[platoon_name])
+
+        platoon_locked = False
+        for terr in list_open_territories:
+            if terr["zone_name"] == phase_name:
+                platoon_locked = (terr["zone_state"] == "ZONELOCKED")
+
         for perso in dict_platoons_done[platoon_name]:
             if '' in dict_platoons_done[platoon_name][perso]:
                 if platoon_name in dict_platoons_allocation:
@@ -4846,7 +4852,10 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation):
                             if not allocated_player in dict_platoons_done[
                                     platoon_name][perso] and allocated_player \
                                     != "Filled in another phase":
-                                list_missing_platoons.append([allocated_player, platoon_name, perso])
+                                        list_missing_platoons.append({"player_name": allocated_player, 
+                                                                      "platoon": platoon_name, 
+                                                                      "locked": platoon_locked, 
+                                                                      "character_name": perso})
                     else:
                         err_msg = perso + " existe dans la zone "+platoon_name+" mais n\'a pas été affecté par le bot"
                         list_err.append('ERR: ' + err_msg)
