@@ -965,7 +965,7 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
 # IN - display_mentions: True if player names are replaced by @discord_name
 # OUT - full_txt
 #####################
-async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions):
+async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions, filter_zones=[]):
     dict_tb = data.get("tb_definition.json")
 
     #Read actual platoons in game
@@ -1018,7 +1018,8 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
         phase_names_already_displayed = []
         list_missing_platoons, list_err = go.get_missing_platoons(
                                                 dict_platoons_done, 
-                                                dict_platoons_allocation)
+                                                dict_platoons_allocation,
+                                                list_open_territories)
 
         #Affichage des deltas ET auto pose par le bot
         full_txt = ''
@@ -1036,6 +1037,8 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
                     missing_units = dict_platoons_done[platoon_name][unit].count('')
                     count_done += (needed_units - missing_units)
                 terr_txt += str(count_done)+" "
+            if terr["zone_state"] == "ZONELOCKED":
+                terr_txt = emojis.prohibited + terr_txt
             if "cmdMsg" in terr:
                 terr_txt += "("+terr["cmdMsg"]+")"
             list_terr_status.append([terr["zone_name"], terr_txt])
@@ -1046,10 +1049,32 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
             full_txt += terr_status[1]+"\n"
         full_txt += "---\n"
 
-        for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x[1][:4], x[0], x[1])):
-            allocated_player = missing_platoon[0]
-            platoon_name = missing_platoon[1]
-            perso = missing_platoon[2]
+        for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x["platoon"][:4], 
+                                                                            x["player_name"], 
+                                                                            x["platoon"])):
+            allocated_player = missing_platoon["player_name"]
+            platoon_name = missing_platoon["platoon"]
+            perso = missing_platoon["character_name"]
+
+            # Manage if the notification is sent or not
+            # NOT SENT if the platoon zone is locked
+            # NOT SENT if the user has defined filter zones and the platoon is not in the filter
+            platoon_locked = missing_platoon["locked"]
+            if filter_zones != []:
+                platoon_allowed = False
+                for f in filter_zones:
+                    if f in platoon_name:
+                        platoon_allowed = True
+
+                if not platoon_allowed:
+                    platoon_locked = True
+            print(filter_zones, platoon_name, platoon_locked)
+
+            # In case the command is meant to display to all
+            # AND the platoon is locked or filtered, do not display it
+            # which means to ignore it
+            if display_mentions and platoon_locked:
+                continue
 
             #write the displayed text
             if (allocated_player in dict_players_by_IG) and display_mentions:
@@ -1058,14 +1083,17 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
                       '** n\'a pas affecté ' + perso + \
                       ' en ' + platoon_name
             else:
-                #joueur non-défini dans gsheets ou mentions non autorisées,
+                #joueur non-enregistré ou mentions non autorisées,
                 # on l'affiche quand même
                 txt = '**' + allocated_player + \
                       '** n\'a pas affecté ' + perso + \
                       ' en ' + platoon_name
 
+                if platoon_locked:
+                    txt += " > PAS DE RAPPEL"
+
             #Pose auto du bot
-            if allyCode!=None:
+            if allyCode!=None and not platoon_locked:
                 if allocated_player == player_name:
                     ec, et = await go.deploy_platoons_tb(allyCode, platoon_name, [perso])
                     if ec == 0:
@@ -2464,68 +2492,78 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                       "Exemple : go.vdp #batailles-des-territoires > liste les déploiements dans le salon spécifié\n"\
                       "Exemple : go.vdp deploybot")
     async def vdp(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Gestion des paramètres : "deploybot" ou le nom d'un salon
-        display_mentions=False
-        output_channel = ctx.message.channel
-        deploy_bot=False
+            #Gestion des paramètres : "deploybot" ou le nom d'un salon
+            display_mentions=False
+            output_channel = ctx.message.channel
+            deploy_bot=False
 
-        args=list(args)
-        if len(args) > 0:
-            if "deploybot" in args:
-                deploy_bot=True
-                args.remove("deploybot")
+            args=list(args)
+            if len(args) > 0:
+                if "deploybot" in args:
+                    deploy_bot=True
+                    args.remove("deploybot")
 
-        if len(args)==1:
-            got_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
-            if got_channel == None:
-                await ctx.send('**ERR**: '+err_msg)
+            #Sortie sur un autre channel si donné en paramètre
+            output_channel = ctx.message.channel
+            display_mentions=False
+            loop_args = list(args)
+            for arg in loop_args:
+                if arg.startswith('<#'):
+                    got_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                    if got_channel == None:
+                        await ctx.send('**ERR**: '+err_msg)
+                    else:
+                        output_channel = got_channel
+                        display_mentions=True
+                    args.remove(arg)
+            
+            list_zones = args
+
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+            tbChannel_id = bot_infos["tbChanRead_id"]
+            echostation_id = bot_infos["echostation_id"]
+            if tbChannel_id==0:
+                await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            if deploy_bot:
+                allyCode = bot_infos["allyCode"]
+                player_name = bot_infos["player_name"]
             else:
-                output_channel = got_channel
-                display_mentions=True
-        elif len(args)>1:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help vdp")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+                allyCode = None
+                player_name = None
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions, filter_zones=list_zones)
+            if ec != 0:
+                await ctx.send('ERR: '+ret_txt)
+                await ctx.message.add_reaction(emojis.redcross)
+            else:
+                for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                    await output_channel.send(txt)
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+                await ctx.message.add_reaction(emojis.check)
 
-        guild_id = bot_infos["guild_id"]
-        tbChannel_id = bot_infos["tbChanRead_id"]
-        echostation_id = bot_infos["echostation_id"]
-        if tbChannel_id==0:
-            await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        if deploy_bot:
-            allyCode = bot_infos["allyCode"]
-            player_name = bot_infos["player_name"]
-        else:
-            allyCode = None
-            player_name = None
-
-        ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions)
-        if ec != 0:
-            await ctx.send('ERR: '+ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                await output_channel.send(txt)
-
-            await ctx.message.add_reaction(emojis.check)
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
         
     #######################################
     @commands.command(name='bot.enable',
