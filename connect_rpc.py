@@ -1566,7 +1566,12 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
         tb_name = tbs_round[:-1]
         err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
-        dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
+
+        if ret_dict == None:
+            dict_platoons_allocation = {}
+        else:
+            dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
+
         for zone_name in list_open_zones:
             recon_zoneId = zone_name+"_recon01"
             zone_shortname = dict_tb[zone_name]["name"]
