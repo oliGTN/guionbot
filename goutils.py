@@ -476,6 +476,7 @@ def delta_dict_player(dict1, dict2):
     delta_dict = {}
     delta_dict['allyCode'] = allyCode
     delta_dict['rosterUnit'] = {}
+    delta_dict['datacron'] = []
 
     #compare player information
     for info in ["playerId", "guildName", "guildId", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes", "equipment"]:
@@ -505,6 +506,18 @@ def delta_dict_player(dict1, dict2):
             connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
             delta_dict['rosterUnit'][character_id] = character
 
+    #compare datacrons
+    for datacron_id in dict2['datacron']:
+        datacron = dict2['datacron'][datacron_id]
+        if datacron_id in dict1['datacron']:
+            if datacron != dict1['datacron'][datacron_id]:
+                log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
+                detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
+                delta_dict['datacron'].append(datacron)
+        else:
+            log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
+            delta_dict['datacron'].append(datacron)
+
     return delta_dict
 
 def extended_gear(gear, equipped, relic):
@@ -527,6 +540,9 @@ def extended_gear_to_txt(extended_gear):
     else:
         return str(extended_gear)
     
+#######################
+# This function fills roster_evolutions
+#######################
 def detect_delta_roster_element(allyCode, char1, char2):
     dict_capas = data.get('unit_capa_list.json')
     defId = char1['definitionId'].split(":")[0]
@@ -617,13 +633,22 @@ def roster_from_list_to_dict(dict_player):
 
     if type(dict_player['rosterUnit']) == dict:
         log2("DBG", "no transformation needed for "+txt_allyCode)
-        return dict_player
+    else:
+        #Transform the list of units into a dict
+        dict_roster = {}
+        for character in dict_player['rosterUnit']:
+            dict_roster[character['definitionId'].split(":")[0]] = character
+        dict_player['rosterUnit'] = dict_roster
 
-    dict_roster = {}
-    for character in dict_player['rosterUnit']:
-        dict_roster[character['definitionId'].split(":")[0]] = character
+    if type(dict_player['datacron']) == dict:
+        log2("DBG", "no transformation needed for "+txt_allyCode)
+    else:
+        #Transform the list of datacrons into a dict
+        dict_datacrons = {}
+        for datacron in dict_player['datacron']:
+            dict_datacrons[datacron['id']] = datacron
+        dict_player['datacron'] = dict_datacrons
 
-    dict_player['rosterUnit'] = dict_roster
     log2("DBG", "transformation complete for "+txt_allyCode)
 
     return dict_player
@@ -634,14 +659,24 @@ def roster_from_dict_to_list(dict_player_in):
 
     if type(dict_player['rosterUnit']) == list:
         log("DBG", "roster_from_dict_to_list", "no transformation needed for "+txt_allyCode)
-        return dict_player
+    else:
+        #Transform the dict of units into a list
+        list_roster = []
+        for character_id in dict_player['rosterUnit']:
+            character = dict_player['rosterUnit'][character_id]
+            list_roster.append(character)
+        dict_player['rosterUnit'] = list_roster
 
-    list_roster = []
-    for character_id in dict_player['rosterUnit']:
-        character = dict_player['rosterUnit'][character_id]
-        list_roster.append(character)
+    if type(dict_player['datacron']) == list:
+        log("DBG", "roster_from_dict_to_list", "no transformation needed for "+txt_allyCode)
+    else:
+        #Transform the dict of datacrons into a list
+        list_datacrons = []
+        for datacron_id in dict_player['datacron']:
+            datacron = dict_player['datacron'][datacron_id]
+            list_datacrons.append(datacron)
+        dict_player['datacrons'] = list_datacrons
 
-    dict_player['rosterUnit'] = list_roster
     log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
 
     return dict_player
