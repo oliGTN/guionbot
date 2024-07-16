@@ -3429,8 +3429,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             # Read character options
             for character_option in tab_virtual_character[1:]:
                 simple_search = False
-                if len(character_option)==1 and character_option in "1234567":
-                    char_rarity = int(character_option)
+                if    (len(character_option)==1 and character_option in "1234567") \
+                   or (len(character_option)==2 and character_option[1] == "*" and character_option[0] in "1234567"):
+                    char_rarity = int(character_option[0])
 
                 elif character_option[0] in "gG":
                     if character_option[1:].isnumeric():
