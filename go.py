@@ -218,6 +218,7 @@ async def load_player(ac_or_id, force_update, no_db):
                 else:
                     goutils.log2("DBG", "... correct file")
                     prev_dict_player = json.load(open(json_file, 'r'))
+                    prev_dict_player = goutils.roster_from_list_to_dict(prev_dict_player)
                     prev_dict_player_list = goutils.roster_from_dict_to_list(prev_dict_player)
             else:
                 goutils.log2("DBG", "... the file does not exist")

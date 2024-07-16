@@ -3809,102 +3809,108 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.qui @chaton372\n"\
                            "Exemple: go.qui -TW")
     async def qui(self, ctx, *alias):
-        await ctx.message.add_reaction(emojis.thumb)
-
-        full_alias = " ".join(alias)
-        allyCode = await manage_me(ctx, full_alias, True)
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        # Get player info
-        e, t, dict_player = await go.load_player(allyCode, 0, False)
-        if e!=0:
-            await ctx.send("ERR: "+t)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #Look in DB
-        query = "SELECT name, guildName, lastUpdated, char_gp, ship_gp, grand_arena_rank FROM players WHERE allyCode = " + allyCode
-        result = connect_mysql.get_line(query)
-        if result != None:
-            player_name = result[0]
-            guildName = result[1]
-            lastUpdated = result[2]
-            lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
-            gp = int((result[3]+result[4])/100000)/10
-            arena_rank = result[5]
-        else:
-            player_name = dict_player["name"]
-            guildName = dict_player["guildName"]
-            lastUpdated_txt = "joueur inconnu"
-            gp = "???"
-            arena_rank = "???"
-
-        #Look for Discord Pseudo if in guild
-        dict_players_by_IG = connect_mysql.load_config_players()[0]
-        if player_name in dict_players_by_IG:
-            discord_mention = dict_players_by_IG[player_name][1]
-            ret_re = re.search("<@(\\d*)>.*", discord_mention)
-            discord_id = ret_re.group(1)
-
-            discord_display_names = []
-            for guild in bot.guilds:
-                try:
-                    discord_user = await guild.fetch_member(discord_id)
-                    display_name = discord_user.display_name
-                    discord_display_names.append([guild.name, display_name])
-                except:
-                    continue
-
-        else:
-            discord_display_names = []
-
-        swgohgg_url = "https://swgoh.gg/p/" + allyCode
         try:
-            r = get(swgohgg_url)
-            if r.status_code == 404:
+            await ctx.message.add_reaction(emojis.thumb)
+
+            full_alias = " ".join(alias)
+            allyCode = await manage_me(ctx, full_alias, True)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            # Get player info
+            e, t, dict_player = await go.load_player(allyCode, 0, False)
+            if e!=0:
+                await ctx.send("ERR: "+t)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #Look in DB
+            query = "SELECT name, guildName, lastUpdated, char_gp, ship_gp, grand_arena_rank FROM players WHERE allyCode = " + allyCode
+            result = connect_mysql.get_line(query)
+            if result != None:
+                player_name = result[0]
+                guildName = result[1]
+                lastUpdated = result[2]
+                lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
+                gp = int((result[3]+result[4])/100000)/10
+                arena_rank = result[5]
+            else:
+                player_name = dict_player["name"]
+                guildName = dict_player["guildName"]
+                lastUpdated_txt = "joueur inconnu"
+                gp = "???"
+                arena_rank = "???"
+
+            #Look for Discord Pseudo if in guild
+            dict_players_by_IG = connect_mysql.load_config_players()[0]
+            if player_name in dict_players_by_IG:
+                discord_mention = dict_players_by_IG[player_name][1]
+                ret_re = re.search("<@(\\d*)>.*", discord_mention)
+                discord_id = ret_re.group(1)
+
+                discord_display_names = []
+                for guild in bot.guilds:
+                    try:
+                        discord_user = await guild.fetch_member(discord_id)
+                        display_name = discord_user.display_name
+                        discord_display_names.append([guild.name, display_name])
+                    except:
+                        continue
+
+            else:
+                discord_display_names = []
+
+            swgohgg_url = "https://swgoh.gg/p/" + allyCode
+            try:
+                r = get(swgohgg_url)
+                if r.status_code == 404:
+                    swgohgg_url = "introuvable"
+            except urllib.error.HTTPError as e:
                 swgohgg_url = "introuvable"
-        except urllib.error.HTTPError as e:
-            swgohgg_url = "introuvable"
 
-        warstats_url = "https://goh.warstats.net/players/view/" + allyCode
-        try:
-            r = get(warstats_url)
-            if r.status_code == 404:
+            warstats_url = "https://goh.warstats.net/players/view/" + allyCode
+            try:
+                r = get(warstats_url)
+                if r.status_code == 404:
+                    warstats_url = "introuvable"
+            except urllib.error.HTTPError as e:
                 warstats_url = "introuvable"
-        except urllib.error.HTTPError as e:
-            warstats_url = "introuvable"
 
-        txt = "Qui est **"+full_alias+"** ?\n"
-        txt+= "- code allié : "+str(allyCode)+"\n"
-        txt+= "- pseudo IG : "+player_name+"\n"
-        txt+= "- guilde : "+guildName+"\n"
-        txt+= "- PG : "+str(gp)+"M\n"
-        txt+= "- GAC : "+arena_rank+"\n"
+            txt = "Qui est **"+full_alias+"** ?\n"
+            txt+= "- code allié : "+str(allyCode)+"\n"
+            txt+= "- pseudo IG : "+player_name+"\n"
+            txt+= "- guilde : "+guildName+"\n"
+            txt+= "- PG : "+str(gp)+"M\n"
+            txt+= "- GAC : "+arena_rank+"\n"
 
-        if len(discord_display_names)>0:
-            for discord_name in discord_display_names:
-                if ctx.guild == None:
-                    # in a DM
-                    txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
-                elif discord_name[0] == ctx.guild.name:
-                    # in the right guild
-                    txt+= "- pseudo Discord chez **"+discord_name[0]+"** : "+discord_name[1]+"\n"
-                else:
-                    # in a guild, but nott the right one
-                    txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
-        else:
-            txt+= "- pseudo Discord : ???\n"
+            if len(discord_display_names)>0:
+                for discord_name in discord_display_names:
+                    if ctx.guild == None:
+                        # in a DM
+                        txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
+                    elif discord_name[0] == ctx.guild.name:
+                        # in the right guild
+                        txt+= "- pseudo Discord chez **"+discord_name[0]+"** : "+discord_name[1]+"\n"
+                    else:
+                        # in a guild, but nott the right one
+                        txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
+            else:
+                txt+= "- pseudo Discord : ???\n"
 
-        txt+= "- dernier refresh du bot : "+lastUpdated_txt+"\n"
-        txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">\n"
-        txt+= "- lien WARSTATS : <"+warstats_url + ">"
+            txt+= "- dernier refresh du bot : "+lastUpdated_txt+"\n"
+            txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">\n"
+            txt+= "- lien WARSTATS : <"+warstats_url + ">"
 
-        await ctx.send(txt)
+            await ctx.send(txt)
 
-        await ctx.message.add_reaction(emojis.check)
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
     ##############################################################
     # Command: vtg

@@ -632,7 +632,7 @@ def roster_from_list_to_dict(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
 
     if type(dict_player['rosterUnit']) == dict:
-        log2("DBG", "no transformation needed for "+txt_allyCode)
+        log2("DBG", "no transformation needed for roster of "+txt_allyCode)
     else:
         #Transform the list of units into a dict
         dict_roster = {}
@@ -641,7 +641,7 @@ def roster_from_list_to_dict(dict_player):
         dict_player['rosterUnit'] = dict_roster
 
     if type(dict_player['datacron']) == dict:
-        log2("DBG", "no transformation needed for "+txt_allyCode)
+        log2("DBG", "no transformation needed for datacrons of "+txt_allyCode)
     else:
         #Transform the list of datacrons into a dict
         dict_datacrons = {}
@@ -658,7 +658,7 @@ def roster_from_dict_to_list(dict_player_in):
     txt_allyCode = str(dict_player['allyCode'])
 
     if type(dict_player['rosterUnit']) == list:
-        log("DBG", "roster_from_dict_to_list", "no transformation needed for "+txt_allyCode)
+        log("DBG", "roster_from_dict_to_list", "no transformation needed for roster of "+txt_allyCode)
     else:
         #Transform the dict of units into a list
         list_roster = []
@@ -668,7 +668,7 @@ def roster_from_dict_to_list(dict_player_in):
         dict_player['rosterUnit'] = list_roster
 
     if type(dict_player['datacron']) == list:
-        log("DBG", "roster_from_dict_to_list", "no transformation needed for "+txt_allyCode)
+        log("DBG", "roster_from_dict_to_list", "no transformation needed for datacrons of "+txt_allyCode)
     else:
         #Transform the dict of datacrons into a list
         list_datacrons = []
