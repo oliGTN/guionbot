@@ -476,7 +476,7 @@ def delta_dict_player(dict1, dict2):
     delta_dict = {}
     delta_dict['allyCode'] = allyCode
     delta_dict['rosterUnit'] = {}
-    delta_dict['datacron'] = []
+    delta_dict['datacron'] = {}
 
     #compare player information
     for info in ["playerId", "guildName", "guildId", "lastActivityTime", "level", "name", "pvpProfile", "playerRating", "profileStat", "localTimeZoneOffsetMinutes", "equipment"]:
@@ -513,10 +513,10 @@ def delta_dict_player(dict1, dict2):
             if datacron != dict1['datacron'][datacron_id]:
                 log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
                 detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
-                delta_dict['datacron'].append(datacron)
+                delta_dict['datacron'][datacron_id] = datacron
         else:
             log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
-            delta_dict['datacron'].append(datacron)
+            delta_dict['datacron'][datacron_id] = datacron
 
     return delta_dict
 
