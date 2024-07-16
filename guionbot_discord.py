@@ -1363,7 +1363,8 @@ async def on_ready():
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
 
     #recover external IP address
-    ip = get('https://api.ipify.org').text
+    #ip = get('https://api.ipify.org').text
+    ip = get('https://v4.ident.me').text
     
     msg = bot.user.name+" has connected to Discord from ip "+ip
     goutils.log2("INFO", msg)
