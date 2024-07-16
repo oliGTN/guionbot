@@ -510,19 +510,20 @@ def delta_dict_player(dict1, dict2):
     ##############
     # TEMPORARY: forcing all datacrons to be stored
     ##############
-    for datacron_id in dict2['datacron']:
-        datacron = dict2['datacron'][datacron_id]
-        """
-        if datacron_id in dict1['datacron']:
-            if datacron != dict1['datacron'][datacron_id]:
-                log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
-                detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
+    if "datacron" in dict2:
+        for datacron_id in dict2['datacron']:
+            datacron = dict2['datacron'][datacron_id]
+            """
+            if "datacron" in dict1 and datacron_id in dict1['datacron']:
+                if datacron != dict1['datacron'][datacron_id]:
+                    log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
+                    detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
+                    delta_dict['datacron'][datacron_id] = datacron
+            else:
+                log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
                 delta_dict['datacron'][datacron_id] = datacron
-        else:
-            log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
+            """
             delta_dict['datacron'][datacron_id] = datacron
-        """
-        delta_dict['datacron'][datacron_id] = datacron
 
     return delta_dict
 
@@ -646,14 +647,15 @@ def roster_from_list_to_dict(dict_player):
             dict_roster[character['definitionId'].split(":")[0]] = character
         dict_player['rosterUnit'] = dict_roster
 
-    if type(dict_player['datacron']) == dict:
-        log2("DBG", "no transformation needed for datacrons of "+txt_allyCode)
-    else:
-        #Transform the list of datacrons into a dict
-        dict_datacrons = {}
-        for datacron in dict_player['datacron']:
-            dict_datacrons[datacron['id']] = datacron
-        dict_player['datacron'] = dict_datacrons
+    if "datacron" in dict_player:
+        if type(dict_player['datacron']) == dict:
+            log2("DBG", "no transformation needed for datacrons of "+txt_allyCode)
+        else:
+            #Transform the list of datacrons into a dict
+            dict_datacrons = {}
+            for datacron in dict_player['datacron']:
+                dict_datacrons[datacron['id']] = datacron
+            dict_player['datacron'] = dict_datacrons
 
     log2("DBG", "transformation complete for "+txt_allyCode)
 
@@ -673,13 +675,14 @@ def roster_from_dict_to_list(dict_player_in):
             list_roster.append(character)
         dict_player['rosterUnit'] = list_roster
 
-    if type(dict_player['datacron']) == list:
-        log("DBG", "roster_from_dict_to_list", "no transformation needed for datacrons of "+txt_allyCode)
-    else:
-        #Transform the dict of datacrons into a list
-        list_datacrons = []
-        for datacron_id in dict_player['datacron']:
-            datacron = dict_player['datacron'][datacron_id]
+    if "datacron" in dict_player:
+        if type(dict_player['datacron']) == list:
+            log("DBG", "roster_from_dict_to_list", "no transformation needed for datacrons of "+txt_allyCode)
+        else:
+            #Transform the dict of datacrons into a list
+            list_datacrons = []
+            for datacron_id in dict_player['datacron']:
+                datacron = dict_player['datacron'][datacron_id]
             list_datacrons.append(datacron)
         dict_player['datacrons'] = list_datacrons
 
