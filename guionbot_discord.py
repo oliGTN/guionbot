@@ -1981,18 +1981,26 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  brief="Force la synchro API d'un Joueur",
                  help="Force la synchro API d'un Joueur\n\n"\
                       "Exemple: go.fsj 123456789\n"\
+                      "Exemple: go.fsj 123456789 Alex 123123123\n"\
                       "Exemple: go.fsj me clearcache")
     @commands.check(admin_command)
-    async def fsj(self, ctx, allyCode, *options):
+    async def fsj(self, ctx, *options):
         await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+        options = list(options)
+        clear_cache = False
+        if "clearcache" in options:
+            clear_cache = True
+            options.remove("clearcache")
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            clear_cache = (len(options)>0)
+        for ac in options:
+            allyCode = await manage_me(ctx, ac, False)
+
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
             query = "SELECT CURRENT_TIMESTAMP"
             goutils.log2("DBG", query)
             timestamp_before = connect_mysql.get_value(query)
@@ -2002,12 +2010,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
+            player_id = player_before["playerId"]
             if clear_cache:
-                json_file = "PLAYERS/"+allyCode+".json"
+                json_file = "PLAYERS/"+player_id+".json"
                 if os.path.isfile(json_file):
                     os.remove(json_file)
 
-            e, t, player_now = await go.load_player( allyCode, 1, False)
+            e, t, player_now = await go.load_player(allyCode, 1, False)
             if e!=0:
                 await ctx.send(t)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -2030,9 +2039,9 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                     await ctx.send('`' + txt + '`')
             else:
-                await ctx.send('*Aucune mise à jour*')
+                await ctx.send(allyCode + ' : *Aucune mise à jour*')
         
-            await ctx.message.add_reaction(emojis.check)
+        await ctx.message.add_reaction(emojis.check)
 
 
     ##############################################################
