@@ -457,6 +457,7 @@ async def get_event_data(dict_guild, event_types, force_update):
                         #And write file
                         f = open(fevents, "w")
                         f.write(json.dumps(file_events, indent=4))
+                        f.close()
                     await release_sem(fevents)
 
                     #Add all events to dict_events
