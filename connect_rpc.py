@@ -133,17 +133,17 @@ async def get_guild_data_from_id(guild_id, force_update):
 ##############################################
 # AUTH functions
 ##############################################
-async def send_ea_otc(ac, otc):
+async def send_ea_otc(txt_allyCode, otc):
     # RPC REQUEST for sending OTC
     url = "http://localhost:8000/auth_ea_otc"
-    params = {"allyCode": ac, "otc": otc}
+    params = {"allyCode": txt_allyCode, "otc": otc}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "auth_ea_otc status="+str(resp.status))
                 if resp.status==200:
-                    resp_json = await(resp.json())
+                    resp_json = {}
                 else:
                     return 1, "Cannot send otc from RPC"
 
@@ -153,9 +153,6 @@ async def send_ea_otc(ac, otc):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
-
-    if "err_code" in resp_json:
-        return 1, resp_json["err_txt"]
 
     return 0, ""
 
@@ -486,6 +483,7 @@ async def get_event_data(dict_guild, event_types, force_update):
                         #And write file
                         f = open(fevents, "w")
                         f.write(json.dumps(file_events, indent=4))
+                        f.close()
                     await release_sem(fevents)
 
                     #Add all events to dict_events
@@ -1599,10 +1597,12 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
         tb_name = tbs_round[:-1]
         err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+
         if ret_dict == None:
             dict_platoons_allocation = {}
         else:
             dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
+
         for zone_name in list_open_zones:
             recon_zoneId = zone_name+"_recon01"
             zone_shortname = dict_tb[zone_name]["name"]

@@ -396,6 +396,8 @@ async def update_player(dict_player):
     dict_modList = data.get("modList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
     dict_stats = data.get("dict_stats.json")
+    dict_rules = data.get("targetrules_dict.json")
+
     cursor = None
     try:
         mysql_db = db_connect()
@@ -705,6 +707,68 @@ async def update_player(dict_player):
             #SLEEP at the end of character loop
             await asyncio.sleep(0)
                 
+        #Get existing datacron IDs from DB
+        query = "SELECT id FROM datacrons WHERE allyCode = "+str(p_allyCode)
+        goutils.log2("DBG", query)
+        previous_datacrons_ids = get_column(query)
+        goutils.log2("DBG", previous_datacrons_ids)
+
+        ## GET DEFINITION OF DATACRONS ##
+        current_datacrons_ids = []
+        if 'datacron' in dict_player:
+            for datacron_id in dict_player['datacron']:
+                datacron = dict_player['datacron'][datacron_id]
+                datacron_setId = datacron['setId']
+
+                datacron_level_3 = None
+                datacron_level_6 = None
+                datacron_level_9 = None
+
+                if "affix" in datacron:
+                    if len(datacron["affix"]) >= 3:
+                        abilityId = datacron["affix"][2]["abilityId"]
+                        targetRule = datacron["affix"][2]["targetRule"]
+                        target = dict_rules[targetRule][0]
+                        datacron_level_3 = abilityId+":"+target
+
+                    if len(datacron["affix"]) >= 6:
+                        abilityId = datacron["affix"][5]["abilityId"]
+                        targetRule = datacron["affix"][5]["targetRule"]
+                        target = dict_rules[targetRule][0]
+                        datacron_level_6 = abilityId+":"+target
+
+                    if len(datacron["affix"]) >= 9:
+                        abilityId = datacron["affix"][8]["abilityId"]
+                        targetRule = datacron["affix"][8]["targetRule"]
+                        target = dict_rules[targetRule][0]
+                        datacron_level_9 = abilityId+":"+target
+
+                current_datacrons_ids.append(datacron_id)
+        
+                query = "INSERT IGNORE INTO datacrons(id) "\
+                       +"VALUES('"+datacron_id+"')"
+                goutils.log2("DBG", query)
+                cursor.execute(query)
+    
+                query = "UPDATE datacrons "\
+                       +"SET allyCode = "+str(p_allyCode)+", "\
+                       +"setId = "+str(datacron_setId)+", "\
+                       +"level_3 = '"+str(datacron_level_3)+"', "\
+                       +"level_6 = '"+str(datacron_level_6)+"', "\
+                       +"level_9 = '"+str(datacron_level_9)+"' "\
+                       +"WHERE id = '"+datacron_id+"'"
+                goutils.log2("DBG", query)
+                cursor.execute(query)
+
+        #remove datacrons not used anymore
+        to_be_removed_datacrons_ids = tuple(set(previous_datacrons_ids)-set(current_datacrons_ids))
+        if len(to_be_removed_datacrons_ids) > 0:
+            query = "DELETE FROM datacrons WHERE id IN "+ str(tuple(to_be_removed_datacrons_ids)).replace(",)", ")")
+            goutils.log2("DBG", query)
+            cursor.execute(query)
+
+
+
         #Compute ModQ from DB data
         query = "SELECT count(mods.id)/(char_gp/100000) " \
               + "FROM mods " \

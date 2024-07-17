@@ -1363,7 +1363,8 @@ async def on_ready():
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
 
     #recover external IP address
-    ip = get('https://api.ipify.org').text
+    #ip = get('https://api.ipify.org').text
+    ip = get('https://v4.ident.me').text
     
     msg = bot.user.name+" has connected to Discord from ip "+ip
     goutils.log2("INFO", msg)
@@ -1980,18 +1981,26 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  brief="Force la synchro API d'un Joueur",
                  help="Force la synchro API d'un Joueur\n\n"\
                       "Exemple: go.fsj 123456789\n"\
+                      "Exemple: go.fsj 123456789 Alex 123123123\n"\
                       "Exemple: go.fsj me clearcache")
     @commands.check(admin_command)
-    async def fsj(self, ctx, allyCode, *options):
+    async def fsj(self, ctx, *options):
         await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+        options = list(options)
+        clear_cache = False
+        if "clearcache" in options:
+            clear_cache = True
+            options.remove("clearcache")
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            clear_cache = (len(options)>0)
+        for ac in options:
+            allyCode = await manage_me(ctx, ac, False)
+
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
             query = "SELECT CURRENT_TIMESTAMP"
             goutils.log2("DBG", query)
             timestamp_before = connect_mysql.get_value(query)
@@ -2001,12 +2010,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
+            player_id = player_before["playerId"]
             if clear_cache:
-                json_file = "PLAYERS/"+allyCode+".json"
+                json_file = "PLAYERS/"+player_id+".json"
                 if os.path.isfile(json_file):
                     os.remove(json_file)
 
-            e, t, player_now = await go.load_player( allyCode, 1, False)
+            e, t, player_now = await go.load_player(allyCode, 1, False)
             if e!=0:
                 await ctx.send(t)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -2029,9 +2039,9 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                     await ctx.send('`' + txt + '`')
             else:
-                await ctx.send('*Aucune mise à jour*')
+                await ctx.send(allyCode + ' : *Aucune mise à jour*')
         
-            await ctx.message.add_reaction(emojis.check)
+        await ctx.message.add_reaction(emojis.check)
 
 
     ##############################################################
@@ -2399,6 +2409,43 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             await interaction.edit_original_response(content=emojis.check+" fichier prêt", 
                                                      attachments=[discord.File(export_path)])
+
+##############################################################
+# Class: AuthCog - for connected accounts
+# Description: contains all slash commands for authentication
+##############################################################
+class AuthCog(commands.GroupCog, name="connect"):
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot = bot
+        super().__init__()
+
+    @app_commands.command(name="envoie-otc")
+    async def send_otc(self, interaction: discord.Interaction,
+                       code: str):
+        try:
+            await interaction.response.defer(thinking=True)
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
+                return
+
+            txt_allyCode = str(bot_infos["allyCode"])
+            player_name = bot_infos["player_name"]
+
+            ec, ret_txt = await connect_rpc.send_ea_otc(txt_allyCode, code)
+            if ec != 0:
+                txt = emojis.redcross+" ERR: "+ret_txt
+                await interaction.edit_original_response(content=txt)
+            else:
+                await interaction.edit_original_response(content="Code accepté, vous pouvez utiliser le bot")
+
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
 ##############################################################
 # Class: ServerCog
@@ -3809,102 +3856,108 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.qui @chaton372\n"\
                            "Exemple: go.qui -TW")
     async def qui(self, ctx, *alias):
-        await ctx.message.add_reaction(emojis.thumb)
-
-        full_alias = " ".join(alias)
-        allyCode = await manage_me(ctx, full_alias, True)
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        # Get player info
-        e, t, dict_player = await go.load_player(allyCode, 0, False)
-        if e!=0:
-            await ctx.send("ERR: "+t)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #Look in DB
-        query = "SELECT name, guildName, lastUpdated, char_gp, ship_gp, grand_arena_rank FROM players WHERE allyCode = " + allyCode
-        result = connect_mysql.get_line(query)
-        if result != None:
-            player_name = result[0]
-            guildName = result[1]
-            lastUpdated = result[2]
-            lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
-            gp = int((result[3]+result[4])/100000)/10
-            arena_rank = result[5]
-        else:
-            player_name = dict_player["name"]
-            guildName = dict_player["guildName"]
-            lastUpdated_txt = "joueur inconnu"
-            gp = "???"
-            arena_rank = "???"
-
-        #Look for Discord Pseudo if in guild
-        dict_players_by_IG = connect_mysql.load_config_players()[0]
-        if player_name in dict_players_by_IG:
-            discord_mention = dict_players_by_IG[player_name][1]
-            ret_re = re.search("<@(\\d*)>.*", discord_mention)
-            discord_id = ret_re.group(1)
-
-            discord_display_names = []
-            for guild in bot.guilds:
-                try:
-                    discord_user = await guild.fetch_member(discord_id)
-                    display_name = discord_user.display_name
-                    discord_display_names.append([guild.name, display_name])
-                except:
-                    continue
-
-        else:
-            discord_display_names = []
-
-        swgohgg_url = "https://swgoh.gg/p/" + allyCode
         try:
-            r = get(swgohgg_url)
-            if r.status_code == 404:
+            await ctx.message.add_reaction(emojis.thumb)
+
+            full_alias = " ".join(alias)
+            allyCode = await manage_me(ctx, full_alias, True)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            # Get player info
+            e, t, dict_player = await go.load_player(allyCode, 0, False)
+            if e!=0:
+                await ctx.send("ERR: "+t)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #Look in DB
+            query = "SELECT name, guildName, lastUpdated, char_gp, ship_gp, grand_arena_rank FROM players WHERE allyCode = " + allyCode
+            result = connect_mysql.get_line(query)
+            if result != None:
+                player_name = result[0]
+                guildName = result[1]
+                lastUpdated = result[2]
+                lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
+                gp = int((result[3]+result[4])/100000)/10
+                arena_rank = result[5]
+            else:
+                player_name = dict_player["name"]
+                guildName = dict_player["guildName"]
+                lastUpdated_txt = "joueur inconnu"
+                gp = "???"
+                arena_rank = "???"
+
+            #Look for Discord Pseudo if in guild
+            dict_players_by_IG = connect_mysql.load_config_players()[0]
+            if player_name in dict_players_by_IG:
+                discord_mention = dict_players_by_IG[player_name][1]
+                ret_re = re.search("<@(\\d*)>.*", discord_mention)
+                discord_id = ret_re.group(1)
+
+                discord_display_names = []
+                for guild in bot.guilds:
+                    try:
+                        discord_user = await guild.fetch_member(discord_id)
+                        display_name = discord_user.display_name
+                        discord_display_names.append([guild.name, display_name])
+                    except:
+                        continue
+
+            else:
+                discord_display_names = []
+
+            swgohgg_url = "https://swgoh.gg/p/" + allyCode
+            try:
+                r = get(swgohgg_url)
+                if r.status_code == 404:
+                    swgohgg_url = "introuvable"
+            except urllib.error.HTTPError as e:
                 swgohgg_url = "introuvable"
-        except urllib.error.HTTPError as e:
-            swgohgg_url = "introuvable"
 
-        warstats_url = "https://goh.warstats.net/players/view/" + allyCode
-        try:
-            r = get(warstats_url)
-            if r.status_code == 404:
+            warstats_url = "https://goh.warstats.net/players/view/" + allyCode
+            try:
+                r = get(warstats_url)
+                if r.status_code == 404:
+                    warstats_url = "introuvable"
+            except urllib.error.HTTPError as e:
                 warstats_url = "introuvable"
-        except urllib.error.HTTPError as e:
-            warstats_url = "introuvable"
 
-        txt = "Qui est **"+full_alias+"** ?\n"
-        txt+= "- code allié : "+str(allyCode)+"\n"
-        txt+= "- pseudo IG : "+player_name+"\n"
-        txt+= "- guilde : "+guildName+"\n"
-        txt+= "- PG : "+str(gp)+"M\n"
-        txt+= "- GAC : "+arena_rank+"\n"
+            txt = "Qui est **"+full_alias+"** ?\n"
+            txt+= "- code allié : "+str(allyCode)+"\n"
+            txt+= "- pseudo IG : "+player_name+"\n"
+            txt+= "- guilde : "+guildName+"\n"
+            txt+= "- PG : "+str(gp)+"M\n"
+            txt+= "- GAC : "+arena_rank+"\n"
 
-        if len(discord_display_names)>0:
-            for discord_name in discord_display_names:
-                if ctx.guild == None:
-                    # in a DM
-                    txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
-                elif discord_name[0] == ctx.guild.name:
-                    # in the right guild
-                    txt+= "- pseudo Discord chez **"+discord_name[0]+"** : "+discord_name[1]+"\n"
-                else:
-                    # in a guild, but nott the right one
-                    txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
-        else:
-            txt+= "- pseudo Discord : ???\n"
+            if len(discord_display_names)>0:
+                for discord_name in discord_display_names:
+                    if ctx.guild == None:
+                        # in a DM
+                        txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
+                    elif discord_name[0] == ctx.guild.name:
+                        # in the right guild
+                        txt+= "- pseudo Discord chez **"+discord_name[0]+"** : "+discord_name[1]+"\n"
+                    else:
+                        # in a guild, but nott the right one
+                        txt+= "- pseudo Discord chez "+discord_name[0]+" : "+discord_name[1]+"\n"
+            else:
+                txt+= "- pseudo Discord : ???\n"
 
-        txt+= "- dernier refresh du bot : "+lastUpdated_txt+"\n"
-        txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">\n"
-        txt+= "- lien WARSTATS : <"+warstats_url + ">"
+            txt+= "- dernier refresh du bot : "+lastUpdated_txt+"\n"
+            txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">\n"
+            txt+= "- lien WARSTATS : <"+warstats_url + ">"
 
-        await ctx.send(txt)
+            await ctx.send(txt)
 
-        await ctx.message.add_reaction(emojis.check)
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
     ##############################################################
     # Command: vtg
@@ -5601,6 +5654,7 @@ async def main():
     await bot.add_cog(ModsCog(bot), guilds=[ADMIN_GUILD])
     await bot.add_cog(TbCog(bot), guilds=[ADMIN_GUILD])
     await bot.add_cog(TwCog(bot), guilds=[ADMIN_GUILD])
+    await bot.add_cog(AuthCog(bot), guilds=[ADMIN_GUILD])
 
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
