@@ -396,6 +396,8 @@ async def update_player(dict_player):
     dict_modList = data.get("modList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
     dict_stats = data.get("dict_stats.json")
+    dict_rules = data.get("targetrules_dict.json")
+
     cursor = None
     try:
         mysql_db = db_connect()
@@ -726,17 +728,20 @@ async def update_player(dict_player):
                     if len(datacron["affix"]) >= 3:
                         abilityId = datacron["affix"][2]["abilityId"]
                         targetRule = datacron["affix"][2]["targetRule"]
-                        datacron_level_3 = abilityId+":"+targetRule
+                        target = dict_rules[targetRule][0]
+                        datacron_level_3 = abilityId+":"+target
 
                     if len(datacron["affix"]) >= 6:
                         abilityId = datacron["affix"][5]["abilityId"]
                         targetRule = datacron["affix"][5]["targetRule"]
-                        datacron_level_6 = abilityId+":"+targetRule
+                        target = dict_rules[targetRule][0]
+                        datacron_level_6 = abilityId+":"+target
 
                     if len(datacron["affix"]) >= 9:
                         abilityId = datacron["affix"][8]["abilityId"]
                         targetRule = datacron["affix"][8]["targetRule"]
-                        datacron_level_9 = abilityId+":"+targetRule
+                        target = dict_rules[targetRule][0]
+                        datacron_level_9 = abilityId+":"+target
 
                 current_datacrons_ids.append(datacron_id)
         
