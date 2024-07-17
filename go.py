@@ -3312,6 +3312,14 @@ async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team
 # tag_players_with_character
 # IN: txt_allyCode (to identify the guild)
 # IN: list_list_character ([["SEE"], ["Mara", "+SK"], ["SEE:7:G8"], ["SEE:R5"]])
+#     possible tags
+#     - "o" -> omicron (if only one)
+#     - "oL" -> lead omicron (or B, S, U, S1, S2, U1, U2)
+#     - "z" -> zeta (if only one)
+#     - "zL" -> lead zeta (or B, S, U, S1, S2, U1, U2)
+#     - "g12" -> gear 12 or above
+#     - "R4" -> relic 4 or above
+#     - "dtc" -> the player has the datacron with the selftag of this character
 # IN: guild_id
 # IN: tw_mode (True if the bot shall count defense-used toons as not avail)
 # IN: tb_mode (True if the bot shall count platoon-used toons as not avail)
@@ -3412,6 +3420,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             char_zetas = []
             char_omicrons = []
             char_ulti = False
+            dtc_selftag = None
             simple_search = True
 
             if character[0]=="-":
@@ -3485,6 +3494,11 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     if not "GL" in dict_capas[character_id]:
                         return 1, "ERR: la syntaxe "+character+" est incorrecte, pas d'ulti pour ce perso", None
                     char_ulti = True
+
+                elif character_option.lower() == 'dtc':
+                    for c in dict_unitsList[character_id]["categoryId"]:
+                        if c.startswith("selftag_"):
+                            dtc_selftag = c
                 else:
                     return 1, "ERR: la syntaxe "+character+" est incorrecte pour l'option \""+character_option+"\"", None
             character_name = "**"+dict_unitsList[character_id]["name"]+"**"
@@ -3513,6 +3527,8 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                         intro_txt += ":omicron("+o["id"]+")"
                     if char_ulti:
                         intro_txt += ":ulti"
+                    if dtc_selftag != None:
+                        intro_txt += ":DTC"
 
                 if opposite_search:
                     intro_txt += ")"
@@ -3530,6 +3546,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
             if char_ulti:
                 query+= "   LEFT JOIN roster_skills AS rsULTI ON (rsULTI.roster_id = roster.id AND rsULTI.name='ULTI')"
+
+            if dtc_selftag != None:
+                query+= "   LEFT JOIN datacrons ON (datacrons.allyCode = roster.allyCode AND datacrons.level_9 like '%:"+dtc_selftag+"')"
 
             query+= "   WHERE guildName=(" 
             query+= "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " 
@@ -3555,6 +3574,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     if char_ulti:
                         query += "      OR isnull(rsULTI.level) "
 
+                    if dtc_selftag != None:
+                        query += "      OR isnull(datacrons.level_9) "
+
                     query+= "      ) "
 
             else:
@@ -3572,6 +3594,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
                 if char_ulti:
                     query += "      AND rsULTI.level=1 "
+
+                if dtc_selftag != None:
+                    query += "      AND NOT isnull(datacrons.level_9) "
             query += ") "
             intro_txt += " et"
 
