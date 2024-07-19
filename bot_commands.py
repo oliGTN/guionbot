@@ -6,6 +6,7 @@ from io import BytesIO
 import re
 import difflib
 import sys
+import traceback
 
 # BOT imports
 import go
@@ -13,6 +14,7 @@ import connect_rpc
 import connect_mysql
 import goutils
 import portraits
+import data
 
 # CONSTANTS
 import emojis
@@ -164,8 +166,10 @@ async def gdp(ctx_interaction, allyCode):
     await command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt="chargement des joueurs OK")
 
 ##############################################################
-async def farmeqpt(ctx_interaction, allyCode, list_alias):
+async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
     try:
+        dict_units = data.get("unitsList_dict.json")
+
         resp_msg = await command_ack(ctx_interaction)
 
         ec, et, allyCode = await manage_me(ctx_interaction, allyCode)
@@ -173,11 +177,117 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias):
             await command_error(ctx_interaction, resp_msg, et)
             return
 
+        #Get alias and target gear/relic
+        list_unit_names = []
+        dict_targets = {}
+        for alias in list_alias_gear:
+            tab_alias = alias.split(":")
+            if len(tab_alias)==1:
+                target_alias = alias
+                target_gear = 13
+                target_relic = 0
+                target_guide = False
+
+            elif len(tab_alias)==2:
+                if tab_alias[0] == "guide":
+                    # need to get pre-requisites for character from journey guide
+                    target_alias = tab_alias[1]
+                    target_guide = True
+                    target_gear = None
+                    target_relic = None
+                else:
+                    target_alias = tab_alias[0]
+                    target_guide = False
+                    if tab_alias[1][0].lower() == "g" and tab_alias[1][1:].isnumeric():
+                        target_gear = int(tab_alias[1][1:])
+                        target_relic = 0
+
+                        if target_gear<1 or target_gear>13:
+                            await command_error(ctx_interaction, resp_msg, "Syntax incorrecte pour le gear/relic dans "+alias)
+                            return
+
+                    elif tab_alias[1][0].lower() == "r" and tab_alias[1][1:].isnumeric():
+                        target_gear = 13
+                        target_relic = int(tab_alias[1][1:])
+
+                        if target_relic<0 or target_gear>9:
+                            await command_error(ctx_interaction, resp_msg, "Syntax incorrecte pour le gear/relic dans "+alias)
+                            return
+
+                    else:
+                        await command_error(ctx_interaction, resp_msg, "Syntax incorrecte pour le gear/relic dans "+alias)
+                        return
+
+            list_unit_names.append(target_alias)
+
+            dict_targets[alias] = {"alias": target_alias,
+                                   "gear": target_gear,
+                                   "relic": target_relic,
+                                   "guide": target_guide}
+
+
         #Get unit IDs from aliases
-        list_unit_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
+        list_unit_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_unit_names)
         if txt != '':
             await command_error(ctx_interaction, resp_msg, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt)
             return
+
+        list_units = []
+        list_display_targets = []
+        for alias in dict_targets:
+            target = dict_targets[alias] 
+            if target["guide"]:
+                target_id = dict_id_name[target["alias"]][0][0]
+                query = "SELECT unit_id, gear_reco FROM guild_team_roster " \
+                        "JOIN guild_subteams ON guild_team_roster.subteam_id = guild_subteams.id " \
+                        "JOIN guild_teams ON guild_subteams.team_id = guild_teams.id " \
+                        "WHERE guild_teams.name='"+target_id+"-GV' "
+                goutils.log2("DBG", query)
+                results = connect_mysql.get_table(query)
+
+                if results == None:
+                    target_name = dict_units[target_id]["name"]
+                    await command_error(ctx_interaction, resp_msg, "Guide de voyage non défini pour "+target_name)
+                    return
+
+                for line in results:
+                    unit_id = line[0]
+                    unit_name = dict_units[unit_id]["name"]
+                    if line[1]=='':
+                        #ship
+                        pass
+                    elif line[1][0].lower() == "g":
+                        target_gear = int(line[1][1:])
+                        target_relic = 0
+                        list_display_targets.append(unit_name+" au niveau G"+str(target_gear))
+                    elif line[1][0].lower() == "r":
+                        target_gear = 13
+                        target_relic = int(line[1][1:])
+                        list_display_targets.append(unit_name+" au niveau R"+str(target_relic))
+                    else:
+                        # number without prefix > gear
+                        target_gear = int(line[1])
+                        target_relic = 0
+                        list_display_targets.append(unit_name+" au niveau G"+str(target_gear))
+
+                    unit = {"defId": unit_id,
+                            "gear": target_gear,
+                            "relic": target_relic}
+
+                    list_units.append(unit)
+            else:
+                unit_id = dict_id_name[target["alias"]][0][0]
+                unit_name = dict_units[unit_id]["name"]
+                unit = {"defId": unit_id,
+                        "gear": target["gear"],
+                        "relic": target["relic"]}
+
+                if target["relic"] > 0:
+                    list_display_targets.append(unit_name+" au niveau G"+str(target["relic"]))
+                else:
+                    list_display_targets.append(unit_name+" au niveau G"+str(target["gear"]))
+
+                list_units.append(unit)
 
         # Get regular player data
         ec, et, d_player = await go.load_player(allyCode, 1, False)
@@ -186,27 +296,32 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias):
             return
 
         # Get equipment dict
-        ec, et, eqpt = go.get_needed_eqpt(d_player, list_unit_ids, 13)
+        ec, et, eqpt = go.get_needed_eqpt(d_player, list_units)
+
+        # Test if there is something to display
+        if len(eqpt) == 0:
+            await command_ok(ctx_interaction, resp_msg, "Aucun équipement nécessaire pour passer "+str(", ".join(list_display_targets))+" (les persos sont déjà à niveau)")
+            return
+
+        player_eqpt = {}
+        display_owned = False
 
         # Get owned equipment, ONLY for connected users
-        ec, et, player_infos = connect_mysql.get_google_player_info(ctx_interaction.channel.id)
-        if ec==0:
-            # Connected user, get full player data
-            ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode)
-            if ec != 0:
-                await command_error(ctx_interaction, resp_msg, et)
-                return
+        if ctx_interaction != None:
+            ec, et, player_infos = connect_mysql.get_google_player_info(ctx_interaction.channel.id)
+            if ec==0:
+                # Connected user, get full player data
+                ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode)
+                if ec != 0:
+                    await command_error(ctx_interaction, resp_msg, et)
+                    return
 
-            #create list of owned equipment
-            player_eqpt = {}
-            for e in i_player["inventory"]["equipment"]:
-                player_eqpt[e["id"]] = e["quantity"]
+                #create list of owned equipment
+                player_eqpt = {}
+                for e in i_player["inventory"]["equipment"]:
+                    player_eqpt[e["id"]] = e["quantity"]
 
-            display_owned = True
-
-        else:
-            player_eqpt = {}
-            display_owned = False
+                display_owned = True
 
         # Transform into list
         eqpt_list = []
@@ -222,11 +337,16 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias):
         # Sort with most needed first
         eqpt_list.sort(key=lambda x:x[2]-x[1])
 
+        # Test if there is something to display
+        if eqpt_list[0][2] >= eqpt_list[0][1]:
+            await command_ok(ctx_interaction, resp_msg, "Tous les équipements nécessaires pour passer "+str(", ".join(list_display_targets))+" sont déjà disponibles")
+            return
+
         # Compute image
         image = portraits.get_image_from_eqpt_list(eqpt_list, display_owned=display_owned)
 
         # Display the image
-        await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(list_unit_ids)+" au niveau G13", images=[image])
+        await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(", ".join(list_display_targets)), images=[image])
 
     except Exception as e:
         goutils.log2("ERR", str(sys.exc_info()[0]))

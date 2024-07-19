@@ -4974,7 +4974,9 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 
 
     # Kyros
-    needed_eqpt = get_needed_eqpt(dict_player, unit_id, target_gear) #key=eqpt_id, value=count
+    needed_eqpt = get_needed_eqpt(dict_player, [{"defId": unit_id,
+                                                 "gear": target_gear,
+                                                 "relic": 0}]) #key=eqpt_id, value=count
     kyro_energy = 0
     if "172Salvage" in needed_eqpt:
         kyro_energy += needed_eqpt["172Salvage"] * 10 / kyro_droprate
@@ -4983,13 +4985,17 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 
     return kyro_energy, shard_energy
 
-def get_needed_eqpt(dict_player, list_unit_id, target_gear):
+def get_needed_eqpt(dict_player, list_units):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_eqpt = godata.get("eqpt_dict.json")
 
     needed_eqpt = {} #key=eqpt_id, value=count
 
-    for unit_id in list_unit_id:
+    for unit in list_units:
+        unit_id = unit["defId"]
+        target_gear = unit["gear"]
+        target_relic = unit["relic"]
+
         if unit_id in dict_player["rosterUnit"]:
             unit_gear = dict_player["rosterUnit"][unit_id]["currentTier"]
             unit_eqpt = [None, None, None, None, None, None]

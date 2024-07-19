@@ -690,6 +690,14 @@ def roster_from_dict_to_list(dict_player_in):
 
     return dict_player
 
+##################################################################
+# IN: list_alias = ["gleia", "tag:c:empire", "JMK", ...]
+# OUT: list_ids = ["GLLEIA", "LOBOT", "SABINES3", ...]
+# OUT: dict_id_name = {"gleia": [["GLEIA", "Leia Organa"]], "tag:c:empire": [["VADOR", "Dark Vador"], ["THRAWN", "Grand Amiral Trawn"], ...], ...}
+# OUT: txt_not_found_characters = "toto poisson spock "
+#
+# If alias not found, the character is not in list_ids and dict_id_name
+##################################################################
 def get_characters_from_alias(list_alias):
     #Recuperation des dernieres donnees sur gdrive
     dict_unitsList = data.get("unitsList_dict.json")
