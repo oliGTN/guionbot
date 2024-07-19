@@ -210,7 +210,7 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
                         target_gear = 13
                         target_relic = int(tab_alias[1][1:])
 
-                        if target_relic<0 or target_gear>9:
+                        if target_relic<0 or target_relic>9:
                             await command_error(ctx_interaction, resp_msg, "Syntax incorrecte pour le gear/relic dans "+alias)
                             return
 
@@ -283,7 +283,7 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
                         "relic": target["relic"]}
 
                 if target["relic"] > 0:
-                    list_display_targets.append(unit_name+" au niveau G"+str(target["relic"]))
+                    list_display_targets.append(unit_name+" au niveau R"+str(target["relic"]))
                 else:
                     list_display_targets.append(unit_name+" au niveau G"+str(target["gear"]))
 
