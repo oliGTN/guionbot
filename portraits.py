@@ -446,7 +446,8 @@ def get_result_image_from_images(img1_url, img1_size, img2_url, img2_sizes, idx_
 
 def get_image_from_eqpt_id(eqpt_id):
     dict_eqpt = data.get("eqpt_dict.json")
-    dict_tier_color = {1: "#97d2d3", 
+    dict_tier_color = {0: "#000000", 
+                       1: "#97d2d3", 
                        2: "#aff65b",
                        4: "#51bcf6",
                        7: "#844df1",
@@ -457,8 +458,14 @@ def get_image_from_eqpt_id(eqpt_id):
     eqpt_img_name = 'IMAGES'+os.path.sep+'EQUIPMENT'+os.path.sep+eqpt_id+'.png'
     if not os.path.exists(eqpt_img_name):
         eqpt_asset_id = dict_eqpt[eqpt_id]["iconKey"]
-        eqpt_tier = dict_eqpt[eqpt_id]["tier"]
-        eqpt_mk = dict_eqpt[eqpt_id]["mark"]
+        if "tier" in dict_eqpt[eqpt_id]:
+            eqpt_tier = dict_eqpt[eqpt_id]["tier"]
+        else:
+            eqpt_tier = 0
+        if "mark" in dict_eqpt[eqpt_id]:
+            eqpt_mk = dict_eqpt[eqpt_id]["mark"]
+        else:
+            eqpt_mk = ""
         swgohgg_img_url = "https://game-assets.swgoh.gg/textures/" + eqpt_asset_id + ".png"
         goutils.log2("INFO", "download equipment image from swgoh.gg "+swgohgg_img_url)
         r = requests.get(swgohgg_img_url, allow_redirects=True)

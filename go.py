@@ -5004,7 +5004,7 @@ def get_needed_eqpt(dict_player, list_units):
         if unit_id in dict_player["rosterUnit"]:
             unit_gear = dict_player["rosterUnit"][unit_id]["currentTier"]
             if "relic" in dict_player["rosterUnit"][unit_id]:
-                unit_relic = dict_player["rosterUnit"][unit_id]["relic"]["currentTier"]
+                unit_relic = max(0, dict_player["rosterUnit"][unit_id]["relic"]["currentTier"]-2)
             else:
                 unit_relic = 0
             unit_eqpt = [None, None, None, None, None, None]
@@ -5058,14 +5058,15 @@ def get_needed_eqpt(dict_player, list_units):
         #####################
         # RELIC equipment
         #####################
+        print(unit_relic, target_relic)
         if unit_relic < target_relic:
-            for i_relic in range(unit_relic, target_relic-1):
+            for i_relic in range(unit_relic+1, target_relic+1):
                 print(i_relic)
-                relic_recipe = dict_relic[i_relic]
+                relic_recipe = dict_relic[str(i_relic)]
                 for eqpt in relic_recipe:
                     if not eqpt in needed_eqpt:
                         needed_eqpt[eqpt] = 0
-                    needed_eqpt[eqpt] += 1
+                    needed_eqpt[eqpt] += relic_recipe[eqpt]
                 #print(needed_eqpt)
 
     return 0, "", needed_eqpt

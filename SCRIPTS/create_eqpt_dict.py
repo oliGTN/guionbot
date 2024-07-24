@@ -51,7 +51,8 @@ for material in game_data["material"]:
     #if not material_id.startswith("unitshard_"):
     #    continue
     accelerated = (material["sellValue"]["quantity"]==15)
-    dict_eqpt[material_id] = []
+    dict_eqpt[material_id] = material
+    dict_eqpt[material_id]["cost"] = []
     if "lookupMission" in material:
         for mission in material["lookupMission"]:
             campaignId = mission["missionIdentifier"]["campaignId"]
@@ -68,7 +69,7 @@ for material in game_data["material"]:
 
             if accelerated:
                 cost = str(int(int(cost[:-1])/2))+cost[-1]
-            dict_eqpt[material_id].append(cost)
+            dict_eqpt[material_id]["cost"].append(cost)
 
 dict_recipes = {}
 for recipe in game_data["recipe"]:
