@@ -4974,9 +4974,9 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 
 
     # Kyros
-    needed_eqpt = get_needed_eqpt(dict_player, [{"defId": unit_id,
-                                                 "gear": target_gear,
-                                                 "relic": 0}]) #key=eqpt_id, value=count
+    err_code, err_txt, needed_eqpt = get_needed_eqpt(dict_player, [{"defId": unit_id,
+                                                                    "gear": target_gear,
+                                                                    "relic": 0}]) #key=eqpt_id, value=count
     kyro_energy = 0
     if "172Salvage" in needed_eqpt:
         kyro_energy += needed_eqpt["172Salvage"] * 10 / kyro_droprate
@@ -5005,7 +5005,6 @@ def get_needed_eqpt(dict_player, list_units):
             unit_rarity = 0
             unit_gear = 1
             unit_eqpt = [None, None, None, None, None, None]
-
 
         if unit_gear < target_gear and dict_unitsList[unit_id]["combatType"]==1:
             # current tier
