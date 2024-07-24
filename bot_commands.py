@@ -320,6 +320,8 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
                 player_eqpt = {}
                 for e in i_player["inventory"]["equipment"]:
                     player_eqpt[e["id"]] = e["quantity"]
+                for e in i_player["inventory"]["material"]:
+                    player_eqpt[e["id"]] = e["quantity"]
 
                 display_owned = True
 
