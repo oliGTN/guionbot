@@ -4988,6 +4988,7 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 def get_needed_eqpt(dict_player, list_units):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_eqpt = godata.get("eqpt_dict.json")
+    dict_relic = godata.get("relic_dict.json")
 
     needed_eqpt = {} #key=eqpt_id, value=count
 
@@ -4996,17 +4997,29 @@ def get_needed_eqpt(dict_player, list_units):
         target_gear = unit["gear"]
         target_relic = unit["relic"]
 
+        if dict_unitsList[unit_id]["combatType"]==2:
+            # No equipment required for a ship
+            continue
+
         if unit_id in dict_player["rosterUnit"]:
             unit_gear = dict_player["rosterUnit"][unit_id]["currentTier"]
+            if "relic" in dict_player["rosterUnit"][unit_id]:
+                unit_relic = dict_player["rosterUnit"][unit_id]["relic"]["currentTier"]
+            else:
+                unit_relic = 0
             unit_eqpt = [None, None, None, None, None, None]
             for eqpt in dict_player["rosterUnit"][unit_id]["equipment"]:
                 unit_eqpt[eqpt["slot"]] = eqpt["equipmentId"]
         else:
             unit_rarity = 0
             unit_gear = 1
+            unit_relic = 0
             unit_eqpt = [None, None, None, None, None, None]
 
-        if unit_gear < target_gear and dict_unitsList[unit_id]["combatType"]==1:
+        #####################
+        # GEAR equipment
+        #####################
+        if unit_gear < target_gear:
             # current tier
             tier_eqpt = dict_unitsList[unit_id]["unitTier"][unit_gear-1]["equipmentSet"]
             for pos_eqpt in [0, 1, 2, 3, 4, 5]:
@@ -5041,6 +5054,19 @@ def get_needed_eqpt(dict_player, list_units):
                                 needed_eqpt[ingredient["id"]] = 0
                             needed_eqpt[ingredient["id"]] += eqpt_count * ingredient["maxQuantity"]
                         del needed_eqpt[eqpt_id]
+
+        #####################
+        # RELIC equipment
+        #####################
+        if unit_relic < target_relic:
+            for i_relic in range(unit_relic, target_relic-1):
+                print(i_relic)
+                relic_recipe = dict_relic[i_relic]
+                for eqpt in relic_recipe:
+                    if not eqpt in needed_eqpt:
+                        needed_eqpt[eqpt] = 0
+                    needed_eqpt[eqpt] += 1
+                #print(needed_eqpt)
 
     return 0, "", needed_eqpt
 

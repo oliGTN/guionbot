@@ -48,8 +48,8 @@ dict_cost["C01SP"]["M05"] = {"NORMALDIFF": "10B", "HARDDIFF": "20B"}
 dict_eqpt = {}
 for material in game_data["material"]:
     material_id = material["id"]
-    if not material_id.startswith("unitshard_"):
-        continue
+    #if not material_id.startswith("unitshard_"):
+    #    continue
     accelerated = (material["sellValue"]["quantity"]==15)
     dict_eqpt[material_id] = []
     if "lookupMission" in material:
@@ -59,7 +59,13 @@ for material in game_data["material"]:
                 continue
             campaignMapId = mission["missionIdentifier"]["campaignMapId"]
             campaignNodeDifficulty = mission["missionIdentifier"]["campaignNodeDifficulty"]
-            cost = dict_cost[campaignId][campaignMapId][campaignNodeDifficulty]
+
+            if campaignId in dict_cost:
+                cost = dict_cost[campaignId][campaignMapId][campaignNodeDifficulty]
+            else:
+                # O Yellow by default
+                cost = "OY"
+
             if accelerated:
                 cost = str(int(int(cost[:-1])/2))+cost[-1]
             dict_eqpt[material_id].append(cost)
