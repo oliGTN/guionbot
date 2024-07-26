@@ -935,9 +935,27 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
                                 leader = dict_unitsList[leader_id]["name"]
                                 leader_opponent = leader+"@"+opponent
 
+                                count_dead=0
+                                squad_size = len(activity["warSquad"]["squad"]["cell"])
+                                for cell in activity["warSquad"]["squad"]["cell"]:
+                                    if cell["unitState"]["healthPercent"] == "0":
+                                        count_dead+=1
+
                                 if not squad_id in dict_squads:
                                     dict_squads[squad_id]={}
+                                    delta_dead = 0
+                                else:
+                                    delta_dead = count_dead - dict_squads[squad_id]["dead"]
+                                    if delta_dead<0:
+                                        # for som reason, sometimes the dead are not shwon and the squad is reduced
+                                        # but it comes back afterwards
+                                        # So , fix temporary wrong numbers
+                                        count_dead = dict_squads[squad_id]["dead"]
+                                        squad_size = squad_size - delta_dead
+
                                 dict_squads[squad_id]["leader"] = leader_opponent
+                                dict_squads[squad_id]["size"] = squad_size
+                                dict_squads[squad_id]["dead"] = count_dead
                             else:
                                 if squad_id in dict_squads:
                                     leader_opponent=dict_squads[squad_id]["leader"]
@@ -955,7 +973,8 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
                                             count_dead+=1
                                         if cell["unitState"]["turnPercent"] != "0":
                                             remaining_tm=True
-                                    activity_txt += " (reste "+str(squad_size-count_dead)+")"
+                                    #activity_txt += " (reste "+str(squad_size-count_dead)+")"
+                                    activity_txt += " ("+str(delta_dead)+" morts)"
 
                                     if count_dead==0 and remaining_tm:
                                         if "tm_ts" in dict_squads[squad_id]:
@@ -991,6 +1010,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
                                     activity_txt = "\N{White Right Pointing Backhand Index}"+activity_txt
                             else:
                                 activity_txt = activity["warSquad"]["squadStatus"]
+
                         else:
                             scoreDelta = activity["zoneData"]["scoreDelta"]
                             scoretotal = activity["zoneData"]["scoreTotal"]
