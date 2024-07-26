@@ -2346,8 +2346,24 @@ class ModsCog(commands.GroupCog, name="mods"):
         else:
             await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
+    async def list_player_configurations(self, interaction: discord.Interaction, current: str):
+        user_id = interaction.channel.id
+
+        query = "SELECT name FROM mod_config_list " \
+                "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
+                "WHERE channel_id="+str(user_id)
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+        if db_data==None:
+            return []
+        else:
+            filtered_confs = [app_commands.Choice(name=value, value=value) 
+                              for value in db_data if current.lower() in value.lower()]
+            return filtered_confs
+
     @app_commands.command(name="applique-conf")
     @app_commands.rename(conf_name="nom-conf")
+    @app_commands.autocomplete(conf_name=list_player_configurations)
     async def apply_conf(self, interaction: discord.Interaction,
                          conf_name: str,
                          simulation: bool=False):
