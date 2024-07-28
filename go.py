@@ -1,27 +1,27 @@
 # -*- coding: utf-8 -*-
 
-import sys
-import time
+import asyncio
+from collections import Counter
 import datetime
-import os
-import config
 import difflib
-import math
 from functools import reduce
-from math import ceil, factorial
+import inspect
+import itertools
 import json
+import math
+from math import ceil, factorial
 import matplotlib
 matplotlib.use('Agg') #Preventin GTK erros at startup
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from PIL import Image, ImageDraw, ImageFont
-from collections import Counter
-import inspect
-from texttable import Texttable
-import itertools
 import numpy as np
-import asyncio
+import os
+from PIL import Image, ImageDraw, ImageFont
+import re
+import sys
+import time
 
+import config
 import connect_gsheets
 import connect_mysql
 import connect_crinolo
@@ -5571,3 +5571,137 @@ async def set_tb_targets(guild_id, tb_phase_target):
     err_code, err_txt = connect_gsheets.set_tb_targets(guild_id, list_targets)
 
     return err_code, err_txt
+
+async def get_tw_summary(guild_id):
+    err_code, err_txt, ret = await get_guildLog_messages(guild_id, False)
+
+    if err_code!=0:
+        return 1, err_txt, None
+
+    tw_logs = ret["TW"][1]
+
+    return await get_tw_summary_from_logs(tw_logs)
+
+async def get_tw_summary_from_logs(tw_logs):
+    dict_tw_summary = {} # playerName:{"chars":{"fights":nn, "loss":nn, "partial":nn, "win":nn, "TM":nn},
+                         #             "ships":{"loss":nn, "partial":nn, "win":nn, "TM":nn}}
+
+    for ts_log in tw_logs:
+        log = ts_log[1]
+        if "DEBUT" in log:
+            re_txt = ".*DEBUT@([FTB])\d   : (.*) commence un combat contre .*"
+            ret_re = re.search(re_txt, log)
+            zonePrefix = ret_re.group(1)
+            playerName = ret_re.group(2)
+
+            if zonePrefix=="F":
+                combat_type = "ships"
+            else:
+                combat_type = "chars"
+
+            if not playerName in dict_tw_summary:
+                dict_tw_summary[playerName] = {"chars": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0},
+                                               "ships": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0}}
+            dict_tw_summary[playerName][combat_type]["fights"] += 1
+            dict_tw_summary[playerName]["ongoing"] = True
+
+        elif "VICTOIRE" in log:
+            re_txt = ".*VICTOIRE@([FTB])\d: (.*) a gagné contre .*"
+            ret_re = re.search(re_txt, log)
+            zonePrefix = ret_re.group(1)
+            playerName = ret_re.group(2)
+
+            if zonePrefix=="F":
+                combat_type = "ships"
+            else:
+                combat_type = "chars"
+
+            if not playerName in dict_tw_summary:
+                dict_tw_summary[playerName] = {"chars": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0},
+                                               "ships": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0}}
+            if "ongoing" in dict_tw_summary[playerName]:
+                del dict_tw_summary[playerName]["ongoing"]
+            else:
+                #The event for the start of the battle has been missed, fix it
+                dict_tw_summary[playerName][combat_type]["fights"] += 1
+
+            dict_tw_summary[playerName][combat_type]["win"] += 1
+
+        elif "DEFAITE" in log:
+            re_txt = ".*DEFAITE@([FTB])\d : (.*) a perdu contre .* \((abandon|(\d) morts)\)( >>> TM !!!)?"
+            ret_re = re.search(re_txt, log)
+            zonePrefix = ret_re.group(1)
+            playerName = ret_re.group(2)
+            deadCount = ret_re.group(4)
+            if deadCount==0:
+                # Cancel fight
+                deadCount = 0
+            is_tm = (ret_re.group(5) != None)
+
+            if zonePrefix=="F":
+                combat_type = "ships"
+            else:
+                combat_type = "chars"
+
+            if not playerName in dict_tw_summary:
+                dict_tw_summary[playerName] = {"chars": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0},
+                                               "ships": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0}}
+            if "ongoing" in dict_tw_summary[playerName]:
+                del dict_tw_summary[playerName]["ongoing"]
+            else:
+                #The event for the start of the battle has been missed, fix it
+                dict_tw_summary[playerName][combat_type]["fights"] += 1
+
+            #Useless to count complete losses, as it is deduced from fight count afterwards
+            if is_tm:
+                dict_tw_summary[playerName][combat_type]["TM"] += 1
+            else:
+                dict_tw_summary[playerName][combat_type]["partial"] += 1
+
+    # Due to some fights not counted as loss (airplane mode), need to deduce losses after
+    for playerName in dict_tw_summary:
+        if "ongoing" in dict_tw_summary[playerName]:
+            del dict_tw_summary[playerName]["ongoing"]
+        for combat_type in dict_tw_summary[playerName]:
+            fights = dict_tw_summary[playerName][combat_type]["fights"]
+            partial = dict_tw_summary[playerName][combat_type]["partial"]
+            win = dict_tw_summary[playerName][combat_type]["win"]
+
+            dict_tw_summary[playerName][combat_type]["loss"] = fights - partial - win
+
+    return 0, "", dict_tw_summary
+
+async def print_tw_sumary(guild_id, channel_id):
+    err_code, err_txt, dict_tw_summary = await get_tw_summary(guild_id)
+    if err_code!=0:
+        return
+
+    # TW summary
+    ec, et, d = await go.get_tw_summary(guild_id)
+    summary_list = []
+    for k in d:
+        print(k, d[k])
+        player = k
+        tm = d[k]["chars"]["TM"] + d[k]["ships"]["TM"]
+        wins = d[k]["chars"]["win"] + d[k]["ships"]["win"]
+        ground_fights = d[k]["chars"]["fights"]
+        ship_fights = d[k]["ships"]["fights"]
+        fails = d[k]["chars"]["loss"] \
+              + d[k]["chars"]["partial"] \
+              + d[k]["ships"]["loss"] \
+              + d[k]["ships"]["partial"]
+        fail_rate_percent = round(100*fails/(ground_fights+ship_fights), 1)
+
+        line = [player, tm, wins, ground_fights, ship_fights, 
+                str(fails)+" ("+str(fail_rate_percent)+"%)"]
+        summary_list.append(line)
+
+    summary_list.sort(key=lambda x:x[0].lower())
+    summary_list = [["Player", "TM", "Wins", "Ground\nfights", "Ship\nfights", "Fails"]] + summary_list
+    t = Texttable()
+    t.add_rows(summary_list)
+    t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
+
+    await guionbot_discord.print_tabbed_text_in_channel(channel_id, t.draw())
+
+    return

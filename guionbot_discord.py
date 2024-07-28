@@ -1165,6 +1165,11 @@ async def get_channel_from_channelname(ctx, channel_name):
             
     return output_channel, ''
 
+async def print_tabbed_text_in_channel(channel_id, txt):
+    output_channel = bot.get_channel(channel_id)
+    for stxt in goutils.split_txt(txt, MAX_MSG_SIZE):
+        await output_channel.send('`' + stxt + '`')
+
 ##############################################################
 # Function: manage_me
 # Parameters: allyCode_txt (string) > code allié

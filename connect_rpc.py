@@ -44,14 +44,20 @@ async def release_sem(id):
     #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
-    query = "SELECT guild_id, bot_allyCode, bot_locked_until, priority_cache FROM guild_bot_infos where bot_allyCode != ''"
+    query = "SELECT guild_id, bot_allyCode, bot_locked_until, priority_cache, " \
+            "twChanOut_id, tbChanOut_id " \
+            "FROM guild_bot_infos where bot_allyCode != ''"
     #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
     ret_dict = {}
     if db_data != None:
         for line in db_data:
-            ret_dict[line[0]] = {"allyCode": str(line[1]), "LockedUntil": line[2], "priority_cache":line[3]}
+            ret_dict[line[0]] = {"allyCode": str(line[1]), 
+                                 "LockedUntil": line[2], 
+                                 "priority_cache":line[3],
+                                 "tw_channel_out":line[4],
+                                 "tb_channel_out":line[5]}
 
     return ret_dict
 
@@ -1992,7 +1998,16 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                 fjson.write(json.dumps(prev_dict_guild[guild_id], indent=4))
                 fjson.close()
 
+            # Display best teams in GT channel
+            # TODO
             manage_events.create_event("tw_end", guild_id, latest_tw_id)
+
+        if not manage_events.exists("tw_test", guild_id, latest_tw_id):
+            # Display player results
+            guild_infos = get_dict_bot_accounts()[guild_id]
+            tw_channel_out = guild_infos["tw_channel_out"]
+
+            manage_events.create_event("tw_test", guild_id, latest_tw_id)
 
         return {"tw_id": None}
 
