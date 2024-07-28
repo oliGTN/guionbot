@@ -300,27 +300,40 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     mod_list = godata.get("modList_dict.json")
 
     # Get player data
-    e, t, initial_dict_player = await go.load_player(allyCode, 1, False)
+    e, t, dict_player = await go.load_player(allyCode, 1, False)
     if e != 0:
-        return 1, "ERR: "+t
+        return 1, "ERR: "+t, {}
+
+    #Get player API initialdata
+    ec, et, initialdata = await connect_rpc.get_player_initialdata(allyCode)
+    if ec!=0:
+        return ec, et, {}
 
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
-    initial_dict_player_mods = {}
-    for unit_id in initial_dict_player["rosterUnit"]:
-        if not "equippedStatMod" in initial_dict_player["rosterUnit"][unit_id]:
+    dict_player_mods = {}
+    for unit_id in dict_player["rosterUnit"]:
+        if not "equippedStatMod" in dict_player["rosterUnit"][unit_id]:
             #no mod for this unit
             continue
 
-        unit_mods = initial_dict_player["rosterUnit"][unit_id]["equippedStatMod"]
-        initial_dict_player["rosterUnit"][unit_id]["equippedStatMod"] = {}
+        unit_mods = dict_player["rosterUnit"][unit_id]["equippedStatMod"]
+        dict_player["rosterUnit"][unit_id]["equippedStatMod"] = {}
         for mod in unit_mods:
             mod_id = mod["id"]
             mod_defId = mod["definitionId"]
             mod_slot = mod_list[mod_defId]["slot"]
             mod_rarity = mod_list[mod_defId]["rarity"]
-            initial_dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
-            initial_dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot, "rarity": mod_rarity}
+            dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
+            dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot, "rarity": mod_rarity}
+
+    # Add the unequipped mods to the dictionary
+    for mod in initialdata["inventory"]["unequippedMod"]:
+        mod_id = mod["id"]
+        mod_defId = mod["definitionId"]
+        mod_slot = mod_list[mod_defId]["slot"]
+        mod_rarity = mod_list[mod_defId]["rarity"]
+        dict_player_mods[mod_id] = {"unit_id": None, "slot": mod_slot, "rarity": mod_rarity}
 
     #Get the free space in mod inventory
     #mod_inventory_spares = 500 - len(initialdata["inventory"]["unequippedMod"])
@@ -332,9 +345,6 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     #        player_credits = currency["quantity"]
     #        break
 
-    cur_dict_player = copy.deepcopy(initial_dict_player)
-    cur_dict_player_mods = copy.deepcopy(initial_dict_player_mods)
-
     max_unallocated = 0
     unit_count = 0
     mod_add_count = 0
@@ -345,14 +355,20 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
                               4: 3000,
                               5: 4750,
                               6: 8000}
+    missing_mods = {} #key=Unit_defId / value=amount of missing mods
     for a in mod_allocations:
+        new_unit_count = unit_count
+        new_mod_add_count = mod_add_count
+        new_unequip_cost = unequip_cost
+
         # An allocation is something like
         # "on the unit PRINCESSLEIA, we need to use mods ID1, ID2, ID3"
         target_char_defId = a["unit_id"]
-        target_char_id = cur_dict_player["rosterUnit"][target_char_defId]["id"]
-        target_char_level = cur_dict_player["rosterUnit"][target_char_defId]["currentLevel"]
+        target_char_id = dict_player["rosterUnit"][target_char_defId]["id"]
+        target_char_level = dict_player["rosterUnit"][target_char_defId]["currentLevel"]
         if target_char_level < 50:
-            return ec, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods"
+            cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+            return ec, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods}
 
         mods_to_add = [] # list of mod IDs to be added to this unit
         mods_to_remove = [] # list of mod IDs to be removed from this unit
@@ -370,11 +386,15 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
 
             # Look for the unit that has this mod
             # If the mod is not equipped, unit=None
-            if allocated_mod_id in cur_dict_player_mods:
-                current_mod_unit = cur_dict_player_mods[allocated_mod_id]["unit_id"]
+            if allocated_mod_id in dict_player_mods:
+                current_mod_unit = dict_player_mods[allocated_mod_id]["unit_id"]
             else:
-                current_mod_unit = None
-                cur_dict_player_mods[allocated_mod_id] = {"unit_id": None, "slot": mod_slot}
+                # This means that the conf is using a mod that the player does noy have anymore
+                # Add it to the list of warnings, and ignore it in the allocation
+                if not target_char_defId in missing_mods:
+                    missing_mods[target_char_defId] = 0
+                missing_mods[target_char_defId] += 1
+                continue
 
             #print(target_char_defId)
             #print(allocated_mod_id)
@@ -383,71 +403,82 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
                 # The mod is not already equipped
 
                 # If the unit has no mod at all, create its mod dictionary (empty)
-                if not "equippedStatMod" in cur_dict_player["rosterUnit"][target_char_defId]:
-                    cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"] = {}
+                if not "equippedStatMod" in dict_player["rosterUnit"][target_char_defId]:
+                    dict_player["rosterUnit"][target_char_defId]["equippedStatMod"] = {}
 
                 #Look for potential mod to be removed before adding the new one
-                if mod_slot in cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"]:
-                    previous_mod_id = cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot]
-                    previous_mod_rarity = cur_dict_player_mods[previous_mod_id]["rarity"]
+                if mod_slot in dict_player["rosterUnit"][target_char_defId]["equippedStatMod"]:
+                    previous_mod_id = dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot]
+                    previous_mod_rarity = dict_player_mods[previous_mod_id]["rarity"]
 
                     mods_to_remove.append(previous_mod_id)
-                    cur_dict_player_mods[previous_mod_id]["unit_id"] = None
-                    del cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot]
+                    dict_player_mods[previous_mod_id]["unit_id"] = None
+                    del dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot]
+                    dict_player_mods[previous_mod_id]["unit_id"] = None
 
                     # add the cost of removing the mod in place on the unit
                     #print("unequip from "+target_char_defId+": "+str(previous_mod_rarity))
-                    unequip_cost += unequip_cost_by_rarity[previous_mod_rarity]
+                    new_unequip_cost += unequip_cost_by_rarity[previous_mod_rarity]
 
                 #the allocated (new) mod has to be equipped on the target character
                 # and removed from previous unit
                 mods_to_add.append(allocated_mod_id)
-                prev_unit = cur_dict_player_mods[allocated_mod_id]["unit_id"]
+                prev_unit = dict_player_mods[allocated_mod_id]["unit_id"]
                 if prev_unit != None:
-                    # if the mod was equipped, remove it from the previous uit's dictionary
-                    del cur_dict_player["rosterUnit"][prev_unit]["equippedStatMod"][mod_slot]
+                    # if the mod was equipped, remove it from the previous unit's dictionary
+                    del dict_player["rosterUnit"][prev_unit]["equippedStatMod"][mod_slot]
 
                     # and add the cost of moving
                     #print("unequip from "+prev_unit+": "+str(allocated_mod_rarity))
-                    unequip_cost += unequip_cost_by_rarity[allocated_mod_rarity]
+                    new_unequip_cost += unequip_cost_by_rarity[allocated_mod_rarity]
 
 
-                cur_dict_player_mods[allocated_mod_id]["unit_id"] = target_char_defId
-                cur_dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot] = allocated_mod_id
+                dict_player_mods[allocated_mod_id]["unit_id"] = target_char_defId
+                dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot] = allocated_mod_id
 
         if len(mods_to_add) > 0:
             #write update request
             mods_txt = ""
             for id in mods_to_add:
                 mods_txt += " +"+id
-                mod_add_count += 1
+                new_mod_add_count += 1
             for id in mods_to_remove:
                 mods_txt += " -"+id
             goutils.log2("DBG", "updateMods "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
+            new_unit_count += 1
 
             # If not simulation mode, send the request to RPC
             if not is_simu:
                 ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
                 if ec!=0:
-                    return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et
+                    cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+                    return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et, {"cost": cost_txt, "missing": missing_mods}
 
-            unit_count += 1
         elif len(mods_to_remove) > 0:
-            return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter"
+            if not is_simu:
+                cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+                ret_data = {"cost": cost_txt, "missing": missing_mods}
+            else:
+                ret_data = {"missing": missing_mods}
+            return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
         #manage max size required in mod inventory
-        unallocated_mods = [id for id in cur_dict_player_mods if cur_dict_player_mods[id]["unit_id"]==None]
-        if len(unallocated_mods)>max_unallocated:
-            max_unallocated = len(unallocated_mods)
+        #unallocated_mods = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
+        #if len(unallocated_mods)>max_unallocated:
+        #    max_unallocated = len(unallocated_mods)
+
+        unit_count = new_unit_count
+        mod_add_count = new_mod_add_count
+        unequip_cost = new_unequip_cost
 
     goutils.log2("INFO", "Max unallocated: "+str(max_unallocated))
 
     if is_simu:
-        ret_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(max_unallocated)+" places nécessaires dans l'inventaire et "+str(unequip_cost)+" crédits."
+        cost_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(max_unallocated)+" places nécessaires dans l'inventaire et "+str(unequip_cost)+" crédits."
     else:
-        ret_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+        cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
     
-    return 0, ret_txt
+    return 0, "", {"cost": cost_txt, "missing": missing_mods}
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     #Get game mod data
@@ -581,7 +612,7 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu)
             break
 
     if my_profile == None:
-        return 1, "Le fichier n'a pas de profil pour "+txt_allyCode
+        return 1, "Le fichier n'a pas de profil pour "+txt_allyCode, {}
 
 
     player_mods = {}
@@ -610,16 +641,14 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu)
         mod_allocations.append(mod_allocation)
 
     #Apply modifications
-    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
-    return ec, et
+    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
 
 async def apply_config_allocations(config_name, txt_allyCode, is_simu):
     e, t, mod_allocations = get_mod_config(config_name, txt_allyCode)
     if e!=0:
-        return 1, t
+        return 1, t, {}
 
-    ec, et = await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
-    return ec, et
+    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
 
 ########################################
 async def get_modopti_export(txt_allyCode):

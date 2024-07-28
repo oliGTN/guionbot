@@ -4,6 +4,7 @@ thumbdown = '\N{THUMBS DOWN SIGN}'
 check = '\N{WHITE HEAVY CHECK MARK}'
 redcross = '\N{CROSS MARK}'
 hourglass = '\N{HOURGLASS}'
+warning = '\N{WARNING SIGN}'
 cyclearrows = '\U0001F504'
 prohibited = '\U0001F6AB'
 letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \

@@ -2283,40 +2283,56 @@ class ModsCog(commands.GroupCog, name="mods"):
     async def modoptimizer(self, interaction: discord.Interaction,
                            fichier: discord.Attachment,
                            simulation: bool=False):
-        await interaction.response.defer(thinking=True)
-
-        channel_id = interaction.channel_id
-
-        #get allyCode
-        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-        goutils.log2("DBG", query)
-        allyCode = str(connect_mysql.get_value(query))
-        if allyCode == "None":
-            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
-            return
-
-        #Run the function
-        file_content = await fichier.read()
         try:
-            html_content = file_content.decode('utf-8')
-        except :
-            await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
-            return
+            await interaction.response.defer(thinking=True)
 
-        try:
-            ec, et = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
+            channel_id = interaction.channel_id
+
+            #get allyCode
+            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+            goutils.log2("DBG", query)
+            allyCode = str(connect_mysql.get_value(query))
+            if allyCode == "None":
+                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+                return
+
+            #Run the function
+            file_content = await fichier.read()
+            try:
+                html_content = file_content.decode('utf-8')
+            except :
+                await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
+                return
+
+            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
+            # Prepare warning info, to be displayed if error or sucess
+            cost_and_missing = ""
+            if "cost" in ret_data:
+                cost_and_missing += ret_data["cost"]
+            if "missing" in ret_data and len(ret_data["missing"])>0:
+                for unit in ret_data["missing"]:
+                    value=ret_data["missing"][unit]
+                    if value==1:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
+                    else:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ils n'existent plus"
+
+            if ec == 0:
+                # The cost gets a SUCCESS sign
+                txt = emojis.check+" "+ cost_and_missing
+                if simulation:
+                    txt = "[SIMULATION]"+txt
+                await interaction.edit_original_response(content=txt)
+            else:
+                err_txt = emojis.redcross+" "+et
+                if len(cost_and_missing) > 0:
+                    err_txt += "\n "+cost_and_warning
+                await interaction.edit_original_response(content=emojis.redcross+" "+err_txt)
+
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
-
-        if ec == 0:
-            txt = emojis.check+" "+et
-            if simulation:
-                txt = "[SIMULATION]"+txt
-            await interaction.edit_original_response(content=txt)
-        else:
-            await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
     @app_commands.command(name="enregistre-conf")
     @app_commands.rename(conf_name="nom-conf")
@@ -2367,9 +2383,9 @@ class ModsCog(commands.GroupCog, name="mods"):
     async def apply_conf(self, interaction: discord.Interaction,
                          conf_name: str,
                          simulation: bool=False):
-        await interaction.response.defer(thinking=True)
-
         try:
+            await interaction.response.defer(thinking=True)
+
             channel_id = interaction.channel_id
 
             #get allyCode
@@ -2380,22 +2396,36 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             #Run the function
-            ec, et = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
+            ec, et, ret_data = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
+
+            # Prepare warning info, to be displayed if error or sucess
+            cost_and_missing = ""
+            if "cost" in ret_data:
+                cost_and_missing += ret_data["cost"]
+            if "missing" in ret_data and len(ret_data["missing"])>0:
+                for unit in ret_data["missing"]:
+                    value=ret_data["missing"][unit]
+                    if value==1:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
+                    else:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ils n'existent plus"
+
+            if ec == 0:
+                # The cost gets a SUCCESS sign
+                txt = emojis.check+" "+ cost_and_missing
+                if simulation:
+                    txt = "[SIMULATION]"+txt
+                await interaction.edit_original_response(content=txt)
+            else:
+                err_txt = emojis.redcross+" "+et
+                if len(cost_and_missing) > 0:
+                    err_txt += "\n "+cost_and_warning
+                await interaction.edit_original_response(content=emojis.redcross+" "+err_txt)
 
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
-            ec = 1
-            txt = "Erreur lors de la commande"
-
-        if ec == 0:
-            txt = emojis.check+" "+et
-            if simulation:
-                txt = "[SIMULATION]"+txt
-            await interaction.edit_original_response(content=txt)
-        else:
-            await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
     @app_commands.command(name="exporte-liste")
     async def export_modoptimizer(self, interaction: discord.Interaction):
