@@ -5677,7 +5677,7 @@ async def print_tw_summary(guild_id, channel_id):
         return
 
     # TW summary
-    ec, et, d = await go.get_tw_summary(guild_id)
+    ec, et, d = await get_tw_summary(guild_id)
     summary_list = []
     for k in d:
         print(k, d[k])
