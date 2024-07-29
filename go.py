@@ -5573,7 +5573,7 @@ async def set_tb_targets(guild_id, tb_phase_target):
     return err_code, err_txt
 
 async def get_tw_summary(guild_id):
-    err_code, err_txt, ret = await get_guildLog_messages(guild_id, False)
+    err_code, err_txt, ret = await connect_rpc.get_guildLog_messages(guild_id, False)
 
     if err_code!=0:
         return 1, err_txt, None
