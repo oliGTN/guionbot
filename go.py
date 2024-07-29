@@ -28,6 +28,7 @@ import connect_mysql
 import connect_crinolo
 import connect_rpc
 import goutils
+import guionbot_discord
 import portraits
 import parallel_work
 import data as godata
