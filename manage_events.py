@@ -12,3 +12,8 @@ def create_event(type, guild_id, id):
     query = "INSERT INTO events(type, guild_id, event_id) VALUES('"+type+"', '"+guild_id+"', '"+id+"')"
     goutils.log2("DBG", query)
     connect_mysql.simple_execute(query)
+
+    # By opportunity, delete old events (more than 6 months)
+    query = "DELETE FROM events WHERE timestampdiff(DAY, timestamp, current_timestamp)>180"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
