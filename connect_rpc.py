@@ -2004,14 +2004,14 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
 
         return {"tw_id": None}
 
-    if not manage_events.exists("tw_test", guild_id, latest_tw_id):
+    if guild_id.startswith("oro") and not manage_events.exists("tw_test", guild_id, tw_id):
         # Display player results
         guild_infos = get_dict_bot_accounts()[guild_id]
         tw_channel_out = guild_infos["tw_channel_out"]
         if tw_channel_out != None:
             await go.print_tw_summary(guild_id, tw_channel_out)
 
-        manage_events.create_event("tw_test", guild_id, latest_tw_id)
+        manage_events.create_event("tw_test", guild_id, tw_id)
 
 
     prev_dict_guild[guild_id] = dict_guild
