@@ -19,6 +19,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 import re
 import sys
+from texttable import Texttable
 import time
 
 import config
