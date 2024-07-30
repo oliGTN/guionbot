@@ -2949,7 +2949,11 @@ async def get_tw_alerts(guild_id, force_update):
     rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
-        return 2, "ERR: pas de GT en cours", None
+        tw_summary = rpc_data["tw_summary"]
+        return 2, "ERR: pas de GT en cours", {"tw_summary": tw_summary}
+
+    #TEST ONLY
+    tw_summary = rpc_data["tw_summary"]
 
     tw_timestamp = tw_id.split(":")[1][1:]
 
@@ -3150,7 +3154,10 @@ async def get_tw_alerts(guild_id, force_update):
 
             list_tw_alerts[1]["Home:"+territory_name] = msg
 
-    return 0, "", {"tw_id": tw_id, "alerts": list_tw_alerts}
+    #return 0, "", {"tw_id": tw_id, "alerts": list_tw_alerts}
+
+    # TEST ONLY
+    return 0, "", {"tw_id": tw_id, "alerts": list_tw_alerts, "tw_summary": tw_summary}
 
 ############################################
 # develop_teams
@@ -5673,10 +5680,10 @@ async def get_tw_summary_from_logs(tw_logs):
 
     return 0, "", dict_tw_summary
 
-async def print_tw_summary(guild_id, channel_id):
+async def print_tw_summary(guild_id):
     err_code, err_txt, dict_tw_summary = await get_tw_summary(guild_id)
     if err_code!=0:
-        return
+        return 1, err_txt
 
     # TW summary
     ec, et, d = await get_tw_summary(guild_id)
@@ -5704,6 +5711,4 @@ async def print_tw_summary(guild_id, channel_id):
     t.add_rows(summary_list)
     t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
 
-    await guionbot_discord.print_tabbed_text_in_channel(channel_id, t.draw())
-
-    return
+    return 0, t.draw()

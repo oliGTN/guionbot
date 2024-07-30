@@ -2004,15 +2004,11 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
 
         return {"tw_id": None}
 
+    #TW end summary table (in test)
+    tw_summary = None
     if guild_id.startswith("oro") and not manage_events.exists("tw_test", guild_id, tw_id):
         # Display player results
-        guild_infos = get_dict_bot_accounts()[guild_id]
-        tw_channel_out = guild_infos["tw_channel_out"]
-        if tw_channel_out != None:
-            await go.print_tw_summary(guild_id, tw_channel_out)
-
-        manage_events.create_event("tw_test", guild_id, tw_id)
-
+        tw_summary = await go.print_tw_summary(guild_id)
 
     prev_dict_guild[guild_id] = dict_guild
 
@@ -2122,15 +2118,18 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                                                               "list_chars": list_chars, 
                                                               "gp": team_gp})
 
-    return {"tw_id": tw_id, \
-            "tw_round": tw_round, \
-            "homeGuild": {"list_defenses": list_defenses["homeGuild"], \
-                          "list_territories": list_territories["homeGuild"]}, \
-            "awayGuild": {"list_defenses": list_defenses["awayGuild"], \
-                          "list_territories": list_territories["awayGuild"], \
-                          "list_attacks": list_attacks}, \
-            "opp_guildName": opp_guildName, \
-            "opp_guildId": opp_guildId}
+    ret_dict =  {"tw_id": tw_id, \
+                 "tw_round": tw_round, \
+                 "homeGuild": {"list_defenses": list_defenses["homeGuild"], \
+                               "list_territories": list_territories["homeGuild"]}, \
+                 "awayGuild": {"list_defenses": list_defenses["awayGuild"], \
+                               "list_territories": list_territories["awayGuild"], \
+                               "list_attacks": list_attacks}, \
+                 "opp_guildName": opp_guildName, \
+                 "opp_guildId": opp_guildId, \
+                 "tw_summary": tw_summary}
+
+    return ret_dict
 
 async def get_tw_active_players(guild_id, force_update):
     ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)

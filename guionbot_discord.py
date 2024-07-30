@@ -270,256 +270,267 @@ async def bot_loop_10minutes(bot):
 # Output: none
 ##############################################################
 async def bot_loop_5minutes(bot):
-        global dict_platoons_previously_done
-        global dict_tb_alerts_previously_done
-        global first_bot_loop_5minutes
+    global dict_platoons_previously_done
+    global dict_tb_alerts_previously_done
+    global first_bot_loop_5minutes
 
-        goutils.log2("DBG", "START loop")
-        t_start = time.time()
+    goutils.log2("DBG", "START loop")
+    t_start = time.time()
 
-        query = "SELECT guild_id FROM guild_bot_infos WHERE guild_id<>''"
-        goutils.log2("DBG", query)
-        db_data = connect_mysql.get_column(query)
+    query = "SELECT guild_id FROM guild_bot_infos WHERE guild_id<>''"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_column(query)
 
-        dict_tw_alerts = {}
-        for guild_id in db_data:
-            #################################
-            # Manage TW alerts and start of TW
-            #################################
-            try:
-                #CHECK ALERTS FOR TERRITORY WAR
-                ec, et, dict_tw_alerts = await go.get_tw_alerts(guild_id, -1)
-                if ec == 0:
-                    # TW ongoing
-                    tw_id = dict_tw_alerts["tw_id"]
+    dict_tw_alerts = {}
+    for guild_id in db_data:
+        #################################
+        # Manage TW alerts and start of TW
+        #################################
+        try:
+            #CHECK ALERTS FOR TERRITORY WAR
+            ec, et, dict_tw_alerts = await go.get_tw_alerts(guild_id, -1)
+            if ec == 0:
+                # TW ongoing
+                tw_id = dict_tw_alerts["tw_id"]
 
-                    # Check event for TW start, and load opponent guild
-                    swgohgg_opp_url = None
-                    if not manage_events.exists("tw_start", guild_id, tw_id):
-                        ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
-                        goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
-                        opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
+                # Check event for TW start, and load opponent guild
+                swgohgg_opp_url = None
+                if not manage_events.exists("tw_start", guild_id, tw_id):
+                    ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
+                    goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
+                    opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
 
-                        #Fire and forget guild loading in the background
-                        # Need to put it into a queue to not block the rest of the loop processing
-                        # But threading does not work well with mysql
-                        #_thread = threading.Thread(target=asyncio.run, args=(go.load_guild_from_id(opp_guild_id, True, True),))
-                        #_thread.start()
+                    #Fire and forget guild loading in the background
+                    # Need to put it into a queue to not block the rest of the loop processing
+                    # But threading does not work well with mysql
+                    #_thread = threading.Thread(target=asyncio.run, args=(go.load_guild_from_id(opp_guild_id, True, True),))
+                    #_thread.start()
 
-                        #Display swgoh.gg link to opponent guild
-                        swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id
+                    #Display swgoh.gg link to opponent guild
+                    swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id
 
-                        manage_events.create_event("tw_start", guild_id, tw_id)
+                    manage_events.create_event("tw_start", guild_id, tw_id)
 
-                    # Display TW alerts, messages...
+                # Display TW alerts, messages...
+                [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
+                tw_bot_channel = bot.get_channel(channel_id)
+
+                if swgohgg_opp_url != None:
+                    await tw_bot_channel.send("Guilde adverse : "+swgohgg_opp_url)
+
+                #sort dict_messages
+                # defense then lost territories then attack
+                d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placement:")]}
+                d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
+                d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
+                dict_messages = {**d_placements, **d_home, **d_attack}
+                for territory in dict_messages:
+                    msg_txt = dict_messages[territory]
+                    goutils.log2("DBG", "["+guild_id+"] TW alert: "+msg_txt)
+
+                    #get msg_id for this TW / zone
+                    query = "SELECT msg_id FROM tw_messages "
+                    query+= "WHERE guild_id='"+guild_id+"' "
+                    query+= "AND zone='"+territory+"'"
+                    goutils.log2("INFO", query)
+                    old_msg_id = connect_mysql.get_value(query)
+
+                    if old_msg_id == None:
+                        #First time this zone has a message
+                        goutils.log2("INFO", "first time this zone has this message")
+
+                        #Full message to TW guild channel
+                        if not bot_test_mode:
+                            new_msg = await tw_bot_channel.send(msg_txt)
+                            query = "INSERT INTO tw_messages(guild_id, tw_ts, zone, msg_id) "
+                            query+= "VALUES('"+guild_id+"', "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
+                            goutils.log2("DBG", query)
+                            connect_mysql.simple_execute(query)
+                    else:
+                        #This zone already has a message
+                        try:
+                            old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                        except discord.errors.NotFound as e:
+                            goutils.log2("ERR", "msg not found id="+str(old_msg_id))
+                            raise(e)
+
+                        #Home messages are not modified
+
+                        #Placement messages are updated when modified
+                        #Attack messages are updated when modified
+                        if territory.startswith('Placement:') \
+                           or not ":" in territory:
+                            old_msg_txt = old_msg.content
+                            if old_msg_txt != msg_txt:
+                                #Full message modified in TW guild channel
+                                if not bot_test_mode:
+                                    await old_msg.edit(content=msg_txt)
+
+                #TW end summary table (in test)
+                if guild_id.startswith("oro") and not manage_events.exists("tw_test", guild_id, tw_id):
+                    err_code, tw_summary = dict_tw_alerts["tw_summary"]
+                    # Display player results
                     [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
                     tw_bot_channel = bot.get_channel(channel_id)
+                    for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
+                        await tw_bot_channel.send('`' + stxt + '`')
 
-                    if swgohgg_opp_url != None:
-                        await tw_bot_channel.send("Guilde adverse : "+swgohgg_opp_url)
+                    manage_events.create_event("tw_test", guild_id, tw_id)
 
-                    #sort dict_messages
-                    # defense then lost territories then attack
-                    d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placement:")]}
-                    d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
-                    d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
-                    dict_messages = {**d_placements, **d_home, **d_attack}
-                    for territory in dict_messages:
-                        msg_txt = dict_messages[territory]
-                        goutils.log2("DBG", "["+guild_id+"] TW alert: "+msg_txt)
+            elif ec == 2:
+                #TW is over
+                #Delete potential previous tw_messages
+                query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
+                query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
+                goutils.log2("DBGO", query)
+                connect_mysql.simple_execute(query)
 
-                        #get msg_id for this TW / zone
-                        query = "SELECT msg_id FROM tw_messages "
-                        query+= "WHERE guild_id='"+guild_id+"' "
-                        query+= "AND zone='"+territory+"'"
-                        goutils.log2("INFO", query)
-                        old_msg_id = connect_mysql.get_value(query)
+            else:
+                goutils.log2("DBG", "["+guild_id+"] "+et)
 
-                        if old_msg_id == None:
-                            #First time this zone has a message
-                            goutils.log2("INFO", "first time this zone has this message")
+        except Exception as e:
+            goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
+            goutils.log2("ERR", "["+guild_id+"]"+str(e))
+            goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
-                            #Full message to TW guild channel
-                            if not bot_test_mode:
-                                new_msg = await tw_bot_channel.send(msg_txt)
-                                query = "INSERT INTO tw_messages(guild_id, tw_ts, zone, msg_id) "
-                                query+= "VALUES('"+guild_id+"', "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
-                                goutils.log2("DBG", query)
-                                connect_mysql.simple_execute(query)
-                        else:
-                            #This zone already has a message
-                            try:
-                                old_msg = await tw_bot_channel.fetch_message(old_msg_id)
-                            except discord.errors.NotFound as e:
-                                goutils.log2("ERR", "msg not found id="+str(old_msg_id))
-                                raise(e)
+        #################################
+        # Manage TB alerts
+        #################################
+        try:
+            if not guild_id in dict_tb_alerts_previously_done:
+                dict_tb_alerts_previously_done[guild_id] = []
 
-                            #Home messages are not modified
-
-                            #Placement messages are updated when modified
-                            #Attack messages are updated when modified
-                            if territory.startswith('Placement:') \
-                               or not ":" in territory:
-                                old_msg_txt = old_msg.content
-                                if old_msg_txt != msg_txt:
-                                    #Full message modified in TW guild channel
-                                    if not bot_test_mode:
-                                        await old_msg.edit(content=msg_txt)
-
-
-                elif ec == 2:
-                    #TW is over
-                    #Delete potential previous tw_messages
-                    query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
-                    query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
-                    goutils.log2("DBGO", query)
-                    connect_mysql.simple_execute(query)
+            #CHECK ALERTS FOR BT
+            list_tb_alerts = await go.get_tb_alerts(guild_id, -1)
+            for tb_alert in list_tb_alerts:
+                if not tb_alert in dict_tb_alerts_previously_done[guild_id]:
+                    if not first_bot_loop_5minutes:
+                        await send_alert_to_echocommanders(guild_id, tb_alert)
+                        goutils.log2("INFO", "["+guild_id+"] New TB alert: "+tb_alert)
+                    else:
+                        goutils.log2("DBG", "["+guild_id+"] New TB alert within the first 5 minutes: "+tb_alert)
                 else:
-                    goutils.log2("DBG", "["+guild_id+"] "+et)
+                    goutils.log2("DBG", "["+guild_id+"] Already known TB alert: "+tb_alert)
 
-            except Exception as e:
-                goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
-                goutils.log2("ERR", "["+guild_id+"]"+str(e))
-                goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
-                if not bot_test_mode:
-                    await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+            dict_tb_alerts_previously_done[guild_id] = list_tb_alerts
 
-            #################################
-            # Manage TB alerts
-            #################################
-            try:
-                if not guild_id in dict_tb_alerts_previously_done:
-                    dict_tb_alerts_previously_done[guild_id] = []
+        except Exception as e:
+            goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
+            goutils.log2("ERR", "["+guild_id+"]"+str(e))
+            goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
-                #CHECK ALERTS FOR BT
-                list_tb_alerts = await go.get_tb_alerts(guild_id, -1)
-                for tb_alert in list_tb_alerts:
-                    if not tb_alert in dict_tb_alerts_previously_done[guild_id]:
-                        if not first_bot_loop_5minutes:
-                            await send_alert_to_echocommanders(guild_id, tb_alert)
-                            goutils.log2("INFO", "["+guild_id+"] New TB alert: "+tb_alert)
+        #################################
+        # Check progress of platoons
+        #################################
+        try:
+            #Check if guild can use RPC
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info_from_guild(guild_id)
+            if ec==0:
+                guild_id = bot_infos["guild_id"]
+
+                if not guild_id in dict_platoons_previously_done:
+                    dict_platoons_previously_done[guild_id] = {}
+
+                err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, -1)
+
+                if err_code != 0:
+                    goutils.log2("DBG", "["+guild_id+"] "+err_txt)
+                    dict_platoons_previously_done[guild_id] = {}
+                else:
+                    tbs_round = ret_data["round"]
+                    dict_platoons_done = ret_data["platoons"]
+
+                    goutils.log2("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
+                    goutils.log2("INFO", "["+guild_id+"] End of platoon parsing for TB: round " + tbs_round)
+                    new_allocation_detected = False
+                    dict_msg_platoons = {}
+                    for territory_platoon in dict_platoons_done:
+                        current_progress = compute_platoon_progress(dict_platoons_done[territory_platoon])
+                        #goutils.log2("DBG", "["+guild_id+"] Progress of platoon "+territory_platoon+": "+str(current_progress))
+                        if not territory_platoon in dict_platoons_previously_done[guild_id]:
+                            #If the territory was not already detected, then all allocation within that territory are new
+                            for character in dict_platoons_done[territory_platoon]:
+                                for player in dict_platoons_done[territory_platoon][character]:
+                                    if player != '':
+                                        #goutils.log2("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
+                                        new_allocation_detected = True
+
+                            if current_progress == 1:
+                                territory = territory_platoon[:-1]
+                                territory_full_count = compute_territory_progress(dict_platoons_done, territory)
+                                territory_display = territory.split("-")[1]
+                                if not territory_display in dict_msg_platoons:
+                                    dict_msg_platoons[territory_display] = [0, []]
+                                dict_msg_platoons[territory_display][0] = territory_full_count
+                                dict_msg_platoons[territory_display][1].append(territory_platoon)
+
                         else:
-                            goutils.log2("DBG", "["+guild_id+"] New TB alert within the first 5 minutes: "+tb_alert)
-                    else:
-                        goutils.log2("DBG", "["+guild_id+"] Already known TB alert: "+tb_alert)
-
-                dict_tb_alerts_previously_done[guild_id] = list_tb_alerts
-
-            except Exception as e:
-                goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
-                goutils.log2("ERR", "["+guild_id+"]"+str(e))
-                goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
-                if not bot_test_mode:
-                    await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
-
-            #################################
-            # Check progress of platoons
-            #################################
-            try:
-                #Check if guild can use RPC
-                #get bot config from DB
-                ec, et, bot_infos = connect_mysql.get_warbot_info_from_guild(guild_id)
-                if ec==0:
-                    guild_id = bot_infos["guild_id"]
-
-                    if not guild_id in dict_platoons_previously_done:
-                        dict_platoons_previously_done[guild_id] = {}
-
-                    err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, -1)
-
-                    if err_code != 0:
-                        goutils.log2("DBG", "["+guild_id+"] "+err_txt)
-                        dict_platoons_previously_done[guild_id] = {}
-                    else:
-                        tbs_round = ret_data["round"]
-                        dict_platoons_done = ret_data["platoons"]
-
-                        goutils.log2("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
-                        goutils.log2("INFO", "["+guild_id+"] End of platoon parsing for TB: round " + tbs_round)
-                        new_allocation_detected = False
-                        dict_msg_platoons = {}
-                        for territory_platoon in dict_platoons_done:
-                            current_progress = compute_platoon_progress(dict_platoons_done[territory_platoon])
-                            #goutils.log2("DBG", "["+guild_id+"] Progress of platoon "+territory_platoon+": "+str(current_progress))
-                            if not territory_platoon in dict_platoons_previously_done[guild_id]:
-                                #If the territory was not already detected, then all allocation within that territory are new
-                                for character in dict_platoons_done[territory_platoon]:
+                            for character in dict_platoons_done[territory_platoon]:
+                                if not character in dict_platoons_previously_done[guild_id][territory_platoon]:
                                     for player in dict_platoons_done[territory_platoon][character]:
                                         if player != '':
                                             #goutils.log2("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                             new_allocation_detected = True
-
-                                if current_progress == 1:
-                                    territory = territory_platoon[:-1]
-                                    territory_full_count = compute_territory_progress(dict_platoons_done, territory)
-                                    territory_display = territory.split("-")[1]
-                                    if not territory_display in dict_msg_platoons:
-                                        dict_msg_platoons[territory_display] = [0, []]
-                                    dict_msg_platoons[territory_display][0] = territory_full_count
-                                    dict_msg_platoons[territory_display][1].append(territory_platoon)
-
-                            else:
-                                for character in dict_platoons_done[territory_platoon]:
-                                    if not character in dict_platoons_previously_done[guild_id][territory_platoon]:
-                                        for player in dict_platoons_done[territory_platoon][character]:
+                                else:
+                                    for player in dict_platoons_done[territory_platoon][character]:
+                                        if not player in dict_platoons_previously_done[guild_id][territory_platoon][character]:
                                             if player != '':
                                                 #goutils.log2("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                                 new_allocation_detected = True
-                                    else:
-                                        for player in dict_platoons_done[territory_platoon][character]:
-                                            if not player in dict_platoons_previously_done[guild_id][territory_platoon][character]:
-                                                if player != '':
-                                                    #goutils.log2("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
-                                                    new_allocation_detected = True
 
-                                previous_progress = compute_platoon_progress(dict_platoons_previously_done[guild_id][territory_platoon])
-                                if current_progress == 1 and previous_progress < 1:
-                                    territory = territory_platoon[:-1]
-                                    territory_full_count = compute_territory_progress(dict_platoons_done, territory)
-                                    territory_display = territory.split("-")[1]
-                                    if not territory_display in dict_msg_platoons:
-                                        dict_msg_platoons[territory_display] = [0, []]
-                                    dict_msg_platoons[territory_display][0] = territory_full_count
-                                    dict_msg_platoons[territory_display][1].append(territory_platoon)
+                            previous_progress = compute_platoon_progress(dict_platoons_previously_done[guild_id][territory_platoon])
+                            if current_progress == 1 and previous_progress < 1:
+                                territory = territory_platoon[:-1]
+                                territory_full_count = compute_territory_progress(dict_platoons_done, territory)
+                                territory_display = territory.split("-")[1]
+                                if not territory_display in dict_msg_platoons:
+                                    dict_msg_platoons[territory_display] = [0, []]
+                                dict_msg_platoons[territory_display][0] = territory_full_count
+                                dict_msg_platoons[territory_display][1].append(territory_platoon)
 
-                        #if not new_allocation_detected:
-                            #goutils.log2("INFO", "["+guild_id+"] No new platoon allocation")
-                    
-                        for territory_display in dict_msg_platoons:
-                            territory_full_count = dict_msg_platoons[territory_display][0]
-                            list_platoons = dict_msg_platoons[territory_display][1]
+                    #if not new_allocation_detected:
+                        #goutils.log2("INFO", "["+guild_id+"] No new platoon allocation")
+                
+                    for territory_display in dict_msg_platoons:
+                        territory_full_count = dict_msg_platoons[territory_display][0]
+                        list_platoons = dict_msg_platoons[territory_display][1]
 
-                            if territory_full_count == 6:
-                                msg = '\N{WHITE HEAVY CHECK MARK}'
-                            else:
-                                msg = ''
-                            if len(list_platoons) <= 1:
-                                msg += "Nouveau peloton "
-                                msg += list_platoons[0]
-                                msg += " qui atteint 100% ("
-                            else:
-                                msg += "Nouveaux pelotons "
-                                for territory_platoon in list_platoons:
-                                    msg += territory_platoon + " + "
-                                msg = msg[:-3]
-                                msg += " qui atteignent 100% ("
-                            msg += territory_display+": "+str(territory_full_count)+"/6)"
-                            if not first_bot_loop_5minutes:
-                                goutils.log2("INFO", "["+guild_id+"]"+msg)
-                                await send_alert_to_echocommanders(guild_id, msg)
+                        if territory_full_count == 6:
+                            msg = '\N{WHITE HEAVY CHECK MARK}'
+                        else:
+                            msg = ''
+                        if len(list_platoons) <= 1:
+                            msg += "Nouveau peloton "
+                            msg += list_platoons[0]
+                            msg += " qui atteint 100% ("
+                        else:
+                            msg += "Nouveaux pelotons "
+                            for territory_platoon in list_platoons:
+                                msg += territory_platoon + " + "
+                            msg = msg[:-3]
+                            msg += " qui atteignent 100% ("
+                        msg += territory_display+": "+str(territory_full_count)+"/6)"
+                        if not first_bot_loop_5minutes:
+                            goutils.log2("INFO", "["+guild_id+"]"+msg)
+                            await send_alert_to_echocommanders(guild_id, msg)
 
-                        dict_platoons_previously_done[guild_id] = dict_platoons_done.copy()
+                    dict_platoons_previously_done[guild_id] = dict_platoons_done.copy()
 
-            except Exception as e:
-                goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
-                goutils.log2("ERR", "["+guild_id+"]"+str(e))
-                goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
-                if not bot_test_mode:
-                    await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
+        except Exception as e:
+            goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
+            goutils.log2("ERR", "["+guild_id+"]"+str(e))
+            goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
-        first_bot_loop_5minutes = False
+    first_bot_loop_5minutes = False
 
-        goutils.log2("DBG", "END loop")
+    goutils.log2("DBG", "END loop")
 
 ##############################################################
 # Function: bot_loop_60minutes
@@ -1164,11 +1175,6 @@ async def get_channel_from_channelname(ctx, channel_name):
                     + channel_name
             
     return output_channel, ''
-
-async def print_tabbed_text_in_channel(channel_id, txt):
-    output_channel = bot.get_channel(channel_id)
-    for stxt in goutils.split_txt(txt, MAX_MSG_SIZE):
-        await output_channel.send('`' + stxt + '`')
 
 ##############################################################
 # Function: manage_me
