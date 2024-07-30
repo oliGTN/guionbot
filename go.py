@@ -5719,7 +5719,7 @@ async def print_tw_summary(guild_id):
         line = [player, tm, wins, ground_fights, ship_fights, fail_txt]
         summary_list.append(line)
 
-    summary_list.sort(key=lambda x:x[0].lower())
+    summary_list.sort(key=lambda x:(-x[3], -x[4], -x[2], x[0].lower()))
     summary_list = [["Player", "TM", "Wins", "Ground\nfights", "Ship\nfights", "Fails"]] + summary_list
     t = Texttable()
     t.add_rows(summary_list)
