@@ -1974,6 +1974,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                 cur_tw = battleStatus
                 tw_round = battleStatus["currentRound"]
 
+    goutils.log2("DBG", tw_id)
     if tw_id == None:
         # Check if previous TW has ended properly, with associated actions
         latest_tw_end_ts = 0
@@ -1999,17 +2000,15 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                 fjson.write(json.dumps(prev_dict_guild[guild_id], indent=4))
                 fjson.close()
 
+            #TW end summary table
+            tw_summary = await go.print_tw_summary(guild_id)
+
             # Display best teams in GT channel
             # TODO
+
             manage_events.create_event("tw_end", guild_id, latest_tw_id)
 
-        return {"tw_id": None}
-
-    #TW end summary table (in test)
-    tw_summary = None
-    if guild_id.startswith("oro") and not manage_events.exists("tw_test", guild_id, tw_id):
-        # Display player results
-        tw_summary = await go.print_tw_summary(guild_id)
+        return {"tw_id": None, "tw_summary": tw_summary}
 
     prev_dict_guild[guild_id] = dict_guild
 
@@ -2128,7 +2127,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                                "list_attacks": list_attacks}, \
                  "opp_guildName": opp_guildName, \
                  "opp_guildId": opp_guildId, \
-                 "tw_summary": tw_summary}
+                 "tw_summary": None}
 
     return ret_dict
 

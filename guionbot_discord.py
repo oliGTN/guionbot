@@ -285,6 +285,7 @@ async def bot_loop_5minutes(bot):
         try:
             #CHECK ALERTS FOR TERRITORY WAR
             ec, et, dict_tw_alerts = await go.get_tw_alerts(guild_id, -1)
+            goutils.log2("DBG", "["+guild_id+"] get_tw_alerts err_code="+str(ec))
             if ec == 0:
                 # TW ongoing
                 tw_id = dict_tw_alerts["tw_id"]
@@ -362,17 +363,6 @@ async def bot_loop_5minutes(bot):
                                 if not bot_test_mode:
                                     await old_msg.edit(content=msg_txt)
 
-                #TW end summary table (in test)
-                if guild_id.startswith("oro") and not manage_events.exists("tw_test", guild_id, tw_id):
-                    err_code, tw_summary = dict_tw_alerts["tw_summary"]
-                    # Display player results
-                    [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
-                    tw_bot_channel = bot.get_channel(channel_id)
-                    for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
-                        await tw_bot_channel.send('`' + stxt + '`')
-
-                    manage_events.create_event("tw_test", guild_id, tw_id)
-
             elif ec == 2:
                 #TW is over
                 #Delete potential previous tw_messages
@@ -380,6 +370,16 @@ async def bot_loop_5minutes(bot):
                 query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
                 goutils.log2("DBGO", query)
                 connect_mysql.simple_execute(query)
+
+                #TW end summary table
+                err_code, tw_summary = dict_tw_alerts["tw_summary"]
+                goutils.log2("DBG", (err_code, tw_summary[:200]))
+                # Display player results
+                [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
+                goutils.log2("DBG", channel_id)
+                tw_bot_channel = bot.get_channel(channel_id)
+                for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
+                    await tw_bot_channel.send('`' + stxt + '`')
 
             else:
                 goutils.log2("DBG", "["+guild_id+"] "+et)
