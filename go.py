@@ -5588,13 +5588,24 @@ async def get_tw_summary(guild_id):
         return 1, err_txt, None
 
     tw_logs = ret["TW"][1]
+    dict_guild = ret["dict_guild"]
 
-    return await get_tw_summary_from_logs(tw_logs)
+    return await get_tw_summary_from_logs(tw_logs, dict_guild)
 
-async def get_tw_summary_from_logs(tw_logs):
+async def get_tw_summary_from_logs(tw_logs, dict_guild):
     dict_tw_summary = {} # playerName:{"chars":{"fights":nn, "loss":nn, "partial":nn, "win":nn, "TM":nn},
                          #             "ships":{"loss":nn, "partial":nn, "win":nn, "TM":nn}}
 
+    # Initialize with all TW participants
+    dict_members = {}
+    for member in dict_guild["member"]:
+        dict_members[member["playerId"]] = member["playerName"]
+    for member in dict_guild["territoryWarStatus"]["optedInMember"]:
+        playerName = dict_members[member["memberId"]]
+        dict_tw_summary[playerName] = {"chars": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0},
+                                       "ships": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0}}
+
+    # Read events and fill the data
     for ts_log in tw_logs:
         log = ts_log[1]
         if "DEBUT" in log:
@@ -5695,14 +5706,17 @@ async def print_tw_summary(guild_id):
         wins = d[k]["chars"]["win"] + d[k]["ships"]["win"]
         ground_fights = d[k]["chars"]["fights"]
         ship_fights = d[k]["ships"]["fights"]
-        fails = d[k]["chars"]["loss"] \
-              + d[k]["chars"]["partial"] \
-              + d[k]["ships"]["loss"] \
-              + d[k]["ships"]["partial"]
-        fail_rate_percent = round(100*fails/(ground_fights+ship_fights), 1)
+        if ground_fights+ship_fights>0:
+            fails = d[k]["chars"]["loss"] \
+                  + d[k]["chars"]["partial"] \
+                  + d[k]["ships"]["loss"] \
+                  + d[k]["ships"]["partial"]
+            fail_rate_percent = round(100*fails/(ground_fights+ship_fights), 1)
+            fail_txt = str(fails)+" ("+str(fail_rate_percent)+"%)"]
+        else:
+            fail_txt = "--"
 
-        line = [player, tm, wins, ground_fights, ship_fights, 
-                str(fails)+" ("+str(fail_rate_percent)+"%)"]
+        line = [player, tm, wins, ground_fights, ship_fights, fail_txt]
         summary_list.append(line)
 
     summary_list.sort(key=lambda x:x[0].lower())

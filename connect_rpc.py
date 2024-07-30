@@ -846,7 +846,8 @@ async def get_guildLog_messages(guild_id, onlyLatest):
 
     return 0, "", {"CHAT": [chatChan_id, list_chat_events],
                    "TW":   [twlogChan_id, list_tw_logs],
-                   "TB":   [tblogChan_id, list_tb_logs]}
+                   "TB":   [tblogChan_id, list_tb_logs],
+                   "guild":dict_guild}
 
 async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
     FRE_FR = godata.get('FRE_FR.json')
