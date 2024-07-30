@@ -5588,7 +5588,7 @@ async def get_tw_summary(guild_id):
         return 1, err_txt, None
 
     tw_logs = ret["TW"][1]
-    dict_guild = ret["dict_guild"]
+    dict_guild = ret["guild"]
 
     return await get_tw_summary_from_logs(tw_logs, dict_guild)
 
