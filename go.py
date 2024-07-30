@@ -5712,7 +5712,7 @@ async def print_tw_summary(guild_id):
                   + d[k]["ships"]["loss"] \
                   + d[k]["ships"]["partial"]
             fail_rate_percent = round(100*fails/(ground_fights+ship_fights), 1)
-            fail_txt = str(fails)+" ("+str(fail_rate_percent)+"%)"]
+            fail_txt = str(fails)+" ("+str(fail_rate_percent)+"%)"
         else:
             fail_txt = "--"
 
