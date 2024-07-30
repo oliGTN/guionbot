@@ -5600,7 +5600,7 @@ async def get_tw_summary_from_logs(tw_logs, dict_guild):
     dict_members = {}
     for member in dict_guild["member"]:
         dict_members[member["playerId"]] = member["playerName"]
-    for member in dict_guild["territoryWarStatus"]["optedInMember"]:
+    for member in dict_guild["territoryWarStatus"][0]["optedInMember"]:
         playerName = dict_members[member["memberId"]]
         dict_tw_summary[playerName] = {"chars": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0},
                                        "ships": {"fights":0, "loss":0, "partial":0, "win":0, "TM":0}}
