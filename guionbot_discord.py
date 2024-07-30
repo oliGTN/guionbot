@@ -191,9 +191,7 @@ async def bot_loop_60secs(bot):
                     await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1)
 
                     #Update g-sheet during TB
-                    goutils.log2("INFO", "AVANT gwarstats")
                     await connect_gsheets.update_gwarstats(guild_id)
-                    goutils.log2("INFO", "APRES gwarstats")
                     
                     #Update log channels
                     ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True)
@@ -201,6 +199,7 @@ async def bot_loop_60secs(bot):
                         goutils.log2("ERR", et)
                     else:
                         for logType in ret_data:
+                            goutils.log2("DBG", str(logType)[:200])
                             channel_id = ret_data[logType][0]
                             list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
                             if channel_id != 0:
