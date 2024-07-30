@@ -198,8 +198,7 @@ async def bot_loop_60secs(bot):
                     if ec!=0:
                         goutils.log2("ERR", et)
                     else:
-                        for logType in ret_data:
-                            goutils.log2("DBG", str(logType)[:200])
+                        for logType in ["CHAT", "TW", "TB"]:
                             channel_id = ret_data[logType][0]
                             list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
                             if channel_id != 0:
@@ -222,8 +221,6 @@ async def bot_loop_60secs(bot):
                                         await send_alert_to_admins(None, "["+guild_id+"] "+err_msg)
 
                 except Exception as e:
-                    goutils.log2("ERR", str(sys.exc_info()[0]))
-                    goutils.log2("ERR", e)
                     goutils.log2("ERR", traceback.format_exc())
                     if not bot_test_mode:
                         await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
