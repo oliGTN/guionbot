@@ -507,13 +507,9 @@ def delta_dict_player(dict1, dict2):
             delta_dict['rosterUnit'][character_id] = character
 
     #compare datacrons
-    ##############
-    # TEMPORARY: forcing all datacrons to be stored
-    ##############
     if "datacron" in dict2:
         for datacron_id in dict2['datacron']:
             datacron = dict2['datacron'][datacron_id]
-            """
             if "datacron" in dict1 and datacron_id in dict1['datacron']:
                 if datacron != dict1['datacron'][datacron_id]:
                     log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
@@ -522,8 +518,6 @@ def delta_dict_player(dict1, dict2):
             else:
                 log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
                 delta_dict['datacron'][datacron_id] = datacron
-            """
-            delta_dict['datacron'][datacron_id] = datacron
 
     return delta_dict
 
