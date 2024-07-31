@@ -1976,39 +1976,30 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
 
     goutils.log2("DBG", tw_id)
     if tw_id == None:
+        return {"tw_id": None}
+
+    tw_summary = None
+    if tw_round == 2:
         # Check if previous TW has ended properly, with associated actions
-        latest_tw_end_ts = 0
-        latest_tw_id = ""
 
-        #Get the latest (=max) TW timestamp in known TW results
-        if "guildEvents" in dict_guild:
-            for event in dict_guild["guildEvents"]:
-                if event["id"].startswith("TERRITORY_WAR_EVENT"):
-                    tw_end_ts = int(event["instance"][0]["endTime"])
-                    if tw_end_ts > latest_tw_end_ts:
-                        latest_tw_end_ts = tw_end_ts
-                        latest_tw_id = event["id"]+":"+event["instance"][0]["id"]
-
-        if not manage_events.exists("tw_end", guild_id, latest_tw_id):
+        if not manage_events.exists("tw_end", guild_id, tw_id):
             # the closure is not done yet
-            goutils.log2("INFO", "Close TW "+latest_tw_id+" for guild "+guild_id)
+            goutils.log2("INFO", "Close TW "+tw_id+" for guild "+guild_id)
 
             #Save guild file
             if guild_id in prev_dict_guild:
-                guild_filename = "EVENTS/"+guildId+"_"+latest_tw_id+"_guild.json"
+                guild_filename = "EVENTS/"+guildId+"_"+tw_id+"_guild.json"
                 fjson = open(guild_filename, 'w')
                 fjson.write(json.dumps(prev_dict_guild[guild_id], indent=4))
                 fjson.close()
 
             #TW end summary table
-            tw_summary = await go.print_tw_summary(guild_id)
+            err_code, tw_summary = await go.print_tw_summary(guild_id)
 
             # Display best teams in GT channel
             # TODO
 
-            manage_events.create_event("tw_end", guild_id, latest_tw_id)
-
-        return {"tw_id": None, "tw_summary": tw_summary}
+            manage_events.create_event("tw_end", guild_id, tw_id)
 
     prev_dict_guild[guild_id] = dict_guild
 
@@ -2127,7 +2118,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                                "list_attacks": list_attacks}, \
                  "opp_guildName": opp_guildName, \
                  "opp_guildId": opp_guildId, \
-                 "tw_summary": None}
+                 "tw_summary": tw_summary}
 
     return ret_dict
 
