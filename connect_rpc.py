@@ -149,7 +149,7 @@ async def send_ea_otc(txt_allyCode, otc):
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "auth_ea_otc status="+str(resp.status))
                 if resp.status==200:
-                    resp_json = {}
+                    resp_json = await(resp.json())
                 else:
                     return 1, "Cannot send otc from RPC"
 
@@ -159,6 +159,9 @@ async def send_ea_otc(txt_allyCode, otc):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if "err_code" in resp_json:
+        return 1, resp_json["err_txt"]
 
     return 0, ""
 

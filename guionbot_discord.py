@@ -2309,7 +2309,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
-            # Prepare warning info, to be displayed if error or sucess
+            # Prepare warning info, to be displayed if error or success
             cost_and_missing = ""
             if "cost" in ret_data:
                 cost_and_missing += ret_data["cost"]
@@ -2331,7 +2331,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 err_txt = emojis.redcross+" "+et
                 if len(cost_and_missing) > 0:
                     err_txt += "\n "+cost_and_warning
-                await interaction.edit_original_response(content=emojis.redcross+" "+err_txt)
+                await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))
