@@ -2948,10 +2948,8 @@ async def get_tw_alerts(guild_id, force_update):
 
     rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
     tw_id = rpc_data["tw_id"]
-    tw_summary = rpc_data["tw_summary"]
     if tw_id == None:
-        return 2, "", {"tw_id": tw_id, "alerts": [twChannel_id, None, None],
-                       "tw_summary": tw_summary}
+        return 2, "", {"tw_id": tw_id}
 
     tw_timestamp = tw_id.split(":")[1][1:]
 
@@ -3152,7 +3150,13 @@ async def get_tw_alerts(guild_id, force_update):
 
             list_tw_alerts[1]["Home:"+territory_name] = msg
 
-    return 0, "", {"tw_id": tw_id, "alerts": list_tw_alerts, "tw_summary": tw_summary}
+    ret_data = {"tw_id": tw_id, "alerts": list_tw_alerts}
+
+    # Manage case of tw ending data
+    if tw_summary in rpc_data and rpc_data["tw_summary"]!=None:
+        ret_data["tw_summary"] = rpc_data["tw_summary"]
+
+    return 0, "", ret_data
 
 ############################################
 # develop_teams
