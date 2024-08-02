@@ -633,6 +633,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
 # This function fills roster_evolutions
 #######################
 def detect_delta_datacron(allyCode, dtc1, dtc2):
+    dict_rules = data.get("targetrules_dict.json")
     if len(dtc1['affix'])<6 and len(dtc2['affix'])>=6:
         abilityId = dtc2["affix"][5]["abilityId"]
         targetRule = dtc2["affix"][5]["targetRule"]
