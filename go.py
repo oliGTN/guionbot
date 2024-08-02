@@ -2946,10 +2946,10 @@ async def get_tw_alerts(guild_id, force_update):
     if twChannel_id == 0:
         return 1, "ERR: salon discord non configuré", None
 
-    rpc_data = await connect_rpc.get_tw_status(guild_id, force_update)
-    tw_id = rpc_data["tw_id"]
+    ret_tw_status = await connect_rpc.get_tw_status(guild_id, force_update)
+    tw_id = ret_tw_status["tw_id"]
     if tw_id == None:
-        return 2, "", {"tw_id": tw_id}
+        return 2, "", {"tw_id": tw_id, "rpc": ret_tw_status["rpc"]}
 
     tw_timestamp = tw_id.split(":")[1][1:]
 
@@ -2958,8 +2958,8 @@ async def get_tw_alerts(guild_id, force_update):
     ########################################
     # OPPONENT territories
     ########################################
-    list_opponent_squads = rpc_data["awayGuild"]["list_defenses"]
-    list_opp_territories = rpc_data["awayGuild"]["list_territories"]
+    list_opponent_squads = ret_tw_status["awayGuild"]["list_defenses"]
+    list_opp_territories = ret_tw_status["awayGuild"]["list_territories"]
     if len(list_opponent_squads) > 0:
         list_opponent_players = [x[1] for x in list_opponent_squads]
         longest_opp_player_name = max(list_opponent_players, key=len)
@@ -3036,8 +3036,8 @@ async def get_tw_alerts(guild_id, force_update):
     ########################################
     # HOME territories
     ########################################
-    list_def_squads = rpc_data["homeGuild"]["list_defenses"]
-    list_def_territories = rpc_data["homeGuild"]["list_territories"]
+    list_def_squads = ret_tw_status["homeGuild"]["list_defenses"]
+    list_def_territories = ret_tw_status["homeGuild"]["list_territories"]
     list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
     nb_full = len(list_full_territories)
     if len(list_def_territories) > 0:
@@ -3150,11 +3150,12 @@ async def get_tw_alerts(guild_id, force_update):
 
             list_tw_alerts[1]["Home:"+territory_name] = msg
 
-    ret_data = {"tw_id": tw_id, "alerts": list_tw_alerts}
+    ret_data = {"tw_id": tw_id, "alerts": list_tw_alerts,
+                "rpc": ret_tw_status["rpc"]}
 
     # Manage case of tw ending data
-    if "tw_summary" in rpc_data and rpc_data["tw_summary"]!=None:
-        ret_data["tw_summary"] = rpc_data["tw_summary"]
+    if "tw_summary" in ret_tw_status and ret_tw_status["tw_summary"]!=None:
+        ret_data["tw_summary"] = ret_tw_status["tw_summary"]
 
     return 0, "", ret_data
 

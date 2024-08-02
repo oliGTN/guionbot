@@ -1946,7 +1946,6 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
 
     dict_tw=godata.dict_tw
 
-    #ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
     if with_attacks:
         event_types="TW"
     else:
@@ -1979,7 +1978,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
 
     goutils.log2("DBG", tw_id)
     if tw_id == None:
-        return {"tw_id": None}
+        return {"tw_id": None, "rpc": {"guild": dict_guild, "events": dict_events}}
 
     tw_summary = None
     if tw_round == 2:
@@ -2121,7 +2120,8 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
                                "list_attacks": list_attacks}, \
                  "opp_guildName": opp_guildName, \
                  "opp_guildId": opp_guildId, \
-                 "tw_summary": tw_summary}
+                 "tw_summary": tw_summary, \
+                 "rpc": {"guild": dict_guild, "events": dict_events}}
 
     return ret_dict
 

@@ -171,13 +171,16 @@ async def bot_loop_60secs(bot):
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
+        #######################################################################
         #UPDATE RPC data
+        #
         # update when the time since last update is greater than the period and the time is rounded
         # (15 min bots are updated only at :00, :15, :30...)
         query = "SELECT guild_id FROM guild_bot_infos "
         query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=(bot_period_min-1) "
         query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
         query+= "AND mod(minute(CURRENT_TIMESTAMP),bot_period_min)=0 "
+        query+= "AND NOT isnull(bot_allyCode) "
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_column(query)
         goutils.log2("DBG", "db_data: "+str(db_data))
@@ -273,27 +276,27 @@ async def bot_loop_5minutes(bot):
     goutils.log2("DBG", "START loop")
     t_start = time.time()
 
-    query = "SELECT guild_id FROM guild_bot_infos WHERE guild_id<>''"
+    query = "SELECT guild_id FROM guild_bot_infos WHERE NOT isnull(bot_allyCode)"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_column(query)
 
-    dict_tw_alerts = {}
     for guild_id in db_data:
         #################################
         # Manage TW alerts and start of TW
         #################################
         try:
             #CHECK ALERTS FOR TERRITORY WAR
-            ec, et, dict_tw_alerts = await go.get_tw_alerts(guild_id, -1)
+            ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
             goutils.log2("DBG", "["+guild_id+"] get_tw_alerts err_code="+str(ec))
             if ec == 0:
                 # TW ongoing
-                tw_id = dict_tw_alerts["tw_id"]
+                tw_id = ret_tw_alerts["tw_id"]
 
                 # Check event for TW start, and load opponent guild
                 swgohgg_opp_url = None
                 if not manage_events.exists("tw_start", guild_id, tw_id):
-                    ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
+                    #ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
+                    dict_guild = ret_tw_alerts["rpc"]["guild"]
                     goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
                     opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
 
@@ -309,7 +312,7 @@ async def bot_loop_5minutes(bot):
                     manage_events.create_event("tw_start", guild_id, tw_id)
 
                 # Display TW alerts, messages...
-                [channel_id, dict_messages, tw_ts] = dict_tw_alerts["alerts"]
+                [channel_id, dict_messages, tw_ts] = ret_tw_alerts["alerts"]
                 tw_bot_channel = bot.get_channel(channel_id)
 
                 if swgohgg_opp_url != None:
@@ -364,9 +367,9 @@ async def bot_loop_5minutes(bot):
                                     await old_msg.edit(content=msg_txt)
 
                 #TW end summary table
-                if "tw_summary" in dict_tw_alerts and dict_tw_alerts["tw_summary"]!=None:
+                if "tw_summary" in ret_tw_alerts and ret_tw_alerts["tw_summary"]!=None:
                     # Display player results
-                    tw_summary = dict_tw_alerts["tw_summary"]
+                    tw_summary = ret_tw_alerts["tw_summary"]
                     for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
                         await tw_bot_channel.send('`' + stxt + '`')
 
