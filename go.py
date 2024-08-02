@@ -3153,7 +3153,7 @@ async def get_tw_alerts(guild_id, force_update):
     ret_data = {"tw_id": tw_id, "alerts": list_tw_alerts}
 
     # Manage case of tw ending data
-    if tw_summary in rpc_data and rpc_data["tw_summary"]!=None:
+    if "tw_summary" in rpc_data and rpc_data["tw_summary"]!=None:
         ret_data["tw_summary"] = rpc_data["tw_summary"]
 
     return 0, "", ret_data
