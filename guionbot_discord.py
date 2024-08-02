@@ -364,7 +364,7 @@ async def bot_loop_5minutes(bot):
                                     await old_msg.edit(content=msg_txt)
 
                 #TW end summary table
-                if tw_summary in dict_tw_alerts and dict_tw_alerts["tw_summary"]!=None:
+                if "tw_summary" in dict_tw_alerts and dict_tw_alerts["tw_summary"]!=None:
                     # Display player results
                     tw_summary = dict_tw_alerts["tw_summary"]
                     for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
