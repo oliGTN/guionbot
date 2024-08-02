@@ -629,6 +629,32 @@ def detect_delta_roster_element(allyCode, char1, char2):
             log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
+#######################
+# This function fills roster_evolutions
+#######################
+def detect_delta_datacron(allyCode, dtc1, dtc2):
+    if len(dtc1['affix'])<6 and len(dtc2['affix'])>=6:
+        abilityId = dtc2["affix"][5]["abilityId"]
+        targetRule = dtc2["affix"][5]["targetRule"]
+        target = dict_rules[targetRule][0]
+        datacron_level_6 = abilityId+":"+target
+
+        evo_txt = "new datacron level 6 "+datacron_level_6
+        log2("DBG", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, None, evo_txt)
+
+    if len(dtc1['affix'])<9 and len(dtc2['affix'])>=9:
+        abilityId = dtc2["affix"][8]["abilityId"]
+        targetRule = dtc2["affix"][8]["targetRule"]
+        target = dict_rules[targetRule][0]
+        datacron_level_9 = abilityId+":"+target
+
+        evo_txt = "new datacron level 9 "+datacron_level_9
+        log2("DBG", defId+": "+evo_txt)
+        connect_mysql.insert_roster_evo(allyCode, None, evo_txt)
+
+
+###############################
 def roster_from_list_to_dict(dict_player):
     txt_allyCode = str(dict_player['allyCode'])
 
