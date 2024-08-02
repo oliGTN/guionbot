@@ -377,7 +377,7 @@ def insert_roster_evo(allyCode, defId, evo_txt):
         cursor = mysql_db.cursor(buffered=True)
 
         query = "INSERT INTO roster_evolutions(allyCode, defId, description) "\
-               +"VALUES("+str(allyCode)+", '"+defId+"', '"+evo_txt+"')"
+               +"VALUES("+str(allyCode)+", '"+str(defId)+"', '"+evo_txt+"')"
         goutils.log2("DBG", query)
         cursor.execute(query)
 
