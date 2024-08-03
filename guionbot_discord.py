@@ -301,10 +301,7 @@ async def bot_loop_5minutes(bot):
                     opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
 
                     #Fire and forget guild loading in the background
-                    # Need to put it into a queue to not block the rest of the loop processing
-                    # But threading does not work well with mysql
-                    #_thread = threading.Thread(target=asyncio.run, args=(go.load_guild_from_id(opp_guild_id, True, True),))
-                    #_thread.start()
+                    asyncio.create_task(go.load_guild_from_id(opp_guild_id, True, True))
 
                     #Display swgoh.gg link to opponent guild
                     swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id
