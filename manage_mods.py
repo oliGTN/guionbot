@@ -309,6 +309,12 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     if ec!=0:
         return ec, et, {}
 
+    # Get player credits
+    player_credits = 0
+    for currencyItem in initialdata["inventory"]["currencyItem"]:
+        if currencyItem["currency"] == "GRIND":
+            player_credits = currencyItem["quantity"]
+
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
     dict_player_mods = {}
@@ -336,7 +342,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
         dict_player_mods[mod_id] = {"unit_id": None, "slot": mod_slot, "rarity": mod_rarity}
 
     #Get the free space in mod inventory
-    #mod_inventory_spares = 500 - len(initialdata["inventory"]["unequippedMod"])
+    initial_inventory = len(initialdata["inventory"]["unequippedMod"])
+    mod_inventory_spares = 500 - initial_inventory
+
 
     #Get credits
     #player_credits = 0
@@ -345,7 +353,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     #        player_credits = currency["quantity"]
     #        break
 
-    max_unallocated = 0
+    max_inventory = 0
     unit_count = 0
     mod_add_count = 0
     unequip_cost = 0
@@ -454,7 +462,6 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
                     #print("unequip from "+prev_unit+": "+str(allocated_mod_rarity))
                     new_unequip_cost += unequip_cost_by_rarity[allocated_mod_rarity]
 
-
                 dict_player_mods[allocated_mod_id]["unit_id"] = target_char_defId
                 dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot] = allocated_mod_id
 
@@ -485,9 +492,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
         #manage max size required in mod inventory
-        unallocated_mods = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
-        if len(unallocated_mods)>max_unallocated:
-            max_unallocated = len(unallocated_mods)
+        cur_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
+        if len(cur_inventory) > max_inventory:
+            max_inventory = len(cur_inventory)
 
         unit_count = new_unit_count
         mod_add_count = new_mod_add_count
@@ -496,10 +503,15 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
         #remove done allocation "a" from the list
         mod_allocations.remove(a)
 
-    goutils.log2("INFO", "Max unallocated: "+str(max_unallocated))
+    goutils.log2("INFO", "Max inventory: "+str(max_inventory))
+    needed_inventory = max_inventory-initial_inventory
 
     if is_simu:
-        cost_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(max_unallocated)+" places nécessaires dans l'inventaire et "+str(unequip_cost)+" crédits."
+        cost_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(needed_inventory)+" places nécessaires dans l'inventaire et "+str(unequip_cost)+" crédits."
+        if max_inventory>500:
+            cost_txt += " ATTENTION : il faut faire "+str(max_inventory-500)+" places dans l'inventaire"
+        if unequip_cost>player_credits:
+            cost_txt += " ATTENTION : pas assez de crédits"
     else:
         cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
     
