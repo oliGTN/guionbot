@@ -356,7 +356,29 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
                               5: 4750,
                               6: 8000}
     missing_mods = {} #key=Unit_defId / value=amount of missing mods
-    for a in mod_allocations:
+
+    while(len(mod_allocations)>0):
+        #find best allocation (the one with most mods currently not allocated)
+        max_unallocated = 0
+        best_a = None
+        for a in mod_allocations:
+            a_unallocated = 0
+            for allocated_mod in a["mods"]:
+                allocated_mod_id = allocated_mod["id"]
+                if dict_player_mods[allocated_mod_id]["unit_id"] == None:
+                    a_unallocated += 1
+            if a_unallocated > max_unallocated:
+                max_unallocated = a_unallocated
+                best_a = a
+
+        if best_a ==None:
+            a = mod_allocations[0]
+        else:
+            a = best_a
+        goutils.log2("DBG", "len(mod_allocations): "+str(len(mod_allocations)))
+        goutils.log2("DBG", "best_a: "+str(best_a))
+
+        #do the job with the allocation a
         new_unit_count = unit_count
         new_mod_add_count = mod_add_count
         new_unequip_cost = unequip_cost
@@ -463,13 +485,16 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
         #manage max size required in mod inventory
-        #unallocated_mods = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
-        #if len(unallocated_mods)>max_unallocated:
-        #    max_unallocated = len(unallocated_mods)
+        unallocated_mods = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
+        if len(unallocated_mods)>max_unallocated:
+            max_unallocated = len(unallocated_mods)
 
         unit_count = new_unit_count
         mod_add_count = new_mod_add_count
         unequip_cost = new_unequip_cost
+
+        #remove done allocation "a" from the list
+        mod_allocations.remove(a)
 
     goutils.log2("INFO", "Max unallocated: "+str(max_unallocated))
 
