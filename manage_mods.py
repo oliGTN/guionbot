@@ -312,7 +312,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     # Get player credits
     player_credits = 0
     for currencyItem in initialdata["inventory"]["currencyItem"]:
-        if currencyItem["currency"] == "GRIND":
+        if "currency" in currencyItem and currencyItem["currency"] == "GRIND":
             player_credits = currencyItem["quantity"]
 
     #Create a dict of all mods for the player, by mod ID
@@ -506,16 +506,20 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
     goutils.log2("INFO", "Max inventory: "+str(max_inventory))
     needed_inventory = max_inventory-initial_inventory
 
+    ret_code = 0
+    ret_txt = ""
     if is_simu:
-        cost_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "+str(needed_inventory)+" places nécessaires dans l'inventaire et "+str(unequip_cost)+" crédits."
-        if max_inventory>500:
-            cost_txt += " ATTENTION : il faut faire "+str(max_inventory-500)+" places dans l'inventaire"
-        if unequip_cost>player_credits:
-            cost_txt += " ATTENTION : pas assez de crédits"
+        cost_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "
+        cost_txt+= str(needed_inventory)+" places nécessaires dans l'inventaire ("+str(500-initial_inventory)+" disponibles) "
+        cost_txt+= "et "+str(unequip_cost)+" crédits ("+str(player_credits)+" disponibles)."
+        if max_inventory>500 or unequip_cost>player_credits:
+            cost_txt += " ATTENTION : ça ne passe pas !"
+            ret_code = 1
+            ret_txt = "Simulation échouée"
     else:
         cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
     
-    return 0, "", {"cost": cost_txt, "missing": missing_mods}
+    return ret_code, ret_txt, {"cost": cost_txt, "missing": missing_mods}
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     #Get game mod data

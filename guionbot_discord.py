@@ -2424,7 +2424,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 err_txt = emojis.redcross+" "+et
                 if len(cost_and_missing) > 0:
                     err_txt += "\n "+cost_and_warning
-                await interaction.edit_original_response(content=emojis.redcross+" "+err_txt)
+                await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))
