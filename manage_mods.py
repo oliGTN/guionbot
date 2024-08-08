@@ -363,18 +363,29 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
                               4: 3000,
                               5: 4750,
                               6: 8000}
-    missing_mods = {} #key=Unit_defId / value=amount of missing mods
+    missing_mods = {} #key=Unit_defId / value=list of missing mods
 
     while(len(mod_allocations)>0):
         #find best allocation (the one with most mods currently not allocated)
         max_unallocated = 0
         best_a = None
         for a in mod_allocations:
+            target_char_defId = a["unit_id"]
             a_unallocated = 0
             for allocated_mod in a["mods"]:
                 allocated_mod_id = allocated_mod["id"]
+
+                if not allocated_mod_id in dict_player_mods:
+                    # This means that the conf is using a mod that the player does not have anymore
+                    # Add it to the list of warnings, and ignore it in the allocation
+                    if not target_char_defId in missing_mods:
+                        missing_mods[target_char_defId] = []
+                    missing_mods[target_char_defId] = list(set(missing_mods[target_char_defId]+[allocated_mod_id]))
+                    continue
+
                 if dict_player_mods[allocated_mod_id]["unit_id"] == None:
                     a_unallocated += 1
+
             if a_unallocated > max_unallocated:
                 max_unallocated = a_unallocated
                 best_a = a
@@ -420,10 +431,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
                 current_mod_unit = dict_player_mods[allocated_mod_id]["unit_id"]
             else:
                 # This means that the conf is using a mod that the player does noy have anymore
-                # Add it to the list of warnings, and ignore it in the allocation
-                if not target_char_defId in missing_mods:
-                    missing_mods[target_char_defId] = 0
-                missing_mods[target_char_defId] += 1
+                # ALready added to the list of warnings, still need to ignore it in the allocation
                 continue
 
             #print(target_char_defId)

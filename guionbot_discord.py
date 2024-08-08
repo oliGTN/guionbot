@@ -2315,7 +2315,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 cost_and_missing += ret_data["cost"]
             if "missing" in ret_data and len(ret_data["missing"])>0:
                 for unit in ret_data["missing"]:
-                    value=ret_data["missing"][unit]
+                    value=len(ret_data["missing"][unit])
                     if value==1:
                         cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
                     else:
@@ -2408,7 +2408,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 cost_and_missing += ret_data["cost"]
             if "missing" in ret_data and len(ret_data["missing"])>0:
                 for unit in ret_data["missing"]:
-                    value=ret_data["missing"][unit]
+                    value=len(ret_data["missing"][unit])
                     if value==1:
                         cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
                     else:
@@ -2433,32 +2433,38 @@ class ModsCog(commands.GroupCog, name="mods"):
 
     @app_commands.command(name="exporte-liste")
     async def export_modoptimizer(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+        try:
+            await interaction.response.defer(thinking=True)
 
-        channel_id = interaction.channel_id
+            channel_id = interaction.channel_id
 
-        #get allyCode
-        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-        allyCode = str(connect_mysql.get_value(query))
-        if allyCode == "None":
-            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
-            return
+            #get allyCode
+            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+            allyCode = str(connect_mysql.get_value(query))
+            if allyCode == "None":
+                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+                return
 
-        #Run the function
-        ec, et, dict_export = await manage_mods.get_modopti_export(allyCode)
+            #Run the function
+            ec, et, dict_export = await manage_mods.get_modopti_export(allyCode)
 
-        if ec != 0:
-            await interaction.edit_original_response(content=emojis.redcross+" "+et)
-        else:
-            export_path="/tmp/modoptiProgress_"+allyCode+".json"
-            export_file = open(export_path, "w")
-            print(type(dict_export))
-            export_txt = json.dumps(dict_export, indent=4)
-            export_file.write(export_txt)
-            export_file.close()
+            if ec != 0:
+                await interaction.edit_original_response(content=emojis.redcross+" "+et)
+            else:
+                export_path="/tmp/modoptiProgress_"+allyCode+".json"
+                export_file = open(export_path, "w")
+                print(type(dict_export))
+                export_txt = json.dumps(dict_export, indent=4)
+                export_file.write(export_txt)
+                export_file.close()
 
-            await interaction.edit_original_response(content=emojis.check+" fichier prêt", 
-                                                     attachments=[discord.File(export_path)])
+                await interaction.edit_original_response(content=emojis.check+" fichier prêt", 
+                                                         attachments=[discord.File(export_path)])
+
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
 ##############################################################
 # Class: AuthCog - for connected accounts
