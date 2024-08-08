@@ -188,6 +188,9 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
+    if "err_code" in guild_json:
+        return 1, guild_json["err_txt"], None
+
     if "guild" in guild_json:
         dict_guild = guild_json["guild"]
     else:
@@ -238,6 +241,9 @@ async def get_TBmapstats_data(guild_id, force_update):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if "err_code" in TBmapstats_json:
+        return 1, TBmapstats["err_txt"], None
 
     if "currentStat" in TBmapstats_json:
         dict_TBmapstats = TBmapstats_json["currentStat"]
@@ -310,6 +316,8 @@ async def get_event_data(dict_guild, event_types, force_update):
 
         #add received events to the whole list
         if resp_events!=None:
+            if "err_code" in resp_events:
+                return 1, resp_events["err_txt"], None
             list_rpc_events += resp_events['event']
 
         #---------------
@@ -352,6 +360,8 @@ async def get_event_data(dict_guild, event_types, force_update):
 
         #add received events to the whole list
         if resp_events!=None:
+            if "err_code" in resp_events:
+                return 1, resp_events["err_txt"], None
             list_rpc_events += resp_events['event']
 
         #---------------
@@ -388,6 +398,8 @@ async def get_event_data(dict_guild, event_types, force_update):
 
         #add received events to the whole list
         if resp_events!=None:
+            if "err_code" in resp_events:
+                return 1, resp_events["err_txt"], None
             list_rpc_events += resp_events['event']
 
         # GET latest ts for events
@@ -550,6 +562,9 @@ async def get_extguild_data_from_id(guild_id, use_cache_data):
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
+    if "err_code" in guild_json:
+        return 1, guild_json["err_txt"], None
+
     dict_guild = guild_json["guild"]
 
     return 0, "", dict_guild
@@ -573,6 +588,9 @@ async def get_extplayer_data(ac_or_id):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if "err_code" in dict_player:
+        return 1, dict_player["err_txt"], None
 
     return 0, "", dict_player
 
@@ -633,6 +651,9 @@ async def get_player_data(txt_allyCode, use_cache_data):
                 else:
                     return 1, "Cannot get player data from RPC", None
 
+    if "err_code" in dict_player:
+        return 1, dict_player["err_txt"], None
+
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
@@ -672,9 +693,6 @@ async def join_tw(guild_id):
                 if resp.status==200:
                     #normale case
                     rpc_response = await(resp.json())
-                    if rpc_response!=None and "err_code" in rpc_response:
-                        err_txt = rpc_response["err_txt"]
-                        return 1, "Erreur en rejoignant la GT - "+err_txt
                 elif resp.status==202:
                     return 0, "Aucune GT en cours"
                 else:
@@ -686,6 +704,10 @@ async def join_tw(guild_id):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if rpc_response!=None and "err_code" in rpc_response:
+        err_txt = rpc_response["err_txt"]
+        return 1, "Erreur en rejoignant la GT - "+err_txt
 
     return 0, "Le bot a rejoint la GT"
 
@@ -2405,7 +2427,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                 goutils.log2("DBG", "POST platoonsTB status="+str(resp.status))
                 if resp.status==200:
                     #normale case
-                    pass
+                    resp_json = await(resp.json())
                 elif resp.status==201:
                     return 1, "ERR: rien à déployer"
                 else:
@@ -2418,6 +2440,9 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
 
+    if resp_json!=None and "err_code" in resp_json:
+        return 1, resp_json["err_txt"], None
+
     return 0, player_name+" a posé "+str(deployed_defIds)+" en " + zone_id
 
 async def update_K1_players():
@@ -2429,7 +2454,7 @@ async def update_K1_players():
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "leaderboard status="+str(resp.status))
                 if resp.status==200:
-                    leaderboard_json = await(resp.json())
+                    resp_json = await(resp.json())
                 else:
                     return 1, "Cannot get leaderboard data from RPC", None
 
@@ -2440,6 +2465,10 @@ async def update_K1_players():
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
+    if resp_json!=None and "err_code" in resp_json:
+        return 1, resp_json["err_txt"], None
+
+    leaderboard_json = resp_json
     #Loop through plalers and add/update them
     for player in leaderboard_json["player"]:
         await go.load_player(player["id"], 0, False)
@@ -2604,10 +2633,8 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "updateMods status="+str(resp.status))
                 if resp.status==200:
-                    resp_data = await(resp.json())
+                    resp_json = await(resp.json())
 
-                    if "err_code" in resp_data:
-                        return resp_data["err_code"], resp_data["err_txt"]
                 elif resp.status==201:
                     return 1, "ERR: il faut au moins un mod à ajouter"
                 else:
@@ -2620,6 +2647,9 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
 
+    if "err_code" in resp_json:
+        return resp_json["err_code"], resp_json["err_txt"]
+
     return 0, ""
 
 async def get_metadata():
@@ -2631,7 +2661,7 @@ async def get_metadata():
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "get metadata status="+str(resp.status))
                 if resp.status==200:
-                    metadata = await(resp.json())
+                    resp_json = await(resp.json())
                 else:
                     return 1, "ERR during RPC metadata - code "+str(resp.status), None
 
@@ -2642,8 +2672,9 @@ async def get_metadata():
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
+    if "err_code" in resp_json:
+        return resp_json["err_code"], resp_json["err_txt"]
+
+    metadata = resp_json
     return 0, "", metadata
-
-
-
 
