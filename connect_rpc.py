@@ -651,15 +651,15 @@ async def get_player_data(txt_allyCode, use_cache_data):
                 else:
                     return 1, "Cannot get player data from RPC", None
 
-    if "err_code" in dict_player:
-        return 1, dict_player["err_txt"], None
-
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ClientConnectorError as e:
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if "err_code" in dict_player:
+        return 1, dict_player["err_txt"], None
 
     return 0, "", dict_player
 
