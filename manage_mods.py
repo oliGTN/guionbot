@@ -778,6 +778,14 @@ async def get_modopti_export(txt_allyCode):
 
         ######################
         # BASE STATS
+        
+        # clean base stats
+        remove_s = []
+        for s in player_unit["stats"]["base"]:
+            if player_unit["stats"]["base"][s] == None:
+                remove_s.append(s)
+        for s in remove_s:
+            del player_unit["stats"]["base"][s]
 
         modopti_unit["playerValues"]["baseStats"] = {}
         if "1" in player_unit["stats"]["base"]:
