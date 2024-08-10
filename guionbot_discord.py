@@ -2300,6 +2300,8 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
                 return
 
+            goutils.log2("INFO", "mods.modoptimizer("+allyCode+", simu="+str(simulation)+")")
+
             #Run the function
             file_content = await fichier.read()
             try:
@@ -2341,6 +2343,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             goutils.log2("ERR", str(sys.exc_info()[0]))
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="enregistre-conf")
     @app_commands.rename(conf_name="nom-conf")
@@ -2358,6 +2361,8 @@ class ModsCog(commands.GroupCog, name="mods"):
         if allyCode == "None":
             await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
             return
+
+        goutils.log2("INFO", "mods.save_conf("+allyCode+", conf_name="+conf_name+", persos="+list_alias_txt+")")
 
         #transform list_alias parameter into list
         list_alias = list_alias_txt.split(" ")
@@ -2403,6 +2408,8 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
                 return
 
+            goutils.log2("INFO", "mods.apply_conf("+allyCode+", conf_name="+conf_name+", simu="+str(simulation)+")")
+
             #Run the function
             ec, et, ret_data = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
 
@@ -2438,6 +2445,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             goutils.log2("ERR", str(sys.exc_info()[0]))
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="exporte-liste")
     async def export_modoptimizer(self, interaction: discord.Interaction):
@@ -2452,6 +2460,8 @@ class ModsCog(commands.GroupCog, name="mods"):
             if allyCode == "None":
                 await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
                 return
+
+            goutils.log2("INFO", "mods.export_modoptimizer("+allyCode+")")
 
             #Run the function
             ec, et, dict_export = await manage_mods.get_modopti_export(allyCode)
@@ -2473,6 +2483,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             goutils.log2("ERR", str(sys.exc_info()[0]))
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
 # Class: AuthCog - for connected accounts
