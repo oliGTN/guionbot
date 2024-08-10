@@ -2326,11 +2326,15 @@ class ModsCog(commands.GroupCog, name="mods"):
                 txt = emojis.check+" "+ cost_and_missing
                 if simulation:
                     txt = "[SIMULATION]"+txt
+                if len(txt)>1000:
+                    txt=txt[:1000]+"..."
                 await interaction.edit_original_response(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
                 if len(cost_and_missing) > 0:
                     err_txt += "\n "+cost_and_missing
+                if len(err_txt)>1000:
+                    err_txt=err_txt[:1000]+"..."
                 await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
@@ -2419,11 +2423,15 @@ class ModsCog(commands.GroupCog, name="mods"):
                 txt = emojis.check+" "+ cost_and_missing
                 if simulation:
                     txt = "[SIMULATION]"+txt
+                if len(txt)>1000:
+                    txt=txt[:1000]+"..."
                 await interaction.edit_original_response(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
                 if len(cost_and_missing) > 0:
                     err_txt += "\n "+cost_and_missing
+                if len(err_txt)>1000:
+                    err_txt=err_txt[:1000]+"..."
                 await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
