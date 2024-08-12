@@ -710,18 +710,19 @@ async def update_player(dict_player):
             #SLEEP at the end of character loop
             await asyncio.sleep(0)
                 
-        #Get existing datacron IDs from DB
-        query = "SELECT id FROM datacrons WHERE allyCode = "+str(p_allyCode)
-        goutils.log2("DBG", query)
-        previous_datacrons_ids = get_column(query)
-        goutils.log2("DBG", previous_datacrons_ids)
-
         ## GET DEFINITION OF DATACRONS ##
-        current_datacrons_ids = []
         if 'datacron' in dict_player:
+            #Get existing datacron IDs from DB
+            query = "SELECT id FROM datacrons WHERE allyCode = "+str(p_allyCode)
+            goutils.log2("DBG", query)
+            previous_datacrons_ids = get_column(query)
+            goutils.log2("DBG", previous_datacrons_ids)
+
+            current_datacrons_ids = []
             for datacron_id in dict_player['datacron']:
                 datacron = dict_player['datacron'][datacron_id]
                 datacron_setId = datacron['setId']
+                current_datacrons_ids.append(datacron_id)
 
                 datacron_level_3 = None
                 datacron_level_6 = None
@@ -746,7 +747,6 @@ async def update_player(dict_player):
                         target = dict_rules[targetRule][0]
                         datacron_level_9 = abilityId+":"+target
 
-                current_datacrons_ids.append(datacron_id)
         
                 query = "INSERT IGNORE INTO datacrons(id) "\
                        +"VALUES('"+datacron_id+"')"
@@ -763,12 +763,15 @@ async def update_player(dict_player):
                 goutils.log2("DBG", query)
                 cursor.execute(query)
 
-        #remove datacrons not used anymore
-        to_be_removed_datacrons_ids = tuple(set(previous_datacrons_ids)-set(current_datacrons_ids))
-        if len(to_be_removed_datacrons_ids) > 0:
-            query = "DELETE FROM datacrons WHERE id IN "+ str(tuple(to_be_removed_datacrons_ids)).replace(",)", ")")
-            goutils.log2("DBG", query)
-            cursor.execute(query)
+            #remove datacrons not used anymore
+            # The removal of datacrons is only done if there was at least ONE change
+            # In case of ONE change, all datacrons are removed and re-added
+            # This is more simpler than managing a real delta processing
+            to_be_removed_datacrons_ids = tuple(set(previous_datacrons_ids)-set(current_datacrons_ids))
+            if len(to_be_removed_datacrons_ids) > 0:
+                query = "DELETE FROM datacrons WHERE id IN "+ str(tuple(to_be_removed_datacrons_ids)).replace(",)", ")")
+                goutils.log2("DBG", query)
+                cursor.execute(query)
 
 
 
