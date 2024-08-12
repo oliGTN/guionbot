@@ -5400,7 +5400,8 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
         if not "datacron" in player:
             continue
 
-        for dtc in player["datacron"]:
+        for dtcid in player["datacron"]:
+            dtc=player["datacron"][dtcid]
             lvl6 = None
             lvl9 = None
             if not "affix" in dtc:
