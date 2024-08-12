@@ -277,7 +277,7 @@ async def load_player(ac_or_id, force_update, no_db):
             # store json file
             json_file = "PLAYERS/"+playerId+".json"
             fjson = open(json_file, 'w')
-            fjson.write(json.dumps(dict_player, sort_keys=True, indent=4))
+            fjson.write(json.dumps(dict_player, indent=4))
             fjson.close()
 
             # update DB
@@ -342,7 +342,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request):
     # store json file
     json_file = "GUILDS/"+guild_id+".json"
     fjson = open(json_file, 'w')
-    fjson.write(json.dumps(dict_guild, sort_keys=True, indent=4))
+    fjson.write(json.dumps(dict_guild, indent=4))
     fjson.close()
 
     #Get guild data from DB
