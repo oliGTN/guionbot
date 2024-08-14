@@ -2330,14 +2330,20 @@ class ModsCog(commands.GroupCog, name="mods"):
                     txt = "[SIMULATION]"+txt
                 if len(txt)>1000:
                     txt=txt[:1000]+"..."
-                await interaction.edit_original_response(content=txt)
+                try:
+                    await interaction.edit_original_response(content=txt)
+                except discord.errors.HTTPEcception as e:
+                    await interaction.message.channel.send(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
                 if len(cost_and_missing) > 0:
                     err_txt += "\n "+cost_and_missing
                 if len(err_txt)>1000:
                     err_txt=err_txt[:1000]+"..."
-                await interaction.edit_original_response(content=err_txt)
+                try:
+                    await interaction.edit_original_response(content=err_txt)
+                except discord.errors.HTTPEcception as e:
+                    await interaction.message.channel.send(content=err_txt)
 
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))
