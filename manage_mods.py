@@ -295,7 +295,7 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
 #  by max size inventory
 # One command per unit, listing all the mods to add and all the mods to remove
 ##########################
-async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
+async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=None):
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
 
@@ -305,9 +305,10 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
         return 1, "ERR: "+t, {}
 
     #Get player API initialdata
-    ec, et, initialdata = await connect_rpc.get_player_initialdata(allyCode)
-    if ec!=0:
-        return ec, et, {}
+    if initialdata==None:
+        ec, et, initialdata = await connect_rpc.get_player_initialdata(allyCode)
+        if ec!=0:
+            return ec, et, {}
 
     # Get player credits
     player_credits = 0
@@ -409,7 +410,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu):
         target_char_level = dict_player["rosterUnit"][target_char_defId]["currentLevel"]
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
-            return ec, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods}
+            return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods}
 
         mods_to_add = [] # list of mod IDs to be added to this unit
         mods_to_remove = [] # list of mod IDs to be removed from this unit
@@ -649,7 +650,7 @@ def get_mod_config(conf_name, txt_allyCode):
 
     return 0, "", mod_allocations
 
-async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu):
+async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu, initialdata=None):
     modopti_progress = json.loads(modopti_content)
 
     # a json may contain several profiles
@@ -690,7 +691,7 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu)
         mod_allocations.append(mod_allocation)
 
     #Apply modifications
-    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
+    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu, initialdata=initialdata)
 
 async def apply_config_allocations(config_name, txt_allyCode, is_simu):
     e, t, mod_allocations = get_mod_config(config_name, txt_allyCode)
