@@ -346,15 +346,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
     initial_inventory = len(initialdata["inventory"]["unequippedMod"])
     mod_inventory_spares = 500 - initial_inventory
 
-
-    #Get credits
-    #player_credits = 0
-    #for currency in initialdata["inventory"]["currencyItem"]:
-    #    if currency["currency"]=="GRIND":
-    #        player_credits = currency["quantity"]
-    #        break
-
-    max_inventory = 0
+    max_inventory = initial_inventory
     unit_count = 0
     mod_add_count = 0
     unequip_cost = 0
