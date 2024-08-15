@@ -456,6 +456,7 @@ def get_image_from_eqpt_id(eqpt_id):
                        12: "#f1c752"}
 
     eqpt_img_name = 'IMAGES'+os.path.sep+'EQUIPMENT'+os.path.sep+eqpt_id+'.png'
+    print(eqpt_img_name)
     if not os.path.exists(eqpt_img_name):
         eqpt_asset_id = dict_eqpt[eqpt_id]["iconKey"]
         if "tier" in dict_eqpt[eqpt_id]:
@@ -472,12 +473,15 @@ def get_image_from_eqpt_id(eqpt_id):
         img = Image.open(io.BytesIO(r.content))
         img = img.resize((34,34)) #should not be useful, but safety net
 
-        #Create background with color of the tier
+        #Create image with background as color of the tier
         colored_eqpt = Image.new("RGBA", (40,40), dict_tier_color[eqpt_tier])
-
-        #put gear image in the center
-        colored_eqpt.paste(img, (3, 3))
         img_draw = ImageDraw.Draw(colored_eqpt)
+
+        #Draw black rectangle in the middle
+        img_draw.rectangle((3,3,37,37), fill=(0,0,0))
+
+        #put gear image (potentially with transparency) in the center
+        colored_eqpt.paste(img, (3, 3), img)
 
         #put Mk at top right
         mk_size = font8.getsize(eqpt_mk)
@@ -499,7 +503,8 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
     image_draw = ImageDraw.Draw(image)
 
     # PASTE (image, position, mask)
-    image.paste(get_image_from_eqpt_id(eqpt_id), (5,5), get_image_from_eqpt_id(eqpt_id))
+    eqpt_img = get_image_from_eqpt_id(eqpt_id)
+    image.paste(eqpt_img, (5,5), eqpt_img)
     eqpt_nameKey = dict_eqpt[eqpt_id]["nameKey"]
     eqpt_name = FRE_FR[eqpt_nameKey]
     eqpt_words = eqpt_name.split(" ")

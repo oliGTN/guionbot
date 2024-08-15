@@ -5067,10 +5067,8 @@ def get_needed_eqpt(dict_player, list_units):
         #####################
         # RELIC equipment
         #####################
-        print(unit_relic, target_relic)
         if unit_relic < target_relic:
             for i_relic in range(unit_relic+1, target_relic+1):
-                print(i_relic)
                 relic_recipe = dict_relic[str(i_relic)]
                 for eqpt in relic_recipe:
                     if not eqpt in needed_eqpt:
