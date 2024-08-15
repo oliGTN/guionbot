@@ -473,7 +473,7 @@ def get_image_from_eqpt_id(eqpt_id):
         img = img.resize((34,34)) #should not be useful, but safety net
 
         #Create background with color of the tier
-        colored_eqpt = Image.new("RGB", (40,40), dict_tier_color[eqpt_tier])
+        colored_eqpt = Image.new("RGBA", (40,40), dict_tier_color[eqpt_tier])
 
         #put gear image in the center
         colored_eqpt.paste(img, (3, 3))
