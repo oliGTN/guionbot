@@ -521,8 +521,7 @@ def delta_dict_player(dict1, dict2):
 
         # In case of ONE change, all datacrons are removed and re-added
         # This is more simpler than managing a real delta processing
-        #if change_in_datacrons:
-        if True: #TEMPORARY until all datacrons are in DB
+        if change_in_datacrons:
             delta_dict['datacron'] = dict2['datacron']
 
     return delta_dict
