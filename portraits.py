@@ -157,7 +157,7 @@ def add_vertical(img1, img2):
 
     w1, h1 = img1.size
     w2, h2 = img2.size
-    image = Image.new('RGB', (max(w1, w2), h1+h2), (0,0,0))
+    image = Image.new('RGBA', (max(w1, w2), h1+h2), (0,0,0))
     image.paste(img1, (0, 0))
     image.paste(img2, (0, h1))
 
@@ -172,7 +172,7 @@ def add_horizontal(img1, img2):
 
     w1, h1 = img1.size
     w2, h2 = img2.size
-    image = Image.new('RGB', (w1+w2, max(h1,h2)), (0,0,0))
+    image = Image.new('RGBA', (w1+w2, max(h1,h2)), (0,0,0))
     image.paste(img1, (0, 0))
     image.paste(img2, (w1, 0))
 
@@ -207,7 +207,7 @@ def get_image_from_unit(character, crew_units, game_mode):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_capas = data.get("unit_capa_list.json")
 
-    portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
+    portrait_image = Image.new('RGBA', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
     portrait_draw = ImageDraw.Draw(portrait_image)
     
     #Get basic image of character
@@ -218,7 +218,7 @@ def get_image_from_unit(character, crew_units, game_mode):
     
     if "locked" in character and character["locked"]:
         #character is invalid, display it in red
-        red_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
+        red_img = Image.new('RGBA', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'red')
         portrait_image = Image.blend(portrait_image, red_img, 0.5)
         return portrait_image
 
@@ -335,7 +335,7 @@ def get_image_from_unit(character, crew_units, game_mode):
     # Display of crew is always done with game_mode=""
     if 'reserved' in character and game_mode=="TW":
         if character['reserved']:
-            orange_img = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'orange')
+            orange_img = Image.new('RGBA', (PORTRAIT_SIZE, PORTRAIT_SIZE), 'orange')
             portrait_image = Image.blend(portrait_image, orange_img, 0.5)
 
     return portrait_image
@@ -394,7 +394,7 @@ def get_image_from_units(list_characters, player_name, tw_territory="", omicron_
     if tw_territory != '':
         tw_img = Image.open('IMAGES'+os.path.sep+'TW'+os.path.sep+tw_territory+'.png')
         tw_img.resize((120, 120))
-        tw_portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
+        tw_portrait_image = Image.new('RGBA', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
         tw_portrait_image.paste(tw_img, (24, 24))
         list_portrait_images = [tw_portrait_image] + list_portrait_images
 
@@ -408,14 +408,14 @@ def get_image_from_units(list_characters, player_name, tw_territory="", omicron_
         line_image_draw.line([(0,0),(w,0)], fill="white", width=0)
         image_all_portraits = add_vertical(image_all_portraits, line_image)
         if len(list_portrait_images) > MAX_WIDTH_PORTRAITS:
-            empty_portrait_image = Image.new('RGB', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
+            empty_portrait_image = Image.new('RGBA', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
             list_portrait_images = [empty_portrait_image] + list_portrait_images[MAX_WIDTH_PORTRAITS:]
         else:
             list_portrait_images = []
 
     complete_player_name = player_name + " - " + str(total_gp)
     w_txt, h_txt = font24.getsize(complete_player_name)
-    name_img = Image.new('RGB', (w_txt+20, NAME_HEIGHT), (0,0,0))
+    name_img = Image.new('RGBA', (w_txt+20, NAME_HEIGHT), (0,0,0))
     name_draw = ImageDraw.Draw(name_img)
     name_draw.text((10,5), complete_player_name, (255, 255, 255), font=font24)
 
@@ -495,7 +495,7 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
     dict_eqpt = data.get("eqpt_dict.json")
     FRE_FR = data.get("FRE_FR.json")
 
-    image = Image.new('RGB', (400, 50), (0,0,0))
+    image = Image.new('RGBA', (400, 50), (0,0,0))
     image_draw = ImageDraw.Draw(image)
 
     image.paste(get_image_from_eqpt_id(eqpt_id), (5,5))
