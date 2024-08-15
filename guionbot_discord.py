@@ -2346,8 +2346,6 @@ class ModsCog(commands.GroupCog, name="mods"):
                     await interaction.message.channel.send(content=err_txt)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
@@ -2381,6 +2379,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         else:
             await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
+    # Function used to get dynamic parameters in applique-conf and delete-conf
     async def list_player_configurations(self, interaction: discord.Interaction, current: str):
         user_id = interaction.channel.id
 
@@ -2448,8 +2447,48 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
+    @app_commands.command(name="supprime-conf")
+    @app_commands.rename(conf_name="nom-conf")
+    @app_commands.autocomplete(conf_name=list_player_configurations)
+    async def delete_conf(self, interaction: discord.Interaction,
+                         conf_name: str):
+        try:
+            await interaction.response.defer(thinking=True)
+
+            channel_id = interaction.channel_id
+
+            #get allyCode
+            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
+            allyCode = str(connect_mysql.get_value(query))
+            if allyCode == "None":
+                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+                return
+
+            goutils.log2("INFO", "mods.delete_conf("+allyCode+", conf_name="+conf_name+")")
+
+            #Run the function
+            query = "SELECT id FROM mod_config_list WHERE allyCode="+str(allyCode)+" AND name='"+conf_name+"'"
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_value(query)
+            if db_data==None:
+                await interaction.edit_original_response(content=emojis.redcross+" configuration inconnue")
+                return
+            config_id = db_data
+
+            query = "DELETE FROM mod_config_content WHERE config_id="+str(config_id)
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.simple_execute(query)
+
+            query = "DELETE FROM mod_config_list WHERE id="+str(config_id)
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.simple_execute(query)
+
+            await interaction.edit_original_response(content=emojis.check+" configuration effacée")
+
+        except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
