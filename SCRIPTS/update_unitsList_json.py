@@ -18,17 +18,17 @@ for material in game_data["material"]:
 
 ####################
 #add custom data
-#my_unit = {"baseId": "JARJAR",
-#           "nameKey":"UNIT_JARJAR_NAME",    # the key is defined a few lines below
-#           "combatType":1,                  # 1: char / 2: ship
-#           "rarity":7,
-#           "maxRarity":7,
-#           "obtainableTime":"0",
-#           "obtainable":True,
-#           "categoryId":["any_obtainable"]}
-#game_data["units"].append(my_unit)
-#FRE_FR["UNIT_JARJAR_NAME"] = "Jar Jar"
-#ENG_US["UNIT_JARJAR_NAME"] = "Jar Jar"
+my_unit = {"baseId": "GLAHSOKA",
+           "nameKey":"UNIT_GLAHSOKA_NAME",    # the key is defined a few lines below
+           "combatType":1,                  # 1: char / 2: ship
+           "rarity":7,
+           "maxRarity":7,
+           "obtainableTime":"0",
+           "obtainable":True,
+           "categoryId":["any_obtainable"]}
+game_data["units"].append(my_unit)
+FRE_FR["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
+ENG_US["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
 ####################
 
 unitsList_dict = {}
