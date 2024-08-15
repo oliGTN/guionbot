@@ -498,7 +498,8 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
     image = Image.new('RGBA', (400, 50), (0,0,0))
     image_draw = ImageDraw.Draw(image)
 
-    image.paste(get_image_from_eqpt_id(eqpt_id), (5,5))
+    # PASTE (image, position, mask)
+    image.paste(get_image_from_eqpt_id(eqpt_id), (5,5), image.paste(get_image_from_eqpt_id(eqpt_id))
     eqpt_nameKey = dict_eqpt[eqpt_id]["nameKey"]
     eqpt_name = FRE_FR[eqpt_nameKey]
     eqpt_words = eqpt_name.split(" ")
