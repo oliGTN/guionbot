@@ -2336,10 +2336,11 @@ class ModsCog(commands.GroupCog, name="mods"):
                     await interaction.message.channel.send(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
-                if len(cost_and_missing) > 0:
-                    err_txt += "\n "+cost_and_missing
-                if len(err_txt)>1000:
-                    err_txt=err_txt[:1000]+"..."
+                if not simulation:
+                    if len(cost_and_missing) > 0:
+                        err_txt += "\n "+cost_and_missing
+                    if len(err_txt)>1000:
+                        err_txt=err_txt[:1000]+"..."
                 try:
                     await interaction.edit_original_response(content=err_txt)
                 except discord.errors.HTTPEcception as e:
@@ -2440,10 +2441,11 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
-                if len(cost_and_missing) > 0:
-                    err_txt += "\n "+cost_and_missing
-                if len(err_txt)>1000:
-                    err_txt=err_txt[:1000]+"..."
+                if not simulation:
+                    if len(cost_and_missing) > 0:
+                        err_txt += "\n "+cost_and_missing
+                    if len(err_txt)>1000:
+                        err_txt=err_txt[:1000]+"..."
                 await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
