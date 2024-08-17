@@ -2332,7 +2332,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     txt=txt[:1000]+"..."
                 try:
                     await interaction.edit_original_response(content=txt)
-                except discord.errors.HTTPEcception as e:
+                except discord.errors.HTTPException as e:
                     await interaction.message.channel.send(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
@@ -2343,7 +2343,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                         err_txt=err_txt[:1000]+"..."
                 try:
                     await interaction.edit_original_response(content=err_txt)
-                except discord.errors.HTTPEcception as e:
+                except discord.errors.HTTPException as e:
                     await interaction.message.channel.send(content=err_txt)
 
         except Exception as e:
