@@ -2303,7 +2303,10 @@ class ModsCog(commands.GroupCog, name="mods"):
             goutils.log2("INFO", "mods.modoptimizer("+allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
 
             #Run the function
-            file_savename = "PLAYERDATA/"+allyCode+"/modoptimizer_input.json"
+            player_path = "PLAYERDATA/"+allyCode
+            if not os.path.isdir(player_path):
+                os.mkdir(player_path)
+            file_savename = player_path+"/modoptimizer_input.json"
             await fichier.save(file_savename)
             file_content = await fichier.read()
             try:
@@ -2338,7 +2341,10 @@ class ModsCog(commands.GroupCog, name="mods"):
                     await interaction.message.channel.send(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
-                if not simulation:
+
+                # error happening in the middle of a simulation does not display cost
+                # simulation going to its end but failing displays cost
+                if not simulation or ec==2:
                     if len(cost_and_missing) > 0:
                         err_txt += "\n "+cost_and_missing
                     if len(err_txt)>1000:
