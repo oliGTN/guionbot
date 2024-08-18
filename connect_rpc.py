@@ -2166,7 +2166,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
     return ret_dict
 
 async def get_tw_active_players(guild_id, force_update, allyCode=None):
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=None)
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
     if ec!=0:
         return 1, et, None
 

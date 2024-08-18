@@ -1226,7 +1226,7 @@ def get_warbot_info(server_id, channel_id):
             return 1, "Pas de warbot trouvé pour ce serveur", None
     
     return 0, "", {"guild_id": db_data[0],
-                   "allyCode": db_data[1],
+                   "allyCode": str(db_data[1]),
                    "player_name": db_data[2],
                    "tbChanRead_id": db_data[3],
                    "tbChanOut_id": db_data[4],
@@ -1247,7 +1247,7 @@ def get_warbot_info_from_guild(guild_id):
         return 1, "Pas de warbot trouvé pour cette guilde", None
 
     return 0, "", {"guild_id": db_data[0],
-                   "allyCode": db_data[1],
+                   "allyCode": str(db_data[1]),
                    "player_name": db_data[2],
                    "tbChanRead_id": db_data[3],
                    "tbChanOut_id": db_data[4],
