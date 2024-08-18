@@ -149,7 +149,7 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
         else: #force_update==0
             use_cache_data = ispriority_cache_bot_account(bot_account)
 
-        elif force_update == -1:
+    return await get_guild_data_from_ac(bot_allyCode, use_cache_data)
 
 ##############################################
 # AUTH functions
