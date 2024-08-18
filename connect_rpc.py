@@ -79,11 +79,23 @@ async def lock_bot_account(guild_id):
 async def unlock_bot_account(guild_id):
     return await lock_bot_account_until(guild_id, 0)
 
-def islocked_bot_account(guildName):
-    dict_bot_accounts = get_dict_bot_accounts()
-    locked_until_ts = datetime.datetime.timestamp(dict_bot_accounts[guildName]["LockedUntil"])
-    is_locked = int(locked_until_ts) > int(time.time())
-    return is_locked
+def islocked_bot_account(bot_allyCode):
+    query = "SELECT (bot_locked_until>CURRENT_TIMESTAMP) FROM guild_bot_infos WHERE bot_allyCode="+str(bot_allyCode)
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_value(query)
+    if db_data == None:
+        return 0
+    else:
+        return db_data
+
+def ispriority_cache_bot_account(bot_allyCode):
+    query = "SELECT priority_cache FROM guild_bot_infos WHERE bot_allyCode="+str(bot_allyCode)
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_value(query)
+    if db_data == None:
+        return 0
+    else:
+        return db_data
 
 ########################################################
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
@@ -114,27 +126,30 @@ async def get_guild_rpc_data(guild_id, event_types, force_update):
 
 #########################################
 # Get full guild data, using the bot account
-async def get_guild_data_from_id(guild_id, force_update):
-    dict_bot_accounts = get_dict_bot_accounts()
-    if not guild_id in dict_bot_accounts:
-        return 1, "Ce serveur discord n'a pas de warbot", None
+async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
+    if allyCode == None:
+        dict_bot_accounts = get_dict_bot_accounts()
+        if not guild_id in dict_bot_accounts:
+            return 1, "Ce serveur discord n'a pas de warbot", None
 
-    bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
-    goutils.log2("DBG", "bot account for "+guild_id+" is "+bot_allyCode)
+        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
+    else:
+        bot_allyCode = allyCode
+    goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
 
     #locking bot has priority. Cannot be overriden
-    if islocked_bot_account(guild_id):
+    if islocked_bot_account(bot_allyCode):
         use_cache_data = True
-        goutils.log2("WAR", "the bot account is being used... using cached data")
+        goutils.log2("WAR", "the connected account is being used... using cached data")
     else:
         if force_update == 1:
             use_cache_data = False
         elif force_update == -1:
             use_cache_data = True
         else: #force_update==0
-            use_cache_data = bool(dict_bot_accounts[guild_id]["priority_cache"])
+            use_cache_data = ispriority_cache_bot_account(bot_account)
 
-    return await get_guild_data_from_ac(bot_allyCode, use_cache_data)
+        elif force_update == -1:
 
 ##############################################
 # AUTH functions
@@ -207,7 +222,7 @@ async def get_TBmapstats_data(guild_id, force_update):
     goutils.log2("DBG", "bot account for "+guild_id+" is "+bot_allyCode)
 
     #locking bot has priority. Cannot be overriden
-    if islocked_bot_account(guild_id):
+    if islocked_bot_account(bot_allyCode):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
     else:
@@ -216,7 +231,7 @@ async def get_TBmapstats_data(guild_id, force_update):
         elif force_update == -1:
             use_cache_data = True
         else: #force_update==0
-            use_cache_data = bool(dict_bot_accounts[guild_id]["priority_cache"])
+            use_cache_data = ispriority_cache_bot_account(bot_account)
 
     # RPC REQUEST for TBmapstats
     url = "http://localhost:8000/TBmapstats"
@@ -263,7 +278,7 @@ async def get_event_data(dict_guild, event_types, force_update):
     goutils.log2("DBG", "bot account for "+guild_id+" is "+bot_allyCode)
 
     #locking bot has priority. Cannot be overriden
-    if islocked_bot_account(guild_id):
+    if islocked_bot_account(bot_allyCode):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
     else:
@@ -272,7 +287,7 @@ async def get_event_data(dict_guild, event_types, force_update):
         elif force_update == -1:
             use_cache_data = True
         else: #force_update==0
-            use_cache_data = bool(dict_bot_accounts[guild_id]["priority_cache"])
+            use_cache_data = ispriority_cache_bot_account(bot_account)
 
     if len(event_types) > 0:
         list_rpc_events = []
@@ -630,7 +645,7 @@ async def get_bot_player_data(guild_id, use_cache_data):
 
     # Manage cache
     use_cache_data = False
-    if islocked_bot_account(guild_id):
+    if islocked_bot_account(bot_allyCode):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
@@ -2147,8 +2162,8 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
 
     return ret_dict
 
-async def get_tw_active_players(guild_id, force_update):
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
+async def get_tw_active_players(guild_id, force_update, allyCode=None):
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=None)
     if ec!=0:
         return 1, et, None
 
@@ -2478,7 +2493,7 @@ async def update_K1_players():
 # IN: guild ID
 # OUT: {"player name": [gnd attacks, gnd victories, ship attacks, ship victories, defense], ...}
 ####################################################
-async def get_tw_participation(guild_id, force_update):
+async def get_tw_participation(guild_id, force_update, allyCode=None):
     dict_tw = godata.dict_tw
 
     err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update)

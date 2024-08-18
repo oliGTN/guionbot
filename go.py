@@ -4799,8 +4799,8 @@ async def detect_fulldef(guild_id, force_update):
     return 0, "", dict_fulldef
 
 # OUT: 1 > error | 2 > missing arguments
-async def get_tw_insufficient_attacks(guild_id, args):
-    ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
+async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
+    ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0, allyCode=allyCode)
     if ec != 0:
         return ec, et, None
     list_active_players = ret_dict["active"]
@@ -4820,7 +4820,7 @@ async def get_tw_insufficient_attacks(guild_id, args):
     min_ship_attacks = int(args[1])
 
     # Called with use_cache_data = -1 as RPC call was just made in get_tw_active
-    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1)
+    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1, allyCode=allyCode)
     if ec != 0:
         return ec, et, None
 
