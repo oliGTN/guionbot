@@ -2300,9 +2300,11 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
                 return
 
-            goutils.log2("INFO", "mods.modoptimizer("+allyCode+", simu="+str(simulation)+")")
+            goutils.log2("INFO", "mods.modoptimizer("+allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
 
             #Run the function
+            file_savename = "PLAYERDATA/"+allyCode+"/modoptimizer_input.json"
+            await fichier.save(file_savename)
             file_content = await fichier.read()
             try:
                 html_content = file_content.decode('utf-8')
