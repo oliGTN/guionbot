@@ -2449,7 +2449,10 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=txt)
             else:
                 err_txt = emojis.redcross+" "+et
-                if not simulation:
+
+                # error happening in the middle of a simulation does not display cost
+                # simulation going to its end but failing displays cost
+                if not simulation or ec==2:
                     if len(cost_and_missing) > 0:
                         err_txt += "\n "+cost_and_missing
                     if len(err_txt)>1000:
