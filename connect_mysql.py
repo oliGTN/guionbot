@@ -1201,7 +1201,7 @@ def get_warbot_info(server_id, channel_id):
 
     if db_data == None:
         if channel_id != None:
-            #no warbot found from server, try it from the channel
+            #no warbot found from server, try it from the channel as test channel
             query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
             query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
             query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
@@ -1211,7 +1211,17 @@ def get_warbot_info(server_id, channel_id):
             db_data = get_line(query)
 
             if db_data == None:
-                return 1, "Pas de warbot trouvé, ni pour ce serveur, ni pour ce channel", None
+                #no warbot found as test channel, try it from connected user
+                query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
+                query+= "JOIN players ON players.guildId=guild_bot_infos.guild_id \n"
+                query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
+                query+= "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode \n"
+                query+= "WHERE channel_id="+str(channel_id)
+                goutils.log2("DBG", query)
+                db_data = get_line(query)
+
+                if db_data == None:
+                    return 1, "Pas de warbot trouvé, ni pour ce serveur, ni pour ce channel", None
         else:
             return 1, "Pas de warbot trouvé pour ce serveur", None
     
