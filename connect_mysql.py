@@ -1212,7 +1212,7 @@ def get_warbot_info(server_id, channel_id):
 
             if db_data == None:
                 #no warbot found as test channel, try it from connected user
-                query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
+                query = "SELECT guildId, players.allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
                 query+= "JOIN players ON players.guildId=guild_bot_infos.guild_id \n"
                 query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
                 query+= "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode \n"
