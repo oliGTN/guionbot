@@ -147,7 +147,7 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
         elif force_update == -1:
             use_cache_data = True
         else: #force_update==0
-            use_cache_data = ispriority_cache_bot_account(bot_account)
+            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
 
     return await get_guild_data_from_ac(bot_allyCode, use_cache_data)
 
@@ -231,7 +231,7 @@ async def get_TBmapstats_data(guild_id, force_update):
         elif force_update == -1:
             use_cache_data = True
         else: #force_update==0
-            use_cache_data = ispriority_cache_bot_account(bot_account)
+            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
 
     # RPC REQUEST for TBmapstats
     url = "http://localhost:8000/TBmapstats"
@@ -290,7 +290,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         elif force_update == -1:
             use_cache_data = True
         else: #force_update==0
-            use_cache_data = ispriority_cache_bot_account(bot_account)
+            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
 
     if len(event_types) > 0:
         list_rpc_events = []
