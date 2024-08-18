@@ -267,15 +267,18 @@ async def get_TBmapstats_data(guild_id, force_update):
 
     return 0, "", dict_TBmapstats
 
-async def get_event_data(dict_guild, event_types, force_update):
+async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     guild_id = dict_guild["profile"]["id"]
 
-    dict_bot_accounts = get_dict_bot_accounts()
-    if not guild_id in dict_bot_accounts:
-        return 1, "Ce serveur discord n'a pas de warbot", None
+    if allyCode == None:
+        dict_bot_accounts = get_dict_bot_accounts()
+        if not guild_id in dict_bot_accounts:
+            return 1, "Ce serveur discord n'a pas de warbot", None
 
-    bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
-    goutils.log2("DBG", "bot account for "+guild_id+" is "+bot_allyCode)
+        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
+    else:
+        bot_allyCode = allyCode
+    goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
 
     #locking bot has priority. Cannot be overriden
     if islocked_bot_account(bot_allyCode):
@@ -2496,12 +2499,12 @@ async def update_K1_players():
 async def get_tw_participation(guild_id, force_update, allyCode=None):
     dict_tw = godata.dict_tw
 
-    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, err_txt, None
 
-    err_code, err_txt, dict_events = await get_event_data(dict_guild, ["TW"], force_update)
+    err_code, err_txt, dict_events = await get_event_data(dict_guild, ["TW"], force_update, allyCode=allyCode)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, err_txt, None
