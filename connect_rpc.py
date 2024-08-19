@@ -734,8 +734,8 @@ async def join_tw(guild_id):
     return 0, "Le bot a rejoint la GT"
 
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
-async def get_actual_tb_platoons(guild_id, force_update):
-    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update)
+async def get_actual_tb_platoons(guild_id, force_update, allyCode=None):
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
 
     if err_code != 0:
         goutils.log2("ERR", err_txt)

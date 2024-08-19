@@ -969,11 +969,14 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
 # IN - display_mentions: True if player names are replaced by @discord_name
 # OUT - full_txt
 #####################
-async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions, filter_zones=[]):
+async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, 
+                                    deploy_allyCode, player_name, display_mentions, 
+                                    filter_zones=[],
+                                    connected_allyCode=None):
     dict_tb = data.get("tb_definition.json")
 
     #Read actual platoons in game
-    err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+    err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, 0, allyCode=connected_allyCode)
     tbs_round = ret_data["round"]
     dict_platoons_done = ret_data["platoons"]
     list_open_territories = ret_data["open_territories"]
@@ -1106,9 +1109,9 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
                     txt = "~~" + txt + "~~"
 
             #Pose auto du bot
-            if allyCode!=None and not platoon_locked:
+            if deploy_allyCode!=None and not platoon_locked:
                 if allocated_player == player_name:
-                    ec, et = await go.deploy_platoons_tb(allyCode, platoon_name, [perso])
+                    ec, et = await go.deploy_platoons_tb(deploy_allyCode, platoon_name, [perso])
                     if ec == 0:
                         #on n'affiche pas le nom du territoire
                         txt += " > " + ' '.join(et.split()[:-2])
@@ -2725,6 +2728,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
             tbChannel_id = bot_infos["tbChanRead_id"]
             echostation_id = bot_infos["echostation_id"]
             if tbChannel_id==0:
@@ -2733,13 +2737,16 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             if deploy_bot:
-                allyCode = bot_infos["allyCode"]
+                deploy_allyCode = bot_infos["allyCode"]
                 player_name = bot_infos["player_name"]
             else:
-                allyCode = None
+                deploy_allyCode = None
                 player_name = None
 
-            ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, display_mentions, filter_zones=list_zones)
+            ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, 
+                                                          deploy_allyCode, player_name, display_mentions, 
+                                                          filter_zones=list_zones,
+                                                          connected_allyCode=connected_allyCode)
             if ec != 0:
                 await ctx.send('ERR: '+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)
