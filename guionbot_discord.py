@@ -3248,11 +3248,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
 
             # Main call
             err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, 0,
                                                                  estimate_fights=estimate_fights,
-                                                                 estimate_platoons=estimate_platoons)
+                                                                 estimate_platoons=estimate_platoons,
+                                                                 allyCode=connected_allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                     await ctx.send(txt)

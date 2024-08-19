@@ -4127,12 +4127,15 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
     return 0, "", ret_db
 
-async def print_tb_status(guild_id, targets_zone_stars, force_update, estimate_fights=False, estimate_platoons=False):
+async def print_tb_status(guild_id, targets_zone_stars, force_update, 
+                          estimate_fights=False, estimate_platoons=False,
+                          allyCode=None):
     dict_tb = godata.get("tb_definition.json")
 
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, targets_zone_stars, force_update,
                                                       compute_estimated_fights=estimate_fights,
-                                                      compute_estimated_platoons=estimate_platoons)
+                                                      compute_estimated_platoons=estimate_platoons,
+                                                      allyCode=allyCode)
     if ec!=0:
         return 1, et, None
 

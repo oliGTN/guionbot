@@ -99,23 +99,24 @@ def ispriority_cache_bot_account(bot_allyCode):
 
 ########################################################
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
-async def get_guild_rpc_data(guild_id, event_types, force_update):
-    goutils.log2("DBG", "START get_guild_rpc_data("+guild_id+", "+str(event_types)+", "+str(force_update)+")")
+async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None):
+    goutils.log2("DBG", "START get_guild_rpc_data("+guild_id+", "+str(event_types) \
+                 +", "+str(force_update)+", "+str(allyCode)+")")
     calling_func = inspect.stack()[1][3]
 
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
     if ec!=0:
         return ec, et, None
 
     if "territoryBattleStatus" in dict_guild:
-        ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update)
+        ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update, allyCode=allyCode)
         if ec!=0:
             return ec, et, None
     else:
         dict_TBmapstats={}
 
     if event_types!=None and event_types!="":
-        ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update)
+        ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update, allyCode=allyCode)
         if ec!=0:
             return ec, et, None
     else:
@@ -213,13 +214,16 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
 
     return 0, "", dict_guild
 
-async def get_TBmapstats_data(guild_id, force_update):
-    dict_bot_accounts = get_dict_bot_accounts()
-    if not guild_id in dict_bot_accounts:
-        return 1, "Ce serveur discord n'a pas de warbot", None
+async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
+    if allyCode == None:
+        dict_bot_accounts = get_dict_bot_accounts()
+        if not guild_id in dict_bot_accounts:
+            return 1, "Ce serveur discord n'a pas de warbot", None
 
-    bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
-    goutils.log2("DBG", "bot account for "+guild_id+" is "+bot_allyCode)
+        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
+    else:
+        bot_allyCode = allyCode
+    goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
 
     #locking bot has priority. Cannot be overriden
     if islocked_bot_account(bot_allyCode):
@@ -1199,13 +1203,14 @@ async def tag_tb_undeployed_players(guild_id, force_update):
 ##############################################################
 async def get_tb_status(guild_id, targets_zone_stars, force_update,
                         compute_estimated_fights=False,
-                        compute_estimated_platoons=False):
+                        compute_estimated_platoons=False,
+                        allyCode=None):
     global prev_dict_guild
     global prev_mapstats
 
     dict_tb = godata.get("tb_definition.json")
 
-    ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], force_update)
+    ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], force_update, allyCode=allyCode)
     if ec!=0:
         return 1, et, None
 

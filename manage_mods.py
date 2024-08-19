@@ -515,7 +515,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
         cost_txt+= "et "+str(unequip_cost)+" crédits ("+str(player_credits)+" disponibles)."
         if max_inventory>500 or unequip_cost>player_credits:
             cost_txt += " ATTENTION : ça ne passe pas !"
-            ret_code = 1
+            ret_code = 2
             ret_txt = "Simulation échouée"
     else:
         cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
