@@ -1113,7 +1113,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, ally
                         #on n'affiche pas le nom du territoire
                         txt += " > " + ' '.join(et.split()[:-2])
                     else:
-                        txt += " > "+et
+                        return ec, et
 
             phase_num = int(platoon_name.split('-')[0][-1])
             if cur_phase != phase_num:
