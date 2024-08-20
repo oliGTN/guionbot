@@ -1135,9 +1135,9 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
 
     return list_chat_events, list_tw_logs, list_tb_logs
 
-async def tag_tb_undeployed_players(guild_id, force_update):
+async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
     dict_tb=godata.get("tb_definition.json")
-    ec, et, tb_data = await get_tb_status(guild_id, "", force_update)
+    ec, et, tb_data = await get_tb_status(guild_id, "", force_update, allyCode=allyCode)
     if ec!=0:
         return 1, et, None
 

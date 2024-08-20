@@ -2996,9 +2996,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
 
             # Launch the actual command
-            err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(guild_id, 0)
+            err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(guild_id, 0, allyCode=connected_allyCode)
             if err_code == 0:
                 lines = ret_data["lines_player"]
                 endTime = ret_data["round_endTime"]
