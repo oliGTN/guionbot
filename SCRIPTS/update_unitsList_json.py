@@ -29,6 +29,10 @@ my_unit = {"baseId": "GLAHSOKA",
 game_data["units"].append(my_unit)
 FRE_FR["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
 ENG_US["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
+with open('DATA/FRE_FR.json', 'w') as f_loc:
+    f_loc.write(json.dumps(FRE_FR, indent=4))
+with open('DATA/ENG_US.json', 'w') as f_loc:
+    f_loc.write(json.dumps(ENG_US, indent=4))
 ####################
 
 unitsList_dict = {}
