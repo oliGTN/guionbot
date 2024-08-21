@@ -401,7 +401,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
         target_char_id = dict_player["rosterUnit"][target_char_defId]["id"]
         target_char_level = dict_player["rosterUnit"][target_char_defId]["currentLevel"]
         if target_char_level < 50:
-            cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+            cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
             return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods}
 
         mods_to_add = [] # list of mod IDs to be added to this unit
@@ -481,12 +481,12 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
             if not is_simu:
                 ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
                 if ec!=0:
-                    cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+                    cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
                     return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et, {"cost": cost_txt, "missing": missing_mods}
 
         elif len(mods_to_remove) > 0:
             if not is_simu:
-                cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+                cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
                 ret_data = {"cost": cost_txt, "missing": missing_mods}
             else:
                 ret_data = {"missing": missing_mods}
@@ -512,13 +512,13 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
     if is_simu:
         cost_txt = str(mod_add_count)+" mods à déplacer, sur "+str(unit_count)+" persos. "
         cost_txt+= str(needed_inventory)+" places nécessaires dans l'inventaire ("+str(500-initial_inventory)+" disponibles) "
-        cost_txt+= "et "+str(unequip_cost)+" crédits ("+str(player_credits)+" disponibles)."
+        cost_txt+= "et "+str(int(unequip_cost/100000)/10)+"M crédits ("+str(int(player_credits/100000)/10)+"M disponibles)."
         if max_inventory>500 or unequip_cost>player_credits:
             cost_txt += " ATTENTION : ça ne passe pas !"
             ret_code = 2
             ret_txt = "Simulation échouée"
     else:
-        cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(unequip_cost)+" crédits)"
+        cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
     
     return ret_code, ret_txt, {"cost": cost_txt, "missing": missing_mods}
 
