@@ -1985,7 +1985,7 @@ async def get_tw_opponent_leader(guild_id):
 #   "opp_guildId": id
 # }
 ########################################
-async def get_tw_status(guild_id, force_update, with_attacks=False):
+async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=None):
     global prev_dict_guild
     global prev_mapstats
 
@@ -1995,7 +1995,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False):
         event_types="TW"
     else:
         event_types=""
-    ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update)
+    ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, allyCode=allyCode)
     if ec!=0:
         goutils.log2("ERR", et)
         return {"tw_id": None, "rpc": None}

@@ -3535,13 +3535,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         guild_id = bot_infos["guild_id"]
         guild_name = bot_infos["guild_name"]
+        connected_allyCode = bot_infos["allyCode"]
 
         if guild_id == None:
             await ctx.send('ERR: Guilde non déclarée dans le bot')
             return
 
         # Launch actual command
-        ret = await connect_rpc.get_tw_status(guild_id, 0)
+        ret = await connect_rpc.get_tw_status(guild_id, 0, allyCode=connected_allyCode)
 
         for home_away in [["homeGuild", "notre défense"], ["awayGuild", "la défense adverse"]]:
             list_team_home=ret[home_away[0]]["list_defenses"]
@@ -3749,6 +3750,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     with_mentions = False
                 args.remove(arg)
 
+        connected_allyCode = None
         if "-TW" in args:
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
@@ -3767,6 +3769,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 return
 
             guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
 
         if "-TB" in args:
             if tw_mode:
@@ -3791,6 +3794,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 return
 
             guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
 
         if len(args) >= 2:
             allyCode = args[0]
@@ -3835,7 +3839,8 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     await go.tag_players_with_character(allyCode, character_list,
                                                         guild_id, tw_mode, tb_mode,
                                                         with_mentions, 
-                                                        exclude_attacked_leaders=exclude_attacked_leaders)
+                                                        exclude_attacked_leaders=exclude_attacked_leaders,
+                                                        connected_allyCode=connected_allyCode)
             except Exception as e:
                 goutils.log2("ERR", str(sys.exc_info()[0]))
                 goutils.log2("ERR", e)

@@ -3334,7 +3334,10 @@ async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team
 # IN: tb_mode (True if the bot shall count platoon-used toons as not avail)
 # OUT: err_code, err_txt, list_discord_ids
 ################################################################
-async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id=None, tw_mode=False, tb_mode=False, with_mentions=False, exclude_attacked_leaders=[]):
+async def tag_players_with_character(txt_allyCode, list_list_characters, guild_id=None,
+                                     tw_mode=False, tb_mode=False, with_mentions=False, 
+                                     exclude_attacked_leaders=[],
+                                     connected_allyCode=None):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_capas = godata.get("unit_capa_list.json")
 
@@ -3343,7 +3346,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0, allyCode=connected_allyCode)
         if ec != 0:
             return ec, et, None
         list_active_players = ret_dict["active"]
@@ -3360,7 +3363,8 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
     dict_used_toon_player = {} # key=toon, value = [playerName1, playerName2...]
     if tw_mode:
         with_attacks = (len(exclude_attacked_leaders)>0)
-        ec, et, ret_data = await get_tw_def_attack(guild_id, -1, with_attacks=with_attacks)
+        ec, et, ret_data = await get_tw_def_attack(guild_id, -1, with_attacks=with_attacks,
+                                                   allyCode=connected_allyCode)
         if ec != 0:
             return ec, et, None
         dict_used_toon_player = ret_data["homeDef"]
@@ -3368,7 +3372,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
     elif tb_mode:
         dict_alias = godata.get("unitsAlias_dict.json")
 
-        err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, 0)
+        err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(
+                                                        guild_id, 0, 
+                                                        allyCode=connected_allyCode)
         if err_code != 0:
             return 1, err_txt, None
 
@@ -3672,7 +3678,8 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 #               None otherwise
 # OUT: err_code, err_txt, {'unit name': [total, in TW defense], ...}
 ################################################################
-async def count_players_with_character(txt_allyCode, list_characters, guild_id, tw_mode):
+async def count_players_with_character(txt_allyCode, list_characters, guild_id, tw_mode,
+                                       connected_allyCode=None):
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, True, True)
     if err_code != 0:
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
@@ -3682,7 +3689,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
 
     if tw_mode == "homeGuild":
         # For "us", we can detect players who registered to the TW
-        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0, allyCode=connected_allyCode)
         if ec != 0:
             return ec, et, None
         list_active_players = ret_dict["active"]
@@ -3730,7 +3737,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
     #print(output_dict)
     #Manage -TW option
     if tw_mode != None:
-        ec, et, ret_data = await get_tw_def_attack(guild_id, -1)
+        ec, et, ret_data = await get_tw_def_attack(guild_id, -1, allyCode=connected_allyCode)
         if ec != 0:
             return ec, et, None
         if tw_mode == "homeGuild":
@@ -4041,14 +4048,16 @@ def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
 
     return 0, "", image
 
-async def get_tw_def_attack(guild_id, force_update, with_attacks=False):
+async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode=None):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #Check if the guild can use RPC
     if not guild_id in connect_rpc.get_dict_bot_accounts():
         return []
 
-    rpc_data = await connect_rpc.get_tw_status(guild_id, force_update, with_attacks=with_attacks)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, force_update, 
+                                               with_attacks=with_attacks,
+                                               allyCode=allyCode)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None
@@ -4730,9 +4739,9 @@ def print_ability(unit_id, ability_id, ability_type):
 #OUT: dict_player_status {"Vince":1, "Gui":1, "HB":0, "Darak":-1}
 #with 1=fulldef / -1=normal / 0=unknown
 ###########################################
-async def detect_fulldef(guild_id, force_update):
+async def detect_fulldef(guild_id, force_update, allyCode=None):
     dict_unitsList = godata.get("unitsList_dict.json")
-    ec, et, ret_data = await get_tw_def_attack(guild_id, force_update)
+    ec, et, ret_data = await get_tw_def_attack(guild_id, force_update, allyCode=allyCode)
     if ec != 0:
         return ec, et, None
     dict_def_toon_player = ret_data["homeDef"]
@@ -4827,7 +4836,7 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
     if ec != 0:
         return ec, et, None
 
-    ec, et, dict_fulldef = await detect_fulldef(guild_id, -1)
+    ec, et, dict_fulldef = await detect_fulldef(guild_id, -1, allyCode=allyCode)
     if ec != 0:
         return ec, et, None
 
