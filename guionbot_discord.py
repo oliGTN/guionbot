@@ -2387,8 +2387,11 @@ class ModsCog(commands.GroupCog, name="mods"):
 
         goutils.log2("INFO", "mods.save_conf("+allyCode+", conf_name="+conf_name+", persos="+list_alias_txt+")")
 
+
         #transform list_alias parameter into list
         list_alias = list_alias_txt.split(" ")
+        while "" in list_alias:
+            list_alias.remove("")
 
         #Run the function
         ec, et = await manage_mods.create_mod_config(conf_name, allyCode, list_alias)
