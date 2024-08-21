@@ -1165,7 +1165,7 @@ async def get_channel_from_channelname(ctx, channel_name):
         return None, 'Channel ' + channel_name + '(id=' \
                     + str(id_output_channel) + ') introuvable'
 
-    if not output_channel.permissions_for(ctx.guild.me).send_messages:
+    if not output_channel.permissions_for(output_channel.guild.me).send_messages:
         output_channel = ctx.message.channel
         return None, 'Il manque les droits d\'écriture dans ' \
                     + channel_name
