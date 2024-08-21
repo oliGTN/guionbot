@@ -1155,9 +1155,13 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 ##############################################################
 async def get_channel_from_channelname(ctx, channel_name):
     try:
-        id_output_channel = int(channel_name[2:-1])
+        if channel_name.startswith("<#"):
+            id_output_channel_txt = channel_name[2:-1]
+        else: # https://discord/com/channels/
+            id_output_channel_txt = channel_name.split('/')[-1]
+        id_output_channel = int(id_output_channel_txt)
     except Exception as e:
-        goutils.log("ERR", "guionbot_discord.get_channel_from_channelname", e)
+        goutils.log2("ERR", e)
         return None, channel_name + ' n\'est pas un channel valide'
 
     output_channel = bot.get_channel(id_output_channel)
@@ -2703,7 +2707,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             display_mentions=False
             loop_args = list(args)
             for arg in loop_args:
-                if arg.startswith('<#'):
+                if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     got_channel, err_msg = await get_channel_from_channelname(ctx, arg)
                     if got_channel == None:
                         await ctx.send('**ERR**: '+err_msg)
@@ -3049,7 +3053,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             output_channel = ctx.message.channel
             display_mentions=False
             for arg in args:
-                if arg.startswith('<#'):
+                if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
                     display_mentions=True
                     if output_channel == None:
@@ -3155,7 +3159,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         output_channel = ctx.message.channel
         use_tags = False
         for arg in args:
-            if arg.startswith('<#'):
+            if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                 output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
                 use_tags = True
                 if output_channel == None:
@@ -3595,13 +3599,14 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             return
 
         channel_param = args[0]
-        if not channel_param.startswith("<#") and not channel_param.endswith(">"):
+        if not channel_param.startswith('<#') and not channel_param.startswith('https://discord.com/channels/'):
             await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
             await ctx.message.add_reaction(emojis.redcross)
             return
 
-        channel_id = channel_param[2:-1]
-        if not channel_id.isnumeric():
+        channel, err_msg = await get_channel_from_channelname(ctx, channel_param)
+        if channel == None:
+            await ctx.send('**ERR**: '+err_msg)
             await ctx.send("ERR: commande mal formulée. Le paramètre doit être un channel discord")
             await ctx.message.add_reaction(emojis.redcross)
             return
@@ -3615,10 +3620,6 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             filter_txt = filter_txt[1:]
         else:
             filter_txt = ""
-
-
-        channel_id = int(channel_id)
-        channel = bot.get_channel(channel_id)
 
         dict_tag_count = {}
         async for message in channel.history(limit=500):
@@ -3646,6 +3647,9 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         sorted_count = sorted(dict_tag_count.items(), key=lambda x:-x[1])
         for (user_tag, count) in sorted_count:
             output_txt += user_tag+": "+str(count)+"\n"
+
+        if output_txt == "":
+            output_txt = "Aucun tag dans ce channel"
 
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
              await ctx.send(txt)
@@ -3725,7 +3729,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
         output_channel = ctx.message.channel
         with_mentions = False
         for arg in args:
-            if arg.startswith('<#'):
+            if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                 if not officer_command(ctx):
                     await ctx.send("ERR: l'envoi des résultats dans un autre channel est réservé aux officiers")
                     await ctx.message.add_reaction(emojis.redcross)
@@ -5319,7 +5323,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         output_channel = ctx.message.channel
         with_mentions = False
         for arg in args:
-            if arg.startswith('<#'):
+            if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                 if not officer_command(ctx):
                     await ctx.send("ERR: l'envoi des résultats dans un autre channel est réservé aux officiers")
                     await ctx.message.add_reaction(emojis.redcross)
