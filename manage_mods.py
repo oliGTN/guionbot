@@ -360,13 +360,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
 
     while(len(mod_allocations)>0):
         #find best allocation (the one with most mods currently not allocated)
-        max_unallocated = 0
+        min_delta_inventory = 7 # worst case is 6 added to the inventory
         best_a = None
         for a in mod_allocations:
             target_char_defId = a["unit_id"]
-            a_unallocated = 0
+            a_delta_inventory = 0
             for allocated_mod in a["mods"]:
                 allocated_mod_id = allocated_mod["id"]
+                mod_slot = allocated_mod["slot"]
 
                 if not allocated_mod_id in dict_player_mods:
                     # This means that the conf is using a mod that the player does not have anymore
@@ -377,10 +378,16 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
                     continue
 
                 if dict_player_mods[allocated_mod_id]["unit_id"] == None:
-                    a_unallocated += 1
+                    # The mod comes from the inventory, this is good
+                    a_delta_inventory -= 1
 
-            if a_unallocated > max_unallocated:
-                max_unallocated = a_unallocated
+                if mod_slot in dict_player["rosterUnit"][target_char_defId]["equippedStatMod"]:
+                    # there is a mod that is replaced. This mod goes back to the inventory,
+                    # this is not good
+                    a_delta_inventory += 1
+
+            if a_delta_inventory < min_delta_inventory:
+                min_delta_inventory = a_delta_inventory
                 best_a = a
 
         if best_a ==None:
