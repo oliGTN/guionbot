@@ -2356,10 +2356,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                         err_txt += "\n "+cost_and_missing
                     if len(err_txt)>1000:
                         err_txt=err_txt[:1000]+"..."
-                try:
+
+                if not interaction.is_expired():
                     await interaction.edit_original_response(content=err_txt)
-                except discord.errors.HTTPException as e:
-                    await interaction.message.channel.send(content=err_txt)
+                else:
+                    # Interaction expired, send a message in the channel
+                    output_channel = bot.get_channel(channel_id)
+                    await output_channel.send(content=err_txt)
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
