@@ -2713,6 +2713,21 @@ async def print_erx(txt_allyCode, days, compute_guild):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_categoryList = godata.get("categoryList_dict.json")
 
+    #Update player/guild data
+    if not compute_guild:
+        #only one player
+        #Load or update data for the player
+        e, t, d = await load_player(txt_allyCode, 1, False)
+        if e != 0:
+            #error wile loading guild data
+            goutils.log2('ERR', 'erreur lors de la récupération des données joueur pour le code allié ' + txt_allyCode)
+            
+    else:
+        #Get data for the guild and associated players
+        err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
+        if err_code != 0:
+            goutils.log2('ERR', 'erreur lors de la récupération des données guilde pour le code allié ' + txt_allyCode)
+
     #Recuperation des dernieres donnees sur gdrive
     ec, list_teams, dict_teams = connect_gsheets.load_config_teams(BOT_GFILE, False)
     if ec == 2:
