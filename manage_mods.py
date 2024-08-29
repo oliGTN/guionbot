@@ -335,6 +335,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
             dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot, "rarity": mod_rarity}
 
     # Add the unequipped mods to the dictionary
+    if not "unequippedMod" in initialdata["inventory"]:
+        initialdata["inventory"]["unequippedMod"]=[]
     for mod in initialdata["inventory"]["unequippedMod"]:
         mod_id = mod["id"]
         mod_defId = mod["definitionId"]
