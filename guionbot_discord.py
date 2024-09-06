@@ -2567,7 +2567,7 @@ class AuthCog(commands.GroupCog, name="connect"):
 
     @app_commands.command(name="envoie-otc")
     async def send_otc(self, interaction: discord.Interaction,
-                       code: int):
+                       code: str):
         try:
             await interaction.response.defer(thinking=True)
 
