@@ -4381,7 +4381,7 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_platoons
 async def get_tb_alerts(guild_id, force_update):
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", force_update)
     if ec!=0:
-        if tb_data!=None and "tb_summary" in tb_data:
+        if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
             return 2, tb_data["tb_summary"], None
         else:
             return 1, et, None
