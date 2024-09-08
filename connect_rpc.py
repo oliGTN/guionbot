@@ -1240,7 +1240,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                     return 1, "TB inconnue du bot", None
 
                 tb_round = battleStatus["currentRound"]
-                if tb_round > dict_tb[tb_type]["maxRound"]:
+                if tb_round <= dict_tb[tb_type]["maxRound"]:
                     tb_ongoing=True
 
                 tb_round_endTime = int(battleStatus["currentRoundEndTime"])
