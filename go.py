@@ -4379,11 +4379,23 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_platoons
     return zone_img
 
 async def get_tb_alerts(guild_id, force_update):
-    #Check if the guild can use RPC
-    if guild_id in connect_rpc.get_dict_bot_accounts():
-        territory_scores, active_round = await connect_rpc.get_tb_guild_scores(guild_id, force_update)
-    else:
-        return []
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", force_update)
+    if ec!=0:
+        if tb_data!=None and "tb_summary" in tb_data:
+            return 2, tb_data["tb_summary"], None
+        else:
+            return 1, et, None
+
+    dict_phase = tb_data["phase"]
+    dict_strike_zones = tb_data["strike_zones"]
+    list_open_zones = tb_data["open_zones"]
+    dict_zones = tb_data["zones"]
+
+    territory_scores, active_round = await connect_rpc.get_tb_guild_scores(guild_id,
+                                                                           dict_phase,
+                                                                           dict_strike_zones,
+                                                                           list_open_zones,
+                                                                           dict_zones)
     goutils.log2("DBG", "["+guild_id+"] territory_scores="+str(territory_scores))
 
     if active_round != "":
@@ -4398,7 +4410,7 @@ async def get_tb_alerts(guild_id, force_update):
         round_number = int(active_round[-1])
         if round_number > len(daily_targets[tb_name]):
             #virtual round, after the end of TB
-            return []
+            return 0, "", []
 
         #transform targets by using zone names
         zone_daily_targets = [] # list by day
@@ -4477,7 +4489,7 @@ async def get_tb_alerts(guild_id, force_update):
     else:
         tb_trigger_messages = []
 
-    return tb_trigger_messages
+    return 0, "", tb_trigger_messages
     
 def get_tw_player_def(fevents_name, player_name):
     dict_units = godata.get("unitsList_dict.json")
@@ -5752,6 +5764,115 @@ async def print_tw_summary(guild_id):
     summary_list = [["Player", "TM", "Wins", "Ground\nfights", "Ship\nfights", "Fails"]] + summary_list
     t = Texttable()
     t.add_rows(summary_list)
+    t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
+
+    return 0, t.draw()
+
+#########################################
+# Display strike / wave statistics for the whole TB or a round
+# May be manually laucjed, or automatic for the end of the TB
+#########################################
+async def print_tb_stats(guild_id, round=None):
+    # Get current guild and mapstats data
+    err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1)
+    if err_code!=0:
+        return 1, err_txt
+
+    guild = rpc_data[0]
+    current_mapstats = rpc_data[1]
+    if not "territoryBattleStatus" in guild:
+        return 1, "Aucune BT en cours"
+
+    tb_id = guild["territoryBattleStatus"][0]["instanceId"]
+    tb_type = tb_id.split(":")[0]
+
+    # Get previous TB mapstats
+    stored_events = os.listdir("EVENTS/")
+    filename_begin = guild_id+"_"+tb_type
+    stored_guild_mapstats = [x for x in stored_events if x.startswith(filename_begin) 
+                                                         and x.endswith("_mapstats.json")
+                                                         and not tb_id in x]
+    if len(stored_guild_mapstats)==0:
+        previous_mapstats = {}
+    else:
+        prev_mapstats_file = sorted(stored_guild_mapstats, 
+                                    key=lambda x: x.split(":")[1].split("_")[0])[-1]
+        previous_mapstats = json.load(open("EVENTS/"+prev_mapstats_file))
+
+    # Get member list id/name
+    dict_members = {}
+    if "guild" in guild:
+        guild=guild["guild"]
+    for m in guild["member"]:
+        dict_members[m["playerId"]] = m["playerName"]
+
+    # Create stats for current TB
+    dict_stats = {}
+    if "currentStat" in current_mapstats:
+        current_mapstats=current_mapstats["currentStat"]
+    if round==None:
+        encounter_id = "strike_encounter"
+        attempt_id = "strike_attempt"
+    else:
+        encounter_id = "strike_encounter_round_"+round
+        attempt_id = "strike_attempt_round_"+round
+    for [tag, mapstats] in [["current", current_mapstats], ["previous", previous_mapstats]]:
+        for ms in mapstats:
+            if ms["mapStatId"] in [encounter_id, attempt_id]:
+                for p in ms["playerStat"]:
+                    if p["memberId"] in dict_members:
+                        p_name = dict_members[p["memberId"]]
+                    else:
+                        continue
+                        #p_name = "???"+p["memberId"]
+                    if not p_name in dict_stats:
+                        dict_stats[p_name] = {"current": {}, "previous": {}}
+                    dict_stats[p_name][tag][ms["mapStatId"]] = int(p["score"])
+
+    list_stats = []
+    for p in dict_stats:
+        cur_strikes = 0
+        if attempt_id in dict_stats[p]["current"]:
+            cur_strikes = dict_stats[p]["current"][attempt_id]
+
+        cur_waves = 0
+        if encounter_id in dict_stats[p]["current"]:
+            cur_waves = dict_stats[p]["current"][encounter_id]
+
+        prev_strikes = 0
+        if attempt_id in dict_stats[p]["previous"]:
+            prev_strikes = dict_stats[p]["previous"][attempt_id]
+
+        prev_waves = 0
+        if encounter_id in dict_stats[p]["previous"]:
+            prev_waves = dict_stats[p]["previous"][encounter_id]
+
+        if prev_strikes == 0:
+            percent_strikes = " --"
+        else:
+            ratio_strikes = (cur_strikes-prev_strikes)/prev_strikes
+            percent_strikes = str(int(100*ratio_strikes))+"%"
+            if percent_strikes == "0%":
+                percent_strikes = " 0%"
+            elif ratio_strikes>0:
+                percent_strikes = "+"+percent_strikes
+
+        if prev_waves == 0:
+            percent_waves = " --"
+        else:
+            ratio_waves = (cur_waves-prev_waves)/prev_waves
+            percent_waves = str(int(100*ratio_waves))+"%"
+            if percent_waves == "0%":
+                percent_waves = " 0%"
+            elif ratio_waves>0:
+                percent_waves = "+"+percent_waves
+
+        line_stats = [p, str(cur_strikes).rjust(3)+" ("+str(prev_strikes).rjust(3)+", "+percent_strikes+")",
+                         str(cur_waves).rjust(3)+" ("+str(prev_waves).rjust(3)+", "+percent_waves+")"]
+        list_stats.append(line_stats)
+    list_stats = [["Joueur", "Combats", "Vagues réussies"]] + sorted(list_stats)
+    t = Texttable()
+    t.add_rows(list_stats)
     t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
 
     return 0, t.draw()

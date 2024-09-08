@@ -276,11 +276,9 @@ async def bot_loop_5minutes(bot):
     goutils.log2("DBG", "START loop")
     t_start = time.time()
 
-    query = "SELECT guild_id FROM guild_bot_infos WHERE NOT isnull(bot_allyCode)"
-    goutils.log2("DBG", query)
-    db_data = connect_mysql.get_column(query)
+    guild_bots = connect_rpc.get_dict_bot_accounts()
 
-    for guild_id in db_data:
+    for guild_id in guild_bots:
         #################################
         # Manage TW alerts and start of TW
         #################################
@@ -365,7 +363,7 @@ async def bot_loop_5minutes(bot):
 
                 #TW end summary table
                 if "tw_summary" in ret_tw_alerts and ret_tw_alerts["tw_summary"]!=None:
-                    # Display player results
+                    # Display TW results
                     tw_summary = ret_tw_alerts["tw_summary"]
                     for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
                         await tw_bot_channel.send('`' + stxt + '`')
@@ -396,18 +394,28 @@ async def bot_loop_5minutes(bot):
                 dict_tb_alerts_previously_done[guild_id] = []
 
             #CHECK ALERTS FOR BT
-            list_tb_alerts = await go.get_tb_alerts(guild_id, -1)
-            for tb_alert in list_tb_alerts:
-                if not tb_alert in dict_tb_alerts_previously_done[guild_id]:
-                    if not first_bot_loop_5minutes:
-                        await send_alert_to_echocommanders(guild_id, tb_alert)
-                        goutils.log2("INFO", "["+guild_id+"] New TB alert: "+tb_alert)
+            ec, et, list_tb_alerts = await go.get_tb_alerts(guild_id, -1)
+            if ec == 0:
+                for tb_alert in list_tb_alerts:
+                    if not tb_alert in dict_tb_alerts_previously_done[guild_id]:
+                        if not first_bot_loop_5minutes:
+                            await send_alert_to_echocommanders(guild_id, tb_alert)
+                            goutils.log2("INFO", "["+guild_id+"] New TB alert: "+tb_alert)
+                        else:
+                            goutils.log2("DBG", "["+guild_id+"] New TB alert within the first 5 minutes: "+tb_alert)
                     else:
-                        goutils.log2("DBG", "["+guild_id+"] New TB alert within the first 5 minutes: "+tb_alert)
-                else:
-                    goutils.log2("DBG", "["+guild_id+"] Already known TB alert: "+tb_alert)
+                        goutils.log2("DBG", "["+guild_id+"] Already known TB alert: "+tb_alert)
 
-            dict_tb_alerts_previously_done[guild_id] = list_tb_alerts
+                dict_tb_alerts_previously_done[guild_id] = list_tb_alerts
+
+            elif ec == 2:
+                # Display TB summary
+                tb_summary = et
+                channel_id = guild_bots[guild_id]["tb_channel_end"]
+                if channel_id!=0:
+                    tb_end_channel = bot.get_channel(channel_id)
+                    for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
+                        await tb_end_channel.send('`' + stxt + '`')
 
         except Exception as e:
             goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))

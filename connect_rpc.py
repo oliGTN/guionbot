@@ -45,7 +45,7 @@ async def release_sem(id):
 
 def get_dict_bot_accounts():
     query = "SELECT guild_id, bot_allyCode, bot_locked_until, priority_cache, " \
-            "twChanOut_id, tbChanOut_id " \
+            "twChanOut_id, tbChanOut_id, tbChanEnd_id " \
             "FROM guild_bot_infos where bot_allyCode != ''"
     #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
@@ -57,7 +57,8 @@ def get_dict_bot_accounts():
                                  "LockedUntil": line[2], 
                                  "priority_cache":line[3],
                                  "tw_channel_out":line[4],
-                                 "tb_channel_out":line[5]}
+                                 "tb_channel_out":line[5],
+                                 "tb_channel_end":line[6]}
 
     return ret_dict
 
@@ -99,6 +100,7 @@ def ispriority_cache_bot_account(bot_allyCode):
 
 ########################################################
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
+#event_type: []/None, ["TB"], ["TW", CHAT"], ...
 async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None):
     goutils.log2("DBG", "START get_guild_rpc_data("+guild_id+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
@@ -115,7 +117,7 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None)
     else:
         dict_TBmapstats={}
 
-    if event_types!=None and event_types!="":
+    if event_types!=None and event_types!=[]:
         ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update, allyCode=allyCode)
         if ec!=0:
             return ec, et, None
@@ -296,7 +298,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         else: #force_update==0
             use_cache_data = ispriority_cache_bot_account(bot_allyCode)
 
-    if len(event_types) > 0:
+    if event_types!=None and len(event_types) > 0:
         list_rpc_events = []
 
         #---------------
@@ -1264,6 +1266,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                     latest_tb_end_ts = tb_end_ts
                     latest_tb_id = battleResult["instanceId"]
 
+        tb_summary = None
         if latest_tb_end_ts > 0:
             if not manage_events.exists("tb_end", guild_id, latest_tb_id):
                 # the closure is not done yet
@@ -1284,10 +1287,13 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                     fjson.write(json.dumps(prev_mapstats[guild_id], indent=4))
                     fjson.close()
 
+                # Get TB summary stats
+                err_code, tb_summary = await go.print_tb_stats(guild_id)
+
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
 
 
-        return 1, "No TB on-going", None
+        return 1, "No TB on-going", {"tb_summary": tb_summary}
 
     prev_dict_guild[guild_id] = dict_guild
     prev_mapstats[guild_id] = mapstats
@@ -1905,18 +1911,11 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 # OUT: dict_territory_scores = {"tb3_mixed_phase03_conflit02": 24500000, ...}
 # OUT: tb_active_round = 3
 ##########################################"
-async def get_tb_guild_scores(guild_id, force_update):
+async def get_tb_guild_scores(guild_id, dict_phase, dict_strike_zones, list_open_zones, dict_zones):
     dict_tb = godata.get("tb_definition.json")
-    ec, et, tb_data = await get_tb_status(guild_id, "", force_update)
-    if ec!=0:
-        return {}, ""
-
-    dict_phase = tb_data["phase"]
-    dict_strike_zones = tb_data["strike_zones"]
-    list_open_zones = tb_data["open_zones"]
-    dict_zones = tb_data["zones"]
 
     active_round = dict_tb[dict_phase["type"]]["shortname"]+str(dict_phase["round"])
+
     dict_territory_scores = {}
     for zone in list_open_zones:
         zone_name_tab = dict_tb[zone]["name"].split("-")
