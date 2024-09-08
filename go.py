@@ -5781,10 +5781,18 @@ async def print_tb_stats(guild_id, round=None):
     guild = rpc_data[0]
     current_mapstats = rpc_data[1]
     if not "territoryBattleStatus" in guild:
-        return 1, "Aucune BT en cours"
-
-    tb_id = guild["territoryBattleStatus"][0]["instanceId"]
-    tb_type = tb_id.split(":")[0]
+        # TB has ended, check latest results
+        max_endTime=0
+        for tbr in guild["territoryBattleResult"]:
+            if int(tbr["endTime"]) > max_endTime:
+                max_endTime = int(tbr["endTime"])
+                tb_id = tbr["instanceId"]
+                tb_type = tb_id.split(":")[0]
+                current_mapstats = tbr["finalStat"]
+    else:
+        tb_id = guild["territoryBattleStatus"][0]["instanceId"]
+        tb_type = tb_id.split(":")[0]
+    print(tb_id)
 
     # Get previous TB mapstats
     stored_events = os.listdir("EVENTS/")
