@@ -4802,7 +4802,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emojis.redcross)
         else:
-            e, err_txt, image = go.get_player_time_graph( allyCode, False, parameter, is_year)
+            e, err_txt, image = await go.get_player_time_graph( allyCode, False, parameter, is_year)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4859,7 +4859,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.send(allyCode)
             await ctx.message.add_reaction(emojis.redcross)
         else:
-            e, err_txt, image = go.get_player_time_graph( allyCode, True, parameter, is_year)
+            e, err_txt, image = await go.get_player_time_graph( allyCode, True, parameter, is_year)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emojis.redcross)

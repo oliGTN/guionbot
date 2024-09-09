@@ -3980,8 +3980,9 @@ def get_gv_graph(txt_allyCodes, characters):
 # parameter >> ["gp", "arena_char_rank", "arena_ship_rank", "gac_rating", "modq", "statq"]
 # is_year = True >> graph one 12 months, instead of 30 days (default)
 ###############################
-def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
+async def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
     dict_params = {"gp": ["ship_gp+char_gp", "sum"],
+                   "pg": ["ship_gp+char_gp", "sum"],
                    "arena_char_rank": ["arena_char_rank", "avg"],
                    "arena_ship_rank": ["arena_ship_rank", "avg"],
                    "gac_rating": ["grand_arena_rating", "avg"],
@@ -3990,6 +3991,11 @@ def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
 
     if not parameter in dict_params:
         return 1, "ERR: le paramètre "+parameter+" est inconnu dans la liste "+str(list(dict_params.keys())), None
+
+    # refresh player info from game
+    e, t, d = await load_player(txt_allyCode, 1, False)
+    if e != 0:
+        return 1, "ERR: erreur de mise à jour des données pour "+txt_allyCode, None
 
     #get basic player info
     query = "SELECT name, guildName FROM players WHERE allyCode="+txt_allyCode
