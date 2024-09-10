@@ -284,100 +284,7 @@ async def bot_loop_5minutes(bot):
         #################################
         try:
             #CHECK ALERTS FOR TERRITORY WAR
-            ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
-            goutils.log2("DBG", "["+guild_id+"] get_tw_alerts err_code="+str(ec))
-            if ec == 0:
-                # TW ongoing
-                tw_id = ret_tw_alerts["tw_id"]
-
-                # Check event for TW start, and load opponent guild
-                swgohgg_opp_url = None
-                if not manage_events.exists("tw_start", guild_id, tw_id):
-                    #ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
-                    dict_guild = ret_tw_alerts["rpc"]["guild"]
-                    goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
-                    opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
-
-                    #Fire and forget guild loading in the background
-                    asyncio.create_task(go.load_guild_from_id(opp_guild_id, True, True))
-
-                    #Display swgoh.gg link to opponent guild
-                    swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id
-
-                    manage_events.create_event("tw_start", guild_id, tw_id)
-
-                # Display TW alerts, messages...
-                [channel_id, dict_messages, tw_ts] = ret_tw_alerts["alerts"]
-                tw_bot_channel = bot.get_channel(channel_id)
-
-                if swgohgg_opp_url != None:
-                    await tw_bot_channel.send("Guilde adverse : "+swgohgg_opp_url)
-
-                #sort dict_messages
-                # defense then lost territories then attack
-                d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placement:")]}
-                d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
-                d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
-                dict_messages = {**d_placements, **d_home, **d_attack}
-                for territory in dict_messages:
-                    msg_txt = dict_messages[territory]
-                    goutils.log2("DBG", "["+guild_id+"] TW alert: "+msg_txt)
-
-                    #get msg_id for this TW / zone
-                    query = "SELECT msg_id FROM tw_messages "
-                    query+= "WHERE guild_id='"+guild_id+"' "
-                    query+= "AND zone='"+territory+"'"
-                    goutils.log2("INFO", query)
-                    old_msg_id = connect_mysql.get_value(query)
-
-                    if old_msg_id == None:
-                        #First time this zone has a message
-                        goutils.log2("INFO", "first time this zone has this message")
-
-                        #Full message to TW guild channel
-                        if not bot_test_mode:
-                            new_msg = await tw_bot_channel.send(msg_txt)
-                            query = "INSERT INTO tw_messages(guild_id, tw_ts, zone, msg_id) "
-                            query+= "VALUES('"+guild_id+"', "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
-                            goutils.log2("DBG", query)
-                            connect_mysql.simple_execute(query)
-                    else:
-                        #This zone already has a message
-                        try:
-                            old_msg = await tw_bot_channel.fetch_message(old_msg_id)
-                        except discord.errors.NotFound as e:
-                            goutils.log2("ERR", "msg not found id="+str(old_msg_id))
-                            raise(e)
-
-                        #Home messages are not modified
-
-                        #Placement messages are updated when modified
-                        #Attack messages are updated when modified
-                        if territory.startswith('Placement:') \
-                           or not ":" in territory:
-                            old_msg_txt = old_msg.content
-                            if old_msg_txt != msg_txt:
-                                #Full message modified in TW guild channel
-                                if not bot_test_mode:
-                                    await old_msg.edit(content=msg_txt)
-
-                #TW end summary table
-                if "tw_summary" in ret_tw_alerts and ret_tw_alerts["tw_summary"]!=None:
-                    # Display TW results
-                    tw_summary = ret_tw_alerts["tw_summary"]
-                    for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
-                        await tw_bot_channel.send('`' + stxt + '`')
-
-            elif ec == 2:
-                #TW is over
-                #Delete potential previous tw_messages
-                query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
-                query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
-                goutils.log2("DBG", query)
-                connect_mysql.simple_execute(query)
-
-            else:
-                goutils.log2("DBG", "["+guild_id+"] "+et)
+            await update_tw_status(guild_id)
 
         except Exception as e:
             goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
@@ -1153,6 +1060,117 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             full_txt = "Aucune erreur de peloton\n"
 
         return 0, full_txt
+
+##############################################################
+# Function: update_tw_status
+# Parameters: guild_id (string)
+# Purpose: crée ou met à jour le statut de GT
+##############################################################
+async def update_tw_status(guild_id, backup_channel_id=None):
+    ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
+    goutils.log2("DBG", "["+guild_id+"] get_tw_alerts err_code="+str(ec))
+    if ec == 0:
+        # TW ongoing
+        tw_id = ret_tw_alerts["tw_id"]
+
+        # Check event for TW start, and load opponent guild
+        swgohgg_opp_url = None
+        if not manage_events.exists("tw_start", guild_id, tw_id):
+            #ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
+            dict_guild = ret_tw_alerts["rpc"]["guild"]
+            goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
+            opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
+
+            #Fire and forget guild loading in the background
+            asyncio.create_task(go.load_guild_from_id(opp_guild_id, True, True))
+
+            #Display swgoh.gg link to opponent guild
+            swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id
+
+            manage_events.create_event("tw_start", guild_id, tw_id)
+
+        # Display TW alerts, messages...
+        [channel_id, dict_messages, tw_ts] = ret_tw_alerts["alerts"]
+        if channel_id == None:
+            if backup_channel_id==None:
+                return 1, "ERR: pas de channel GT configuré pour la guilde "+guild_id
+            tw_bot_channel = backup_channel_id
+            
+        tw_bot_channel = bot.get_channel(channel_id)
+
+        if swgohgg_opp_url != None:
+            await tw_bot_channel.send("Guilde adverse : "+swgohgg_opp_url)
+
+        #sort dict_messages
+        # defense then lost territories then attack
+        d_placements = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Placement:")]}
+        d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
+        d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
+        dict_messages = {**d_placements, **d_home, **d_attack}
+        for territory in dict_messages:
+            msg_txt = dict_messages[territory]
+            goutils.log2("DBG", "["+guild_id+"] TW alert: "+msg_txt)
+
+            #get msg_id for this TW / zone
+            query = "SELECT msg_id FROM tw_messages "
+            query+= "WHERE guild_id='"+guild_id+"' "
+            query+= "AND zone='"+territory+"'"
+            goutils.log2("INFO", query)
+            old_msg_id = connect_mysql.get_value(query)
+
+            if old_msg_id == None:
+                #First time this zone has a message
+                goutils.log2("INFO", "first time this zone has this message")
+
+                #Full message to TW guild channel
+                if not bot_test_mode:
+                    new_msg = await tw_bot_channel.send(msg_txt)
+                    query = "INSERT INTO tw_messages(guild_id, tw_ts, zone, msg_id) "
+                    query+= "VALUES('"+guild_id+"', "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
+            else:
+                #This zone already has a message
+                try:
+                    old_msg = await tw_bot_channel.fetch_message(old_msg_id)
+                except discord.errors.NotFound as e:
+                    goutils.log2("ERR", "msg not found id="+str(old_msg_id))
+                    raise(e)
+
+                #Home messages are not modified
+
+                #Placement messages are updated when modified
+                #Attack messages are updated when modified
+                if territory.startswith('Placement:') \
+                   or not ":" in territory:
+                    old_msg_txt = old_msg.content
+                    if old_msg_txt != msg_txt:
+                        #Full message modified in TW guild channel
+                        if not bot_test_mode:
+                            await old_msg.edit(content=msg_txt)
+
+        #TW end summary table
+        if "tw_summary" in ret_tw_alerts and ret_tw_alerts["tw_summary"]!=None:
+            # Display TW results
+            tw_summary = ret_tw_alerts["tw_summary"]
+            for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
+                await tw_bot_channel.send('`' + stxt + '`')
+
+        return 0, ""
+
+    elif ec == 2:
+        #TW is over
+        #Delete potential previous tw_messages
+        query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
+        query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+        return 0, ""
+
+    else:
+        goutils.log2("DBG", "["+guild_id+"] "+et)
+        return 1, et
 
 ##############################################################
 # Function: get_channel_from_channelname
@@ -2211,6 +2229,32 @@ class TwCog(commands.GroupCog, name="gt"):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         super().__init__()
+
+    @app_commands.command(name="statut")
+    async def tw_status(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer(thinking=True)
+
+            #get player config from DB
+            ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
+                return
+
+            guild_id = player_infos["guild_id"]
+            err_code, err_txt = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id)
+            if err_code != 0:
+                txt = emojis.redcross+" ERR: "+err_txt
+                await interaction.edit_original_response(content=txt)
+                return
+
+            txt = emojis.check+" statut GT mis à jour"
+            await interaction.edit_original_response(content=txt)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="défense")
     @app_commands.rename(units="unités")

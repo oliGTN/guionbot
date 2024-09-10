@@ -1261,7 +1261,10 @@ def get_warbot_info_from_guild(guild_id):
 #  google account linked to this channel
 ########################################
 def get_google_player_info(channel_id):
-    query = "SELECT guildId, players.allyCode, players.name, tbChanRead_id, echostation_id FROM user_bot_infos \n"
+    query = "SELECT guildId, players.allyCode, players.name, \n"
+    query+= "       tbChanRead_id, echostation_id, \n"
+    query+= "       twChanOut_id \n"
+    query+= "FROM user_bot_infos \n"
     query+= "JOIN players ON players.allyCode=user_bot_infos.allyCode \n"
     query+= "JOIN guild_bot_infos ON guild_bot_infos.guild_id=players.guildId \n"
     query+= "WHERE channel_id="+str(channel_id)
@@ -1274,7 +1277,8 @@ def get_google_player_info(channel_id):
                    "allyCode": db_data[1],
                    "player_name": db_data[2],
                    "tbChanRead_id": db_data[3],
-                   "echostation_id": db_data[4]}
+                   "echostation_id": db_data[4],
+                   "twChanOut_id": db_data[5]}
 
 # IN: tbs_round > ROTE1 to ROTE6, or ROTE0 to get the latest data
 def get_tb_platoon_allocations(guild_id, tbs_round):
