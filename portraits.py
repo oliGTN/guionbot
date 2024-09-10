@@ -544,6 +544,8 @@ def get_image_from_eqpt_count(eqpt_id, needed_count, owned=None):
                     mission_farm = "LS-"
                 elif cId[3:] == "D":
                     mission_farm = "DS-"
+                elif cId[3:] == "H":
+                    mission_farm = "C-"
                 else: #SP
                     mission_farm = "FL-"
 
