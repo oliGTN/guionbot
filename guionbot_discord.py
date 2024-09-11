@@ -4955,8 +4955,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             t.add_rows(output_table)
             t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
 
+            playerName = player_now["name"]
+            if "guildName" in player_now:
+                guildName = player_now["guildName"]
+            else:
+                guildName = "*pas de guilde*"
+
+            first_msg=True
             for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
-                await ctx.send('`' + txt + '`')
+                if first_msg:
+                    await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+'`' + txt + '`')
+                    first_msg=False
+                else:
+                    await ctx.send('`' + txt + '`')
 
             await ctx.send("StatQ = "+str(round(statq, 2)))
 
