@@ -5291,6 +5291,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def loj(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
+        args = list(args)
+        all_omicrons=False
+        for arg in args:
+            if arg=='-all':
+                all_omicrons=True
+                args.remove(arg)
+
         if len(args) == 1:
             allyCode = args[0]
             list_characters = ["all"]
@@ -5308,7 +5315,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.redcross)
             return
 
-        e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, False)
+        e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, all_omicrons=all_omicrons)
         if e == 0 and len(txt_lines) >0:
             if err_txt != "":
                 await ctx.send(err_txt)
@@ -5359,7 +5366,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.redcross)
             return
 
-        e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, True)
+        e, err_txt, txt_lines = await go.print_lox( allyCode, list_characters, compute_guild=True)
         if e == 0 and len(txt_lines) >0:
             if err_txt != "":
                 await ctx.send(err_txt)

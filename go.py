@@ -2601,7 +2601,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
     return 0, err_txt, image
 
 ###############################
-async def print_lox(txt_allyCode, characters, compute_guild):
+async def print_lox(txt_allyCode, characters, compute_guild=False, all_omicrons=False):
     war_txt = ""
 
     dict_unitsList = godata.get("unitsList_dict.json")
@@ -2668,6 +2668,15 @@ async def print_lox(txt_allyCode, characters, compute_guild):
         if len(list_character_ids)==0 and len(list_modes)==0:
             return 1, "ERR: aucun personnage ni aucun mode omicron défini", None
 
+    list_omicrons = []
+    for unit_id in dict_capas:
+        for skill in dict_capas[unit_id]:
+            if '_' in skill:
+                continue
+            if dict_capas[unit_id][skill]['omicronTier']==99:
+                continue
+            list_omicrons.append((unit_id, skill, dict_capas[unit_id][skill]['omicronTier'], dict_capas[unit_id][skill]['omicronMode']))
+
     #GET DATA FROM PLAYER OR GUILD
     if compute_guild:
         err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
@@ -2679,22 +2688,29 @@ async def print_lox(txt_allyCode, characters, compute_guild):
         if e != 0:
             return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
 
-    query = "SELECT players.name AS 'joueur', defId AS 'perso', roster_skills.name AS 'type', "
-    query+= "CASE WHEN gear=13 THEN CONCAT(rarity, '*R', relic_currentTier-2) "
-    query+= "ELSE CONCAT(rarity, '*G', gear) END AS 'gear', "
-    query+= "omicron_type as 'mode' FROM roster "
+    query = "SELECT players.name AS 'joueur', roster.defId AS 'perso', roster_skills.name AS 'type', \n"
+    query+= "CASE WHEN gear=13 THEN CONCAT(rarity, '*R', relic_currentTier-2) \n"
+    query+= "ELSE CONCAT(rarity, '*G', gear) END AS 'gear', \n"
+    query+= "omicrons.type AS 'type' \n"
+    if all_omicrons:
+        query+= ", CASE WHEN roster_skills.level>=omicrons.level THEN 'x' ELSE '' END AS 'actif' \n"
+    query+= "FROM roster \n"
     query+= "JOIN roster_skills ON roster_id = roster.id \n"
     query+= "JOIN players ON players.allyCode=roster.allyCode \n"
-    query+= "WHERE (roster_skills.omicron_type<>'') \n"
+    query+= "JOIN ( VALUES ('defId', 'name', 'level', 'type'),\n"
+    query+= str(list_omicrons)[1:-1]
+    query+= ") as omicrons ON (roster.defId=omicrons.defId AND roster_skills.name=omicrons.name) \n"
+
+    query+= "WHERE TRUE \n"
     if not get_all:
         query+= "AND ( \n"
         if len(list_character_ids)>0:
-            query+= "    defId IN "+str(tuple(list_character_ids)).replace(",)", ")")+" \n"
+            query+= "    roster.defId IN "+str(tuple(list_character_ids)).replace(",)", ")")+" \n"
         else:
             query+= "    0 \n"
         query+= "    OR\n"
         if len(list_modes)>0:
-            query+= "    omicron_type IN "+str(tuple(list_modes)).replace(",)", ")")+" \n"
+            query+= "    omicrons.type IN "+str(tuple(list_modes)).replace(",)", ")")+" \n"
         else:
             query+= "    0 \n"
         query+= ") \n"
@@ -2702,7 +2718,9 @@ async def print_lox(txt_allyCode, characters, compute_guild):
         query+= "AND guildName=(SELECT guildName FROM players WHERE allyCode="+txt_allyCode+") \n"
     else:
         query+= "AND players.allyCode="+txt_allyCode+" \n"
-    query+= "ORDER BY omicron_type, defId, players.name"
+    if not all_omicrons:
+        query+= "AND roster_skills.level>=omicrons.level \n"
+    query+= "ORDER BY omicrons.type, roster.defId, omicrons.name, players.name"
     goutils.log2("DBG", query)
 
     db_lines = connect_mysql.text_query(query)
