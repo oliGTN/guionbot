@@ -2691,7 +2691,7 @@ async def print_lox(txt_allyCode, characters, compute_guild=False, all_omicrons=
     query = "SELECT players.name AS 'joueur', roster.defId AS 'perso', roster_skills.name AS 'type', \n"
     query+= "CASE WHEN gear=13 THEN CONCAT(rarity, '*R', relic_currentTier-2) \n"
     query+= "ELSE CONCAT(rarity, '*G', gear) END AS 'gear', \n"
-    query+= "omicrons.type AS 'type' \n"
+    query+= "omicrons.type AS 'mode' \n"
     if all_omicrons:
         query+= ", CASE WHEN roster_skills.level>=omicrons.level THEN 'x' ELSE '' END AS 'actif' \n"
     query+= "FROM roster \n"
