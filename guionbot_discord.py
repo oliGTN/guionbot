@@ -1681,7 +1681,9 @@ async def on_message_edit(before, after):
 
         #Read messages from WookieBoot
         if after.author.id == config.WOOKIEBOT_DISCORD_ID:
+            goutils.log2("DBG", "Detecting WookieBot message edit...")
             for attachment in after.attachments:
+                goutils.log2("DBG", "Reading attachment...")
                 if not attachment.filename.endswith(".csv"):
                     continue
                 raid_shortname = attachment.filename.split("_")[0]
