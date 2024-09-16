@@ -3291,12 +3291,24 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             options = list(args)
             estimate_fights = False
             estimate_platoons = False
+            targets_platoons = None
+            output_channel = ctx.message.channel
             for arg in args:
                 if arg.startswith("-e"):
                     estimate_fights = True
                     options.remove(arg)
                 elif arg.startswith("-p"):
                     estimate_platoons = True
+                    if "=" in arg:
+                        targets_platoons = arg.split('=')[1]
+                    options.remove(arg)
+                elif arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                    display_mentions=True
+                    if output_channel == None:
+                        await ctx.send('**ERR**: '+err_msg)
+                        output_channel = ctx.message.channel
+                        display_mentions=False
                     options.remove(arg)
 
             if len(options) == 0:
@@ -3324,21 +3336,25 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, 0,
                                                                  estimate_fights=estimate_fights,
                                                                  estimate_platoons=estimate_platoons,
+                                                                 targets_platoons=targets_platoons,
                                                                  allyCode=connected_allyCode)
             if err_code == 0:
                 for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                    await ctx.send(txt)
+                    await output_channel.send(txt)
 
                 if images != None:
                     for image in images:
                         with BytesIO() as image_binary:
                             image.save(image_binary, 'PNG')
                             image_binary.seek(0)
-                            await ctx.send(content = "",
+                            await output_channel.send(content = "",
                                 file=File(fp=image_binary, filename='image.png'))
 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emojis.check)
+
+                #In hidden, update gwarstats
+                await connect_gsheets.update_gwarstats(guild_id, allyCode=connected_allyCode)
             else:
                 await ctx.send(ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)

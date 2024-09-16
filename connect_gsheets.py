@@ -741,10 +741,10 @@ async def close_tb_gwarstats(guild_id):
     return 0, ""
 
 ##############################################################
-async def update_gwarstats(guild_id):
+async def update_gwarstats(guild_id, allyCode=None):
     gfile_name = get_gfile_name(guild_id)
 
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1)
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, allyCode=allyCode)
     if ec != 0:
         return 1, et
 

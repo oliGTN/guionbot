@@ -1206,7 +1206,7 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 async def get_tb_status(guild_id, targets_zone_stars, force_update,
                         compute_estimated_fights=False,
                         compute_estimated_platoons=False,
-                        allyCode=None):
+                        targets_platoons=None, allyCode=None):
     global prev_dict_guild
     global prev_mapstats
 
@@ -1677,57 +1677,100 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
         dict_platoons_done = ret_data["platoons"]
 
         tb_name = tbs_round[:-1]
-        err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
 
-        if ret_dict == None:
-            dict_platoons_allocation = {}
+        # check for done platoons, unless they are hard given:
+        if targets_platoons==None:
+            err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+
+            if ret_dict == None:
+                dict_platoons_allocation = {}
+            else:
+                dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
+
+            for zone_name in list_open_zones:
+                recon_zoneId = zone_name+"_recon01"
+                zone_shortname = dict_tb[zone_name]["name"]
+
+
+                # Fill done platoons with allocations
+                zone_done_count=0
+                zone_target_count=0
+                for platoon in dict_platoons_done:
+                    if platoon.startswith(zone_shortname):
+                        current_platoon_count=0
+                        future_platoon_count=0
+                        for unit in dict_platoons_done[platoon]:
+                            empty_players = dict_platoons_done[platoon][unit].count('')
+                            current_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
+                            future_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
+
+                            if platoon in dict_platoons_allocation:
+                                dict_platoon_allocations = dict_platoons_allocation[platoon]
+                                if unit in dict_platoon_allocations:
+                                    #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
+                                    for i in range(empty_players):
+                                        target_players = dict_platoon_allocations[unit]
+                                        for player in target_players:
+                                            if not player in dict_platoons_done[platoon][unit]:
+                                                dict_platoons_done[platoon][unit].remove('')
+                                                dict_platoons_done[platoon][unit].append(player)
+                                                dict_platoon_allocations[unit].remove(player)
+                                                future_platoon_count += 1
+                                                break
+
+                                    #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
+                        #print(current_platoon_count, future_platoon_count)
+                        zone_done_count += (current_platoon_count==15)
+                        zone_target_count += (future_platoon_count==15)
+
+                                    
+                # Compute remaining platoons score
+                remaining_score = 0
+                if zone_target_count > zone_done_count:
+                    platoon_score = dict_tb[zone_name]["platoonScore"]
+                    remaining_score = (zone_target_count-zone_done_count) * platoon_score
+
+                dict_zones[zone_name]["remainingPlatoonScore"] = remaining_score
+
         else:
-            dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
+            for target_platoon in targets_platoons.split("/"):
+                if not ":" in target_platoon:
+                    return 1, target_platoon + " --> chaque objectif de peloton doit être de la forme <zone>:<pelotons> (ex: MS:4)", None
 
-        for zone_name in list_open_zones:
-            recon_zoneId = zone_name+"_recon01"
-            zone_shortname = dict_tb[zone_name]["name"]
+                # get and check target zone name
+                target_zone_shortname = target_platoon.split(":")[0]
 
+                zone_found = False
+                list_zone_names = []
+                for zone_name in list_open_zones:
+                    list_zone_names.append(dict_tb[zone_name]["name"])
+                    if dict_tb[zone_name]["name"].endswith("-"+target_zone_shortname):
+                        target_zone_name = dict_tb[zone_name]["name"]
+                        zone_found = True
+                        break
 
-            # Fill done platoons with allocations
-            zone_done_count=0
-            zone_target_count=0
-            for platoon in dict_platoons_done:
-                if platoon.startswith(zone_shortname):
-                    current_platoon_count=0
-                    future_platoon_count=0
-                    for unit in dict_platoons_done[platoon]:
-                        empty_players = dict_platoons_done[platoon][unit].count('')
-                        current_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
-                        future_platoon_count+=len(dict_platoons_done[platoon][unit]) - empty_players
+                if not zone_found:
+                    return 1, target_platoon+" --> zone inconnue: " + target_zone_shortname + " " + str(list_zone_names), None
 
-                        if platoon in dict_platoons_allocation:
-                            dict_platoon_allocations = dict_platoons_allocation[platoon]
-                            if unit in dict_platoon_allocations:
-                                #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
-                                for i in range(empty_players):
-                                    target_players = dict_platoon_allocations[unit]
-                                    for player in target_players:
-                                        if not player in dict_platoons_done[platoon][unit]:
-                                            dict_platoons_done[platoon][unit].remove('')
-                                            dict_platoons_done[platoon][unit].append(player)
-                                            dict_platoon_allocations[unit].remove(player)
-                                            future_platoon_count += 1
-                                            break
+                #define platoon target score
+                zone_done_count = 0
+                for platoon in dict_platoons_done:
+                    if platoon.startswith(target_zone_name):
+                        platoon_done_count=0
+                        for char_name in dict_platoons_done[platoon]:
+                            for player_name in dict_platoons_done[platoon][char_name]:
+                                if player_name != '':
+                                    platoon_done_count += 1
+                        if platoon_done_count==15:
+                            zone_done_count+=1
 
-                                #print(platoon, unit, dict_platoons_done[platoon][unit], dict_platoon_allocations[unit])
-                    #print(current_platoon_count, future_platoon_count)
-                    zone_done_count += (current_platoon_count==15)
-                    zone_target_count += (future_platoon_count==15)
+                zone_target_count = int(target_platoon.split(":")[1])
+                remaining_score = 0
+                if zone_target_count > zone_done_count:
+                    platoon_score = dict_tb[zone_name]["platoonScore"]
+                    remaining_score = (zone_target_count-zone_done_count) * platoon_score
 
-                                
-            # Compute remaining platoons score
-            remaining_score = 0
-            if zone_target_count > zone_done_count:
-                platoon_score = dict_tb[zone_name]["platoonScore"]
-                remaining_score = (zone_target_count-zone_done_count) * platoon_score
-
-            dict_zones[zone_name]["remainingPlatoonScore"] = remaining_score
+                dict_zones[zone_name]["remainingPlatoonScore"] = remaining_score
 
     #####################################################
     # Start filling the graph with scores
