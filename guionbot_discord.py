@@ -3282,7 +3282,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='tbs',
             brief="Statut de la BT",
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
-                 "go.tbs \"DS:1 LS:3 MS:2\" [-estime] [-pelotons]")
+                 "go.tbs \"DS:1 LS:3 MS:2\" [-estime] [-pelotons]\n" \
+                 "go.tbs \"DS:1 LS:3 MS:2\" -e -p=DS:6/MS:4/LS:0")
     async def tbs(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
