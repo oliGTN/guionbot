@@ -772,6 +772,18 @@ async def update_gwarstats(guild_id, allyCode=None):
     prev_round = int(feuille.get("B2")[0][0]) # 6, 4
     prev_shortname = feuille.get("A4")[0][0].split("-")[0][:-1] # ROTE, GLS
     if (prev_round != dict_phase["round"]) and (dict_phase["round"] > 1):
+        #update the sheet before copying it
+        prev_list_open_zones = []
+        for zone_shortname in [feuille.get("A4")[0][0],
+                               feuille.get("E4")[0][0],
+                               feuille.get("I4")[0][0]]:
+            for key in dict_tb:
+                if dict_tb[key]["name"] == zone_shortname:
+                    prev_list_open_zones.append(key)
+
+        ec, et = update_gwarstats_sheet(feuille, prev_round, dict_phase, dict_zones, dict_strike_zones, prev_list_open_zones, dict_tb_players)
+
+        #copy for acrhiving
         max_sheet_id = max([ws.id for ws in file.worksheets()])
         new_sheet_name=prev_shortname+" J"+str(prev_round)+" "+now.strftime("%d/%m")
         feuille.duplicate(insert_sheet_index=max_sheet_id+1, new_sheet_name=new_sheet_name)
@@ -818,7 +830,14 @@ async def update_gwarstats(guild_id, allyCode=None):
             except:
                 goutils.log2("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
 
+    # update the sheet
+    return update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players)
+
+def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players):
     dict_tb = data.get("tb_definition.json")
+    now = datetime.datetime.now()
+
+    print(tb_round, list_open_zones)
     cells = []
     cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["name"]))
     cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["round"]))
