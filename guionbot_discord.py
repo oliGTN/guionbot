@@ -1062,7 +1062,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             for err in sorted(set(list_err)):
                 full_txt += err + '\n'
         elif tbChannel_id==0:
-            full_txt+='WAR: warbot non configuré pour les les allocations EchoBot\n'
+            full_txt+='WAR: warbot non configuré pour vérifier les allocations EchoBot\n'
         else:
             full_txt += "Aucune erreur de peloton\n"
 
