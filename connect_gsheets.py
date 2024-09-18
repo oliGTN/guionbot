@@ -857,7 +857,11 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value="!!! Phase "+zone_round))
 
         #zone stars
-        cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone["stars"]))
+        if "stars" in zone["stars"]:
+            zone_stars = zone["stars"]
+        else:
+            zone_stars = zone["prev_stars"]
+        cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone_stars))
 
         #zone star scores
         i_col = 1
