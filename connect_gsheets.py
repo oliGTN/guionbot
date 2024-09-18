@@ -742,6 +742,7 @@ async def close_tb_gwarstats(guild_id):
 
 ##############################################################
 async def update_gwarstats(guild_id, allyCode=None):
+    dict_tb = data.get("tb_definition.json")
     gfile_name = get_gfile_name(guild_id)
 
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, allyCode=allyCode)
