@@ -911,28 +911,33 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         tb_id = dict_tb[tb_name]["id"]
 
         # Read platoon allocations
-        ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
-        if ec != 0:
-            return ec, et
+        if tbChannel_id!=0:
+            ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
+            if ec != 0:
+                return ec, et
 
-        allocation_tb_phases = ret["allocation_tb_phases"]
-        dict_platoons_allocation = ret["dict_platoons_allocation"]
+            allocation_tb_phases = ret["allocation_tb_phases"]
+            dict_platoons_allocation = ret["dict_platoons_allocation"]
 
-        goutils.log2("DBG", "allocation_tb_phases="+str(allocation_tb_phases))
-        for platoon in dict_platoons_allocation:
-            goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
+            goutils.log2("DBG", "allocation_tb_phases="+str(allocation_tb_phases))
+            for platoon in dict_platoons_allocation:
+                goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
         
-        # Read DB platoon allocations
-        #ec, et, ret = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
-        #if ec != 0:
-        #    return ec, et
+            # Read DB platoon allocations
+            #ec, et, ret = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+            #if ec != 0:
+            #    return ec, et
 
-        #allocation_tb_phases_db = ret["allocation_tb_phases"]
-        #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
+            #allocation_tb_phases_db = ret["allocation_tb_phases"]
+            #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
 
-        #goutils.log2("DBG", "allocation_tb_phases_db="+str(allocation_tb_phases_db))
-        #for platoon in dict_platoons_allocation_db:
-        #    goutils.log2("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
+            #goutils.log2("DBG", "allocation_tb_phases_db="+str(allocation_tb_phases_db))
+            #for platoon in dict_platoons_allocation_db:
+            #    goutils.log2("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
+
+        else:
+            #allocation_tb_phases = None
+            dict_platoons_allocation = {}
         
         #Comparaison des dictionnaires
         #Recherche des persos non-affectés
@@ -1056,8 +1061,10 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         if len(list_missing_platoons)>0 or len(list_err)>0:
             for err in sorted(set(list_err)):
                 full_txt += err + '\n'
+        elif tbChannel_id==0:
+            full_txt+='WAR: warbot non configuré pour les les allocations EchoBot\n'
         else:
-            full_txt = "Aucune erreur de peloton\n"
+            full_txt += "Aucune erreur de peloton\n"
 
         return 0, full_txt
 
@@ -2795,10 +2802,6 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
             tbChannel_id = bot_infos["tbChanRead_id"]
             echostation_id = bot_infos["echostation_id"]
-            if tbChannel_id==0:
-                await ctx.send('ERR: warbot mal configuré (tbChannel_id=0)')
-                await ctx.message.add_reaction(emojis.redcross)
-                return
 
             if deploy_bot:
                 deploy_allyCode = bot_infos["allyCode"]
