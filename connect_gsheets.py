@@ -779,7 +779,7 @@ async def update_gwarstats(guild_id, allyCode=None):
                                feuille.get("E4")[0][0],
                                feuille.get("I4")[0][0]]:
             for key in dict_tb:
-                if dict_tb[key]["name"] == zone_shortname:
+                if "name" in dict_tb[key] and dict_tb[key]["name"] == zone_shortname:
                     prev_list_open_zones.append(key)
 
         ec, et = update_gwarstats_sheet(feuille, prev_round, dict_phase, dict_zones, dict_strike_zones, prev_list_open_zones, dict_tb_players)
