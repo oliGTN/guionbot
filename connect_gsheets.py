@@ -782,7 +782,8 @@ async def update_gwarstats(guild_id, allyCode=None):
                 if "name" in dict_tb[key] and dict_tb[key]["name"] == zone_shortname:
                     prev_list_open_zones.append(key)
 
-        ec, et = update_gwarstats_sheet(feuille, prev_round, dict_phase, dict_zones, dict_strike_zones, prev_list_open_zones, dict_tb_players)
+        # TODO add missing values for previous round
+        #ec, et = update_gwarstats_sheet(feuille, prev_round, dict_phase, dict_zones, dict_strike_zones, prev_list_open_zones, dict_tb_players)
 
         #copy for acrhiving
         max_sheet_id = max([ws.id for ws in file.worksheets()])
@@ -838,7 +839,6 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
     dict_tb = data.get("tb_definition.json")
     now = datetime.datetime.now()
 
-    print(tb_round, list_open_zones)
     cells = []
     cells.append(gspread.cell.Cell(row=1, col=2, value=dict_phase["name"]))
     cells.append(gspread.cell.Cell(row=2, col=2, value=dict_phase["round"]))
@@ -857,10 +857,10 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value="!!! Phase "+zone_round))
 
         #zone stars
-        if "stars" in zone["stars"]:
+        if "stars" in zone:
             zone_stars = zone["stars"]
         else:
-            zone_stars = zone["prev_stars"]
+            zone_stars = zone["completed_stars"]
         cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=zone_stars))
 
         #zone star scores
@@ -871,9 +871,18 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
 
         #zone scores (for the graph)
         cells.append(gspread.cell.Cell(row=14, col=2+4*i_zone, value=min(star_score, zone["score"])))
-        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=zone["estimatedStrikeScore"]))
-        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=zone["deployment"]))
-        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=zone["maxStrikeScore"]))
+        estimatedStrikeScore = 0
+        if "estimatedStrikeScore" in zone:
+            estimatedStrikeScore=zone["estimatedStrikeScore"]
+        cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=estimatedStrikeScore))
+        deployment=0
+        if "deployment " in zone:
+            deployment=zone["deployment"]
+        cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=deployment))
+        maxStrikeScore=0
+        if "maxStrikeScore " in zone:
+            maxStrikeScore=zone["maxStrikeScore"]
+        cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=maxStrikeScore))
 
         #zone strike stats
         for line in [19, 20, 21, 22, 23]:
