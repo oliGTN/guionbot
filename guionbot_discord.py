@@ -582,7 +582,6 @@ async def send_alert_to_echocommanders(guild_id, message):
 # Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
 # Purpose: lit le channel #bateilles de territoire pour retouver
 #          l'affectation des pelotons par Echobot
-# Output: current_tb_phase # ["2", "1", "2"]
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
 async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
@@ -597,7 +596,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
     
     tbs_name = tbs_round[:-1]
 
-    current_tb_phase = [None, None, None] # DS/MS/LS or top/mid/bot, gives the number [1,6] of the phase
+    current_tb_phase = {} # key = DS/MS/LS or top/mid/bot, value = number [1,6] of the phase
     detect_previous_BT = False
     
     # Read history of messages
@@ -736,14 +735,19 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                 if territory_name in dict_BT_missions[tbs_name]:
                                     territory_name_position = dict_BT_missions[tbs_name][territory_name]
                                     territory_phase = territory_name_position.split("-")[0][-1]
-                                    if territory_position in ["left", "top"]:
-                                        territory_pos = 0
-                                    elif territory_position in ["mid"]:
-                                        territory_pos = 1
-                                    else: #if territory_position in ["right", "bot"]:
-                                        territory_pos = 2
+                                    if territory_position == "left":
+                                        territory_pos = "DS"
+                                    elif territory_position == "right":
+                                        territory_pos = "LS"
+                                    elif territory_position == "mid":
+                                        if tbs_name == "ROTE":
+                                            territory_pos = "LS"
+                                        else:
+                                            territory_pos = "mid"
+                                    else: #if territory_position in ["top", "bot"]:
+                                        territory_pos = territory_position
 
-                                    if current_tb_phase[territory_pos]!=None and current_tb_phase[territory_pos]<territory_phase:
+                                    if territory_pos in current_tb_phase and current_tb_phase[territory_pos]<territory_phase:
                                         detect_previous_BT = True
                                         break
                                     current_tb_phase[territory_pos] = territory_phase
@@ -846,7 +850,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
         goutils.log2("WAR", "Cannot read history of messages in "+str(tbChannel_id))
         return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
 
-    if current_tb_phase == [None, None, None]:
+    if len(current_tb_phase) == 0:
         return 1, "Aucune affectation détectée dans <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
 
     #cleanup btX platoons
@@ -857,7 +861,6 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
     dict_platoons_allocation = tmp_d
 
     return 0, "", {"phase": eb_phase,
-                   "allocation_tb_phases": current_tb_phase,
                    "dict_platoons_allocation": dict_platoons_allocation}
 
 #####################
@@ -872,7 +875,6 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
         return ec, et
 
     eb_phase = ret["phase"]
-    allocation_tb_phases = ret["allocation_tb_phases"]
     dict_platoons_allocation = ret["dict_platoons_allocation"]
     tbs_name = tbs_round[:-1]
     ec, et = go.store_eb_allocations(guild_id, tbs_name, eb_phase, dict_platoons_allocation)
@@ -916,10 +918,8 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             if ec != 0:
                 return ec, et
 
-            allocation_tb_phases = ret["allocation_tb_phases"]
             dict_platoons_allocation = ret["dict_platoons_allocation"]
 
-            goutils.log2("DBG", "allocation_tb_phases="+str(allocation_tb_phases))
             for platoon in dict_platoons_allocation:
                 goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
         
@@ -928,15 +928,12 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             #if ec != 0:
             #    return ec, et
 
-            #allocation_tb_phases_db = ret["allocation_tb_phases"]
             #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
 
-            #goutils.log2("DBG", "allocation_tb_phases_db="+str(allocation_tb_phases_db))
             #for platoon in dict_platoons_allocation_db:
             #    goutils.log2("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
 
         else:
-            #allocation_tb_phases = None
             dict_platoons_allocation = {}
         
         #Comparaison des dictionnaires
@@ -981,7 +978,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             list_terr_status.append([terr["zone_name"], terr_txt])
 
         #sort by zone position
-        list_terr_status = sorted(list_terr_status, key=lambda x:dict_tb[tb_id]["zonePositions"][x[0].split("-")[1]])
+        list_terr_status = sorted(list_terr_status, key=lambda x:dict_tb[tb_id]["zonePositions"][x[0].split("-")[1].strip("b")] + 0.5*x[0].split("-")[1].endswith("b"))
         for terr_status in list_terr_status:
             full_txt += terr_status[1]+"\n"
         full_txt += "---\n"
@@ -1862,9 +1859,10 @@ def officer_command(ctx):
         is_server_admin = ctx.author.guild_permissions.administrator
 
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
+    allow_officer = ((is_officer or is_server_admin) and (not bot_test_mode)) or is_owner
 
-    goutils.log2("INFO", [ctx.author.name, is_owner, is_officer, is_server_admin])
-    return ((is_officer or is_server_admin) and (not bot_test_mode)) or is_owner
+    goutils.log2("INFO", [ctx.author.name, is_owner, is_officer, is_server_admin, allow_officer])
+    return allow_officer
 
 ##############################################################
 # Description: contains all background tasks

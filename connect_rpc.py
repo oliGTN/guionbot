@@ -752,7 +752,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
     active_round = "" # "GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
-    list_open_territories = [{}, {}, {}] # [{"phase":4, "cmdMsg": "full pelotons", "cmdState":"FOCUSED"}, ...]
+    list_open_territories = [] # [{"phase":4, "cmdMsg": "full pelotons", "cmdState":"FOCUSED"}, ...]
 
     guildName = dict_guild["profile"]["name"]
 
@@ -786,14 +786,13 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
                 if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
                     ret_re = re.search(".*_phase0(\d)_conflict0(\d)", zone_name)
-                    zone_position = int(ret_re.group(2))
                     zone_phase = int(ret_re.group(1))
-                    list_open_territories[zone_position-1] = {"phase": zone_phase,
-                                                              "zone_name": dict_tb[zone_name]["name"]}
+                    list_open_territories.append( {"phase": zone_phase,
+                                                   "zone_name": dict_tb[zone_name]["name"]})
                     if "commandMessage" in zone["zoneStatus"]:
-                        list_open_territories[zone_position-1]["cmdMsg"] = zone["zoneStatus"]["commandMessage"]
+                        list_open_territories[-1]["cmdMsg"] = zone["zoneStatus"]["commandMessage"]
                     if "commandState" in zone["zoneStatus"]:
-                        list_open_territories[zone_position-1]["cmdState"] = zone["zoneStatus"]["commandState"]
+                        list_open_territories[-1]["cmdState"] = zone["zoneStatus"]["commandState"]
                     open_zone_count += 1
 
                 if not "platoon" in zone:
@@ -1375,7 +1374,9 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
     #sort the dict to display zones in the same order as the game
     if my_list_open_zones == None:
-        list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1]])
+        # sort by position by removing the "b" for bonus
+        # then add 0.5 for bonus zone
+        list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1].strip("b")] + 0.5*dict_tb[x]["name"].split("-")[1].endswith("b"))
     else:
         list_open_zones = my_list_open_zones
 
