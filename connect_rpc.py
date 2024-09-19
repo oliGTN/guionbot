@@ -1206,7 +1206,8 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 async def get_tb_status(guild_id, targets_zone_stars, force_update,
                         compute_estimated_fights=False,
                         compute_estimated_platoons=False,
-                        targets_platoons=None, allyCode=None):
+                        targets_platoons=None, allyCode=None,
+                        my_tb_round=None, my_list_open_zones=None):
     global prev_dict_guild
     global prev_mapstats
 
@@ -1239,13 +1240,17 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 if not tb_type in dict_tb:
                     return 1, "TB inconnue du bot", None
 
-                tb_round = battleStatus["currentRound"]
+                if my_tb_round == None:
+                    tb_round = battleStatus["currentRound"]
+                else:
+                    tb_round = my_tb_round
+
                 if tb_round <= dict_tb[tb_type]["maxRound"]:
                     tb_ongoing=True
 
-                tb_round_endTime = int(battleStatus["currentRoundEndTime"])
+                tb_startTime = int(battleStatus["instanceId"].split(':')[1][1:])
+                tb_round_endTime = tb_startTime + tb_round*dict_tb[tb_type]["PhaseDuration"]
                 tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
-                tb_startTime = tb_round_endTime - tb_round * dict_tb[tb_type]["PhaseDuration"]
 
                 if battle_id in dict_all_events:
                     dict_events=dict_all_events[battle_id]
@@ -1369,7 +1374,10 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     dict_phase["prev_stars"] = completed_stars
 
     #sort the dict to display zones in the same order as the game
-    list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1]])
+    if my_list_open_zones == None:
+        list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1]])
+    else:
+        list_open_zones = my_list_open_zones
 
     if len(list_open_zones)==0:
         return 1, "No TB on-going", None
@@ -1377,7 +1385,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     total_players_guild = len(dict_tb_players)
     dict_phase["TotalPlayers"] = total_players_guild
     for zone in battleStatus["strikeZoneStatus"]:
-        if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
+        if True: #zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
             strike_name = zone["zoneStatus"]["zoneId"]
             strike_shortname = strike_name.split("_")[-1]
 
@@ -1400,7 +1408,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             dict_strike_zones[strike_name]["eventStrikeScore"] = 0
 
     for zone in battleStatus["covertZoneStatus"]:
-        if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
+        if True: #zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
             covert_name = zone["zoneStatus"]["zoneId"]
             covert_shortname = covert_name.split("_")[-1]
 

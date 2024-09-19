@@ -754,7 +754,6 @@ async def update_gwarstats(guild_id, allyCode=None):
     dict_tb_players = tb_data["players"]
     list_open_zones = tb_data["open_zones"]
     dict_zones = tb_data["zones"]
-
     tb_round = dict_phase["round"]
 
     try:
@@ -773,6 +772,8 @@ async def update_gwarstats(guild_id, allyCode=None):
     prev_round = int(feuille.get("B2")[0][0]) # 6, 4
     prev_shortname = feuille.get("A4")[0][0].split("-")[0][:-1] # ROTE, GLS
     if (prev_round != dict_phase["round"]) and (dict_phase["round"] > 1):
+        goutils.log2("INFO", "Detecting TB round transition")
+
         #update the sheet before copying it
         prev_list_open_zones = []
         for zone_shortname in [feuille.get("A4")[0][0],
@@ -783,7 +784,22 @@ async def update_gwarstats(guild_id, allyCode=None):
                     prev_list_open_zones.append(key)
 
         # TODO add missing values for previous round
-        #ec, et = update_gwarstats_sheet(feuille, prev_round, dict_phase, dict_zones, dict_strike_zones, prev_list_open_zones, dict_tb_players)
+        ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, allyCode=allyCode,
+                                                          my_tb_round = prev_round,
+                                                          my_list_open_zones = prev_list_open_zones)
+        if  ec != 0:
+            return 1, et
+
+        prev_dict_phase = tb_data["phase"]
+        prev_dict_strike_zones = tb_data["strike_zones"]
+        prev_dict_tb_players = tb_data["players"]
+        prev_list_open_zones = tb_data["open_zones"]
+        prev_dict_zones = tb_data["zones"]
+        prev_tb_round = dict_phase["round"]
+
+        ec, et = update_gwarstats_sheet(feuille, prev_round, prev_dict_phase, prev_dict_zones, 
+                                        prev_dict_strike_zones, prev_list_open_zones, 
+                                        prev_dict_tb_players)
 
         #copy for acrhiving
         max_sheet_id = max([ws.id for ws in file.worksheets()])
@@ -876,11 +892,11 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
             estimatedStrikeScore=zone["estimatedStrikeScore"]
         cells.append(gspread.cell.Cell(row=15, col=2+4*i_zone, value=estimatedStrikeScore))
         deployment=0
-        if "deployment " in zone:
+        if "deployment" in zone:
             deployment=zone["deployment"]
         cells.append(gspread.cell.Cell(row=16, col=2+4*i_zone, value=deployment))
         maxStrikeScore=0
-        if "maxStrikeScore " in zone:
+        if "maxStrikeScore" in zone:
             maxStrikeScore=zone["maxStrikeScore"]
         cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=maxStrikeScore))
 
