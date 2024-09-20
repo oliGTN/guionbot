@@ -2203,17 +2203,23 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
     return ret_print_character_stats
 
 ##############################################
-def get_distribution_graph(values,           #list of values to distribute
-                           values_2,         #Optional 2nd list of values to put on top of first one
-                           bin_count,        #Amount of bons for the distribution
-                           bin_list,         #ONLY of bin_count=None, to force the bins
-                           bin_labels,       #ONLY of bin_count=None, to give names to bins
-                           title,            #Title of the graph
-                           x_title,          #Name of X axis
-                           y_title,          #Name of Y axis
-                           legend,           #Optional name of 1st serie
-                           legend_2,         #Optional name of 2nd serie
-                           highlight_value): #Optional value for which create a red virtual bin
+def get_distribution_graph(values,               #list of values to distribute
+                           values_2,             #Optional 2nd list of values to put on top of first one
+                           bin_count,            #Amount of bons for the distribution
+                           bin_list,             #ONLY if bin_count=None, to force the bins
+                           bin_labels,           #ONLY if bin_count=None, to give names to bins
+                           title,                #Title of the graph
+                           x_title,              #Name of X axis
+                           y_title,              #Name of Y axis
+                           legend,               #Optional name of 1st serie
+                           legend_2,             #Optional name of 2nd serie
+                           highlight_value=None, #Optional value for which create a red virtual bin
+                           ts_to_date=False):    #Optional value for which create a red virtual bin
+
+    #auto layout, to ensure everythin stays in the image
+    plt.rcParams.update({'figure.autolayout': True})
+
+    # Create figure
     fig, ax = plt.subplots()
 
     #pre-calculate bins to align histograms
@@ -2230,7 +2236,16 @@ def get_distribution_graph(values,           #list of values to distribute
 
     # 1st hist
     counts, bins = np.histogram(values, bins=bins)
-    ax.stairs(counts, edges=bins, color='blue', label=legend, fill=True)
+    if ts_to_date:
+        from_timestamp = np.vectorize(lambda x: datetime.datetime.utcfromtimestamp(x))
+        ax.stairs(counts, edges=from_timestamp(bins), color='blue', label=legend, fill=True)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m %H:%M"))
+
+        #rotate labels
+        labels = ax.get_xticklabels()
+        plt.setp(labels, rotation=45, horizontalalignment='right')
+    else:
+        ax.stairs(counts, edges=bins, color='blue', label=legend, fill=True)
 
     # 2nd hist
     if values_2 != None:
@@ -2282,7 +2297,7 @@ async def get_gp_distribution(txt_allyCode):
     graph_title = "GP stats " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
 
     #compute ASCII graphs
-    image = get_distribution_graph(guild_stats, None, 20, None, None, graph_title, "PG du joueur", "nombre de joueurs", "", "", None)
+    image = get_distribution_graph(guild_stats, None, 20, None, None, graph_title, "PG du joueur", "nombre de joueurs", "", "")
     logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
     image.paste(logo_img, (10,10), logo_img)
     
@@ -2323,7 +2338,7 @@ async def get_gac_distribution(txt_allyCode):
                                     10:'Chromium',
                                     15:'Aurodium',
                                     20:'Kyber'},
-                                   graph_title, "Classement GAC", "nombre de joueurs", "", "", None)
+                                   graph_title, "Classement GAC", "nombre de joueurs", "", "")
     logo_img= portraits.get_guild_logo(dict_guild, (80, 80))
     image.paste(logo_img, (10,10), logo_img)
     
@@ -2596,7 +2611,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
     title = stat_frName + " de " + character_name + " (" + str(player_value) + ") pour "+player_name+"\n"
     title+= "comparée aux " + str(len(stat_g13_values)) + " " + character_name + " "+relic_txt+" connus"
 
-    image = get_distribution_graph(stat_g13_values, guild_values, 50, None, None, title, "valeur de la stat", "nombre de persos", "tous", guild_name, player_value)
+    image = get_distribution_graph(stat_g13_values, guild_values, 50, None, None, title, "valeur de la stat", "nombre de persos", "tous", guild_name, highlight_value=player_value)
 
     return 0, err_txt, image
 

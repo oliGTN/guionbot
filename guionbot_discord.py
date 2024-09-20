@@ -2679,72 +2679,94 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                    help ="Affiche les logs de guilde\n" \
                                          "Exemple: go.logs\n" \
                                          "Exemple: go.logs Chaton72\n" \
-                                         "Exemple: go.logs -i chaton72\n" \
+                                         "Exemple: go.logs -i chaton72 # pour ignorer la casse\n" \
                                          "Exemple: go.logs a perdu\n" \
-                                         "Exemple: go.logs TM")
+                                         "Exemple: go.logs -graph      # avec un graphique")
     async def logs(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        args = list(args)
-        if "-i" in args:
-            case_sensitive = False
-            args.remove("-i")
-        else:
+            args = list(args)
             case_sensitive = True
+            display_graph = False
+            for arg in args:
+                if arg == "-i":
+                    case_sensitive = False
+                    args.remove(arg)
+                elif arg == "-graph":
+                    display_graph = True
+                    args.remove(arg)
 
-        text_grep = " ".join(args)
+            text_grep = " ".join(args)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+
+            # Launch the actual command
+            ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False)
+            if ec != 0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            list_chat_events = ret_data["CHAT"][1]
+            list_tw_events = ret_data["TW"][1]
+            list_tb_events = ret_data["TB"][1]
+
+            list_logs = list_chat_events + list_tw_events + list_tb_events
+
+            #Sort by time
+            list_logs = sorted(list_logs)
+
+            if case_sensitive:
+                list_logs = [x for x in list_logs if text_grep in x[1]]
+            else:
+                list_logs = [x for x in list_logs if text_grep.lower() in x[1].lower()]
+
+            #Keep max 100 latest
+            list_logs = list_logs[-100:]
+
+            #display
+            output_txt = ""
+            for line in list_logs:
+                ts = line[0]
+                txt = line[1]
+                ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%d/%m %H:%M")
+                output_txt+=ts_txt+" - "+txt+"\n"
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await ctx.send('`'+txt+'`')
+
+            #optional graph
+            if display_graph:
+                list_log_timestamps = [int(x[0]/1000) for x in list_logs]
+                image = go.get_distribution_graph(list_log_timestamps, None, 30, None, None,
+                                                  "Evénements", "Date", "Nombre", "", "", 
+                                                  ts_to_date=True)
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = "",
+                        file=File(fp=image_binary, filename='image.png'))
+
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-
-        # Launch the actual command
-        ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False)
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        list_chat_events = ret_data["CHAT"][1]
-        list_tw_events = ret_data["TW"][1]
-        list_tb_events = ret_data["TB"][1]
-
-        list_logs = list_chat_events + list_tw_events + list_tb_events
-
-        #Sort by time
-        list_logs = sorted(list_logs)
-
-        if case_sensitive:
-            list_logs = [x for x in list_logs if text_grep in x[1]]
-        else:
-            list_logs = [x for x in list_logs if text_grep.lower() in x[1].lower()]
-
-        #Keep max 100 latest
-        list_logs = list_logs[-100:]
-
-        #display
-        output_txt = ""
-        for line in list_logs:
-            ts = line[0]
-            txt = line[1]
-            ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%d/%m %H:%M")
-            output_txt+=ts_txt+" - "+txt+"\n"
-
-        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-            await ctx.send('`'+txt+'`')
-
-        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: vdp
@@ -2830,9 +2852,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
         
     #######################################
     @commands.command(name='bot.enable',
