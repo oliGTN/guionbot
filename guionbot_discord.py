@@ -2630,6 +2630,13 @@ class AuthCog(commands.GroupCog, name="connect"):
         try:
             await interaction.response.defer(thinking=True)
 
+            #check option
+            if not code.isnumeric() or len(code)!=5:
+                txt = emojis.redcross+" ERR: le code '"+code+"' doit être un nombre à 5 chiffres"
+                await interaction.edit_original_response(content=txt)
+                return
+
+
             #get bot config from DB
             ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
