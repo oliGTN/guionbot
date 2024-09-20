@@ -2855,6 +2855,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         guild_id = bot_infos["guild_id"]
+        guild_name = bot_infos["guild_name"]
 
         # Launch the actual command
         ec, et = await connect_rpc.unlock_bot_account(guild_id)
@@ -2863,7 +2864,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.redcross)
             return
 
-        await ctx.send("Bot de la guilde "+ctx.guild.name+" activé > suivi de guilde OK")
+        await ctx.send("Bot de la guilde "+guild_name+" activé > suivi de guilde OK")
         await ctx.message.add_reaction(emojis.check)
 
     @commands.command(name='bot.disable',
@@ -2886,6 +2887,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         guild_id = bot_infos["guild_id"]
+        guild_name = bot_infos["guild_name"]
 
         # Launch the actual command
         ec, et = await connect_rpc.lock_bot_account(guild_id)
@@ -2894,7 +2896,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.redcross)
             return
 
-        await ctx.send("Bot de la guilde "+ctx.guild.name+" désactivé > prêt à jouer")
+        await ctx.send("Bot de la guilde "+guild_name+" désactivé > prêt à jouer")
         await ctx.message.add_reaction(emojis.check)
 
     @commands.command(name='bot.jointw',
