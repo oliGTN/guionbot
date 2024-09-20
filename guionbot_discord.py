@@ -2631,6 +2631,7 @@ class AuthCog(commands.GroupCog, name="connect"):
             await interaction.response.defer(thinking=True)
 
             #check option
+            code=code.strip()
             if not code.isnumeric() or len(code)!=5:
                 txt = emojis.redcross+" ERR: le code '"+code+"' doit être un nombre à 5 chiffres"
                 await interaction.edit_original_response(content=txt)
