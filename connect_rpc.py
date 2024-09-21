@@ -1369,7 +1369,8 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                 if zone_score >= star_score:
                     zone_stars += 1
         completed_stars += zone_stars
-        dict_zones[zone_name] = {"score": zone_score, "completed_stars": zone_stars}
+        dict_zones[zone_name] = {"score": zone_score, "completed_stars": zone_stars,
+                                 "remainingPlatoonScore": 0}
     dict_phase["prev_stars"] = completed_stars
 
     #sort the dict to display zones in the same order as the game
