@@ -349,7 +349,7 @@ async def bot_loop_5minutes(bot):
                 err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, -1)
 
                 if err_code != 0:
-                    goutils.log2("DBG", "["+guild_id+"] "+err_txt)
+                    goutils.log2("DBG", "["+guild_id+"] "+str(err_txt))
                     dict_platoons_previously_done[guild_id] = {}
                 else:
                     tbs_round = ret_data["round"]
