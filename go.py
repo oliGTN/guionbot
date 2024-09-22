@@ -4421,6 +4421,7 @@ async def get_tb_alerts(guild_id, force_update):
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", force_update)
     if ec!=0:
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
+            goutils.log2("INFO", "["+guild_id+"] tb_data="+str(tb_data)[:100])
             return 2, tb_data["tb_summary"], None
         else:
             return 1, et, None
@@ -5914,8 +5915,13 @@ async def print_tb_stats(guild_id, round=None):
             elif ratio_waves>0:
                 percent_waves = "+"+percent_waves
 
-        line_stats = [p, str(cur_strikes).rjust(3)+" ("+str(prev_strikes).rjust(3)+", "+percent_strikes+")",
-                         str(cur_waves).rjust(3)+" ("+str(prev_waves).rjust(3)+", "+percent_waves+")"]
+        if len(previous_mapstats) > 0:
+            line_stats = [p, str(cur_strikes).rjust(3)+" ("+str(prev_strikes).rjust(3)+", "+percent_strikes+")",
+                             str(cur_waves).rjust(3)+" ("+str(prev_waves).rjust(3)+", "+percent_waves+")"]
+        else:
+            line_stats = [p, str(cur_strikes).rjust(3),
+                             str(cur_waves).rjust(3)]
+
         list_stats.append(line_stats)
     list_stats = [["Joueur", "Combats", "Vagues réussies"]] + sorted(list_stats)
     t = Texttable()

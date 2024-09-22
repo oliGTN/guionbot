@@ -1293,6 +1293,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
                 # Get TB summary stats
                 err_code, tb_summary = await go.print_tb_stats(guild_id)
+                goutils.log2("INFO", "tb_summary="+tb_summary[:100])
 
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
 

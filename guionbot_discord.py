@@ -319,8 +319,10 @@ async def bot_loop_5minutes(bot):
                 # Display TB summary
                 tb_summary = et
                 channel_id = guild_bots[guild_id]["tb_channel_end"]
+                goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
                 if channel_id!=0:
                     tb_end_channel = bot.get_channel(channel_id)
+                    await tb_end_channel.send("# BT terminée le "+datetime.datetime.now().strftime("%d/%m"))
                     for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
                         await tb_end_channel.send('`' + stxt + '`')
 
