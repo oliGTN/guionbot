@@ -2997,6 +2997,9 @@ async def get_tw_alerts(guild_id, force_update):
     if tw_id == None:
         return 2, "", {"tw_id": tw_id, "rpc": ret_tw_status["rpc"]}
 
+    if ret_tw_status["tw_round"] == 0:
+        return 1, "GT non démarrée, phase d'inscription", None
+
     tw_timestamp = tw_id.split(":")[1][1:]
 
     list_tw_alerts = [twChannel_id, {}, tw_timestamp]
