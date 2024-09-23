@@ -2991,8 +2991,6 @@ async def get_tw_alerts(guild_id, force_update):
 
     guildName = db_data[0]
     twChannel_id = db_data[1]
-    if twChannel_id == 0:
-        return 1, "ERR: salon discord non configuré", None
 
     ret_tw_status = await connect_rpc.get_tw_status(guild_id, force_update)
     tw_id = ret_tw_status["tw_id"]
