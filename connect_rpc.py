@@ -860,7 +860,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, allyCode=None):
     elif bot_allyCode == '':
         return 1, "ERR: no RPC bot for guild "+guild_id, None
 
-    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, -1)
+    err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, -1, allyCode=allyCode)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, err_txt, None
@@ -878,7 +878,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, allyCode=None):
         eventTypes = ["CHAT", "TW", "TB"]
 
     # Get data from RPC
-    err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, -1)
+    err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, -1, allyCode=allyCode)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, err_txt, None
