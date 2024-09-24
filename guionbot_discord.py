@@ -2715,9 +2715,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
 
             # Launch the actual command
-            ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False)
+            ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False, allyCode=connected_allyCode)
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emojis.redcross)
