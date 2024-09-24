@@ -1192,6 +1192,7 @@ def compute_statq_avg(force_all):
 #  warbot linked to this discord server
 ########################################
 def get_warbot_info(server_id, channel_id):
+    goutils.log2("DBG", "looking for bot_infos from server ID...")
     query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
     query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
     query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
@@ -1202,6 +1203,7 @@ def get_warbot_info(server_id, channel_id):
     if db_data == None:
         if channel_id != None:
             #no warbot found from server, try it from the channel as test channel
+            goutils.log2("DBG", "looking for bot_infos from guild channel ID...")
             query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
             query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
             query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
@@ -1212,6 +1214,7 @@ def get_warbot_info(server_id, channel_id):
 
             if db_data == None:
                 #no warbot found as test channel, try it from connected user
+                goutils.log2("DBG", "looking for bot_infos from user channel ID...")
                 query = "SELECT guildId, players.allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
                 query+= "JOIN players ON players.guildId=guild_bot_infos.guild_id \n"
                 query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
