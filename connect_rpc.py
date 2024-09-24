@@ -836,7 +836,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                    "platoons": dict_platoons,
                    "open_territories": list_open_territories}
 
-async def get_guildLog_messages(guild_id, onlyLatest):
+async def get_guildLog_messages(guild_id, onlyLatest, allyCode=None):
 
     query = "SELECT bot_allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
             "FROM guild_bot_infos WHERE guild_id='"+guild_id+"'"
@@ -855,7 +855,9 @@ async def get_guildLog_messages(guild_id, onlyLatest):
     else:
         chatLatest_ts = 0
 
-    if bot_allyCode == '':
+    if allyCode!=None:
+        bot_allyCode = allyCode
+    elif bot_allyCode == '':
         return 1, "ERR: no RPC bot for guild "+guild_id, None
 
     err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, -1)
