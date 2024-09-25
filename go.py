@@ -4854,6 +4854,10 @@ async def detect_fulldef(guild_id, force_update, allyCode=None):
 
     dict_player_fulldef_ratio = {}
     for player in dict_def_player_toon:
+        if not player in dict_units_per_player:
+            #player has left the guild
+            continue
+
         list_ratio_rarity = []
         for unit_id in dict_def_player_toon[player]:
             if unit_id in dict_char_ratio_rarity:

@@ -2244,7 +2244,8 @@ async def get_tw_active_players(guild_id, force_update, allyCode=None):
     for member in dict_guild["member"]:
         dict_members[member["playerId"]] = member["playerName"]
     for member in dict_guild["territoryWarStatus"][0]["optedInMember"]:
-        list_active_players.append(dict_members[member["memberId"]])
+        if member["memberId"] in dict_members:
+            list_active_players.append(dict_members[member["memberId"]])
 
     list_inactive_players = []
     for member in dict_guild["member"]:
