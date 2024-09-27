@@ -2977,6 +2977,8 @@ async def print_erx(txt_allyCode, days, compute_guild):
 # Err Code: 0 = OK / 1 = config error / 2 = no TW ongoing
 ############################################
 async def get_tw_alerts(guild_id, force_update, allyCode=None):
+    goutils.log2('DBG', (guild_id, force_update, allyCode))
+
     dict_unitsList = godata.get("unitsList_dict.json")
 
     query = "SELECT name, twChanOut_id FROM guild_bot_infos "

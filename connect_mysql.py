@@ -1277,7 +1277,7 @@ def get_google_player_info(channel_id):
         return 1, "Pas d'utilisateur trouvé pour ce channel", None
     
     return 0, "", {"guild_id": db_data[0],
-                   "allyCode": db_data[1],
+                   "allyCode": str(db_data[1]),
                    "player_name": db_data[2],
                    "tbChanRead_id": db_data[3],
                    "echostation_id": db_data[4],

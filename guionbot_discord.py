@@ -1073,6 +1073,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 # Purpose: crée ou met à jour le statut de GT
 ##############################################################
 async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
+    goutils.log2("DBG", (guild_id, backup_channel_id, allyCode))
     if allyCode==None:
         #using the warbot
         ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
@@ -2257,7 +2258,8 @@ class TwCog(commands.GroupCog, name="gt"):
                 return
 
             guild_id = player_infos["guild_id"]
-            err_code, err_txt = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id)
+            allyCode = player_infos["allyCode"]
+            err_code, err_txt = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id, allyCode=allyCode)
             if err_code != 0:
                 txt = emojis.redcross+" ERR: "+err_txt
                 await interaction.edit_original_response(content=txt)
