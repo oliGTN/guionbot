@@ -4880,7 +4880,11 @@ async def detect_fulldef(guild_id, force_update, allyCode=None):
 
 # OUT: 1 > error | 2 > missing arguments
 async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
-    ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0, allyCode=allyCode)
+    if allyCode==None:
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
+    else:
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 1, allyCode=allyCode)
+
     if ec != 0:
         return ec, et, None
     list_active_players = ret_dict["active"]
