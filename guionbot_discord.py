@@ -1250,9 +1250,10 @@ async def manage_me(ctx, alias, allow_tw):
                 return
 
             guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
 
             #Launch the actuel search
-            ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(guild_id)
+            ec, et, allyCode = await connect_rpc.get_tw_opponent_leader(guild_id, allyCode=connected_allyCode)
             if ec != 0:
                 return "ERR: "+et
 

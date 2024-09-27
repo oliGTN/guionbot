@@ -1995,8 +1995,12 @@ async def get_tb_guild_scores(guild_id, dict_phase, dict_strike_zones, list_open
 # get_tw_opponent_leader
 # get an allyCode of the opponent TW guild
 ########################################
-async def get_tw_opponent_leader(guild_id):
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, -1)
+async def get_tw_opponent_leader(guild_id, allyCode=None):
+    if allyCode == None:
+        ec, et, dict_guild = await get_guild_data_from_id(guild_id, -1)
+    else:
+        ec, et, dict_guild = await get_guild_data_from_id(guild_id, 1, allyCode)
+
     if ec!=0:
         return 1, et, None
 
