@@ -1072,8 +1072,14 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 # Parameters: guild_id (string)
 # Purpose: crée ou met à jour le statut de GT
 ##############################################################
-async def update_tw_status(guild_id, backup_channel_id=None):
-    ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
+async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
+    if allyCode==None:
+        #using the warbot
+        ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
+    else:
+        #using player connection
+        ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, 1, allyCode=allyCode)
+
     goutils.log2("DBG", "["+guild_id+"] get_tw_alerts err_code="+str(ec))
     if ec == 0:
         # TW ongoing
@@ -1082,7 +1088,6 @@ async def update_tw_status(guild_id, backup_channel_id=None):
         # Check event for TW start, and load opponent guild
         swgohgg_opp_url = None
         if not manage_events.exists("tw_start", guild_id, tw_id):
-            #ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, -1)
             dict_guild = ret_tw_alerts["rpc"]["guild"]
             goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
             opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]

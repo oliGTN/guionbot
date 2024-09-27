@@ -2976,12 +2976,8 @@ async def print_erx(txt_allyCode, days, compute_guild):
 #                       tw_timestamp]]
 # Err Code: 0 = OK / 1 = config error / 2 = no TW ongoing
 ############################################
-async def get_tw_alerts(guild_id, force_update):
+async def get_tw_alerts(guild_id, force_update, allyCode=None):
     dict_unitsList = godata.get("unitsList_dict.json")
-
-    #Check if the guild can use RPC
-    if not guild_id in connect_rpc.get_dict_bot_accounts():
-        return 1, "ERR: serveur discord inconnu du bot", None
 
     query = "SELECT name, twChanOut_id FROM guild_bot_infos "
     query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
@@ -2992,7 +2988,7 @@ async def get_tw_alerts(guild_id, force_update):
     guildName = db_data[0]
     twChannel_id = db_data[1]
 
-    ret_tw_status = await connect_rpc.get_tw_status(guild_id, force_update)
+    ret_tw_status = await connect_rpc.get_tw_status(guild_id, force_update, allyCode=allyCode)
     tw_id = ret_tw_status["tw_id"]
     if tw_id == None:
         return 2, "", {"tw_id": tw_id, "rpc": ret_tw_status["rpc"]}
