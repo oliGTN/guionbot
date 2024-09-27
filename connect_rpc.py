@@ -2056,10 +2056,14 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
 
     dict_tw=godata.dict_tw
 
-    if with_attacks:
+    if with_attacks or allyCode!=None:
+        #events are gathered when necessary (with_attacks) 
+        # or just when command launched from connected user 
+        # (as this kind of user may benefit fr go.logs command)
         event_types="TW"
     else:
         event_types=""
+
     ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, allyCode=allyCode)
     if ec!=0:
         goutils.log2("ERR", et)
