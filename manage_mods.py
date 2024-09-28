@@ -12,6 +12,7 @@ import json
 from html.parser import HTMLParser
 import copy #deepcopy
 import requests
+import time
 
 import go
 import goutils
@@ -295,7 +296,7 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
 #  by max size inventory
 # One command per unit, listing all the mods to add and all the mods to remove
 ##########################
-async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=None):
+async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction, initialdata=None):
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
 
@@ -360,6 +361,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
                               6: 8000}
     missing_mods = {} #key=Unit_defId / value=list of missing mods
 
+    prev_display_time = 0
+    original_unit_count = len(mod_allocations)
     while(len(mod_allocations)>0):
         #find best allocation (the one with most mods currently not allocated)
         min_delta_inventory = 7 # worst case is 6 added to the inventory
@@ -432,8 +435,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
             if allocated_mod_id in dict_player_mods:
                 current_mod_unit = dict_player_mods[allocated_mod_id]["unit_id"]
             else:
-                # This means that the conf is using a mod that the player does noy have anymore
-                # ALready added to the list of warnings, still need to ignore it in the allocation
+                # This means that the conf is using a mod that the player does not have anymore
+                # Already added to the list of warnings, still need to ignore it in the allocation
                 continue
 
             #print(target_char_defId)
@@ -489,6 +492,11 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, initialdata=
             # If not simulation mode, send the request to RPC
             if not is_simu:
                 ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
+
+                #Manage display to user
+                if (time.time() - prev_display_time) > 10:
+                    interaction.edit_original_response(content="Reste "+str(len(mod_allocations))+"/"+str(original_unit_count)+"...")
+                    prev_display_time = time.time()
                 if ec!=0:
                     cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
                     return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et, {"cost": cost_txt, "missing": missing_mods}
@@ -651,7 +659,8 @@ def get_mod_config(conf_name, txt_allyCode):
 
     return 0, "", mod_allocations
 
-async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu, initialdata=None):
+async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu, 
+                                         interaction, initialdata=None):
     modopti_progress = json.loads(modopti_content)
 
     # a json may contain several profiles
@@ -664,7 +673,6 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
 
     if my_profile == None:
         return 1, "Le fichier n'a pas de profil pour "+txt_allyCode, {}
-
 
     player_mods = {}
     for mod in my_profile["mods"]:
@@ -692,14 +700,16 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
         mod_allocations.append(mod_allocation)
 
     #Apply modifications
-    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu, initialdata=initialdata)
+    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu, 
+                                       interaction, initialdata=initialdata)
 
-async def apply_config_allocations(config_name, txt_allyCode, is_simu):
+async def apply_config_allocations(config_name, txt_allyCode, is_simu, interaction):
     e, t, mod_allocations = get_mod_config(config_name, txt_allyCode)
     if e!=0:
         return 1, t, {}
 
-    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu)
+    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu,
+                                       interaction)
 
 ########################################
 async def get_modopti_export(txt_allyCode):

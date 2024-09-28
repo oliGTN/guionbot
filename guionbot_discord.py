@@ -189,39 +189,9 @@ async def bot_loop_60secs(bot):
             for guild_id in db_data:
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
-                    #This RPC call gets everything once, so that next calls in the 
-                    # following lines are able to use cache data
-                    await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1)
-
-                    #Update g-sheet during TB
-                    await connect_gsheets.update_gwarstats(guild_id)
-                    
-                    #Update log channels
-                    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True)
-                    if ec!=0:
-                        goutils.log2("ERR", et)
-                    else:
-                        for logType in ["CHAT", "TW", "TB"]:
-                            channel_id = ret_data[logType][0]
-                            list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
-                            if channel_id != 0:
-                                output_channel = bot.get_channel(channel_id)
-                                if output_channel !=None:
-                                    output_txt = ""
-                                    for line in list_logs:
-                                        ts = line[0]
-                                        txt = line[1]
-                                        ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
-                                        output_txt+=ts_txt+" - "+txt+"\n"
-                                    if output_txt != "":
-                                        output_txt = output_txt[:-1]
-                                        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                                            await output_channel.send("`"+txt+"`")
-                                else:
-                                    err_msg="Error while getting channel for id "+str(channel_id)
-                                    goutils.log2("ERR", err_msg)
-                                    if not bot_test_mode:
-                                        await send_alert_to_admins(None, "["+guild_id+"] "+err_msg)
+                    ec, et = await update_rpc_data(guild_id)
+                    if ec!=0 and not bot_test_mode:
+                        await send_alert_to_admins(None, "["+guild_id+"] "+et)
 
                 except Exception as e:
                     goutils.log2("ERR", traceback.format_exc())
@@ -284,7 +254,7 @@ async def bot_loop_5minutes(bot):
         #################################
         try:
             #CHECK ALERTS FOR TERRITORY WAR
-            await update_tw_status(guild_id)
+            ec, et, statusChan = await update_tw_status(guild_id)
 
         except Exception as e:
             goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
@@ -1105,7 +1075,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         [channel_id, dict_messages, tw_ts] = ret_tw_alerts["alerts"]
         if channel_id == None:
             if backup_channel_id==None:
-                return 1, "ERR: pas de channel GT configuré pour la guilde "+guild_id
+                return 1, "ERR: pas de channel GT configuré pour la guilde "+guild_id, None
             tw_bot_channel = backup_channel_id
             
         tw_bot_channel = bot.get_channel(channel_id)
@@ -1168,7 +1138,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
             for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
                 await tw_bot_channel.send('`' + stxt + '`')
 
-        return 0, ""
+        return 0, "", tw_bot_channel.id
 
     elif ec == 2:
         #TW is over
@@ -1178,11 +1148,56 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
-        return 0, ""
+        return 0, "", None
 
     else:
         goutils.log2("DBG", "["+guild_id+"] "+et)
-        return 1, et
+        return 1, et, None
+
+##############################################################
+# Function: update_rpc_data
+# Parameters: guild_id (string)
+# Purpose: crée ou met à jour le statut de GT
+##############################################################
+async def update_rpc_data(guild_id, allyCode=None):
+    goutils.log2("DBG", (guild_id, allyCode))
+
+    #This RPC call gets everything once, so that next calls in the 
+    # following lines are able to use cache data
+    await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1, allyCode=allyCode)
+
+    #Update g-sheet during TB
+    await connect_gsheets.update_gwarstats(guild_id, allyCode=allyCode)
+    
+    #Update log channels
+    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, allyCode=alllyCode)
+    if ec!=0:
+        goutils.log2("ERR", et)
+        return ec, et
+    else:
+        for logType in ["CHAT", "TW", "TB"]:
+            channel_id = ret_data[logType][0]
+            list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
+            if channel_id != 0:
+                output_channel = bot.get_channel(channel_id)
+                if output_channel !=None:
+                    output_txt = ""
+                    for line in list_logs:
+                        ts = line[0]
+                        txt = line[1]
+                        ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%H:%M")
+                        output_txt+=ts_txt+" - "+txt+"\n"
+                    if output_txt != "":
+                        output_txt = output_txt[:-1]
+                        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                            await output_channel.send("`"+txt+"`")
+                else:
+                    err_msg="Error while getting channel for id "+str(channel_id)
+                    goutils.log2("ERR", err_msg)
+                    return 1, err_msg
+
+    return 0, ""
+
 
 ##############################################################
 # Function: get_channel_from_channelname
@@ -2260,13 +2275,16 @@ class TwCog(commands.GroupCog, name="gt"):
 
             guild_id = player_infos["guild_id"]
             allyCode = player_infos["allyCode"]
-            err_code, err_txt = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id, allyCode=allyCode)
+            err_code, err_txt, statusChan = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id, allyCode=allyCode)
             if err_code != 0:
                 txt = emojis.redcross+" ERR: "+err_txt
                 await interaction.edit_original_response(content=txt)
                 return
 
-            txt = emojis.check+" statut GT mis à jour"
+            if statusChan==None:
+                txt = emojis.check+" statut GT mis à jour"
+            else:
+                txt = emojis.check+" statut GT mis à jour and <#"+str(statusChan)+">"
             await interaction.edit_original_response(content=txt)
 
         except Exception as e:
@@ -2391,7 +2409,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
                 return
 
-            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation)
+            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation, interaction)
             # Prepare warning info, to be displayed if error or success
             cost_and_missing = ""
             if "cost" in ret_data:
@@ -2507,7 +2525,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             goutils.log2("INFO", "mods.apply_conf("+allyCode+", conf_name="+conf_name+", simu="+str(simulation)+")")
 
             #Run the function
-            ec, et, ret_data = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation)
+            ec, et, ret_data = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation, interaction)
 
             # Prepare warning info, to be displayed if error or sucess
             cost_and_missing = ""

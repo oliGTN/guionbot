@@ -33,6 +33,7 @@ import portraits
 import parallel_work
 import data as godata
 import emojis
+import bot_commands
 
 FORCE_CUT_PATTERN = "SPLIT_HERE"
 MAX_GVG_LINES = 50
@@ -295,7 +296,7 @@ async def load_player(ac_or_id, force_update, no_db):
     goutils.log2('DBG', "END")
     return 0, "", dict_player
 
-async def load_guild(txt_allyCode, load_players, cmd_request):
+async def load_guild(txt_allyCode, load_players, cmd_request, ctx_interaction=None):
     # Get DB stored guild for the player
     query = "SELECT id FROM guilds "
     query+= "JOIN players ON players.guildName = guilds.name "
@@ -315,9 +316,11 @@ async def load_guild(txt_allyCode, load_players, cmd_request):
 
     goutils.log2("DBG", 'Guild ID for '+txt_allyCode+' is '+guild_id)
 
-    return await load_guild_from_id(guild_id, load_players, cmd_request)
+    return await load_guild_from_id(guild_id, load_players, cmd_request, 
+                                    ctx_interaction=ctx_interaction)
 
-async def load_guild_from_id(guild_id, load_players, cmd_request):
+async def load_guild_from_id(guild_id, load_players, cmd_request,
+                             ctx_interaction=None):
     #Get RPC guild data
     goutils.log2('DBG', 'Requesting RPC data for guild ' + guild_id)
     ec, et, dict_guild = await connect_rpc.get_extguild_data_from_id(guild_id, False)
@@ -460,6 +463,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request):
 
                 #add player data
                 i_player = 0
+                prev_display_time = 0
                 for playerId in list_playerId_to_update:
                     i_player += 1
                     goutils.log2("INFO", "player #"+str(i_player))
@@ -467,6 +471,13 @@ async def load_guild_from_id(guild_id, load_players, cmd_request):
                     e, t, d = await load_player(str(playerId), 0, False)
                     goutils.log2("DBG", "after load_player...")
                     parallel_work.set_guild_loading_status(guild_name, str(i_player)+"/"+str(total_players))
+
+                    #update status to user
+                    if ctx_interaction!=None:
+                        if (time.time() - prev_display_time) > 10:
+                            await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "chargement du joueur "+str(i_player)+"/"+str(len(list_playerId_to_update))+"...", intermediate=True)
+                            prev_display_time = time.time()
+
                     goutils.log2("DBG", "after set_guild_loading_status...")
                     await asyncio.sleep(1)
                     goutils.log2("DBG", "after sleep...")

@@ -64,25 +64,32 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
         attachments += files
 
     if type(ctx_interaction) == commands.Context:
-        ctx = ctx_interaction
+        goutils.log2("DBG", "context")
         if intermediate:
             content = emojis.hourglass+" "+output_txt
         else:
             content = emojis.check+" "+output_txt
 
-        await resp_msg.edit(content=content, attachments=attachments)
+        if attachments==[]:
+            await resp_msg.edit(content=content)
+        else:
+            await resp_msg.edit(content=content, attachments=attachments)
 
     elif type(ctx_interaction) == Interaction:
+        goutils.log2("DBG", "interaction")
         interaction = ctx_interaction
         if intermediate:
             content = emojis.hourglass+" "+output_txt
         else:
             content = emojis.check+" "+output_txt
 
-        await interaction.edit_original_response(content=content, attachments=attachments)
+        if attachments==[]:
+            await interaction.edit_original_response(content=content)
+        else:
+            await interaction.edit_original_response(content=content, attachments=attachments)
 
     else:
-        if intermediate:
+        if intermediate==False:
             content = "OK "+output_txt
         else:
             content = "In Progress... "+output_txt
@@ -91,30 +98,6 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
 
         for attachment in attachments:
             print(attachment)
-
-
-async def send_message(ctx_interaction, output_txt, images=None, files=None):
-    attachments = []
-
-    if images != None:
-        for image in images:
-            with BytesIO() as image_binary:
-                image.save(image_binary, 'PNG')
-                image_binary.seek(0)
-                attachments.append(File(fp=image_binary, filename='image.png'))
-
-    if files != None:
-        attachments += files
-
-    if ctx_interaction != None:
-        await ctx_interaction.message.channel.send(content=content, attachments=attachments)
-
-    else:
-        print(content)
-
-        for attachment in attachments:
-            print(attachment)
-
 
 async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
     if type(ctx_interaction) == commands.Context:
@@ -142,6 +125,30 @@ async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
             print("OK "+new_txt)
 
 
+async def send_message(ctx_interaction, output_txt, images=None, files=None):
+    attachments = []
+
+    if images != None:
+        for image in images:
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                attachments.append(File(fp=image_binary, filename='image.png'))
+
+    if files != None:
+        attachments += files
+
+    if ctx_interaction != None:
+        await ctx_interaction.message.channel.send(content=content, attachments=attachments)
+
+    else:
+        print(content)
+
+        for attachment in attachments:
+            print(attachment)
+
+
+
 ##############################################################
 async def gdp(ctx_interaction, allyCode):
     resp_msg = await command_ack(ctx_interaction)
@@ -156,11 +163,11 @@ async def gdp(ctx_interaction, allyCode):
     if e != 0:
         await command_error(ctx_interaction, resp_msg, err_txt)
         return
-
+    
     await command_ok(ctx_interaction, resp_msg, "chargement des joueurs en cours", images=[image], intermediate=True)
 
     # Now load all players from the guild
-    await go.load_guild( allyCode, True, True)
+    await go.load_guild(allyCode, True, True, ctx_interaction=[ctx_interaction, resp_msg])
 
     #Icône de confirmation de fin de commande dans le message d'origine
     await command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt="chargement des joueurs OK")
