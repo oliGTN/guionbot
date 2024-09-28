@@ -1170,7 +1170,7 @@ async def update_rpc_data(guild_id, allyCode=None):
     await connect_gsheets.update_gwarstats(guild_id, allyCode=allyCode)
     
     #Update log channels
-    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, allyCode=alllyCode)
+    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, allyCode=allyCode)
     if ec!=0:
         goutils.log2("ERR", et)
         return ec, et
