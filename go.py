@@ -4104,10 +4104,6 @@ async def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
 async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode=None):
     dict_unitsList = godata.get("unitsList_dict.json")
 
-    #Check if the guild can use RPC
-    if not guild_id in connect_rpc.get_dict_bot_accounts():
-        return []
-
     rpc_data = await connect_rpc.get_tw_status(guild_id, force_update, 
                                                with_attacks=with_attacks,
                                                allyCode=allyCode)
