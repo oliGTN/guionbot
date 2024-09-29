@@ -5792,8 +5792,8 @@ async def print_tw_summary(guild_id, allyCode=None):
         return 1, err_txt
 
     summary_list = []
-    for k in d:
-        print(k, d[k])
+    for k in dict_tw_summary:
+        #print(k, d[k])
         player = k
         tm = d[k]["chars"]["TM"] + d[k]["ships"]["TM"]
         wins = d[k]["chars"]["win"] + d[k]["ships"]["win"]
