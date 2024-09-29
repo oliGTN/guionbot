@@ -5673,8 +5673,8 @@ async def set_tb_targets(guild_id, tb_phase_target):
 
     return err_code, err_txt
 
-async def get_tw_summary(guild_id):
-    err_code, err_txt, ret = await connect_rpc.get_guildLog_messages(guild_id, False)
+async def get_tw_summary(guild_id, allyCode=None):
+    err_code, err_txt, ret = await connect_rpc.get_guildLog_messages(guild_id, False, allyCode=allyCode)
 
     if err_code!=0:
         return 1, err_txt, None
@@ -5786,13 +5786,11 @@ async def get_tw_summary_from_logs(tw_logs, dict_guild):
 
     return 0, "", dict_tw_summary
 
-async def print_tw_summary(guild_id):
+async def print_tw_summary(guild_id, allyCode=None):
     err_code, err_txt, dict_tw_summary = await get_tw_summary(guild_id)
     if err_code!=0:
         return 1, err_txt
 
-    # TW summary
-    ec, et, d = await get_tw_summary(guild_id)
     summary_list = []
     for k in d:
         print(k, d[k])

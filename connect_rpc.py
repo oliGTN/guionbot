@@ -2110,7 +2110,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                 fjson.close()
 
             #TW end summary table
-            err_code, tw_summary = await go.print_tw_summary(guild_id)
+            err_code, tw_summary = await go.print_tw_summary(guild_id, allyCode=allyCode)
 
             # Display best teams in GT channel
             # TODO
