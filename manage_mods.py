@@ -478,6 +478,11 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
                 dict_player_mods[allocated_mod_id]["unit_id"] = target_char_defId
                 dict_player["rosterUnit"][target_char_defId]["equippedStatMod"][mod_slot] = allocated_mod_id
 
+            #Manage display to user
+            if (time.time() - prev_display_time) > 10:
+                await interaction.edit_original_response(content="Reste "+str(len(mod_allocations))+"/"+str(original_unit_count)+"...")
+                prev_display_time = time.time()
+
         if len(mods_to_add) > 0:
             #write update request
             mods_txt = ""
@@ -493,10 +498,6 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
             if not is_simu:
                 ec, et = await connect_rpc.update_unit_mods(target_char_id, mods_to_add, mods_to_remove, allyCode)
 
-                #Manage display to user
-                if (time.time() - prev_display_time) > 10:
-                    interaction.edit_original_response(content="Reste "+str(len(mod_allocations))+"/"+str(original_unit_count)+"...")
-                    prev_display_time = time.time()
                 if ec!=0:
                     cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
                     return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et, {"cost": cost_txt, "missing": missing_mods}
