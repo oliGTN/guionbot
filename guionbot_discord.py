@@ -1079,6 +1079,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
             tw_bot_channel = backup_channel_id
             
         tw_bot_channel = bot.get_channel(channel_id)
+        goutils.log2("DBG", "["+guild_id+"] TW channel: "+str(channel_id))
 
         if swgohgg_opp_url != None:
             await tw_bot_channel.send("Guilde adverse : "+swgohgg_opp_url)
@@ -2284,7 +2285,7 @@ class TwCog(commands.GroupCog, name="gt"):
             if statusChan==None:
                 txt = emojis.check+" statut GT mis à jour"
             else:
-                txt = emojis.check+" statut GT mis à jour and <#"+str(statusChan)+">"
+                txt = emojis.check+" statut GT mis à jour dans <#"+str(statusChan)+">"
             await interaction.edit_original_response(content=txt)
 
         except Exception as e:
