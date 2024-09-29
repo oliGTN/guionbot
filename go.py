@@ -3001,7 +3001,7 @@ async def get_tw_alerts(guild_id, force_update, allyCode=None):
     guildName = db_data[0]
     twChannel_id = db_data[1]
 
-    ret_tw_status = await connect_rpc.get_tw_status(guild_id, force_update, allyCode=allyCode)
+    ret_tw_status = await connect_rpc.get_tw_status(guild_id, force_update, allyCode=allyCode, manage_tw_end=True)
     tw_id = ret_tw_status["tw_id"]
     if tw_id == None:
         return 2, "", {"tw_id": tw_id, "rpc": ret_tw_status["rpc"]}

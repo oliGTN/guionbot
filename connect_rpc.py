@@ -2050,7 +2050,7 @@ async def get_tw_opponent_leader(guild_id, allyCode=None):
 #   "opp_guildId": id
 # }
 ########################################
-async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=None):
+async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=None, manage_tw_end=False):
     global prev_dict_guild
     global prev_mapstats
 
@@ -2095,7 +2095,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
         return {"tw_id": None, "rpc": {"guild": dict_guild, "events": dict_events}}
 
     tw_summary = None
-    if tw_round == 2:
+    if tw_round == 2 and manage_tw_end:
         # Check if previous TW has ended properly, with associated actions
 
         if not manage_events.exists("tw_end", guild_id, tw_id):
