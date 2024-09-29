@@ -5787,7 +5787,7 @@ async def get_tw_summary_from_logs(tw_logs, dict_guild):
     return 0, "", dict_tw_summary
 
 async def print_tw_summary(guild_id, allyCode=None):
-    err_code, err_txt, dict_tw_summary = await get_tw_summary(guild_id)
+    err_code, err_txt, dict_tw_summary = await get_tw_summary(guild_id, allyCode=allyCode)
     if err_code!=0:
         return 1, err_txt
 
