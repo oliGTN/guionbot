@@ -5793,17 +5793,17 @@ async def print_tw_summary(guild_id, allyCode=None):
 
     summary_list = []
     for k in dict_tw_summary:
-        #print(k, d[k])
+        #print(k, dict_tw_summary[k])
         player = k
-        tm = d[k]["chars"]["TM"] + d[k]["ships"]["TM"]
-        wins = d[k]["chars"]["win"] + d[k]["ships"]["win"]
-        ground_fights = d[k]["chars"]["fights"]
-        ship_fights = d[k]["ships"]["fights"]
+        tm = dict_tw_summary[k]["chars"]["TM"] + dict_tw_summary[k]["ships"]["TM"]
+        wins = dict_tw_summary[k]["chars"]["win"] + dict_tw_summary[k]["ships"]["win"]
+        ground_fights = dict_tw_summary[k]["chars"]["fights"]
+        ship_fights = dict_tw_summary[k]["ships"]["fights"]
         if ground_fights+ship_fights>0:
-            fails = d[k]["chars"]["loss"] \
-                  + d[k]["chars"]["partial"] \
-                  + d[k]["ships"]["loss"] \
-                  + d[k]["ships"]["partial"]
+            fails = dict_tw_summary[k]["chars"]["loss"] \
+                  + dict_tw_summary[k]["chars"]["partial"] \
+                  + dict_tw_summary[k]["ships"]["loss"] \
+                  + dict_tw_summary[k]["ships"]["partial"]
             fail_rate_percent = round(100*fails/(ground_fights+ship_fights), 1)
             fail_txt = str(fails)+" ("+str(fail_rate_percent)+"%)"
         else:
