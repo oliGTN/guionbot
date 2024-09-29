@@ -20,6 +20,7 @@ import connect_mysql
 import connect_rpc
 import connect_crinolo
 import data as godata
+import emojis
 
 class ModOptimizerListParser(HTMLParser):
     def __init__(self):
@@ -519,7 +520,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
         #Manage display to user
         if (time.time() - prev_display_time) > 10:
-            await interaction.edit_original_response(content="Reste "+str(len(mod_allocations))+"/"+str(original_unit_count)+"...")
+            await interaction.edit_original_response(content=emojis.hourglass+" Reste "+str(len(mod_allocations))+"/"+str(original_unit_count)+"...")
             prev_display_time = time.time()
 
     goutils.log2("INFO", "Max inventory: "+str(max_inventory))
