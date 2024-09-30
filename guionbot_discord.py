@@ -1165,13 +1165,20 @@ async def update_rpc_data(guild_id, allyCode=None):
 
     #This RPC call gets everything once, so that next calls in the 
     # following lines are able to use cache data
-    await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1, allyCode=allyCode)
+    ec, et, ret_data = await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1, allyCode=allyCode)
+    if ec!=0:
+        goutils.log2("ERR", et)
+        return ec, et
+    dict_guild = ret_data[0]
+    dict_events = ret_data[2]
 
     #Update g-sheet during TB
     await connect_gsheets.update_gwarstats(guild_id, allyCode=allyCode)
     
     #Update log channels
-    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, allyCode=allyCode)
+    ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, 1, allyCode=allyCode,
+                                                               dict_guild=dict_guild,
+                                                               dict_events=dict_events)
     if ec!=0:
         goutils.log2("ERR", et)
         return ec, et
@@ -2745,7 +2752,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # Launch the actual command
-            ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False, allyCode=connected_allyCode)
+            ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, False, 1, allyCode=connected_allyCode)
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -2820,12 +2827,15 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             display_mentions=False
             output_channel = ctx.message.channel
             deploy_bot=False
+            free_platoons=False
 
             args=list(args)
-            if len(args) > 0:
-                if "deploybot" in args:
-                    deploy_bot=True
-                    args.remove("deploybot")
+            if "deploybot" in args:
+                deploy_bot=True
+                args.remove("deploybot")
+            if "-free" in args:
+                free_platoons = True
+                args.remove("-free")
 
             #Sortie sur un autre channel si donné en paramètre
             output_channel = ctx.message.channel
