@@ -861,7 +861,8 @@ async def get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id):
 async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, 
                                     deploy_allyCode, player_name, display_mentions, 
                                     filter_zones=[],
-                                    connected_allyCode=None):
+                                    connected_allyCode=None,
+                                    free_platoons=False):
     dict_tb = data.get("tb_definition.json")
 
     #Read actual platoons in game
@@ -879,163 +880,163 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 
     if tbs_round == '':
         return 1, "Aucune BT en cours"
+    
+    goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
+    tb_name = tbs_round[:-1]
+    tb_id = dict_tb[tb_name]["id"]
+
+    # Read platoon allocations
+    if tbChannel_id!=0 and not free_platoons:
+        ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
+        if ec != 0:
+            return ec, et
+
+        dict_platoons_allocation = ret["dict_platoons_allocation"]
+
+        for platoon in dict_platoons_allocation:
+            goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
+    
+        # Read DB platoon allocations
+        #ec, et, ret = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+        #if ec != 0:
+        #    return ec, et
+
+        #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
+
+        #for platoon in dict_platoons_allocation_db:
+        #    goutils.log2("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
+
     else:
-        goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
-        tb_name = tbs_round[:-1]
-        tb_id = dict_tb[tb_name]["id"]
+        dict_platoons_allocation = {}
+    
+    #Comparaison des dictionnaires
+    #Recherche des persos non-affectés
+    list_platoon_names = sorted(dict_platoons_done.keys())
+    phase_names_already_displayed = []
+    list_missing_platoons, list_err = go.get_missing_platoons(
+                                            dict_platoons_done, 
+                                            dict_platoons_allocation,
+                                            list_open_territories)
 
-        # Read platoon allocations
-        if tbChannel_id!=0:
-            ec, et, ret = await get_eb_allocation(tbChannel_id, echostation_id, tbs_round)
-            if ec != 0:
-                return ec, et
+    #Affichage des deltas ET auto pose par le bot
+    full_txt = ''
+    cur_phase = 0
 
-            dict_platoons_allocation = ret["dict_platoons_allocation"]
+    #Affichage du statut de chaque peloton avant de mettre la liste des joueurs
+    list_terr_status = []
+    for terr in list_open_territories:
+        terr_txt = "__"+terr["zone_name"]+"__: "
+        count_15 = 0
+        for i_platoon in range(1,7):
+            platoon_name = terr["zone_name"]+"-"+str(i_platoon)
+            count_done = 0
+            for unit in dict_platoons_done[platoon_name]:
+                needed_units = len(dict_platoons_done[platoon_name][unit])
+                missing_units = dict_platoons_done[platoon_name][unit].count('')
+                count_done += (needed_units - missing_units)
+            terr_txt += str(count_done)+" "
+            if count_done==15:
+                count_15+=1
 
-            for platoon in dict_platoons_allocation:
-                goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
-        
-            # Read DB platoon allocations
-            #ec, et, ret = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
-            #if ec != 0:
-            #    return ec, et
-
-            #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
-
-            #for platoon in dict_platoons_allocation_db:
-            #    goutils.log2("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
-
+        #overall status of the platoon zone
+        if count_15 == 6:
+            terr_txt = emojis.check + terr_txt
+        elif "cmdState" in terr and terr["cmdState"] == "IGNORED":
+            terr_txt = emojis.prohibited + terr_txt
         else:
-            dict_platoons_allocation = {}
-        
-        #Comparaison des dictionnaires
-        #Recherche des persos non-affectés
-        list_platoon_names = sorted(dict_platoons_done.keys())
-        phase_names_already_displayed = []
-        list_missing_platoons, list_err = go.get_missing_platoons(
-                                                dict_platoons_done, 
-                                                dict_platoons_allocation,
-                                                list_open_territories)
+            terr_txt = emojis.rightpointingindex + terr_txt
 
-        #Affichage des deltas ET auto pose par le bot
-        full_txt = ''
-        cur_phase = 0
+        if "cmdMsg" in terr:
+            terr_txt += "("+terr["cmdMsg"]+")"
+        list_terr_status.append([terr["zone_name"], terr_txt])
 
-        #Affichage du statut de chaque peloton avant de mettre la liste des joueurs
-        list_terr_status = []
-        for terr in list_open_territories:
-            terr_txt = "__"+terr["zone_name"]+"__: "
-            count_15 = 0
-            for i_platoon in range(1,7):
-                platoon_name = terr["zone_name"]+"-"+str(i_platoon)
-                count_done = 0
-                for unit in dict_platoons_done[platoon_name]:
-                    needed_units = len(dict_platoons_done[platoon_name][unit])
-                    missing_units = dict_platoons_done[platoon_name][unit].count('')
-                    count_done += (needed_units - missing_units)
-                terr_txt += str(count_done)+" "
-                if count_done==15:
-                    count_15+=1
+    #sort by zone position
+    list_terr_status = sorted(list_terr_status, key=lambda x:dict_tb[tb_id]["zonePositions"][x[0].split("-")[1].strip("b")] + 0.5*x[0].split("-")[1].endswith("b"))
+    for terr_status in list_terr_status:
+        full_txt += terr_status[1]+"\n"
+    full_txt += "---\n"
 
-            #overall status of the platoon zone
-            if count_15 == 6:
-                terr_txt = emojis.check + terr_txt
-            elif "cmdState" in terr and terr["cmdState"] == "IGNORED":
-                terr_txt = emojis.prohibited + terr_txt
-            else:
-                terr_txt = emojis.rightpointingindex + terr_txt
+    for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x["platoon"][:4], 
+                                                                        x["player_name"], 
+                                                                        x["platoon"])):
+        allocated_player = missing_platoon["player_name"]
+        platoon_name = missing_platoon["platoon"]
+        perso = missing_platoon["character_name"]
 
-            if "cmdMsg" in terr:
-                terr_txt += "("+terr["cmdMsg"]+")"
-            list_terr_status.append([terr["zone_name"], terr_txt])
+        # Manage if the notification is sent or not
+        # NOT SENT if the platoon zone is locked
+        # NOT SENT if the user has defined filter zones and the platoon is not in the filter
+        platoon_locked = missing_platoon["locked"]
+        if filter_zones != []:
+            platoon_allowed = False
+            for f in filter_zones:
+                if f in platoon_name:
+                    platoon_allowed = True
 
-        #sort by zone position
-        list_terr_status = sorted(list_terr_status, key=lambda x:dict_tb[tb_id]["zonePositions"][x[0].split("-")[1].strip("b")] + 0.5*x[0].split("-")[1].endswith("b"))
-        for terr_status in list_terr_status:
-            full_txt += terr_status[1]+"\n"
-        full_txt += "---\n"
+            if not platoon_allowed:
+                platoon_locked = True
 
-        for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x["platoon"][:4], 
-                                                                            x["player_name"], 
-                                                                            x["platoon"])):
-            allocated_player = missing_platoon["player_name"]
-            platoon_name = missing_platoon["platoon"]
-            perso = missing_platoon["character_name"]
+        # In case the command is meant to display to all
+        # AND the platoon is locked or filtered, do not display it
+        # which means to ignore it
+        if display_mentions and platoon_locked:
+            continue
 
-            # Manage if the notification is sent or not
-            # NOT SENT if the platoon zone is locked
-            # NOT SENT if the user has defined filter zones and the platoon is not in the filter
-            platoon_locked = missing_platoon["locked"]
-            if filter_zones != []:
-                platoon_allowed = False
-                for f in filter_zones:
-                    if f in platoon_name:
-                        platoon_allowed = True
-
-                if not platoon_allowed:
-                    platoon_locked = True
-
-            # In case the command is meant to display to all
-            # AND the platoon is locked or filtered, do not display it
-            # which means to ignore it
-            if display_mentions and platoon_locked:
-                continue
-
-            #write the displayed text
-            if (allocated_player in dict_players_by_IG) and display_mentions:
-                txt = '**' + \
-                      dict_players_by_IG[allocated_player][1] + \
-                      '** n\'a pas affecté ' + perso + \
-                      ' en ' + platoon_name
-            else:
-                #joueur non-enregistré ou mentions non autorisées,
-                # on l'affiche quand même
-                txt = '**' + allocated_player + \
-                      '** n\'a pas affecté ' + perso + \
-                      ' en ' + platoon_name
-
-                if platoon_locked:
-                    txt = "~~" + txt + "~~"
-
-            #Pose auto du bot
-            if deploy_allyCode!=None and not platoon_locked:
-                if allocated_player == player_name:
-                    ec, et = await go.deploy_platoons_tb(deploy_allyCode, platoon_name, [perso])
-                    if ec == 0:
-                        #on n'affiche pas le nom du territoire
-                        txt += " > " + ' '.join(et.split()[:-2])
-                    else:
-                        return ec, et
-
-            phase_num = int(platoon_name.split('-')[0][-1])
-            if cur_phase != phase_num:
-                cur_phase = phase_num
-                #full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
-
-            position = platoon_name.split('-')[1]
-            if position == "bottom":
-                position = "bot"
-
-            if position == 'top' or position == 'LS':
-                open_for_position = list_open_territories[0]["phase"]
-            elif position == 'mid' or position == 'DS':
-                open_for_position = list_open_territories[1]["phase"]
-            else:  #bot or 'MS'
-                open_for_position = list_open_territories[2]["phase"]
-            if cur_phase < open_for_position:
-                full_txt += txt + ' -- *et c\'est trop tard*\n'
-            else:
-                full_txt += txt + '\n'
-
-        if len(list_missing_platoons)>0 or len(list_err)>0:
-            for err in sorted(set(list_err)):
-                full_txt += err + '\n'
-        elif tbChannel_id==0:
-            full_txt+='WAR: warbot non configuré pour vérifier les allocations EchoBot\n'
+        #write the displayed text
+        if (allocated_player in dict_players_by_IG) and display_mentions:
+            txt = '**' + \
+                  dict_players_by_IG[allocated_player][1] + \
+                  '** n\'a pas affecté ' + perso + \
+                  ' en ' + platoon_name
         else:
-            full_txt += "Aucune erreur de peloton\n"
+            #joueur non-enregistré ou mentions non autorisées,
+            # on l'affiche quand même
+            txt = '**' + allocated_player + \
+                  '** n\'a pas affecté ' + perso + \
+                  ' en ' + platoon_name
 
-        return 0, full_txt
+            if platoon_locked:
+                txt = "~~" + txt + "~~"
+
+        #Pose auto du bot
+        if deploy_allyCode!=None and not platoon_locked:
+            if allocated_player == player_name:
+                ec, et = await go.deploy_platoons_tb(deploy_allyCode, platoon_name, [perso])
+                if ec == 0:
+                    #on n'affiche pas le nom du territoire
+                    txt += " > " + ' '.join(et.split()[:-2])
+                else:
+                    return ec, et
+
+        phase_num = int(platoon_name.split('-')[0][-1])
+        if cur_phase != phase_num:
+            cur_phase = phase_num
+            #full_txt += '\n---- **Phase ' + str(cur_phase) + '**\n'
+
+        position = platoon_name.split('-')[1]
+        if position == "bottom":
+            position = "bot"
+
+        if position == 'top' or position == 'LS':
+            open_for_position = list_open_territories[0]["phase"]
+        elif position == 'mid' or position == 'DS':
+            open_for_position = list_open_territories[1]["phase"]
+        else:  #bot or 'MS'
+            open_for_position = list_open_territories[2]["phase"]
+        if cur_phase < open_for_position:
+            full_txt += txt + ' -- *et c\'est trop tard*\n'
+        else:
+            full_txt += txt + '\n'
+
+    if len(list_missing_platoons)>0 or len(list_err)>0:
+        for err in sorted(set(list_err)):
+            full_txt += err + '\n'
+    elif tbChannel_id==0:
+        full_txt+='WAR: warbot non configuré pour vérifier les allocations EchoBot\n'
+    else:
+        full_txt += "Aucune erreur de peloton\n"
+
+    return 0, full_txt
 
 ##############################################################
 # Function: update_tw_status
@@ -2881,7 +2882,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, 
                                                           deploy_allyCode, player_name, display_mentions, 
                                                           filter_zones=list_zones,
-                                                          connected_allyCode=connected_allyCode)
+                                                          connected_allyCode=connected_allyCode,
+                                                          free_platoons=free_platoons)
             if ec != 0:
                 await ctx.send('ERR: '+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)
