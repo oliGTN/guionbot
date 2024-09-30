@@ -275,6 +275,7 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
+    guild_id = dict_guild["profile"]["id"]
     goutils.log2("DBG", "START ["+calling_func+"]get_event_data("+guild_id+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
 
