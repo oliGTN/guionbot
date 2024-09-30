@@ -5673,14 +5673,16 @@ async def set_tb_targets(guild_id, tb_phase_target):
 
     return err_code, err_txt
 
-async def get_tw_summary(guild_id, allyCode=None):
-    err_code, err_txt, ret = await connect_rpc.get_guildLog_messages(guild_id, False, allyCode=allyCode)
+async def get_tw_summary(guild_id, allyCode=None, dict_guild=None, dict_events=None):
+    err_code, err_txt, ret = await connect_rpc.get_guildLog_messages(guild_id, False, allyCode=allyCode,
+                                                                     dict_guild=dict_guild,
+                                                                     dict_events=dict_events)
 
     if err_code!=0:
         return 1, err_txt, None
 
     tw_logs = ret["TW"][1]
-    dict_guild = ret["guild"]
+    dict_guild = ret["rpc"]["guild"]
 
     return await get_tw_summary_from_logs(tw_logs, dict_guild)
 
@@ -5786,8 +5788,10 @@ async def get_tw_summary_from_logs(tw_logs, dict_guild):
 
     return 0, "", dict_tw_summary
 
-async def print_tw_summary(guild_id, allyCode=None):
-    err_code, err_txt, dict_tw_summary = await get_tw_summary(guild_id, allyCode=allyCode)
+async def print_tw_summary(guild_id, allyCode=None, dict_guild=None, dict_events=None):
+    err_code, err_txt, dict_tw_summary = await get_tw_summary(guild_id, allyCode=allyCode,
+                                                              dict_guild=dict_guild,
+                                                              dict_events=dict_events)
     if err_code!=0:
         return 1, err_txt
 

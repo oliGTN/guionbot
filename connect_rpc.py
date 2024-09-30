@@ -102,9 +102,9 @@ def ispriority_cache_bot_account(bot_allyCode):
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
 #event_type: []/None, ["TB"], ["TW", CHAT"], ...
 async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None):
-    goutils.log2("DBG", "START get_guild_rpc_data("+guild_id+", "+str(event_types) \
-                 +", "+str(force_update)+", "+str(allyCode)+")")
     calling_func = inspect.stack()[1][3]
+    goutils.log2("DBG", "START ["+calling_func+"]get_guild_rpc_data("+guild_id+", "+str(event_types) \
+                 +", "+str(force_update)+", "+str(allyCode)+")")
 
     ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
     if ec!=0:
@@ -274,6 +274,10 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
     return 0, "", dict_TBmapstats
 
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
+    calling_func = inspect.stack()[1][3]
+    goutils.log2("DBG", "START ["+calling_func+"]get_event_data("+guild_id+", "+str(event_types) \
+                 +", "+str(force_update)+", "+str(allyCode)+")")
+
     guild_id = dict_guild["profile"]["id"]
 
     if allyCode == None:
@@ -315,7 +319,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                             zone_channel = conflict_zone["zoneStatus"]["channelId"]
                             list_channels.append(zone_channel)
 
-        # RPC REQUEST for events
+        # RPC REQUEST for TB events
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
                   "eventType": "TB",
@@ -359,7 +363,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         zone_channel = conflict_zone["zoneStatus"]["channelId"]
                         list_channels.append(zone_channel)
 
-        # RPC REQUEST for events
+        # RPC REQUEST for TW events
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
                   "eventType": "TW",
@@ -397,7 +401,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                     room_channel = room["roomId"]
                     list_channels.append(room_channel)
 
-        # RPC REQUEST for events
+        # RPC REQUEST for CHAT events
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
                   "eventType": "CHAT",
@@ -836,7 +840,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                    "platoons": dict_platoons,
                    "open_territories": list_open_territories}
 
-async def get_guildLog_messages(guild_id, onlyLatest, allyCode=None):
+async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=None, dict_guild=None, dict_events=None):
 
     query = "SELECT bot_allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
             "FROM guild_bot_infos WHERE guild_id='"+guild_id+"'"
@@ -860,13 +864,11 @@ async def get_guildLog_messages(guild_id, onlyLatest, allyCode=None):
     elif bot_allyCode == '':
         return 1, "ERR: no RPC bot for guild "+guild_id, None
 
-    if allyCode == None:
-        err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, -1)
-    else:
-        err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, 1, allyCode=allyCode)
-    if err_code != 0:
-        goutils.log2("ERR", err_txt)
-        return 1, err_txt, None
+    if dict_guild==None:
+        err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+        if err_code != 0:
+            goutils.log2("ERR", err_txt)
+            return 1, err_txt, None
 
     # Get latest events only if the discord channel is defined
     if onlyLatest:
@@ -881,13 +883,11 @@ async def get_guildLog_messages(guild_id, onlyLatest, allyCode=None):
         eventTypes = ["CHAT", "TW", "TB"]
 
     # Get data from RPC
-    if allyCode == None:
-        err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, -1)
-    else:
-        err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, 1, allyCode=allyCode)
-    if err_code != 0:
-        goutils.log2("ERR", err_txt)
-        return 1, err_txt, None
+    if dict_events==None:
+        err_code, err_txt, dict_events = await get_event_data(dict_guild, eventTypes, force_update, allyCode=allyCode)
+        if err_code != 0:
+            goutils.log2("ERR", err_txt)
+            return 1, err_txt, None
 
     list_chat_events, list_tw_logs, list_tb_logs = await get_logs_from_events(dict_events, guild_id, chatLatest_ts)
 
@@ -903,7 +903,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, allyCode=None):
     return 0, "", {"CHAT": [chatChan_id, list_chat_events],
                    "TW":   [twlogChan_id, list_tw_logs],
                    "TB":   [tblogChan_id, list_tb_logs],
-                   "guild":dict_guild}
+                   "rpc":  {"guild": dict_guild, "events": dict_events}}
 
 async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
     FRE_FR = godata.get('FRE_FR.json')
@@ -2110,7 +2110,9 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                 fjson.close()
 
             #TW end summary table
-            err_code, tw_summary = await go.print_tw_summary(guild_id, allyCode=allyCode)
+            err_code, tw_summary = await go.print_tw_summary(guild_id, allyCode=allyCode,
+                                                             dict_guild=dict_guild,
+                                                             dict_events=dict_events)
 
             # Display best teams in GT channel
             # TODO
