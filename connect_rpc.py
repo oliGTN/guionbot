@@ -2640,8 +2640,8 @@ async def get_tw_participation(guild_id, force_update, allyCode=None):
 # OUT: expire_time: 169123456000
 # OUT: list_inactive_players: ["Karcot", "MolEliza", ...]
 ########################################
-async def get_raid_status(guild_id, target_percent, force_update):
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update)
+async def get_raid_status(guild_id, target_percent, force_update, allyCode=None):
+    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
     if ec!=0:
         return None, None, [], 0
 

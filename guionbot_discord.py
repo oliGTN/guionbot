@@ -3281,76 +3281,83 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Tag les joueurs qui n'ont pas assez attaqué en raid",
             help="go.raidrappel")
     async def raidrappel(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        #Sortie sur un autre channel si donné en paramètre
-        args = list(args)
-        output_channel = ctx.message.channel
-        use_tags = False
-        for arg in args:
-            if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
-                output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
-                use_tags = True
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
+            #Sortie sur un autre channel si donné en paramètre
+            args = list(args)
+            output_channel = ctx.message.channel
+            use_tags = False
+            for arg in args:
+                if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
                     use_tags = True
-                args.remove(arg)
+                    if output_channel == None:
+                        await ctx.send('**ERR**: '+err_msg)
+                        output_channel = ctx.message.channel
+                        use_tags = True
+                    args.remove(arg)
 
-        target_progress=50
-        if len(args) == 1:
-            target_progress=int(args[0])
-            if target_progress<0:
-                target_progress=0
-            if target_progress>100:
-                target_progress=100
-        elif len(args) != 0:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help raidrappel")
+            target_progress=50
+            if len(args) == 1:
+                target_progress=int(args[0])
+                if target_progress<0:
+                    target_progress=0
+                if target_progress>100:
+                    target_progress=100
+            elif len(args) != 0:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help raidrappel")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
+
+            # Launch the actual command
+            raid_id, expire_time, list_inactive_players, guild_score, potential_score = await connect_rpc.get_raid_status(guild_id, target_progress, True, allyCode=connected_allyCode)
+            if raid_id == None:
+                await ctx.send("Aucun raid en cours")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            dict_players_by_IG = connect_mysql.load_config_players()[0]
+            expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
+            score_txt = str(int(guild_score/100000)/10)
+            potential_score_txt = str(int(potential_score/100000)/10)
+            output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M, "+potential_score_txt+" M si tout le monde atteint "+str(target_progress)+"% de son max) : \n"
+            if len(list_inactive_players) > 0 :
+                for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
+                    if use_tags and p["name"] in dict_players_by_IG:
+                        p_name = dict_players_by_IG[p["name"]][1]
+                    else:
+                        p_name= p["name"]
+
+                    output_txt += p_name+" : "+p["status"]+"\n"
+            else:
+                output_txt += "Tout le monde a joué\n"
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await output_channel.send(txt)
+
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-
-        # Launch the actual command
-        raid_id, expire_time, list_inactive_players, guild_score, potential_score = await connect_rpc.get_raid_status(guild_id, target_progress, True)
-        if raid_id == None:
-            await ctx.send("Aucun raid en cours")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        dict_players_by_IG = connect_mysql.load_config_players()[0]
-        expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
-        score_txt = str(int(guild_score/100000)/10)
-        potential_score_txt = str(int(potential_score/100000)/10)
-        output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M, "+potential_score_txt+" M si tout le monde atteint "+str(target_progress)+"% de son max) : \n"
-        if len(list_inactive_players) > 0 :
-            for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
-                if use_tags and p["name"] in dict_players_by_IG:
-                    p_name = dict_players_by_IG[p["name"]][1]
-                else:
-                    p_name= p["name"]
-
-                output_txt += p_name+" : "+p["status"]+"\n"
-        else:
-            output_txt += "Tout le monde a joué\n"
-
-        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-            await output_channel.send(txt)
-
-        await ctx.message.add_reaction(emojis.check)
 
     ####################################################
     # Command tbs
