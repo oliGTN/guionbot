@@ -3150,16 +3150,23 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 dict_players_by_IG = connect_mysql.load_config_players()[0]
                 expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
                 output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
-                for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
-                    if display_mentions and (p in dict_players_by_IG):
-                        print((p, tag_officers, dict_players_by_IG[p]))
-                        if not tag_officers and dict_players_by_IG[p][2]:
-                            p_name= "**" + p + "**"
+                if len(lines)>0:
+                    for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
+                        if display_mentions and (p in dict_players_by_IG):
+                            print((p, tag_officers, dict_players_by_IG[p]))
+                            if not tag_officers and dict_players_by_IG[p][2]:
+                                p_name= "**" + p + "**"
+                            else:
+                                p_name = dict_players_by_IG[p][1]
                         else:
-                            p_name = dict_players_by_IG[p][1]
-                    else:
-                        p_name= "**" + p + "**"
-                    output_txt += p_name+": "+txt+"\n"
+                            p_name= "**" + p + "**"
+                        output_txt += p_name+": "+txt+"\n"
+
+                    # Total
+                    output_txt += "\n__Total__ : "+ret_data["total"]
+
+                else:
+                    output_txt += "Aucun"
 
                 for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                     await output_channel.send(txt)

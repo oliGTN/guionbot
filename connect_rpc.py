@@ -1174,11 +1174,15 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 
     #count remaining players
     lines_player = []
+    total_remainingMix = [0, 0] #total, officers only
+    total_remainingChars = [0, 0] #total, officers only
+    total_remainingShips = [0, 0] #total, officers only
     for playerName in dict_tb_players:
         await asyncio.sleep(0)
 
         player = dict_tb_players[playerName]
         player_score = player["rounds"][tb_round-1]["score"]
+        player_isOff = (player["role"]>2)
         undeployed_player = False
 
         ret_print_player = ""
@@ -1190,6 +1194,10 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
                     undeployed_player = True
                     ret_print_player += "{:,}".format(player_score["deployedMix"]) \
                                        +"/" + "{:,}".format(player["mix_gp"]) + " "
+
+                    total_remainingMix[0] += player["mix_gp"]-player_score["deployedMix"]
+                    if player_isOff:
+                        total_remainingMix[1] += player["mix_gp"]-player_score["deployedMix"]
         else:
             if dict_deployment_types["ships"]:
                 ratio_deploy_ships = player_score["deployedShips"] / player["ship_gp"]
@@ -1198,6 +1206,10 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
                     ret_print_player += "Fleet: {:,}".format(player_score["deployedShips"]) \
                                        +"/" + "{:,}".format(player["ship_gp"]) + " "
 
+                    total_remainingShips[0] += player["ship_gp"]-player_score["deployedShips"]
+                    if player_isOff:
+                        total_remainingShips[1] += player["ship_gp"]-player_score["deployedShips"]
+
             if dict_deployment_types["chars"]:
                 ratio_deploy_chars = player_score["deployedChars"] / player["char_gp"]
                 if ratio_deploy_chars < 0.99:
@@ -1205,10 +1217,25 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
                     ret_print_player += "Squad: {:,}".format(player_score["deployedChars"]) \
                                        +"/" + "{:,}".format(player["char_gp"]) + " "
 
+                    total_remainingChars[0] += player["char_gp"]-player_score["deployedChars"]
+                    if player_isOff:
+                        total_remainingChars[1] += player["char_gp"]-player_score["deployedChars"]
+
         if undeployed_player:
             lines_player.append([playerName, ret_print_player])
 
-    return 0, "", {"lines_player": lines_player, "round_endTime": dict_phase["round_endTime"]}
+        total = ""
+        if total_remainingMix[0] > 0:
+            total += "{:,}".format(total_remainingMix[0]) \
+                    +" (officiers : " + "{:,}".format(total_remainingMix[1]) + ") "
+        if total_remainingChars[0] > 0:
+            total += "Chars: {:,}".format(total_remainingChars[0]) \
+                    +" (officiers : " + "{:,}".format(total_remainingChars[1]) + ") "
+        if total_remainingShips[0] > 0:
+            total += "Ships: {:,}".format(total_remainingShips[0]) \
+                    +" (officiers : " + "{:,}".format(total_remainingShips[1]) + ") "
+
+    return 0, "", {"lines_player": lines_player, "round_endTime": dict_phase["round_endTime"], "total": total}
 
 ##############################################################
 async def get_tb_status(guild_id, targets_zone_stars, force_update,
