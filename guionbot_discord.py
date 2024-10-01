@@ -3112,20 +3112,25 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            display_mentions=True
+            display_mentions=False
+            output_channel = ctx.message.channel
+
             #Sortie sur un autre channel si donné en paramètre
-            if len(args) == 1:
-                if args[0].startswith('no'):
-                    display_mentions=False
-                    output_channel = ctx.message.channel
-                else:
-                    output_channel, err_msg = await get_channel_from_channelname(ctx, args[0])
+            args = list(args)
+            output_channel = ctx.message.channel
+            display_mentions=False
+            tag_officers=True
+            for arg in args:
+                if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                    display_mentions=True
                     if output_channel == None:
                         await ctx.send('**ERR**: '+err_msg)
                         output_channel = ctx.message.channel
-            else:
-                display_mentions=False
-                output_channel = ctx.message.channel
+                        display_mentions=False
+
+                elif arg == "-off":
+                    tag_officers=False
 
             #get bot config from DB
             ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
@@ -3146,8 +3151,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
                 output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
                 for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
-                    if (p in dict_players_by_IG) and display_mentions:
-                        p_name = dict_players_by_IG[p][1]
+                    if display_mentions and (p in dict_players_by_IG):
+                        print((p, tag_officers, dict_players_by_IG[p]))
+                        if not tag_officers and dict_players_by_IG[p][2]:
+                            p_name= "**" + p + "**"
+                        else:
+                            p_name = dict_players_by_IG[p][1]
                     else:
                         p_name= "**" + p + "**"
                     output_txt += p_name+": "+txt+"\n"

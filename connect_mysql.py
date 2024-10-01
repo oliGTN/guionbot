@@ -1012,7 +1012,7 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
 ##############################################################
 # Function: load_config_players
 # Parameters: none
-# Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>]}
+# Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>, isOfficer]}
 #          dict_players_by_ID {key=discord ID, value={"main":[allycode, isOfficer]
 #                                                     "alts":[[ac, isOff], [ac2, isOff]...]}}
 ##############################################################
@@ -1035,12 +1035,14 @@ def load_config_players():
         isMain = line[3]
         isOff = (line[4]!=2)
 
+        # dict_players_by_IG
         dict_players_by_IG[name] = [ac, name]
         if list_did.count(did) == 1:
-            dict_players_by_IG[name] = [ac, "<@"+str(did)+">"]
+            dict_players_by_IG[name] = [ac, "<@"+str(did)+">", isOff]
         else:
-            dict_players_by_IG[name] = [ac, "<@"+str(did)+"> ["+name+"]"]
+            dict_players_by_IG[name] = [ac, "<@"+str(did)+"> ["+name+"]", isOff]
 
+        # dict_players_by_ID
         if not did in dict_players_by_ID:
             dict_players_by_ID[did] = {"main": None, "alts": []}
             
