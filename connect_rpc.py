@@ -1995,7 +1995,10 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                    "strike_zones": dict_strike_zones, 
                    "players": dict_tb_players, 
                    "open_zones": list_open_zones,
-                   "zones": dict_zones}
+                   "zones": dict_zones,
+                   "guild": dict_guild,
+                   "mapstats": mapstats,
+                   "events": dict_all_events},
 
 ##########################################"
 # OUT: dict_territory_scores = {"tb3_mixed_phase03_conflit02": 24500000, ...}

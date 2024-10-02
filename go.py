@@ -5946,3 +5946,74 @@ async def print_tb_stats(guild_id, round=None):
     t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
 
     return 0, t.draw()
+
+# Details about special missions in TB
+async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
+    dict_tb = godata.get("tb_definition.json")
+
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", 0, allyCode=allyCode)
+    if ec!=0:
+        return 1, et
+
+    guild = tb_data["guild"]
+    mapstats = tb_data["mapstats"]
+
+    zone_name = None
+    for x in dict_tb:
+        x_item = dict_tb[x]
+        if "name" in x_item and x_item["name"]==zone_shortname:
+            zone_name = x
+            break
+
+    if zone_name==None:
+        return 1, "Zone inconnue: "+zone_shortname
+
+    dict_members = {}
+    for m in guild["member"]:
+        dict_members[m["playerId"]] = m["playerName"]
+
+    dict_coverts = {}
+    for mapstat in mapstats:
+        mapStatId = mapstat["mapStatId"]
+        if mapStatId.startswith("covert_round_attempted_mission") and zone_name in mapStatId:
+            if not "playerStat" in mapstat:
+                # Round not yet played
+                continue
+            covert_name = zone_name + "_" + mapStatId.split("_")[-1]
+            for m in mapstat["playerStat"]:
+                mid = m["memberId"]
+                pname = dict_members[mid]
+                if not covert_name in dict_coverts:
+                    dict_coverts[covert_name] = {}
+                if not pname in dict_coverts[covert_name]:
+                    dict_coverts[covert_name][pname] = {}
+                dict_coverts[covert_name][pname]["round"] = m["score"]
+
+        elif mapStatId.startswith("covert_complete_mission") and zone_name in mapStatId:
+            if not "playerStat" in mapstat:
+                # Round not yet played
+                continue
+            covert_name = zone_name + "_" + mapStatId.split("_")[-1]
+            for m in mapstat["playerStat"]:
+                mid = m["memberId"]
+                pname = dict_members[mid]
+                if not covert_name in dict_coverts:
+                    dict_coverts[covert_name] = {}
+                if not pname in dict_coverts[covert_name]:
+                    dict_coverts[covert_name][pname] = {}
+                dict_coverts[covert_name][pname]["score"] = m["score"]
+
+    output_txt = "**Missions spéciales pour "+zone_shortname+"**"
+    for c in sorted(list(dict_coverts.keys())):
+        output_txt += "\nMission "+c[-1]
+        success = 0
+        for p in sorted(list(dict_coverts[c].keys())):
+            output_txt += "\n  "+p+" (round "+dict_coverts[c][p]["round"]+")"
+            if "score" in dict_coverts[c][p] and dict_coverts[c][p]["score"]=="1":
+                output_txt += " > OK !"
+                success+=1
+            else:
+                output_txt += " > échec"
+        output_txt += "\n  >> "+str(success)+"/"+str(len(dict_coverts[c]))
+
+    return 0, output_txt
