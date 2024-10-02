@@ -18,17 +18,30 @@ for material in game_data["material"]:
 
 ####################
 #add custom data
-my_unit = {"baseId": "GLAHSOKA",
+my_units = [
+          {"baseId": "GLAHSOKA",
            "nameKey":"UNIT_GLAHSOKA_NAME",    # the key is defined a few lines below
            "combatType":1,                  # 1: char / 2: ship
            "rarity":7,
            "maxRarity":7,
            "obtainableTime":"0",
            "obtainable":True,
+           "categoryId":["any_obtainable"]},
+          {"baseId": "BAYLANSKOLL",
+           "nameKey":"UNIT_BAYLANSKOLL_NAME",    # the key is defined a few lines below
+           "combatType":1,                  # 1: char / 2: ship
+           "rarity":7,
+           "maxRarity":7,
+           "obtainableTime":"0",
+           "obtainable":True,
            "categoryId":["any_obtainable"]}
-game_data["units"].append(my_unit)
+          ]
+for my_unit in my_units:
+    game_data["units"].append(my_unit)
 FRE_FR["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
 ENG_US["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
+FRE_FR["UNIT_BAYLANSKOLL_NAME"] = "Baylan Skoll"
+ENG_US["UNIT_BAYLANSKOLL_NAME"] = "Baylan Skoll"
 with open('DATA/FRE_FR.json', 'w') as f_loc:
     f_loc.write(json.dumps(FRE_FR, indent=4))
 with open('DATA/ENG_US.json', 'w') as f_loc:
