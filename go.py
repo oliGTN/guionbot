@@ -6004,16 +6004,19 @@ async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
                 dict_coverts[covert_name][pname]["score"] = m["score"]
 
     output_txt = "**Missions spéciales pour "+zone_shortname+"**"
-    for c in sorted(list(dict_coverts.keys())):
-        output_txt += "\nMission "+c[-1]
-        success = 0
-        for p in sorted(list(dict_coverts[c].keys())):
-            output_txt += "\n  "+p+" (round "+dict_coverts[c][p]["round"]+")"
-            if "score" in dict_coverts[c][p] and dict_coverts[c][p]["score"]=="1":
-                output_txt += " > OK !"
-                success+=1
-            else:
-                output_txt += " > échec"
-        output_txt += "\n  >> "+str(success)+"/"+str(len(dict_coverts[c]))
+    if len(dict_coverts)>0:
+        for c in sorted(list(dict_coverts.keys())):
+            output_txt += "\nMission "+c[-1]
+            success = 0
+            for p in sorted(list(dict_coverts[c].keys())):
+                output_txt += "\n  "+p+" (round "+dict_coverts[c][p]["round"]+")"
+                if "score" in dict_coverts[c][p] and dict_coverts[c][p]["score"]=="1":
+                    output_txt += " > OK !"
+                    success+=1
+                else:
+                    output_txt += " > échec"
+            output_txt += "\n  >> "+str(success)+"/"+str(len(dict_coverts[c]))
+    else:
+        output_txt += "\n  aucune de jouée"
 
     return 0, output_txt
