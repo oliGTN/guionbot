@@ -693,7 +693,9 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     message_lines = message.content.split("\n")
 
                     first_line = message_lines[0]
-                    eb_phase = first_line[-2]
+                    # TEMPORARY solution until EB displays the phase again
+                    #eb_phase = first_line[-2]
+                    eb_phase = tbs_round[-1]
 
                     for line in message_lines:
                         if ":globe_with_meridians:" in line:
@@ -1644,7 +1646,13 @@ async def on_message(message):
                                             dict_tb = data.get("tb_definition.json")
                                             tb_name = dict_tb[tb_defId]["shortname"]
                                             tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
-                                            tbs_round=tb_name+str(tb_currentRound)
+                                            tb_currentRoundEndTime = int(dict_guild["territoryBattleStatus"][0]["currentRoundEndTime"])/1000
+                                            if (tb_currentRoundEndTime - time.time()) < dict_tb[tb_id]["phaseDuration"]/2:
+                                                # The allocation is sent close to the end of the round > for next round
+                                                eb_phase = tb_currentRound+1
+                                            else:
+                                                eb_phase = tb_currentRound
+                                            tbs_round=tb_name+str(eb_phase)
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
 
     except Exception as e:
