@@ -1284,8 +1284,8 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                     tb_ongoing=True
 
                 tb_startTime = int(battleStatus["instanceId"].split(':')[1][1:])
-                tb_round_endTime = tb_startTime + tb_round*dict_tb[tb_type]["PhaseDuration"]
-                tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["PhaseDuration"]
+                tb_round_endTime = tb_startTime + tb_round*dict_tb[tb_type]["phaseDuration"]
+                tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["phaseDuration"]
 
                 if battle_id in dict_all_events:
                     dict_events=dict_all_events[battle_id]
@@ -1467,7 +1467,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             #should not happen unless new player and until API resynchronizes
             continue
 
-        event_round = int(tb_round + (event_time-tb_round_startTime)/dict_tb[tb_type]["PhaseDuration"])
+        event_round = int(tb_round + (event_time-tb_round_startTime)/dict_tb[tb_type]["phaseDuration"])
 
         for event_data in event["data"]:
             if "zoneData" in event_data["activity"]:

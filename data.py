@@ -7,7 +7,7 @@ dict_raid_tiers['Rancor (challenge)']=[41193988, 36425856, 39461352, 37943604]
 """
 dict_tb={}
 dict_tb["GDS"] = {"id": "t03D"}
-dict_tb["t03D"] = {"PhaseDuration": 129600000, "zonePositions": {}, "maxRound": 4}
+dict_tb["t03D"] = {"phaseDuration": 129600000, "zonePositions": {}, "maxRound": 4}
 dict_tb["t03D"]["name"] = "Geonosis Dark Side"
 dict_tb["t03D"]["shortname"] = "GDS"
 dict_tb["t03D"]["zonePositions"]["top"] = 1
@@ -75,7 +75,7 @@ dict_tb["geonosis_separatist_phase04_conflict03"] = {}
 dict_tb["geonosis_separatist_phase04_conflict03"]["name"] = "GDS4-bot"
 
 dict_tb["GLS"] = {"id": "t04D"}
-dict_tb["t04D"] = {"PhaseDuration": 129600000, "zonePositions": {}, "maxRound": 4}
+dict_tb["t04D"] = {"phaseDuration": 129600000, "zonePositions": {}, "maxRound": 4}
 dict_tb["t04D"]["name"] = "Geonosis Light Side"
 dict_tb["t04D"]["shortname"] = "GLS"
 dict_tb["t04D"]["zonePositions"]["top"] = 1
@@ -185,7 +185,7 @@ dict_tb["geonosis_republic_phase04_conflict03"]["strikes"]["covert01"] = [4, 238
 dict_tb["geonosis_republic_phase04_conflict03"]["coverts"] = {}
 
 dict_tb["ROTE"] = {"id": "t05D"}
-dict_tb["t05D"] = {"PhaseDuration": 86400000, "zonePositions": {}, "maxRound": 6}
+dict_tb["t05D"] = {"phaseDuration": 86400000, "zonePositions": {}, "maxRound": 6}
 dict_tb["t05D"]["name"] = "Rise of the Empire"
 dict_tb["t05D"]["shortname"] = "ROTE"
 dict_tb["t05D"]["zonePositions"]["DS"] = 1
