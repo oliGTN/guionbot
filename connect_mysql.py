@@ -1271,7 +1271,7 @@ def get_google_player_info(channel_id):
     query+= "       twChanOut_id \n"
     query+= "FROM user_bot_infos \n"
     query+= "JOIN players ON players.allyCode=user_bot_infos.allyCode \n"
-    query+= "JOIN guild_bot_infos ON guild_bot_infos.guild_id=players.guildId \n"
+    query+= "LEFT JOIN guild_bot_infos ON guild_bot_infos.guild_id=players.guildId \n"
     query+= "WHERE channel_id="+str(channel_id)
     goutils.log2("DBG", query)
     db_data = get_line(query)
