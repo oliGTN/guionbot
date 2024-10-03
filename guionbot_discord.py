@@ -1647,7 +1647,7 @@ async def on_message(message):
                                             tb_name = dict_tb[tb_defId]["shortname"]
                                             tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
                                             tb_currentRoundEndTime = int(dict_guild["territoryBattleStatus"][0]["currentRoundEndTime"])/1000
-                                            if (tb_currentRoundEndTime - time.time()) < dict_tb[tb_id]["phaseDuration"]/2:
+                                            if (tb_currentRoundEndTime - time.time()) < dict_tb[tb_defId]["phaseDuration"]/2:
                                                 # The allocation is sent close to the end of the round > for next round
                                                 eb_phase = tb_currentRound+1
                                             else:
