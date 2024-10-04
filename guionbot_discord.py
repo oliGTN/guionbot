@@ -2403,18 +2403,19 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             channel_id = interaction.channel_id
 
-            #get allyCode
-            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-            goutils.log2("DBG", query)
-            allyCode = str(connect_mysql.get_value(query))
-            if allyCode == "None":
-                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
                 return
 
-            goutils.log2("INFO", "mods.modoptimizer("+allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
+            txt_allyCode = str(bot_infos["allyCode"])
+
+            goutils.log2("INFO", "mods.modoptimizer("+txt_allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
 
             #Run the function
-            player_path = "PLAYERDATA/"+allyCode
+            player_path = "PLAYERDATA/"+txt_allyCode
             if not os.path.isdir(player_path):
                 os.mkdir(player_path)
             file_savename = player_path+"/modoptimizer_input.json"
@@ -2426,7 +2427,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
                 return
 
-            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(html_content, allyCode, simulation, interaction)
+            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(html_content, txt_allyCode, simulation, interaction)
             # Prepare warning info, to be displayed if error or success
             cost_and_missing = ""
             if "cost" in ret_data:
@@ -2478,48 +2479,59 @@ class ModsCog(commands.GroupCog, name="mods"):
     async def save_conf(self, interaction: discord.Interaction,
                            conf_name: str,
                            list_alias_txt: str):
-        await interaction.response.defer(thinking=True)
+        try:
+            await interaction.response.defer(thinking=True)
 
-        channel_id = interaction.channel_id
+            channel_id = interaction.channel_id
 
-        #get allyCode
-        query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-        allyCode = str(connect_mysql.get_value(query))
-        if allyCode == "None":
-            await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
-            return
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
+                return
 
-        goutils.log2("INFO", "mods.save_conf("+allyCode+", conf_name="+conf_name+", persos="+list_alias_txt+")")
+            txt_allyCode = str(bot_infos["allyCode"])
 
+            goutils.log2("INFO", "mods.save_conf("+txt_allyCode+", conf_name="+conf_name+", persos="+list_alias_txt+")")
 
-        #transform list_alias parameter into list
-        list_alias = list_alias_txt.split(" ")
-        while "" in list_alias:
-            list_alias.remove("")
+            #transform list_alias parameter into list
+            list_alias = list_alias_txt.split(" ")
+            while "" in list_alias:
+                list_alias.remove("")
 
-        #Run the function
-        ec, et = await manage_mods.create_mod_config(conf_name, allyCode, list_alias)
+            #Run the function
+            ec, et = await manage_mods.create_mod_config(conf_name, txt_allyCode, list_alias)
 
-        if ec == 0:
-            await interaction.edit_original_response(content=emojis.check+" "+et)
-        else:
-            await interaction.edit_original_response(content=emojis.redcross+" "+et)
+            if ec == 0:
+                await interaction.edit_original_response(content=emojis.check+" "+et)
+            else:
+                await interaction.edit_original_response(content=emojis.redcross+" "+et)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     # Function used to get dynamic parameters in applique-conf and delete-conf
     async def list_player_configurations(self, interaction: discord.Interaction, current: str):
-        user_id = interaction.channel.id
+        try:
+            user_id = interaction.channel.id
 
-        query = "SELECT name FROM mod_config_list " \
-                "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
-                "WHERE channel_id="+str(user_id)
-        goutils.log2("DBG", query)
-        db_data = connect_mysql.get_column(query)
-        if db_data==None:
-            return []
-        else:
-            filtered_confs = [app_commands.Choice(name=value, value=value) 
-                              for value in db_data if current.lower() in value.lower()]
-            return filtered_confs
+            query = "SELECT name FROM mod_config_list " \
+                    "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
+                    "WHERE channel_id="+str(user_id)
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_column(query)
+            if db_data==None:
+                return []
+            else:
+                filtered_confs = [app_commands.Choice(name=value, value=value) 
+                                  for value in db_data if current.lower() in value.lower()]
+                return filtered_confs
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="applique-conf")
     @app_commands.rename(conf_name="nom-conf")
@@ -2532,17 +2544,19 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             channel_id = interaction.channel_id
 
-            #get allyCode
-            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-            allyCode = str(connect_mysql.get_value(query))
-            if allyCode == "None":
-                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
                 return
 
-            goutils.log2("INFO", "mods.apply_conf("+allyCode+", conf_name="+conf_name+", simu="+str(simulation)+")")
+            txt_allyCode = str(bot_infos["allyCode"])
+
+            goutils.log2("INFO", "mods.apply_conf("+txt_allyCode+", conf_name="+conf_name+", simu="+str(simulation)+")")
 
             #Run the function
-            ec, et, ret_data = await manage_mods.apply_config_allocations(conf_name, allyCode, simulation, interaction)
+            ec, et, ret_data = await manage_mods.apply_config_allocations(conf_name, txt_allyCode, simulation, interaction)
 
             # Prepare warning info, to be displayed if error or sucess
             cost_and_missing = ""
@@ -2590,17 +2604,19 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             channel_id = interaction.channel_id
 
-            #get allyCode
-            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-            allyCode = str(connect_mysql.get_value(query))
-            if allyCode == "None":
-                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
                 return
 
-            goutils.log2("INFO", "mods.delete_conf("+allyCode+", conf_name="+conf_name+")")
+            txt_allyCode = str(bot_infos["allyCode"])
+
+            goutils.log2("INFO", "mods.delete_conf("+txt_allyCode+", conf_name="+conf_name+")")
 
             #Run the function
-            query = "SELECT id FROM mod_config_list WHERE allyCode="+str(allyCode)+" AND name='"+conf_name+"'"
+            query = "SELECT id FROM mod_config_list WHERE allyCode="+txt_allyCode+" AND name='"+conf_name+"'"
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_value(query)
             if db_data==None:
@@ -2629,24 +2645,25 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             channel_id = interaction.channel_id
 
-            #get allyCode
-            query = "SELECT allyCode FROM user_bot_infos WHERE channel_id="+str(channel_id)
-            allyCode = str(connect_mysql.get_value(query))
-            if allyCode == "None":
-                await interaction.edit_original_response(content=emojis.redcross+" ERR cette commande est interdite dans ce salon - il faut un compte google connecté et un salon dédié")
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
                 return
 
-            goutils.log2("INFO", "mods.export_modoptimizer("+allyCode+")")
+            txt_allyCode = str(bot_infos["allyCode"])
+
+            goutils.log2("INFO", "mods.export_modoptimizer("+txt_allyCode+")")
 
             #Run the function
-            ec, et, dict_export = await manage_mods.get_modopti_export(allyCode)
+            ec, et, dict_export = await manage_mods.get_modopti_export(txt_allyCode)
 
             if ec != 0:
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
             else:
-                export_path="/tmp/modoptiProgress_"+allyCode+".json"
+                export_path="/tmp/modoptiProgress_"+txt_allyCode+".json"
                 export_file = open(export_path, "w")
-                print(type(dict_export))
                 export_txt = json.dumps(dict_export, indent=4)
                 export_file.write(export_txt)
                 export_file.close()
@@ -2655,8 +2672,6 @@ class ModsCog(commands.GroupCog, name="mods"):
                                                          attachments=[discord.File(export_path)])
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
