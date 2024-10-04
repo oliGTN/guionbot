@@ -5829,9 +5829,9 @@ async def print_tw_summary(guild_id, allyCode=None, dict_guild=None, dict_events
 # Display strike / wave statistics for the whole TB or a round
 # May be manually laucjed, or automatic for the end of the TB
 #########################################
-async def print_tb_stats(guild_id, round=None):
+async def print_tb_stats(guild_id, round=None, allyCode=None):
     # Get current guild and mapstats data
-    err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1)
+    err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1, allyCode=allyCode)
     if err_code!=0:
         return 1, err_txt
 
@@ -6020,3 +6020,4 @@ async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
         output_txt += "\n  aucune de jouée"
 
     return 0, output_txt
+

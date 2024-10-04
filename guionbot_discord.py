@@ -3523,6 +3523,66 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             goutils.log2("ERR", traceback.format_exc())
 
     ####################################################
+    # Command tbstats
+    ####################################################
+    @commands.check(officer_command)
+    @commands.command(name='tbstats',
+            brief="Stats des combats en BT",
+            help="Stats des combats en BT avec les résultats par joueur\n" \
+                 "go.tbstats   > pour toute la BT\n" \
+                 "go.tbstats 2 > pour le 2e jour")
+    async def tbstats(self, ctx, *args):
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
+
+            if len(args) > 1:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbstats")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            if len(args)>0:
+                round = args[0]
+                if len(round) > 1 or not round.isnumeric():
+                    await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbstats")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+            else:
+                # whole TB
+                round = None
+
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
+
+            # launch actual command
+            ec, ret_txt = await go.print_tb_stats(guild_id, round, allyCode=connected_allyCode)
+            if ec != 0:
+                await ctx.send("ERR: "+ret_txt)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                await ctx.send("```"+txt+"```")
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+
+    ####################################################
     # Command tbo
     ####################################################
     @commands.check(officer_command)
