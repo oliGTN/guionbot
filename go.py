@@ -4952,7 +4952,25 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
 # OUT: list_missing_platoons - [{"player_name": "Jerome342", "platoon": "ROTE1-DS-3", "locked": True", character_name": "General Kenobi"}, {"player_name": "Tartufe du 75", "platoon": "ROTE2-LS-6", "locked": Flase, "character_name": "Lobot"}, ...]
 # OUT: list_err - ["ERR - ça va pas", "ERR - perso manquant", ...]
 ##############################
-def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open_territories):
+def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open_territories,
+                         targets_free_platoons=None):
+
+    # prepare free platoons
+    list_free_platoons = [] # [ROTE2-MS-1, ROTE2-MS-2, ROTE3-MS-4, ...]
+    for p in targets_free_platoons.split('/'):
+        if ":" in p:
+            p_zone = p.split(":")[0]
+            p_num = p.split(":")[1].split(",")
+        else:
+            p_zone = p
+            p_num = [1, 2, 3, 4, 5, 6]
+
+        for terr in list_open_territories:
+            if terr["zone_name"].endswith(p_zone):
+                p_zone = terr["zone_name"]
+        for num in p_num:
+            list_free_platoons.append(p_zone+"-"+num)
+
     list_platoon_names = sorted(dict_platoons_done.keys())
     phase_names_already_displayed = []
     list_missing_platoons = []
@@ -4992,6 +5010,18 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open
                         list_err.append('ERR: ' + err_msg)
                         goutils.log2("ERR", err_msg)
                         goutils.log2("ERR", dict_platoons_allocation[platoon_name].keys())
+
+                        # Still need to display it as not filled
+                        list_missing_platoons.append({"player_name": None,
+                                                      "platoon": platoon_name, 
+                                                      "locked": platoon_locked, 
+                                                      "character_name": perso})
+                elif platoon_name in list_free_platoons:
+                    # whole zone not allocated
+                    list_missing_platoons.append({"player_name": None,
+                                                  "platoon": platoon_name, 
+                                                  "locked": platoon_locked, 
+                                                  "character_name": perso})
 
     return list_missing_platoons, list_err
 
@@ -5849,7 +5879,6 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
     else:
         tb_id = guild["territoryBattleStatus"][0]["instanceId"]
         tb_type = tb_id.split(":")[0]
-    print(tb_id)
 
     # Get previous TB mapstats
     stored_events = os.listdir("EVENTS/")

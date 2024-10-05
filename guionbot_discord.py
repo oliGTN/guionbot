@@ -864,7 +864,8 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                                     deploy_allyCode, player_name, display_mentions, 
                                     filter_zones=[],
                                     connected_allyCode=None,
-                                    free_platoons=False):
+                                    free_platoons=False,
+                                    targets_free_platoons=False):
     dict_tb = data.get("tb_definition.json")
 
     #Read actual platoons in game
@@ -918,7 +919,8 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     list_missing_platoons, list_err = go.get_missing_platoons(
                                             dict_platoons_done, 
                                             dict_platoons_allocation,
-                                            list_open_territories)
+                                            list_open_territories,
+                                            targets_free_platoons=targets_free_platoons)
 
     #Affichage des deltas ET auto pose par le bot
     full_txt = ''
@@ -988,13 +990,22 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         if (allocated_player in dict_players_by_IG) and display_mentions:
             txt = '**' + \
                   dict_players_by_IG[allocated_player][1] + \
-                  '** n\'a pas affecté ' + perso + \
+                  '** n\'a pas posé ' + perso + \
                   ' en ' + platoon_name
+        elif allocated_player == None:
+            # No player allocated
+            #joueur non-enregistré ou mentions non autorisées,
+            # on l'affiche quand même
+            txt = 'Aucun joueur n\'a posé ' + perso + \
+                  ' en ' + platoon_name
+
+            if platoon_locked:
+                txt = "~~" + txt + "~~"
         else:
             #joueur non-enregistré ou mentions non autorisées,
             # on l'affiche quand même
             txt = '**' + allocated_player + \
-                  '** n\'a pas affecté ' + perso + \
+                  '** n\'a pas posé ' + perso + \
                   ' en ' + platoon_name
 
             if platoon_locked:
@@ -1026,6 +1037,9 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         else:  #bot or 'MS'
             open_for_position = list_open_territories[2]["phase"]
         if cur_phase < open_for_position:
+            if free_platoons:
+                continue
+
             full_txt += txt + ' -- *et c\'est trop tard*\n'
         else:
             full_txt += txt + '\n'
@@ -1742,9 +1756,7 @@ async def on_message_edit(before, after):
                 goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
                 file_content = await attachment.read()
                 file_txt = file_content.decode('utf-8')
-                print("launch update...")
                 ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
-                print("done - "+str(ec))
                 if ec != 0:
                     goutils.log2("ERR", et)
 
@@ -1757,14 +1769,13 @@ async def on_message_edit(before, after):
                     description=dict_embed['description']
                     dict_ac_did = None
                     for line in description.split('\n'):
-                        print(line)
                         ret_re = re.search(".*`(\\d{9})`.*<@(\\d*)>.*", line)
                         if ret_re != None:
                             allyCode_txt = ret_re.group(1)
                             allyCode = int(allyCode_txt)
                             discord_id_txt = ret_re.group(2)
                             discord_id = int(discord_id_txt)
-                            print("register "+allyCode_txt+" to "+discord_id_txt)
+                            goutils.log2("INFO", "register "+allyCode_txt+" to "+discord_id_txt)
 
                             #Get guild list of ac/id from the first ac in the list
                             if dict_ac_did == None:
@@ -1817,7 +1828,6 @@ async def on_message_edit(before, after):
                         "   WHERE discord_id="+str(caller_id)+") "
                 goutils.log2("DBG", query)
                 db_data = connect_mysql.get_value(query)
-                print(db_data)
                 if db_data != None:
                     allyCode = db_data
 
@@ -2197,16 +2207,16 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 list_reactive_user_id.append(user.id)
                 guild_member = guild.get_member(user.id)
                 if guild_member==None:
-                    print(f'{user} (NOT IN THE SERVER) has reacted with {reaction.emoji}')
+                    goutils.log2("INFO", f'{user} (NOT IN THE SERVER) has reacted with {reaction.emoji}')
 
         query = "select name, discord_id from players join player_discord on players.allyCode=player_discord.allyCode where guildName = (select guildName from players where allyCode="+allyCode+")"
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_table(query)
         for line in db_data:
             if line[1]==None:
-                print("No discord ID for "+line[0])
+                goutils.log2("INFO", "No discord ID for "+line[0])
             elif not line[1] in list_reactive_user_id:
-                print(line[0]+" has not reacted to the message")
+                goutils.log2("INFO", line[0]+" has not reacted to the message")
 
         await ctx.message.add_reaction(emojis.check)
 
@@ -2842,7 +2852,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                  help="Vérification de Déploiement des Pelotons en BT\n\n"\
                       "Exemple : go.vdp > liste les déploiements dans le salon courant\n"\
                       "Exemple : go.vdp #batailles-des-territoires > liste les déploiements dans le salon spécifié\n"\
-                      "Exemple : go.vdp deploybot")
+                      "Exemple : go.vdp deploybot\n" \
+                      "Exemple : go.vdp -free=DS:1,2,4/MS:3,5/LS")
     async def vdp(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -2853,19 +2864,20 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             deploy_bot=False
             free_platoons=False
 
-            args=list(args)
-            if "deploybot" in args:
-                deploy_bot=True
-                args.remove("deploybot")
-            if "-free" in args:
-                free_platoons = True
-                args.remove("-free")
-
-            #Sortie sur un autre channel si donné en paramètre
+            # Read command options
             output_channel = ctx.message.channel
             display_mentions=False
+            args=list(args)
             loop_args = list(args)
             for arg in loop_args:
+                if arg == "deploybot":
+                    deploy_bot=True
+                    args.remove(arg)
+                if arg.startswith("-free"):
+                    free_platoons = True
+                    if "=" in arg:
+                        targets_platoons = arg.split('=')[1]
+                    args.remove(arg)
                 if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     got_channel, err_msg = await get_channel_from_channelname(ctx, arg)
                     if got_channel == None:
@@ -2906,7 +2918,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                                           deploy_allyCode, player_name, display_mentions, 
                                                           filter_zones=list_zones,
                                                           connected_allyCode=connected_allyCode,
-                                                          free_platoons=free_platoons)
+                                                          free_platoons=free_platoons,
+                                                          targets_free_platoons=targets_platoons)
             if ec != 0:
                 await ctx.send('ERR: '+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -3176,7 +3189,6 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 if len(lines)>0:
                     for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
                         if display_mentions and (p in dict_players_by_IG):
-                            print((p, tag_officers, dict_players_by_IG[p]))
                             if not tag_officers and dict_players_by_IG[p][2]:
                                 p_name= "**" + p + "**"
                             else:
@@ -5937,9 +5949,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
                 ec, et, opp_dict = await go.count_players_with_character(opp_allyCode, unit_list, guild_id, "awayGuild")
                 for unit_id in opp_dict:
-                    if unit_id=='CAPITALEXECUTOR':
-                        print(output_dict)
-                        print(opp_dict)
                     if not unit_id in output_dict:
                         output_dict[unit_id] = {}
                     for gear in opp_dict[unit_id]:
