@@ -2363,42 +2363,46 @@ class TbCog(commands.GroupCog, name="bt"):
 
     @app_commands.command(name="pose-pelotons")
     async def deploy_platoons(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+        try:
+            await interaction.response.defer(thinking=True)
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
-        if ec!=0:
-            txt = emojis.redcross+" ERR: "+et
-            await interaction.edit_original_response(content=txt)
-            return
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
+                return
 
-        guild_id = bot_infos["guild_id"]
-        tbChannel_id = bot_infos["tbChanRead_id"]
-        echostation_id = bot_infos["echostation_id"]
-        if tbChannel_id==0:
-            txt = emojis.redcross+" ERR: warbot mal configuré (tbChannel_id=0)"
-            await interaction.edit_original_response(content=txt)
-            return
+            guild_id = bot_infos["guild_id"]
+            tbChannel_id = bot_infos["tbChanRead_id"]
+            echostation_id = bot_infos["echostation_id"]
+            if tbChannel_id==0:
+                txt = emojis.redcross+" ERR: warbot mal configuré (tbChannel_id=0)"
+                await interaction.edit_original_response(content=txt)
+                return
 
-        allyCode = bot_infos["allyCode"]
-        player_name = bot_infos["player_name"]
+            allyCode = bot_infos["allyCode"]
+            player_name = bot_infos["player_name"]
 
-        ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, False)
-        if ec != 0:
-            txt = emojis.redcross+" ERR: "+ret_txt
-            await interaction.edit_original_response(content=txt)
-        else:
-            #filter deployment lines
-            lines = ret_txt.split("\n")
-            lines = [l for l in lines if "a posé" in l]
-            txt = "\n".join(lines)
-
-            if txt=='':
-                txt = emojis.check+" rien à déployer"
+            ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, False)
+            if ec != 0:
+                txt = emojis.redcross+" ERR: "+ret_txt
+                await interaction.edit_original_response(content=txt)
             else:
-                txt = emojis.check+" succès des déploiements :\n"+txt
-            await interaction.edit_original_response(content=txt)
+                #filter deployment lines
+                lines = ret_txt.split("\n")
+                lines = [l for l in lines if "a posé" in l]
+                txt = "\n".join(lines)
 
+                if txt=='':
+                    txt = emojis.check+" rien à déployer"
+                else:
+                    txt = emojis.check+" succès des déploiements :\n"+txt
+                await interaction.edit_original_response(content=txt)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
 # Class: ModsCog - for Google accounts
