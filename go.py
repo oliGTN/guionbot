@@ -4957,19 +4957,20 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open
 
     # prepare free platoons
     list_free_platoons = [] # [ROTE2-MS-1, ROTE2-MS-2, ROTE3-MS-4, ...]
-    for p in targets_free_platoons.split('/'):
-        if ":" in p:
-            p_zone = p.split(":")[0]
-            p_num = p.split(":")[1].split(",")
-        else:
-            p_zone = p
-            p_num = [1, 2, 3, 4, 5, 6]
+    if targets_free_platoons != None:
+        for p in targets_free_platoons.split('/'):
+            if ":" in p:
+                p_zone = p.split(":")[0]
+                p_num = p.split(":")[1].split(",")
+            else:
+                p_zone = p
+                p_num = [1, 2, 3, 4, 5, 6]
 
-        for terr in list_open_territories:
-            if terr["zone_name"].endswith(p_zone):
-                p_zone = terr["zone_name"]
-        for num in p_num:
-            list_free_platoons.append(p_zone+"-"+num)
+            for terr in list_open_territories:
+                if terr["zone_name"].endswith(p_zone):
+                    p_zone = terr["zone_name"]
+            for num in p_num:
+                list_free_platoons.append(p_zone+"-"+num)
 
     list_platoon_names = sorted(dict_platoons_done.keys())
     phase_names_already_displayed = []

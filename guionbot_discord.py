@@ -911,6 +911,11 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 
     else:
         dict_platoons_allocation = {}
+
+        if free_platoons and targets_free_platoons==None:
+            list_zone_names = [x["zone_name"].split("-")[1] for x in list_open_territories]
+            targets_free_platoons = "/".join(list_zone_names)
+
     
     #Comparaison des dictionnaires
     #Recherche des persos non-affectés
