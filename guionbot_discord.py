@@ -2872,6 +2872,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             # Read command options
             output_channel = ctx.message.channel
             display_mentions=False
+            targets_platoons = None
             args=list(args)
             loop_args = list(args)
             for arg in loop_args:
