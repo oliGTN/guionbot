@@ -207,29 +207,29 @@ async def bot_loop_60secs(bot):
 # Output: none
 ##############################################################
 async def bot_loop_10minutes(bot):
-        global first_bot_loop_10minutes
+    global first_bot_loop_10minutes
 
-        goutils.log2("DBG", "START loop")
-        t_start = time.time()
+    goutils.log2("DBG", "START loop")
+    t_start = time.time()
 
-        if not first_bot_loop_10minutes:
-            try:
-                #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-                await go.refresh_cache()
+    if not first_bot_loop_10minutes:
+        try:
+            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
+            await go.refresh_cache()
 
-            except Exception as e:
-                goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
-                goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
-                goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
-                if not bot_test_mode:
-                    await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
+        except Exception as e:
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
+            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
-            goutils.log2("DBG", "END loop")
+        goutils.log2("DBG", "END loop")
 
-        else:
-            first_bot_loop_10minutes = False
+    else:
+        first_bot_loop_10minutes = False
 
-            goutils.log2("DBG", "END loop")
+        goutils.log2("DBG", "END loop")
 
 
 ##############################################################
@@ -292,7 +292,7 @@ async def bot_loop_5minutes(bot):
                 goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
                 if channel_id!=0:
                     tb_end_channel = bot.get_channel(channel_id)
-                    await tb_end_channel.send("# BT terminée le "+datetime.datetime.now().strftime("%d/%m"))
+                    await tb_end_channel.send("# BT de "+guild_bots[guild_id]["guildName"]+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
                     for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
                         await tb_end_channel.send('`' + stxt + '`')
 
@@ -4302,7 +4302,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
-        await ctx.send("Enregistrement de "+player_name+" réussi pour <@"+discord_id_txt+">")
+        await ctx.send("Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
         await ctx.message.add_reaction(emojis.check)
 
     ##############################################################

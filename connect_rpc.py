@@ -45,8 +45,9 @@ async def release_sem(id):
 
 def get_dict_bot_accounts():
     query = "SELECT guild_id, bot_allyCode, bot_locked_until, priority_cache, " \
-            "twChanOut_id, tbChanOut_id, tbChanEnd_id " \
-            "FROM guild_bot_infos where bot_allyCode != ''"
+            "twChanOut_id, tbChanOut_id, tbChanEnd_id, name " \
+            "FROM guild_bot_infos where bot_allyCode != '' " \
+            "JOIN guilds ON guilds.id=guild_bot_infos.guild_id " 
     #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
@@ -58,7 +59,8 @@ def get_dict_bot_accounts():
                                  "priority_cache":line[3],
                                  "tw_channel_out":line[4],
                                  "tb_channel_out":line[5],
-                                 "tb_channel_end":line[6]}
+                                 "tb_channel_end":line[6],
+                                 "guildName":line[7]}
 
     return ret_dict
 
