@@ -361,6 +361,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
                               5: 4750,
                               6: 8000}
     missing_mods = {} #key=Unit_defId / value=list of missing mods
+    forbidden_mods = {} #key=Unit_defId / value=list of gold mods to gear<12 chars
 
     prev_display_time = 0
     original_unit_count = len(mod_allocations)
@@ -370,10 +371,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         best_a = None
         for a in mod_allocations:
             target_char_defId = a["unit_id"]
+            target_char_id = dict_player["rosterUnit"][target_char_defId]["id"]
+            target_char_gear = dict_player["rosterUnit"][target_char_defId]["currentTier"]
+
             a_delta_inventory = 0
             for allocated_mod in a["mods"]:
                 allocated_mod_id = allocated_mod["id"]
                 mod_slot = allocated_mod["slot"]
+                allocated_mod_rarity = allocated_mod["rarity"]
 
                 if not allocated_mod_id in dict_player_mods:
                     # This means that the conf is using a mod that the player does not have anymore
@@ -381,6 +386,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
                     if not target_char_defId in missing_mods:
                         missing_mods[target_char_defId] = []
                     missing_mods[target_char_defId] = list(set(missing_mods[target_char_defId]+[allocated_mod_id]))
+                    continue
+
+                if allocated_mod_rarity>5 and target_char_gear<12:
+                    # not possible to allocate a forbidden_mods mod on a char with gear<12
+                    # Add it to the list of warnings, and ignore it in the allocation
+                    if not target_char_defId in forbidden_mods:
+                        forbidden_mods[target_char_defId] = []
+                    forbidden_mods[target_char_defId] = list(set(forbidden_mods[target_char_defId]+[allocated_mod_id]))
                     continue
 
                 if dict_player_mods[allocated_mod_id]["unit_id"] == None:
@@ -415,7 +428,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         target_char_level = dict_player["rosterUnit"][target_char_defId]["currentLevel"]
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
-            return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods}
+            return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
         mods_to_add = [] # list of mod IDs to be added to this unit
         mods_to_remove = [] # list of mod IDs to be removed from this unit
@@ -496,14 +509,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
                 if ec!=0:
                     cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
-                    return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et, {"cost": cost_txt, "missing": missing_mods}
+                    return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et, {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
         elif len(mods_to_remove) > 0:
             if not is_simu:
                 cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
-                ret_data = {"cost": cost_txt, "missing": missing_mods}
+                ret_data = {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
             else:
-                ret_data = {"missing": missing_mods}
+                ret_data = {"missing": missing_mods, "forbidden": forbidden_mods}
             return 1, "ERR: des mods à retirer pour "+target_char_defId+" "+str(mods_to_remove)+" mais aucun à ajouter", ret_data
 
         #manage max size required in mod inventory
@@ -539,7 +552,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
     else:
         cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
     
-    return ret_code, ret_txt, {"cost": cost_txt, "missing": missing_mods}
+    return ret_code, ret_txt, {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     #Get game mod data

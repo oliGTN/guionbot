@@ -2458,6 +2458,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                         cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
                     else:
                         cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ils n'existent plus"
+            if "forbidden" in ret_data and len(ret_data["forbidden"])>0:
+                for unit in ret_data["forbidden"]:
+                    value=len(ret_data["forbidden"][unit])
+                    if value==1:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod est de niveau or pour un perso de gear inférieur à 12"
+                    else:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ces mods sont de niveau or pour un perso de gear inférieur à 12"
 
             if ec == 0:
                 # The cost gets a SUCCESS sign
@@ -2588,6 +2595,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                         cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod n'existe plus"
                     else:
                         cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ils n'existent plus"
+            if "forbidden" in ret_data and len(ret_data["forbidden"])>0:
+                for unit in ret_data["forbidden"]:
+                    value=len(ret_data["forbidden"][unit])
+                    if value==1:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mod ne peut pas être posé sur "+unit+" car ce mod est de niveau or pour un perso de gear inférieur à 12"
+                    else:
+                        cost_and_missing += "\n"+emojis.warning+" "+str(value)+" mods ne peuvent pas être posés sur "+unit+" car ces mods sont de niveau or pour un perso de gear inférieur à 12"
 
             if ec == 0:
                 # The cost gets a SUCCESS sign
