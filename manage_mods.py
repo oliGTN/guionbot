@@ -378,7 +378,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
             for allocated_mod in a["mods"]:
                 allocated_mod_id = allocated_mod["id"]
                 mod_slot = allocated_mod["slot"]
-                allocated_mod_rarity = allocated_mod["rarity"]
+                allocated_mod_rarity = dict_player_mods[allocated_mod_id]["rarity"]
 
                 if not allocated_mod_id in dict_player_mods:
                     # This means that the conf is using a mod that the player does not have anymore
@@ -389,7 +389,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
                     continue
 
                 if allocated_mod_rarity>5 and target_char_gear<12:
-                    # not possible to allocate a forbidden_mods mod on a char with gear<12
+                    # not possible to allocate a gold mod on a char with gear<12
                     # Add it to the list of warnings, and ignore it in the allocation
                     if not target_char_defId in forbidden_mods:
                         forbidden_mods[target_char_defId] = []
@@ -426,6 +426,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         target_char_defId = a["unit_id"]
         target_char_id = dict_player["rosterUnit"][target_char_defId]["id"]
         target_char_level = dict_player["rosterUnit"][target_char_defId]["currentLevel"]
+        target_char_gear = dict_player["rosterUnit"][target_char_defId]["currentTier"]
+
         if target_char_level < 50:
             cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
             return 1, target_char_defId+" n'est pas au niveau 50 > pas possible de lui mettre des mods", {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
@@ -435,8 +437,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         for allocated_mod in a["mods"]:
             allocated_mod_id = allocated_mod["id"]
             mod_slot = allocated_mod["slot"]
-            allocated_mod_rarity = allocated_mod["rarity"]
-            #print(allocated_mod_id)
+            allocated_mod_rarity = dict_player_mods[allocated_mod_id]["rarity"]
 
             ####################
             # add the new mode to mods_to_add, then add the existing to mods_to_remove
@@ -446,10 +447,16 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
             # Look for the unit that has this mod
             # If the mod is not equipped, unit=None
+
             if allocated_mod_id in dict_player_mods:
                 current_mod_unit = dict_player_mods[allocated_mod_id]["unit_id"]
             else:
                 # This means that the conf is using a mod that the player does not have anymore
+                # Already added to the list of warnings, still need to ignore it in the allocation
+                continue
+
+            if allocated_mod_rarity>5 and target_char_gear<12:
+                # not possible to allocate a gold mod on a char with gear<12
                 # Already added to the list of warnings, still need to ignore it in the allocation
                 continue
 
