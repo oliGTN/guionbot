@@ -47,7 +47,7 @@ def get_dict_bot_accounts():
     query = "SELECT guild_id, bot_allyCode, bot_locked_until, priority_cache, " \
             "twChanOut_id, tbChanOut_id, tbChanEnd_id, name " \
             "FROM guild_bot_infos " \
-            "JOIN guilds ON guilds.id=guild_bot_infos.guild_id " 
+            "JOIN guilds ON guilds.id=guild_bot_infos.guild_id " \
             "WHERE bot_allyCode != '' "
     #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
