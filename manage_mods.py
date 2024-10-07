@@ -438,7 +438,6 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         for allocated_mod in a["mods"]:
             allocated_mod_id = allocated_mod["id"]
             mod_slot = allocated_mod["slot"]
-            allocated_mod_rarity = dict_player_mods[allocated_mod_id]["rarity"]
 
             ####################
             # add the new mode to mods_to_add, then add the existing to mods_to_remove
@@ -456,6 +455,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
                 # Already added to the list of warnings, still need to ignore it in the allocation
                 continue
 
+            allocated_mod_rarity = dict_player_mods[allocated_mod_id]["rarity"]
             if allocated_mod_rarity>5 and target_char_gear<12:
                 # not possible to allocate a gold mod on a char with gear<12
                 # Already added to the list of warnings, still need to ignore it in the allocation
