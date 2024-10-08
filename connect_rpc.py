@@ -2116,13 +2116,16 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     if "territoryWarStatus" in dict_guild:
         for battleStatus in dict_guild["territoryWarStatus"]:
             # the TW is considered on-going during
+            # - registration phase (round=-1, awayGuild is not defined)
             # - defense phase (round=0, awayGuild is defined)
             # - attack phase (round=1)
             # - analyse phase (round=2)
+            tw_id = battleStatus["instanceId"]
+            cur_tw = battleStatus
             if "awayGuild" in battleStatus:
-                tw_id = battleStatus["instanceId"]
-                cur_tw = battleStatus
                 tw_round = battleStatus["currentRound"]
+            else:
+                tw_round = -1
 
     goutils.log2("DBG", tw_id)
     if tw_id == None:
@@ -2155,8 +2158,12 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
 
     prev_dict_guild[guild_id] = dict_guild
 
-    opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
-    opp_guildId = battleStatus["awayGuild"]["profile"]["id"]
+    if tw_round >= 0:
+        opp_guildName = battleStatus["awayGuild"]["profile"]["name"]
+        opp_guildId = battleStatus["awayGuild"]["profile"]["id"]
+    else:
+        opp_guildName = "unknown"
+        opp_guildId = 0
 
     list_defenses = {}
     list_territories = {}
@@ -2281,7 +2288,8 @@ async def get_tw_active_players(guild_id, force_update, allyCode=None):
         return 1, et, None
 
     if not "territoryWarStatus" in dict_guild:
-        return 0, "", {"active": [], "inactive": [], "round": None}
+        return 0, "", {"active": [], "inactive": [], "round": None,
+                       "rpc": {"guild": dict_guild}}
 
     dict_members={}
     list_active_players = []
@@ -2298,7 +2306,8 @@ async def get_tw_active_players(guild_id, force_update, allyCode=None):
 
     tw_round = dict_guild["territoryWarStatus"][0]["currentRound"]
 
-    return 0, "", {"active": list_active_players, "inactive": list_inactive_players, "round": tw_round}
+    return 0, "", {"active": list_active_players, "inactive": list_inactive_players,
+                   "round": tw_round, "rpc": {"guild": dict_guild}}
 
 async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 

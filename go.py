@@ -4888,6 +4888,10 @@ async def detect_fulldef(guild_id, force_update, allyCode=None):
     return 0, "", dict_fulldef
 
 # OUT: 1 > error | 2 > missing arguments
+# Actualy manages
+# - missing registrations in round -1
+# - insufficient defenses in round 0
+# - insufficient attacks in round 1
 async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
     if allyCode==None:
         ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
@@ -4901,7 +4905,7 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
 
     if tw_round == None:
         return 1, "ERR: pas de GT en cours", None
-    elif tw_round==0:
+    elif tw_round==-1:
         # sign up phase. Only check missing members
         list_inactive_players = ret_dict["inactive"]
         return 0, "", list_inactive_players
@@ -4909,41 +4913,61 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
     if len(args) != 2:
         return 2, "need 2 values in args", None
 
-    min_char_attacks = int(args[0])
-    min_ship_attacks = int(args[1])
+    min_char_teams = int(args[0])
+    min_ship_teams = int(args[1])
 
-    # Called with use_cache_data = -1 as RPC call was just made in get_tw_active
-    ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1, allyCode=allyCode)
-    if ec != 0:
-        return ec, et, None
+    if tw_round==0:
+        # DEFENSE phase
+        dict_guild = ret_dict["rpc"]["guild"]
+        twStatus = dict_guild["territoryWarStatus"][0]
+        dict_leaderboard = {} # key=playerName, value=[gnd def, 0, ship def, 0, 0]
+        for conflictStatus in twStatus["homeGuild"]["conflictStatus"]:
+            is_ship = conflictStatus["zoneStatus"]["zoneId"] in ['tw_jakku01_phase03_conflict01',
+                                                                 'tw_jakku01_phase04_conflict01']
+            for warSquad in conflictStatus["warSquad"]:
+                playerName = warSquad["playerName"]
+                if not playerName in dict_leaderboard:
+                    dict_leaderboard[playerName] = [0, 0, 0, 0, 0]
+                if is_ship:
+                    dict_leaderboard[playerName][2] +=1
+                else:
+                    dict_leaderboard[playerName][0] +=1
 
-    ec, et, dict_fulldef = await detect_fulldef(guild_id, -1, allyCode=allyCode)
-    if ec != 0:
-        return ec, et, None
+        dict_fulldef = {}
+    else:
+        # ATTACK phase
+        # Called with use_cache_data = -1 as RPC call was just made in get_tw_active
+        ec, et, dict_leaderboard = await connect_rpc.get_tw_participation(guild_id, -1, allyCode=allyCode)
+        if ec != 0:
+            return ec, et, None
+
+        ec, et, dict_fulldef = await detect_fulldef(guild_id, -1, allyCode=allyCode)
+        if ec != 0:
+            return ec, et, None
 
     dict_players = connect_mysql.load_config_players()[0]
 
-    dict_insufficient_attacks = {}
+    dict_insufficient_teams = {}
     for player in list_active_players:
         if player in dict_leaderboard:
             scores = dict_leaderboard[player]
-            char_attacks = dict_leaderboard[player][0]
-            ship_attacks = dict_leaderboard[player][2]
+            char_teams = dict_leaderboard[player][0]
+            ship_teams = dict_leaderboard[player][2]
         else:
-            char_attacks = 0
-            ship_attacks = 0
+            char_teams = 0
+            ship_teams = 0
 
         if player in dict_fulldef:
             fulldef = dict_fulldef[player]
         else:
             fulldef = False
-        dict_insufficient_attacks[player] = [None, None, fulldef]
-        if char_attacks < min_char_attacks:
-            dict_insufficient_attacks[player][0] = char_attacks
-        if ship_attacks < min_ship_attacks:
-            dict_insufficient_attacks[player][1] = ship_attacks
+        dict_insufficient_teams[player] = [None, None, fulldef]
+        if char_teams < min_char_teams:
+            dict_insufficient_teams[player][0] = char_teams
+        if ship_teams < min_ship_teams:
+            dict_insufficient_teams[player][1] = ship_teams
 
-    return 0, "", dict_insufficient_attacks
+    return 0, "", dict_insufficient_teams
 
 
 ##############################
