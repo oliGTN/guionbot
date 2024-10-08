@@ -5477,7 +5477,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
             gk_speed = int(db_data/100000000)
 
             if gk_speed > (my_Thrawn_speed-11):
-                output_txt += "\nVitesse du General Kenobi de "+opp_player_name+" = "+str(fifth_unit_speed)
+                output_txt += "\nVitesse du General Kenobi de "+opp_player_name+" = "+str(gk_speed)+" ( >Thrawn-11)"
                 output_txt += " > "+emoji_cross
                 continue
 
@@ -5510,7 +5510,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
             fifth_unit_speed = int(db_data[0]/100000000)
             fifth_unit_U2level = db_data[1]
             if fifth_unit_speed > (my_Thrawn_speed-11):
-                output_txt += "\nVitesse du 5e perso ("+fifth_unit_id+") de "+opp_player_name+" = "+str(fifth_unit_speed)
+                output_txt += "\nVitesse du 5e perso ("+fifth_unit_id+") de "+opp_player_name+" = "+str(fifth_unit_speed)+" ( >Thrawn-11)"
                 output_txt += " > "+emoji_cross
                 continue
 
