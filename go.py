@@ -4959,8 +4959,10 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
 
         if player in dict_fulldef:
             fulldef = dict_fulldef[player]
+        elif tw_round==0:
+            fulldef = -1 #normal
         else:
-            fulldef = False
+            fulldef = 0 #unknown
         dict_insufficient_teams[player] = [None, None, fulldef]
         if char_teams < min_char_teams:
             dict_insufficient_teams[player][0] = char_teams
