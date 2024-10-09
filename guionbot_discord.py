@@ -2772,21 +2772,18 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                    help ="Affiche les logs de guilde\n" \
                                          "Exemple: go.logs\n" \
                                          "Exemple: go.logs Chaton72\n" \
-                                         "Exemple: go.logs -i chaton72 # pour ignorer la casse\n" \
                                          "Exemple: go.logs a perdu\n" \
                                          "Exemple: go.logs -graph      # avec un graphique")
     async def logs(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
 
-            args = list(args)
-            case_sensitive = True
+            case_sensitive = False
             display_graph = False
-            for arg in args:
-                if arg == "-i":
-                    case_sensitive = False
-                    args.remove(arg)
-                elif arg == "-graph":
+            args = list(args)
+            loop_args = list(args)
+            for arg in loop_args:
+                if arg == "-graph":
                     display_graph = True
                     args.remove(arg)
 
