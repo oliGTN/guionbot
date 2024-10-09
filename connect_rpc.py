@@ -2146,6 +2146,11 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                 fjson.write(json.dumps(prev_dict_guild[guild_id], indent=4))
                 fjson.close()
 
+            #Read TW events in case they were not gathered before
+            if len(dict_events)==0:
+                events_filename = "EVENTS/"+guildId+"_"+tw_id+"_events.json"
+                dict_events = json.load(open(events_filename))
+
             #TW end summary table
             err_code, tw_summary = await go.print_tw_summary(guild_id, allyCode=allyCode,
                                                              dict_guild=dict_guild,
