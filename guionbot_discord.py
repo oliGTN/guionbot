@@ -1091,6 +1091,12 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
             #Display swgoh.gg link to opponent guild
             swgohgg_opp_url = "https://swgoh.gg/g/"+opp_guild_id
 
+            #Delete potential previous tw_messages
+            query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
+            query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
+            goutils.log2("DBG", query)
+            connect_mysql.simple_execute(query)
+
             manage_events.create_event("tw_start", guild_id, tw_id)
 
         # Display TW alerts, messages...
@@ -1165,12 +1171,6 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
 
     elif ec == 2:
         #TW is over
-        #Delete potential previous tw_messages
-        query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
-        query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
-        goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
-
         return 0, "", None
 
     else:
