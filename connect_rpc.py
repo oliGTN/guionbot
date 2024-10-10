@@ -1272,9 +1272,9 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
         for battleStatus in dict_guild["territoryBattleStatus"]:
             if battleStatus["selected"]:
                 battle_id = battleStatus["instanceId"]
-                goutils.log2("DBG", "Selected TB = "+battle_id)
                 tb_ongoing=True
                 tb_type = battleStatus["definitionId"]
+                goutils.log2("DBG", "Selected TB = "+battle_id+"/"+tb_type)
                 if not tb_type in dict_tb:
                     return 1, "TB inconnue du bot", None
 
@@ -2127,7 +2127,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
             else:
                 tw_round = -1
 
-    goutils.log2("DBG", tw_id)
+    goutils.log2("DBG", tw_id+", "+tw_round)
     if tw_id == None:
         return {"tw_id": None, "rpc": {"guild": dict_guild, "events": dict_events}}
 
@@ -2309,7 +2309,16 @@ async def get_tw_active_players(guild_id, force_update, allyCode=None):
         if not member["playerName"] in list_active_players:
             list_inactive_players.append(member["playerName"])
 
-    tw_round = dict_guild["territoryWarStatus"][0]["currentRound"]
+    # the TW is considered on-going during
+    # - registration phase (round=-1, awayGuild is not defined)
+    # - defense phase (round=0, awayGuild is defined)
+    # - attack phase (round=1)
+    # - analyse phase (round=2)
+    battleStatus = dict_guild["territoryWarStatus"][0]
+    if "awayGuild" in battleStatus:
+        tw_round = battleStatus["currentRound"]
+    else:
+        tw_round = -1
 
     return 0, "", {"active": list_active_players, "inactive": list_inactive_players,
                    "round": tw_round, "rpc": {"guild": dict_guild}}

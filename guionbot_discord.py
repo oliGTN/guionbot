@@ -3256,10 +3256,11 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #Sortie sur un autre channel si donné en paramètre
-            args = list(args)
             output_channel = ctx.message.channel
             display_mentions=False
-            for arg in args:
+            args = list(args)
+            loop_args = list(args)
+            for arg in loop_args:
                 if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
                     display_mentions=True
