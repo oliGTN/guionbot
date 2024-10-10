@@ -47,7 +47,7 @@ for tb in game_data["territoryBattleDefinition"]:
     dict_tb[tb_alias] = {"id": tb_id}
 
     tb_rounds = int(tb["roundCount"])
-    dict_tb[tb_id] = {"PhaseDuration": int(6*24*3600*1000/tb_rounds),
+    dict_tb[tb_id] = {"phaseDuration": int(6*24*3600*1000/tb_rounds),
                       "zonePositions":{},
                       "maxRound":tb_rounds}
     dict_tb[tb_id]["name"] = FRE_FR[tb["nameKey"]]
