@@ -2127,7 +2127,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
             else:
                 tw_round = -1
 
-    goutils.log2("DBG", tw_id+", "+tw_round)
+    goutils.log2("DBG", tw_id+", "+str(tw_round))
     if tw_id == None:
         return {"tw_id": None, "rpc": {"guild": dict_guild, "events": dict_events}}
 
