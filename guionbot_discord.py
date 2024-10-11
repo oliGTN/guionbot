@@ -3323,7 +3323,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                         output_txt="N'oubliez pas de vous inscrire pour la GT svp : \n"
                         for p in list_inactive_players:
                             if display_mentions:
-                                p_name = dict_players_by_IG[p][1]
+                                if p in dict_players_by_IG:
+                                    p_name = dict_players_by_IG[p][1]
+                                else:
+                                    p_name= "**" + p + "**"
                             else:
                                 p_name= "**" + p + "**"
                             output_txt += p_name+"\n"
