@@ -2102,7 +2102,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
         event_types=""
 
     ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, 
-                                                allyCode=allyCodei,
+                                                allyCode=allyCode,
                                                 dict_guild=dict_guild)
     if ec!=0:
         goutils.log2("ERR", et)
