@@ -104,14 +104,16 @@ def ispriority_cache_bot_account(bot_allyCode):
 ########################################################
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
 #event_type: []/None, ["TB"], ["TW", CHAT"], ...
-async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None):
+async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
+                             dict_guild=None):
     calling_func = inspect.stack()[1][3]
     goutils.log2("DBG", "START ["+calling_func+"]get_guild_rpc_data("+guild_id+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
 
-    ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
-    if ec!=0:
-        return ec, et, None
+    if dict_guild==None:
+        ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+        if ec!=0:
+            return ec, et, None
 
     if "territoryBattleStatus" in dict_guild:
         ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update, allyCode=allyCode)
@@ -2084,7 +2086,8 @@ async def get_tw_opponent_leader(guild_id, allyCode=None):
 #   "opp_guildId": id
 # }
 ########################################
-async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=None, manage_tw_end=False):
+async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=None, 
+                        manage_tw_end=False, dict_guild=None):
     global prev_dict_guild
     global prev_mapstats
 
@@ -2098,7 +2101,9 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     else:
         event_types=""
 
-    ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, allyCode=allyCode)
+    ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, 
+                                                allyCode=allyCodei,
+                                                dict_guild=dict_guild)
     if ec!=0:
         goutils.log2("ERR", et)
         return {"tw_id": None, "rpc": None}

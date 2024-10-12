@@ -3404,10 +3404,12 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0, allyCode=connected_allyCode)
+        #ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0, allyCode=connected_allyCode)
+        ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, -1, allyCode=connected_allyCode)
         if ec != 0:
             return ec, et, None
         list_active_players = ret_dict["active"]
+        dict_guild = ret_dict["guild"]
 
     if with_mentions:
         #get list of allyCodes and player tags
@@ -3421,8 +3423,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
     dict_used_toon_player = {} # key=toon, value = [playerName1, playerName2...]
     if tw_mode:
         with_attacks = (len(exclude_attacked_leaders)>0)
-        ec, et, ret_data = await get_tw_def_attack(guild_id, -1, with_attacks=with_attacks,
-                                                   allyCode=connected_allyCode)
+        ec, et, ret_data = await get_tw_def_attack(guild_id, 0, with_attacks=with_attacks,
+                                                   allyCode=connected_allyCode,
+                                                   dict_guild=dict_guild)
         if ec != 0:
             return ec, et, None
         dict_used_toon_player = ret_data["homeDef"]
@@ -4112,12 +4115,14 @@ async def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
 
     return 0, "", image
 
-async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode=None):
+async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode=None,
+                            dict_guild=None):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     rpc_data = await connect_rpc.get_tw_status(guild_id, force_update, 
                                                with_attacks=with_attacks,
-                                               allyCode=allyCode)
+                                               allyCode=allyCode,
+                                               dict_guild=dict_guild)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
         return 1, "ERR: aucune GT en cours\n", None

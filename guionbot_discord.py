@@ -2307,6 +2307,13 @@ class TwCog(commands.GroupCog, name="gt"):
 
             guild_id = player_infos["guild_id"]
             allyCode = player_infos["allyCode"]
+
+            err_code, err_txt = await update_rpc_data(guild_id, allyCode=allyCode)
+            if err_code != 0:
+                txt = emojis.redcross+" ERR: "+err_txt
+                await interaction.edit_original_response(content=txt)
+                return
+
             err_code, err_txt, statusChan = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id, allyCode=allyCode)
             if err_code != 0:
                 txt = emojis.redcross+" ERR: "+err_txt
