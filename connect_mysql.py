@@ -757,11 +757,11 @@ async def update_player(dict_player):
                        +"SET allyCode = "+str(p_allyCode)+", "\
                        +"setId = "+str(datacron_setId)
                 if datacron_level_3 != None:
-                    query+= ", level_3 = '"+str(datacron_level_3)+"' '
+                    query+= ", level_3 = '"+str(datacron_level_3)+"' "
                 if datacron_level_6 != None:
-                    query+= ", level_6 = '"+str(datacron_level_6)+"' '
+                    query+= ", level_6 = '"+str(datacron_level_6)+"' "
                 if datacron_level_9 != None:
-                    query+= ", level_9 = '"+str(datacron_level_9)+"' '
+                    query+= ", level_9 = '"+str(datacron_level_9)+"' "
                 query+= "WHERE id = '"+datacron_id+"'"
                 goutils.log2("DBG", query)
                 cursor.execute(query)
