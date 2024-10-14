@@ -755,7 +755,7 @@ async def update_player(dict_player):
     
                 query = "UPDATE datacrons "\
                        +"SET allyCode = "+str(p_allyCode)+", "\
-                       +"setId = "+str(datacron_setId)
+                       +"setId = "+str(datacron_setId)+" "
                 if datacron_level_3 != None:
                     query+= ", level_3 = '"+str(datacron_level_3)+"' "
                 if datacron_level_6 != None:
