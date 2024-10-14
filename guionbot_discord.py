@@ -697,6 +697,8 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     #eb_phase = first_line[-2]
                     eb_phase = tbs_round[-1]
 
+                    goutils.log2("INFO", "EB Overview line: "+message_lines[0])
+
                     for line in message_lines:
                         if ":globe_with_meridians:" in line:
                             ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
@@ -865,7 +867,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                                     filter_zones=[],
                                     connected_allyCode=None,
                                     free_platoons=False,
-                                    targets_free_platoons=False):
+                                    targets_free_platoons=None):
     dict_tb = data.get("tb_definition.json")
 
     #Read actual platoons in game
@@ -1666,11 +1668,12 @@ async def on_message(message):
                                             tb_name = dict_tb[tb_defId]["shortname"]
                                             tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
                                             tb_currentRoundEndTime = int(dict_guild["territoryBattleStatus"][0]["currentRoundEndTime"])/1000
-                                            if (tb_currentRoundEndTime - time.time()) < dict_tb[tb_defId]["phaseDuration"]/2:
+                                            if (tb_currentRoundEndTime - time.time()) < dict_tb[tb_defId]["phaseDuration"]/2000:
                                                 # The allocation is sent close to the end of the round > for next round
                                                 eb_phase = tb_currentRound+1
                                             else:
                                                 eb_phase = tb_currentRound
+                                            goutils.log2("INFO", (tb_currentRound, tb_currentRoundEndTime, time.time(), eb_phase))
                                             tbs_round=tb_name+str(eb_phase)
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
 
@@ -2267,7 +2270,14 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             dict_tb = data.get("tb_definition.json")
             tb_name = dict_tb[tb_defId]["shortname"]
             tb_currentRound = dict_guild["territoryBattleStatus"][0]["currentRound"]
-            tbs_round=tb_name+str(tb_currentRound)
+            tb_currentRoundEndTime = int(dict_guild["territoryBattleStatus"][0]["currentRoundEndTime"])/1000
+            if (tb_currentRoundEndTime - time.time()) < dict_tb[tb_defId]["phaseDuration"]/2000:
+                # The allocation is sent close to the end of the round > for next round
+                eb_phase = tb_currentRound+1
+            else:
+                eb_phase = tb_currentRound
+            goutils.log2("INFO", (tb_currentRound, tb_currentRoundEndTime, time.time(), eb_phase))
+            tbs_round=tb_name+str(eb_phase)
 
             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
             if ec != 0:
@@ -3650,40 +3660,50 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="Objectif de la phase de BT en fonctions des zone:étoiles demandés\n" \
                  "go.tbo DS:1 LS:3 MS:2")
     async def tbo(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        # Manage command parameters
-        if len(args) == 0:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbo")
+            # Manage command parameters
+            if len(args) == 0:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbo")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+            else:
+                tb_phase_target = args
+                for arg in args:
+                    if " " in arg:
+                        await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbo")
+                        await ctx.message.add_reaction(emojis.redcross)
+                        return
+
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+
+            # Main call
+            err_code, ret_txt = await go.set_tb_targets(guild_id, tb_phase_target)
+            if err_code == 0:
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emojis.check)
+            else:
+                await ctx.send(ret_txt)
+                await ctx.message.add_reaction(emojis.redcross)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
-            return
-        else:
-            tb_phase_target = args
-
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send("ERR: "+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-
-        # Main call
-        err_code, ret_txt = await go.set_tb_targets(guild_id, tb_phase_target)
-        if err_code == 0:
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emojis.check)
-        else:
-            await ctx.send(ret_txt)
-            await ctx.message.add_reaction(emojis.redcross)
-
 
     ##############################################################
     # Command: spgt

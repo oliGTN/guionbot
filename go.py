@@ -5722,15 +5722,31 @@ def filter_tw_best_teams(tw_teams):
     return best_teams
 
 async def set_tb_targets(guild_id, tb_phase_target):
+    dict_tb = godata.get("tb_definition.json")
+
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", 0)
     if ec!=0:
         return 1, et
 
     dict_phase = tb_data["phase"]
+    list_open_zones = tb_data["open_zones"]
 
     list_targets=[]
     for t in tb_phase_target:
-        list_targets.append(t.split(':'))
+        t_zone = t.split(':')[0]
+        t_stars = t.split(':')[1]
+
+        if not '-' in t_zone:
+            # shortname (DS) instead of full (ROTE-DS)
+            # > get the full name by looking at the open zones
+            for oz in list_open_zones:
+                oz_shortname = dict_tb[oz]["name"]
+                if t_zone in oz_shortname:
+                    t_zone = oz_shortname
+
+        list_targets.append([t_zone, t_stars])
+
+    goutils.log2("DBG", list_targets)
     err_code, err_txt = connect_gsheets.set_tb_targets(guild_id, list_targets)
 
     return err_code, err_txt

@@ -540,7 +540,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         mod_allocations.remove(a)
 
         #Manage display to user
-        if (time.time() - prev_display_time) > 10:
+        if (time.time() - prev_display_time) > 5:
             await interaction.edit_original_response(content=emojis.hourglass+" Reste "+str(len(mod_allocations))+"/"+str(original_unit_count)+"...")
             prev_display_time = time.time()
 
