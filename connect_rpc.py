@@ -2118,6 +2118,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
         dict_members_by_id[member["playerId"]] = member["playerName"]
 
     tw_id=None
+    tw_round=None
     if "territoryWarStatus" in dict_guild:
         for battleStatus in dict_guild["territoryWarStatus"]:
             # the TW is considered on-going during
