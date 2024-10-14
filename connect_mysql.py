@@ -895,7 +895,7 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
         else:
             already_complete = False
 
-        if not already_complete:
+        if not already_complete and progress>0:
             query = "INSERT IGNORE INTO gv_history(date, allyCode, defId, source) "\
                    +"VALUES(CURDATE(), '"+txt_allyCode+"', '"+character_id+"', '"+source+"')"
             goutils.log2("DBG", query)
