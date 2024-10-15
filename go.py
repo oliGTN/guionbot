@@ -4995,7 +4995,7 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open
                 p_num = p.split(":")[1].split(",")
             else:
                 p_zone = p
-                p_num = [1, 2, 3, 4, 5, 6]
+                p_num = ["1", "2", "3", "4", "5", "6"]
 
             for terr in list_open_territories:
                 if terr["zone_name"].endswith(p_zone):
