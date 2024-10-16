@@ -697,6 +697,9 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
     if my_profile == None:
         return 1, "Le fichier n'a pas de profil pour "+txt_allyCode, {}
 
+    if not "modAssignments" in my_profile or len(my_profile["modAssignments"])==0:
+        return 1, "Le fichier de définit aucun déplacement des mods"
+
     player_mods = {}
     for mod in my_profile["mods"]:
         player_mods[mod["mod_uid"]] = mod
