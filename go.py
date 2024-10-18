@@ -3449,9 +3449,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         else:
             terr_pos = ["top", "mid", "bot"]
         list_open_terr_names = ['', '', '']
-        list_open_terr_names[0] = tb_name+str(list_open_terr[0]["phase"])+"-"+terr_pos[0]
-        list_open_terr_names[1] = tb_name+str(list_open_terr[1]["phase"])+"-"+terr_pos[1]
-        list_open_terr_names[2] = tb_name+str(list_open_terr[2]["phase"])+"-"+terr_pos[2]
+        list_open_terr_names[0] = list_open_terr[0]["zone_name"]
+        list_open_terr_names[1] = list_open_terr[1]["zone_name"]
+        list_open_terr_names[2] = list_open_terr[2]["zone_name"]
 
         for terr in dict_platoons_done:
             #LIMIT: if a terr is filled over several days, a player may have put

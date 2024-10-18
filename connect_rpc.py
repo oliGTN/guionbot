@@ -143,7 +143,7 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
         bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
     else:
         bot_allyCode = allyCode
-    goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
+    goutils.log2("DBG", "connected account for "+str(guild_id)+" is "+str(bot_allyCode))
 
     #locking bot has priority. Cannot be overriden
     if islocked_bot_account(bot_allyCode):
