@@ -558,6 +558,13 @@ async def send_alert_to_echocommanders(guild_id, message):
 ##############################################################
 async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
     dict_units = data.get("unitsList_dict.json")
+    ENG_US = data.get("ENG_US.json")
+    FRE_char_names = []
+    ENG_char_names = {}
+    for unit_id in dict_units:
+        unit = dict_units[unit_id]
+        FRE_char_names.append(unit["name"])
+        ENG_char_names[ENG_US[unit["nameKey"]]] = unit["name"]
 
     # Lecture des affectation ECHOBOT
     tb_channel = bot.get_channel(tbChannel_id)
@@ -601,12 +608,13 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         dict_platoons_allocation[
                                             platoon_name] = {}
 
-                                    #as the name may be in English, or approximative,
-                                    # best to go through the alias search
-                                    list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
-                                    char_name = dict_id_name[char_name][0][1]
-                                    #if char_name.startswith("Ini"):
-                                    #    print(char_name)
+                                    #the name may be in English
+                                    if char_name in FRE_char_names:
+                                        pass
+                                    elif char_name in ENG_char_names:
+                                        char_name = ENG_char_names[char_name]
+                                    else:
+                                        goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
 
                                     if not char_name in dict_platoons_allocation[
                                             platoon_name]:
@@ -638,9 +646,13 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         if not platoon_name in dict_platoons_allocation:
                                             dict_platoons_allocation[platoon_name] = {}
 
-                                        #as the name may be in English, or approximative, best to go through the alias search
-                                        list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
-                                        char_name = dict_id_name[char_name][0][1]
+                                        #the name may be in English
+                                        if char_name in FRE_char_names:
+                                            pass
+                                        elif char_name in ENG_char_names:
+                                            char_name = ENG_char_names[char_name]
+                                        else:
+                                            goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
 
                                         if not char_name in dict_platoons_allocation[
                                                 platoon_name]:
@@ -675,9 +687,13 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                             dict_platoons_allocation[
                                                 platoon_name] = {}
 
-                                        #as the name may be in English, or approximative, best to go through the alias search
-                                        list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
-                                        char_name = dict_id_name[char_name][0][1]
+                                        #the name may be in English
+                                        if char_name in FRE_char_names:
+                                            pass
+                                        elif char_name in ENG_char_names:
+                                            char_name = ENG_char_names[char_name]
+                                        else:
+                                            goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
 
                                         if not char_name in dict_platoons_allocation[
                                                 platoon_name]:
@@ -813,10 +829,13 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         dict_platoons_allocation[
                                             platoon_name] = {}
 
-                                    #as the name may be in English, or approximative,
-                                    # best to go through the alias search
-                                    list_char_ids, dict_id_name, twt = goutils.get_characters_from_alias([char_name])
-                                    char_name = dict_id_name[char_name][0][1]
+                                    #the name may be in English
+                                    if char_name in FRE_char_names:
+                                        pass
+                                    elif char_name in ENG_char_names:
+                                        char_name = ENG_char_names[char_name]
+                                    else:
+                                        goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
 
                                     if not char_name in dict_platoons_allocation[platoon_name]:
                                         dict_platoons_allocation[platoon_name][char_name] = []
