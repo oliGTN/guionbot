@@ -5563,12 +5563,15 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
             if len(dtc["affix"]) < 6:
                 continue
             abilityId = dtc["affix"][5]["abilityId"]
+            ability_short = "_".join(abilityId.split("_")[2:])
+            print(abilityId, ability_short)
             target_rule = dtc["affix"][5]["targetRule"][16:]
-            lvl6 = abilityId[17:]+"("+target_rule+")"
+            lvl6 = ability_short+"("+target_rule+")"
             if len(dtc["affix"]) >= 9:
                 abilityId = dtc["affix"][8]["abilityId"]
+                ability_short = "_".join(abilityId.split("_")[2:])
                 target_rule = dtc["affix"][8]["targetRule"][16:]
-                lvl9 = abilityId[19:]+"("+target_rule+")"
+                lvl9 = ability_short+"("+target_rule+")"
                 #lvl9 = dtc["affix"][8]["targetRule"][16:]
             key_dtc = "LVL6="+lvl6+" / LVL9="+str(lvl9)
 
