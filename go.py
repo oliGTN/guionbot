@@ -3409,7 +3409,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         if ec != 0:
             return ec, et, None
         list_active_players = ret_dict["active"]
-        dict_guild = ret_dict["guild"]
+        dict_guild = ret_dict["rpc"]["guild"]
 
     if with_mentions:
         #get list of allyCodes and player tags
