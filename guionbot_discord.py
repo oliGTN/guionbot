@@ -4358,7 +4358,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         #Add discord id in DB
         query = "INSERT INTO player_discord (allyCode, discord_id)\n"
-        query+= "VALUES("+ac+", "+discord_id_txt+") \n"
+        query+= "VALUES("+allyCode+", "+discord_id_txt+") \n"
         query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
