@@ -301,6 +301,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
 
+    await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...)
+
     # Get player data
     e, t, dict_player = await go.load_player(allyCode, 1, False)
     if e != 0:
@@ -320,6 +322,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
+    await interaction.edit_original_response(content=emojis.hourglass+" Récupération de la liste des mods...)
     dict_player_mods = {}
     for unit_id in dict_player["rosterUnit"]:
         if not "equippedStatMod" in dict_player["rosterUnit"][unit_id]:
