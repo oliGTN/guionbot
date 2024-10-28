@@ -417,8 +417,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
             if a_no_move == len(a["mods"]):
                 count_no_move += 1
-
-            if a_delta_inventory < min_delta_inventory:
+            elif a_delta_inventory < min_delta_inventory:
                 min_delta_inventory = a_delta_inventory
                 best_a = a
 
