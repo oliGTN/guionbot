@@ -455,6 +455,8 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 while len(list_other_guilds_loading_status) > 0:
                     goutils.log2('INFO', "Guild "+guild_name+" loading "\
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
+                    if ctx_interaction!=None:
+                        await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "En file d'attente derrière "+str(list_other_guilds_loading_status)+"..." , intermediate=True)
                     await asyncio.sleep(30)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
 
@@ -472,6 +474,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                     goutils.log2("DBG", "after load_player...")
                     parallel_work.set_guild_loading_status(guild_name, str(i_player)+"/"+str(total_players))
 
+                    goutils.log2("DBG", (ctx_interaction, prev_display_time,time.time()))
                     #update status to user
                     if ctx_interaction!=None:
                         if (time.time() - prev_display_time) > 10:
@@ -591,6 +594,8 @@ async def load_shard(shard_id, shard_type, cmd_request):
             while guild_loading_status != None:
                 goutils.log2('INFO', "Guild "+guildName+" already loading ("\
                         + guild_loading_status + "), waiting 30 seconds...")
+                if ctx_interaction!=None:
+                    await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "Chargement de la guilde déjà en cours via une autre commande..." , intermediate=True)
                 await asyncio.sleep(30)
                 guild_loading_status = parallel_work.get_guild_loading_status(guildName)
         else:
