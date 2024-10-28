@@ -369,12 +369,14 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         #find best allocation (the one with most mods currently not allocated)
         min_delta_inventory = 7 # worst case is 6 added to the inventory
         best_a = None
+        count_no_move = 0
         for a in mod_allocations:
             target_char_defId = a["unit_id"]
             target_char_id = dict_player["rosterUnit"][target_char_defId]["id"]
             target_char_gear = dict_player["rosterUnit"][target_char_defId]["currentTier"]
 
             a_delta_inventory = 0
+            a_no_move = 0
             for allocated_mod in a["mods"]:
                 allocated_mod_id = allocated_mod["id"]
                 mod_slot = allocated_mod["slot"]
@@ -397,7 +399,11 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
                     forbidden_mods[target_char_defId] = list(set(forbidden_mods[target_char_defId]+[allocated_mod_id]))
                     continue
 
-                if dict_player_mods[allocated_mod_id]["unit_id"] == None:
+                if dict_player_mods[allocated_mod_id]["unit_id"] == target_char_defId:
+                    # The mod is already on the character
+                    a_no_move += 1
+                    continue
+                elif dict_player_mods[allocated_mod_id]["unit_id"] == None:
                     # The mod comes from the inventory, this is good
                     a_delta_inventory -= 1
 
@@ -405,6 +411,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
                     # there is a mod that is replaced. This mod goes back to the inventory,
                     # this is not good
                     a_delta_inventory += 1
+
+            if a_no_move == len(a["mods"]):
+                count_no_move += 1
 
             if a_delta_inventory < min_delta_inventory:
                 min_delta_inventory = a_delta_inventory
@@ -541,7 +550,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
         #Manage display to user
         if (time.time() - prev_display_time) > 5:
-            await interaction.edit_original_response(content=emojis.hourglass+" Reste "+str(len(mod_allocations))+"/"+str(original_unit_count)+"...")
+            await interaction.edit_original_response(content=emojis.hourglass+" Reste "+str(len(mod_allocations)-count_no_move)+"/"+str(original_unit_count)+"...")
             prev_display_time = time.time()
 
     goutils.log2("INFO", "Max inventory: "+str(max_inventory))
