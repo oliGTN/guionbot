@@ -901,7 +901,7 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
         cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=maxStrikeScore))
 
         #zone strike stats
-        for line in [19, 20, 21, 22, 23]:
+        for line in [19, 20, 21, 22, 23, 24]:
             cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value=""))
             cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=""))
 
@@ -916,8 +916,8 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
             i_strike+=1
             line+=1
         remaining_zone_strikes = (i_strike-1)*dict_phase["TotalPlayers"] - total_strikes
-        cells.append(gspread.cell.Cell(row=27, col=5+2*i_zone, value=remaining_zone_strikes))
-        cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=zone["maxStrikeScore"]))
+        cells.append(gspread.cell.Cell(row=28, col=5+2*i_zone, value=remaining_zone_strikes))
+        cells.append(gspread.cell.Cell(row=28, col=6+2*i_zone, value=zone["maxStrikeScore"]))
 
         i_covert = 1
         total_coverts=0
@@ -930,19 +930,19 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
             line+=1
 
         #strikes success
-        cells.append(gspread.cell.Cell(row=32, col=1+4*i_zone, value=zone["strikeScore"]))
+        cells.append(gspread.cell.Cell(row=33, col=1+4*i_zone, value=zone["strikeScore"]))
         total_strikes_zone = sum(zone["strikeFights"].values())
         if total_strikes_zone == 0:
-            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=0))
+            cells.append(gspread.cell.Cell(row=33, col=2+4*i_zone, value=0))
         else:
-            cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=zone["strikeScore"]/total_strikes_zone))
+            cells.append(gspread.cell.Cell(row=33, col=2+4*i_zone, value=zone["strikeScore"]/total_strikes_zone))
         
         # Prepare next loop
         i_zone+=1
 
-    # Erasing useless columns (when a phase has less than 3 zones)
+    # Erasing useless columns (when a phase has less than 4 zones)
     i_next_zone = i_zone
-    for i_zone in range(i_next_zone, 3):
+    for i_zone in range(i_next_zone, 4):
         cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=""))
         cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value=""))
         cells.append(gspread.cell.Cell(row=6, col=1+4*i_zone, value=""))
@@ -957,36 +957,36 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
         cells.append(gspread.cell.Cell(row=17, col=2+4*i_zone, value=0))
 
         #zone strike stats
-        for line in [19, 20, 21, 22, 23]:
+        for line in [19, 20, 21, 22, 23, 24]:
             cells.append(gspread.cell.Cell(row=line, col=1+4*i_zone, value=""))
             cells.append(gspread.cell.Cell(row=line, col=2+4*i_zone, value=""))
 
-        cells.append(gspread.cell.Cell(row=27, col=5+2*i_zone, value=""))
-        cells.append(gspread.cell.Cell(row=27, col=6+2*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=28, col=5+2*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=28, col=6+2*i_zone, value=""))
 
         #strikes success
-        cells.append(gspread.cell.Cell(row=32, col=1+4*i_zone, value=""))
-        cells.append(gspread.cell.Cell(row=32, col=2+4*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=33, col=1+4*i_zone, value=""))
+        cells.append(gspread.cell.Cell(row=33, col=2+4*i_zone, value=""))
 
     #global stats
     #Remaining Deployments
     if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
-        cells.append(gspread.cell.Cell(row=26, col=1, value="Mix"))
-        cells.append(gspread.cell.Cell(row=26, col=2, value=""))
-        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["availableMixDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=1, value="Mix"))
         cells.append(gspread.cell.Cell(row=27, col=2, value=""))
+        cells.append(gspread.cell.Cell(row=28, col=1, value=dict_phase["availableMixDeploy"]))
+        cells.append(gspread.cell.Cell(row=28, col=2, value=""))
     else:
-        cells.append(gspread.cell.Cell(row=26, col=1, value="Fleet"))
-        cells.append(gspread.cell.Cell(row=26, col=2, value="Squad"))
-        cells.append(gspread.cell.Cell(row=27, col=1, value=dict_phase["availableShipDeploy"]))
-        cells.append(gspread.cell.Cell(row=27, col=2, value=dict_phase["availableCharDeploy"]))
+        cells.append(gspread.cell.Cell(row=27, col=1, value="Fleet"))
+        cells.append(gspread.cell.Cell(row=27, col=2, value="Squad"))
+        cells.append(gspread.cell.Cell(row=28, col=1, value=dict_phase["availableShipDeploy"]))
+        cells.append(gspread.cell.Cell(row=28, col=2, value=dict_phase["availableCharDeploy"]))
 
     ######################
     #players
     ######################
 
     #title line
-    player_row1 = 35
+    player_row1 = 36
     player_col1 = 1
     if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
         cells.append(gspread.cell.Cell(row=player_row1, col=player_col1+3, value="Mix deployment"))
@@ -1056,11 +1056,11 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
 
         # Erasing useless strike columns (when a phase has less than 3 zones)
         i_next_zone = i_zone
-        for i_zone in range(i_next_zone, 4):
+        for i_zone in range(i_next_zone, 5):
             cells.append(gspread.cell.Cell(row=line, col=player_col1+8+i_zone, value=""))
 
         # Total strikes
-        cells.append(gspread.cell.Cell(row=line, col=player_col1+12, value=str(player_strikes)+"/"+str(total_strikes)))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+13, value=str(player_strikes)+"/"+str(total_strikes)))
 
         #coverts / special missions
         total_coverts = 0
@@ -1084,7 +1084,7 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
             covert_txt = covert_txt.replace("?", "n")
         #Write the attemps, then the details by attempt
         covert_txt = str(player_coverts)+"/"+str(total_coverts)+" ("+covert_txt.strip()+")"
-        cells.append(gspread.cell.Cell(row=line, col=player_col1+13, value=covert_txt))
+        cells.append(gspread.cell.Cell(row=line, col=player_col1+14, value=covert_txt))
 
         # Prepare next loop
         line += 1
