@@ -1561,6 +1561,9 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
             if "playerStat" in mapstat:
                 for playerstat in mapstat["playerStat"]:
                     member_id = playerstat["memberId"]
+                    if not member_id in dict_members_by_id:
+                        #player has left the guild
+                        continue
                     playerName = dict_members_by_id[member_id]["playerName"]
                     if not playerName in dict_tb_players:
                         #should not happen unless new player and until API resynchronizes
