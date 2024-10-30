@@ -599,7 +599,10 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                 player_name = dict_player['name']
                                 #print(player_name)
                                 for character in dict_player['value'].split('\n'):
-                                    char_name = character[1:-1]
+                                    if "HELP!" in character:
+                                        char_name = character[9:-1]
+                                    else:
+                                        char_name = character[1:-1]
                                     if char_name[0:4]=='*` *':
                                         char_name=char_name[4:]
                                     if "* `" in char_name:
@@ -822,7 +825,10 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                 platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
 
                                 for character in dict_platoon['value'].split('\n'):
-                                    char_name = character[1:-1]
+                                    if "HELP!" in character:
+                                        char_name = character[9:-1]
+                                    else:
+                                        char_name = character[1:-1]
                                     if char_name[0:4]=='*` *':
                                         char_name=char_name[4:]
                                     if not platoon_name in dict_platoons_allocation:
