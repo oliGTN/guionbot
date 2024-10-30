@@ -1740,6 +1740,7 @@ async def on_command_error(ctx, error):
         await ctx.message.add_reaction(emojis.redcross)
         goutils.log2("ERR", error)
         goutils.log2("ERR", traceback.format_exception(error))
+        goutils.log2("ERR", traceback.format_exc())
 
         # discord DM to admins
         await send_alert_to_admins(ctx.guild, "ERR: erreur inconnue "+str(error))
@@ -5265,58 +5266,52 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Affiche le StatQ d'un Joueur\n\n"\
                       "Exemple: go.statqj me")
     async def statqj(self, ctx, allyCode):
-        try:
-            await ctx.message.add_reaction(emojis.thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
-            allyCode = await manage_me(ctx, allyCode, False)
+        allyCode = await manage_me(ctx, allyCode, False)
 
-            if allyCode[0:3] == 'ERR':
-                await ctx.send(allyCode)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emojis.redcross)
+        else:
+            e, t, player_now = await go.load_player( allyCode, 1, False)
+            if e!=0:
+                await ctx.send(t)
                 await ctx.message.add_reaction(emojis.redcross)
+                return
+            
+            ec, et, statq, list_statq = await connect_mysql.get_player_statq(allyCode)
+            if ec!=0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get real unit names
+            dict_units = data.get("unitsList_dict.json")
+            list_statq_with_names = sorted([[dict_units[x[0]]["name"]]+list(x[1:]) for x in list_statq])
+
+            output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif (progrès)", "Score"]] + list_statq_with_names
+            t = Texttable()
+            t.add_rows(output_table)
+            t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
+
+            playerName = player_now["name"]
+            if "guildName" in player_now:
+                guildName = player_now["guildName"]
             else:
-                e, t, player_now = await go.load_player( allyCode, 1, False)
-                if e!=0:
-                    await ctx.send(t)
-                    await ctx.message.add_reaction(emojis.redcross)
-                    return
-                
-                ec, et, statq, list_statq = await connect_mysql.get_player_statq(allyCode)
-                if ec!=0:
-                    await ctx.send(et)
-                    await ctx.message.add_reaction(emojis.redcross)
-                    return
+                guildName = "*pas de guilde*"
 
-                #get real unit names
-                dict_units = data.get("unitsList_dict.json")
-                list_statq_with_names = sorted([[dict_units[x[0]]["name"]]+list(x[1:]) for x in list_statq])
-
-                output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif (progrès)", "Score"]] + list_statq_with_names
-                t = Texttable()
-                t.add_rows(output_table)
-                t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
-
-                playerName = player_now["name"]
-                if "guildName" in player_now:
-                    guildName = player_now["guildName"]
+            first_msg=True
+            for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
+                if first_msg:
+                    await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+'`' + txt + '`')
+                    first_msg=False
                 else:
-                    guildName = "*pas de guilde*"
+                    await ctx.send('`' + txt + '`')
 
-                first_msg=True
-                for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
-                    if first_msg:
-                        await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+'`' + txt + '`')
-                        first_msg=False
-                    else:
-                        await ctx.send('`' + txt + '`')
+            await ctx.send("StatQ = "+str(round(statq, 2)))
 
-                await ctx.send("StatQ = "+str(round(statq, 2)))
-
-                await ctx.message.add_reaction(emojis.check)
-
-        except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
+            await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: statqg
@@ -5329,32 +5324,26 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  help="Affiche le StatQ de la guilde\n\n"\
                       "Exemple: go.statqg me")
     async def statqg(self, ctx, allyCode):
-        try:
-            await ctx.message.add_reaction(emojis.thumb)
+        await ctx.message.add_reaction(emojis.thumb)
 
-            allyCode = await manage_me(ctx, allyCode, True)
-            if allyCode[0:3] == 'ERR':
-                await ctx.send(allyCode)
-                await ctx.message.add_reaction(emojis.redcross)
-                return
+        allyCode = await manage_me(ctx, allyCode, True)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
 
-            query = "SELECT name, statq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY statq DESC, name"
-            goutils.log2("DBG", query)
-            output = connect_mysql.text_query(query)
+        query = "SELECT name, statq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY statq DESC, name"
+        goutils.log2("DBG", query)
+        output = connect_mysql.text_query(query)
 
-            output_txt=''
-            for row in output:
-                output_txt+=str(row)+'\n'
-            goutils.log2('INFO', output_txt)
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await ctx.send('`' + txt + '`')
+        output_txt=''
+        for row in output:
+            output_txt+=str(row)+'\n'
+        goutils.log2('INFO', output_txt)
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            await ctx.send('`' + txt + '`')
 
-            await ctx.message.add_reaction(emojis.check)
-
-        except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
+        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: ppj

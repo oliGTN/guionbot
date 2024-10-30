@@ -5023,10 +5023,14 @@ def get_missing_platoons(dict_platoons_done, dict_platoons_allocation, list_open
         zone_name = platoon_name[:-2]
 
         platoon_locked = False
+        open_platoon = False
         for terr in list_open_territories:
             if terr["zone_name"] == zone_name:
+                open_platoon = True
                 if "cmdState" in terr:
                     platoon_locked = (terr["cmdState"] == "IGNORED")
+        if not open_platoon:
+            continue
 
         for perso in dict_platoons_done[platoon_name]:
             if '' in dict_platoons_done[platoon_name][perso]:
