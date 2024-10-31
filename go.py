@@ -5265,30 +5265,30 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
         #1st phase of TB, remove all previous configs for this guild
         query = "DELETE FROM platoon_allocations " \
                 "WHERE config_id IN (SELECT id FROM platoon_config WHERE guild_id='"+guild_id+"')"
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         connect_mysql.simple_execute(query)
 
         query = "DELETE FROM platoon_config " \
                 "WHERE guild_id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         connect_mysql.simple_execute(query)
     else:
         #Not 1st phase of TB, remove all previous configs for this guild and phase
         query = "DELETE FROM platoon_allocations " \
                 "WHERE config_id IN (SELECT id FROM platoon_config WHERE guild_id='"+guild_id+"' AND phases='"+phase+"')"
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         connect_mysql.simple_execute(query)
 
         query = "DELETE FROM platoon_config " \
                 "WHERE guild_id='"+guild_id+"'" \
                 "AND phases='"+phase+"'"
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         connect_mysql.simple_execute(query)
 
     #Create config
     query = "INSERT INTO platoon_config(guild_id, tb_name, phases) \n"
     query+= "VALUES('"+guild_id+"', '"+tb_name+"', '"+phase+"')"
-    goutils.log2("DBG", query)
+    goutils.log2("INFO", query)
     connect_mysql.simple_execute(query)
 
     #Get the newly created conf ID
@@ -5296,7 +5296,7 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
     query+= "WHERE guild_id='"+guild_id+"' \n"
     query+= "AND tb_name='"+tb_name+"'\n"
     query+= "AND phases='"+phase+"'"
-    goutils.log2("DBG", query)
+    goutils.log2("INFO", query)
     conf_id = connect_mysql.get_value(query)
 
     #Prepare the dict to transform names into unit ID
@@ -5309,7 +5309,7 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
 
     #Prepare the dict to transform player names into allyCodes
     query = "SELECT name, allyCode FROM players WHERE guildId='"+guild_id+"'"
-    goutils.log2("DBG", query)
+    goutils.log2("INFO", query)
     db_data = connect_mysql.get_table(query)
     dict_players = {}
     for line in db_data:
@@ -5352,7 +5352,7 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
                     ac = "999999999"
                 query = "INSERT INTO platoon_allocations(config_id, allyCode, unit_id, zone_id, platoon_id) \n"
                 query+= "VALUES("+str(conf_id)+", "+ac+", '"+unit_id+"', '"+zone_id+"', '"+platoon_id+"')"
-                goutils.log2("DBG", query)
+                goutils.log2("INFO", query)
                 connect_mysql.simple_execute(query)
 
     return 0, ""
