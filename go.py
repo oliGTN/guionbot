@@ -5528,7 +5528,8 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                 output_txt += " > "+emoji_cross
                 continue
 
-            if fifth_unit_id == "MACEWINDU" and fifth_unit_U2level!=None and fifth_unit_U2level>='TW':
+            windu_u2_omi_tier = dict_capas["MACEWINDU"]["U2"]["omicronTier"]
+            if fifth_unit_id == "MACEWINDU" and fifth_unit_U2level!=None and fifth_unit_U2level>=windu_u2_omi_tier:
                 output_txt += "\n"+opp_player_name+" > "+emoji_frowning+" attention omicron Windu !"
                 continue
 
