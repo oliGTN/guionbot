@@ -225,6 +225,10 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
                         await command_error(ctx_interaction, resp_msg, "Syntax incorrecte pour le gear/relic dans "+alias)
                         return
 
+            else: #2 ":" or more
+                await command_error(ctx_interaction, resp_msg, "Syntax incorrecte pour le gear/relic dans "+alias)
+                return
+
             list_unit_names.append(target_alias)
 
             dict_targets[alias] = {"alias": target_alias,
