@@ -6235,7 +6235,7 @@ async def main():
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
         await bot.add_cog(Loop5minutes(bot))
-        await bot.add_cog(Loop10minutes(bot))
+        #await bot.add_cog(Loop10minutes(bot))
         await bot.add_cog(Loop60minutes(bot))
 
     #Lancement du bot
