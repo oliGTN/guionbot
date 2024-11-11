@@ -468,7 +468,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 prev_display_time = 0
                 for playerId in list_playerId_to_update:
                     i_player += 1
-                    goutils.log2("INFO", "player #"+str(i_player))
+                    goutils.log2("INFO", guild_name+" player #"+str(i_player))
                     
                     e, t, d = await load_player(str(playerId), 0, False)
                     goutils.log2("DBG", "after load_player...")
