@@ -246,7 +246,9 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 
     # RPC REQUEST for TBmapstats
     url = "http://localhost:8000/TBmapstats"
-    params = {"allyCode": bot_allyCode, "use_cache_data":use_cache_data}
+    params = {"allyCode": bot_allyCode, 
+              "guild_id": guild_id,
+              "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -328,6 +330,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         # RPC REQUEST for TB events
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
+                  "guild_id": guild_id,
                   "eventType": "TB",
                   "list_channels": list_channels, 
                   "use_cache_data":use_cache_data}
@@ -373,6 +376,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
                   "eventType": "TW",
+                  "guild_id": guild_id,
                   "list_channels": list_channels, 
                   "use_cache_data":use_cache_data}
         req_data = json.dumps(params)
@@ -411,6 +415,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         url = "http://localhost:8000/events"
         params = {"allyCode": bot_allyCode, 
                   "eventType": "CHAT",
+                  "guild_id": guild_id,
                   "list_channels": list_channels, 
                   "use_cache_data":use_cache_data}
         req_data = json.dumps(params)
