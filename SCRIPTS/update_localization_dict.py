@@ -8,6 +8,8 @@ f = open(key_map)
 for line in f.readlines():
     if line[0] == "#":
         continue
+    if line.strip() == "":
+        continue
     tab_line = line.split('|')
     key = tab_line[0].strip()
     value = tab_line[1].strip()[2:]
@@ -21,6 +23,8 @@ for filename in os.listdir(localization_path):
         f = open(localization_path+"/"+filename, 'r')
         for line in f.readlines():
             if line[0] == "#":
+                continue
+            if line.strip() == "":
                 continue
             tab_line = line.split('|')
             key = tab_line[0].strip()
