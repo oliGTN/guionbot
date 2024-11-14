@@ -200,7 +200,12 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "POST guild status="+str(resp.status))
                 if resp.status==200:
-                    guild_json = await(resp.json())
+                    if use_cache_data:
+                        cache_json = await(resp.json())
+                        cache_ts = cache_json["timestamp"]
+                        guild_json = cache_json["data"]
+                    else:
+                        guild_json = await(resp.json())
                 else:
                     return 1, "Cannot get guild data from RPC", None
 
@@ -255,7 +260,12 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "POST TBmapstats status="+str(resp.status))
                 if resp.status==200:
-                    TBmapstats_json = await(resp.json())
+                    if use_cache_data:
+                        cache_json = await(resp.json())
+                        cache_ts = cache_json["timestamp"]
+                        TBmapstats_json = cache_json["data"]
+                    else:
+                        TBmapstats_json = await(resp.json())
                 elif resp.status==201:
                     TBmapstats_json = {}
                 elif resp.status==204:
@@ -340,7 +350,12 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                 async with session.post(url, data=req_data) as resp:
                     goutils.log2("DBG", "POST TB events status="+str(resp.status))
                     if resp.status==200:
-                        resp_events = await(resp.json())
+                        if use_cache_data:
+                            cache_json = await(resp.json())
+                            cache_ts = cache_json["timestamp"]
+                            resp_events = cache_json["data"]
+                        else:
+                            resp_events = await(resp.json())
                     else:
                         return 1, "Cannot get events data from RPC", None
 
@@ -385,7 +400,12 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                 async with session.post(url, data=req_data) as resp:
                     goutils.log2("DBG", "POST TW events status="+str(resp.status))
                     if resp.status==200:
-                        resp_events = await(resp.json())
+                        if use_cache_data:
+                            cache_json = await(resp.json())
+                            cache_ts = cache_json["timestamp"]
+                            resp_events = cache_json["data"]
+                        else:
+                            resp_events = await(resp.json())
                     else:
                         return 1, "Cannot get events data from RPC", None
 
@@ -424,7 +444,12 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                 async with session.post(url, data=req_data) as resp:
                     goutils.log2("DBG", "POST CHAT events status="+str(resp.status))
                     if resp.status==200:
-                        resp_events = await(resp.json())
+                        if use_cache_data:
+                            cache_json = await(resp.json())
+                            cache_ts = cache_json["timestamp"]
+                            resp_events = cache_json["data"]
+                        else:
+                            resp_events = await(resp.json())
                     else:
                         return 1, "Cannot get events data from RPC", None
 
@@ -686,7 +711,12 @@ async def get_player_data(txt_allyCode, use_cache_data):
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "player status="+str(resp.status))
                 if resp.status==200:
-                    dict_player = await(resp.json())
+                    if use_cache_data:
+                        cache_json = await(resp.json())
+                        cache_ts = cache_json["timestamp"]
+                        dict_player = cache_json["data"]
+                    else:
+                        dict_player = await(resp.json())
                 else:
                     return 1, "Cannot get player data from RPC", None
 
