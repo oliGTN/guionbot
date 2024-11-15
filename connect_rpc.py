@@ -2543,7 +2543,7 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
 async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     # get player roster
     # use CACHE data as unit IDs do not change often
-    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, True)
+    err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
         return 1, "Erreur en se connectant au compte "+txt_allyCode
