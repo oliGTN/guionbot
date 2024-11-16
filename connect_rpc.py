@@ -1278,7 +1278,7 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
     return 0, "", {"lines_player": lines_player, "round_endTime": dict_phase["round_endTime"], "total": total}
 
 ##############################################################
-async def get_tb_status(guild_id, targets_zone_stars, force_update,
+async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         compute_estimated_fights=False,
                         compute_estimated_platoons=False,
                         targets_platoons=None, allyCode=None,
@@ -1442,9 +1442,14 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
         if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
             list_open_zones.append(zone_name)
         elif zone["zoneStatus"]["zoneState"] == "ZONECOMPLETE":
-            for star_score in dict_tb[zone_name]["scores"]:
-                if zone_score >= star_score:
+            if zone_name.endswith("bonus"):
+                # bonus zones have only 1 star, for the 3rd step
+                if zone_score >= dict_tb[zone_name]["scores"][2]:
                     zone_stars += 1
+            else:
+                for star_score in dict_tb[zone_name]["scores"]:
+                    if zone_score >= star_score:
+                        zone_stars += 1
         completed_stars += zone_stars
         dict_zones[zone_name] = {"score": zone_score, "completed_stars": zone_stars,
                                  "remainingPlatoonScore": 0}
@@ -1909,7 +1914,7 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
     # 3- fill with deployment points
     tb_type = dict_phase["type"]
 
-    if targets_zone_stars == "":
+    if list_target_zone_steps == "":
         #original warstats logic: closest star, then next closest star...
         #split the zones by type
         dict_zones_by_type = {"ships": [], "chars": [], "mix": []}
@@ -1951,12 +1956,12 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
                     dict_remaining_deploy[zone_type]["all"] -= deploy_value
 
     else:
-        targets_zone_stars = targets_zone_stars.strip()
-        while '  ' in targets_zone_stars:
-            targets_zone_stars = targets_zone_stars.replace('  ', ' ')
+        list_target_zone_steps = list_target_zone_steps.strip()
+        while '  ' in list_target_zone_steps:
+            list_target_zone_steps = list_target_zone_steps.replace('  ', ' ')
 
         already_computed_zones = []
-        for target_zone_stars in targets_zone_stars.split(" "):
+        for target_zone_stars in list_target_zone_steps.split(" "):
             if not ":" in target_zone_stars:
                 return 1, target_zone_stars + " --> chaque objectif de zone doit être de la forme <zone>:<étoiles> (ex: top:3)", None
 
@@ -2021,17 +2026,22 @@ async def get_tb_status(guild_id, targets_zone_stars, force_update,
 
     #Compute estimated stars per zone
     for zone_name in list_open_zones:
-        cur_score = dict_zones[zone_name]["score"]
+        estimated_score = dict_zones[zone_name]["score"]
         if compute_estimated_fights:
-            cur_score += dict_zones[zone_name]["estimatedStrikeScore"]
+            estimated_score += dict_zones[zone_name]["estimatedStrikeScore"]
         if compute_estimated_platoons:
-            cur_score += dict_zones[zone_name]["remainingPlatoonScore"]
-        cur_score += dict_zones[zone_name]["deployment"]
+            estimated_score += dict_zones[zone_name]["remainingPlatoonScore"]
+        estimated_score += dict_zones[zone_name]["deployment"]
 
         star_for_score=0
-        for star_score in dict_tb[zone_name]["scores"]:
-            if cur_score >= star_score:
+        if zone_name.endswith("bonus"):
+            # bonus zones have only 1 star, for the 3rd step
+            if estimated_score >= dict_tb[zone_name]["scores"][2]:
                 star_for_score += 1
+        else:
+            for star_score in dict_tb[zone_name]["scores"]:
+                if estimated_score >= star_score:
+                    star_for_score += 1
         dict_zones[zone_name]["estimatedStars"] = star_for_score
 
     return 0, "", {"phase": dict_phase, 

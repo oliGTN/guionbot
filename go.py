@@ -4312,7 +4312,11 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
         # Stars
         star_for_score = dict_zones[zone_name]["estimatedStars"]
         round_estimated_stars += star_for_score
-        ret_print_tb_status+="\u27a1 Zone result: "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
+        if zone_name.endswith("bonus"):
+            # Only 1 star possible in bonus zones
+            ret_print_tb_status+="\u27a1 Zone result: "+'\u2b50'*star_for_score+'\u2729'*(1-star_for_score)+"\n"
+        else:
+            ret_print_tb_status+="\u27a1 Zone result: "+'\u2b50'*star_for_score+'\u2729'*(3-star_for_score)+"\n"
 
         #create image
         img = draw_tb_previsions(dict_tb[zone_name]["name"], dict_tb[zone_name]["scores"],
@@ -4369,6 +4373,7 @@ def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, p
 
     return end_score
 
+# zone_name = ROTE4-DS
 def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_platoons, estimated_strikes, deployments, max_strikes):
     goutils.log2("DBG", "draw_tb_previsions("+zone_name+", "+str(zone_scores)+", "+str(current_score)+", "+str(estimated_strikes)+", "+str(deployments)+", "+str(max_strikes)+")")
     zone_img = Image.new('RGB', (500, 240), (255, 255, 255))
@@ -4385,13 +4390,21 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_platoons
     #Draw stars
     active_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star.png")
     inactive_star_image = Image.open("IMAGES/PORTRAIT_FRAME/star-inactive.png")
+    active_bonus_image = Image.open("IMAGES/PORTRAIT_FRAME/bonus.png")
+    inactive_bonus_image = Image.open("IMAGES/PORTRAIT_FRAME/bonus-inactive.png")
     drawn_stars = 0
     for score_star in zone_scores:
         x_star = 200 + drawn_stars*50
         if current_score >= score_star:
-            star_image = active_star_image
+            if zone_name.endswith("b"):
+                star_image = active_bonus_image
+            else:
+                star_image = active_star_image
         else:
-            star_image = inactive_star_image
+            if zone_name.endswith("b"):
+                star_image = inactive_bonus_image
+            else:
+                star_image = inactive_star_image
 
         zone_img.paste(star_image, (x_star, 50), star_image)
         drawn_stars += 1
