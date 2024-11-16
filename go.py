@@ -4396,12 +4396,12 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_platoons
     for score_star in zone_scores:
         x_star = 200 + drawn_stars*50
         if current_score >= score_star:
-            if zone_name.endswith("b"):
+            if zone_name.endswith("b") and score_star!=zones_scores[2]:
                 star_image = active_bonus_image
             else:
                 star_image = active_star_image
         else:
-            if zone_name.endswith("b"):
+            if zone_name.endswith("b") and score_star!=zones_scores[2]:
                 star_image = inactive_bonus_image
             else:
                 star_image = inactive_star_image
