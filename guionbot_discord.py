@@ -1652,6 +1652,11 @@ async def on_message(message):
                             connect_mysql.update_gv_history("", player_name, character_name, False,
                                                             progress, unlocked, "j.bot")
 
+        #Read messages from WookieBoot
+        if message.author.id == config.WOOKIEBOT_DISCORD_ID:
+            goutils.log2("DBG", "Detecting WookieBot message...")
+            await store_wookiebot_raid_estimates(message)
+
         #Read messages from Echobot
         if message.author.id == config.EB_DISCORD_ID:
             goutils.log2("INFO", "Detect message from Echobot "+str(message.id))
@@ -1709,57 +1714,6 @@ async def on_message(message):
         if not bot_test_mode:
             await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
-##############################################################
-# Event: on_error_command
-# Parameters: error (error raised by the command)
-#             ctx (context of the command)
-# Purpose: inform that a command is unknown
-# Output: error message to the user
-##############################################################
-@bot.event
-async def on_command_error(ctx, error):
-    await ctx.message.add_reaction(emojis.thumb)
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send("ERR: commande inconnue")
-        await ctx.message.add_reaction(emojis.redcross)
-    elif isinstance(error, commands.errors.MissingRequiredArgument):
-        cmd_name = ctx.command.name
-        await ctx.send("ERR: argument manquant. Consultez l'aide avec go.help "+cmd_name)
-        await ctx.message.add_reaction(emojis.redcross)
-    elif isinstance(error, commands.errors.UnexpectedQuoteError) \
-      or isinstance(error, commands.errors.InvalidEndOfQuotedStringError):
-        cmd_name = ctx.command.name
-        await ctx.send("ERR: erreur de guillemets. Les guillemets vont pas paires et doivent être précédés ou suivis d'un espace.")
-        await ctx.message.add_reaction(emojis.redcross)
-    elif isinstance(error, commands.CheckFailure):
-        if not bot_test_mode:
-            await ctx.send("ERR: commande interdite")
-            await ctx.message.add_reaction(emojis.redcross)
-    else:
-        await ctx.send("ERR: erreur inconnue")
-        await ctx.message.add_reaction(emojis.redcross)
-        goutils.log2("ERR", error)
-        goutils.log2("ERR", traceback.format_exception(error))
-        goutils.log2("ERR", traceback.format_exc())
-
-        # discord DM to admins
-        await send_alert_to_admins(ctx.guild, "ERR: erreur inconnue "+str(error))
-        raise error
-
-##############################################################
-# Other events used only to monitor the activity of guild members
-##############################################################
-@bot.event
-async def on_message_delete(message):
-    #Unable to detect who is deleting a message
-    if isinstance(message.channel, DMChannel):
-        channel_name = "DM"
-    else:
-        channel_name = message.guild.name+"/"+message.channel.name
-
-    goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
-                         "BEFORE:\n" + message.content)
-
 @bot.event
 async def on_message_edit(before, after):
     try:
@@ -1775,24 +1729,7 @@ async def on_message_edit(before, after):
         #Read messages from WookieBoot
         if after.author.id == config.WOOKIEBOT_DISCORD_ID:
             goutils.log2("DBG", "Detecting WookieBot message edit...")
-            for attachment in after.attachments:
-                goutils.log2("DBG", "Reading attachment...")
-                if not attachment.filename.endswith(".csv"):
-                    continue
-                raid_shortname = attachment.filename.split("_")[0]
-                if raid_shortname=="krayt":
-                    raid_name = "kraytdragon"
-                elif raid_shortname=="endor":
-                    raid_name = "speederbike"
-                else:
-                    raid_name = raid_shortname
-
-                goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
-                file_content = await attachment.read()
-                file_txt = file_content.decode('utf-8')
-                ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
-                if ec != 0:
-                    goutils.log2("ERR", et)
+            await store_wookiebot_raid_estimates(after)
 
         #Read messages from Echobot
         # NOT IN PROD (with the if False), because reliability not confirmed
@@ -1876,6 +1813,75 @@ async def on_message_edit(before, after):
         goutils.log2("ERR", str(sys.exc_info()[0]))
         goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
+
+@bot.event
+async def on_message_delete(message):
+    #Unable to detect who is deleting a message
+    if isinstance(message.channel, DMChannel):
+        channel_name = "DM"
+    else:
+        channel_name = message.guild.name+"/"+message.channel.name
+
+    goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
+                         "BEFORE:\n" + message.content)
+
+# This function is called in on_message and on_message_edit
+async def store_wookiebot_raid_estimates(message):
+    for attachment in message.attachments:
+        goutils.log2("DBG", "Reading attachment...")
+        if not attachment.filename.endswith(".csv"):
+            continue
+        raid_shortname = attachment.filename.split("_")[0]
+        if raid_shortname=="krayt":
+            raid_name = "kraytdragon"
+        elif raid_shortname=="endor":
+            raid_name = "speederbike"
+        else:
+            raid_name = raid_shortname
+
+        goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
+        file_content = await attachment.read()
+        file_txt = file_content.decode('utf-8')
+        ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
+        if ec != 0:
+            goutils.log2("ERR", et)
+
+##############################################################
+# Event: on_error_command
+# Parameters: error (error raised by the command)
+#             ctx (context of the command)
+# Purpose: inform that a command is unknown
+# Output: error message to the user
+##############################################################
+@bot.event
+async def on_command_error(ctx, error):
+    await ctx.message.add_reaction(emojis.thumb)
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("ERR: commande inconnue")
+        await ctx.message.add_reaction(emojis.redcross)
+    elif isinstance(error, commands.errors.MissingRequiredArgument):
+        cmd_name = ctx.command.name
+        await ctx.send("ERR: argument manquant. Consultez l'aide avec go.help "+cmd_name)
+        await ctx.message.add_reaction(emojis.redcross)
+    elif isinstance(error, commands.errors.UnexpectedQuoteError) \
+      or isinstance(error, commands.errors.InvalidEndOfQuotedStringError):
+        cmd_name = ctx.command.name
+        await ctx.send("ERR: erreur de guillemets. Les guillemets vont pas paires et doivent être précédés ou suivis d'un espace.")
+        await ctx.message.add_reaction(emojis.redcross)
+    elif isinstance(error, commands.CheckFailure):
+        if not bot_test_mode:
+            await ctx.send("ERR: commande interdite")
+            await ctx.message.add_reaction(emojis.redcross)
+    else:
+        await ctx.send("ERR: erreur inconnue")
+        await ctx.message.add_reaction(emojis.redcross)
+        goutils.log2("ERR", error)
+        goutils.log2("ERR", traceback.format_exception(error))
+        goutils.log2("ERR", traceback.format_exc())
+
+        # discord DM to admins
+        await send_alert_to_admins(ctx.guild, "ERR: erreur inconnue "+str(error))
+        raise error
 
 @bot.event
 async def on_member_update(before, after):
