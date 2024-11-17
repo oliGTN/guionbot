@@ -3671,7 +3671,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # launch actual command
-            ec, ret_txt = await go.print_tb_stats(guild_id, round, allyCode=connected_allyCode)
+            ec, ret_txt = await go.print_tb_strike_stats(guild_id, round, allyCode=connected_allyCode)
             if ec != 0:
                 await ctx.send("ERR: "+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)

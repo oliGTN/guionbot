@@ -5933,7 +5933,7 @@ async def print_tw_summary(guild_id, allyCode=None, dict_guild=None, dict_events
 # Display strike / wave statistics for the whole TB or a round
 # May be manually laucjed, or automatic for the end of the TB
 #########################################
-async def print_tb_stats(guild_id, round=None, allyCode=None):
+async def print_tb_strike_stats(guild_id, round=None, allyCode=None):
     # Get current guild and mapstats data
     err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1, allyCode=allyCode)
     if err_code!=0:
@@ -6050,6 +6050,149 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
 
     return 0, t.draw()
 
+#########################################
+# Display points statistics by phase for the whole TB or a round
+# May be manually lauched, or automatic for the end of the TB
+#########################################
+async def print_tb_stats(guild_id, round=None, allyCode=None):
+    dict_tb = godata.get("tb_definition.json")
+
+    # Get current guild and mapstats data
+    err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, ["TB"], 0, allyCode=allyCode)
+    if err_code!=0:
+        return 1, err_txt
+
+    guild = rpc_data[0]
+    current_events = rpc_data[2]
+    if not "territoryBattleStatus" in guild:
+        # TB has ended, get events from file
+        max_endTime=0
+        for tbr in guild["territoryBattleResult"]:
+            if int(tbr["endTime"]) > max_endTime:
+                max_endTime = int(tbr["endTime"])
+                tb_id = tbr["instanceId"]
+                tb_defId = tbr["definitionId"]
+                cur_events_file = guild_id+"_"+tb_id+"_events.json"
+                current_events = json.load(open("EVENTS/"+cur_events_file))
+    else:
+        tb_id = guild["territoryBattleStatus"][0]["instanceId"]
+        tb_defId = guild["territoryBattleStatus"][0]["definitionId"]
+
+    tb_type = tb_id.split(":")[0]
+    current_startTime = int(tb_id.split(':')[1][1:])
+    maxRounds = dict_tb[tb_defId]["maxRound"]
+
+    # Get previous TB events
+    stored_events = os.listdir("EVENTS/")
+    filename_begin = guild_id+"_"+tb_type
+    stored_guild_events = [x for x in stored_events if x.startswith(filename_begin) 
+                                                         and x.endswith("_events.json")
+                                                         and not tb_id in x]
+    if len(stored_guild_events)==0:
+        previous_events = {}
+    else:
+        prev_events_file = sorted(stored_guild_events, 
+                                  key=lambda x: x.split(":")[1].split("_")[0])[-1]
+        prev_startTime = int(prev_events_file.split(':')[1].split('_')[0][1:])
+        previous_events = json.load(open("EVENTS/"+prev_events_file))
+
+    # Create stats for current TB
+    dict_results = {}
+    for [tag, events, startTime] in [["current", current_events, current_startTime], ["previous", previous_events, prev_startTime]]:
+        for eid in events:
+            e=events[eid]
+            if guild_id in e["channelId"]:
+                ts = int(e["timestamp"])
+                phase = int ((ts-startTime) / (86400000*6/maxRounds)) + 1
+                if not phase in dict_results:
+                    dict_results[phase]={"current":  {"deployment":0, "platoons":0,
+                                                      "fights":0, "openZones":[]},
+                                         "previous": {"deployment":0, "platoons":0,
+                                                      "fights":0, "openZones":[]}}
+                if "data" in e:
+                    data=e["data"][0]
+                    if "activity" in data:
+                        activity=data["activity"]
+                        if "zoneData" in activity:
+                            zoneData=activity["zoneData"]
+                            zoneId=zoneData["zoneId"]
+                            if not zoneId in dict_results[phase][tag]["openZones"]:
+                                dict_results[phase][tag]["openZones"].append(zoneId)
+                                
+                            if "CONFLICT_CONTRIBUTION" in zoneData["activityLogMessage"]["key"]:
+                                score = int(zoneData["activityLogMessage"]["param"][0]["paramValue"][0])
+                                dict_results[phase][tag]["fights"] += score
+                            elif "DEPLOY" in zoneData["activityLogMessage"]["key"]:
+                                score = int(zoneData["activityLogMessage"]["param"][0]["paramValue"][0])
+                                dict_results[phase][tag]["deployment"] += score
+                            elif "RECON_CONTRIBUTION" in zoneData["activityLogMessage"]["key"]:
+                                score = int(zoneData["activityLogMessage"]["param"][0]["paramValue"][0])
+                                dict_results[phase][tag]["platoons"] += score
+
+    for i in dict_results:
+        for j in dict_results[i]:
+            print(i,j,dict_results[i][j])
+
+    list_stats = []
+    for p in dict_results:
+        cur_deployment = dict_results[p]["current"]["deployment"]
+        cur_platoons = dict_results[p]["current"]["platoons"]
+        cur_fights = dict_results[p]["current"]["fights"]
+        cur_openZones = sorted(dict_results[p]["current"]["openZones"])
+
+        prev_deployment = dict_results[p]["previous"]["deployment"]
+        prev_platoons = dict_results[p]["previous"]["platoons"]
+        prev_fights = dict_results[p]["previous"]["fights"]
+        prev_openZones = sorted(dict_results[p]["previous"]["openZones"])
+
+        if prev_deployment == 0:
+            percent_deployment = " --"
+        else:
+            ratio_deployment = (cur_deployment-prev_deployment)/prev_deployment
+            percent_deployment = str(int(100*ratio_deployment))+"%"
+            if percent_deployment == "0%":
+                percent_deployment = " 0%"
+            elif ratio_deployment>0:
+                percent_deployment = "+"+percent_deployment
+
+        if prev_platoons == 0:
+            percent_platoons = " --"
+        else:
+            ratio_platoons = (cur_platoons-prev_platoons)/prev_platoons
+            percent_platoons = str(int(100*ratio_platoons))+"%"
+            if percent_platoons == "0%":
+                percent_platoons = " 0%"
+            elif ratio_platoons>0:
+                percent_platoons = "+"+percent_platoons
+
+        if prev_fights == 0:
+            percent_fights = " --"
+        else:
+            ratio_fights = (cur_fights-prev_fights)/prev_fights
+            percent_fights = str(int(100*ratio_fights))+"%"
+            if percent_fights == "0%":
+                percent_fights = " 0%"
+            elif ratio_fights>0:
+                percent_fights = "+"+percent_fights
+
+        if cur_openZones != prev_openZones:
+            zone_check = "Zones différentes !"
+        else:
+            zone_check = ""
+
+        line_stats = [p, str(cur_deployment).rjust(3)+" ("+str(prev_deployment).rjust(3)+", "+percent_deployment+")",
+                         str(cur_platoons).rjust(3)+" ("+str(prev_platoons).rjust(3)+", "+percent_platoons+")",
+                         str(cur_fights).rjust(3)+" ("+str(prev_fights).rjust(3)+", "+percent_fights+")",
+                         zone_check]
+
+        list_stats.append(line_stats)
+    list_stats = [["Phase", "Déploiements", "Pelotons", "Combats", ""]] + list_stats
+    t = Texttable()
+    t.add_rows(list_stats)
+    t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
+
+    return 0, t.draw()
+
 # Details about special missions in TB
 async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
     dict_tb = godata.get("tb_definition.json")
@@ -6123,4 +6266,5 @@ async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
         output_txt += "\n  aucune de jouée"
 
     return 0, output_txt
+
 
