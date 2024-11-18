@@ -741,20 +741,12 @@ async def close_tb_gwarstats(guild_id):
     return 0, ""
 
 ##############################################################
-async def update_gwarstats(guild_id, allyCode=None):
+async def update_gwarstats(guild_id, dict_phase, dict_strike_zones,
+                           dict_tb_players, list_open_zones, dict_zones,
+                           tb_round, allyCode=None):
+
     dict_tb = data.get("tb_definition.json")
     gfile_name = get_gfile_name(guild_id)
-
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, allyCode=allyCode)
-    if ec != 0:
-        return 1, et
-
-    dict_phase = tb_data["phase"]
-    dict_strike_zones = tb_data["strike_zones"]
-    dict_tb_players = tb_data["players"]
-    list_open_zones = tb_data["open_zones"]
-    dict_zones = tb_data["zones"]
-    tb_round = dict_phase["round"]
 
     try:
         get_gapi_client()
@@ -762,7 +754,7 @@ async def update_gwarstats(guild_id, allyCode=None):
         feuille=file.worksheet("BT graphs")
     except:
         goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
-        return 1, "Erreur inconnue"
+        return 1, "Erreur inconnue", None
 
     now = datetime.datetime.now()
 
@@ -788,7 +780,7 @@ async def update_gwarstats(guild_id, allyCode=None):
                                                           my_tb_round = prev_round,
                                                           my_list_open_zones = prev_list_open_zones)
         if  ec != 0:
-            return 1, et
+            return 1, et, None
 
         prev_dict_phase = tb_data["phase"]
         prev_dict_strike_zones = tb_data["strike_zones"]
@@ -849,7 +841,7 @@ async def update_gwarstats(guild_id, allyCode=None):
                 goutils.log2("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
 
     # update the sheet
-    return update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players)
+    return update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players), None
 
 def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players):
     dict_tb = data.get("tb_definition.json")

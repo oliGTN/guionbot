@@ -1212,6 +1212,8 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
 async def update_rpc_data(guild_id, allyCode=None):
     goutils.log2("DBG", (guild_id, allyCode))
 
+    guild_bots = connect_rpc.get_dict_bot_accounts()
+
     #This RPC call gets everything once, so that next calls in the 
     # following lines are able to use cache data
     ec, et, ret_data = await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1, allyCode=allyCode)
@@ -1222,7 +1224,32 @@ async def update_rpc_data(guild_id, allyCode=None):
     dict_events = ret_data[2]
 
     #Update g-sheet during TB
-    await connect_gsheets.update_gwarstats(guild_id, allyCode=allyCode)
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, allyCode=allyCode)
+    if ec != 0:
+        # No TB ongoing
+        if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
+            # Display TB summary
+            tb_summary = et
+            channel_id = guild_bots[guild_id]["tb_channel_end"]
+            goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
+            if channel_id!=0:
+                tb_end_channel = bot.get_channel(channel_id)
+                await tb_end_channel.send("# BT de "+guild_bots[guild_id]["guildName"]+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
+                for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
+                    await tb_end_channel.send('`' + stxt + '`')
+    else:
+        #TB ongoing, update gwarstats
+
+        dict_phase = tb_data["phase"]
+        dict_strike_zones = tb_data["strike_zones"]
+        dict_tb_players = tb_data["players"]
+        list_open_zones = tb_data["open_zones"]
+        dict_zones = tb_data["zones"]
+        tb_round = dict_phase["round"]
+
+        await connect_gsheets.update_gwarstats(guild_id, dict_phase, dict_strike_zones,
+                                               dict_tb_players, list_open_zones, dict_zones,
+                                               tb_round, allyCode=allyCode)
     
     #Update log channels
     ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, 1, allyCode=allyCode,
