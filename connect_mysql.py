@@ -13,7 +13,6 @@ def wc_ljust(text, length):
     return text + ' ' * max(0, length - wcwidth.wcswidth(text))
 
 import goutils
-import connect_crinolo
 import data
 import go
 
@@ -379,8 +378,12 @@ def insert_roster_evo(allyCode, defId, evo_txt):
         #adapt syntax ty MYSQL
         evo_txt = evo_txt.replace("'","''")
 
-        query = "INSERT INTO roster_evolutions(allyCode, defId, description) "\
-               +"VALUES("+str(allyCode)+", '"+str(defId)+"', '"+evo_txt+"')"
+        if defId==None:
+            query = "INSERT INTO roster_evolutions(allyCode, defId, description) "\
+                   +"VALUES("+str(allyCode)+", '"+str(defId)+"', '"+evo_txt+"')"
+        else:
+            query = "INSERT INTO roster_evolutions(allyCode, description) "\
+                   +"VALUES("+str(allyCode)+", '"+evo_txt+"')"
         goutils.log2("DBG", query)
         cursor.execute(query)
 

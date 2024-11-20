@@ -2790,12 +2790,14 @@ async def print_erx(txt_allyCode, days, compute_guild):
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
               + "WHERE players.allyCode = " + txt_allyCode + " " \
+              + "AND NOT isnull(defId) " \
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
     else:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
               + "WHERE players.allyCode IN (SELECT allyCode FROM players WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+txt_allyCode+")) "\
+              + "AND NOT isnull(defId) " \
               + "AND timestampdiff(DAY, timestamp, CURRENT_TIMESTAMP)<=" + str(days) + " " \
               + "ORDER BY timestamp DESC"
 
