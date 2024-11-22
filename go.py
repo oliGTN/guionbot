@@ -4074,7 +4074,7 @@ async def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
     if is_year:
         query = "SELECT max(date), pp FROM ( " \
               + query \
-              + ") T GROUP BY year(date), month(date) ORDER BY DATE DESC LIMIT 12"
+              + ") T GROUP BY yearweek(date) ORDER BY DATE DESC LIMIT 52"
     else:
         query = query + "ORDER BY DATE DESC LIMIT 30"
 
