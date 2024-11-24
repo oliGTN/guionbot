@@ -88,8 +88,22 @@ def get_sheet_url(guild_id, sheet_name):
 #                             [phase, normal, super]}]}
 ##############################################################
 def load_config_raids(guild_id, force_load):
-    gfile_name = get_gfile_name(guild_id)
-    json_file = "CACHE"+os.path.sep+gfile_name+"_config_raids.json"
+    if guild_id == 0:
+        gfile_name = "GuiOnBot config"
+        guild_name = gfile_name
+    else:
+        gfile_name = get_gfile_name(guild_id)
+
+        #Get guild name (in case gfile_name is different)
+        query = "SELECT name FROM guilds JOIN guild_bot_infos ON guilds.id = guild_bot_infos.guild_id WHERE guild_id='"+guild_id+"'"
+        goutils.log2("DBG", query)
+        guild_name = connect_mysql.get_value(query)
+
+    if gfile_name==None:
+        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        return 2, [], {}
+
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_raids.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -155,7 +169,7 @@ def load_config_teams(guild_id, force_load):
         guild_name = connect_mysql.get_value(query)
 
     if gfile_name==None:
-        goutils.log2("WAR", "No gfile for this server")
+        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
         return 2, [], {}
 
     json_file = "CACHE"+os.path.sep+guild_name+"_config_teams.json"
@@ -447,9 +461,22 @@ def load_config_statq():
 #         margin of score before reaching the target
 ##############################################################
 def get_tb_triggers(guild_id, force_load):
-    gfile_name = get_gfile_name(guild_id)
+    if guild_id == 0:
+        gfile_name = "GuiOnBot config"
+        guild_name = gfile_name
+    else:
+        gfile_name = get_gfile_name(guild_id)
 
-    json_file = "CACHE"+os.path.sep+gfile_name+"_config_tb.json"
+        #Get guild name (in case gfile_name is different)
+        query = "SELECT name FROM guilds JOIN guild_bot_infos ON guilds.id = guild_bot_infos.guild_id WHERE guild_id='"+guild_id+"'"
+        goutils.log2("DBG", query)
+        guild_name = connect_mysql.get_value(query)
+
+    if gfile_name==None:
+        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        return 2, [], {}
+
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_tb.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -634,9 +661,22 @@ def set_tb_targets(guild_id, list_targets):
     return 0, ""
 
 def load_tb_teams(guild_id, force_load):
-    gfile_name = get_gfile_name(guild_id)
+    if guild_id == 0:
+        gfile_name = "GuiOnBot config"
+        guild_name = gfile_name
+    else:
+        gfile_name = get_gfile_name(guild_id)
 
-    json_file = "CACHE"+os.path.sep+gfile_name+"_config_tb_teams.json"
+        #Get guild name (in case gfile_name is different)
+        query = "SELECT name FROM guilds JOIN guild_bot_infos ON guilds.id = guild_bot_infos.guild_id WHERE guild_id='"+guild_id+"'"
+        goutils.log2("DBG", query)
+        guild_name = connect_mysql.get_value(query)
+
+    if gfile_name==None:
+        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        return 2, [], {}
+
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_tb_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -675,6 +715,63 @@ def load_tb_teams(guild_id, force_load):
         tb_teams = json.load(open(json_file, "r"))
 
     return tb_teams
+
+def load_tw_counters(guild_id, force_load):
+    if guild_id == 0:
+        gfile_name = "GuiOnBot config"
+        guild_name = gfile_name
+    else:
+        gfile_name = get_gfile_name(guild_id)
+
+        #Get guild name (in case gfile_name is different)
+        query = "SELECT name FROM guilds JOIN guild_bot_infos ON guilds.id = guild_bot_infos.guild_id WHERE guild_id='"+guild_id+"'"
+        goutils.log2("DBG", query)
+        guild_name = connect_mysql.get_value(query)
+
+    if gfile_name==None:
+        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        return 2, [], {}
+
+    json_file = "CACHE"+os.path.sep+guild_name+"_config_tw_counters.json"
+
+    if force_load or not os.path.isfile(json_file):
+        try:
+            get_gapi_client()
+            file = client.open(gfile_name)
+            feuille=file.worksheet("TW counters")
+
+            list_dict_sheet=feuille.get_all_records()
+        except gspread.exceptions.WorksheetNotFound:
+            return [{}, {}, {}, {}]
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+            goutils.log2("ERR", "Cannot connect to Google API")
+            return None
+
+        tw_counters = {}
+        for dict_line in list_dict_sheet:
+            if dict_line['opponent'] != '':
+                opponent = dict_line["opponent"]
+
+                counter_def = {}
+                for key in dict_line:
+                    if key != "opponent":
+                        counter_def[key] = dict_line[key]
+
+                if not opponent in tw_counters:
+                    tw_counters[opponent] = []
+                tw_counters[opponent].append(counter_def)
+
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps(tw_counters, sort_keys=True, indent=4))
+        fjson.close()
+    else:
+        tw_counters = json.load(open(json_file, "r"))
+
+    return tw_counters
 
 ##############################################################
 async def close_tb_gwarstats(guild_id):
