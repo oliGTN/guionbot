@@ -2423,6 +2423,80 @@ class TwCog(commands.GroupCog, name="gt"):
         else:
             await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
+    # Function used to get dynamic list of TW opponents
+    async def list_tw_opponents(self, interaction: discord.Interaction, current: str):
+        try:
+            user_id = interaction.user.id
+
+            query = "SELECT guildId FROM players " \
+                    "JOIN player_discord ON player_discord.allyCode=players.allyCode " \
+                    "WHERE discord_id="+str(user_id)+" " \
+                    "AND main=1"
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_value(query)
+            if db_data==None:
+                return []
+
+            guild_id = db_data
+
+            dict_tw_counters = connect_gsheets.load_tw_counters(guild_id, False)
+            list_tw_opponents = list(dict_tw_counters.keys())
+            filtered_opponents = [app_commands.Choice(name=value, value=value) 
+                                  for value in list_tw_opponents if current.lower() in value.lower()]
+            return filtered_opponents
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
+    @app_commands.command(name="contres")
+    @app_commands.rename(opponent="adversaire")
+    @app_commands.autocomplete(opponent=list_tw_opponents)
+    async def tw_defense(self, interaction: discord.Interaction,
+                         opponent: str):
+
+        try:
+            await interaction.response.defer(thinking=True)
+
+            # Launch the actual command
+            user_id = interaction.user.id
+
+            query = "SELECT guildId FROM players " \
+                    "JOIN player_discord ON player_discord.allyCode=players.allyCode " \
+                    "WHERE discord_id="+str(user_id)+" " \
+                    "AND main=1"
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_value(query)
+            if db_data==None:
+                return []
+
+            guild_id = db_data
+            dict_tw_counters = connect_gsheets.load_tw_counters(guild_id, False)
+            list_counters = []
+
+            if len(dict_tw_counters[opponent]) > 0:
+                embedList = []
+                for e in dict_tw_counters[opponent]:
+                    if e["status"].lower() == "luxury":
+                        embed_color = 0xe67e22 #orange
+                    else:
+                        embed_color = 0x2ecc71 #green
+
+                    embed = discord.Embed(title=e["counter"]+" vs "+opponent, color=embed_color)
+                    embed.add_field(name="statut", value=e["status"], inline=True)
+                    embed.add_field(name="tuto", value=e["tuto"], inline=True)
+                    embed.add_field(name="Notes", value=e["comment"], inline=False)
+
+                    embedList.append(embed)
+
+                await interaction.edit_original_response(content="Contres GT vs "+opponent, embeds=embedList)
+            else:
+                await interaction.edit_original_response(content=emojis.redcross+" aucun contre connu")
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
 ##############################################################
 # Class: TbCog - for Google accounts
 # Description: contains all slash commands for Tb
@@ -6256,8 +6330,8 @@ async def main():
     await bot.add_cog(OfficerCog(bot))
     await bot.add_cog(MemberCog(bot))
     await bot.add_cog(ModsCog(bot), guilds=[ADMIN_GUILD])
-    await bot.add_cog(TbCog(bot), guilds=[ADMIN_GUILD])
-    await bot.add_cog(TwCog(bot), guilds=[ADMIN_GUILD])
+    await bot.add_cog(TbCog(bot)) #, guilds=[ADMIN_GUILD])
+    await bot.add_cog(TwCog(bot)) #, guilds=[ADMIN_GUILD])
     await bot.add_cog(AuthCog(bot), guilds=[ADMIN_GUILD])
 
     if bot_background_tasks:
