@@ -378,7 +378,7 @@ def insert_roster_evo(allyCode, defId, evo_txt):
         #adapt syntax ty MYSQL
         evo_txt = evo_txt.replace("'","''")
 
-        if defId==None:
+        if defId!=None:
             query = "INSERT INTO roster_evolutions(allyCode, defId, description) "\
                    +"VALUES("+str(allyCode)+", '"+str(defId)+"', '"+evo_txt+"')"
         else:
