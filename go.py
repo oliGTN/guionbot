@@ -2983,8 +2983,8 @@ async def print_erx(txt_allyCode, days, compute_guild):
         return 0, ret_cmd
 
     else:
-        goutils.log2("ERR", "error while running query, returned NULL")
-        return 1, "ERR: erreur lors de la connexion à la DB"
+        goutils.log2("WAR", "error while running db_data_evo query, returned NULL")
+        return 1, "Aucune évolution détectée dans les "+str(days)+" derniers jours"
 
 ############################################
 # get_tw_alerts
