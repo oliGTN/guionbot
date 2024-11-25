@@ -60,8 +60,9 @@ class MyClient(commands.Bot):
     def __init__(self, *, command_prefix: list, intents: discord.Intents):
         super().__init__(command_prefix=command_prefix, intents=intents)
     async def setup_hook(self):
-        self.tree.copy_global_to(guild=ADMIN_GUILD)
-        await self.tree.sync(guild=ADMIN_GUILD)
+        #self.tree.copy_global_to(guild=ADMIN_GUILD)
+        #await self.tree.sync(guild=ADMIN_GUILD)
+        await self.tree.sync()
 
 #create bot
 intents = Intents.all()
