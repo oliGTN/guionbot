@@ -752,12 +752,14 @@ def load_tw_counters(guild_id, force_load):
 
         tw_counters = {}
         for dict_line in list_dict_sheet:
-            if dict_line['opponent'] != '':
-                opponent = dict_line["opponent"]
+            if dict_line['Adversaire'] != '':
+                opponent = dict_line["Adversaire"]
 
                 counter_def = {}
                 for key in dict_line:
-                    if key != "opponent":
+                    if key=="":
+                        break
+                    if key != "Adversaire":
                         counter_def[key] = dict_line[key]
 
                 if not opponent in tw_counters:

@@ -59,10 +59,10 @@ latestGamedataVersion = ""
 class MyClient(commands.Bot):
     def __init__(self, *, command_prefix: list, intents: discord.Intents):
         super().__init__(command_prefix=command_prefix, intents=intents)
-    async def setup_hook(self):
+    #async def setup_hook(self):
         #self.tree.copy_global_to(guild=ADMIN_GUILD)
         #await self.tree.sync(guild=ADMIN_GUILD)
-        await self.tree.sync()
+        #await self.tree.sync()
 
 #create bot
 intents = Intents.all()
@@ -1448,46 +1448,53 @@ async def manage_me(ctx, alias, allow_tw):
 # OUT: err_code (0 = OK), err_txt
 ##############################################################
 async def read_gsheets(guild_id):
-    err_code = 0
-    err_txt = ""
+    try:
+        err_code = 0
+        err_txt = ""
 
-    d = connect_gsheets.load_config_units(True)
-    if d == None:
-        err_txt += "ERR: erreur en mettant à jour les UNITS\n"
-        err_code = 1
+        d = connect_gsheets.load_config_units(True)
+        if d == None:
+            err_txt += "ERR: erreur en mettant à jour les UNITS\n"
+            err_code = 1
 
-    ec, l, d = connect_gsheets.load_config_teams(0, True)
-    if ec != 0:
-        err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
-        err_code = 1
+        ec, l, d = connect_gsheets.load_config_teams(0, True)
+        if ec != 0:
+            err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
+            err_code = 1
 
-    ec, l, d = connect_gsheets.load_config_teams(guild_id, True)
-    if ec == 2:
-        err_txt += "ERR: pas de fichier de config pour ce serveur\n"
-        err_code = 1
-    elif ec == 3:
-        err_txt += "ERR: pas d'onglet 'teams' dans le fichier de config\n"
-        err_code = 1
-    elif ec == 1:
-        err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
-        err_code = 1
+        ec, l, d = connect_gsheets.load_config_teams(guild_id, True)
+        if ec == 2:
+            err_txt += "ERR: pas de fichier de config pour ce serveur\n"
+            err_code = 1
+        elif ec == 3:
+            err_txt += "ERR: pas d'onglet 'teams' dans le fichier de config\n"
+            err_code = 1
+        elif ec == 1:
+            err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
+            err_code = 1
 
-    [dt, m] = connect_gsheets.get_tb_triggers(guild_id, True)
-    if dt == None:
-        err_txt += "ERR: erreur en mettant à jour les objectifs de BT\n"
-        err_code = 1
+        [dt, m] = connect_gsheets.get_tb_triggers(guild_id, True)
+        if dt == None:
+            err_txt += "ERR: erreur en mettant à jour les objectifs de BT\n"
+            err_code = 1
 
-    l = connect_gsheets.load_tw_counters(guild_id, True)
-    if l == None:
-        err_txt += "ERR: erreur en mettant à jour les contres GT\n"
-        err_code = 1
+        l = connect_gsheets.load_tw_counters(guild_id, True)
+        if l == None:
+            err_txt += "ERR: erreur en mettant à jour les contres GT\n"
+            err_code = 1
 
-    ec, et = connect_gsheets.load_config_statq()
-    if ec != 0:
-        err_txt += "ERR: erreur en mettant à jour les persos statq\n"
-        err_code = 1
+        ec, et = connect_gsheets.load_config_statq()
+        if ec != 0:
+            err_txt += "ERR: erreur en mettant à jour les persos statq\n"
+            err_code = 1
 
-    return err_code, err_txt
+        return err_code, err_txt
+    except Exception as e:
+        #goutils.log2("ERR", str(sys.exc_info()[0]))
+        #goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
+
+        return 1, "error while loading gsheet data"
 
 ##############################################################
 #                                                            #
@@ -2349,6 +2356,18 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
 
+    @commands.check(admin_command)
+    @commands.command(name='sync', brief="Synchronise les commands slash")
+    async def sync(self, ctx):
+        try:
+            for guild in bot.guilds:
+                bot.tree.clear_commands(guild=guild)
+                await bot.tree.sync(guild=guild)
+                await ctx.send('Command tree synced in '+guild.name)
+            await ctx.send('-> Command tree synced')
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+
 ##############################################################
 # Class: TwCog - for Google accounts
 # Description: contains all slash commands for TW
@@ -2444,6 +2463,9 @@ class TwCog(commands.GroupCog, name="gt"):
             list_tw_opponents = list(dict_tw_counters.keys())
             filtered_opponents = [app_commands.Choice(name=value, value=value) 
                                   for value in list_tw_opponents if current.lower() in value.lower()]
+            filtered_opponents.sort(key=lambda x:x.name)
+            if len(filtered_opponents)>25:
+                filtered_opponents = filtered_opponents[:25]
             return filtered_opponents
 
         except Exception as e:
@@ -2478,15 +2500,23 @@ class TwCog(commands.GroupCog, name="gt"):
             if len(dict_tw_counters[opponent]) > 0:
                 embedList = []
                 for e in dict_tw_counters[opponent]:
-                    if e["status"].lower() == "luxury":
-                        embed_color = 0xe67e22 #orange
+                    if e["Statut"].lower().startswith("top prio"):
+                        embed_color = 0xb10202 #red
+                    elif e["Statut"].lower().startswith("lux"):
+                        embed_color = 0x00ff19 #green
+                    elif e["Statut"].lower().startswith("expériment"):
+                        embed_color = 0x0a53a8 #blue
+                    elif e["Statut"].lower().startswith("clean"):
+                        embed_color = 0xff8000 #orange
                     else:
-                        embed_color = 0x2ecc71 #green
+                        embed_color = 0x7e7e7e #gray
+                    print(e["Statut"].lower(), embed_color)
 
-                    embed = discord.Embed(title=e["counter"]+" vs "+opponent, color=embed_color)
-                    embed.add_field(name="statut", value=e["status"], inline=True)
-                    embed.add_field(name="tuto", value=e["tuto"], inline=True)
-                    embed.add_field(name="Notes", value=e["comment"], inline=False)
+                    embed = discord.Embed(title=e["Contre"]+" vs "+opponent, color=embed_color)
+                    for key in e.keys():
+                        if not key == "Contre":
+                            if not e[key].strip() == "":
+                                embed.add_field(name=key, value=e[key])
 
                     embedList.append(embed)
 
@@ -4371,7 +4401,6 @@ async def farmeqpt(interaction: discord.Interaction,
                    list_alias_txt: str) -> None:
     list_alias = list_alias_txt.split(" ")
     await bot_commands.farmeqpt(interaction, allycode, list_alias)
-
 
 ##############################################################
 # Class: MemberCog
