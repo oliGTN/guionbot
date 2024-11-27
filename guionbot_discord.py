@@ -2919,7 +2919,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             if ec != 0:
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
             else:
-                export_path="/tmp/modoptiLoadProgress_"+txt_allyCode+".json"
+                export_path="/tmp/modoptiRestoreMyProgress_"+txt_allyCode+".json"
                 export_file = open(export_path, "w")
                 export_txt = json.dumps(dict_export, indent=4)
                 export_file.write(export_txt)
