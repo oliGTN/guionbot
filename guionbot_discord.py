@@ -2358,13 +2358,61 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
     @commands.check(admin_command)
     @commands.command(name='sync', brief="Synchronise les commands slash")
-    async def sync(self, ctx):
+    async def sync(self, ctx, *arg):
         try:
+            if len(arg)>0 and arg[0]=="clear":
+                clear_commands=True
+            else:
+                clear_commands=False
+            print(clear_commands)
+
+            print("BEFORE - global")
+            for g in bot.tree.get_commands():
+                if type(g)==app_commands.commands.Command:
+                    print(g.name)
+                else:
+                    for c in g.commands:
+                        print(g.name, c.name)
+
             for guild in bot.guilds:
+                print("#####"+guild.name)
+                for g in bot.tree.get_commands(guild=guild):
+                    if type(g)==app_commands.commands.Command:
+                        print(g.name)
+                    else:
+                        for c in g.commands:
+                            print(g.name, c.name)
                 bot.tree.clear_commands(guild=guild)
+                print("# cleared")
+                for g in bot.tree.get_commands(guild=guild):
+                    if type(g)==app_commands.commands.Command:
+                        print(g.name)
+                    else:
+                        for c in g.commands:
+                            print(g.name, c.name)
+                if clear_commands == False:
+                    bot.tree.copy_global_to(guild=guild)
                 await bot.tree.sync(guild=guild)
-                await ctx.send('Command tree synced in '+guild.name)
-            await ctx.send('-> Command tree synced')
+                for g in bot.tree.get_commands(guild=guild):
+                    if type(g)==app_commands.commands.Command:
+                        print(g.name)
+                    else:
+                        for c in g.commands:
+                            print(g.name, c.name)
+                print("# synced")
+
+            #bot.tree.clear_commands(guild=None)
+            #await bot.tree.sync()
+            await ctx.send('End')
+
+            print("AFTER - global")
+            for g in bot.tree.get_commands():
+                if type(g)==app_commands.commands.Command:
+                    print(g.name)
+                else:
+                    for c in g.commands:
+                        print(g.name, c.name)
+
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
 
@@ -6355,14 +6403,28 @@ async def main():
 
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
+    print(len(bot.tree.get_commands()))
     await bot.add_cog(AdminCog(bot))
+    print(len(bot.tree.get_commands()))
     await bot.add_cog(ServerCog(bot))
+    print(len(bot.tree.get_commands()))
     await bot.add_cog(OfficerCog(bot))
+    print(len(bot.tree.get_commands()))
     await bot.add_cog(MemberCog(bot))
-    await bot.add_cog(ModsCog(bot), guilds=[ADMIN_GUILD])
+    print(len(bot.tree.get_commands()))
+    await bot.add_cog(ModsCog(bot)) #, guilds=[ADMIN_GUILD])
+    print(len(bot.tree.get_commands()))
     await bot.add_cog(TbCog(bot)) #, guilds=[ADMIN_GUILD])
+    print(len(bot.tree.get_commands()))
     await bot.add_cog(TwCog(bot)) #, guilds=[ADMIN_GUILD])
-    await bot.add_cog(AuthCog(bot), guilds=[ADMIN_GUILD])
+    print(len(bot.tree.get_commands()))
+    await bot.add_cog(AuthCog(bot)) #, guilds=[ADMIN_GUILD])
+    for g in bot.tree.get_commands():
+        if type(g)==app_commands.commands.Command:
+            print(g.name)
+        else:
+            for c in g.commands:
+                print(g.name, c.name)
 
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
