@@ -1066,7 +1066,6 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         if position == "bottom":
             position = "bot"
 
-        print(list_open_territories)
         too_late = False
         for open_terr in list_open_territories:
             if open_terr["zone_name"].endswith(position):
