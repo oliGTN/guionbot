@@ -3745,8 +3745,6 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emojis.check)
 
-                #In hidden, update gwarstats
-                await connect_gsheets.update_gwarstats(guild_id, allyCode=connected_allyCode)
             else:
                 await ctx.send(ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)

@@ -1319,7 +1319,6 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
     if db_data == None:
         return 1, "Aucune allocation de peloton connue", None
 
-    allocation_tb_phases = [None, None, None]
     dict_platoons_allocation = {}
     for line in db_data:
         zone_id = line[0]
@@ -1329,11 +1328,6 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
 
         conflict_id = "_".join(zone_id.split('_')[:-1])
         conflict_name = dict_tb[conflict_id]["name"] # "ROTE1-DS"
-
-        conflict_position_name = conflict_name.split('-')[-1]
-        conflict_position = terr_pos.index(conflict_position_name)
-        conflict_round = conflict_name.split('-')[0][-1]
-        allocation_tb_phases[conflict_position] = conflict_round
 
         if tb_name == "ROTE":
             platoon_position = str(7-int(platoon_id[-1]))
@@ -1352,5 +1346,4 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
         if player_name != None:
             dict_platoons_allocation[platoon_name][unit_name].append(player_name)
 
-    return 0, "", {"allocation_tb_phases": allocation_tb_phases,
-                   "dict_platoons_allocation": dict_platoons_allocation}
+    return 0, "", {"dict_platoons_allocation": dict_platoons_allocation}

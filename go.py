@@ -4223,7 +4223,15 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
     dict_phase = tb_data["phase"]
     list_open_zones = tb_data["open_zones"]
     dict_zones = tb_data["zones"]
+    dict_strike_zones = tb_data["strike_zones"]
+    dict_tb_players = tb_data["players"]
  
+    # Launch parallel task to update gwarstat
+    asyncio.create_task(connect_gsheets.update_gwarstats(
+                                guild_id, dict_phase, dict_strike_zones,
+                                dict_tb_players, list_open_zones, dict_zones,
+                                dict_phase["round"], allyCode=allyCode))
+
     list_deployment_types = []
     for zone_name in list_open_zones:
         zone_deployment_type = dict_tb[zone_name]["type"]
@@ -6188,6 +6196,7 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
                          zone_check]
 
         list_stats.append(line_stats)
+
     list_stats = [["Phase", "Déploiements", "Pelotons", "Combats", ""]] + list_stats
     t = Texttable()
     t.add_rows(list_stats)
