@@ -141,8 +141,10 @@ dict_BT_missions['ROTE']['Bracca']='ROTE2-LS'
 dict_BT_missions['ROTE']['Dathomir']='ROTE3-DS'
 dict_BT_missions['ROTE']['Tatooine']='ROTE3-MS'
 dict_BT_missions['ROTE']['Kashyyyk']='ROTE3-LS'
+dict_BT_missions['ROTE']['Zeffo']='ROTE3-LSb'
 dict_BT_missions['ROTE']['Haven-class Medical Station']='ROTE4-DS'
 dict_BT_missions['ROTE']['Kessel']='ROTE4-MS'
+dict_BT_missions['ROTE']['Mandalore']='ROTE4-MSb'
 dict_BT_missions['ROTE']['Lothal']='ROTE4-LS'
 dict_BT_missions['ROTE']['Malachor']='ROTE5-DS'
 dict_BT_missions['ROTE']['Vandor']='ROTE5-MS'
@@ -586,7 +588,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                 if message.content.startswith('```prolog'):
                     #EB message by territory
                     ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
-                    territory_position = ret_re.group(1)
+                    territory_position = ret_re.group(1) #top, mid, bonus...
                       
                     for embed in message.embeds:
                         dict_embed = embed.to_dict()
@@ -640,8 +642,9 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
                                 for line in dict_char['value'].split('\n'):
                                     if line.startswith("**"):
-                                        platoon_pos = line.split(" ")[0][2:]
-                                        platoon_num = line.split(" ")[2][1]
+                                        # mid - O3
+                                        platoon_pos = line.split(" ")[0][2:] #top, mid, bonus
+                                        platoon_num = line.split(" ")[2][1]  #1, 2, 6
                                         platoon_name = tbs_name + "X-" + platoon_pos + "-" + platoon_num
                                     else:
                                         ret_re = re.search("^(:.*: )?(`\*` )?([^:\[]*)(:crown:|:cop:)?( `\[[GR][0-9]*\]`)?$", line)
@@ -677,7 +680,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                             for dict_platoon in dict_embed['fields']:
                                 ret_re = re.search('(.*) - .*', dict_platoon['name'])
                                 if ret_re != None:
-                                    territory_position = ret_re.group(1)
+                                    territory_position = ret_re.group(1) #top, mid, bonus
                                     platoon_name = tbs_name + "X-" + territory_position + \
                                                     "-" + dict_platoon['name'][-1]
                                         
@@ -708,7 +711,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
                 elif message.content.startswith(":information_source: **Overview**"):
                     #Overview of the EB posts. Gives the territory names
-                    # this name helps allocatting the phase
+                    # this name helps allocating the phase
                     # In case of single-territory, helps recovering its position
                     message_lines = message.content.split("\n")
 
@@ -1063,13 +1066,14 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         if position == "bottom":
             position = "bot"
 
-        if position == 'top' or position == 'LS':
-            open_for_position = list_open_territories[0]["phase"]
-        elif position == 'mid' or position == 'DS':
-            open_for_position = list_open_territories[1]["phase"]
-        else:  #bot or 'MS'
-            open_for_position = list_open_territories[2]["phase"]
-        if cur_phase < open_for_position:
+        print(list_open_territories)
+        too_late = False
+        for open_terr in list_open_territories:
+            if open_terr["zone_name"].endswith(position):
+                if cur_phase < open_terr["phase"]:
+                    too_late = True
+
+        if too_late:
             if free_platoons:
                 continue
 
@@ -6403,28 +6407,14 @@ async def main():
 
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(AdminCog(bot))
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(ServerCog(bot))
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(OfficerCog(bot))
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(MemberCog(bot))
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(ModsCog(bot)) #, guilds=[ADMIN_GUILD])
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(TbCog(bot)) #, guilds=[ADMIN_GUILD])
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(TwCog(bot)) #, guilds=[ADMIN_GUILD])
-    print(len(bot.tree.get_commands()))
     await bot.add_cog(AuthCog(bot)) #, guilds=[ADMIN_GUILD])
-    for g in bot.tree.get_commands():
-        if type(g)==app_commands.commands.Command:
-            print(g.name)
-        else:
-            for c in g.commands:
-                print(g.name, c.name)
 
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
