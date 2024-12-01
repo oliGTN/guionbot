@@ -659,7 +659,9 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         elif char_name in ENG_char_names:
                                             char_name = ENG_char_names[char_name]
                                         else:
-                                            goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
+                                            war_txt = "Unknown character in EB allocation: "+char_name
+                                            goutils.log2("WAR", war_txt)
+                                            await send_alert_to_admins(None, war_txt)
 
                                         if not char_name in dict_platoons_allocation[
                                                 platoon_name]:
@@ -798,7 +800,9 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                             del dict_platoons_allocation[key]
                                                 
                                 else:
-                                    goutils.log2("WAR", "Unknown mission "+territory_name+" for TB "+tbs_name)
+                                    war_txt = "Unknown mission "+territory_name+" for TB "+tbs_name
+                                    goutils.log2("WAR", war_txt)
+                                    await send_alert_to_admins(None, war_txt)
 
                     #if detect_previous_BT:
                     #    #out of the main message reading loop
