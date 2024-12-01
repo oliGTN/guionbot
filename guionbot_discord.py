@@ -659,7 +659,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         elif char_name in ENG_char_names:
                                             char_name = ENG_char_names[char_name]
                                         else:
-                                            war_txt = "Unknown character in EB allocation: "+char_name
+                                            war_txt = "["+str(tbChannel_id)+"] Unknown character in EB allocation: "+char_name
                                             goutils.log2("WAR", war_txt)
                                             await send_alert_to_admins(None, war_txt)
 
@@ -800,7 +800,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                             del dict_platoons_allocation[key]
                                                 
                                 else:
-                                    war_txt = "Unknown mission "+territory_name+" for TB "+tbs_name
+                                    war_txt = "["+str(tbChannel_id)+"] Unknown mission "+territory_name+" for TB "+tbs_name
                                     goutils.log2("WAR", war_txt)
                                     await send_alert_to_admins(None, war_txt)
 
