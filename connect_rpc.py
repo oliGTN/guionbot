@@ -1353,7 +1353,11 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 goutils.log2("INFO", "Close TB "+latest_tb_id+" for guild "+guild_id)
 
                 #Copy gsheets
-                await connect_gsheets.close_tb_gwarstats(guild_id)
+                try:
+                    await connect_gsheets.close_tb_gwarstats(guild_id)
+                except e:
+                    goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
+                    goutils.log2("ERR", "["+guild_id+"] cannot update gwarstats")
 
                 #Save guild file
                 if guild_id in prev_dict_guild:
