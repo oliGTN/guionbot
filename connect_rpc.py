@@ -1355,7 +1355,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 #Copy gsheets
                 try:
                     await connect_gsheets.close_tb_gwarstats(guild_id)
-                except e:
+                except Exception as e:
                     goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
                     goutils.log2("ERR", "["+guild_id+"] cannot update gwarstats")
 
