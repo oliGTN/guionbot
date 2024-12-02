@@ -290,7 +290,7 @@ async def bot_loop_5minutes(bot):
 
             elif ec == 2:
                 # Display TB summary
-                tb_summary = list_tb_alerts["tb_summary"]
+                tb_summary = et
                 channel_id = guild_bots[guild_id]["tb_channel_end"]
                 goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
                 if channel_id!=0:
