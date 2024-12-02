@@ -1237,7 +1237,7 @@ async def update_rpc_data(guild_id, allyCode=None):
         # No TB ongoing
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
             # Display TB summary
-            tb_summary = et
+            tb_summary = tb_data["tb_summary"]
             channel_id = guild_bots[guild_id]["tb_channel_end"]
             goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
             if channel_id!=0:
