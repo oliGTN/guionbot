@@ -3813,26 +3813,25 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='tbstats',
             brief="Stats des combats en BT",
             help="Stats des combats en BT avec les résultats par joueur\n" \
-                 "go.tbstats   > pour toute la BT\n" \
-                 "go.tbstats 2 > pour le 2e jour")
+                 "go.tbstats          > pour toute la BT, tous les joueurs\n" \
+                 "go.tbstats chaton73 > pour toute la BT du joueur chaton75\n" \
+                 "go.tbstats 2 5      > pour le 2e et le 5e jour, tous les joueurs\n" \
+                 "go.tbstats 2 5 toto > pour le 2e et le 5e jour du joueur toto")
     async def tbstats(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
 
-            if len(args) > 1:
-                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbstats")
-                await ctx.message.add_reaction(emojis.redcross)
-                return
-
-            if len(args)>0:
-                round = args[0]
-                if len(round) > 1 or not round.isnumeric():
-                    await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbstats")
-                    await ctx.message.add_reaction(emojis.redcross)
-                    return
-            else:
-                # whole TB
-                round = None
+            list_allyCodes = []
+            rounds = []
+            for arg in args:
+                if arg.isnumeric():
+                    rounds.append(arg)
+                else:
+                    allyCode = await manage_me(ctx, arg, False)
+                    if allyCode[0:3] == 'ERR':
+                        await ctx.send(allyCode)
+                    else:
+                        list_allyCodes.append(allyCode)
 
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
@@ -3851,7 +3850,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # launch actual command
-            ec, ret_txt = await go.print_tb_strike_stats(guild_id, round, allyCode=connected_allyCode)
+            ec, ret_txt = await go.print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=connected_allyCode)
             if ec != 0:
                 await ctx.send("ERR: "+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)

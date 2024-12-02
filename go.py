@@ -5941,9 +5941,9 @@ async def print_tw_summary(guild_id, allyCode=None, dict_guild=None, dict_events
 
 #########################################
 # Display strike / wave statistics for the whole TB or a round
-# May be manually laucjed, or automatic for the end of the TB
+# May be manually launched, or automatic for the end of the TB
 #########################################
-async def print_tb_strike_stats(guild_id, round=None, allyCode=None):
+async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None):
     # Get current guild and mapstats data
     err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1, allyCode=allyCode)
     if err_code!=0:
@@ -5984,76 +5984,108 @@ async def print_tb_strike_stats(guild_id, round=None, allyCode=None):
     for m in guild["member"]:
         dict_members[m["playerId"]] = m["playerName"]
 
+    if len(list_allyCodes)>0:
+        query = "SELECT allyCode, name FROM players WHERE guildId='"+guild_id+"'"
+        db_data = connect_mysql.get_table(query)
+
+        filtered_memberNames = []
+        for line in db_data:
+            if str(line[0]) in list_allyCodes:
+                filtered_memberNames.append(line[1])
+    else:
+        filtered_memberNames = []
+
     # Create stats for current TB
     dict_stats = {}
     if "currentStat" in current_mapstats:
         current_mapstats=current_mapstats["currentStat"]
-    if round==None:
-        encounter_id = "strike_encounter"
-        attempt_id = "strike_attempt"
-    else:
-        encounter_id = "strike_encounter_round_"+round
-        attempt_id = "strike_attempt_round_"+round
-    for [tag, mapstats] in [["current", current_mapstats], ["previous", previous_mapstats]]:
-        for ms in mapstats:
-            if ms["mapStatId"] in [encounter_id, attempt_id]:
-                for p in ms["playerStat"]:
-                    if p["memberId"] in dict_members:
-                        p_name = dict_members[p["memberId"]]
-                    else:
-                        continue
-                        #p_name = "???"+p["memberId"]
-                    if not p_name in dict_stats:
-                        dict_stats[p_name] = {"current": {}, "previous": {}}
-                    dict_stats[p_name][tag][ms["mapStatId"]] = int(p["score"])
+
+    for round in ["all", "1", "2", "3", "4", "5", "6"]:
+        if round=="all":
+            encounter_id = "strike_encounter"
+            attempt_id = "strike_attempt"
+        else:
+            encounter_id = "strike_encounter_round_"+round
+            attempt_id = "strike_attempt_round_"+round
+        for [tag, mapstats] in [["current", current_mapstats], ["previous", previous_mapstats]]:
+            for ms in mapstats:
+                if ms["mapStatId"] in [encounter_id, attempt_id]:
+                    for p in ms["playerStat"]:
+                        if p["memberId"] in dict_members:
+                            p_name = dict_members[p["memberId"]]
+                        else:
+                            continue
+                        if not p_name in dict_stats:
+                            dict_stats[p_name] = {"current": {}, "previous": {}}
+                        dict_stats[p_name][tag][ms["mapStatId"]] = int(p["score"])
 
     list_stats = []
     for p in dict_stats:
-        cur_strikes = 0
-        if attempt_id in dict_stats[p]["current"]:
-            cur_strikes = dict_stats[p]["current"][attempt_id]
-
-        cur_waves = 0
-        if encounter_id in dict_stats[p]["current"]:
-            cur_waves = dict_stats[p]["current"][encounter_id]
-
-        prev_strikes = 0
-        if attempt_id in dict_stats[p]["previous"]:
-            prev_strikes = dict_stats[p]["previous"][attempt_id]
-
-        prev_waves = 0
-        if encounter_id in dict_stats[p]["previous"]:
-            prev_waves = dict_stats[p]["previous"][encounter_id]
-
-        if prev_strikes == 0:
-            percent_strikes = " --"
+        if len(filtered_memberNames)>0 and not p in filtered_memberNames:
+            continue
+        if len(rounds)==0:
+            if len(filtered_memberNames)>0:
+                # if individual players are required, then display all phases
+                list_display_rounds = ["all", "1", "2", "3", "4", "5", "6"]
+            else:
+                list_display_rounds = ["all"]
         else:
-            ratio_strikes = (cur_strikes-prev_strikes)/prev_strikes
-            percent_strikes = str(int(100*ratio_strikes))+"%"
-            if percent_strikes == "0%":
-                percent_strikes = " 0%"
-            elif ratio_strikes>0:
-                percent_strikes = "+"+percent_strikes
+            list_display_rounds = rounds
 
-        if prev_waves == 0:
-            percent_waves = " --"
-        else:
-            ratio_waves = (cur_waves-prev_waves)/prev_waves
-            percent_waves = str(int(100*ratio_waves))+"%"
-            if percent_waves == "0%":
-                percent_waves = " 0%"
-            elif ratio_waves>0:
-                percent_waves = "+"+percent_waves
+        for round in list_display_rounds:
+            if round=="all":
+                encounter_id = "strike_encounter"
+                attempt_id = "strike_attempt"
+            else:
+                encounter_id = "strike_encounter_round_"+round
+                attempt_id = "strike_attempt_round_"+round
 
-        if len(previous_mapstats) > 0:
-            line_stats = [p, str(cur_strikes).rjust(3)+" ("+str(prev_strikes).rjust(3)+", "+percent_strikes+")",
-                             str(cur_waves).rjust(3)+" ("+str(prev_waves).rjust(3)+", "+percent_waves+")"]
-        else:
-            line_stats = [p, str(cur_strikes).rjust(3),
-                             str(cur_waves).rjust(3)]
+            cur_strikes = 0
+            if attempt_id in dict_stats[p]["current"]:
+                cur_strikes = dict_stats[p]["current"][attempt_id]
 
-        list_stats.append(line_stats)
-    list_stats = [["Joueur", "Combats", "Vagues réussies"]] + sorted(list_stats)
+            cur_waves = 0
+            if encounter_id in dict_stats[p]["current"]:
+                cur_waves = dict_stats[p]["current"][encounter_id]
+
+            prev_strikes = 0
+            if attempt_id in dict_stats[p]["previous"]:
+                prev_strikes = dict_stats[p]["previous"][attempt_id]
+
+            prev_waves = 0
+            if encounter_id in dict_stats[p]["previous"]:
+                prev_waves = dict_stats[p]["previous"][encounter_id]
+
+            if prev_strikes == 0:
+                percent_strikes = " --"
+            else:
+                ratio_strikes = (cur_strikes-prev_strikes)/prev_strikes
+                percent_strikes = str(int(100*ratio_strikes))+"%"
+                if percent_strikes == "0%":
+                    percent_strikes = " 0%"
+                elif ratio_strikes>0:
+                    percent_strikes = "+"+percent_strikes
+
+            if prev_waves == 0:
+                percent_waves = " --"
+            else:
+                ratio_waves = (cur_waves-prev_waves)/prev_waves
+                percent_waves = str(int(100*ratio_waves))+"%"
+                if percent_waves == "0%":
+                    percent_waves = " 0%"
+                elif ratio_waves>0:
+                    percent_waves = "+"+percent_waves
+
+            if len(previous_mapstats) > 0:
+                line_stats = [round, p, str(cur_strikes).rjust(3)+" ("+str(prev_strikes).rjust(3)+", "+percent_strikes+")",
+                                 str(cur_waves).rjust(3)+" ("+str(prev_waves).rjust(3)+", "+percent_waves+")"]
+            else:
+                line_stats = [round, p, str(cur_strikes).rjust(3),
+                                 str(cur_waves).rjust(3)]
+
+            list_stats.append(line_stats)
+
+    list_stats = [["Round", "Joueur", "Combats", "Vagues réussies"]] + sorted(list_stats)
     t = Texttable()
     t.add_rows(list_stats)
     t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
