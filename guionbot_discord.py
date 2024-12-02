@@ -290,14 +290,9 @@ async def bot_loop_5minutes(bot):
 
             elif ec == 2:
                 # Display TB summary
-                tb_summary = et
-                channel_id = guild_bots[guild_id]["tb_channel_end"]
-                goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
-                if channel_id!=0:
-                    tb_end_channel = bot.get_channel(channel_id)
-                    await tb_end_channel.send("# BT de "+guild_bots[guild_id]["guildName"]+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
-                    for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
-                        await tb_end_channel.send('`' + stxt + '`')
+                await send_tb_sumary(guild_bots[guild_id]["guildName"],
+                                     et,
+                                     guild_bots[guild_id]["tb_channel_end"])
 
         except Exception as e:
             goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
@@ -1212,6 +1207,14 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         goutils.log2("DBG", "["+guild_id+"] "+et)
         return 1, et, None
 
+async def send_tb_sumary(guild_name, tb_summary, channel_id):
+    goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
+    if channel_id!=0:
+        tb_end_channel = bot.get_channel(channel_id)
+        await tb_end_channel.send("# BT de "+guild_bots[guild_id]["guildName"]+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
+        for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
+            await tb_end_channel.send('```' + stxt + '```')
+
 ##############################################################
 # Function: update_rpc_data
 # Parameters: guild_id (string)
@@ -1237,14 +1240,9 @@ async def update_rpc_data(guild_id, allyCode=None):
         # No TB ongoing
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
             # Display TB summary
-            tb_summary = tb_data["tb_summary"]
-            channel_id = guild_bots[guild_id]["tb_channel_end"]
-            goutils.log2("INFO", "["+guild_id+"] tb_summary="+tb_summary[:100]+" on channel "+str(channel_id))
-            if channel_id!=0:
-                tb_end_channel = bot.get_channel(channel_id)
-                await tb_end_channel.send("# BT de "+guild_bots[guild_id]["guildName"]+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
-                for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
-                    await tb_end_channel.send('`' + stxt + '`')
+            await send_tb_sumary(guild_bots[guild_id]["guildName"],
+                                 tb_data["tb_summary"],
+                                 guild_bots[guild_id]["tb_channel_end"])
     else:
         #TB ongoing, update gwarstats
 
