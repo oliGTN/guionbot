@@ -1240,9 +1240,22 @@ async def update_rpc_data(guild_id, allyCode=None):
         # No TB ongoing
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
             # Display TB summary
-            await send_tb_sumary(guild_bots[guild_id]["guildName"],
-                                 tb_data["tb_summary"],
-                                 guild_bots[guild_id]["tb_channel_end"])
+            if allyCode==None:
+                # this is a guild with warbot
+                guildName = guild_bots[guild_id]["guildName"]
+                tb_channel_end = guild_bots[guild_id]["tb_channel_end"]
+            else:
+                # no warbot, get infos from guild linked to player
+                query = "SELECT guildName, tbChanEnd_id FROM guild_bot_infos " \
+                        "JOIN players on players.guildId = guild_bot_infos.guild_id " \
+                        "WHERE allyCode = "+str(allyCode)
+                goutils.log2("DBG", query)
+                db_data = connect_mysql.get_line(query)
+                guildName = db_data[0]
+                tb_channel_end = db_data[1]
+
+            await send_tb_sumary(guildName, tb_data["tb_summary"], tb_channel_end)
+
     else:
         #TB ongoing, update gwarstats
 
