@@ -1378,7 +1378,11 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 err_code, tb_summary = await go.print_tb_strike_stats(
                                            guild_id, [], [],
                                            allyCode=allyCode)
-                goutils.log2("INFO", "tb_summary="+tb_summary[:100])
+                if err_code != 0:
+                    goutils.log2("WAR", tb_summary)
+                    tb_summary = None
+
+                goutils.log2("INFO", "tb_summary="+str(tb_summary)[:100])
 
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
 
