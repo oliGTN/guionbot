@@ -2158,6 +2158,38 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emojis.check)
         
     ##############################################################
+    # Command: fsg
+    # Parameters: allyCode
+    # Purpose: get latest info from API
+    ##############################################################
+    @commands.command(name='fsg',
+                 brief="Force la synchro API d'une Guilde",
+                 help="Force la synchro API d'une Guilde\n\n"\
+                      "Exemple: go.fsg 123456789")
+    @commands.check(admin_command)
+    async def fsg(self, ctx, *args):
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
+
+            if len(args)!=1:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help fsg")
+
+            allyCode = await manage_me(ctx, args[0], False)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            err_code, err_txt, dguild = await go.load_guild(allyCode, True, True,
+                                                  force_update=True)
+
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.message.add_reaction(emojis.error)
+
+    ##############################################################
     # Command: fsj
     # Parameters: allyCode
     #             "clearcache" (or any other text)
@@ -4454,6 +4486,20 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
 
                 await ctx.message.add_reaction(emojis.check)
 
+    ##############################################################
+    # Command: registercheck
+    # Parameters: code allié (string) ou "me"
+    # Purpose: liste of all guild members and associated discord account
+    ##############################################################
+    @commands.check(officer_command)
+    @commands.command(name='registercheck',
+                 brief="Liste les joueurs et leur compte discord",
+                 help="Liste les joueurs et leur compte discord\n\n"\
+                      "Exemple: go.registercheck me\n"\
+                      "Exemple: go.registercheck 123456789")
+    async def registercheck(self, ctx, allyCode):
+        await bot_commands.registercheck(ctx, bot, allyCode)
+
 ##############################################################
 # Member slash commands (duplicate of MemberCog
 ##############################################################
@@ -4517,8 +4563,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
     @commands.check(member_command)
     @commands.command(name='register',
-                      brief="Lie un code allié au compte discord qui lance la commande",
-                      help="Lie un code allié au compte discord qui lance la commande\n\n"\
+                      brief="Lie un code allié à un compte discord",
+                      help="Lie un code allié à un compte discord\n\n"\
                            "Exemple: go.register 123456789\n"\
                            "Exemple: go.register 123456789 @chatondu75")
     async def register(self, ctx, *args):

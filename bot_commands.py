@@ -173,11 +173,47 @@ async def gdp(ctx_interaction, allyCode):
     await command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt="chargement des joueurs OK")
 
 ##############################################################
+async def registercheck(ctx_interaction, bot, allyCode):
+    try:
+        resp_msg = await command_ack(ctx_interaction)
+
+        ec, et, allyCode = await manage_me(ctx_interaction, allyCode, allow_tw=True)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, et)
+            return
+
+        # Get data from DB
+        query = "SELECT guildName, name, discord_id FROM player_discord " \
+                "JOIN players ON players.allyCode=player_discord.allyCode " \
+                "WHERE guildName=(SELECT guildName FROM players WHERE allyCode = "+str(allyCode)+") " \
+                "ORDER by name "
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_table(query)
+
+        guildName = db_data[0][0]
+        output_txt = "Liste des comptes discord de la guilde "+guildName
+        for line in db_data:
+            player_name = line[1]
+            discord_id = line[2]
+            try:
+                discord_user = await ctx_interaction.guild.fetch_member(discord_id)
+                display_name = "**@"+discord_user.display_name+"**"
+            except:
+                display_name = "*non défini*"
+            output_txt += "\n"+player_name+" >>> "+display_name
+
+        await command_ok(ctx_interaction, resp_msg, output_txt, intermediate=False)
+
+    except Exception as e:
+        goutils.log2("ERR", traceback.format_exc())
+        await command_error(ctx_interaction, resp_msg, "erreur inconnue")
+
+##############################################################
 async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
     try:
-        dict_units = data.get("unitsList_dict.json")
-
         resp_msg = await command_ack(ctx_interaction)
+
+        dict_units = data.get("unitsList_dict.json")
 
         ec, et, allyCode = await manage_me(ctx_interaction, allyCode)
         if ec!=0:
@@ -362,9 +398,8 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
         await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(", ".join(list_display_targets)), images=[image])
 
     except Exception as e:
-        goutils.log2("ERR", str(sys.exc_info()[0]))
-        goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
+        await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 ##############################################################
 async def tpg(ctx_interaction, *args):

@@ -296,7 +296,7 @@ async def load_player(ac_or_id, force_update, no_db):
     goutils.log2('DBG', "END")
     return 0, "", dict_player
 
-async def load_guild(txt_allyCode, load_players, cmd_request, ctx_interaction=None):
+async def load_guild(txt_allyCode, load_players, cmd_request, ctx_interaction=None, force_update=False):
     # Get DB stored guild for the player
     query = "SELECT id FROM guilds "
     query+= "JOIN players ON players.guildName = guilds.name "
@@ -317,10 +317,11 @@ async def load_guild(txt_allyCode, load_players, cmd_request, ctx_interaction=No
     goutils.log2("DBG", 'Guild ID for '+txt_allyCode+' is '+guild_id)
 
     return await load_guild_from_id(guild_id, load_players, cmd_request, 
-                                    ctx_interaction=ctx_interaction)
+                                    ctx_interaction=ctx_interaction,
+                                    force_update=force_update)
 
 async def load_guild_from_id(guild_id, load_players, cmd_request,
-                             ctx_interaction=None):
+                             ctx_interaction=None, force_update=False):
     #Get RPC guild data
     goutils.log2('DBG', 'Requesting RPC data for guild ' + guild_id)
     ec, et, dict_guild = await connect_rpc.get_extguild_data_from_id(guild_id, False)
@@ -428,12 +429,13 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
         need_to_add_players = (len(playerId_to_add) > 0)
         goutils.log2("DBG", "need_to_add_players="+str(need_to_add_players))
         goutils.log2("DBG", "need_refresh_due_to_time="+str(need_refresh_due_to_time))
+        goutils.log2("DBG", "force_update="+str(force_update))
 
-        if is_new_guild or need_refresh_due_to_time or need_to_add_players:
+        if is_new_guild or need_refresh_due_to_time or need_to_add_players or force_update:
             #The guild is not defined yet, add it
             guild_loading_status = parallel_work.get_guild_loading_status(guild_name)
 
-            if is_new_guild or need_refresh_due_to_time:
+            if is_new_guild or need_refresh_due_to_time or force_update:
                 #add all players
                 list_playerId_to_update = [x['playerId'] for x in dict_guild["member"]]
             else:
