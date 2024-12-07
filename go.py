@@ -3413,7 +3413,11 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
         return 1, 'ERR: guilde non trouvée pour code allié ' + txt_allyCode, None
 
     if tw_mode:
-        #ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0, allyCode=connected_allyCode)
+        if connected_allyCode == None:
+            force_update = -1
+        else:
+            force_update = 1
+
         ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, -1, allyCode=connected_allyCode)
         if ec != 0:
             return ec, et, None
