@@ -72,87 +72,6 @@ intents.message_content = True
 #bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 bot = MyClient(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 
-dict_BT_missions={}
-dict_BT_missions['HLS']={}
-dict_BT_missions['HLS']['Rebel Base Mission']='HLS1-top'
-dict_BT_missions['HLS']['Ion Cannon Mission']='HLS2-top'
-dict_BT_missions['HLS']['Overlook Mission']='HLS2-bot'
-dict_BT_missions['HLS']['Rear Airspace Mission']='HLS3-top'
-dict_BT_missions['HLS']['Rear Trench Mission']='HLS3-mid'
-dict_BT_missions['HLS']['Power Generator Mission']='HLS3-bot'
-dict_BT_missions['HLS']['Forward Airspace Mission']='HLS4-top'
-dict_BT_missions['HLS']['Forward Trench Mission']='HLS4-mid'
-dict_BT_missions['HLS']['Outer Pass Mission']='HLS4-bot'
-dict_BT_missions['HLS']['Contested Airspace Mission']='HLS5-top'
-dict_BT_missions['HLS']['Snowfields Mission']='HLS5-mid'
-dict_BT_missions['HLS']['Forward Stronghold Mission']='HLS5-bot'
-dict_BT_missions['HLS']['Imperial Fleet Mission']='HLS6-top'
-dict_BT_missions['HLS']['Imperial Flank Mission']='HLS6-mid'
-dict_BT_missions['HLS']['Imperial Landing Mission']='HLS6-bot'
-dict_BT_missions['HDS']={}
-dict_BT_missions['HDS']['Imperial Flank Mission']='HDS1-top'
-dict_BT_missions['HDS']['Imperial Landing Mission']='HDS1-bot'
-dict_BT_missions['HDS']['Snowfields Mission']='HDS2-top'
-dict_BT_missions['HDS']['Forward Stronghold Mission']='HDS2-bot'
-dict_BT_missions['HDS']['Imperial Fleet']='HDS3-top'
-dict_BT_missions['HDS']['Ion Cannon Mission']='HDS3-mid'
-dict_BT_missions['HDS']['Outer Pass Mission']='HDS3-bot'
-dict_BT_missions['HDS']['Contested Airspace']='HDS4-top'
-dict_BT_missions['HDS']['Power Generator Mission']='HDS4-mid'
-dict_BT_missions['HDS']['Rear Trench Mission']='HDS4-bot'
-dict_BT_missions['HDS']['Forward Airspace Fleet']='HDS5-top'
-dict_BT_missions['HDS']['Forward Trenches Mission']='HDS5-mid'
-dict_BT_missions['HDS']['Overlook Mission Mission']='HDS5-bot'
-dict_BT_missions['HDS']['Rear Airspace']='HDS6-top'
-dict_BT_missions['HDS']['Rebel Base (Main Entrance) Mission']='HDS6-mid'
-dict_BT_missions['HDS']['Rebel Base (South Entrance) Mission']='HDS6-bot'
-dict_BT_missions['GLS']={}
-dict_BT_missions['GLS']['Republic Fleet Mission']='GLS1-top'
-dict_BT_missions['GLS']['Count Dooku\'s Hangar Mission']='GLS1-mid'
-dict_BT_missions['GLS']['Rear Flank Mission']='GLS1-bot'
-dict_BT_missions['GLS']['Contested Airspace (Republic) Mission']='GLS2-top'
-dict_BT_missions['GLS']['Battleground Mission']='GLS2-mid'
-dict_BT_missions['GLS']['Sand Dunes Mission']='GLS2-bot'
-dict_BT_missions['GLS']['Contested Airspace (Separatist) Mission']='GLS3-top'
-dict_BT_missions['GLS']['Separatist Command Mission']='GLS3-mid'
-dict_BT_missions['GLS']['Petranaki Arena Mission']='GLS3-bot'
-dict_BT_missions['GLS']['Separatist Armada Mission']='GLS4-top'
-dict_BT_missions['GLS']['Factory Waste Mission']='GLS4-mid'
-dict_BT_missions['GLS']['Canyons Mission']='GLS4-bot'
-dict_BT_missions['GDS']={}
-dict_BT_missions['GDS']['Droid Factory Mission']='GDS1-top'
-dict_BT_missions['GDS']['Canyons Mission']='GDS1-bot'
-dict_BT_missions['GDS']['Core Ship Yards Mission']='GDS2-top'
-dict_BT_missions['GDS']['Separatist Command Mission']='GDS2-mid'
-dict_BT_missions['GDS']['Petranaki Arena Mission']='GDS2-bot'
-dict_BT_missions['GDS']['Contested Airspace Mission']='GDS3-top'
-dict_BT_missions['GDS']['Battleground Mission']='GDS3-mid'
-dict_BT_missions['GDS']['Sand Dunes Mission']='GDS3-bot'
-dict_BT_missions['GDS']['Republic Fleet Mission']='GDS4-top'
-dict_BT_missions['GDS']['Count Dooku\'s Hangar Mission']='GDS4-mid'
-dict_BT_missions['GDS']['Rear Flank Mission']='GDS4-bot'
-dict_BT_missions['ROTE']={}
-dict_BT_missions['ROTE']['Mustafar']='ROTE1-DS'
-dict_BT_missions['ROTE']['Corellia']='ROTE1-MS'
-dict_BT_missions['ROTE']['Coruscant']='ROTE1-LS'
-dict_BT_missions['ROTE']['Geonosis']='ROTE2-DS'
-dict_BT_missions['ROTE']['Felucia']='ROTE2-MS'
-dict_BT_missions['ROTE']['Bracca']='ROTE2-LS'
-dict_BT_missions['ROTE']['Dathomir']='ROTE3-DS'
-dict_BT_missions['ROTE']['Tatooine']='ROTE3-MS'
-dict_BT_missions['ROTE']['Kashyyyk']='ROTE3-LS'
-dict_BT_missions['ROTE']['Zeffo']='ROTE3-LSb'
-dict_BT_missions['ROTE']['Haven-class Medical Station']='ROTE4-DS'
-dict_BT_missions['ROTE']['Kessel']='ROTE4-MS'
-dict_BT_missions['ROTE']['Mandalore']='ROTE4-MSb'
-dict_BT_missions['ROTE']['Lothal']='ROTE4-LS'
-dict_BT_missions['ROTE']['Malachor']='ROTE5-DS'
-dict_BT_missions['ROTE']['Vandor']='ROTE5-MS'
-dict_BT_missions['ROTE']['Ring of Kafrene']='ROTE5-LS'
-dict_BT_missions['ROTE']['Death Star']='ROTE6-DS'
-dict_BT_missions['ROTE']['Hoth']='ROTE6-MS'
-dict_BT_missions['ROTE']['Scarif']='ROTE6-LS'
-
 list_tw_opponent_msgIDs = []
 
 dict_platoons_previously_done = {} #Empy set
@@ -555,8 +474,10 @@ async def send_alert_to_echocommanders(guild_id, message):
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
 async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
+    dict_tb = data.get("tb_definition.json")
     dict_units = data.get("unitsList_dict.json")
     ENG_US = data.get("ENG_US.json")
+
     FRE_char_names = []
     ENG_char_names = {}
     for unit_id in dict_units:
@@ -728,8 +649,8 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                 if territory_position == 'bottom':
                                     territory_position = 'bot'
                                 
-                                if territory_name in dict_BT_missions[tbs_name]:
-                                    territory_name_position = dict_BT_missions[tbs_name][territory_name]
+                                if territory_name in dict_tb["zone_names"]:
+                                    territory_name_position = dict_tb["zone_names"][territory_name]
                                     territory_phase = territory_name_position.split("-")[0][-1]
                                     if territory_position == "left":
                                         territory_pos = "DS"
@@ -795,7 +716,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                             del dict_platoons_allocation[key]
                                                 
                                 else:
-                                    war_txt = "["+str(tbChannel_id)+"] Unknown mission "+territory_name+" for TB "+tbs_name
+                                    war_txt = "["+str(tbChannel_id)+"] Unknown mission "+territory_name
                                     goutils.log2("WAR", war_txt)
                                     await send_alert_to_admins(None, war_txt)
 
