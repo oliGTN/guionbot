@@ -2,6 +2,7 @@ import json
 import sys
 game_data = json.load(open(sys.argv[1], 'r'))
 FRE_FR = json.load(open('DATA/FRE_FR.json', 'r'))
+ENG_US = json.load(open('DATA/ENG_US.json', 'r'))
 
 # shortname, [conflit01, conflict02, conflict03]
 tb_aliases = {"t01D": {"alias": "HLS", 
@@ -40,7 +41,7 @@ dict_tables = {}
 for t in game_data["table"]:
     dict_tables[t["id"]] = t
 
-dict_tb={}
+dict_tb={"zone_names": {}}
 for tb in game_data["territoryBattleDefinition"]:
     tb_id = tb["id"]
     tb_alias = tb_aliases[tb_id]["alias"]
@@ -63,6 +64,7 @@ for tb in game_data["territoryBattleDefinition"]:
     for c in tb["conflictZoneDefinition"]:
         #print(c)
         zone_id = c["zoneDefinition"][0]["zoneId"]
+        zone_name = ENG_US[c["zoneDefinition"][0]["nameKey"]]
         if zone_id.endswith("_bonus"):
             is_bonus = True
             zone_phase = zone_id.split("_")[-3]
@@ -87,6 +89,10 @@ for tb in game_data["territoryBattleDefinition"]:
             if is_bonus:
                 dict_tb[zone_id]["name"] += "b"
 
+        # add an entry by zone name
+        dict_tb["zone_names"][zone_name] = dict_tb[zone_id]["name"]
+
+        # define chars/ships/mix
         if c["territoryBattleZoneUnitType"] == 1:
             dict_tb[zone_id]["type"] = "chars"
         elif c["territoryBattleZoneUnitType"] == 2:
