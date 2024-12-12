@@ -5341,7 +5341,7 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
 
     #Prepare the dict to transform platoon names into zone IDs
     dict_tb = godata.get("tb_definition.json")
-    tb_zones = [k for k in dict_tb.keys() if re.fullmatch(".*phase\d\d_conflict\d\d", k)!=None]
+    tb_zones = [k for k in dict_tb.keys() if re.fullmatch(".*phase\d\d_conflict\d\d(_bonus)?", k)!=None]
     dict_zones = {}
     for zone in tb_zones:
         dict_zones[dict_tb[zone]["name"]] = zone
