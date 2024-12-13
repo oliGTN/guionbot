@@ -6009,6 +6009,8 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
         for [tag, mapstats] in [["current", current_mapstats], ["previous", previous_mapstats]]:
             for ms in mapstats:
                 if ms["mapStatId"] in [encounter_id, attempt_id]:
+                    if not "playerStat" in ms:
+                        continue
                     for p in ms["playerStat"]:
                         if p["memberId"] in dict_members:
                             p_name = dict_members[p["memberId"]]
