@@ -957,7 +957,10 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
         zone_shortname = dict_tb[zone_fullname]["name"]
         cells.append(gspread.cell.Cell(row=4, col=1+4*i_zone, value=zone_shortname))
 
-        zone_round = zone_fullname[-12]
+        if zone_fullname.endswith("_bonus"):
+            zone_round = zone_fullname[-18]
+        else:
+            zone_round = zone_fullname[-12]
         if zone_round == str(dict_phase["round"]):
             cells.append(gspread.cell.Cell(row=4, col=2+4*i_zone, value=""))
         else:
