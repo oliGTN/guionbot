@@ -5205,6 +5205,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Liste des équipements pour up des persos",
                  help="Liste des équipements pour up des persos G13\n\n"\
                       "Exemple: go.farmeqpt me bensolo\n"\
+                      "Exemple: go.farmeqpt me bensolo:R5\n"\
+                      "Exemple: go.farmeqpt me guide:BKM\n"\
                       "Exemple: go.farmeqpt me tag:gungan")
     async def farmeqpt(self, ctx, allyCode, *list_alias):
         await bot_commands.farmeqpt(ctx, allyCode, list_alias)
