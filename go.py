@@ -5976,7 +5976,7 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
                                     key=lambda x: x.split(":")[1].split("_")[0])[-1]
         try:
             previous_mapstats = json.load(open("EVENTS/"+prev_mapstats_file))
-        except json.decoder.JSONDecodeError e:
+        except json.decoder.JSONDecodeError as e:
             previous_mapstats = {}
 
     # Get member list id/name
