@@ -1129,10 +1129,10 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         return 1, et, None
 
 async def send_tb_summary(guild_name, tb_summary, channel_id):
-    goutils.log2("INFO", "["+guild_id+"] tb_summary="+str(tb_summary)[:100]+" on channel "+str(channel_id))
+    goutils.log2("INFO", "["+guild_name+"] tb_summary="+str(tb_summary)[:100]+" on channel "+str(channel_id))
     if channel_id!=0:
         tb_end_channel = bot.get_channel(channel_id)
-        await tb_end_channel.send("# BT de "+guild_bots[guild_id]["guildName"]+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
+        await tb_end_channel.send("# BT de "+guild_name+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
         for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
             await tb_end_channel.send('```' + stxt + '```')
 
