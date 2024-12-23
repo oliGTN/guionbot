@@ -1472,7 +1472,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     if my_list_open_zones == None:
         # sort by position by removing the "b" for bonus
         # then add 0.5 for bonus zone
-        list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1].strip("b")] + 0.5*dict_tb[x]["name"].split("-")[1].endswith("b"))
+        print(list_open_zones)
+        list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1].rstrip("b")] + 0.5*dict_tb[x]["name"].split("-")[1].endswith("b"))
     else:
         list_open_zones = my_list_open_zones
 
