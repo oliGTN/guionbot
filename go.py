@@ -2779,7 +2779,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
         if err_code != 0:
             goutils.log2('ERR', 'erreur lors de la récupération des données guilde pour le code allié ' + txt_allyCode)
 
-    #Recuperation des dernieres donnees sur gdrive
+    #get latest Journey Guide definition
     ec, list_teams, dict_teams = connect_gsheets.load_config_teams(BOT_GFILE, False)
     if ec == 2:
         return 1, "ERR: pas de fichier de config pour ce serveur"
@@ -2788,6 +2788,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
     elif ec != 0:
         return 1, "ERR: erreur en lisant le fichier de config"
 
+    #Get all roster evolutions in the given period, but not the datacrons
     if not compute_guild:
         query = "SELECT guildName, name, defId, timestamp FROM roster_evolutions " \
               + "JOIN players ON players.allyCode = roster_evolutions.allyCode " \
@@ -2806,6 +2807,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
     goutils.log2("DBG", query)
     db_data_evo = connect_mysql.get_table(query)
 
+    #Get all unlocked ships by player
     if not compute_guild:
         query = "SELECT name, defId FROM roster " \
               + "JOIN players ON players.allyCode = roster.allyCode " \
@@ -6242,14 +6244,17 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
 
 # Details about special missions in TB
 async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
-    dict_tb = godata.get("tb_definition.json")
-
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", 0, allyCode=allyCode)
     if ec!=0:
         return 1, et
 
     guild = tb_data["guild"]
     mapstats = tb_data["mapstats"]
+
+    return await print_tb_special_results_from_rpc(guild, mapstats, zone_shortname)
+
+async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
+    dict_tb = godata.get("tb_definition.json")
 
     zone_name = None
     for x in dict_tb:
@@ -6296,22 +6301,31 @@ async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
                     dict_coverts[covert_name][pname] = {}
                 dict_coverts[covert_name][pname]["score"] = m["score"]
 
+    line_colors = []
     output_txt = "**Missions spéciales pour "+zone_shortname+"**"
+    line_colors.append("black")
     if len(dict_coverts)>0:
         for c in sorted(list(dict_coverts.keys())):
             output_txt += "\nMission "+c[-1]
+            line_colors.append("black")
             success = 0
             for p in sorted(list(dict_coverts[c].keys())):
                 output_txt += "\n  "+p+" (round "+dict_coverts[c][p]["round"]+")"
                 if "score" in dict_coverts[c][p] and dict_coverts[c][p]["score"]=="1":
                     output_txt += " > OK !"
                     success+=1
+                    line_colors.append("green")
                 else:
                     output_txt += " > échec"
+                    line_colors.append("red")
             output_txt += "\n  >> "+str(success)+"/"+str(len(dict_coverts[c]))
+            line_colors.append("black")
+
+        ec, et, image = portraits.get_image_from_texttable(output_txt, line_colors)
     else:
         output_txt += "\n  aucune de jouée"
+        image = None
 
-    return 0, output_txt
+    return 0, output_txt, image
 
 

@@ -15,8 +15,9 @@ font24 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
 NAME_HEIGHT = 30
 PORTRAIT_SIZE = 168
 MAX_WIDTH_PORTRAITS = 10
+LINE_SPACING=4
 
-# list recovered from gamedata.json / 24 / 2
+# list for guild logos, recovered from gamedata.json / 24 / 2
 dict_colors = { "bright_orange_brown": ["0xFFCA52FF", "0x5C2C1AFF"],
                 "bright_blue_dark_blue": ["0xA4DCFFFF", "0x0020BFFF"],
                 "white_red": ["0xFFFFFFFF", "0x430000FF"],
@@ -584,3 +585,73 @@ def get_image_from_eqpt_list(eqpt_list, display_owned=False):
         eqpt_list_img = add_vertical(eqpt_list_img, img)
 
     return eqpt_list_img
+
+def get_image_from_textline(text, font=None, color=None, width=None):
+    if color==None:
+        color="black"
+    if text=="":
+        text=" "
+
+    #Create image
+    image = Image.new('RGBA', (1,1), color)
+    image_draw = ImageDraw.Draw(image)
+
+    #Resize image
+    img_box = image_draw.textbbox((0,0), text, font=font)
+
+    if width==None:
+        img_width = img_box[2]
+    else:
+        img_width = width
+    img_height = img_box[3]
+    image = image.resize((img_width, img_height))
+    image_draw = ImageDraw.Draw(image)
+
+    #Draw text
+    image_draw.text((0,0), text, fill=(255, 255, 255), font=font)
+
+    return image
+
+
+###############################
+#IN: text_table: may be a list of lines OR a big text on several lines
+#OUT: an image, with text in white
+###############################
+def get_image_from_texttable(text_table, line_colors=None):
+    list_line_images = []
+
+    if type(text_table)==str:
+        text_table = text_table.strip()
+        text_lines = text_table.split("\n")
+    elif type(text_table)==list:
+        text_lines = text_table
+        text_table = "\n".join(text_lines)
+    else:
+        return 1, "Unknown type for text_table", None
+
+    #Get width of global text
+    image = Image.new('RGBA', (1,1), (0,0,0)) #create image to get an ImageDraw
+    image_draw = ImageDraw.Draw(image) # create imagedraw to use textbbox
+    img_box = image_draw.multiline_textbbox((0,0), text_table, font=font24, spacing=LINE_SPACING)
+    text_width = img_box[2]
+
+    if line_colors == None:
+        line_colors = ["black"] * len(text_table)
+
+    elif len(text_lines) != len(line_colors):
+        goutils.log2("ERR", "xxx"+text_table+"xxx")
+        goutils.log2("ERR", line_colors)
+        return 1, "Inconsistent size between text and colors", None
+
+    for i_line in range(len(text_lines)):
+        line = text_lines[i_line]
+        color = line_colors[i_line]
+        img = get_image_from_textline(line, color=color, font=font24, width=text_width)
+        list_line_images.append(img)
+
+
+    image = list_line_images[0]
+    for img in list_line_images[1:]:
+        image = add_vertical(image, img)
+
+    return 0, "", image
