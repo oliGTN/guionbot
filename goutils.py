@@ -503,6 +503,7 @@ def delta_dict_player(dict1, dict2):
         else:
             log2("DBG", "new character "+character_id+" for "+str(allyCode))
             connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
+            detect_delta_roster_element(allyCode, None, character)
             delta_dict['rosterUnit'][character_id] = character
 
     #compare datacrons
@@ -552,6 +553,14 @@ def extended_gear_to_txt(extended_gear):
 def detect_delta_roster_element(allyCode, char1, char2):
     dict_capas = data.get('unit_capa_list.json')
     defId = char1['definitionId'].split(":")[0]
+
+    #manage new character
+    if char1==None:
+        char1={"currentRarity": 0,
+               "currentLevel": 0,
+               "currentTier": 0,
+               "equipment": [],
+               "skill": []}
 
     #RARITY
     if (char1['currentRarity'] != char2['currentRarity']) and (char2['currentRarity'] >= 4):
