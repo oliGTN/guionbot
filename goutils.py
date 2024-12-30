@@ -552,7 +552,7 @@ def extended_gear_to_txt(extended_gear):
 #######################
 def detect_delta_roster_element(allyCode, char1, char2):
     dict_capas = data.get('unit_capa_list.json')
-    defId = char1['definitionId'].split(":")[0]
+    defId = char2['definitionId'].split(":")[0]
 
     #manage new character
     if char1==None:
