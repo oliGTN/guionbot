@@ -390,7 +390,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
     if load_players:
         #Get the list of players to detect which to add or remove
         query = "SELECT playerId FROM players "\
-               +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
+               +"WHERE guildId = '"+guild_id+"'"
         goutils.log2('DBG', query)
         playerId_in_DB = connect_mysql.get_column(query)
         while None in playerId_in_DB:
