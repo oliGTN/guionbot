@@ -367,7 +367,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False)
             list_units.append(unit)
 
     # Get regular player data
-    ec, et, d_player = await go.load_player(allyCode, -1, True)
+    ec, et, d_player = await go.load_player(allyCode, 1, False)
     if ec != 0:
         return 1, et, None
 
@@ -382,7 +382,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False)
     player_eqpt = {}
     if check_owned:
         # Connected user, get full player data
-        ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode, use_cache_data=True)
+        ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode)
         if ec != 0:
             return 1, et, None
 
