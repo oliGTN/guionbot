@@ -659,17 +659,23 @@ async def get_extplayer_data(ac_or_id):
 
     return 0, "", dict_player
 
-async def get_player_initialdata(ac):
+async def get_player_initialdata(ac, use_cache_data=False):
     # RPC REQUEST for initial data
     url = "http://localhost:8000/initialdata"
-    params = {"allyCode": ac}
+    params = {"allyCode": ac,
+              "use_cache_data":use_cache_data}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "initialdata status="+str(resp.status))
                 if resp.status==200:
-                    initialdata_player = await(resp.json())
+                    if use_cache_data:
+                        cache_json = await(resp.json())
+                        cache_ts = cache_json["timestamp"]
+                        initialdata_player = cache_json["data"]
+                    else:
+                        initialdata_player = await(resp.json())
                 else:
                     return 1, "Cannot get initialdata from RPC", None
 

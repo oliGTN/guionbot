@@ -5173,9 +5173,12 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 
 
     # Kyros
-    err_code, err_txt, needed_eqpt = get_needed_eqpt(dict_player, [{"defId": unit_id,
-                                                                    "gear": target_gear,
-                                                                    "relic": 0}]) #key=eqpt_id, value=count
+    #key=eqpt_id, value=count
+    err_code, err_txt, needed_eqpt = get_needed_eqpt(dict_player,
+                                                     [{"defId": unit_id,
+                                                       "gear": target_gear,
+                                                       "relic": 0}], 
+                                                     breakdown=True)
     kyro_energy = 0
     if "172Salvage" in needed_eqpt:
         kyro_energy += needed_eqpt["172Salvage"] * 10 / kyro_droprate
@@ -5184,9 +5187,8 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
 
     return kyro_energy, shard_energy
 
-def get_needed_eqpt(dict_player, list_units):
+def get_needed_eqpt(dict_player, list_units, breakdown=False):
     dict_unitsList = godata.get("unitsList_dict.json")
-    dict_eqpt = godata.get("eqpt_dict.json")
     dict_relic = godata.get("relic_dict.json")
 
     needed_eqpt = {} #key=eqpt_id, value=count
@@ -5238,21 +5240,9 @@ def get_needed_eqpt(dict_player, list_units):
                     needed_eqpt[eqpt] += 1
                 #print(needed_eqpt)
 
-            #loop to breakdown equipments
-            continue_loop = True
-            while(continue_loop):
-                continue_loop = False
-                eqpt_id_list = list(needed_eqpt.keys())
-                for eqpt_id in eqpt_id_list:
-                    if eqpt_id in dict_eqpt and "recipe" in dict_eqpt[eqpt_id]:
-                        continue_loop = True
-                        eqpt_count = needed_eqpt[eqpt_id]
-                        recipe = dict_eqpt[eqpt_id]["recipe"]
-                        for ingredient in recipe:
-                            if not ingredient["id"] in needed_eqpt:
-                                needed_eqpt[ingredient["id"]] = 0
-                            needed_eqpt[ingredient["id"]] += eqpt_count * ingredient["maxQuantity"]
-                        del needed_eqpt[eqpt_id]
+            #breakdown equipments
+            if breakdown:
+                needed_eqpt, remain_to_breakdown = breakdown_to_farmable_eqpt(needed_eqpt)
 
         #####################
         # RELIC equipment
@@ -5267,6 +5257,36 @@ def get_needed_eqpt(dict_player, list_units):
                 #print(needed_eqpt)
 
     return 0, "", needed_eqpt
+
+#####################
+#IN: list of eqpt
+#IN: one_level: True if breakdown only once / False if breakdown completely
+#OUT: list of farmable eqpt, to get the needed one
+#OUT: remain_to_breakdown: True if something remains to breakdown (always False if one_level=False)
+def breakdown_to_farmable_eqpt(needed_eqpt, one_level=False):
+    dict_eqpt = godata.get("eqpt_dict.json")
+
+    farmable_eqpt = dict(needed_eqpt) #copy the source
+
+    continue_loop = True
+    while(continue_loop):
+        continue_loop = False
+        eqpt_id_list = list(farmable_eqpt.keys())
+        for eqpt_id in eqpt_id_list:
+            if eqpt_id in dict_eqpt and "recipe" in dict_eqpt[eqpt_id]:
+                continue_loop = True
+                eqpt_count = farmable_eqpt[eqpt_id]
+                recipe = dict_eqpt[eqpt_id]["recipe"]
+                for ingredient in recipe:
+                    if not ingredient["id"] in farmable_eqpt:
+                        farmable_eqpt[ingredient["id"]] = 0
+                    farmable_eqpt[ingredient["id"]] += eqpt_count * ingredient["maxQuantity"]
+                del farmable_eqpt[eqpt_id]
+
+        if one_level:
+            break
+
+    return farmable_eqpt, continue_loop
 
 def update_raid_estimates_from_wookiebot(raid_name, file_content):
     #print(file_content[:100])
