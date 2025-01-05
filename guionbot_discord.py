@@ -16,13 +16,14 @@ from discord.ext import tasks, commands
 from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
 from discord import app_commands
 from io import BytesIO
-from requests import get
+import requests
 import traceback
 from texttable import Texttable
 import zipfile
 from typing import List
 import json
 import threading
+import urllib
 
 import bot_commands
 import go
@@ -1458,8 +1459,8 @@ async def on_ready():
     await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
 
     #recover external IP address
-    #ip = get('https://api.ipify.org').text
-    ip = get('https://v4.ident.me').text
+    #ip = requests.get('https://api.ipify.org').text
+    ip = requests.get('https://v4.ident.me').text
     
     msg = bot.user.name+" has connected to Discord from ip "+ip
     goutils.log2("INFO", msg)
@@ -4684,17 +4685,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             swgohgg_url = "https://swgoh.gg/p/" + allyCode
             try:
-                r = get(swgohgg_url)
+                r = requests.get(swgohgg_url, timeout=10)
                 if r.status_code == 404:
                     swgohgg_url = "introuvable"
+            except requests.exceptions.ReadTimeout as e:
+                swgohgg_url = "*site indisponible pour le moment*"
             except urllib.error.HTTPError as e:
                 swgohgg_url = "introuvable"
 
             warstats_url = "https://goh.warstats.net/players/view/" + allyCode
             try:
-                r = get(warstats_url)
+                r = requests.get(warstats_url, timeout=10)
                 if r.status_code == 404:
                     warstats_url = "introuvable"
+            except requests.exceptions.ReadTimeout as e:
+                warstats_url = "*site indisponible pour le moment*"
             except urllib.error.HTTPError as e:
                 warstats_url = "introuvable"
 
