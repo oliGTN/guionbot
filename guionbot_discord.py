@@ -2437,6 +2437,40 @@ class TwCog(commands.GroupCog, name="gt"):
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
+    @app_commands.command(name="stats")
+    async def tw_stats(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer(thinking=True)
+
+            #get player config from DB
+            ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
+                return
+
+            guild_id = player_infos["guild_id"]
+            allyCode = player_infos["allyCode"]
+
+            # Run the TW summary
+            err_code, ret_txt = await go.print_tw_summary(guild_id, allyCode=allyCode)
+            if err_code != 0:
+                txt = emojis.redcross+" ERR: "+err_txt
+                await interaction.edit_original_response(content=txt)
+                return
+
+            # Print the results
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                await interaction.channel.send('`'+txt+'`')
+
+            #Main status for the command
+            txt = emojis.check+" stats GT OK"
+            await interaction.edit_original_response(content=txt)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
     @app_commands.command(name="défense")
     @app_commands.rename(units="unités")
     async def tw_defense(self, interaction: discord.Interaction,

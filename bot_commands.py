@@ -139,7 +139,7 @@ async def send_message(ctx_interaction, output_txt, images=None, files=None):
         attachments += files
 
     if ctx_interaction != None:
-        await ctx_interaction.message.channel.send(content=content, attachments=attachments)
+        await ctx_interaction.channel.send(content=content, attachments=attachments)
 
     else:
         print(content)
