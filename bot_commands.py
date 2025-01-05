@@ -405,16 +405,21 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
     #  loop...
     initial_player_eqpt = dict(player_eqpt)
     continue_loop = True
+    needed_owned_eqpt = {}
     while(continue_loop):
-        needed_owned_eqpt = {}
         for eqpt_id in needed_eqpt:
             if eqpt_id in player_eqpt:
                 #Store player amount for later display
                 if player_eqpt[eqpt_id] > needed_eqpt[eqpt_id]:
-                    needed_owned_eqpt[eqpt_id] = needed_eqpt[eqpt_id]
+                    if not eqpt_id in needed_owned_eqpt:
+                        needed_owned_eqpt[eqpt_id] = 0
+                    needed_owned_eqpt[eqpt_id] += needed_eqpt[eqpt_id]
                     player_eqpt[eqpt_id] -= needed_eqpt[eqpt_id]
+                    needed_eqpt[eqpt_id] = 0
                 else:
-                    needed_owned_eqpt[eqpt_id] = player_eqpt[eqpt_id]
+                    if not eqpt_id in needed_owned_eqpt:
+                        needed_owned_eqpt[eqpt_id] = 0
+                    needed_owned_eqpt[eqpt_id] += player_eqpt[eqpt_id]
                     needed_eqpt[eqpt_id] -= player_eqpt[eqpt_id]
                     player_eqpt[eqpt_id] = 0
 
