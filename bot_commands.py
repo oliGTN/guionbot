@@ -253,7 +253,8 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
         goutils.log2("ERR", traceback.format_exc())
         await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
-async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False):
+async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
+                                   dict_player=None, initialdata_player=None):
     dict_units = data.get("unitsList_dict.json")
 
     #Get alias and target gear/relic
@@ -367,9 +368,12 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False)
             list_units.append(unit)
 
     # Get regular player data
-    ec, et, d_player = await go.load_player(allyCode, 1, False)
-    if ec != 0:
-        return 1, et, None
+    if dict_player==None:
+        ec, et, d_player = await go.load_player(allyCode, 1, False)
+        if ec != 0:
+            return 1, et, None
+    else:
+        d_player = dict_player
 
     # Get equipment dict
     ec, et, needed_eqpt = go.get_needed_eqpt(d_player, list_units)
@@ -382,9 +386,12 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False)
     player_eqpt = {}
     if check_owned:
         # Connected user, get full player data
-        ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode)
-        if ec != 0:
-            return 1, et, None
+        if initialdata_player==None:
+            ec, et, i_player = await connect_rpc.get_player_initialdata(allyCode)
+            if ec != 0:
+                return 1, et, None
+        else:
+            i_player = initialdata_player
 
         #create list of owned equipment
         player_eqpt = {}
@@ -396,6 +403,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False)
     # Loop from high level eqpt, check if owned
     #  then breakdown into next level, chck if owned
     #  loop...
+    initial_player_eqpt = dict(player_eqpt)
     continue_loop = True
     while(continue_loop):
         needed_owned_eqpt = {}
@@ -416,24 +424,25 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False)
     # Transform into list
     eqpt_list = []
     list_eqpt_id = set(list(needed_eqpt.keys())+list(needed_owned_eqpt.keys()))
+    still_needed_eqpt = needed_eqpt
     for k in list_eqpt_id:
         if k == 'GRIND':
             continue
 
-        if k in needed_eqpt:
-            needed = needed_eqpt[k]
+        if k in still_needed_eqpt:
+            still_needed = still_needed_eqpt[k]
         else:
-            needed = 0
-        if needed == 0:
+            still_needed = 0
+        if still_needed == 0:
             continue
 
         if k in needed_owned_eqpt:
             needed_owned = needed_owned_eqpt[k]
-            total_owned = needed_owned + player_eqpt[k]
+            total_owned = initial_player_eqpt[k]
         else:
             needed_owned = 0
             total_owned = 0
-        eqpt_list.append([k, needed+needed_owned, total_owned])
+        eqpt_list.append([k, still_needed+needed_owned, total_owned])
 
     return 0, "",  {"eqpt_list": eqpt_list, "targets": list_display_targets}
 
