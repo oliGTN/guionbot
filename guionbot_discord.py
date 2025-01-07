@@ -4462,7 +4462,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                       "Exemple: go.registercheck me\n"\
                       "Exemple: go.registercheck 123456789")
     async def registercheck(self, ctx, allyCode):
-        await bot_commands.registercheck(ctx, bot, allyCode)
+        await bot_commands.registercheck(ctx, allyCode)
 
 ##############################################################
 # Member slash commands (duplicate of MemberCog

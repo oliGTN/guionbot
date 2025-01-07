@@ -173,7 +173,7 @@ async def gdp(ctx_interaction, allyCode):
     await command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt="chargement des joueurs OK")
 
 ##############################################################
-async def registercheck(ctx_interaction, bot, allyCode):
+async def registercheck(ctx_interaction, allyCode):
     try:
         resp_msg = await command_ack(ctx_interaction)
 
@@ -183,8 +183,8 @@ async def registercheck(ctx_interaction, bot, allyCode):
             return
 
         # Get data from DB
-        query = "SELECT guildName, name, discord_id FROM player_discord " \
-                "JOIN players ON players.allyCode=player_discord.allyCode " \
+        query = "SELECT guildName, name, discord_id FROM players " \
+                "LEFT JOIN player_discord ON players.allyCode=player_discord.allyCode " \
                 "WHERE guildName=(SELECT guildName FROM players WHERE allyCode = "+str(allyCode)+") " \
                 "ORDER by name "
         goutils.log2("DBG", query)
@@ -196,10 +196,13 @@ async def registercheck(ctx_interaction, bot, allyCode):
             player_name = line[1]
             discord_id = line[2]
             try:
-                discord_user = await ctx_interaction.guild.fetch_member(discord_id)
-                display_name = "**@"+discord_user.display_name+"**"
+                if discord_id==None:
+                    display_name = "**non défini**"
+                else:
+                    discord_user = await ctx_interaction.guild.fetch_member(discord_id)
+                    display_name = "@"+discord_user.display_name
             except:
-                display_name = "*non défini*"
+                display_name = "*défini mais inconnu sur ce serveur*"
             output_txt += "\n"+player_name+" >>> "+display_name
 
         await command_ok(ctx_interaction, resp_msg, output_txt, intermediate=False)
