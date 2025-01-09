@@ -386,6 +386,13 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
+    #Update guild values
+    query = "UPDATE guilds "\
+           +"SET players = "+str(total_players)+", "\
+           +"gp = "+str(guild_gp)+" "\
+           +"WHERE id = '"+guild_id+"'"
+    goutils.log2('DBG', query)
+    connect_mysql.simple_execute(query)
 
     if load_players:
         #Get the list of players to detect which to add or remove
