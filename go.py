@@ -366,17 +366,21 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
     fjson.close()
 
     #Get guild data from DB
-    query = "SELECT name, lastUpdated FROM guilds "\
-           +"WHERE id = '"+guild_id+"'"
+    query = "SELECT guilds.name, guilds.lastUpdated, MIN(players.lastUpdated) FROM guilds "\
+           +"JOIN players ON players.guildId=guilds.id "\
+           +"WHERE id = '"+guild_id+"' "\
+           +"GROUP BY guilds.name"
     goutils.log2('DBG', query)
     ret_line = connect_mysql.get_line(query)
     if ret_line != None:
         is_new_guild = False
         db_guild_name = ret_line[0]
         lastUpdated = ret_line[1]
+        lastPlayerUpdated = ret_line[2]
     else:
         is_new_guild = True
         lastUpdated = None
+        lastPlayerUpdated = None
 
     if is_new_guild:
         #Create guild in DB
@@ -438,8 +442,8 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 connect_mysql.simple_execute(query)
 
         #Check if player data needs to be loaded from RPC
-        if lastUpdated != None:
-            delta_lastUpdated = datetime.datetime.now() - lastUpdated
+        if lastPlayerUpdated != None:
+            delta_lastUpdated = datetime.datetime.now() - lastPlayerUpdated
             if cmd_request:
                 #if guild info used for a command, do not refresh unless more than 3 days (length of TW)
                 need_refresh_due_to_time = (delta_lastUpdated.days*86400 + delta_lastUpdated.seconds) > 3*86400
@@ -512,17 +516,9 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
 
                 parallel_work.set_guild_loading_status(guild_name, None)
 
-                #Update dates in DB
-                query = "UPDATE guilds "\
-                       +"SET id = '"+guild_id+"', "\
-                       +"lastUpdated = CURRENT_TIMESTAMP "\
-                       +"WHERE name = '"+guild_name.replace("'", "''") + "'"
-                goutils.log2('DBG', query)
-                connect_mysql.simple_execute(query)
-
         else:
-            lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
-            goutils.log2('INFO', "Guild "+guild_name+" last update is "+lastUpdated_txt)
+            lastPlayerUpdated_txt = lastPlayerUpdated.strftime("%d/%m/%Y %H:%M:%S")
+            goutils.log2('INFO', "Guild "+guild_name+" last update of players is "+lastPlayerUpdated_txt)
 
         #Erase guildName and guildId for alyCodes not detected from API
         if len(playerId_to_remove) > 0:
@@ -567,10 +563,16 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
             goutils.log2('WAR', str(id)+" found in DB but not found in RPC while updating guild")
 
     #Update dates in DB
+    query = "UPDATE guilds "\
+           +"SET lastUpdated = CURRENT_TIMESTAMP "\
+           +"WHERE id = '"+guild_id+"' "
+    goutils.log2('DBG', query)
+    connect_mysql.simple_execute(query)
+
     if cmd_request:
         query = "UPDATE guilds "\
                +"SET lastRequested = CURRENT_TIMESTAMP "\
-               +"WHERE name = '"+guild_name.replace("'", "''") + "'"
+               +"WHERE id = '"+guild_id+"' "
         goutils.log2('DBG', query)
         connect_mysql.simple_execute(query)
 
