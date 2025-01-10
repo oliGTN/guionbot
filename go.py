@@ -170,6 +170,22 @@ async def refresh_cache():
             goutils.log2('ERR', t)
             return 1
 
+    # Refresh the oldest known guild, but not its players
+    query = "SELECT id "\
+           +"FROM guilds "\
+           +"ORDER BY lastUpdated "\
+           +"LIMIT 1"
+    goutils.log2('DBG', query)
+    ret_db = connect_mysql.get_value(query)
+    
+    if ret_db != None:
+        guild_id = str(ret_db)
+        goutils.log2('INFO', "refresh oldest guild " + guild_id)
+        e, t, d = await load_guild_from_id(guild_id, False, False)
+        if e != 0:
+            goutils.log2('ERR', t)
+            return 1
+
     return 0
 
 ##################################
