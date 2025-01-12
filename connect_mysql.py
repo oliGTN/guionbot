@@ -1347,3 +1347,103 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
             dict_platoons_allocation[platoon_name][unit_name].append(player_name)
 
     return 0, "", {"dict_platoons_allocation": dict_platoons_allocation}
+
+def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players):
+    dict_tb = data.get("tb_definition.json")
+    now = datetime.datetime.now()
+
+    # Check / Create the TB in DB
+    query = "SELECT id FROM tb_history " \
+            "WHERE tb_id='"+tb_id+"' "\
+            "AND guild_id='"+guild_id+"' "
+    goutils.log2("DBG", query)
+    db_data = get_value(query)
+
+    if db_data==None:
+        tb_ts = int(tb_id.split(":")[1][1:-3])
+        tb_date = datetime.datetime.fromtimestamp(tb_ts).strftime("%Y/%m/%d %H:%M:%S")
+        query = "INSERT INTO tb_history(tb_id, tb_name, date, guild_id) " \
+                "VALUES('"+tb_id+"', '"+dict_phase["name"].replace("'", "''")+"', '"+tb_date+"', '"+guild_id+"') "
+        goutils.log2("DBG", query)
+        simple_execute(query)
+
+        # Get the id of the new TB
+        query = "SELECT id FROM tb_history " \
+                "WHERE tb_id='"+tb_id+"' "\
+                "AND guild_id='"+guild_id+"' "
+        goutils.log2("DBG", query)
+        tb_db_id = str(get_value(query))
+    else:
+        tb_db_id = str(db_data)
+
+
+    i_zone = 0
+    for zone_fullname in list_open_zones:
+        zone = dict_zones[zone_fullname]
+        zone_shortname = dict_tb[zone_fullname]["name"]
+        if zone_fullname.endswith("_bonus"):
+            zone_round = zone_fullname[-18]
+            is_bonus = "1"
+        else:
+            zone_round = zone_fullname[-12]
+            is_bonus = "0"
+        round = str(dict_phase["round"])
+
+        # Check / Create the zone in DB
+        query = "SELECT id FROM tb_zones " \
+                "WHERE tb_id="+tb_db_id+" "\
+                "AND zone_id='"+zone_fullname+"' "\
+                "AND round="+round+" "
+        goutils.log2("DBG", query)
+        db_data = get_value(query)
+
+        if db_data==None:
+            score_step1 = str(dict_tb[zone_fullname]["scores"][0])
+            score_step2 = str(dict_tb[zone_fullname]["scores"][1])
+            score_step3 = str(dict_tb[zone_fullname]["scores"][2])
+            query = "INSERT INTO tb_zones(tb_id, zone_id, zone_name, zone_phase, round, "\
+                    "score_step1, score_step2, score_step3, is_bonus) "\
+                    "VALUES("+tb_db_id+", '"+zone_fullname+"', '"+zone_shortname+"', "+zone_round+", "+round+", "\
+                    ""+score_step1+", "+score_step2+", "+score_step3+", "+is_bonus+") "
+            goutils.log2("DBG", query)
+            simple_execute(query)
+
+            # Get the id of the new Zone
+            query = "SELECT id FROM tb_zones " \
+                    "WHERE tb_id="+tb_db_id+" "\
+                    "AND zone_id='"+zone_fullname+"' "\
+                    "AND round="+round+" "
+            goutils.log2("DBG", query)
+            zone_db_id = str(get_value(query))
+        else:
+            zone_db_id = str(db_data)
+
+        # Update current status of the zone
+        #zone stars
+        if "stars" in zone:
+            zone_stars = zone["stars"]
+        else:
+            zone_stars = zone["completed_stars"]
+
+        #zone scores (for the graph)
+        score = min(int(score_step3), zone["score"])
+        estimatedStrikeScore = 0
+        if "estimatedStrikeScore" in zone:
+            estimatedStrikeScore=zone["estimatedStrikeScore"]
+        deployment=0
+        if "deployment" in zone:
+            deployment=zone["deployment"]
+        maxStrikeScore=0
+        if "maxStrikeScore" in zone:
+            maxStrikeScore=zone["maxStrikeScore"]
+
+        query = "UPDATE tb_zones "\
+                "SET score="+str(score)+",  "\
+                "    estimated_strikes="+str(score)+", "\
+                "    estimated_deployments="+str(deployment)+", "\
+                "    max_fights="+str(maxStrikeScore)+" "\
+                "WHERE id="+zone_db_id+" "
+        goutils.log2("DBG", query)
+        simple_execute(query)
+
+    return 0, ""
