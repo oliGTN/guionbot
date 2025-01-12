@@ -1397,10 +1397,10 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         goutils.log2("DBG", query)
         db_data = get_value(query)
 
+        score_step1 = str(dict_tb[zone_fullname]["scores"][0])
+        score_step2 = str(dict_tb[zone_fullname]["scores"][1])
+        score_step3 = str(dict_tb[zone_fullname]["scores"][2])
         if db_data==None:
-            score_step1 = str(dict_tb[zone_fullname]["scores"][0])
-            score_step2 = str(dict_tb[zone_fullname]["scores"][1])
-            score_step3 = str(dict_tb[zone_fullname]["scores"][2])
             query = "INSERT INTO tb_zones(tb_id, zone_id, zone_name, zone_phase, round, "\
                     "score_step1, score_step2, score_step3, is_bonus) "\
                     "VALUES("+tb_db_id+", '"+zone_fullname+"', '"+zone_shortname+"', "+zone_round+", "+round+", "\
