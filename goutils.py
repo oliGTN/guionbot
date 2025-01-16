@@ -460,7 +460,7 @@ def log2(level, txt):
 # input: 2 dict_players (from API)
 # output: differences of dict2 over dict1
 ################################################
-def delta_dict_player(dict1, dict2):
+def delta_dict_player(dict1, dict2, compare_rosters=True):
     allyCode = dict2['allyCode']
 
     #basic checks
@@ -492,38 +492,40 @@ def delta_dict_player(dict1, dict2):
         if delta_dict[info] == None:
             del delta_dict[info]
 
-    #compare roster
-    for character_id in dict2['rosterUnit']:
-        character = dict2['rosterUnit'][character_id]
-        if character_id in dict1['rosterUnit']:
-            if character != dict1['rosterUnit'][character_id]:
-                log2("DBG", "character "+character_id+" has changed for "+str(allyCode))
-                detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
-                delta_dict['rosterUnit'][character_id] = character
-        else:
-            log2("DBG", "new character "+character_id+" for "+str(allyCode))
-            connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
-            detect_delta_roster_element(allyCode, None, character)
-            delta_dict['rosterUnit'][character_id] = character
-
-    #compare datacrons
-    if "datacron" in dict2:
-        change_in_datacrons = False
-        for datacron_id in dict2['datacron']:
-            datacron = dict2['datacron'][datacron_id]
-            if "datacron" in dict1 and datacron_id in dict1['datacron']:
-                if datacron != dict1['datacron'][datacron_id]:
-                    log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
-                    detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
-                    change_in_datacrons = True
+    # Compare roster and datacrons only if required
+    if compare_rosters:
+        #compare roster
+        for character_id in dict2['rosterUnit']:
+            character = dict2['rosterUnit'][character_id]
+            if character_id in dict1['rosterUnit']:
+                if character != dict1['rosterUnit'][character_id]:
+                    log2("DBG", "character "+character_id+" has changed for "+str(allyCode))
+                    detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
+                    delta_dict['rosterUnit'][character_id] = character
             else:
-                log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
-                change_in_datacrons = True
+                log2("DBG", "new character "+character_id+" for "+str(allyCode))
+                connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
+                detect_delta_roster_element(allyCode, None, character)
+                delta_dict['rosterUnit'][character_id] = character
 
-        # In case of ONE change, all datacrons are removed and re-added
-        # This is more simpler than managing a real delta processing
-        if change_in_datacrons:
-            delta_dict['datacron'] = dict2['datacron']
+        #compare datacrons
+        if "datacron" in dict2:
+            change_in_datacrons = False
+            for datacron_id in dict2['datacron']:
+                datacron = dict2['datacron'][datacron_id]
+                if "datacron" in dict1 and datacron_id in dict1['datacron']:
+                    if datacron != dict1['datacron'][datacron_id]:
+                        log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
+                        detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
+                        change_in_datacrons = True
+                else:
+                    log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
+                    change_in_datacrons = True
+
+            # In case of ONE change, all datacrons are removed and re-added
+            # This is more simpler than managing a real delta processing
+            if change_in_datacrons:
+                delta_dict['datacron'] = dict2['datacron']
 
     return delta_dict
 

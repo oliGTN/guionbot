@@ -195,9 +195,11 @@ async def refresh_cache():
 #                           1: force update,
 #                           -1: do not update unless there is no JSON)
 #         bool no_db: do not put player in DB
+#         bool load_roster: read all characters and datacrons, update DB
+#                           (False for quick guild update)
 # return: err_code, err_text, dict_player
 ##################################
-async def load_player(ac_or_id, force_update, no_db):
+async def load_player(ac_or_id, force_update, no_db, load_roster=True):
     goutils.log2("DBG", "START")
 
     #get playerId from allyCode:
@@ -252,7 +254,9 @@ async def load_player(ac_or_id, force_update, no_db):
 
     if ((not recent_player and force_update!=-1) or force_update==1 or prev_dict_player==None):
         goutils.log2("DBG", 'Requesting RPC data for player ' + ac_or_id + '...')
-        ec, et, dict_player_list = await connect_rpc.get_extplayer_data(ac_or_id)
+        ec, et, dict_player_list = await connect_rpc.get_extplayer_data(
+                                               ac_or_id, 
+                                               load_roster=load_roster)
         if ec != 0:
             goutils.log2("WAR", "RPC error ("+et+"). Using cache data from json")
             dict_player_list = prev_dict_player_list
@@ -262,36 +266,62 @@ async def load_player(ac_or_id, force_update, no_db):
             return 1, 'ERR: cannot get player data for '+ac_or_id, None
 
         goutils.log2("DBG", "after getplayer")
+
         #Add mandatory elements to compute stats
-        for unit in dict_player_list["rosterUnit"]:
-            if not "equipment" in unit:
-                unit["equipment"] = []
-            if not "skill" in unit:
-                unit["skill"] = []
-            if not "equippedStatMod" in unit:
-                unit["equippedStatMod"] = []
+        # Stats only computed if the roster is included
+        if load_roster:
+            for unit in dict_player_list["rosterUnit"]:
+                if not "equipment" in unit:
+                    unit["equipment"] = []
+                if not "skill" in unit:
+                    unit["skill"] = []
+                if not "equippedStatMod" in unit:
+                    unit["equippedStatMod"] = []
+                else:
+                    for mod in unit["equippedStatMod"]:
+                        if not "secondaryStat" in mod:
+                            mod["secondaryStat"] = []
+
+
+            #Add statistics
+            err_code, err_txt, dict_player_list = connect_crinolo.add_stats(dict_player_list)
+
+            #Transform the roster into dictionary with key = defId
+            dict_player = goutils.roster_from_list_to_dict(dict_player_list)
+
+        else:
+            #store previous roster / datacrons (if any) to pu them back when writng the file
+            if "rosterUnit" in prev_dict_player:
+                prev_roster = prev_dict_player["rosterUnit"]
             else:
-                for mod in unit["equippedStatMod"]:
-                    if not "secondaryStat" in mod:
-                        mod["secondaryStat"] = []
+                prev_roster = None
+            if "datacron" in prev_dict_player:
+                prev_datacron = prev_dict_player["datacron"]
+            else:
+                prev_datacron = None
 
-
-        #Add statistics
-        err_code, err_txt, dict_player_list = connect_crinolo.add_stats(dict_player_list)
-
-        #Transform the roster into dictionary with key = defId
-        dict_player = goutils.roster_from_list_to_dict(dict_player_list)
+            dict_player = dict_player_list
 
         playerId = dict_player["playerId"]
         player_name = dict_player["name"]
 
-        goutils.log2("DBG", "success retrieving "+player_name+" from RPC")
+        goutils.log2("DBG", "success retrieving "+player_name+" from RPC with load_roster="+str(load_roster))
         
         if not no_db:
             # compute differences
-            delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player)
+            delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player,
+                                                          compare_rosters=load_roster)
         
+            ###############
             # store json file
+            # Put back roster and datacrons if not updated
+            if not load_roster:
+                if prev_roster!=None:
+                    dict_player["rosterUnit"] = prev_roster
+                if prev_datacron!=None:
+                    dict_player["datacron"] = prev_datacron
+
+            # Actually write the file
             json_file = "PLAYERS/"+playerId+".json"
             fjson = open(json_file, 'w')
             fjson.write(json.dumps(dict_player, indent=4))
@@ -312,7 +342,10 @@ async def load_player(ac_or_id, force_update, no_db):
     goutils.log2('DBG', "END")
     return 0, "", dict_player
 
-async def load_guild(txt_allyCode, load_players, cmd_request, ctx_interaction=None, force_update=False):
+async def load_guild(txt_allyCode, load_players, cmd_request, 
+                     ctx_interaction=None,
+                     load_rosters=True,
+                     force_update=False):
     # Get DB stored guild for the player
     query = "SELECT id FROM guilds "
     query+= "JOIN players ON players.guildName = guilds.name "
@@ -334,10 +367,13 @@ async def load_guild(txt_allyCode, load_players, cmd_request, ctx_interaction=No
 
     return await load_guild_from_id(guild_id, load_players, cmd_request, 
                                     ctx_interaction=ctx_interaction,
+                                    load_rosters=load_rosters,
                                     force_update=force_update)
 
 async def load_guild_from_id(guild_id, load_players, cmd_request,
-                             ctx_interaction=None, force_update=False):
+                             ctx_interaction=None,
+                             load_rosters=True,
+                             force_update=False):
     #Get RPC guild data
     goutils.log2('DBG', 'Requesting RPC data for guild ' + guild_id)
     ec, et, dict_guild = await connect_rpc.get_extguild_data_from_id(guild_id, False)
@@ -499,7 +535,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                     i_player += 1
                     goutils.log2("INFO", guild_name+" player #"+str(i_player))
                     
-                    e, t, d = await load_player(str(playerId), 0, False)
+                    e, t, d = await load_player(str(playerId), 0, False, load_roster=load_rosters)
                     goutils.log2("DBG", "after load_player...")
                     parallel_work.set_guild_loading_status(guild_name, str(i_player)+"/"+str(total_players))
 

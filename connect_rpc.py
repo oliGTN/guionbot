@@ -634,9 +634,9 @@ async def get_extguild_data_from_id(guild_id, use_cache_data):
 
     return 0, "", dict_guild
 
-async def get_extplayer_data(ac_or_id):
+async def get_extplayer_data(ac_or_id, load_roster=True):
     url = "http://localhost:8000/extplayer"
-    params = {"player_id": ac_or_id}
+    params = {"player_id": ac_or_id, "noroster": not load_roster}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
