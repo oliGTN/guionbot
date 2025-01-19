@@ -108,7 +108,7 @@ def ispriority_cache_bot_account(bot_allyCode):
 async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
                              dict_guild=None):
     calling_func = inspect.stack()[1][3]
-    goutils.log2("DBG", "START ["+calling_func+"]get_guild_rpc_data("+guild_id+", "+str(event_types) \
+    goutils.log2("DBG", "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id)+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
 
     if dict_guild==None:
@@ -2318,7 +2318,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                     else:
                         if activity["zoneData"]["guildId"] == guildId:
                             if "warSquad" in activity:
-                                if activity["warSquad"]["squadStatus"]=="SQUADLOCKED":
+                                if activity["warSquad"]["squadStatus"] in ("SQUADLOCKED", "SQUADDEFEATED"):
                                     if "squad" in activity["warSquad"]:
                                         zone_id = activity["zoneData"]["zoneId"]
                                         zone_shortname = dict_tw[zone_id]
