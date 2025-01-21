@@ -5572,6 +5572,38 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
+    # Command: modqg
+    # Parameters: code allié (string) ou "me"
+    # Purpose: affiche le modq de la guilde
+    ##############################################################
+    @commands.check(member_command)
+    @commands.command(name='modqg',
+                 brief="Affiche le modQ de la guilde",
+                 help="Affiche le modQ de la guilde\n\n"\
+                      "Exemple: go.modqg me")
+    async def modqg(self, ctx, allyCode):
+        await ctx.message.add_reaction(emojis.thumb)
+
+        allyCode = await manage_me(ctx, allyCode, True)
+        if allyCode[0:3] == 'ERR':
+            await ctx.send(allyCode)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
+        query = "SELECT name, modq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY modq DESC, name"
+        goutils.log2("DBG", query)
+        output = connect_mysql.text_query(query)
+
+        output_txt=''
+        for row in output:
+            output_txt+=str(row)+'\n'
+        goutils.log2('INFO', output_txt)
+        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+            await ctx.send('`' + txt + '`')
+
+        await ctx.message.add_reaction(emojis.check)
+
+    ##############################################################
     # Command: ppj
     # Parameters: code allié (string) ou "me" / nom approximatif des perso
     # Purpose: afficher une image des portraits choisis
