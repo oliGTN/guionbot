@@ -1531,7 +1531,7 @@ def store_tb_events(guild_id, tb_id, list_events):
             zone_id = zone_data["zoneId"]
             param0 = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
             param2 = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
-            param2 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
+            param3 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
 
             query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id, param0, param2, param3) "\
