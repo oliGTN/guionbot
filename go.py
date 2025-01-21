@@ -4284,7 +4284,6 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
     dict_tb = godata.get("tb_definition.json")
 
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, targets_zone_stars, force_update,
-                                                      compute_estimated_fights=estimate_fights,
                                                       compute_estimated_platoons=estimate_platoons,
                                                       targets_platoons=targets_platoons, allyCode=allyCode)
     if ec!=0:
@@ -4376,8 +4375,12 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
             estimated_platoon_score = 0
 
         # Estimated fights - ORANGE
-        estimated_strike_score = dict_zones[zone_name]["estimatedStrikeScore"]
-        estimated_strike_fights = dict_zones[zone_name]["estimatedStrikeFights"]
+        if estimate_fights:
+            estimated_strike_score = dict_zones[zone_name]["estimatedStrikeScore"]
+            estimated_strike_fights = dict_zones[zone_name]["estimatedStrikeFights"]
+        else:
+            estimated_strike_score = 0
+            estimated_strike_fights = 0
 
         score_with_estimated_strikes = current_score + estimated_strike_score
         if score_with_estimated_strikes > max_zone_score:

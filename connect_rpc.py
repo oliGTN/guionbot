@@ -1291,7 +1291,6 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 
 ##############################################################
 async def get_tb_status(guild_id, list_target_zone_steps, force_update,
-                        compute_estimated_fights=False,
                         compute_estimated_platoons=False,
                         targets_platoons=None, allyCode=None,
                         my_tb_round=None, my_list_open_zones=None):
@@ -1910,9 +1909,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         cur_covert_fights = {}
         for strike in dict_tb[zone_name]["strikes"]:
             strike_name = zone_name + "_" + strike
-            if compute_estimated_fights:
-                estimated_strike_fights += dict_strike_zones[strike_name]["estimatedStrikes"]
-                estimated_strike_score += dict_strike_zones[strike_name]["estimatedScore"]
+            estimated_strike_fights += dict_strike_zones[strike_name]["estimatedStrikes"]
+            estimated_strike_score += dict_strike_zones[strike_name]["estimatedScore"]
             max_strike_score += dict_strike_zones[strike_name]["maxPossibleScore"]
 
             cur_strike_fights[strike] = dict_strike_zones[strike_name]["participation"]
@@ -1956,8 +1954,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 full_zones = 0
                 for zone_name in dict_zones_by_type[zone_type]:
                     cur_score = dict_zones[zone_name]["score"]
-                    if compute_estimated_fights:
-                        cur_score += dict_zones[zone_name]["estimatedStrikeScore"]
+                    cur_score += dict_zones[zone_name]["estimatedStrikeScore"]
                     if compute_estimated_platoons:
                         cur_score += dict_zones[zone_name]["remainingPlatoonScore"]
                     cur_score += dict_zones[zone_name]["deployment"]
@@ -2052,8 +2049,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     #Compute estimated stars per zone
     for zone_name in list_open_zones:
         estimated_score = dict_zones[zone_name]["score"]
-        if compute_estimated_fights:
-            estimated_score += dict_zones[zone_name]["estimatedStrikeScore"]
+        estimated_score += dict_zones[zone_name]["estimatedStrikeScore"]
         if compute_estimated_platoons:
             estimated_score += dict_zones[zone_name]["remainingPlatoonScore"]
         estimated_score += dict_zones[zone_name]["deployment"]
