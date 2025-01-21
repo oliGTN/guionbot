@@ -1443,7 +1443,7 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
 
         query = "UPDATE tb_zones "\
                 "SET score="+str(score)+",  "\
-                "    estimated_strikes="+str(score)+", "\
+                "    estimated_strikes="+str(estimatedStrikeScore)+", "\
                 "    estimated_deployments="+str(deployment)+", "\
                 "    max_fights="+str(maxStrikeScore)+" "\
                 "WHERE id="+zone_db_id+" "
