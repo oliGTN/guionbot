@@ -18,6 +18,7 @@ import connect_mysql
 import go
 import manage_events
 import connect_gsheets
+import connect_mysql
 
 #GLOBAL variables for previous statuses
 prev_dict_guild = {} #key=guild_id
@@ -330,6 +331,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         if ("territoryBattleStatus" in dict_guild) and ("TB" in event_types):
             for tb_status in dict_guild["territoryBattleStatus"]:
                 if tb_status["selected"]:
+                    tb_id = tb_status["instanceId"]
                     tb_channel = tb_status["channelId"]
                     list_channels.append(tb_channel)
 
@@ -372,6 +374,9 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             if "err_code" in resp_events:
                 return 1, resp_events["err_txt"], None
             list_rpc_events += resp_events['event']
+
+            #Store the new events in the DB
+            connect_mysql.store_tb_events(guild_id, tb_id, resp_events['event'])
 
         #---------------
         #TW events

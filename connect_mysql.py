@@ -1447,3 +1447,101 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         simple_execute(query)
 
     return 0, ""
+
+# Update tb_events table from list of events
+# list_events my be actually a dictionary
+def store_tb_events(guild_id, tb_id, list_events):
+    # Get timestamp for latest registered event in DB
+    query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tb_events"
+    goutils.log2("DBG", query)
+    max_ts = get_value(query)
+    if max_ts==None:
+        max_ts=0
+
+    # Get the DB tb_id from the game tb_id and the guild_id
+    query = "SELECT id FROM tb_history WHERE tb_id='"+tb_id+"' AND guild_id='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    tb_db_id = get_value(query)
+
+    for event in list_events:
+        #Manage the case where list_events is a dict
+        if type(event)==str:
+            event_id = event
+            event = list_events[event_id]
+
+        event_ts = round(int(event["timestamp"])*0.001, 3) # to prevent values like 1737416568.6330001
+        if event_ts <= max_ts:
+            #goutils.log2("DBG", str(event_ts)+" < "+str(max_ts))
+            continue
+
+        author_id = event["authorId"]
+        data=event["data"][0]
+        activity=data["activity"]
+        event_type = activity["zoneData"]["activityLogMessage"]["key"]
+        if "CONFLICT_CONTRIBUTION" in activity["zoneData"]["activityLogMessage"]["key"]:
+            zone_data = activity["zoneData"]
+            zone_id = zone_data["zoneId"]
+            param2 = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
+            param3 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
+
+            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+                    "author_id, param2, param3) "\
+                    "VALUES("+str(tb_db_id)+", "\
+                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "'CONFLICT_CONTRIBUTION', "\
+                    "'"+zone_id+"', "\
+                    "'"+author_id+"', "\
+                    ""+str(param2)+", "\
+                    ""+str(param3)+") "
+            goutils.log2("DBG", query)
+            simple_execute(query)
+
+        elif "COVERT_COMPLETE" in activity["zoneData"]["activityLogMessage"]["key"]:
+            zone_data = activity["zoneData"]
+            zone_id = zone_data["zoneId"]
+
+            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+                    "author_id) "\
+                    "VALUES("+str(tb_db_id)+", "\
+                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "'COVERT_COMPLETE', "\
+                    "'"+zone_id+"', "\
+                    "'"+author_id+"') "
+            goutils.log2("DBG", query)
+            simple_execute(query)
+
+        elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+            zone_data = activity["zoneData"]
+            zone_id = zone_data["zoneId"]
+            param0 = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
+
+            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+                    "author_id, param0) "\
+                    "VALUES("+str(tb_db_id)+", "\
+                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "'CONFLICT_DEPLOY', "\
+                    "'"+zone_id+"', "\
+                    "'"+author_id+"', "\
+                    ""+str(param0)+") "
+            goutils.log2("DBG", query)
+            simple_execute(query)
+
+        elif "RECON_CONTRIBUTION" in activity["zoneData"]["activityLogMessage"]["key"]:
+            zone_data = activity["zoneData"]
+            zone_id = zone_data["zoneId"]
+            param0 = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
+            param2 = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
+            param2 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
+
+            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+                    "author_id, param0, param2, param3) "\
+                    "VALUES("+str(tb_db_id)+", "\
+                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "'RECON_CONTRIBUTION', "\
+                    "'"+zone_id+"', "\
+                    "'"+author_id+"', "\
+                    ""+str(param0)+", "\
+                    ""+str(param2)+", "\
+                    ""+str(param3)+") "
+            goutils.log2("DBG", query)
+            simple_execute(query)
