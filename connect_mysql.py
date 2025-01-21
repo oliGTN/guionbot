@@ -1362,7 +1362,7 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
     if db_data==None:
         tb_ts = int(tb_id.split(":")[1][1:-3])
         tb_date = datetime.datetime.fromtimestamp(tb_ts).strftime("%Y/%m/%d %H:%M:%S")
-        query = "INSERT INTO tb_history(tb_id, tb_name, date, guild_id) " \
+        query = "INSERT INTO tb_history(tb_id, tb_name, start_date, guild_id) " \
                 "VALUES('"+tb_id+"', '"+dict_phase["name"].replace("'", "''")+"', '"+tb_date+"', '"+guild_id+"') "
         goutils.log2("DBG", query)
         simple_execute(query)
@@ -1375,7 +1375,11 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         tb_db_id = str(get_value(query))
     else:
         tb_db_id = str(db_data)
-
+        query = "UPDATE tb_history "\
+                "SET lastUpdated=CURRENT_TIMESTAMP() "\
+                "WHERE id="+str(tb_db_id)
+        goutils.log2("DBG", query)
+        simple_execute(query)
 
     i_zone = 0
     for zone_fullname in list_open_zones:
