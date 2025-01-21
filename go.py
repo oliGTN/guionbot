@@ -450,6 +450,12 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
     goutils.log2('DBG', query)
     connect_mysql.simple_execute(query)
 
+    #Update guild history of values
+    query = "INSERT IGNORE INTO guild_gp_history(date, guild_id, players, gp) "\
+           +"VALUES(CURDATE(), '"+guild_id+"', "+str(total_players)+", "+str(guild_gp)+") "
+    goutils.log2('DBG', query)
+    connect_mysql.simple_execute(query)
+
     if load_players:
         #Get the list of players to detect which to add or remove
         query = "SELECT playerId FROM players "\
