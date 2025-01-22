@@ -2,6 +2,7 @@ import os
 import config
 import sys
 import asyncio
+import traceback
 
 import go
 import goutils
@@ -23,8 +24,6 @@ async def main():
             await go.refresh_cache()
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
 
 if __name__ == "__main__":
