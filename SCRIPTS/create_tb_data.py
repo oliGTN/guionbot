@@ -37,6 +37,31 @@ tb_aliases = {"t01D": {"alias": "HLS",
                        },
              }
 
+tb_spe_requirements = {
+    "tb3_mixed_phase02_conflict01_covert01": {
+        "logic": "AND",
+        "items": [
+            {"defId": "CEREJUNDA", "relic": 7},
+            {
+                "logic": "OR",
+                "items": [
+                    {"defId": "CALKESTIS", "relic": 7},
+                    {"defId": "JEDIKNIGHTCAL", "relic": 7}
+                ]
+            }
+        ]
+    },
+    "tb3_mixed_phase03_conflict03_covert02": {
+        "logic": "AND",
+        "items": [
+            {"defId": "MANDALORBOKATAN", "relic": 7},
+            {"defId": "THEMANDALORIANBESKARARMOR", "relic": 7},
+            {"defId": "IG12", "relic": 7}
+        ]
+    }
+}
+
+
 dict_tables = {}
 for t in game_data["table"]:
     dict_tables[t["id"]] = t
@@ -106,7 +131,7 @@ for tb in game_data["territoryBattleDefinition"]:
         dict_tb[zone_id]["scores"][2] = int(c["victoryPointsRewards"][2]["galacticScoreRequirement"])
 
         dict_tb[zone_id]["strikes"] = {}
-        dict_tb[zone_id]["coverts"] = []
+        dict_tb[zone_id]["coverts"] = {}
 
     for s in tb["strikeZoneDefinition"]:
         #print(s)
@@ -123,7 +148,10 @@ for tb in game_data["territoryBattleDefinition"]:
         zone_id = c["zoneDefinition"]["zoneId"]
         conflict_id = "_".join(zone_id.split("_")[:-1])
         covert_id = zone_id.split("_")[-1]
-        dict_tb[conflict_id]["coverts"].append(covert_id)
+        dict_tb[conflict_id]["coverts"][covert_id] = {}
+        if zone_id in tb_spe_requirements:
+            dict_tb[conflict_id]["coverts"][covert_id]["requirements"] = tb_spe_requirements[zone_id]
+
 
     for r in tb["reconZoneDefinition"]:
         zone_id = r["zoneDefinition"]["zoneId"]

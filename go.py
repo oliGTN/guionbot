@@ -6408,6 +6408,41 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
     line_colors.append("black")
     if len(dict_coverts)>0:
         for c in sorted(list(dict_coverts.keys())):
+            #TODO make it configurable with tb_definition.json
+            if c == "tb3_mixed_phase02_conflict01_covert01":
+                query = "SELECT name FROM ( "\
+                        "    SELECT players.name, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='CEREJUNDA' THEN relic_currentTier ELSE NULL END) AS `CEREJUNDA`, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='JEDIKNIGHTCAL' THEN relic_currentTier ELSE NULL END) AS `JEDIKNIGHTCAL`, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='CALKESTIS' THEN relic_currentTier ELSE NULL END) AS `CALKESTIS` "\
+                        "    FROM players "\
+                        "    JOIN roster ON (players.allyCode=roster.allyCode AND defId IN ('CEREJUNDA', 'JEDIKNIGHTCAL', 'CALKESTIS')) "\
+                        "    WHERE guildId='"+guild['profile']['id']+"' "\
+                        "    GROUP BY players.allyCode "\
+                        ") T "\
+                        "WHERE CEREJUNDA>=9 AND (JEDIKNIGHTCAL>=9 OR CALKESTIS>=9) "
+                goutils.log2("DBG", query)
+                ready_players = connect_mysql.get_column(query)
+                if ready_players == None:
+                    ready_players = []
+            elif c == "tb3_mixed_phase03_conflict03_covert02":
+                query = "SELECT name FROM ( "\
+                        "    SELECT players.name, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='MANDALORBOKATAN' THEN relic_currentTier ELSE NULL END) AS `MANDALORBOKATAN`, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='THEMANDALORIANBESKARARMOR' THEN relic_currentTier ELSE NULL END) AS `THEMANDALORIANBESKARARMOR` "\
+                        "    FROM players "\
+                        "    JOIN roster ON (players.allyCode=roster.allyCode AND defId IN ('MANDALORBOKATAN', 'THEMANDALORIANBESKARARMOR')) "\
+                        "    WHERE guildId='"+guild['profile']['id']+"' "\
+                        "    GROUP BY players.allyCode "\
+                        ") T "\
+                        "WHERE MANDALORBOKATAN>=9 AND THEMANDALORIANBESKARARMOR>=9 "
+                goutils.log2("DBG", query)
+                ready_players = connect_mysql.get_column(query)
+                if ready_players == None:
+                    ready_players = []
+            else:
+                ready_players = None
+
             output_txt += "\nMission "+c[-1]
             line_colors.append("black")
             success = 0
@@ -6420,7 +6455,14 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                 else:
                     output_txt += " > échec"
                     line_colors.append("red")
+            if ready_players != None:
+                for p in sorted(ready_players):
+                    if not p in dict_coverts[c].keys():
+                        output_txt += "\n  "+p+" > pas joué"
+                        line_colors.append("gray")
             output_txt += "\n  >> "+str(success)+"/"+str(len(dict_coverts[c]))
+            if ready_players != None:
+                output_txt += " et reste "+str(len(ready_players)-len(dict_coverts[c]))
             line_colors.append("black")
 
         ec, et, image = portraits.get_image_from_texttable(output_txt, line_colors)
