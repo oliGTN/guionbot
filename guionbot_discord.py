@@ -3775,12 +3775,24 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         try:
             await ctx.message.add_reaction(emojis.thumb)
 
-            if len(args) != 1:
+            # Manage command options
+            options = list(args)
+            output_channel = ctx.message.channel
+            for arg in args:
+                if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                    if output_channel == None:
+                        await ctx.send('**ERR**: '+err_msg)
+                        output_channel = ctx.message.channel
+                        display_mentions=False
+                    options.remove(arg)
+
+            if len(options) != 1:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help spe")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            zone_shortname = args[0]
+            zone_shortname = options[0]
 
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
@@ -3811,7 +3823,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 with BytesIO() as image_binary:
                     image.save(image_binary, 'PNG')
                     image_binary.seek(0)
-                    await ctx.send(content = "",
+                    await output_channel.send(content = "",
                         file=File(fp=image_binary, filename='image.png'))
 
             await ctx.message.add_reaction(emojis.check)

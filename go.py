@@ -6346,9 +6346,24 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
 
 # Details about special missions in TB
 async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
+    dict_tb = godata.get("tb_definition.json")
+
+    #zone name check not useful now, yet important to check before 
+    #  launching long operation like get_tb_status
+    zone_name = None
+    for x in dict_tb:
+        x_item = dict_tb[x]
+        if "name" in x_item and x_item["name"]==zone_shortname:
+            zone_name = x
+            break
+
+    if zone_name==None:
+        return 1, "Zone inconnue: "+zone_shortname, None
+
+    #Get TB data
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", 0, allyCode=allyCode)
     if ec!=0:
-        return 1, et
+        return 1, et, None
 
     guild = tb_data["guild"]
     mapstats = tb_data["mapstats"]
@@ -6366,7 +6381,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
             break
 
     if zone_name==None:
-        return 1, "Zone inconnue: "+zone_shortname
+        return 1, "Zone inconnue: "+zone_shortname, None
 
     dict_members = {}
     for m in guild["member"]:
