@@ -517,7 +517,6 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                             platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
                             for dict_player in dict_embed['fields']:
                                 player_name = dict_player['name']
-                                #print(player_name)
                                 for character in dict_player['value'].split('\n'):
                                     if "HELP!" in character:
                                         char_name = character[9:-1]
@@ -659,7 +658,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         territory_pos = "LS"
                                     elif territory_position == "mid":
                                         if tbs_name == "ROTE":
-                                            territory_pos = "LS"
+                                            territory_pos = "MS"
                                         else:
                                             territory_pos = "mid"
                                     else: #if territory_position in ["top", "bot"]:
