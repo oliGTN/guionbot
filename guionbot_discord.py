@@ -5517,10 +5517,38 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     @commands.command(name='statqj',
                  brief="Affiche le StatQ d'un Joueur",
                  help="Affiche le StatQ d'un Joueur\n\n"\
-                      "Exemple: go.statqj me")
-    async def statqj(self, ctx, allyCode):
+                      "Exemple: go.statqj me\n"
+                      "         go.statqj 123456789 gg\n"
+                      "         go.statqj 123456789 tag:jedi\n"
+                      "         go.statqj 123456789 -score")
+    async def statqj(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
+
+            options = list(args)
+            all_characters=False
+            sort_option = "name"
+            for arg in args:
+                if arg=='-all':
+                    all_characters=True
+                    options.remove(arg)
+                elif arg=='-score':
+                    sort_option = "score"
+                    options.remove(arg)
+                elif arg=='-nom' or arg=='-name' or arg=='-perso':
+                    sort_option = "name"
+                    options.remove(arg)
+
+            if len(options) == 1:
+                allyCode = options[0]
+                list_characters = ["all"]
+            elif len(options) >= 2 and all_characters==False:
+                allyCode = options[0]
+                list_characters = options[1:]
+            else:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help statqj")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
             allyCode = await manage_me(ctx, allyCode, False)
 
@@ -5528,12 +5556,20 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
             else:
-                e, t, player_now = await go.load_player( allyCode, 1, False)
+                e, t, dict_player = await go.load_player( allyCode, 1, False)
                 if e!=0:
                     await ctx.send(t)
                     await ctx.message.add_reaction(emojis.redcross)
                     return
                 
+                # Get char IDs from list of alias
+                if not "all" in list_characters:
+                    list_unit_id, d_id_name, err_alias_txt = goutils.get_characters_from_alias(list_characters)
+                else:
+                    err_alias_txt = ""
+                    list_unit_id = None
+
+                # Get statq data
                 ec, et, statq, list_statq = await connect_mysql.get_player_statq(allyCode)
                 if ec!=0:
                     await ctx.send(et)
@@ -5542,16 +5578,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
                 #get real unit names
                 dict_units = data.get("unitsList_dict.json")
-                list_statq_with_names = sorted([[dict_units[x[0]]["name"]]+list(x[1:]) for x in list_statq])
+                filtered_list = [x for x in list_statq if (list_unit_id==None or x[0] in list_unit_id)]
+                list_with_char_names = [[dict_units[x[0]]["name"]]+list(x[1:]) for x in filtered_list]
+                if sort_option == "name":
+                    list_statq_with_names = sorted(list_with_char_names)
+                else: #score
+                    list_statq_with_names = sorted(list_with_char_names, key=lambda x:(-x[4], x[0]))
 
                 output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif (progrès)", "Score"]] + list_statq_with_names
                 t = Texttable()
                 t.add_rows(output_table)
                 t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
 
-                playerName = player_now["name"]
-                if "guildName" in player_now:
-                    guildName = player_now["guildName"]
+                playerName = dict_player["name"]
+                if "guildName" in dict_player:
+                    guildName = dict_player["guildName"]
                     if guildName == None:
                         guildName = "*pas de guilde*"
                 else:
@@ -5560,12 +5601,15 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 first_msg=True
                 for txt in goutils.split_txt(t.draw(), MAX_MSG_SIZE):
                     if first_msg:
-                        await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+'`' + txt + '`')
+                        if err_alias_txt != "":
+                            err_alias_txt = 'WAR: impossible de reconnaître ce(s) nom(s) >> '+err_alias_txt+"\n"
+                        await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+err_alias_txt+'`' + txt + '`')
                         first_msg=False
                     else:
                         await ctx.send('`' + txt + '`')
 
-                await ctx.send("StatQ = "+str(round(statq, 2)))
+                if list_unit_id==None:
+                    await ctx.send("StatQ = "+str(round(statq, 2)))
 
                 await ctx.message.add_reaction(emojis.check)
         except Exception as e:
@@ -5921,19 +5965,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def loj(self, ctx, *args):
         await ctx.message.add_reaction(emojis.thumb)
 
-        args = list(args)
+        options = list(args)
         all_omicrons=False
         for arg in args:
             if arg=='-all':
                 all_omicrons=True
-                args.remove(arg)
+                options.remove(arg)
 
-        if len(args) == 1:
-            allyCode = args[0]
+        if len(options) == 1:
+            allyCode = options[0]
             list_characters = ["all"]
-        elif len(args) >= 2:
-            allyCode = args[0]
-            list_characters = args[1:]
+        elif len(options) >= 2:
+            allyCode = options[0]
+            list_characters = options[1:]
         else:
             await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help loj")
             await ctx.message.add_reaction(emojis.redcross)
