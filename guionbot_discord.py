@@ -4692,6 +4692,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 gp = "???"
                 arena_rank = "???"
 
+            if guildName == "None":
+                guildName = "*pas de guilde*"
+
             #Look for Discord Pseudo if in guild
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             if player_name in dict_players_by_IG:
