@@ -650,6 +650,19 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                     territory_position = 'bot'
                                 
                                 if territory_name in dict_tb["zone_names"]:
+                                    # TEMPORARY
+                                    # Read next 3 lines to get amount of open/closed platoons
+                                    i_line = message_lines.index(line)
+                                    x_count=0
+                                    for subline in message_lines[i_line+1:i_line+4]:
+                                        print(subline)
+                                        print(subline.count(':x:'))
+                                        x_count+=subline.count(':x:')
+                                    if x_count==6:
+                                        goutils.log2("WAR", "Planet "+territory_name+" has no allocation >> skipped")
+                                        continue
+                                    # END TEMPORARY
+
                                     territory_name_position = dict_tb["zone_names"][territory_name]
                                     territory_phase = territory_name_position.split("-")[0][-1]
                                     if territory_position == "left":
@@ -917,7 +930,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     full_txt += "---\n"
 
     for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x["platoon"][:4], 
-                                                                        x["player_name"], 
+                                                                        str(x["player_name"]), 
                                                                         x["platoon"])):
         allocated_player = missing_platoon["player_name"]
         platoon_name = missing_platoon["platoon"]
