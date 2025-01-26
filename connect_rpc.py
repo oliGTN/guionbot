@@ -340,7 +340,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                             zone_channel = conflict_zone["zoneStatus"]["channelId"]
                             list_channels.append(zone_channel)
 
-        if len_list_channels)>0:
+        if len(list_channels)>0:
             # RPC REQUEST for TB events
             url = "http://localhost:8000/events"
             params = {"allyCode": bot_allyCode, 
