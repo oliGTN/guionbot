@@ -535,6 +535,19 @@ def extended_gear(gear, relic_dict):
     else:
         return 13 + relic_dict['currentTier']-2
 
+def extendedgear_to_txt(extendedgear):
+    if extendedgear<13:
+        gear=extendedgear
+        relic={'currentTier':1}
+    elif extendedgear==13:
+        gear=extendedgear
+        relic={'currentTier':2}
+    else:
+        gear=13
+        relic={'currentTier':extendedgear-13+2}
+
+    return gear_to_txt(gear, relic)
+
 def gear_to_txt(gear, relic_dict):
     relic = relic_dict['currentTier']-2
     if gear==13 and relic==0:
@@ -586,7 +599,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
     gear2 = extended_gear(char2["currentTier"], relic2)
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
-            evo_txt = "gear changed to "+gear_to_txt(char2["currentTier"], relic2)
+            evo_txt = "gear changed to "+extendedgear_to_txt(char2["currentTier"], relic2)
             log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
