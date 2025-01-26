@@ -194,8 +194,9 @@ async def bot_loop_5minutes(bot):
                 dict_tb_alerts_previously_done[guild_id] = []
 
             #CHECK ALERTS FOR BT
-            ec, et, list_tb_alerts = await go.get_tb_alerts(guild_id, -1)
+            ec, et, ret_data = await go.get_tb_alerts(guild_id, -1)
             if ec == 0:
+                list_tb_alerts = ret_data
                 for tb_alert in list_tb_alerts:
                     if not tb_alert in dict_tb_alerts_previously_done[guild_id]:
                         if not first_bot_loop_5minutes:
@@ -210,8 +211,9 @@ async def bot_loop_5minutes(bot):
 
             elif ec == 2:
                 # Display TB summary
+                tb_summary = ret_data
                 await send_tb_summary(guild_bots[guild_id]["guildName"],
-                                      et,
+                                      tb_summary,
                                       guild_bots[guild_id]["tb_channel_end"])
 
         except Exception as e:
@@ -1145,9 +1147,22 @@ async def send_tb_summary(guild_name, tb_summary, channel_id):
     goutils.log2("INFO", "["+guild_name+"] tb_summary="+str(tb_summary)[:100]+" on channel "+str(channel_id))
     if channel_id!=0:
         tb_end_channel = bot.get_channel(channel_id)
-        await tb_end_channel.send("# BT de "+guild_name+" terminée le "+datetime.datetime.now().strftime("%d/%m"))
-        for stxt in goutils.split_txt(tb_summary, MAX_MSG_SIZE):
-            await tb_end_channel.send('```' + stxt + '```')
+        msg_txt = "# BT de "+guild_name+" terminée le "+datetime.datetime.now().strftime("%d/%m")
+
+        (csv, image) = tb_summary
+
+        #prepare csv file
+        export_path="/tmp/tbsummary"+guild_name+".csv"
+        export_file = open(export_path, "w")
+        export_file.write(csv)
+        export_file.close()
+
+        with BytesIO() as image_binary:
+            image.save(image_binary, 'PNG')
+            image_binary.seek(0)
+            await tb_end_channel.send(content = msg_txt,
+                files=[File(fp=image_binary, filename='image.png'),
+                       File(export_path)])
 
 ##############################################################
 # Function: update_rpc_data

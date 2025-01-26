@@ -4415,7 +4415,7 @@ async def get_tb_alerts(guild_id, force_update):
     if ec!=0:
         goutils.log2("INFO", "["+guild_id+"] tb_data="+str(tb_data)[:100])
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
-            return 2, tb_data["tb_summary"], None
+            return 2, "", tb_data["tb_summary"]
         else:
             return 1, et, None
 
