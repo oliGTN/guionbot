@@ -529,25 +529,20 @@ def delta_dict_player(dict1, dict2, compare_rosters=True):
 
     return delta_dict
 
-def extended_gear(gear, equipped, relic):
-    if gear < 10:
+def extended_gear(gear, relic_dict):
+    if gear < 13:
         return gear
-    elif gear < 13:
-        return 10 + (gear-10)*6 + equipped
     else:
-        return 26 + relic['currentTier']
+        return 13 + relic_dict['currentTier']-2
 
-def extended_gear_to_txt(extended_gear):
-    if extended_gear >= 29:
-        return "R" + str(extended_gear-28)
-    elif extended_gear == 28:
+def gear_to_txt(gear, relic_dict):
+    relic = relic_dict['currentTier']-2
+    if gear==13 and relic==0:
         return "G13"
-    elif extended_gear >= 10:
-        equipped = (extended_gear-10)%6
-        gear = 10 + int((extended_gear-equipped-10)/6)
-        return "G"+str(gear)+"+"+str(equipped)
+    elif gear == 13:
+        return "R" + str(relic)
     else:
-        return str(extended_gear)
+        return "G"+str(gear)
     
 #######################
 # This function fills roster_evolutions
@@ -587,11 +582,11 @@ def detect_delta_roster_element(allyCode, char1, char2):
         relic2 = char2["relic"]
     else:
         relic2 = None
-    gear1 = extended_gear(char1["currentTier"], len(char1["equipment"]), relic1)
-    gear2 = extended_gear(char2["currentTier"], len(char2["equipment"]), relic2)
+    gear1 = extended_gear(char1["currentTier"], relic1)
+    gear2 = extended_gear(char2["currentTier"], relic2)
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
-            evo_txt = "gear changed to "+extended_gear_to_txt(gear_step)
+            evo_txt = "gear changed to "+gear_to_txt(char2["currentTier"], relic2)
             log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
