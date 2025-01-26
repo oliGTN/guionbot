@@ -4558,7 +4558,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       brief="Lie un code allié à un compte discord",
                       help="Lie un code allié à un compte discord\n\n"\
                            "Exemple: go.register 123456789\n"\
-                           "Exemple: go.register 123456789 @chatondu75")
+                           "Exemple: go.register 123456789 @chatondu75\n"\
+                           "Exemple: go.register 123456789 confirm")
     async def register(self, ctx, *args):
         await bot_commands.register(ctx, args)
 
