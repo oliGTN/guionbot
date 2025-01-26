@@ -456,87 +456,92 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
 
 ##############################################################
 async def tpg(ctx_interaction, *args):
-    resp_msg = await command_ack(ctx_interaction)
+    try:
+        resp_msg = await command_ack(ctx_interaction)
 
-    #Check arguments
-    args = list(args)
-    tw_mode = False
-    tb_mode = False
-    guild_id = None
+        #Check arguments
+        args = list(args)
+        tw_mode = False
+        tb_mode = False
+        guild_id = None
 
-    if "-TW" in args:
-        #Ensure command is launched from a server, not a DM
-        if commands_check.dm(ctx_interaction, "L'option -TW"):
-            return
+        if "-TW" in args:
+            #Ensure command is launched from a server, not a DM
+            if commands_check.dm(ctx_interaction, "L'option -TW"):
+                return
 
-        tw_mode = True
-        args.remove("-TW")
+            tw_mode = True
+            args.remove("-TW")
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+            if ec!=0:
+                await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+                return
+
+            guild_id = bot_infos["guild_id"]
+
+        if "-TB" in args:
+            if tw_mode:
+                await command_error(ctx_interaction, resp_msg, "ERR: impossible d'utiliser les options -TW et -TB en même temps")
+                return
+
+            #Ensure command is launched from a server, not a DM
+            #Ensure command is launched from a server, not a DM
+            if commands_check.dm(ctx_interaction, "L'option -TB"):
+                return
+
+            tb_mode = True
+            args.remove("-TB")
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+            if ec!=0:
+                await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TB")
+                return
+
+            guild_id = bot_infos["guild_id"]
+
+        ec, et, ret = get_channel_from_args(arg)
         if ec!=0:
-            await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+            await command_error(ctx_interaction, resp_msg, et)
             return
 
-        guild_id = bot_infos["guild_id"]
+        args = ret["args"]
+        display_mentions = ret["display_mentions"]
+        output_channel = ret["output_channel"]
 
-    if "-TB" in args:
-        if tw_mode:
-            await command_error(ctx_interaction, resp_msg, "ERR: impossible d'utiliser les options -TW et -TB en même temps")
-            return
-
-        #Ensure command is launched from a server, not a DM
-        #Ensure command is launched from a server, not a DM
-        if commands_check.dm(ctx_interaction, "L'option -TB"):
-            return
-
-        tb_mode = True
-        args.remove("-TB")
-
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
-        if ec!=0:
-            await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TB")
-            return
-
-        guild_id = bot_infos["guild_id"]
-
-    ec, et, ret = get_channel_from_args(arg)
-    if ec!=0:
-        await command_error(ctx_interaction, resp_msg, et)
-        return
-
-    args = ret["args"]
-    display_mentions = ret["display_mentions"]
-    output_channel = ret["output_channel"]
-
-    if len(args) >= 2:
-        allyCode = args[0]
-        character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')]]
-    else:
-        await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
-        return
-
-    ec, et, allyCode = await manage_me(ctx_interaction, allyCode, False)
-    if ec!=0:
-        await command_error(ctx_interaction, resp_msg, et)
-        return
-
-    err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
-                                                                     guild_id, tw_mode, tb_mode,
-                                                                     display_mentions)
-    if err != 0:
-        await command_error(ctx_interaction, resp_msg, errtxt)
-        return
-
-    for list_ids in list_list_ids:
-        intro_txt = list_ids[0]
-        if len(list_ids) > 1:
-            await send_message(ctx_interaction, intro_txt +" :\n" +' / '.join(list_ids[1:])+"\n--> "+str(len(list_ids)-1)+" joueur(s)")
+        if len(args) >= 2:
+            allyCode = args[0]
+            character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')]]
         else:
-            await send_message(ctx_interaction, intro_txt +" : aucun joueur")
+            await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
+            return
 
-    await command_ok(ctx_interaction, resp_msg, "Commande terminée")
+        ec, et, allyCode = await manage_me(ctx_interaction, allyCode, False)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, et)
+            return
+
+        err, errtxt, list_list_ids = await go.tag_players_with_character(allyCode, character_list,
+                                                                         guild_id, tw_mode, tb_mode,
+                                                                         display_mentions)
+        if err != 0:
+            await command_error(ctx_interaction, resp_msg, errtxt)
+            return
+
+        for list_ids in list_list_ids:
+            intro_txt = list_ids[0]
+            if len(list_ids) > 1:
+                await send_message(ctx_interaction, intro_txt +" :\n" +' / '.join(list_ids[1:])+"\n--> "+str(len(list_ids)-1)+" joueur(s)")
+            else:
+                await send_message(ctx_interaction, intro_txt +" : aucun joueur")
+
+        await command_ok(ctx_interaction, resp_msg, "Commande terminée")
+
+    except Exception as e:
+        goutils.log2("ERR", traceback.format_exc())
+        await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 ##############################################################
 # Function: manage_me
@@ -686,4 +691,91 @@ async def get_channel_from_args(ctx_interaction, args):
     return 0, "", {"args": args,
                    "output_channel": ctx_interaction.message.channel,
                    "display_mentions": False}
+
+###################################################
+async def register(ctx_interaction, args):
+    try:
+        resp_msg = await command_ack(ctx_interaction)
+
+        if len(args)==0:
+            await command_error(ctx_interaction, resp_msg, "ERR: merci de renseigner un code allié")
+            return
+
+        ac = args[0]
+
+        if re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", ac) != None:
+            # 123-456-789 >> allyCode
+            allyCode = ac.replace("-", "")
+
+        elif ac.isnumeric():
+            # number >> allyCode
+            allyCode = ac
+
+        else:
+            await command_error(ctx_interaction, resp_msg, "ERR: merci de renseigner un code allié")
+            return
+
+        #Registration of the allyCode to a discord ID
+        if len(args) == 1:
+            #registering allyCOde to self
+            discord_id_txt = str(ctx_interaction.author.id)
+
+        elif len(args) == 2 and args[1]=="confirm":
+            # Specific mode, not used to register an allyCode, but
+            #  to confirm that the user is actually controlling that allyCode
+
+            #Ensure command is launched from a DM, not a server
+            if ctx_interaction.guild != None:
+                await command_error(ctx_interaction, resp_msg, "Pour des raisons de confidentialité, cette commande dit être envoyée en message privée au bot.")
+                return
+
+            #Launch or get the challenge
+            code, txt = await go.register_confirm(allyCode, ctx_interaction.author.id)
+
+            if code==1:
+                await command_error(ctx_interaction, resp_msg, txt)
+            elif code==2:
+                await command_ok(ctx_interaction, resp_msg, txt)
+            else: #code==0
+                await command_ok(ctx_interaction, resp_msg, txt)
+
+            return
+
+        elif len(args) == 2:
+            mention = args[1]
+
+            if mention.startswith('<@'):
+                # discord @mention
+                if mention.startswith('<@!'):
+                    discord_id_txt = mention[3:-1]
+                else: # '<@ without the !
+                    discord_id_txt = mention[2:-1]
+                goutils.log2("INFO", "command launched with discord @mention "+mention)
+        else:
+            await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help register")
+
+        #Ensure the allyCode is registered in DB
+        e, t, dict_player = await go.load_player(allyCode, -1, False)
+        if e != 0:
+            await command_error(ctx_interaction, resp_msg, t)
+            return
+
+        player_name = dict_player["name"]
+
+        #Setup all potential previous accounts as alt
+        query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
+        goutils.log2("INFO", query)
+        connect_mysql.simple_execute(query)
+
+        #Add discord id in DB
+        query = "INSERT INTO player_discord (allyCode, discord_id)\n"
+        query+= "VALUES("+allyCode+", "+discord_id_txt+") \n"
+        query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+        await command_ok(ctx_interaction, resp_msg, "Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
+
+    except Exception as e:
+        goutils.log2("ERR", traceback.format_exc())
 

@@ -4560,62 +4560,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.register 123456789\n"\
                            "Exemple: go.register 123456789 @chatondu75")
     async def register(self, ctx, *args):
-        try:
-            await ctx.message.add_reaction(emojis.thumb)
-
-            ac = args[0]
-
-            if re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", ac) != None:
-                # 123-456-789 >> allyCode
-                allyCode = ac.replace("-", "")
-
-            elif ac.isnumeric():
-                # number >> allyCode
-                allyCode = ac
-
-            else:
-                await ctx.send("ERR: merci de renseigner un code allié")
-                await ctx.message.add_reaction(emojis.redcross)
-                return
-
-            discord_id_txt = str(ctx.author.id)
-            if len(args) > 1:
-                mention = args[1]
-
-                if mention.startswith('<@'):
-                    # discord @mention
-                    if mention.startswith('<@!'):
-                        discord_id_txt = mention[3:-1]
-                    else: # '<@ without the !
-                        discord_id_txt = mention[2:-1]
-                    goutils.log2("INFO", "command launched with discord @mention "+mention)
-
-            #Ensure the allyCode is registered in DB
-            e, t, dict_player = await go.load_player(allyCode, -1, False)
-            if e != 0:
-                await ctx.send(t)
-                await ctx.message.add_reaction(emojis.redcross)
-                return
-
-            player_name = dict_player["name"]
-
-            #Setup all potential previous accounts as alt
-            query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
-            goutils.log2("INFO", query)
-            connect_mysql.simple_execute(query)
-
-            #Add discord id in DB
-            query = "INSERT INTO player_discord (allyCode, discord_id)\n"
-            query+= "VALUES("+allyCode+", "+discord_id_txt+") \n"
-            query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
-            goutils.log2("DBG", query)
-            connect_mysql.simple_execute(query)
-
-            await ctx.send("Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
-            await ctx.message.add_reaction(emojis.check)
-
-        except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+        await bot_commands.register(ctx, args)
 
     ##############################################################
     # display kit

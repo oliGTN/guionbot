@@ -17,6 +17,7 @@ import matplotlib.dates as mdates
 import numpy as np
 import os
 from PIL import Image, ImageDraw, ImageFont
+import random
 import re
 import sys
 from texttable import Texttable
@@ -6487,4 +6488,80 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
 
     return 0, output_txt, image
 
+async def register_confirm(txt_allyCode, discord_id):
+    dict_unitsList = godata.get("unitsList_dict.json")
+    dict_modList = godata.get("modList_dict.json")
+    dict_shape_by_slot = {2: "carré",
+                          3: "flèche",
+                          4: "losange",
+                          5: "triangle",
+                          6: "rond",
+                          7: "croix"}
 
+
+    e, t, dict_player = await load_player(txt_allyCode, 1, False)
+    if e != 0:
+        return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
+    
+    #Check if confirmation already ongoing
+    query = "SELECT timestampdiff(SECOND, timestamp, CURRENT_TIMESTAMP), defId, mod_slot "\
+            "FROM register_confirm WHERE allyCode="+txt_allyCode
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_line(query)
+
+    if db_data == None:
+        # Nothing ongoing, prepare confirmation protocole
+        dict_player = goutils.roster_from_dict_to_list(dict_player)
+        sixmod_roster = [u for u in dict_player['rosterUnit']
+                         if len(u['equippedStatMod'])==6]
+        lower_6units = sorted(sixmod_roster, key=lambda x:x['gp'])[:6]
+        unit_ids = [u['definitionId'] for u in lower_6units]
+        defId = random.choice(unit_ids).split(':')[0]
+        slot = random.choice([2, 3, 4, 5, 6, 7])
+
+        #store challenge in DB
+        query = "INSERT INTO register_confirm(allyCode, defId, mod_slot) "\
+                "VALUES("+txt_allyCode+", '"+defId+"', "+str(slot)+")"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+        #Return message to user
+        return 2, "Début du protocole de confirmation. Vous avez 5 minutes pour **enlever le mod "+dict_shape_by_slot[slot]+"** sur **"+dict_unitsList[defId]["name"]+"** et uniquement celui-là. Puis relancez la commande à l'identique."
+
+    else:
+        # Challenge already defined, need to check if user has complied
+        delta_ts = db_data[0]
+        defId = db_data[1]
+        slot = db_data[2]
+
+        #Whatever the outcome (sucessful or not, the challenge is deleted)
+        query = "DELETE FROM register_confirm WHERE allyCode="+txt_allyCode
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+        
+        #Check duration
+        if delta_ts>300:
+            return 1, "Vous avez mis trop de temps à répondre, veuillez reprendre à zéro en relançant la commande à l'identique."
+
+        unit_mods = dict_player['rosterUnit'][defId]['equippedStatMod']
+        mods_ok = [None, None, False, False, False, False, False, False] #index 0 and 1 not used
+        mods_ok[slot] = True
+        for mod in unit_mods:
+            mod_defId = mod['definitionId']
+            mod_slot = dict_modList[mod_defId]['slot']
+            if mod_slot == slot:
+                mods_ok[mod_slot] = False
+            else:
+                mods_ok[mod_slot] = True
+
+        sum_ok = sum(mods_ok[2:])
+        if sum_ok==6:
+            #challenge OK
+            query = "UPDATE player_discord SET confirmed=1 WHERE allyCode="+txt_allyCode
+            goutils.log2("DBG", query)
+            connect_mysql.simple_execute(query)
+
+            return 0, "Vous avez été confirmé comme propriétaire du compte "+txt_allyCode+" (n'oubliez pas de remettre le mod enlevé)."
+        else:
+            #challenge NOK
+            return 1, "Vous n'avez pas rempli les conditions demandées, veuillez reprendre à zéro en relançant la commande à l'identique."
