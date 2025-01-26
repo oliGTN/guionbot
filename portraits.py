@@ -11,6 +11,7 @@ import data
 font8 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 8)
 font12 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 12)
 font24 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 24)
+courier24 = ImageFont.truetype("IMAGES"+os.path.sep+"courier.ttf", 24)
 
 NAME_HEIGHT = 30
 PORTRAIT_SIZE = 168
@@ -625,6 +626,7 @@ def get_image_from_texttable(text_table, line_colors=None):
         text_lines = text_table.split("\n")
     elif type(text_table)==list:
         text_lines = text_table
+        print(text_lines)
         text_table = "\n".join(text_lines)
     else:
         return 1, "Unknown type for text_table", None
@@ -632,7 +634,7 @@ def get_image_from_texttable(text_table, line_colors=None):
     #Get width of global text
     image = Image.new('RGBA', (1,1), (0,0,0)) #create image to get an ImageDraw
     image_draw = ImageDraw.Draw(image) # create imagedraw to use textbbox
-    img_box = image_draw.multiline_textbbox((0,0), text_table, font=font24, spacing=LINE_SPACING)
+    img_box = image_draw.multiline_textbbox((0,0), text_table, font=courier24, spacing=LINE_SPACING)
     text_width = img_box[2]
 
     if line_colors == None:
@@ -646,7 +648,7 @@ def get_image_from_texttable(text_table, line_colors=None):
     for i_line in range(len(text_lines)):
         line = text_lines[i_line]
         color = line_colors[i_line]
-        img = get_image_from_textline(line, color=color, font=font24, width=text_width)
+        img = get_image_from_textline(line, color=color, font=courier24, width=text_width)
         list_line_images.append(img)
 
 

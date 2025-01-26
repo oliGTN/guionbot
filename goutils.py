@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import json
 import math
 import difflib
@@ -872,3 +873,70 @@ def remove_format_from_desc(desc):
 
     return desc.replace("\\n", "\n")
 
+##############################
+# Transforms a dictionay into a CSV
+#
+def dict_to_csv(my_dict, key_name):
+    #first loop to get all columns
+    headline_list = []
+    for key in my_dict:
+        line = my_dict[key]
+        my_headline, values = linedict_to_csv(line)
+        my_headline = my_headline.strip(',')
+        my_headline_list = my_headline.split(',')
+        for h in my_headline_list:
+            if not h in headline_list:
+                headline_list.append(h)
+
+    headline_list.sort()
+    headline = ','.join(headline_list)
+
+    output_csv = key_name+','+headline
+
+    for key in my_dict:
+        line = my_dict[key]
+
+        line_csv = key+','
+        for h in headline.split(','):
+            if h!='':
+                line_csv += get_dict_value_from_headline(line, h)+','
+
+        output_csv += '\n'+line_csv
+
+    return 0, output_csv
+
+def get_dict_value_from_headline(my_dict, h):
+    #print("START get_dict_value_from_headline",str(my_dict), h)
+    if '/' in h:
+        k = h.split('/')[0]
+        subh = '/'.join(h.split('/')[1:])
+        ret = str(get_dict_value_from_headline(my_dict[k], subh))
+    else:
+        if h in my_dict:
+            ret = str(my_dict[h])
+        else:
+            ret = ''
+    #print("RETURN", ret)
+    return ret
+        
+def linedict_to_csv(my_dict):
+    #print("START "+str(my_dict))
+    head_csv = ""
+    value_csv = ""
+    for k in my_dict:
+        #print(k,my_dict[k], type(my_dict[k]))
+        if type(my_dict[k])==dict:
+            sub_head_csv, sub_val_csv = linedict_to_csv(my_dict[k])
+            sub_head_csv = sub_head_csv.strip(',')
+
+            for e_head_csv in sub_head_csv.split(","):
+                head_csv += str(k)+'/'+e_head_csv+','
+
+            value_csv += sub_val_csv
+
+        else:
+            head_csv += str(k)+','
+            value_csv += str(my_dict[k])+','
+    #print("END "+str(my_dict))
+    return head_csv, value_csv
+        

@@ -3889,15 +3889,31 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # launch actual command
-            ec, ret_txt = await go.print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=connected_allyCode)
+            ec, ret_txt, image = await go.print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=connected_allyCode)
             if ec != 0:
                 await ctx.send("ERR: "+ret_txt)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                await ctx.send("```"+txt+"```")
-            await ctx.message.add_reaction(emojis.check)
+            #for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+            #    await ctx.send("```"+txt+"```")
+            #await ctx.message.add_reaction(emojis.check)
+
+            if image==None:
+                await ctx.send(ret_txt)
+            else:
+                export_path="/tmp/tbstats_"+guild_id+".csv"
+                export_file = open(export_path, "w")
+                export_file.write(ret_txt)
+                export_file.close()
+
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(content = "",
+                        #file=File(fp=image_binary, filename='image.png'))
+                        files=[File(fp=image_binary, filename='image.png'),
+                               File(export_path)])
 
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))

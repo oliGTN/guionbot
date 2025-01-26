@@ -9,7 +9,6 @@ import inspect
 import itertools
 import json
 import math
-from math import ceil, factorial
 import matplotlib
 matplotlib.use('Agg') #Preventin GTK erros at startup
 import matplotlib.pyplot as plt
@@ -3328,137 +3327,6 @@ def develop_teams(dict_teams):
 
     return 0, "", dict_developed_teams
 
-############################################
-# find_best_teams
-# IN - list_player_toon [['123456789', 'PADMEAMIDALA'], ['123456789', 'LORDVADER'], ['111222333', 'PADMEAMIDALA']]
-# IN - player_name 'toto'
-# IN - dict_team_score {'PADME-RANCOR': [1, 234, 345], 'JMK-RANCOR': [3, 34, 45]]
-# IN - dict_teams {'PADME-RANCOR': [[(PADME, GK), (SNIPS, CAT)], [(PADME, GK), (SNIPS, C3P0)]],
-#                  'JMK-RANCOR': [[...]]}
-# OUT - error_code, error_text, list_best_teams_score [['PADME-RANCOR', 'JMK-RANCOR'], 13, 24]
-############################################
-async def find_best_teams_for_player(list_allyCode_toon, txt_allyCode, dict_team_score, dict_teams):
-    list_best_teams_score = ["", 0, []]
-
-    list_toon_player = [x[1] for x in list_allyCode_toon if x[0]==int(txt_allyCode)]
-
-    list_all_required_toons = []
-    for team in dict_teams:
-        for team_combination in dict_teams[team]:
-            for required_toon in team_combination[0]:
-                if not required_toon in list_all_required_toons:
-                    list_all_required_toons.append(required_toon)
-
-    list_scoring_teams = [] #[['PADME', [padme, gk, snips]], ['PADME', [padme GK CAT]], ...]
-    for scoring_team_name in dict_team_score:
-        await asyncio.sleep(0)
-
-        if scoring_team_name in dict_teams:
-            dict_scoring_teams_by_required_toons = {}
-            for [required_toons, important_toons] in dict_teams[scoring_team_name]:
-                team_complete=True
-                list_toons = []
-                for toon in required_toons:
-                    list_toons.append(toon)
-                    if not (toon in list_toon_player):
-                        team_complete=False
-
-                list_required_toons = []
-                for toon in important_toons:
-                    list_toons.append(toon)
-                    if not (toon in list_toon_player):
-                        team_complete=False
-                    if toon in list_all_required_toons:
-                        list_required_toons .append(toon)
-                if team_complete:
-                    list_required_toons.sort()
-                    key_required_toons = str(list_required_toons)
-                    dict_scoring_teams_by_required_toons[key_required_toons] = list_toons
-
-            if '[]' in dict_scoring_teams_by_required_toons:
-                #print(dict_teams[scoring_team_name])
-                list_scoring_teams.append([scoring_team_name,
-                                           dict_scoring_teams_by_required_toons['[]'],
-                                           dict_team_score[scoring_team_name][1]])
-            else:
-                for key in dict_scoring_teams_by_required_toons:
-                    list_scoring_teams.append([scoring_team_name, 
-                                               dict_scoring_teams_by_required_toons[key], 
-                                               dict_team_score[scoring_team_name][1]])
-
-        else:
-            err_txt = "Team "+scoring_team_name+ " required but not defined"
-            goutils.log2('ERR', err_txt)
-            return 1, err_txt, None
-
-
-    goutils.log2('INFO', "List of teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
-    goutils.log2('DBG', str(len(list_scoring_teams))+" list to permute...")
-    max_permutable_teams = 9
-    if len(list_scoring_teams)>max_permutable_teams:
-        goutils.log2('DBG', str(len(list_scoring_teams))+" reducing to "+str(max_permutable_teams)+" best")
-        list_scoring_teams = sorted(list_scoring_teams, key=lambda x: -x[2])[:max_permutable_teams]
-        goutils.log2('INFO', "List of "+str(max_permutable_teams)+" best teams fillable by "+txt_allyCode+"="+str(list_scoring_teams))
-
-    permutations_scoring_teams = itertools.permutations(list_scoring_teams)
-    goutils.log2('INFO', str(factorial(len(list_scoring_teams)))+" permutations...")
-    list_txt_scores = []
-    i_permutation = 0
-    for permutation in permutations_scoring_teams:
-        await asyncio.sleep(0)
-
-        i_permutation += 1
-        if (i_permutation % 100000) == 0:
-            goutils.log2('INFO', "Current permutation: "+str(i_permutation))
-        #print("NEW PERMUTATION")
-        toon_bucket = list(list_toon_player)
-        cur_team_list_score = ["",  0, 0]
-        permutation_teams = []
-        team_per_raid_phase = [False, False, False, False]
-        for scoring_team in permutation:
-            #print(scoring_team)
-            scoring_team_name = scoring_team[0]
-            scoring_team_toons = scoring_team[1]
-            scoring_team_phase = dict_team_score[scoring_team_name][0]
-            permutation_teams.append(scoring_team)
-
-            if scoring_team_phase in [2, 3] and team_per_raid_phase[scoring_team_phase-1]:
-                #print("phase break")
-                break
-            team_per_raid_phase[scoring_team_phase-1] = True
-
-            team_complete=True
-            for toon in scoring_team_toons:
-                if toon in toon_bucket:
-                    toon_bucket.remove(toon)
-                else:
-                    team_complete=False
-
-
-            if team_complete:
-                permutation_team_names = [x[0] for x in permutation_teams]
-                cur_team_list_score[0] = permutation_team_names
-                cur_team_list_score[1] += dict_team_score[scoring_team_name][1]
-                cur_team_list_score[2] += dict_team_score[scoring_team_name][2]
-                #print("complete: "+str(permutation_teams))
-            else:
-                #print("incomplete break")
-                break
-
-        txt_score = str(cur_team_list_score[0]) + ": " + str(cur_team_list_score[1])    
-        if not txt_score in list_txt_scores:
-            list_txt_scores.append(txt_score)
-
-        if cur_team_list_score[1] > list_best_teams_score[1]:
-            list_best_teams_score = list(cur_team_list_score)
-
-
-    #if txt_allyCode == '419576861':
-    #    for txt_score in list_txt_scores:
-    #        print(txt_score)
-
-    return 0, "", list_best_teams_score
-
 ################################################################
 # tag_players_with_character
 # IN: txt_allyCode (to identify the guild)
@@ -6047,7 +5915,7 @@ async def print_tw_summary(guild_id, allyCode=None, dict_guild=None, dict_events
 # Display strike / wave statistics for the whole TB or a round
 # May be manually launched, or automatic for the end of the TB
 #########################################
-async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None):
+async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=None):
     # Get current guild and mapstats data
     err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1, allyCode=allyCode)
     if err_code!=0:
@@ -6089,7 +5957,8 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
     if "guild" in guild:
         guild=guild["guild"]
     for m in guild["member"]:
-        dict_members[m["playerId"]] = m["playerName"]
+        dict_members[m["playerId"]] = {'name': m["playerName"],
+                                       'gp': int(m["galacticPower"])}
 
     if len(list_allyCodes)>0:
         query = "SELECT allyCode, name FROM players WHERE guildId='"+guild_id+"'"
@@ -6107,47 +5976,54 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
     if "currentStat" in current_mapstats:
         current_mapstats=current_mapstats["currentStat"]
 
-    for round in ["all", "1", "2", "3", "4", "5", "6"]:
-        if round=="all":
+    for tb_round in ["all", "1", "2", "3", "4", "5", "6"]:
+        if tb_round=="all":
             encounter_id = "strike_encounter"
             attempt_id = "strike_attempt"
+            score_id = "summary"
         else:
-            encounter_id = "strike_encounter_round_"+round
-            attempt_id = "strike_attempt_round_"+round
+            encounter_id = "strike_encounter_round_"+tb_round
+            attempt_id = "strike_attempt_round_"+tb_round
+            score_id = "summary_round_"+tb_round
+
         for [tag, mapstats] in [["current", current_mapstats], ["previous", previous_mapstats]]:
             for ms in mapstats:
-                if ms["mapStatId"] in [encounter_id, attempt_id]:
+                if ms["mapStatId"] in [encounter_id, attempt_id, score_id]:
                     if not "playerStat" in ms:
                         continue
                     for p in ms["playerStat"]:
                         if p["memberId"] in dict_members:
-                            p_name = dict_members[p["memberId"]]
+                            p_name = dict_members[p["memberId"]]['name']
+                            p_gp = dict_members[p["memberId"]]['gp']
                         else:
                             continue
                         if not p_name in dict_stats:
-                            dict_stats[p_name] = {"current": {}, "previous": {}}
+                            dict_stats[p_name] = {"current": {}, "previous": {}, "gp": p_gp}
                         dict_stats[p_name][tag][ms["mapStatId"]] = int(p["score"])
 
     list_stats = []
-    for p in dict_stats:
+    list_colors = []
+    for p in sorted(dict_stats):
         if len(filtered_memberNames)>0 and not p in filtered_memberNames:
             continue
-        if len(rounds)==0:
+        if len(tb_rounds)==0:
             if len(filtered_memberNames)>0:
                 # if individual players are required, then display all phases
                 list_display_rounds = ["all", "1", "2", "3", "4", "5", "6"]
             else:
                 list_display_rounds = ["all"]
         else:
-            list_display_rounds = rounds
+            list_display_rounds = tb_rounds
 
-        for round in list_display_rounds:
-            if round=="all":
+        for tb_round in list_display_rounds:
+            if tb_round=="all":
                 encounter_id = "strike_encounter"
                 attempt_id = "strike_attempt"
+                score_id = "summary"
             else:
-                encounter_id = "strike_encounter_round_"+round
-                attempt_id = "strike_attempt_round_"+round
+                encounter_id = "strike_encounter_round_"+tb_round
+                attempt_id = "strike_attempt_round_"+tb_round
+                score_id = "summary_round_"+tb_round
 
             cur_strikes = 0
             if attempt_id in dict_stats[p]["current"]:
@@ -6157,6 +6033,10 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
             if encounter_id in dict_stats[p]["current"]:
                 cur_waves = dict_stats[p]["current"][encounter_id]
 
+            cur_score = 0
+            if score_id in dict_stats[p]["current"]:
+                cur_score = dict_stats[p]["current"][score_id]
+
             prev_strikes = 0
             if attempt_id in dict_stats[p]["previous"]:
                 prev_strikes = dict_stats[p]["previous"][attempt_id]
@@ -6165,6 +6045,12 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
             if encounter_id in dict_stats[p]["previous"]:
                 prev_waves = dict_stats[p]["previous"][encounter_id]
 
+            prev_score = 0
+            if score_id in dict_stats[p]["previous"]:
+                prev_score = dict_stats[p]["previous"][score_id]
+
+            #Compare with previous TB and give a quality score
+            round_quality = 0
             if prev_strikes == 0:
                 percent_strikes = " --"
             else:
@@ -6174,6 +6060,15 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
                     percent_strikes = " 0%"
                 elif ratio_strikes>0:
                     percent_strikes = "+"+percent_strikes
+
+                if ratio_strikes>0.5:
+                    round_quality+=2
+                elif ratio_strikes>0.25:
+                    round_quality+=1
+                elif ratio_strikes<-0.25:
+                    round_quality-=1
+                elif ratio_strikes<-0.5:
+                    round_quality-=2
 
             if prev_waves == 0:
                 percent_waves = " --"
@@ -6185,21 +6080,55 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, rounds, allyCode=None)
                 elif ratio_waves>0:
                     percent_waves = "+"+percent_waves
 
+                if ratio_waves>0.5:
+                    round_quality+=2
+                elif ratio_waves>0.25:
+                    round_quality+=1
+                elif ratio_waves<-0.25:
+                    round_quality-=1
+                elif ratio_waves<-0.5:
+                    round_quality-=2
+
+            ratio_score = round(cur_score/dict_stats[p]["gp"], 1)
+            short_score = round(cur_score/1000000, 1)
+
             if len(previous_mapstats) > 0:
-                line_stats = [round, p, str(cur_strikes).rjust(3)+" ("+str(prev_strikes).rjust(3)+", "+percent_strikes+")",
-                                 str(cur_waves).rjust(3)+" ("+str(prev_waves).rjust(3)+", "+percent_waves+")"]
+                line_stats = [tb_round, p, str(cur_strikes).rjust(3)+" ("+percent_strikes+")",
+                                 str(cur_waves).rjust(3)+" ("+percent_waves+")",
+                                 str(short_score).rjust(5)+"M ("+str(ratio_score)+")"]
+
             else:
-                line_stats = [round, p, str(cur_strikes).rjust(3),
-                                 str(cur_waves).rjust(3)]
+                line_stats = [tb_round, p, str(cur_strikes).rjust(3),
+                                 str(cur_waves).rjust(3),
+                                 str(short_score).rjust(5)+"M ("+str(ratio_score)+")"]
+                list_colors.append("black")
 
             list_stats.append(line_stats)
+            if round_quality>3:
+                list_colors.append("green")
+            elif round_quality<-1:
+                list_colors.append("orange")
+            elif round_quality<-3:
+                list_colors.append("red")
+            else:
+                list_colors.append("black")
 
-    list_stats = [["Round", "Joueur", "Combats", "Vagues réussies"]] + sorted(list_stats)
-    t = Texttable()
+    ec, txt = goutils.dict_to_csv(dict_stats, "player")
+    if ec == 0:
+        csv_content = txt
+    else:
+        return ec, txt
+
+    list_stats = [["Round", "Joueur", "Combats", "Vagues réussies", "Score"],
+                  ["", "", "(progrès)", "(progrès)", "(ratio /PG)"]] + list_stats
+    list_colors = ["black", "black"] + list_colors
+
+    t = Texttable(0)
     t.add_rows(list_stats)
-    t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
+    t.set_deco(0)
+    ec, et, image = portraits.get_image_from_texttable(t.draw(), list_colors)
 
-    return 0, t.draw()
+    return 0, csv_content, image
 
 #########################################
 # Display points statistics by phase for the whole TB or a round
