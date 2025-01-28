@@ -1043,13 +1043,20 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     if ec == 0:
         # TW ongoing
         tw_id = ret_tw_alerts["tw_id"]
+        dict_guild = ret_tw_alerts['rpc']['guild']
+        tw = dict_guild["territoryWarStatus"][0]
+        opp_guild_id = tw["awayGuild"]["profile"]["id"]
+        opp_guild_name = tw["awayGuild"]["profile"]["name"]
+        score = sum([int(x['zoneStatus']['score']) \
+                     for x in tw['homeGuild']['conflictStatus']])
+        opp_score = sum([int(x['zoneStatus']['score']) \
+                         for x in tw['awayGuild']['conflictStatus']])
 
         # Check event for TW start, and load opponent guild
         swgohgg_opp_url = None
         if not manage_events.exists("tw_start", guild_id, tw_id):
             dict_guild = ret_tw_alerts["rpc"]["guild"]
             goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
-            opp_guild_id = dict_guild["territoryWarStatus"][0]["awayGuild"]["profile"]["id"]
 
             #Fire and forget guild loading in the background
             asyncio.create_task(go.load_guild_from_id(opp_guild_id, True, True))
@@ -1064,6 +1071,10 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
             connect_mysql.simple_execute(query)
 
             manage_events.create_event("tw_start", guild_id, tw_id)
+
+        # update DB
+        connect_mysql.update_tw(guild_id, tw_id, opp_guild_id,
+                                opp_guild_name, score, opp_score)
 
         # Display TW alerts, messages...
         [channel_id, dict_messages, tw_ts] = ret_tw_alerts["alerts"]

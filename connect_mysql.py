@@ -1549,3 +1549,140 @@ def store_tb_events(guild_id, tb_id, list_events):
                     ""+str(param3)+") "
             goutils.log2("DBG", query)
             simple_execute(query)
+
+#################################
+# update TW in DB
+def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score):
+    now = datetime.datetime.now()
+
+    # Check / Create the TB in DB
+    query = "SELECT id FROM tw_history " \
+            "WHERE tw_id='"+tw_id+"' "\
+            "AND guild_id='"+guild_id+"' "
+    goutils.log2("DBG", query)
+    db_data = get_value(query)
+
+    if db_data==None:
+        # Create TW in tw_history
+        tw_ts = int(tw_id.split(":")[1][1:-3])
+        tw_date = datetime.datetime.fromtimestamp(tw_ts).strftime("%Y/%m/%d %H:%M:%S")
+        query = "INSERT INTO tw_history(tw_id, start_date, guild_id, " \
+                "away_guild_id, away_guild_name) " \
+                "VALUES('"+tw_id+"', '"+tb_date+"', '"+guild_id+"', " \
+                "'"+opp_guild_id+"', '"+opp_guild_name+"') "
+        goutils.log2("DBG", query)
+        simple_execute(query)
+
+    else:
+        # Update existing TW
+        tw_db_id = str(db_data)
+        query = "UPDATE tw_history "\
+                "SET lastUpdated=CURRENT_TIMESTAMP(), "\
+                "    homeScore="+str(score)+", "\
+                "    awayScore="+str(opp_score)+" "\
+                "WHERE id="+str(tw_db_id)
+        goutils.log2("DBG", query)
+        simple_execute(query)
+
+    return 0, ""
+
+###########################################
+# Update tw_events table from list of events
+# list_events my be actually a dictionary
+def store_tw_events(guild_id, tw_id, list_events):
+    # Get timestamp for latest registered event in DB
+    query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tw_events"
+    goutils.log2("DBG", query)
+    max_ts = get_value(query)
+    if max_ts==None:
+        max_ts=0
+
+    # Get the DB tw_id from the game tw_id and the guild_id
+    query = "SELECT id FROM tw_history WHERE tw_id='"+tw_id+"' AND guild_id='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    tw_db_id = get_value(query)
+
+    for event in list_events:
+        #Manage the case where list_events is a dict
+        if type(event)==str:
+            event_id = event
+            event = list_events[event_id]
+
+        event_ts = round(int(event["timestamp"])*0.001, 3) # to prevent values like 1737416568.6330001
+        if event_ts <= max_ts:
+            #goutils.log2("DBG", str(event_ts)+" < "+str(max_ts))
+            continue
+
+        author_id = event["authorId"]
+        data=event["data"][0]
+        activity=data["activity"]
+        event_type = activity["zoneData"]["activityLogMessage"]["key"]
+        if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
+            if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
+                zone_data = activity["zoneData"]
+                zone_id = zone_data["zoneId"]
+                squad_id = activity["warSquad"]["squadId"]
+                leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
+                squad_size = len(activity["warSquad"]["squad"]["cell"])
+
+                query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+                        "author_id, squad_id, squad_leader) "\
+                        "VALUES("+str(tw_db_id)+", "\
+                        "FROM_UNIXTIME("+str(event_ts)+"), "\
+                        "'DEPLOY', "\
+                        "'"+zone_id+"', "\
+                        "'"+author_id+"', "\
+                        "'"+squad_id+"', "\
+                        "'"+leader_id+"') "
+                goutils.log2("DBG", query)
+                simple_execute(query)
+
+        elif "warSquad" in activity:
+            squad_id = activity["warSquad"]["squadId"]
+            if "squad" in activity["warSquad"]:
+                squad_player_id=activity["warSquad"]["playerId"]
+                leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
+                squad_size = len(activity["warSquad"]["squad"]["cell"])
+                
+                count_dead=0
+                remaining_tm=False
+                for cell in activity["warSquad"]["squad"]["cell"]:
+                    if cell["unitState"]["healthPercent"] == "0":
+                        count_dead+=1
+                    if cell["unitState"]["turnPercent"] != "0":
+                        remaining_tm=True
+
+                event_type = activity["warSquad"]["squadStatus"]
+
+                query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+                        "author_id, squad_id, squad_player_id, squad_leader, "\
+                        "squad_size, squad_dead, squad_tm) "\
+                        "VALUES("+str(tw_db_id)+", "\
+                        "FROM_UNIXTIME("+str(event_ts)+"), "\
+                        "'"+event_type+"', "\
+                        "'"+zone_id+"', "\
+                        "'"+author_id+"', "\
+                        "'"+squad_id+"', "\
+                        "'"+squad_player_id+"', "\
+                        "'"+leader_id+"', "\
+                        ""+str(squad_size)+", "\
+                        ""+str(squad_dead)+", "\
+                        ""+str(int(squad_tm))+") "
+                goutils.log2("DBG", query)
+                simple_execute(query)
+
+            else:
+                scoreDelta = activity["zoneData"]["scoreDelta"]
+                scoretotal = activity["zoneData"]["scoreTotal"]
+
+                query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+                        "author_id, scoreDelta, scoreTotal) "\
+                        "VALUES("+str(tw_db_id)+", "\
+                        "FROM_UNIXTIME("+str(event_ts)+"), "\
+                        "'"+event_type+"', "\
+                        "'"+zone_id+"', "\
+                        "'"+author_id+"', "\
+                        ""+str(scoreDelta)+", "\
+                        ""+str(scoreTotal)+") "
+                goutils.log2("DBG", query)
+                simple_execute(query)

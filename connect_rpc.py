@@ -386,6 +386,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         list_channels=[]
         if ("territoryWarStatus" in dict_guild) and ("TW" in event_types):
             for tw_status in dict_guild["territoryWarStatus"]:
+                tw_id = tw_status["instanceId"]
                 tw_guilds = []
                 for guild_type in ["homeGuild", "awayGuild"]:
                     if guild_type in tw_status:
@@ -396,40 +397,47 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         zone_channel = conflict_zone["zoneStatus"]["channelId"]
                         list_channels.append(zone_channel)
 
-        # RPC REQUEST for TW events
-        url = "http://localhost:8000/events"
-        params = {"allyCode": bot_allyCode, 
-                  "eventType": "TW",
-                  "guild_id": guild_id,
-                  "list_channels": list_channels, 
-                  "use_cache_data":use_cache_data}
-        req_data = json.dumps(params)
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, data=req_data) as resp:
-                    goutils.log2("DBG", "POST TW events status="+str(resp.status))
-                    if resp.status==200:
-                        if use_cache_data:
-                            cache_json = await(resp.json())
-                            cache_ts = cache_json["timestamp"]
-                            resp_events = cache_json["data"]
+        if len(list_channels)>0:
+            # RPC REQUEST for TW events
+            url = "http://localhost:8000/events"
+            params = {"allyCode": bot_allyCode, 
+                      "eventType": "TW",
+                      "guild_id": guild_id,
+                      "list_channels": list_channels, 
+                      "use_cache_data":use_cache_data}
+            req_data = json.dumps(params)
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, data=req_data) as resp:
+                        goutils.log2("DBG", "POST TW events status="+str(resp.status))
+                        if resp.status==200:
+                            if use_cache_data:
+                                cache_json = await(resp.json())
+                                cache_ts = cache_json["timestamp"]
+                                resp_events = cache_json["data"]
+                            else:
+                                resp_events = await(resp.json())
                         else:
-                            resp_events = await(resp.json())
-                    else:
-                        return 1, "Cannot get events data from RPC", None
+                            return 1, "Cannot get events data from RPC", None
 
-        except asyncio.exceptions.TimeoutError as e:
-            return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-        except aiohttp.client_exceptions.ServerDisconnectedError as e:
-            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-        except aiohttp.client_exceptions.ClientConnectorError as e:
-            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+            except asyncio.exceptions.TimeoutError as e:
+                return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+            except aiohttp.client_exceptions.ServerDisconnectedError as e:
+                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+            except aiohttp.client_exceptions.ClientConnectorError as e:
+                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+        else:
+            resp_events = None
 
         #add received events to the whole list
         if resp_events!=None:
             if "err_code" in resp_events:
                 return 1, resp_events["err_txt"], None
             list_rpc_events += resp_events['event']
+
+            #Store the new events in the DB
+            print(resp_events['event'][:3])
+            connect_mysql.store_tw_events(guild_id, tw_id, resp_events['event'])
 
         #---------------
         #CHAT events
