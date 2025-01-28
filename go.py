@@ -3070,8 +3070,12 @@ async def print_erx(txt_allyCode, days, compute_guild):
 #                       tw_timestamp]]
 # Err Code: 0 = OK / 1 = config error / 2 = no TW ongoing
 ############################################
-async def get_tw_alerts(guild_id, force_update, allyCode=None):
-    goutils.log2('DBG', (guild_id, force_update, allyCode))
+async def get_tw_alerts(guild_id,
+                        tw_id,
+                        list_opponent_squads,
+                        list_opp_territories,
+                        list_def_squads,
+                        list_def_territories):
 
     dict_unitsList = godata.get("unitsList_dict.json")
 
@@ -3084,14 +3088,6 @@ async def get_tw_alerts(guild_id, force_update, allyCode=None):
     guildName = db_data[0]
     twChannel_id = db_data[1]
 
-    ret_tw_status = await connect_rpc.get_tw_status(guild_id, force_update, allyCode=allyCode, manage_tw_end=True)
-    tw_id = ret_tw_status["tw_id"]
-    if tw_id == None:
-        return 2, "", {"tw_id": tw_id, "rpc": ret_tw_status["rpc"]}
-
-    if ret_tw_status["tw_round"] == -1:
-        return 1, "GT non démarrée, phase d'inscription", None
-
     tw_timestamp = tw_id.split(":")[1][1:]
 
     list_tw_alerts = [twChannel_id, {}, tw_timestamp]
@@ -3099,8 +3095,6 @@ async def get_tw_alerts(guild_id, force_update, allyCode=None):
     ########################################
     # OPPONENT territories
     ########################################
-    list_opponent_squads = ret_tw_status["awayGuild"]["list_defenses"]
-    list_opp_territories = ret_tw_status["awayGuild"]["list_territories"]
     if len(list_opponent_squads) > 0:
         list_opponent_players = [x[1] for x in list_opponent_squads]
         longest_opp_player_name = max(list_opponent_players, key=len)
@@ -3177,8 +3171,6 @@ async def get_tw_alerts(guild_id, force_update, allyCode=None):
     ########################################
     # HOME territories
     ########################################
-    list_def_squads = ret_tw_status["homeGuild"]["list_defenses"]
-    list_def_territories = ret_tw_status["homeGuild"]["list_territories"]
     list_full_territories = [t for t in list_def_territories if t[1]==t[2]]
     nb_full = len(list_full_territories)
     if len(list_def_territories) > 0:
@@ -3291,12 +3283,7 @@ async def get_tw_alerts(guild_id, force_update, allyCode=None):
 
             list_tw_alerts[1]["Home:"+territory_name] = msg
 
-    ret_data = {"tw_id": tw_id, "alerts": list_tw_alerts,
-                "rpc": ret_tw_status["rpc"]}
-
-    # Manage case of tw ending data
-    if "tw_summary" in ret_tw_status and ret_tw_status["tw_summary"]!=None:
-        ret_data["tw_summary"] = ret_tw_status["tw_summary"]
+    ret_data = {"tw_id": tw_id, "alerts": list_tw_alerts}
 
     return 0, "", ret_data
 

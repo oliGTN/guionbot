@@ -1552,7 +1552,9 @@ def store_tb_events(guild_id, tb_id, list_events):
 
 #################################
 # update TW in DB
-def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score):
+def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, opp_score,
+              homeGuild, awayGuild):
+    dict_tw = data.dict_tw
     now = datetime.datetime.now()
 
     # Check / Create the TB in DB
@@ -1583,6 +1585,61 @@ def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score):
                 "WHERE id="+str(tw_db_id)
         goutils.log2("DBG", query)
         simple_execute(query)
+
+    for [side, guild] in [["home", homeGuild], ["away", awayGuild]]:
+        zones = guild['list_territories']
+        for zone in zones:
+            zone_name = zone[0]
+            size = zone[1]
+            filled = zone[2]
+            victories = zone[3]
+            fails = zone[4]
+            commandMsg = zone[5]
+            status = zone[6]
+            zone_id = dict_tw[zone_name]
+
+            # Check / Create the zone in DB
+            query = "SELECT id FROM tw_zones " \
+                    "WHERE tw_id="+tw_db_id+" "\
+                    "AND side='"+side+"' "\
+                    "AND zone_id='"+zone_id+"' "
+            goutils.log2("DBG", query)
+            db_data = get_value(query)
+
+            if db_data==None:
+                query = "INSERT INTO tw_zones(tw_id, side, zone_id, zone_name, size) "\
+                        "VALUES("+tw_db_id+", '"+side+"', '"+zone_id+"', '"+zone_name+"', "+str(size)+") "
+                goutils.log2("DBG", query)
+                simple_execute(query)
+
+                # Get the id of the new Zone
+                query = "SELECT id FROM tw_zones " \
+                        "WHERE tw_id="+tw_db_id+" "\
+                        "AND side='"+side+"' "\
+                        "AND zone_id='"+zone_id+"' "
+                goutils.log2("DBG", query)
+                zone_db_id = str(get_value(query))
+            else:
+                zone_db_id = str(db_data)
+
+            # Update current status of the zone
+            if commandMsg == None:
+                cmdMsg_txt = "NULL"
+            else:
+                cmdMsg_txt = "'"+commandMsg+"'"
+            if status == None:
+                status_txt = "NULL"
+            else:
+                status_txt = "'"+status+"'"
+            query = "UPDATE tw_zones "\
+                    "SET filled="+str(filled)+",  "\
+                    "    victories="+str(victories)+", "\
+                    "    fails="+str(fails)+", "\
+                    "    commandMsg="+cmdMsg_txt+", "\
+                    "    status="+status_txt+" "\
+                    "WHERE id="+zone_db_id+" "
+            goutils.log2("DBG", query)
+            simple_execute(query)
 
     return 0, ""
 
@@ -1641,8 +1698,9 @@ def store_tw_events(guild_id, tw_id, list_events):
             zone_data = activity["zoneData"]
             zone_id = zone_data["zoneId"]
             squad_id = activity["warSquad"]["squadId"]
+            squad_player_id=activity["warSquad"]["playerId"]
+            event_type = activity["warSquad"]["squadStatus"]
             if "squad" in activity["warSquad"]:
-                squad_player_id=activity["warSquad"]["playerId"]
                 leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
                 squad_size = len(activity["warSquad"]["squad"]["cell"])
                 
@@ -1653,8 +1711,6 @@ def store_tw_events(guild_id, tw_id, list_events):
                         count_dead+=1
                     if cell["unitState"]["turnPercent"] != "0":
                         remaining_tm=True
-
-                event_type = activity["warSquad"]["squadStatus"]
 
                 query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id, squad_player_id, squad_leader, "\
@@ -1673,18 +1729,34 @@ def store_tw_events(guild_id, tw_id, list_events):
                 goutils.log2("DBG", query)
                 simple_execute(query)
 
-            else:
-                scoreDelta = activity["zoneData"]["scoreDelta"]
-                scoretotal = activity["zoneData"]["scoreTotal"]
-
+            else: # no squad, only squad_id
                 query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
-                        "author_id, scoreDelta, scoreTotal) "\
+                        "author_id, squad_id, squad_player_id) "\
                         "VALUES("+str(tw_db_id)+", "\
                         "FROM_UNIXTIME("+str(event_ts)+"), "\
                         "'"+event_type+"', "\
                         "'"+zone_id+"', "\
                         "'"+author_id+"', "\
-                        ""+str(scoreDelta)+", "\
-                        ""+str(scoreTotal)+") "
+                        "'"+squad_id+"', "\
+                        "'"+squad_player_id+"') "
                 goutils.log2("DBG", query)
                 simple_execute(query)
+
+
+        else: # no warSquad > score event
+            if not "scoreDelta" in activity["zoneData"]:
+                print(event)
+            scoreDelta = activity["zoneData"]["scoreDelta"]
+            scoreTotal = activity["zoneData"]["scoreTotal"]
+
+            query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+                    "author_id, scoreDelta, scoreTotal) "\
+                    "VALUES("+str(tw_db_id)+", "\
+                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "'SCORE', "\
+                    "'"+zone_id+"', "\
+                    "'"+author_id+"', "\
+                    ""+scoreDelta+", "\
+                    ""+scoreTotal+") "
+            goutils.log2("DBG", query)
+            simple_execute(query)
