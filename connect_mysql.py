@@ -1673,11 +1673,11 @@ def store_tw_events(guild_id, tw_id, list_events):
         author_id = event["authorId"]
         data=event["data"][0]
         activity=data["activity"]
+        zone_data = activity["zoneData"]
+        zone_id = zone_data["zoneId"]
         event_type = activity["zoneData"]["activityLogMessage"]["key"]
         if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
             if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
-                zone_data = activity["zoneData"]
-                zone_id = zone_data["zoneId"]
                 squad_id = activity["warSquad"]["squadId"]
                 leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
                 squad_size = len(activity["warSquad"]["squad"]["cell"])
@@ -1695,8 +1695,6 @@ def store_tw_events(guild_id, tw_id, list_events):
                 simple_execute(query)
 
         elif "warSquad" in activity:
-            zone_data = activity["zoneData"]
-            zone_id = zone_data["zoneId"]
             squad_id = activity["warSquad"]["squadId"]
             event_type = activity["warSquad"]["squadStatus"]
             if "squad" in activity["warSquad"]:
