@@ -1698,9 +1698,9 @@ def store_tw_events(guild_id, tw_id, list_events):
             zone_data = activity["zoneData"]
             zone_id = zone_data["zoneId"]
             squad_id = activity["warSquad"]["squadId"]
-            squad_player_id=activity["warSquad"]["playerId"]
             event_type = activity["warSquad"]["squadStatus"]
             if "squad" in activity["warSquad"]:
+                squad_player_id=activity["warSquad"]["playerId"]
                 leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
                 squad_size = len(activity["warSquad"]["squad"]["cell"])
                 
@@ -1731,14 +1731,13 @@ def store_tw_events(guild_id, tw_id, list_events):
 
             else: # no squad, only squad_id
                 query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
-                        "author_id, squad_id, squad_player_id) "\
+                        "author_id, squad_id) "\
                         "VALUES("+str(tw_db_id)+", "\
                         "FROM_UNIXTIME("+str(event_ts)+"), "\
                         "'"+event_type+"', "\
                         "'"+zone_id+"', "\
                         "'"+author_id+"', "\
-                        "'"+squad_id+"', "\
-                        "'"+squad_player_id+"') "
+                        "'"+squad_id+"') "
                 goutils.log2("DBG", query)
                 simple_execute(query)
 
