@@ -1638,6 +1638,8 @@ def store_tw_events(guild_id, tw_id, list_events):
                 simple_execute(query)
 
         elif "warSquad" in activity:
+            zone_data = activity["zoneData"]
+            zone_id = zone_data["zoneId"]
             squad_id = activity["warSquad"]["squadId"]
             if "squad" in activity["warSquad"]:
                 squad_player_id=activity["warSquad"]["playerId"]
