@@ -1568,7 +1568,7 @@ def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score):
         tw_date = datetime.datetime.fromtimestamp(tw_ts).strftime("%Y/%m/%d %H:%M:%S")
         query = "INSERT INTO tw_history(tw_id, start_date, guild_id, " \
                 "away_guild_id, away_guild_name) " \
-                "VALUES('"+tw_id+"', '"+tb_date+"', '"+guild_id+"', " \
+                "VALUES('"+tw_id+"', '"+tw_date+"', '"+guild_id+"', " \
                 "'"+opp_guild_id+"', '"+opp_guild_name+"') "
         goutils.log2("DBG", query)
         simple_execute(query)
