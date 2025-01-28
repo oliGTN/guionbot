@@ -1668,8 +1668,8 @@ def store_tw_events(guild_id, tw_id, list_events):
                         "'"+squad_player_id+"', "\
                         "'"+leader_id+"', "\
                         ""+str(squad_size)+", "\
-                        ""+str(squad_dead)+", "\
-                        ""+str(int(squad_tm))+") "
+                        ""+str(count_dead)+", "\
+                        ""+str(int(remaining_tm))+") "
                 goutils.log2("DBG", query)
                 simple_execute(query)
 
