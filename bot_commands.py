@@ -233,11 +233,16 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
                 check_owned = True
 
         ec, txt, ret_dict = await get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=check_owned)
+
         if ec==1:
             await command_error(ctx_interaction, resp_msg, txt)
             return
 
         eqpt_list = ret_dict["eqpt_list"]
+        if len(eqpt_list)==0:
+            await command_error(ctx_interaction, resp_msg, "Tout l'équipement nécessaire est bien dans l'inventaire")
+            return
+
         list_display_targets = ret_dict["targets"]
 
         # Sort with most needed first
