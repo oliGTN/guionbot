@@ -3065,8 +3065,8 @@ async def print_erx(txt_allyCode, days, compute_guild):
 ############################################
 # get_tw_alerts
 # IN - guild_id
-# OUT - list_tw_alerts [twChannel_id, {territory1: alert_territory1,
-#                                      territory2: alert_territory2...},
+# OUT - list_tw_alerts [{territory1: alert_territory1,
+#                        territory2: alert_territory2...},
 #                       tw_timestamp]]
 # Err Code: 0 = OK / 1 = config error / 2 = no TW ongoing
 ############################################
@@ -3079,18 +3079,9 @@ async def get_tw_alerts(guild_id,
 
     dict_unitsList = godata.get("unitsList_dict.json")
 
-    query = "SELECT name, twChanOut_id FROM guild_bot_infos "
-    query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
-    query+= "WHERE guild_id='"+guild_id+"'"
-    goutils.log2('DBG', query)
-    db_data = connect_mysql.get_line(query)
-
-    guildName = db_data[0]
-    twChannel_id = db_data[1]
-
     tw_timestamp = tw_id.split(":")[1][1:]
 
-    list_tw_alerts = [twChannel_id, {}, tw_timestamp]
+    list_tw_alerts = [{}, tw_timestamp]
 
     ########################################
     # OPPONENT territories
@@ -3166,7 +3157,7 @@ async def get_tw_alerts(guild_id,
             else:
                 msg = '\N{WHITE RIGHT POINTING BACKHAND INDEX}'+msg
 
-            list_tw_alerts[1][territory_name] = msg
+            list_tw_alerts[0][territory_name] = msg
 
     ########################################
     # HOME territories
@@ -3252,7 +3243,7 @@ async def get_tw_alerts(guild_id,
             msg += '\N{WHITE HEAVY CHECK MARK} défense complète'
         else:
             msg += "Progrès de la défense : "+str(nb_full)+"/10"
-        list_tw_alerts[1]["Placement:G"] = msg
+        list_tw_alerts[0]["Placement:G"] = msg
 
 
         #Alert for defense lost
@@ -3281,7 +3272,7 @@ async def get_tw_alerts(guild_id,
             nb_fails = territory[4]
             msg += " ("+territory_name+") est tombé avec "+str(nb_fails)+" fails."
 
-            list_tw_alerts[1]["Home:"+territory_name] = msg
+            list_tw_alerts[0]["Home:"+territory_name] = msg
 
     ret_data = {"tw_id": tw_id, "alerts": list_tw_alerts}
 

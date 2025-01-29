@@ -1043,6 +1043,22 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         ret_tw_status = await connect_rpc.get_tw_status(guild_id, 1, allyCode=allyCode, 
                                                         manage_tw_end=True)
 
+    #Get the output channel
+    query = "SELECT twChanOut_id FROM guild_bot_infos "
+    query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
+    query+= "WHERE guild_id='"+guild_id+"'"
+    goutils.log2('DBG', query)
+    channel_id = connect_mysql.get_value(query)
+
+    if channel_id == None:
+        if backup_channel_id==None:
+            return 1, "ERR: pas de channel GT configuré pour la guilde "+guild_id, None
+        channel_id = backup_channel_id
+        
+    tw_bot_channel = bot.get_channel(channel_id)
+    goutils.log2("DBG", "["+guild_id+"] TW channel: "+str(channel_id))
+
+    # TW basic info
     tw_id = ret_tw_status["tw_id"]
     if tw_id == None:
         #TW is over
@@ -1079,6 +1095,8 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     if ec != 0:
         return ec, et, None
 
+    [dict_messages, tw_ts] = ret_tw_alerts["alerts"]
+
     # TW ongoing
     dict_guild = ret_tw_status['rpc']['guild']
     tw = dict_guild["territoryWarStatus"][0]
@@ -1092,7 +1110,6 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     # Check event for TW start, and load opponent guild
     swgohgg_opp_url = None
     if not manage_events.exists("tw_start", guild_id, tw_id):
-        dict_guild = ret_tw_alerts["rpc"]["guild"]
         goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
 
         #Fire and forget guild loading in the background
@@ -1114,16 +1131,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                             opp_guild_name, score, opp_score,
                             homeGuild, awayGuild)
 
-    # Display TW alerts, messages...
-    [channel_id, dict_messages, tw_ts] = ret_tw_alerts["alerts"]
-    if channel_id == None:
-        if backup_channel_id==None:
-            return 1, "ERR: pas de channel GT configuré pour la guilde "+guild_id, None
-        tw_bot_channel = backup_channel_id
-        
-    tw_bot_channel = bot.get_channel(channel_id)
-    goutils.log2("DBG", "["+guild_id+"] TW channel: "+str(channel_id))
-
+    # Display Link to opponent guild
     if swgohgg_opp_url != None:
         if tw_bot_channel==None:
             print("Guilde adverse : "+swgohgg_opp_url)
