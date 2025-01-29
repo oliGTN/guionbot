@@ -1073,7 +1073,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         # Display TW results
         tw_summary = ret_tw_status["tw_summary"]
         for stxt in goutils.split_txt(tw_summary, MAX_MSG_SIZE):
-            await tw_bot_channel.send('`' + stxt + '`')
+            await tw_bot_channel.send('```\n' + stxt + '```')
 
     #intialize parameters
     awayGuild = ret_tw_status["awayGuild"]
