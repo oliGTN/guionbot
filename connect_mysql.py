@@ -1742,7 +1742,7 @@ def store_tw_events(guild_id, tw_id, list_events):
 
         else: # no warSquad > score event
             if not "scoreDelta" in activity["zoneData"]:
-                print(event)
+                print("no scoreDelta", event)
             scoreDelta = activity["zoneData"]["scoreDelta"]
             scoreTotal = activity["zoneData"]["scoreTotal"]
 
