@@ -239,8 +239,9 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
             return
 
         eqpt_list = ret_dict["eqpt_list"]
+        # Test if there is something to display
         if len(eqpt_list)==0:
-            await command_error(ctx_interaction, resp_msg, "Tout l'équipement nécessaire est bien dans l'inventaire")
+            await command_ok(ctx_interaction, resp_msg, "Tous les équipements nécessaires pour passer "+str(", ".join(list_display_targets))+" sont déjà disponibles")
             return
 
         list_display_targets = ret_dict["targets"]
@@ -248,14 +249,9 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
         # Sort with most needed first
         eqpt_list.sort(key=lambda x:x[2]-x[1])
 
-        # Test if there is something to display
-        if eqpt_list[0][2] >= eqpt_list[0][1]:
-            await command_ok(ctx_interaction, resp_msg, "Tous les équipements nécessaires pour passer "+str(", ".join(list_display_targets))+" sont déjà disponibles")
-
-        else:
-            # Compute image
-            image = portraits.get_image_from_eqpt_list(eqpt_list, display_owned=check_owned)
-            await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(", ".join(list_display_targets)), images=[image])
+        # Compute image
+        image = portraits.get_image_from_eqpt_list(eqpt_list, display_owned=check_owned)
+        await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(", ".join(list_display_targets)), images=[image])
 
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())
