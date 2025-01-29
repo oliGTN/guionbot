@@ -1144,7 +1144,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         query = "SELECT msg_id FROM tw_messages "
         query+= "WHERE guild_id='"+guild_id+"' "
         query+= "AND zone='"+territory+"'"
-        goutils.log2("INFO", query)
+        goutils.log2("DBG", query)
         old_msg_id = connect_mysql.get_value(query)
 
         if old_msg_id == None:
