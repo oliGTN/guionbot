@@ -1580,7 +1580,7 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
                 "WHERE tw_id='"+tw_id+"' "\
                 "AND guild_id='"+guild_id+"' "
         goutils.log2("DBG", query)
-        tw_tb_id = get_value(query)
+        tw_db_id = get_value(query)
     else:
         # Update existing TW
         tw_db_id = str(db_data)
