@@ -3,7 +3,7 @@ echo SCRIPT_DIR=$SCRIPT_DIR
 
 rm -rf /home/pi/GuionBot/SQLBACKUP/
 mkdir /home/pi/GuionBot/SQLBACKUP
-for table in gp_history gv_history roster_evolutions guilds guild_bot_infos players shards stat_list guild_evolutions
+for table in gp_history guilds guild_bot_infos guild_gp_history players player_discord shards statq_table user_bot_infos
 do
     echo $table
 	mysqldump -u<user> -p<password> --opt guionbotdb $table > /home/pi/GuionBot/SQLBACKUP/$table.sql
@@ -18,6 +18,12 @@ do
     cp $f /home/pi/GuionBot/SQLBACKUP
 done
 IFS="$OIFS"
+
+echo Copy config.py...
+cp /home/GuionBot/guionbot-dev/config.py /home/pi/GuionBot/SQLBACKUP
+
+echo Copy www...
+cp -r /var/www/html /home/pi/GuionBot/SQLBACKUP
 
 echo Compress...
 tar -zcvf /home/pi/GuionBot/all_tables.gz /home/pi/GuionBot/SQLBACKUP
