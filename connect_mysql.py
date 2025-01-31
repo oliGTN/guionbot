@@ -1606,7 +1606,7 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
 
             # Check / Create the zone in DB
             query = "SELECT id FROM tw_zones " \
-                    "WHERE tw_id="+tw_db_id+" "\
+                    "WHERE tw_id="+str(tw_db_id)+" "\
                     "AND side='"+side+"' "\
                     "AND zone_id='"+zone_id+"' "
             goutils.log2("DBG", query)
