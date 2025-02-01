@@ -1650,7 +1650,6 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
         # Check / create squads in DB
         squads = guild['list_defenses']
         for squad in squads:
-            print(squad)
             zone_name = squad[0]
             player_name = squad[1]
             cells = squad[2]
