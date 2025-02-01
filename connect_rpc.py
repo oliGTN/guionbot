@@ -2279,7 +2279,8 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                                        "level": c["unitBattleStat"]["level"],
                                        "gear": c["unitBattleStat"]["tier"],
                                        "relic": c["unitBattleStat"]["unitRelicTier"],
-                                       "turnMeter": c["unitState"]["turnPercent"]}
+                                       "turnMeter": c["unitState"]["turnPercent"],
+                                       "health": c["unitState"]["healthPercent"]}
                             if "skill" in c["unitBattleStat"]:
                                 my_unit["skill"] = c["unitBattleStat"]["skill"]
                             if "purchaseAbilityId" in c["unitBattleStat"]:
@@ -2344,7 +2345,8 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                                                        "level": c["unitBattleStat"]["level"],
                                                        "gear": c["unitBattleStat"]["tier"],
                                                        "relic": c["unitBattleStat"]["unitRelicTier"],
-                                                       "turnMeter": c["unitState"]["turnPercent"]}
+                                                       "turnMeter": c["unitState"]["turnPercent"],
+                                                       "health": c["unitState"]["healthPercent"]}
                                             if "skill" in c["unitBattleStat"]:
                                                 my_unit["skill"] = c["unitBattleStat"]["skill"]
                                             if "purchaseAbilityId" in c["unitBattleStat"]:

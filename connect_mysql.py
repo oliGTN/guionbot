@@ -1667,15 +1667,17 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
                 # Check / Create the squad unit in DB
                 query = "SELECT id FROM tw_squads " \
                         "WHERE tw_id="+str(tw_db_id)+" "\
+                        "AND side='"+side+"' "\
                         "AND defId='"+defId+"' "\
                         "AND player_name='"+player_name.replace("'", "''")+"' "
                 goutils.log2("DBG", query)
                 db_data = get_value(query)
 
                 if db_data==None:
-                    query = "INSERT INTO tw_squads(tw_id, leader_id, player_name, defId, "\
-                            "zone_name, cellIndex, level, tier, unitRelicTier) "\
+                    query = "INSERT INTO tw_squads(tw_id, side, leader_id, player_name, "\
+                            "defId, zone_name, cellIndex, level, tier, unitRelicTier) "\
                             "VALUES("+tw_db_id+", "\
+                            "'"+side+"', " \
                             ""+leader_id+", " \
                             "'"+player_name.replace("'", "''")+"', " \
                             "'"+defId+"', "\
@@ -1690,6 +1692,7 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
                     # Check / Create the squad uit in DB
                     query = "SELECT id FROM tw_squads " \
                             "WHERE tw_id="+str(tw_db_id)+" "\
+                            "AND side='"+side+"' "\
                             "AND defId='"+defId+"' "\
                             "AND player_name='"+player_name.replace("'", "''")+"' "
                     goutils.log2("DBG", query)
