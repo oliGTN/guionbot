@@ -1647,6 +1647,66 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
             goutils.log2("DBG", query)
             simple_execute(query)
 
+        # Check / create squads in DB
+        squads = guild['list_defenses']
+        for squad in squads:
+            print(squad)
+            zone_name = squad[0]
+            player_name = squad[1]
+            cells = squad[2]
+
+            cellIndex = 0
+            leader_id = "NULL"
+            for cell in cells:
+                defId = cell["unitDefId"]
+                level = cell["level"]
+                tier = cell["gear"]
+                unitRelicTier = cell["relic"]
+                health_txt = cell["health"]
+
+                # Check / Create the squad unit in DB
+                query = "SELECT id FROM tw_squads " \
+                        "WHERE tw_id="+str(tw_db_id)+" "\
+                        "AND defId='"+defId+"' "\
+                        "AND player_name='"+player_name.replace("'", "''")+"' "
+                goutils.log2("DBG", query)
+                db_data = get_value(query)
+
+                if db_data==None:
+                    query = "INSERT INTO tw_squads(tw_id, leader_id, player_name, defId, "\
+                            "zone_name, cellIndex, level, tier, unitRelicTier) "\
+                            "VALUES("+tw_db_id+", "\
+                            ""+leader_id+", " \
+                            "'"+player_name.replace("'", "''")+"', " \
+                            "'"+defId+"', "\
+                            "'"+zone_name+"', "\
+                            ""+str(cellIndex)+", "\
+                            ""+str(level)+", "\
+                            ""+str(tier)+", "\
+                            ""+str(unitRelicTier)+") "
+                    goutils.log2("DBG", query)
+                    simple_execute(query)
+
+                    # Check / Create the squad uit in DB
+                    query = "SELECT id FROM tw_squads " \
+                            "WHERE tw_id="+str(tw_db_id)+" "\
+                            "AND defId='"+defId+"' "\
+                            "AND player_name='"+player_name.replace("'", "''")+"' "
+                    goutils.log2("DBG", query)
+                    squad_id = get_value(query)
+                else:
+                    squad_id = db_data
+
+                query = "UPDATE tw_squads " \
+                        "SET health="+health_txt+" " \
+                        "WHERE id="+str(squad_id)
+                goutils.log2("DBG", query)
+                simple_execute(query)
+
+                if leader_id == "NULL":
+                    leader_id = str(squad_id)
+                cellIndex += 1
+
     return 0, ""
 
 ###########################################
