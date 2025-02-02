@@ -2270,6 +2270,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                 fails=0
                 if "warSquad" in zone:
                     for squad in zone["warSquad"]:
+                        squad_id = squad["squadId"]
                         player_name = squad["playerName"]
                         list_chars = []
                         for c in squad["squad"]["cell"]:
@@ -2291,7 +2292,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                         is_beaten = (squad["squadStatus"]=="SQUADDEFEATED")
                         fights = squad["successfulDefends"]
                         team_gp = squad["power"]
-                        list_defenses[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights, team_gp])
+                        list_defenses[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights, team_gp, squad_id])
 
                         if is_beaten:
                             victories+=1
@@ -2330,6 +2331,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                     else:
                         if activity["zoneData"]["guildId"] == guildId:
                             if "warSquad" in activity:
+                                squad_id = zone["warSquad"]["squadId"]
                                 if activity["warSquad"]["squadStatus"] in ("SQUADLOCKED", "SQUADDEFEATED"):
                                     if "squad" in activity["warSquad"]:
                                         zone_id = activity["zoneData"]["zoneId"]
@@ -2355,10 +2357,11 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                                             list_chars.append(my_unit)
 
                                         list_attacks.append({"zone": zone_shortname, 
-                                                              "attacker": attacker_name, 
-                                                              "defenser": defenser_name,
-                                                              "list_chars": list_chars, 
-                                                              "gp": team_gp})
+                                                             "attacker": attacker_name, 
+                                                             "defenser": defenser_name,
+                                                             "list_chars": list_chars, 
+                                                             "gp": team_gp,
+                                                             "squad_id": squad_id})
 
     ret_dict =  {"tw_id": tw_id, \
                  "tw_round": tw_round, \

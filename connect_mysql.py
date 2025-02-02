@@ -1557,7 +1557,7 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
     dict_tw = data.dict_tw
     now = datetime.datetime.now()
 
-    # Check / Create the TB in DB
+    # Check / Create the TW in DB
     query = "SELECT id FROM tw_history " \
             "WHERE tw_id='"+tw_id+"' "\
             "AND guild_id='"+guild_id+"' "
@@ -1592,6 +1592,27 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
         goutils.log2("DBG", query)
         simple_execute(query)
 
+    # Get DB TW zones
+    query = "SELECT id, side, zone_name, size, filled, victories, fails FROM tw_zones " \
+            "WHERE tw_id="+str(tw_db_id)
+    goutils.log2("DBG", query)
+    db_data = get_table(query)
+    if db_data==None:
+        db_data=[]
+
+    # Transform into dictionary
+    dict_tw_zones = {'home': {}, 'away': {}}
+    for line in db_data:
+        zone_id = line[0]
+        side = line[1]
+        zone_name = line[2]
+        size = line[3]
+        filled = line[4]
+        victories = line[5]
+        fails = line[6]
+        if not zone_name in dict_tw_zones[side]:
+            dict_tw_zones[side][zone_name] = [zone_id, size, filled, victories, fails]
+
     for [side, guild] in [["home", homeGuild], ["away", awayGuild]]:
         zones = guild['list_territories']
         for zone in zones:
@@ -1604,17 +1625,22 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
             status = zone[6]
             zone_id = dict_tw[zone_name]
 
-            # Check / Create the zone in DB
-            query = "SELECT id FROM tw_zones " \
-                    "WHERE tw_id="+str(tw_db_id)+" "\
-                    "AND side='"+side+"' "\
-                    "AND zone_id='"+zone_id+"' "
-            goutils.log2("DBG", query)
-            db_data = get_value(query)
+            if commandMsg == None:
+                cmdMsg_txt = "NULL"
+            else:
+                cmdMsg_txt = "'"+commandMsg+"'"
+            if status == None:
+                status_txt = "NULL"
+            else:
+                status_txt = "'"+status+"'"
 
-            if db_data==None:
-                query = "INSERT INTO tw_zones(tw_id, side, zone_id, zone_name, size) "\
-                        "VALUES("+tw_db_id+", '"+side+"', '"+zone_id+"', '"+zone_name+"', "+str(size)+") "
+            if not zone_name in dict_tw_zones[side]:
+                query = "INSERT INTO tw_zones(tw_id, side, zone_id, zone_name, size, "\
+                        "filled, victories, fails, commandMsg, status) "\
+                        "VALUES("+tw_db_id+", '"+side+"', '"+zone_id+"', "\
+                        "'"+zone_name+"', "+str(size)+", "\
+                        ""+str(filled)+", "+str(victories)+", "+str(fails)+", "\
+                        ""+cmdMsg_txt+", "+status_txt+") "
                 goutils.log2("DBG", query)
                 simple_execute(query)
 
@@ -1625,62 +1651,102 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
                         "AND zone_id='"+zone_id+"' "
                 goutils.log2("DBG", query)
                 zone_db_id = str(get_value(query))
-            else:
-                zone_db_id = str(db_data)
 
-            # Update current status of the zone
-            if commandMsg == None:
-                cmdMsg_txt = "NULL"
             else:
-                cmdMsg_txt = "'"+commandMsg+"'"
-            if status == None:
-                status_txt = "NULL"
-            else:
-                status_txt = "'"+status+"'"
-            query = "UPDATE tw_zones "\
-                    "SET filled="+str(filled)+",  "\
-                    "    victories="+str(victories)+", "\
-                    "    fails="+str(fails)+", "\
-                    "    commandMsg="+cmdMsg_txt+", "\
-                    "    status="+status_txt+" "\
-                    "WHERE id="+zone_db_id+" "
-            goutils.log2("DBG", query)
-            simple_execute(query)
+                zone_db_id = dict_tw_zones[side][zone_name][0]
+                print
+                # Update current status of the zone
+                query = "UPDATE tw_zones "\
+                        "SET filled="+str(filled)+",  "\
+                        "    victories="+str(victories)+", "\
+                        "    fails="+str(fails)+", "\
+                        "    commandMsg="+cmdMsg_txt+", "\
+                        "    status="+status_txt+" "\
+                        "WHERE id="+str(zone_db_id)+" "
+                goutils.log2("DBG", query)
+                simple_execute(query)
 
-        # Check / create squads in DB
+        # Get squads in DB
+        query = "SELECT id, zone_name, player_name, is_beaten, fights, gp "\
+                "FROM tw_squads "\
+                "WHERE tw_id="+str(tw_db_id)+" "\
+                "AND side='"+side+"'"
+        goutils.log2("DBG", query)
+        db_data = get_table(query)
+        if db_data == None:
+            db_data = []
+
+        dict_tw_squads = {}
+        for line in db_data:
+            squad_id = line[0]
+            zone_name = line[1]
+            player_name = line[2]
+            is_beaten = line[3]
+            fights = line[4]
+            gp = line[5]
+            dict_tw_squads[squad_id] = [zone_name, player_name, is_beaten, fights, gp]
+
+        # Get squad cells in DB
+        query = "SELECT squad_id "\
+                "FROM tw_squad_cells "
+        goutils.log2("DBG", query)
+        list_squad_id = get_column(query)
+        if list_squad_id == None:
+            list_squad_id = []
+
+        dict_tw_squads = {}
+        for line in db_data:
+            squad_id = line[0]
+            zone_name = line[1]
+            player_name = line[2]
+            is_beaten = line[3]
+            fights = line[4]
+            gp = line[5]
+            dict_tw_squads[squad_id] = [zone_name, player_name, is_beaten, fights, gp]
+
+        # Now get RPC data and compare with DB, create/insert if necessary
         squads = guild['list_defenses']
         for squad in squads:
             zone_name = squad[0]
             player_name = squad[1]
             cells = squad[2]
+            is_beaten = squad[3]
+            fights = squad[4]
+            squad_gp = squad[5]
+            squad_id = squad[6]
 
+            # Check / create squads in DB
+            if not squad_id in dict_tw_squads:
+                query = "INSERT INTO tw_squads(id, tw_id, side, zone_name, player_name, "\
+                        "is_beaten, fights, gp) "\
+                        "VALUES('"+squad_id+"', "+str(tw_db_id)+", '"+side+"', "\
+                        "'"+zone_name+"', '"+player_name.replace("'", "''")+"', "\
+                        ""+str(is_beaten)+", "+str(fights)+", "+str(squad_gp)+") "
+                goutils.log2("DBG", query)
+                simple_execute(query)
+            else:
+                # update
+                if [is_beaten, fights] != dict_tw_squads[squad_id][2:4]:
+                    query = "UPDATE tw_squads "\
+                            "SET is_beaten="+str(is_beaten)+", "\
+                            "fights="+str(fights)+" "\
+                            "WHERE id='"+squad_id+"' "
+                    goutils.log2("DBG", query)
+                    simple_execute(query)
+
+            # Check / create squad cells in DB
             cellIndex = 0
-            leader_id = "NULL"
             for cell in cells:
                 defId = cell["unitDefId"]
                 level = cell["level"]
                 tier = cell["gear"]
                 unitRelicTier = cell["relic"]
-                health_txt = cell["health"]
 
-                # Check / Create the squad unit in DB
-                query = "SELECT id FROM tw_squads " \
-                        "WHERE tw_id="+str(tw_db_id)+" "\
-                        "AND side='"+side+"' "\
-                        "AND defId='"+defId+"' "\
-                        "AND player_name='"+player_name.replace("'", "''")+"' "
-                goutils.log2("DBG", query)
-                db_data = get_value(query)
-
-                if db_data==None:
-                    query = "INSERT INTO tw_squads(tw_id, side, leader_id, player_name, "\
-                            "defId, zone_name, cellIndex, level, tier, unitRelicTier) "\
-                            "VALUES("+tw_db_id+", "\
-                            "'"+side+"', " \
-                            ""+leader_id+", " \
-                            "'"+player_name.replace("'", "''")+"', " \
+                if not squad_id in list_squad_id:
+                    query = "INSERT INTO tw_squad_cells(squad_id, "\
+                            "defId, cellIndex, level, tier, unitRelicTier) "\
+                            "VALUES('"+squad_id+"', "\
                             "'"+defId+"', "\
-                            "'"+zone_name+"', "\
                             ""+str(cellIndex)+", "\
                             ""+str(level)+", "\
                             ""+str(tier)+", "\
@@ -1688,25 +1754,6 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
                     goutils.log2("DBG", query)
                     simple_execute(query)
 
-                    # Check / Create the squad uit in DB
-                    query = "SELECT id FROM tw_squads " \
-                            "WHERE tw_id="+str(tw_db_id)+" "\
-                            "AND side='"+side+"' "\
-                            "AND defId='"+defId+"' "\
-                            "AND player_name='"+player_name.replace("'", "''")+"' "
-                    goutils.log2("DBG", query)
-                    squad_id = get_value(query)
-                else:
-                    squad_id = db_data
-
-                query = "UPDATE tw_squads " \
-                        "SET health="+health_txt+" " \
-                        "WHERE id="+str(squad_id)
-                goutils.log2("DBG", query)
-                simple_execute(query)
-
-                if leader_id == "NULL":
-                    leader_id = str(squad_id)
                 cellIndex += 1
 
     return 0, ""
