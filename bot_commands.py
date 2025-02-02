@@ -239,12 +239,11 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
             return
 
         eqpt_list = ret_dict["eqpt_list"]
+        list_display_targets = ret_dict["targets"]
         # Test if there is something to display
         if len(eqpt_list)==0:
             await command_ok(ctx_interaction, resp_msg, "Tous les équipements nécessaires pour passer "+str(", ".join(list_display_targets))+" sont déjà disponibles")
             return
-
-        list_display_targets = ret_dict["targets"]
 
         # Sort with most needed first
         eqpt_list.sort(key=lambda x:x[2]-x[1])
