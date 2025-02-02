@@ -1,0 +1,66 @@
+        /* Table styles */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+        table td.crossed {
+            background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px));
+        }
+        
+        /* Style for player count less than 50 */
+        .incomplete-guild {
+            color: orange;
+        }
+        
+        /* Pagination button styles */
+        .pagination {
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            margin: 0 5px;
+            padding: 8px 12px;
+            text-decoration: none;
+            background-color: #f2f2f2;
+            border: 1px solid #ccc;
+            color: #333;
+        }
+
+        .pagination a.active {
+            background-color: #007BFF;
+            color: white;
+        }
+
+        .pagination a.disabled {
+            background-color: #ccc;
+            color: #666;
+            pointer-events: none;
+        }
+        
+        /* Sortable column headers */
+        th a {
+            text-decoration: none;
+            color: #333;
+        }
+
+        th a:hover {
+            text-decoration: underline;
+        }
+        .active-sort a {
+            font-weight: bold;
+            text-decoration: underline;
+        }

@@ -19,4 +19,8 @@ EVENTS
 CACHE/*
 CACHE
 SCRIPTS/__pycache__/*
+html/IMAGES
+html/websitedb_secret.php
+html/guionbotdb_secret.php
+html/oauth_secret.php
 __pycache__/*
