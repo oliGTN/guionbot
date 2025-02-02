@@ -389,14 +389,12 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
 
     guild_name = dict_guild["profile"]['name']
     guild_id = dict_guild["profile"]['id']
+    total_players = dict_guild["memberCount"]
+    guild_gp = dict_guild["guildGalacticPower"]
     if "member" in dict_guild:
-        total_players = len(dict_guild["member"])
         playerId_in_API = [x['playerId'] for x in dict_guild["member"]]
-        guild_gp = sum([int(x['galacticPower']) for x in dict_guild["member"]])
     else:
-        total_players = 0
         playerId_in_API = []
-        guild_gp = 0
     goutils.log2("INFO", "success retrieving "+guild_name+" ("\
                 +str(total_players)+" players, "+str(guild_gp)+" GP) from RPC")
                 
