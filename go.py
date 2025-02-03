@@ -6406,7 +6406,7 @@ async def register_confirm(txt_allyCode, discord_id):
 
     e, t, dict_player = await load_player(txt_allyCode, 1, False)
     if e != 0:
-        return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode, []
+        return 1, 'ERR: joueur non trouvé pour code allié ' + txt_allyCode
     
     #Check if confirmation already ongoing
     query = "SELECT timestampdiff(SECOND, timestamp, CURRENT_TIMESTAMP), defId, mod_slot "\

@@ -22,9 +22,6 @@ IFS="$OIFS"
 echo Copy config.py...
 cp /home/GuionBot/guionbot-dev/config.py /home/pi/GuionBot/SQLBACKUP
 
-echo Copy www...
-cp -r /var/www/html /home/pi/GuionBot/SQLBACKUP
-
 echo Compress...
 tar -zcvf /home/pi/GuionBot/all_tables.gz /home/pi/GuionBot/SQLBACKUP
 mv /home/pi/GuionBot/all_tables.gz /home/pi/GuionBot/SQLBACKUP
