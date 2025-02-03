@@ -389,8 +389,8 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
 
     guild_name = dict_guild["profile"]['name']
     guild_id = dict_guild["profile"]['id']
-    total_players = dict_guild["memberCount"]
-    guild_gp = dict_guild["guildGalacticPower"]
+    total_players = dict_guild["profile"]["memberCount"]
+    guild_gp = dict_guild["profile"]["guildGalacticPower"]
     if "member" in dict_guild:
         playerId_in_API = [x['playerId'] for x in dict_guild["member"]]
     else:
