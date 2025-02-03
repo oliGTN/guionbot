@@ -1,7 +1,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo SCRIPT_DIR=$SCRIPT_DIR
 
-rm -rf /home/pi/GuionBot/SQLBACKUP/
+rm -rf /home/pi/GuionBot/SQLBACKUP
 mkdir /home/pi/GuionBot/SQLBACKUP
 for table in gp_history guilds guild_bot_infos guild_gp_history players player_discord shards statq_table user_bot_infos
 do
