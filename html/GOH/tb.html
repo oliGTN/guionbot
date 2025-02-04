@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="https://goh.warstats.net/favicon.ico" type="image/x-icon" rel="icon"><link href="https://goh.warstats.net/favicon.ico" type="image/x-icon" rel="shortcut icon">
+		<meta name="og:site_name" content="Warstats for SWGOH">
+	<meta name="og:image:secure_url" content="//goh.warstats.net/img/logo-small.png">
+	<meta property="og:title" content="Warstats for SWGOH"><meta property="og:description" content="Warstats for Star Wars Galaxy of Heroes."><meta property="og:image" content="http://goh.warstats.net/img/logo-small.png">	<meta property="twitter:card" content="summary"><meta property="twitter:url" content="https://goh.warstats.net/territory-battles/view/14920"><meta property="twitter:title" content="Warstats for SWGOH"><meta property="twitter:description" content="Warstats for Star Wars Galaxy of Heroes."><meta property="twitter:image" content="//goh.warstats.net/img/logo-small.png">	<title>
+		Warstats for SWGOH	</title>
+
+
+	<meta name="google-signin-scope" content="profile email">
+	<meta name="google-signin-client_id" content="943716731046-oa4mvf8d878gqamigkrg5mk31eblpgk6.apps.googleusercontent.com">
+
+	
+	<link rel="stylesheet" href="./Warstats for SWGOH_files/main.1.008.css">
+	<link rel="stylesheet" href="./Warstats for SWGOH_files/tooltipster.bundle.min.css">
+	<link rel="stylesheet" href="./Warstats for SWGOH_files/tooltipster-sideTip-shadow.min.css">
+	<link rel="stylesheet" href="./Warstats for SWGOH_files/tooltipster-sideTip-light.min.css">
+	<link rel="stylesheet" href="./Warstats for SWGOH_files/icon">
+
+		<link rel="stylesheet" href="./Warstats for SWGOH_files/selectize.css">
+	<script type="text/javascript" async="" src="./Warstats for SWGOH_files/js"></script><script async="" src="./Warstats for SWGOH_files/analytics.js.téléchargement"></script><script src="./Warstats for SWGOH_files/6fd2beab15.js.téléchargement" crossorigin="anonymous"></script>
+
+	<script src="./Warstats for SWGOH_files/jquery-3.2.1.min.js.téléchargement"></script>
+	<script src="./Warstats for SWGOH_files/gohstats.min.1.008.js.téléchargement"></script>
+	<script src="./Warstats for SWGOH_files/easytimer.min.js.téléchargement"></script>
+	<script src="./Warstats for SWGOH_files/tooltipster.bundle.min.js.téléchargement"></script>
+	<script src="./Warstats for SWGOH_files/selectize.min.js.téléchargement"></script></head>
+<body>
+
+
+<h2>Territory Battle <small>Hoth - Dark side</small></h2>
+
+<div class="phases hide-on-small-and-down">
+		<a href="https://goh.warstats.net/territory-battles/view/14920/1" class="active">Round 1</a>
+        &gt;
+		<a href="https://goh.warstats.net/territory-battles/view/14920/2">Round 2</a>		
+        &gt;
+		<a href="https://goh.warstats.net/territory-battles/view/14920/3">&#11093;Round 3</a>		
+        &gt;
+		<a href="https://goh.warstats.net/territory-battles/view/14920/4">Round 4</a>		
+        &gt;
+		<a href="https://goh.warstats.net/territory-battles/view/14920/5">Round 5</a>
+        &gt;
+		<a href="https://goh.warstats.net/territory-battles/view/14920/6">Round 6</a>
+        &gt;
+	    <a href="https://goh.warstats.net/territory-battles/resume/14920">Resume</a></div>
+
+<div class="hide-on-med-and-up">
+    <div class="dropdown">
+        <form>
+        <select class="selectize phase browser-default selectized" name="list" id="list" accesskey="target" onchange="phaseClicked()">
+            <option value="1">&#11093;Phase 1</option>
+            <option value="2">Phase 2</option>
+            <option value="3">Phase 3</option>
+        </select>
+        </form>
+    </div>
+    <script>
+        function phaseClicked(){
+            let userPicked = document.getElementById("list").value;
+            window.open("https://goh.warstats.net/territory-battles/view/14920/"+userPicked);
+        }
+    </script>
+
+</div>
+
+
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('select.selectize.phase').selectize({
+			create: false,
+			sortField: 'text',
+			placeholder: 'Select a phase...',
+			onItemAdd: function (value, item) {
+				if ( value === 'resume' ) {
+					window.location.href = "/territory-battles/resume/14920";
+				} else {
+					window.location.href = "/territory-battles/view/14920/" + value;
+				}
+			},
+
+			render: {
+				option: function(item, escape) {
+					const current = 1;
+					if ( current == item.value ) {
+						return '<div><i class="far fa-fw fa-dot-circle red-text"></i> ' + escape(item.text) + '</div>';
+					} else {
+						return '<div><i class="far fa-fw fa-dot-circle white-text"></i> ' + escape(item.text) + '</div>';
+					}
+				}
+			}
+		});
+	});
+</script>
+
+<style type="text/css">
+	.phases {
+		font-size: 18px;
+		margin: 20px 0 20px;
+	}
+
+	.phases a {
+		padding: 0 2px 2px;
+	}
+
+	.phases a.active {
+		color: #333;
+		font-weight: bold;
+		cursor: default;
+		border-bottom: 4px solid #9A6CFF;
+	}
+	.phases i.fas.fa-chevron-right {
+		color: rgba(0, 0, 0, .3);
+		font-size: 14px;
+		margin: 0 3px;
+		vertical-align: middle;
+	}
+</style>
+
+<div id="resume" class="active">
+	<div class="row">
+		<div class="col s12 m12 l4">
+			<div class="valign-wrapper full-line">
+				<h4>North</h4>
+			</div>
+			<div class="card zone">
+				<div class="card-content">
+					<div class="stars">
+						&#11088;
+						&#11088;
+						&#10025;
+					</div>
+					<div class="score-text">
+							0 /<small>885,000</small>
+					</div>
+                    <svg width="100%" height="70">
+                        <rect width="37%" height="30" style="fill:lightgreen;"></rect>
+                        <rect x="37%" width="13%" height="30" style="fill:yellow;"></rect>
+                        <rect x="50%" width="36%" height="30" style="fill:orange;"></rect>
+                        <rect width="100%" height="30" style="fill-opacity:0;stroke:black"></rect>
+                    </svg>
+					<div class="row mb-0">
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 1</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 2</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 2</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 2</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col s12 m12 l4">
+			<div class="valign-wrapper full-line">
+				<h4>North</h4>
+			</div>
+			<div class="card zone">
+				<div class="card-content">
+					<div class="stars">
+						&#11088;
+						&#11088;
+						&#10025;
+					</div>
+					<div class="score-text">
+							0 /<small>885,000</small>
+					</div>
+					<div class="score-progress">
+						<div class="bar">
+							<div class="max-score" style="left: 14.429824561404%; width: 4.9624060150376%"> </div>
+							<div class="min-score" style="width: 14.429824561404%"> </div>
+							<div class="limit-min-score" style="left: 14.429824561404%"> </div>
+							<div class="current-score" style="width: 0%"> </div>
+							<div class="star star-0" style="left: 0%; width: 1.8483709273183%" title="Required: 885,000"> </div>
+							<div class="star star-1" style="left: 1.8483709273183%; width: 12.581453634085%" title="Required: 6,909,000"> </div>
+							<div class="star star-2" style="left: 14.429824561404%; width: 85.570175438596%" title="Required: 47,880,000"> </div>
+						</div>
+						<div class="current-score-number right-score" style="width: 85.570175438596%">6,909,000</div>
+						<div class="star-required star-0 text-right text-small" style="left: 0%; width: 1.8483709273183%" title="Required: 885,000">885,000</div>
+						<div class="star-required star-1 text-right text-small" style="left: 1.8483709273183%; width: 12.581453634085%" title="Required: 6,909,000">6,909,000</div>
+						<div class="star-required star-2 text-right text-small" style="left: 14.429824561404%; width: 85.570175438596%" title="Required: 47,880,000">47,880,000</div>
+					</div>
+					<div class="row mb-0">
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 1</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 2</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col s12 m12 l4">
+			<div class="valign-wrapper full-line">
+				<h4>North</h4>
+			</div>
+			<div class="card zone">
+				<div class="card-content">
+					<div class="stars">
+						&#11088;
+						&#11088;
+						&#10025;
+					</div>
+					<div class="score-text">
+							0 /<small>885,000</small>
+					</div>
+					<div class="score-progress">
+						<div class="bar">
+							<div class="max-score" style="left: 14.429824561404%; width: 4.9624060150376%"> </div>
+							<div class="min-score" style="width: 14.429824561404%"> </div>
+							<div class="limit-min-score" style="left: 14.429824561404%"> </div>
+							<div class="current-score" style="width: 0%"> </div>
+							<div class="star star-0" style="left: 0%; width: 1.8483709273183%" title="Required: 885,000"> </div>
+							<div class="star star-1" style="left: 1.8483709273183%; width: 12.581453634085%" title="Required: 6,909,000"> </div>
+							<div class="star star-2" style="left: 14.429824561404%; width: 85.570175438596%" title="Required: 47,880,000"> </div>
+						</div>
+						<div class="current-score-number right-score" style="width: 85.570175438596%">6,909,000</div>
+						<div class="star-required star-0 text-right text-small" style="left: 0%; width: 1.8483709273183%" title="Required: 885,000">885,000</div>
+						<div class="star-required star-1 text-right text-small" style="left: 1.8483709273183%; width: 12.581453634085%" title="Required: 6,909,000">6,909,000</div>
+						<div class="star-required star-2 text-right text-small" style="left: 14.429824561404%; width: 85.570175438596%" title="Required: 47,880,000">47,880,000</div>
+					</div>
+					<div class="row mb-0">
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 1</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+						<div class="col s4">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Strike 2</label>
+									<div class="value small pb-0">0<small>/4</small></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="row">
+    <div class="col s12"> Legend:
+	    <span class="legend legend-current"></span> Current score
+	    <span class="legend legend-undeployed"></span> Remaining deploiements
+	    <span class="legend legend-strikes"></span> Remaining strikes
+    </div>
+</div>
+
+	
+	<div class="row">
+		<div class="col s12 m6 l4">
+			<h4 class="no-wrap no-overflow">Remaining deploiements</h4>
+			<h5 class="hide-on-med-and-down">&nbsp;</h5>
+			<div class="row">
+				<div class="col s6">
+					<div class="card">
+						<div class="card-content">
+							<div class="stats-panel">
+								<div class="stat-detail">
+									<label>Squad</label>
+									<div class="value small pb-0">
+										<span class="hide-on-med-and-down">9,436,096</span>
+<span class="hide-on-large-only">9.4M</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="col s12 m12 l8">
+			<h4 class="no-wrap no-overflow">Remaining strikes</h4>
+			<div class="row">
+					<div class="col s12 m4">
+						<h5>North</h5>
+						<div class="card">
+							<div class="card-content">
+								<div class="row mb-0">
+									<div class="col s6">
+										<div class="stats-panel">
+											<div class="stat-detail">
+												<label>#</label>
+												<div class="value xsmall pb-5">
+													<span class="hide-on-med-and-down">8</span>
+<span class="hide-on-large-only">8</span>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="col s6">
+										<div class="stats-panel">
+											<div class="stat-detail">
+												<label>Max. Score</label>
+												<div class="value xsmall pb-5">
+													<span class="hide-on-med-and-down">2,376,000</span>
+<span class="hide-on-large-only">2.4M</span>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+									<div class="col s12 m4">
+						<h5>South</h5>
+						<div class="card">
+							<div class="card-content">
+								<div class="row mb-0">
+									<div class="col s6">
+										<div class="stats-panel">
+											<div class="stat-detail">
+												<label>#</label>
+												<div class="value xsmall pb-5">
+													<span class="hide-on-med-and-down">3</span>
+<span class="hide-on-large-only">3</span>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="col s6">
+										<div class="stats-panel">
+											<div class="stat-detail">
+												<label>Max. Score</label>
+												<div class="value xsmall pb-5">
+													<span class="hide-on-med-and-down">891,000</span>
+<span class="hide-on-large-only">891K</span>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+							</div>
+					</div>
+	</div>
+
+	<h4>Strikes success</h4>
+	<div class="row">
+								<div class="col s12 m4">
+				<h5>North</h5>
+				<div class="card">
+					<div class="card-content">
+						<div class="row mb-0">
+							<div class="col s4">
+								<div class="stats-panel">
+									<div class="stat-detail">
+										<label>Total GPs</label>
+										<div class="value xsmall pb-5">
+											<span class="hide-on-med-and-down">0</span>
+<span class="hide-on-large-only">0</span>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="col s4">
+								<div class="stats-panel">
+									<div class="stat-detail">
+										<label>Avg GP/player</label>
+										<div class="value xsmall pb-5">
+											<span class="hide-on-med-and-down">0.00</span>
+<span class="hide-on-large-only">0</span>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="col s4">
+								<div class="stats-panel">
+									<div class="stat-detail">
+										<label>Avg waves/player</label>
+										<div class="value xsmall pb-5">
+											<span class="hide-on-med-and-down">0.00</span>
+<span class="hide-on-large-only">0</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+								<div class="col s12 m4">
+				<h5>South</h5>
+				<div class="card">
+					<div class="card-content">
+						<div class="row mb-0">
+							<div class="col s4">
+								<div class="stats-panel">
+									<div class="stat-detail">
+										<label>Total GPs</label>
+										<div class="value xsmall pb-5">
+											<span class="hide-on-med-and-down">297,000</span>
+<span class="hide-on-large-only">297K</span>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="col s4">
+								<div class="stats-panel">
+									<div class="stat-detail">
+										<label>Avg GP/player</label>
+										<div class="value xsmall pb-5">
+											<span class="hide-on-med-and-down">74,250.00</span>
+<span class="hide-on-large-only">74.3K</span>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="col s4">
+								<div class="stats-panel">
+									<div class="stat-detail">
+										<label>Avg waves/player</label>
+										<div class="value xsmall pb-5">
+											<span class="hide-on-med-and-down">1.00</span>
+<span class="hide-on-large-only">1</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			</div>
+
+	<h3>Players</h3>
+	<div class="card card-table">
+				<table class="highlight">
+			<thead>
+			<tr>
+				<th class="hide-on-small-only">#</th>
+				<th>Player</th>
+
+
+				<th class="text-center hide-on-med-and-up">Deploy.</th>
+
+				<th class="text-right hide-on-small-only">
+					<a class="desc" href="https://goh.warstats.net/territory-battles/view/14920?sort=score&amp;direction=asc">Score</a>
+                </th>
+				<th class="text-center  hide-on-small-only">
+					<a href="https://goh.warstats.net/territory-battles/view/14920?sort=gp_deployed_squad&amp;direction=asc">Squad Deployment</a>
+                </th>
+				<th class="text-center hide-on-small-only">
+						North					
+                </th>
+				<th class="text-center hide-on-med-and-up">
+						N					
+                </th>
+				<th class="text-center hide-on-small-only">
+						South					
+                </th>
+				<th class="text-center hide-on-med-and-up">
+						S					
+                </th>
+				<th class="text-center hide-on-small-only">
+					<a href="https://goh.warstats.net/territory-battles/view/14920?sort=strikes&amp;direction=asc">Strikes</a>
+                </th>
+				<th class="text-center hide-on-med-and-up">
+					<a href="https://goh.warstats.net/territory-battles/view/14920?sort=strikes&amp;direction=asc">Str</a>				
+                </th>
+				<th class="text-center hide-on-small-only" colspan="1">
+					<a href="https://goh.warstats.net/territory-battles/view/14920?sort=coverts&amp;direction=asc">Special</a>				
+                </th>
+				<th class="text-center hide-on-med-and-up" colspan="1">
+					<a href="https://goh.warstats.net/territory-battles/view/14920?sort=coverts&amp;direction=asc">Spe</a>				
+                </th>
+			</tr>
+			</thead>
+			<tbody>
+										<tr>
+					<td class="hide-on-small-only">1<sup>st</sup></td>
+					<td>
+													<a href="https://goh.warstats.net/p/761578/Ulysse51">Ulysse51</a>											</td>
+					<td class="text-center hide-on-med-and-up">
+																		<div class="text-xxsmall">
+							Squad
+							<div class="progress-bar success" title="4,522,700/4,522,700">
+	<div class="progress-bar-value" style="width: 100%"></div>
+</div>
+						</div>
+					</td>
+
+					<td class="text-right  hide-on-small-only">
+						0					</td>
+										<td class="text-center  hide-on-small-only">
+						<small class="hide-on-small-only">4,522,700/<small>4,522,700</small></small>
+												<div class="progress-bar success" title="4,522,700/4,522,700">
+	<div class="progress-bar-value" style="width: 100%"></div>
+</div>
+					</td>
+																<td class="text-center">
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+													</td>
+											<td class="text-center">
+																							<span class="green-text">
+									4<small>/4</small>
+								</span><br>
+													</td>
+					
+										<td class="text-center red-text">
+						0<small>/3</small>
+					</td>
+
+
+					<td class="text-center">
+																																																									<i class="fa fa-check green-text" title="Mission succeeded" aria-hidden="true"></i><span class="sr-only">Mission succeeded</span><br>
+																										</td>
+					
+									</tr>
+							<tr>
+					<td class="hide-on-small-only">2<sup>nd</sup></td>
+					<td>
+													<a href="https://goh.warstats.net/p/741072/BrolandAs">BrolandAs</a>											</td>
+					<td class="text-center hide-on-med-and-up">
+																		<div class="text-xxsmall">
+							Squad
+							<div class="progress-bar danger" title="0/5,920,795">
+	<div class="progress-bar-value" style="width: 0%"></div>
+</div>
+						</div>
+					</td>
+
+					<td class="text-right  hide-on-small-only">
+						0					</td>
+										<td class="text-center  hide-on-small-only">
+						<small class="hide-on-small-only">0/<small>5,920,795</small></small>
+												<div class="progress-bar danger" title="0/5,920,795">
+	<div class="progress-bar-value" style="width: 0%"></div>
+</div>
+					</td>
+																<td class="text-center">
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+													</td>
+											<td class="text-center">
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+													</td>
+					
+										<td class="text-center red-text">
+						0<small>/3</small>
+					</td>
+
+
+					<td class="text-center">
+																																																									<i class="fa fa-question orange-text" title="Mission not yet tried" aria-hidden="true"></i><span class="sr-only">Mission not yet tried</span><br>
+																										</td>
+					
+									</tr>
+							<tr>
+					<td class="hide-on-small-only">3<sup>rd</sup></td>
+					<td>
+													<a href="https://goh.warstats.net/p/748395/Anamic">Anamic</a>											</td>
+					<td class="text-center hide-on-med-and-up">
+																		<div class="text-xxsmall">
+							Squad
+							<div class="progress-bar danger" title="0/3,478,187">
+	<div class="progress-bar-value" style="width: 0%"></div>
+</div>
+						</div>
+					</td>
+
+					<td class="text-right  hide-on-small-only">
+						0					</td>
+										<td class="text-center  hide-on-small-only">
+						<small class="hide-on-small-only">0/<small>3,478,187</small></small>
+												<div class="progress-bar danger" title="0/3,478,187">
+	<div class="progress-bar-value" style="width: 0%"></div>
+</div>
+					</td>
+																<td class="text-center">
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+													</td>
+											<td class="text-center">
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+													</td>
+					
+										<td class="text-center red-text">
+						0<small>/3</small>
+					</td>
+
+
+					<td class="text-center">
+																																																									<i class="fa fa-question orange-text" title="Mission not yet tried" aria-hidden="true"></i><span class="sr-only">Mission not yet tried</span><br>
+																										</td>
+					
+									</tr>
+							<tr>
+					<td class="hide-on-small-only">4<sup>th</sup></td>
+					<td>
+													<a href="https://goh.warstats.net/p/755829/Brobro">Brobro</a>											</td>
+					<td class="text-center hide-on-med-and-up">
+																		<div class="text-xxsmall">
+							Squad
+							<div class="progress-bar danger" title="0/37,114">
+	<div class="progress-bar-value" style="width: 0%"></div>
+</div>
+						</div>
+					</td>
+
+					<td class="text-right  hide-on-small-only">
+						0					</td>
+										<td class="text-center  hide-on-small-only">
+						<small class="hide-on-small-only">0/<small>37,114</small></small>
+												<div class="progress-bar danger" title="0/37,114">
+	<div class="progress-bar-value" style="width: 0%"></div>
+</div>
+					</td>
+																<td class="text-center">
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+													</td>
+											<td class="text-center">
+																							<span class="grey-text">
+									?<small>/4</small>
+								</span><br>
+													</td>
+					
+										<td class="text-center red-text">
+						0<small>/3</small>
+					</td>
+
+
+					<td class="text-center">
+																																																									<i class="fa fa-question orange-text" title="Mission not yet tried" aria-hidden="true"></i><span class="sr-only">Mission not yet tried</span><br>
+																										</td>
+					
+									</tr>
+						</tbody>
+		</table>
+	</div>
+</div>
+
+<script type="text/javascript">
+	$(document).ready(function() {
+		$('.send-discord').on('click', function() {
+			var sendFleet	= $('#send-fleet').is(':checked');
+			var sendSquad	= $('#send-squad').is(':checked');
+			$.ajax(
+				{ url: '/territory-battles/warn-deployement/14920/1/' + sendFleet + '/' + sendSquad }
+			);
+		});
+
+		$('.go-player').on('change', function() {
+			const url = '/territory-battles/gameover/14920/1/' + $(this).data('id');
+			window.location.href = url;
+		});
+	});
+</script>
+
+<style type="text/css">
+	.go-player-label {
+		padding-left: 19px !important;
+	}
+</style>
+				</div>
+			</div>
+			<div class="site-cache" id="site-cache"></div>
+		</div>
+	</div>
+
+<script type="text/javascript">
+	$(document).ready(function(){
+		(function($) {
+			$('#header__icon').click(function(e){
+				e.preventDefault();
+				$('body').toggleClass('with--sidebar');
+			});
+
+			$('#site-cache').click(function(e){
+				$('body').removeClass('with--sidebar');
+			});
+
+		})(jQuery);
+
+		$('ul.tabs').tabs( {onShow: function( e ) {
+			console.log('tab changed to ' + e.attr( 'id' ) );
+			if(history.pushState) {
+				history.pushState(null, null, '#' + e.attr('id'));
+			}
+			else {
+				location.hash = '#' + e.attr('id');
+			}
+			return true;
+		} });
+
+				$('tr[data-href]').on("click", function() {
+			document.location = $(this).data('href');
+		});
+		$('td[data-href]').on("click", function() {
+			document.location = $(this).data('href');
+		});
+
+		replaceUrlParam( window.location.href, 'tab', 'ships' );
+
+		$('.tooltip').tooltipster( { /*trigger:'click',*/ animationDuration: [200,0], delay: 0, theme: ['tooltipster-shadow','tooltipster-shadow-customized']} );
+
+	});
+
+	function replaceUrlParam(url, paramName, paramValue){
+		if(paramValue === null)
+			paramValue = '';
+		var pattern = new RegExp('\\b('+paramName+'=).*?(&|$)')
+		if(url.search(pattern)>=0){
+			return url.replace(pattern,'$1' + paramValue + '$2');
+		}
+		return url + (url.indexOf('?')>0 ? '&' : '?') + paramName + '=' + paramValue
+	}
+
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+	ga('create', 'UA-106137387-1', 'auto');
+	ga('send', 'pageview');
+
+</script>
+
+<div class="hiddendiv common"></div></body></html>
