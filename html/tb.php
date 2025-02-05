@@ -6,14 +6,18 @@ require 'guionbotdb.php';  // Include the database connection for guionbotdb
 $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
 
 // Check if a TB id and a round are given in URL, otherwise redirect to index
-if (!isset($_GET['id']) || !isset($_GET['round'])) {
+if (!isset($_GET['id'])) {
     error_log("No id or no round: redirect to index.php");
     header("Location: index.php");
     exit();
 }
-
 $tb_id = $_GET['id'];
-$round = $_GET['round'];
+
+if (!isset($_GET['round'])) {
+    $round = 1;
+} else {
+    $round = $_GET['round'];
+}
 
 // Get the associated guild and check if the user is allowed
 // Prepare the SQL query
@@ -39,9 +43,10 @@ $guild_id = $tb['guild_id'];
 
 // The guild page needs to be visited first
 if (!isset($_SESSION['guild']) || ($_SESSION['guild']['id']!=$guild_id)){
-    error_log("No valid guild data, redirect to g.php?gid=$guild_id");
-    header("Location: g.php?gid=$guild_id");
-    exit();
+    //error_log("No valid guild data, redirect to g.php?gid=$guild_id");
+    //header("Location: g.php?gid=$guild_id");
+    //exit();
+    include 'gdata.php';
 }
 $guild = $_SESSION['guild'];
 

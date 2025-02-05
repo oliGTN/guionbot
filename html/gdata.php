@@ -1,9 +1,11 @@
 <?php
 // --------------- GET GUILD BASIC DATA -----------
+// INPUT fr the file is $guild_id
+//
 // Prepare the SQL query
 $query = "SELECT guilds.id AS id, name, players, gp, lastUpdated, NOT isnull(bot_allyCode) AS bot FROM guilds";
 $query .= " LEFT JOIN guild_bot_infos ON (guild_bot_infos.guild_id=guilds.id)";
-$query .= " WHERE guilds.id='".$_GET['gid']."'";
+$query .= " WHERE guilds.id='".$guild_id."'";
 #error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the player information

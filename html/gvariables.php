@@ -1,4 +1,5 @@
 <?php
+// input for this file is $guild_id
 //echo (isset($_SESSION['user_id']));
 //echo (isset($_SESSION['user_guilds']));
 if (isset($_SESSION['user_id'])) {
