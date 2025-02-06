@@ -1560,50 +1560,48 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 # Strike partially or completely succesful
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 strike_name = event_data["activity"][zoneData_key]["sourceZoneId"]
-                if zone_name in list_open_zones:
-                    score = int(event_data["activity"][zoneData_key]["scoreDelta"])
-                    dict_tb_players[playerName]["rounds"][event_round-1]["score"]["strikes"] += score
 
-                    if event_round == tb_round:
-                        # this dict is only valid for current round
-                        #  as it is used for estimations
-                        dict_strike_zones[strike_name]["eventStrikes"] += 1
-                        dict_strike_zones[strike_name]["eventStrikeScore"] += score
+                score = int(event_data["activity"][zoneData_key]["scoreDelta"])
+                dict_tb_players[playerName]["rounds"][event_round-1]["score"]["strikes"] += score
 
-                    strike_shortname="_".join(strike_name.split("_")[-2:])
+                if event_round == tb_round:
+                    # this dict is only valid for current round
+                    #  as it is used for estimations
+                    dict_strike_zones[strike_name]["eventStrikes"] += 1
+                    dict_strike_zones[strike_name]["eventStrikeScore"] += score
 
-                    done_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][2]["paramValue"][0]
-                    total_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][3]["paramValue"][0]
-                    dict_tb_players[playerName]["rounds"][event_round-1]["strikes"][strike_shortname] = done_waves+"/"+total_waves
+                strike_shortname="_".join(strike_name.split("_")[-2:])
+
+                done_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][2]["paramValue"][0]
+                total_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][3]["paramValue"][0]
+                dict_tb_players[playerName]["rounds"][event_round-1]["strikes"][strike_shortname] = done_waves+"/"+total_waves
 
             elif "RECON_CONTRIBUTION" in event_key:
                 #Complete a platoon
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
-                if zone_name in list_open_zones:
-                    score = int(event_data["activity"][zoneData_key]["scoreDelta"])
-                    dict_tb_players[playerName]["rounds"][event_round-1]["score"]["Platoons"] += score
+                score = int(event_data["activity"][zoneData_key]["scoreDelta"])
+                dict_tb_players[playerName]["rounds"][event_round-1]["score"]["Platoons"] += score
 
             elif "DEPLOY" in event_key:
                 #Deployment (strike or platoon)
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
-                if zone_name in list_open_zones:
-                    score = int(event_data["activity"][zoneData_key]["scoreDelta"])
-                    if dict_tb[zone_name]["type"] == "ships":
-                        dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedShips"] += score
-                        dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedMix"] += score
-                    elif dict_tb[zone_name]["type"] == "chars":
-                        dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedChars"] += score
-                        dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedMix"] += score
-                    else:
-                        dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedMix"] += score
+                score = int(event_data["activity"][zoneData_key]["scoreDelta"])
+
+                if dict_tb[zone_name]["type"] == "ships":
+                    dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedShips"] += score
+                    dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedMix"] += score
+                elif dict_tb[zone_name]["type"] == "chars":
+                    dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedChars"] += score
+                    dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedMix"] += score
+                else:
+                    dict_tb_players[playerName]["rounds"][event_round-1]["score"]["deployedMix"] += score
 
             elif "COVERT_COMPLETE" in event_key:
                 # Special mission
                 zone_name = event_data["activity"][zoneData_key]["zoneId"]
                 strike_name = event_data["activity"][zoneData_key]["sourceZoneId"]
-                if zone_name in list_open_zones:
-                    strike_shortname="_".join(strike_name.split("_")[-2:])
-                    dict_tb_players[playerName]["rounds"][event_round-1]["coverts"][strike_shortname] = True
+                strike_shortname="_".join(strike_name.split("_")[-2:])
+                dict_tb_players[playerName]["rounds"][event_round-1]["coverts"][strike_shortname] = True
 
     for mapstat in mapstats:
         if mapstat["mapStatId"].startswith("strike_attempt_round_"):
@@ -1825,7 +1823,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 zone_done_count=0
                 zone_target_count=0
                 for platoon in dict_platoons_done:
-                    if platoon.startswith(zone_shortname):
+                    if platoon[:-2] == zone_shortname:
                         current_platoon_count=0
                         future_platoon_count=0
                         for unit in dict_platoons_done[platoon]:
