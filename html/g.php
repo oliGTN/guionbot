@@ -77,6 +77,7 @@ try {
         <thead>
             <tr>
                 <?php $current_sort = isset($_GET['sort']) ? $_GET['sort'] : 'name'; ?>
+                <th>#</th>
                 <th class="<?php echo ($current_sort === 'name') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=name&order=<?php echo $next_order; ?>">Name</a></th>
                 <th >allyCode</a></th>
                 <th class="<?php echo ($current_sort === 'gp') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=gp&order=<?php echo $next_order; ?>">GP</a></th>
@@ -88,16 +89,20 @@ try {
             echo "\n";
             // Loop through each player and display in a table row
             if (!empty($players)) {
+                $i_player = 1;
                 foreach ($players as $player) {
                     $allyCode_display = substr($player['allyCode'], 0, 3) . "-";
                     $allyCode_display .= substr($player['allyCode'], 3, 3) . "-";
                     $allyCode_display .= substr($player['allyCode'], 6, 3);
                     $isMyallyCode = in_array(intval($player['allyCode']), array_keys($_SESSION['allyCodes']), true);
                     $line_color = ($isMyallyCode?'lightgray':'');
-                    echo "\t\t\t<tr style='background-color:".$line_color."'><td><a href='https://swgoh.gg/p/".$player['allyCode']."/'>" . htmlspecialchars($player['name']) . "</a></td>\n";
+                    echo "\t\t\t<tr style='background-color:".$line_color."'>\n";
+                    echo "\t\t\t<td>".$i_player."</td>\n";
+                    echo "\t\t\t<td><a href='https://swgoh.gg/p/".$player['allyCode']."/'>" . htmlspecialchars($player['name']) . "</a></td>\n";
                     echo "\t\t\t\t<td>" . $allyCode_display . "</td>\n";
                     echo "\t\t\t\t<td  style='text-align:right'>" . number_format($player['gp'], 0, '.', ' ') . "</td>\n";
                     echo "\t\t\t\t<td>" . $player['lastUpdated'] . "</td></tr>\n";
+                    $i_player += 1;
                 }
             } else {
                 echo "<tr><td colspan='2'>No players found.</td></tr>\n";
