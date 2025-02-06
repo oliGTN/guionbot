@@ -1446,6 +1446,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             continue
 
         dict_tb_players[player_name] = {}
+        dict_tb_players[player_name]["id"] = player_id
         dict_tb_players[player_name]["char_gp"] = player_char_gp
         dict_tb_players[player_name]["ship_gp"] = player_ship_gp
         dict_tb_players[player_name]["mix_gp"] = player_char_gp + player_ship_gp
@@ -1464,6 +1465,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                                                                       "strikes": 0} 
             dict_tb_players[player_name]["rounds"][phase]["strikes"] = {} # "conflixtX_strikeY": "1/4"
             dict_tb_players[player_name]["rounds"][phase]["strike_attempts"] = 0
+            dict_tb_players[player_name]["rounds"][phase]["strike_waves"] = 0
             dict_tb_players[player_name]["rounds"][phase]["coverts"] = {} # "conflixtX_covertY": True
             dict_tb_players[player_name]["rounds"][phase]["covert_attempts"] = 0
 
@@ -1492,7 +1494,6 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     if my_list_open_zones == None:
         # sort by position by removing the "b" for bonus
         # then add 0.5 for bonus zone
-        print(list_open_zones)
         list_open_zones = sorted(list_open_zones, key=lambda x:dict_tb[tb_type]["zonePositions"][dict_tb[x]["name"].split("-")[1].rstrip("b")] + 0.5*dict_tb[x]["name"].split("-")[1].endswith("b"))
     else:
         list_open_zones = my_list_open_zones
@@ -1575,6 +1576,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 done_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][2]["paramValue"][0]
                 total_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][3]["paramValue"][0]
                 dict_tb_players[playerName]["rounds"][event_round-1]["strikes"][strike_shortname] = done_waves+"/"+total_waves
+                if playerName=="Heavenboy":
+                    print(playerName, event_round,strike_shortname, done_waves,total_waves)
+                    print(dict_tb_players[playerName]["rounds"][event_round-1]["strikes"])
 
             elif "RECON_CONTRIBUTION" in event_key:
                 #Complete a platoon
@@ -1615,6 +1619,18 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
                     attempts = int(playerstat["score"])
                     dict_tb_players[playerName]["rounds"][mapstat_round-1]["strike_attempts"] = attempts
+
+        elif mapstat["mapStatId"].startswith("strike_encounter_round_"):
+            mapstat_round = int(mapstat["mapStatId"][-1])
+            if "playerStat" in mapstat:
+                for playerstat in mapstat["playerStat"]:
+                    member_id = playerstat["memberId"]
+                    playerName = dict_members_by_id[member_id]["playerName"]
+                    if not playerName in dict_tb_players:
+                        continue
+
+                    waves = int(playerstat["score"])
+                    dict_tb_players[playerName]["rounds"][mapstat_round-1]["strike_waves"] = waves
 
         elif mapstat["mapStatId"].startswith("covert_attempt_round_"):
             mapstat_round = int(mapstat["mapStatId"][-1])
@@ -2073,6 +2089,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                     star_for_score += 1
         dict_zones[zone_name]["estimatedStars"] = star_for_score
 
+    p = 'Heavenboy'
+    for r in dict_tb_players[p]["rounds"]:
+        for k in r:
+            print(k, r[k])
     return 0, "", {"phase": dict_phase, 
                    "strike_zones": dict_strike_zones, 
                    "players": dict_tb_players, 

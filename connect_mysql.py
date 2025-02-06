@@ -1454,6 +1454,63 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         goutils.log2("DBG", query)
         simple_execute(query)
 
+    ## players
+    # Get DB data
+    query = "SELECT round, player_id, gp, deployed_gp, score, strikes, waves "\
+            "FROM tb_player_score "\
+            "WHERE tb_id="+str(tb_db_id)
+    goutils.log2("DBG", query)
+    db_data = get_table(query)
+    if db_data == None:
+        db_data = []
+    dict_db_players = {}
+    for line in db_data:
+        round = line[0]
+        p_id = line[1]
+        p_data = line[3:] # gp is not included to prevent updating previous rounds when only gp moves
+        dict_db_players[p_id+":"+str(round)] = p_data
+
+    for player_name in dict_tb_players:
+        player = dict_tb_players[player_name]
+        print(player)
+        id = player["id"]
+        gp = player["mix_gp"]
+        for round in range(1, len(player["rounds"])+1): # round from 1 to 6
+            player_round = player["rounds"][round-1]
+            deployed_gp = player_round["score"]["deployedMix"]
+            score = player_round["score"]["deployed"] + player_round["score"]["Platoons"] + player_round["score"]["strikes"]
+            strikes = player_round["strike_attempts"]
+            waves = player_round["strike_waves"]
+
+            player_key = id+":"+str(round)
+            if not player_key in dict_db_players:
+                #need to create player/round in DB
+                query = "INSERT INTO tb_player_score(tb_id, round, player_id, "\
+                        "gp, deployed_gp, score, strikes, waves) "\
+                        "VALUES("+str(tb_db_id)+", "+str(round)+", '"+id+"', "\
+                        ""+str(gp)+", "+str(deployed_gp)+", "+str(score)+", "\
+                        ""+str(strikes)+", "+str(waves)+") "
+                goutils.log2("DBG", query)
+                simple_execute(query)
+
+            else:
+                # player/round already exists
+                #  need to see if necessary to update
+                player_data = [deployed_gp, score, strikes, waves]
+                if player_data != list(dict_db_players[player_key]):
+                    query = "UPDATE tb_player_score "\
+                            "SET gp="+str(gp)+", "\
+                            "deployed_gp="+str(deployed_gp)+", "\
+                            "score="+str(score)+", "\
+                            "strikes="+str(strikes)+", "\
+                            "waves="+str(waves)+" "\
+                            "WHERE tb_id="+str(tb_db_id)+" "\
+                            "AND player_id='"+id+"' "\
+                            "AND round="+str(round)+" "
+                    goutils.log2("DBG", query)
+                    simple_execute(query)
+
+
     return 0, ""
 
 # Update tb_events table from list of events
