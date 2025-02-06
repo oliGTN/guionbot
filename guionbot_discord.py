@@ -5262,41 +5262,45 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.spg me JKR -étoiles\n"\
                       "Exemple: go.spg me -v \"Dark Maul\"")
     async def spg(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, True)
+            allyCode = await manage_me(ctx, allyCode, True)
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            list_options = []
-            list_characters = []
-            for item in characters:
-                if item[0] == "-":
-                    list_options.append(item)
-                else:
-                    list_characters.append(item)
-            
-            if len(list_characters) > 0:
-                if len(list_options) <= 1:
-                    ret_cmd = await go.print_character_stats( list_characters,
-                        list_options, allyCode, True, None, None)
-                else:
-                    ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
-            else:
-                ret_cmd = 'ERR: merci de préciser perso'
-                
-            if ret_cmd[0:3] == 'ERR':
-                await ctx.send(ret_cmd)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
             else:
-                #texte classique
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("```"+txt+"```")
+                list_options = []
+                list_characters = []
+                for item in characters:
+                    if item[0] == "-":
+                        list_options.append(item)
+                    else:
+                        list_characters.append(item)
+                
+                if len(list_characters) > 0:
+                    if len(list_options) <= 1:
+                        ret_cmd = await go.print_character_stats( list_characters,
+                            list_options, allyCode, True, None, None)
+                    else:
+                        ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
+                else:
+                    ret_cmd = 'ERR: merci de préciser perso'
+                    
+                if ret_cmd[0:3] == 'ERR':
+                    await ctx.send(ret_cmd)
+                    await ctx.message.add_reaction(emojis.redcross)
+                else:
+                    #texte classique
+                    for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                        await ctx.send("```"+txt+"```")
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emojis.check)
+                    #Icône de confirmation de fin de commande dans le message d'origine
+                    await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
 
     ##############################################################
     # Command: gdp
@@ -6463,8 +6467,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             await ctx.message.add_reaction(emojis.check)
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
