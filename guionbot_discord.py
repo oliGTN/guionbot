@@ -1693,6 +1693,7 @@ async def on_message(message):
 
         #Read messages from Juke's bot
         if message.author.id == config.JBOT_DISCORD_ID:
+            player_name = None
             for embed in message.embeds:
                 dict_embed = embed.to_dict()
 
@@ -1702,7 +1703,7 @@ async def on_message(message):
                         pos_name = embed.index("'s unit status")
                         player_name = embed[:pos_name]
 
-                if 'description' in dict_embed:
+                if player_name!=None and 'description' in dict_embed:
                     embed = dict_embed['description']
                     for line in embed.split('\n'):
                         if "%` for " in line:

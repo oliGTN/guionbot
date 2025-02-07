@@ -1472,7 +1472,6 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
 
     for player_name in dict_tb_players:
         player = dict_tb_players[player_name]
-        print(player)
         id = player["id"]
         gp = player["mix_gp"]
         for round in range(1, len(player["rounds"])+1): # round from 1 to 6
@@ -1715,7 +1714,6 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
 
             else:
                 zone_db_id = dict_tw_zones[side][zone_name][0]
-                print
                 # Update current status of the zone
                 query = "UPDATE tw_zones "\
                         "SET filled="+str(filled)+",  "\
