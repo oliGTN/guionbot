@@ -1576,9 +1576,6 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 done_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][2]["paramValue"][0]
                 total_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][3]["paramValue"][0]
                 dict_tb_players[playerName]["rounds"][event_round-1]["strikes"][strike_shortname] = done_waves+"/"+total_waves
-                if playerName=="Heavenboy":
-                    print(playerName, event_round,strike_shortname, done_waves,total_waves)
-                    print(dict_tb_players[playerName]["rounds"][event_round-1]["strikes"])
 
             elif "RECON_CONTRIBUTION" in event_key:
                 #Complete a platoon
@@ -2089,10 +2086,6 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                     star_for_score += 1
         dict_zones[zone_name]["estimatedStars"] = star_for_score
 
-    p = 'Heavenboy'
-    for r in dict_tb_players[p]["rounds"]:
-        for k in r:
-            print(k, r[k])
     return 0, "", {"phase": dict_phase, 
                    "strike_zones": dict_strike_zones, 
                    "players": dict_tb_players, 
