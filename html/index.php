@@ -77,6 +77,7 @@ try {
     <link rel="stylesheet" href="navbar.css">
     <link rel="stylesheet" href="tables.css">
     <link rel="stylesheet" href="main.1.008.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
 <body>
 <div class="site-container">
