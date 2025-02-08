@@ -185,10 +185,13 @@ function openZone(evt, zoneSide, zoneName) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?php echo $guild['name']; ?></title>
+    <title>GuiOn bot for SWGOH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="basic.css">
-    <link rel="stylesheet" href="navbar.css">
     <link rel="stylesheet" href="tables.css">
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="stylesheet" href="main.1.008.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 
 <style>
 /* Style the tab */
@@ -230,9 +233,14 @@ function openZone(evt, zoneSide, zoneName) {
 
 </head>
 <body>
+<div class="site-container">
+<div class="site-pusher">
 
     <!-- Navigation Bar -->
     <?php include 'navbar.php' ; ?>
+
+    <div class="site-content">
+    <div class="container">
 
     <h2>TW for <a href='/g.php?gid=<?php echo $guild['id']; ?>'><?php echo $guild['name']; ?></a> vs <a href='/g.php?gid=<?php echo $tw['away_guild_id']; ?>'><?php echo $tw['away_guild_name']; ?></a></h2>
     <h3 style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?></h3><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i>)':''); ?></small>
@@ -402,13 +410,20 @@ function openZone(evt, zoneSide, zoneName) {
     </tr>
     <?php endif; ?>
     </table>
+
+    </div> <!-- container -->
+    </div> <!-- site-content -->
+    <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
+
+</div>
+</div>
+
 <script>
 // Get the element with id="homedefaultOpen" and click on it
 document.getElementById("homedefaultOpen").click();
 // Get the element with id="awaydefaultOpen" and click on it
 document.getElementById("awaydefaultOpen").click();
 </script>
-
 
 </body>
 </html>

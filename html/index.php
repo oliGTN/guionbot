@@ -71,36 +71,49 @@ try {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Home</title>
+    <title>GuiOn bot for SWGOH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="basic.css">
     <link rel="stylesheet" href="navbar.css">
     <link rel="stylesheet" href="tables.css">
+    <link rel="stylesheet" href="main.1.008.css">
 </head>
 <body>
+<div class="site-container">
+<div class="site-pusher">
+
 
     <!-- Navigation Bar -->
     <?php include 'navbar.php' ; ?>
     
+    <div class="site-content">
+    <div class="container">
+
     <h2>Guilds</h2>
     
     <!-- Search Form -->
-    <form method="POST" action="index.php">
-        <label for="search">Search Guilds:</label>
-        <input type="text" name="search" value="<?php echo htmlspecialchars($search_term); ?>" placeholder="Enter guild name" />
-        <button type="submit">Search</button>
+    <div class="search-box">
+    <form method="POST" action="index.php" class="search-form">
+		<input type="text" placeholder="Search guild" value="" id="search" name="search" autocomplete="off" class="browser-default" ">
+		<svg class="search-border" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+			  xmlns:a="http://ns.adobe.com/AdobeSVGViewerExtensions/3.0/" x="0px" y="0px" viewBox="0 0 671 111" style="enable-background:new 0 0 671 111;"
+			  xml:space="preserve">
+            <path class="border" d="M335.5,108.5h-280c-29.3,0-53-23.7-53-53v0c0-29.3,23.7-53,53-53h280"/>
+			<path class="border" d="M335.5,108.5h280c29.3,0,53-23.7,53-53v0c0-29.3-23.7-53-53-53h-280"/>
+        </svg>
     </form>
+    </div>
     
-    <h3>Guild List</h3>
-
     <!-- Table to display guild names and lastUpdated, with clickable sortable headers -->
-    <table>
+    <div class="card">
+    <table class="highlight">
         <thead>
             <tr>
                 <?php $current_sort = isset($_GET['sort']) ? $_GET['sort'] : 'name'; ?>
                 <th class="<?php echo ($current_sort === 'bot') ? 'active-sort' : ''; ?>"><a href="index.php?sort=bot&order=<?php echo $next_order; ?>&page=1">Bot</a></th>
                 <th class="<?php echo ($current_sort === 'name') ? 'active-sort' : ''; ?>"><a href="index.php?sort=name&order=<?php echo $next_order; ?>&page=1">Name</a></th>
                 <th class="<?php echo ($current_sort === 'players') ? 'active-sort' : ''; ?>"><a href="index.php?sort=players&order=<?php echo $next_order; ?>&page=1">Players</a></th>
-                <th class="<?php echo ($current_sort === 'gp') ? 'active-sort' : ''; ?>"><a href="index.php?sort=gp&order=<?php echo $next_order; ?>&page=1">GP</a></th>
+                <th class="<?php echo ($current_sort === 'gp') ? 'active-sort' : ''; ?> text-right" style="text-align:right"><a href="index.php?sort=gp&order=<?php echo $next_order; ?>&page=1">GP</a></th>
                 <th class="<?php echo ($current_sort === 'lastUpdated') ? 'active-sort' : ''; ?>"><a href="index.php?sort=lastUpdated&order=<?php echo $next_order; ?>&page=1">Last Updated</a></th>
             </tr>
         </thead>
@@ -116,7 +129,8 @@ try {
                     echo "\t\t\t<tr><td>" . $botDisplay . "</td>\n";
                     echo "\t\t\t\t<td><a href='/g.php?gid=".$guild['id']."'>" . htmlspecialchars($guild['name']) . "</a></td>\n";
                     echo "\t\t\t\t<td class='$playerClass'>$playerDisplay/50</td>\n";
-                    echo "\t\t\t\t<td style='text-align:right'>" . number_format($guild['gp'], 0, '.', ' ') . "</td>\n";
+                    echo "\t\t\t\t<td style='text-align:right' class='hide-on-large-only'>" . round($guild['gp']/1000000, 1) . "M</td>\n";
+                    echo "\t\t\t\t<td style='text-align:right' class='hide-on-med-and-down'>" . number_format($guild['gp'], 0, '.', ' ') . "</td>\n";
                     echo "\t\t\t\t<td>" . $guild['lastUpdated'] . "</td></tr>\n";
                 }
             } else {
@@ -125,26 +139,36 @@ try {
             ?>
         </tbody>
     </table>
+    </div>
     
     <!-- Pagination Controls -->
     <div class="pagination">
         <?php if ($page > 1): ?>
-            <a href="index.php?page=<?php echo $page - 1; ?>">Previous</a>
+            <a href="index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $page-1; ?>">Previous</a>
         <?php else: ?>
             <a class="disabled">Previous</a>
         <?php endif; ?>
 
         <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-            <a href="index.php?page=<?php echo $i; ?>" class="<?php echo ($i == $page) ? 'active' : ''; ?>">
+            <a href="index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $i; ?>" class="<?php echo ($i == $page) ? 'active' : ''; ?>">
                 <?php echo $i; ?>
             </a>
         <?php endfor; ?>
 
         <?php if ($page < $total_pages): ?>
-            <a href="index.php?page=<?php echo $page + 1; ?>">Next</a>
+            <a href="index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $page+1; ?>">Next</a>
         <?php else: ?>
             <a class="disabled">Next</a>
         <?php endif; ?>
     </div>
+
+    </div>
+    </div>
+    <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
+
+</div>
+</div>
 </body>
-</html>
+<?php include 'sitefooter.php' ; ?>
+<wavesge
+/html>

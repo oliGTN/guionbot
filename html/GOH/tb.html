@@ -2,100 +2,32 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link href="https://goh.warstats.net/favicon.ico" type="image/x-icon" rel="icon"><link href="https://goh.warstats.net/favicon.ico" type="image/x-icon" rel="shortcut icon">
-		<meta name="og:site_name" content="Warstats for SWGOH">
-	<meta name="og:image:secure_url" content="//goh.warstats.net/img/logo-small.png">
-	<meta property="og:title" content="Warstats for SWGOH"><meta property="og:description" content="Warstats for Star Wars Galaxy of Heroes."><meta property="og:image" content="http://goh.warstats.net/img/logo-small.png">	<meta property="twitter:card" content="summary"><meta property="twitter:url" content="https://goh.warstats.net/territory-battles/view/14920"><meta property="twitter:title" content="Warstats for SWGOH"><meta property="twitter:description" content="Warstats for Star Wars Galaxy of Heroes."><meta property="twitter:image" content="//goh.warstats.net/img/logo-small.png">	<title>
-		Warstats for SWGOH	</title>
-
-
-	<meta name="google-signin-scope" content="profile email">
-	<meta name="google-signin-client_id" content="943716731046-oa4mvf8d878gqamigkrg5mk31eblpgk6.apps.googleusercontent.com">
-
-	
+	<meta name="og:site_name" content="Warstats for SWGOH">
+    <title>GuiOn bot for SWGOH</title>
 	<link rel="stylesheet" href="./Warstats for SWGOH_files/main.1.008.css">
-	<link rel="stylesheet" href="./Warstats for SWGOH_files/tooltipster.bundle.min.css">
-	<link rel="stylesheet" href="./Warstats for SWGOH_files/tooltipster-sideTip-shadow.min.css">
-	<link rel="stylesheet" href="./Warstats for SWGOH_files/tooltipster-sideTip-light.min.css">
-	<link rel="stylesheet" href="./Warstats for SWGOH_files/icon">
-
-		<link rel="stylesheet" href="./Warstats for SWGOH_files/selectize.css">
-	<script type="text/javascript" async="" src="./Warstats for SWGOH_files/js"></script><script async="" src="./Warstats for SWGOH_files/analytics.js.téléchargement"></script><script src="./Warstats for SWGOH_files/6fd2beab15.js.téléchargement" crossorigin="anonymous"></script>
-
-	<script src="./Warstats for SWGOH_files/jquery-3.2.1.min.js.téléchargement"></script>
-	<script src="./Warstats for SWGOH_files/gohstats.min.1.008.js.téléchargement"></script>
-	<script src="./Warstats for SWGOH_files/easytimer.min.js.téléchargement"></script>
-	<script src="./Warstats for SWGOH_files/tooltipster.bundle.min.js.téléchargement"></script>
-	<script src="./Warstats for SWGOH_files/selectize.min.js.téléchargement"></script></head>
 <body>
 
 
 <h2>Territory Battle <small>Hoth - Dark side</small></h2>
 
+<!-- Clickable round numbers for large screens -->
 <div class="phases hide-on-small-and-down">
-		<a href="https://goh.warstats.net/territory-battles/view/14920/1" class="active">Round 1</a>
-        &gt;
-		<a href="https://goh.warstats.net/territory-battles/view/14920/2">Round 2</a>		
-        &gt;
-		<a href="https://goh.warstats.net/territory-battles/view/14920/3">&#11093;Round 3</a>		
-        &gt;
-		<a href="https://goh.warstats.net/territory-battles/view/14920/4">Round 4</a>		
-        &gt;
-		<a href="https://goh.warstats.net/territory-battles/view/14920/5">Round 5</a>
-        &gt;
-		<a href="https://goh.warstats.net/territory-battles/view/14920/6">Round 6</a>
-        &gt;
-	    <a href="https://goh.warstats.net/territory-battles/resume/14920">Resume</a></div>
-
-<div class="hide-on-med-and-up">
-    <div class="dropdown">
-        <form>
-        <select class="selectize phase browser-default selectized" name="list" id="list" accesskey="target" onchange="phaseClicked()">
-            <option value="1">&#11093;Phase 1</option>
-            <option value="2">Phase 2</option>
-            <option value="3">Phase 3</option>
-        </select>
-        </form>
-    </div>
-    <script>
-        function phaseClicked(){
-            let userPicked = document.getElementById("list").value;
-            window.open("https://goh.warstats.net/territory-battles/view/14920/"+userPicked);
-        }
-    </script>
-
+	<a href="https://goh.warstats.net/territory-battles/view/14920/1">Round 1</a>
+    &gt;
+	<a href="https://goh.warstats.net/territory-battles/view/14920/2">Round 2</a>		
+    &gt;
+	<a href="https://goh.warstats.net/territory-battles/view/14920/3" class="active">&#11093;Round 3</a>		
+    &gt;
+	<a href="https://goh.warstats.net/territory-battles/view/14920/4">Round 4</a>		
+    &gt;
+	<a href="https://goh.warstats.net/territory-battles/view/14920/5">Round 5</a>
+    &gt;
+	<a href="https://goh.warstats.net/territory-battles/view/14920/6">Round 6</a>
+    &gt;
+    <a href="https://goh.warstats.net/territory-battles/resume/14920">Resume</a>
 </div>
 
-
-<script type="text/javascript">
-	$(document).ready(function() {
-		$('select.selectize.phase').selectize({
-			create: false,
-			sortField: 'text',
-			placeholder: 'Select a phase...',
-			onItemAdd: function (value, item) {
-				if ( value === 'resume' ) {
-					window.location.href = "/territory-battles/resume/14920";
-				} else {
-					window.location.href = "/territory-battles/view/14920/" + value;
-				}
-			},
-
-			render: {
-				option: function(item, escape) {
-					const current = 1;
-					if ( current == item.value ) {
-						return '<div><i class="far fa-fw fa-dot-circle red-text"></i> ' + escape(item.text) + '</div>';
-					} else {
-						return '<div><i class="far fa-fw fa-dot-circle white-text"></i> ' + escape(item.text) + '</div>';
-					}
-				}
-			}
-		});
-	});
-</script>
-
+<!-- style for clickable rounds -->
 <style type="text/css">
 	.phases {
 		font-size: 18px;
@@ -120,6 +52,28 @@
 	}
 </style>
 
+
+<!-- Dropdown round menu for small screens -->
+<div class="hide-on-med-and-up">
+    <div class="dropdown">
+        <form>
+        <select style="width:200px" name="list" id="list" accesskey="target" onchange="phaseClicked()">
+            <option value="1">&#11093;Round 1</option>
+            <option value="2" selected="selected">Round 2</option>
+            <option value="3">Round 3</option>
+        </select>
+        </form>
+    </div>
+    <script>
+        function phaseClicked(){
+            let userPicked = document.getElementById("list").value;
+            window.open("https://goh.warstats.net/territory-battles/view/14920/"+userPicked);
+        }
+    </script>
+
+</div>
+
+<!-- cards by territory -->
 <div id="resume" class="active">
 	<div class="row">
 		<div class="col s12 m12 l4">
@@ -134,13 +88,25 @@
 						&#10025;
 					</div>
 					<div class="score-text">
-							0 /<small>885,000</small>
+						0 /<small>885,000</small>
 					</div>
                     <svg width="100%" height="70">
-                        <rect width="37%" height="30" style="fill:lightgreen;"></rect>
-                        <rect x="37%" width="13%" height="30" style="fill:yellow;"></rect>
-                        <rect x="50%" width="36%" height="30" style="fill:orange;"></rect>
-                        <rect width="100%" height="30" style="fill-opacity:0;stroke:black"></rect>
+                        <rect width="37%" height="30" style="fill:lightgreen;">
+                            <title>green 37%</title>
+                        </rect>
+                        <rect x="37%" width="13%" height="30" style="fill:yellow;">
+                            <title>yellow 13%</title>
+                        </rect>
+                        <rect x="50%" width="36%" height="30" style="fill:orange;">
+                            <title>orange 36%</title>
+                        </rect>
+                        <rect width="100%" height="30" style="fill:none;stroke:black;"></rect>
+                        <line x1="30%" y1="0" x2="30%" y2="30" style="stroke:gray"></line>
+                        <line x1="50%" y1="0" x2="50%" y2="30" style="stroke:gray"></line>
+                        <line x1="37%" y1="0" x2="37%" y2="50" style="stroke:darkgreen;stroke-width:2"></line>
+                        <text x="30%" y="40" text-anchor="middle" font-size="10">885,000</text>
+                        <text x="50%" y="40" text-anchor="middle" font-size="10">1,230,000</text>
+                        <text x="100%" y="40" text-anchor="end" font-size="10">3,500,000</text>
                     </svg>
 					<div class="row mb-0">
 						<div class="col s4">
@@ -384,8 +350,8 @@
 
 	<h4>Strikes success</h4>
 	<div class="row">
-								<div class="col s12 m4">
-				<h5>North</h5>
+		<div class="col s12 m4">
+			<h5>North</h5>
 				<div class="card">
 					<div class="card-content">
 						<div class="row mb-0">

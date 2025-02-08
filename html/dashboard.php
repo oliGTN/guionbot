@@ -110,17 +110,25 @@ try {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Dashboard</title>
+    <title>GuiOn bot for SWGOH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="basic.css">
-    <link rel="stylesheet" href="navbar.css">
     <link rel="stylesheet" href="tables.css">
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="stylesheet" href="main.1.008.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
 <body>
+<div class="site-container">
+<div class="site-pusher">
+
     <!-- Navigation Bar -->
     <?php include 'navbar.php' ; ?>
 
     <!-- Dashboard Content -->
+    <div class="site-content">
     <div class="container">
+
         <h2>Welcome to Your Dashboard</h2>
 
         <?php if ($isAdmin): ?>
@@ -167,7 +175,7 @@ try {
     
         <?php else: ?>
             <p>You are logged in as a user: <?php echo $_SESSION['user_name'] ?></p>
-            <h2>My guilds</h2>
+            <h3>My guilds</h3>
             <table>
                 <tr>
                     <th>Name</th>
@@ -183,8 +191,8 @@ try {
                 }
                 ?>
             </table>
-
-            <h2>My bonus guilds</h2>
+            <br/>
+            <h3>My bonus guilds</h3>
             <table>
                 <tr>
                     <th>Name</th>
@@ -201,7 +209,11 @@ try {
                 ?>
             </table>
         <?php endif; ?>
-    </div>
+    </div> <!-- container -->
+    </div> <!-- site-content -->
+    <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 
+</div>
+</div>
 </body>
 </html>

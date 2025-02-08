@@ -7,36 +7,45 @@
     <h3 style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></h3>
         
     <!-- graph -->
-    <table border="0">
-        <tr>
-            <td>
-                <table style="background-color:dodgerblue;color:white">
-                    <tr>
-                        <td><h2>Galactic Power: <?php echo round($guild['gp']/1000000, 1); ?>M</h3></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <canvas id="gp-graph"></canvas>
-                            <div class="chartjs-tooltip" id="gp-tooltip-0"></div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-            <td>
-                <table style="background-color:blue;color:white">
-                    <tr>
-                        <td><h2>Players: <?php echo $guild['players']; ?></h3></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <canvas id="nb-players-graph"></canvas>
-                            <div class="chartjs-tooltip" id="nb-players-tooltip-0"></div>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    
+    <div class="row guild-header mb-10">
+	    <div class="col s12 m8 l8">
+		    <div class="card stat gp">
+			    <div class="card-content">
+				    <div class="card-title">Galactic Power</div>
+                    <div class="stat-detail">
+						<label>Total</label>
+						<div class="value">
+                            <span class="hide-on-large-only"><?php echo round($guild['gp']/1000000,1); ?>M</span>
+                            <span class="hide-on-med-and-down"><?php echo number_format($guild['gp'], 0, ".", " "); ?></span>
+						</div>
+					</div>
+			    </div>
+                <div class="card-graph">
+                    <canvas id="gp-graph"></canvas>
+                    <div class="chartjs-tooltip" id="gp-tooltip-0"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col s12 m4 14">
+		    <div class="card stat player">
+			    <div class="card-content">
+                    <div class="card-title">Players</div>
+                    <div class="stat-detail">
+						<label>Total</label>
+						<div class="value">
+                            <?php echo $guild['players']; ?><small>/50</small>
+						</div>
+					</div>
+                    <div class="card-graph">
+                        <canvas id="nb-players-graph"></canvas>
+                        <div class="chartjs-tooltip" id="nb-players-tooltip-0"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <style type="text/css">
         canvas{

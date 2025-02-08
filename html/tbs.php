@@ -51,15 +51,22 @@ try {
 <!DOCTYPE html>
 <html>
 <head>
-    <title><?php echo $guild['name']; ?></title>
+    <title>GuiOn bot for SWGOH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="basic.css">
-    <link rel="stylesheet" href="navbar.css">
     <link rel="stylesheet" href="tables.css">
+    <link rel="stylesheet" href="navbar.css">
+    <link rel="stylesheet" href="main.1.008.css">
 </head>
 <body>
+<div class="site-container">
+<div class="site-pusher">
 
     <!-- Navigation Bar -->
     <?php include 'navbar.php' ; ?>
+
+    <div class="site-content">
+    <div class="container">
 
     <!-- Guild header -->
     <?php include 'gheader.php' ; ?>
@@ -87,6 +94,12 @@ try {
             ?>
         </tbody>
     </table>
-    
+
+    </div> <!-- container -->
+    </div> <!-- site-content -->
+    <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
+</div>
+</div>
 </body>
+<?php include 'sitefooter.php' ; ?>
 </html>

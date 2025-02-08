@@ -58,7 +58,7 @@ include 'gvariables.php';
 $query = "SELECT zone_name, zone_phase, score_step1, score_step2, score_step3,";
 $query .= " score, estimated_platoons, estimated_strikes, estimated_deployments FROM tb_zones";
 $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
-#error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the zone information
     $stmt = $conn_guionbot->prepare($query);
@@ -70,6 +70,31 @@ try {
 } catch (PDOException $e) {
     error_log("Error fetching zone data: " . $e->getMessage());
     echo "Error fetching zone data: " . $e->getMessage();
+}
+
+// --------------- GET PLAYER INFO FOR THE TB -----------
+if ($isMyGuildConfirmed) {
+    // Prepare the SQL query
+    $query = "SELECT name, gp, deployed_gp, score, strikes, waves";
+    $query .= " FROM tb_player_score";
+    $query .= " JOIN players ON players.playerId=tb_player_score.player_id";
+    $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
+    $query .= " ORDER BY deployed_gp/gp DESC";
+    //error_log("query = ".$query);
+    try {
+        // Prepare the SQL query to fetch the zone information
+        $stmt = $conn_guionbot->prepare($query);
+        $stmt->execute();
+
+        // Fetch all the results as an associative array
+        $tb_players = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    } catch (PDOException $e) {
+        error_log("Error fetching zone data: " . $e->getMessage());
+        echo "Error fetching zone data: " . $e->getMessage();
+    }
+} else {
+    $tb_players = [];
 }
 
 ?>
@@ -85,9 +110,14 @@ try {
     <link rel="stylesheet" href="main.1.008.css">
 </head>
 <body>
+<div class="site-container">
+<div class="site-pusher">
 
     <!-- Navigation Bar -->
     <?php include 'navbar.php' ; ?>
+
+    <div class="site-content">
+    <div class="container">
 
     <h2 style="display:inline">TB for <a href='/g.php?gid=<?php echo $guild['id']; ?>'><?php echo $guild['name']; ?></a></h2> - <?php echo $tb['tb_name'];?>
     <div><?php echo "last update on ".$tb['lastUpdated']; ?></div>
@@ -230,5 +260,59 @@ try {
     </div>
 </div>
 
+    <!-- table for players -->
+    <?php if ($isMyGuildConfirmed) : ?>
+    <table>
+        <thead>
+            <tr>
+                <td>Player</td>
+                <td>Score</td>
+                <td>Deployment</td>
+                <td>Waves</td>
+                <td>Strikes</td>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($tb_players as $tb_player) {
+                $ratio_deployed = $tb_player['deployed_gp']/$tb_player['gp'];
+                if ($ratio_deployed<0.1) {
+                    $color_deploy='red';
+                    $lightcolor_deploy='lightpink';
+                } else if ($ratio_deployed<0.9) {
+                    $color_deploy='darkorange';
+                    $lightcolor_deploy='#ffcf77';
+                } else {
+                    $color_deploy='green';
+                    $lightcolor_deploy='lightgreen';
+                }
+                echo "<tr>\n";
+                echo "\t<td>".$tb_player['name']."</td>\n";
+                echo "\t<td class='hide-on-large-only'>".round($tb_player['score']/1000000, 1)."M</td>\n";
+                echo "\t<td class='hide-on-med-and-down'>".number_format($tb_player['score'], 0, ".", " ")."</td>\n";
+            ?>
+                    <td>
+                        <svg width="100%" height="30">
+                            <rect width="100%" height="30" style="fill:<?php echo $lightcolor_deploy; ?>;"/>
+                            <rect width="<?php echo $tb_player['deployed_gp']/$tb_player['gp']*100?>%" height="30" style="fill:<?php echo $color_deploy; ?>;">
+                            <title><?php $tb_player['deployed_gp']/$tb_player['gp']*100?>%</title>
+                            </rect>
+                        </svg>
+                    </td>
+                <?php echo "\t<td style='text-align:center'>".$tb_player['waves']."</td>\n"; ?>
+                <?php echo "\t<td style='text-align:center'>".$tb_player['strikes']."</td>\n"; ?>
+                </tr>
+            <?php }?>
+        </tbody>
+    </table>
+    <?php endif; ?>
+
+
+    </div> <!-- container -->
+    </div> <!-- site-content -->
+    <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
+</div>
+</div>
 </body>
+<?php include 'sitefooter.php' ; ?>
 </html>
+
