@@ -1348,6 +1348,10 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
 
     return 0, "", {"dict_platoons_allocation": dict_platoons_allocation}
 
+######################################
+# update the TB history
+# update all zones, even past ones, as te volume is acceptable
+# update player data only if something has changed, for performance reasons
 def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players):
     dict_tb = data.get("tb_definition.json")
     now = datetime.datetime.now()
@@ -1386,7 +1390,7 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         simple_execute(query)
 
     i_zone = 0
-    for zone_fullname in list_open_zones:
+    for zone_fullname in dict_zones:
         zone = dict_zones[zone_fullname]
         zone_shortname = dict_tb[zone_fullname]["name"]
         if zone_fullname.endswith("_bonus"):
@@ -1398,10 +1402,19 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         round = str(dict_phase["round"])
 
         # Check / Create the zone in DB
-        query = "SELECT id FROM tb_zones " \
-                "WHERE tb_id="+tb_db_id+" "\
-                "AND zone_id='"+zone_fullname+"' "\
-                "AND round="+round+" "
+        if zone_fullname in list_open_zones:
+            #look for the zone in current round
+            query = "SELECT id FROM tb_zones " \
+                    "WHERE tb_id="+tb_db_id+" "\
+                    "AND zone_id='"+zone_fullname+"' "\
+                    "AND round="+round+" "
+        else:
+            #look for the latest round of this zone
+            query = "SELECT id FROM tb_zones " \
+                    "WHERE tb_id="+tb_db_id+" "\
+                    "AND zone_id='"+zone_fullname+"' "\
+                    "ORDER BY round "\
+                    "LIMIT 1 "
         goutils.log2("DBG", query)
         db_data = get_value(query)
 
@@ -1409,6 +1422,10 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         score_step2 = str(dict_tb[zone_fullname]["scores"][1])
         score_step3 = str(dict_tb[zone_fullname]["scores"][2])
         if db_data==None:
+            if not zone_fullname in list_open_zones:
+                #should be a past zone but does not exist  mistake, skip it to prevent errors
+                continue
+
             query = "INSERT INTO tb_zones(tb_id, zone_id, zone_name, zone_phase, round, "\
                     "score_step1, score_step2, score_step3, is_bonus) "\
                     "VALUES("+tb_db_id+", '"+zone_fullname+"', '"+zone_shortname+"', "+zone_round+", "+round+", "\
