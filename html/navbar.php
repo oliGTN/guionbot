@@ -13,7 +13,7 @@
         <a href="init-oauth.php">Login</a>
         </li>
     <?php else: ?>
-    <li class="drop <?php echo (substr($_SERVER['REQUEST_URI'], 0, strlen('/dashboard.php'))=='/dashboard.php')? 'active' : ''; ?>">My Account
+    <li class="drop <?php echo (substr($_SERVER['REQUEST_URI'], 0, strlen('/dashboard.php'))=='/dashboard.php')? 'active' : ''; ?>"><?php echo $_SESSION['user_name']; ?>
         <ul>
             <li><a href="dashboard.php">My account</a></li>
             <li><a href="logout.php">Logout</a></li>

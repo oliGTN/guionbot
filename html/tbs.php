@@ -27,7 +27,13 @@ $guild = $_SESSION['guild'];
 
 // --------------- GET TB LIST GUILD -----------
 // Prepare the SQL query
-$query = "SELECT tb_history.id, tb_name, start_date, lastUpdated, MAX(tb_zones.round) AS max_round FROM tb_history";
+$query = "SELECT tb_history.id, tb_name, start_date, lastUpdated, MAX(tb_zones.round) AS max_round,";
+$query .= " sum(case";
+$query .= " WHEN score>=score_step3 then CASE WHEN SUBSTRING(zone_name, -1, 1)='b' THEN 1 ELSE 3 END";
+$query .= " WHEN score>=score_step2 then CASE WHEN SUBSTRING(zone_name, -1, 1)='b' THEN 0 ELSE 2 END";
+$query .= " WHEN score>=score_step1 then CASE WHEN SUBSTRING(zone_name, -1, 1)='b' THEN 0 ELSE 1 END";
+$query .= " ELSE 0 END) AS stars";
+$query .= " FROM tb_history";
 $query .= " LEFT JOIN tb_zones ON tb_zones.tb_id = tb_history.id";
 $query .= " WHERE guild_id='".$_GET['gid']."'";
 $query .= " GROUP BY tb_history.id";
@@ -73,11 +79,13 @@ try {
     <?php include 'gheader.php' ; ?>
     
     <!-- Table of TB history -->
+    <div class="card">
     <table>
         <thead>
             <tr>
                 <th >Start date</th>
                 <th >Type</th>
+                <th >Result</th>
             </tr>
         </thead>
         <tbody>
@@ -87,7 +95,8 @@ try {
             if (!empty($tbs)) {
                 foreach ($tbs as $tb) {
                     echo "\t\t\t<tr><td>" . $tb['start_date'] . "</td>\n";
-                    echo "\t\t\t\t<td><a href='/tb.php?id=".$tb['id']."&round=".$tb['max_round']."'>" . $tb['tb_name'] . "</a></td></tr>\n";
+                    echo "\t\t\t\t<td><a href='/tb.php?id=".$tb['id']."&round=".$tb['max_round']."'>" . $tb['tb_name'] . "</a></td>\n";
+                    echo "\t\t\t\t<td>".$tb['stars']."&#11088;</td></tr>\n";
                 }
             } else {
                 echo "<tr><td colspan='2'>No TB found.</td></tr>";
@@ -95,6 +104,7 @@ try {
             ?>
         </tbody>
     </table>
+    </div>
 
     </div> <!-- container -->
     </div> <!-- site-content -->
