@@ -79,7 +79,7 @@ if ($isMyGuildConfirmed) {
     $query .= " FROM tb_player_score";
     $query .= " JOIN players ON players.playerId=tb_player_score.player_id";
     $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
-    $query .= " ORDER BY deployed_gp/gp DESC";
+    $query .= " ORDER BY score DESC";
     //error_log("query = ".$query);
     try {
         // Prepare the SQL query to fetch the zone information
@@ -194,21 +194,32 @@ if ($isMyGuildConfirmed) {
                 $score_step1 = $zone['score_step1'];
                 $score_step2 = $zone['score_step2'];
                 $score_step3 = $zone['score_step3'];
+
+                //manage symbols for bonus zones
+                if (substr($zone['zone_name'], -1)=='b') {
+                    $empty_star_12 = "&#x26AA;";
+                    $star_12 = "&#x1F535;";
+                } else {
+                    $empty_star_12 = "&#10025;";
+                    $star_12 = "&#11088;";
+                }
+
+                // prepare display variables
                 if ($score >= $score_step3) {
                     $step_count = 3;
-                    $star_txt = "&#11088;&#11088;&#11088;";
+                    $star_txt = "$star_12$star_12&#11088;";
                     $next_step_score = $score_step3;
                 } elseif ($score >= $score_step2) {
                     $step_count = 2;
-                    $star_txt = "&#11088;&#11088;&#10025;";
+                    $star_txt = "$star_12$star_12&#10025;";
                     $next_step_score = $score_step3;
                 } elseif ($score >= $score_step1) {
                     $step_count = 1;
-                    $star_txt = "&#11088;&#10025;&#10025;";
+                    $star_txt = "$star_12$empty_star_12&#10025;";
                     $next_step_score = $score_step2;
                 } else {
                     $step_count = 0;
-                    $star_txt = "&#10025;&#10025;&#10025;";
+                    $star_txt = "$empty_star_12$empty_star_12&#10025;";
                     $next_step_score = $score_step1;
                 }
 
@@ -231,25 +242,25 @@ if ($isMyGuildConfirmed) {
                                 <?php echo $star_txt; ?>
                             </div>
                             <div class="score-text">
-                            0 /<small><?php echo number_format($next_step_score, 0, ".", " ");?></small>
+                                <?php echo number_format($score, 0, ".", " ");?> /<small><?php echo number_format($next_step_score, 0, ".", " ");?></small>
                             </div>
                             <svg width="100%" height="70">
                                 <rect width="<?php echo $x_score;?>%" height="30" style="fill:green;">
-                                    <title>Current score: <?php number_format($score, 0, ".", " ");?></title>
+                                    <title>Current score: <?php echo number_format($score, 0, ".", " ");?></title>
                                 </rect>
                                 <rect x="<?php echo $x_score;?>%" width="<?php echo $x_strikes-$x_score;?>%" height="30" style="fill:orange;">
-                                    <title>Estimated strikes: <?php number_format($estimated_strikes, 0, ".", " ");?></title>
+                                    <title>Estimated strikes: <?php echo number_format($estimated_strikes, 0, ".", " ");?></title>
                                 </rect>
                                 <rect x="<?php echo $x_strikes;?>%" width="<?php echo $x_deployments-$x_strikes;?>%" height="30" style="fill:yellow;">
-                                    <title>Deployments: <?php number_format($estimated_strikes, 0, ".", " ");?></title>
+                                    <title>Deployments: <?php echo number_format($estimated_strikes, 0, ".", " ");?></title>
                                 </rect>
                                 <rect width="100%" height="30" style="fill:none;stroke:black;"></rect>
                                 <line x1="<?php echo $x_step1?>%" y1="0" x2="<?php echo $x_step1;?>%" y2="30" style="stroke:gray"></line>
                                 <line x1="<?php echo $x_step2?>%" y1="0" x2="<?php echo $x_step2;?>%" y2="30" style="stroke:gray"></line>
                                 <line x1="<?php echo $x_score?>%" y1="0" x2="<?php echo $x_score;?>%" y2="50" style="stroke:darkgreen;stroke-width:2"></line>
                                 <text x="0%" y="40" font-size="10">0</text>
-                                <text x="<?php echo $x_step1;?>%" y="40" text-anchor="middle" font-size="10"><?php echo number_format($score_step1, 0, ".", " ");?></text>
-                                <text x="<?php echo $x_step2;?>%" y="40" text-anchor="middle" font-size="10"><?php echo number_format($score_step2, 0, ".", " ");?></text>
+                                <text x="<?php echo $x_step1;?>%" y="40" text-anchor="end" font-size="10"><?php echo number_format($score_step1, 0, ".", " ");?></text>
+                                <text x="<?php echo $x_step2;?>%" y="40" text-anchor="end" font-size="10"><?php echo number_format($score_step2, 0, ".", " ");?></text>
                                 <text x="100%" y="40" text-anchor="end" font-size="10"><?php echo number_format($score_step3, 0, ".", " ");?></text>
                                 <text x="<?php echo $x_score;?>%" y="60" text-anchor="<?php echo ($score<$score_step3/2?"":"end");?>" font-size="12">&nbsp;<?php echo number_format($score, 0, ".", " ");?>&nbsp;</text>
                             </svg>
@@ -261,6 +272,7 @@ if ($isMyGuildConfirmed) {
     </div>
 </div>
 
+<div class="card">
     <!-- table for players -->
     <?php if ($isMyGuildConfirmed) : ?>
     <table>
@@ -306,6 +318,7 @@ if ($isMyGuildConfirmed) {
         </tbody>
     </table>
     <?php endif; ?>
+</div>
 
 
     </div> <!-- container -->
