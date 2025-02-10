@@ -1714,7 +1714,7 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
             if not zone_name in dict_tw_zones[side]:
                 query = "INSERT INTO tw_zones(tw_id, side, zone_id, zone_name, size, "\
                         "filled, victories, fails, commandMsg, status) "\
-                        "VALUES("+tw_db_id+", '"+side+"', '"+zone_id+"', "\
+                        "VALUES("+str(tw_db_id)+", '"+side+"', '"+zone_id+"', "\
                         "'"+zone_name+"', "+str(size)+", "\
                         ""+str(filled)+", "+str(victories)+", "+str(fails)+", "\
                         ""+cmdMsg_txt+", "+status_txt+") "
