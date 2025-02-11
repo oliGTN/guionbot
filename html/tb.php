@@ -19,6 +19,15 @@ if (!isset($_GET['round'])) {
     $round = $_GET['round'];
 }
 
+// --------------- SORTING BY COLUMN -----------
+// Get sort parameters from URL or set default
+$valid_columns = ['name', 'score', 'deployment', 'waves', 'strikes'];
+$sort_column = isset($_GET['sort']) && in_array($_GET['sort'], $valid_columns) ? $_GET['sort'] : 'score';
+$sort_order = isset($_GET['order']) && strtolower($_GET['order']) === 'asc' ? 'ASC' : 'DESC';
+
+// Toggle sort order for next click
+$next_order = $sort_order === 'ASC' ? 'desc' : 'asc';
+
 // Get the associated guild and check if the user is allowed
 // Prepare the SQL query
 $query = "SELECT guild_id, tb_name, start_date, lastUpdated,";
@@ -91,18 +100,43 @@ try {
     $round_stars = $stmt->fetchAll(PDO::FETCH_ASSOC)[0]['stars'];
 
 } catch (PDOException $e) {
-    error_log("Error fetching zone data: " . $e->getMessage());
-    echo "Error fetching zone data: " . $e->getMessage();
+    error_log("Error fetching TB data: " . $e->getMessage());
+    echo "Error fetching TB data: " . $e->getMessage();
+}
+
+// --------------- GET ROUND INFO FOR THE TB -----------
+// Prepare the SQL query
+$query = "SELECT sum(score_strikes) AS strikes, sum(score_platoons) AS platoons,";
+$query .= " sum(score_deployed) AS deployed";
+$query .= " FROM tb_player_score";
+$query .= " WHERE tb_id=".$tb_id." AND round=".$round;
+//error_log("query = ".$query);
+try {
+    // Prepare the SQL query to fetch the zone information
+    $stmt = $conn_guionbot->prepare($query);
+    $stmt->execute();
+
+    // Fetch all the results as an associative array
+    $round_score = $stmt->fetchAll(PDO::FETCH_ASSOC)[0];
+
+} catch (PDOException $e) {
+    error_log("Error fetching round data: " . $e->getMessage());
+    echo "Error fetching round data: " . $e->getMessage();
 }
 
 // --------------- GET PLAYER INFO FOR THE TB -----------
 if ($isMyGuildConfirmed) {
+    if ($sort_column == 'deployment') {
+        $sort_column_sql = 'deployed_gp/gp';
+    } else {
+        $sort_column_sql = $sort_column;
+    }
     // Prepare the SQL query
-    $query = "SELECT name, gp, deployed_gp, score, strikes, waves";
+    $query = "SELECT name, gp, deployed_gp, score_strikes+score_deployed as score, strikes, waves";
     $query .= " FROM tb_player_score";
     $query .= " JOIN players ON players.playerId=tb_player_score.player_id";
     $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
-    $query .= " ORDER BY score DESC";
+    $query .= " ORDER BY $sort_column_sql $sort_order";
     //error_log("query = ".$query);
     try {
         // Prepare the SQL query to fetch the zone information
@@ -113,8 +147,8 @@ if ($isMyGuildConfirmed) {
         $tb_players = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     } catch (PDOException $e) {
-        error_log("Error fetching zone data: " . $e->getMessage());
-        echo "Error fetching zone data: " . $e->getMessage();
+        error_log("Error fetching player data: " . $e->getMessage());
+        echo "Error fetching player data: " . $e->getMessage();
     }
 } else {
     $tb_players = [];
@@ -297,18 +331,71 @@ Score for this round: <?php echo $round_stars; ?>&#11088
         }?>
     </div>
 </div>
-
+<div class="col s12 m12 l8">
+    <h4 class="no-wrap no-overflow">Round overall score</h4>
+    <div class="card">
+    <div class="card-content">
+    <div class="row">
+        <div class="col s4">
+            <div class="stat-panel">
+                <div class="stat-detail">
+                    <label>Strikes</label>
+                    <div class="value xsmall pb-5">
+                        <value><?php echo number_format($round_score['strikes'], 0, ".", " "); ?></value>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col s4">
+            <div class="stat-panel">
+                <div class="stat-detail">
+                    <label>Platoons</label>
+                    <div class="value xsmall pb-5">
+                        <value><?php echo number_format($round_score['platoons'], 0, ".", " "); ?></value>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col s4">
+            <div class="stat-panel">
+                <div class="stat-detail">
+                    <label>Deployments</label>
+                    <div class="value xsmall pb-5">
+                        <value><?php echo number_format($round_score['deployed'], 0, ".", " "); ?></value>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    </div>
+</div>
 <div class="card">
     <!-- table for players -->
     <?php if ($isMyGuildConfirmed) : ?>
     <table>
         <thead>
             <tr>
-                <td>Player</td>
-                <td>Score</td>
-                <td>Deployment</td>
-                <td>Waves</td>
-                <td>Strikes</td>
+                <?php
+                $col_active = [];
+                $col_arrow = [];
+                foreach($valid_columns as $col) {
+                    $col_active[col] = false;
+                    $col_arrow[col] = '';
+                }
+                $col_active[$sort_column] = 'active-sort';
+                if ($sort_order == 'ASC') {
+                    $col_arrow[$sort_column] = '↓';
+                } else {
+                    $col_arrow[$sort_column] = '↑';
+                }
+                ?>
+                
+                <th class="<?php echo $col_active['name'];?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=name&order=<?php echo $next_order; ?>">Player<?php echo $col_arrow['name'];?></a></th>
+                <th class="<?php echo $col_active['score']; ?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=score&order=<?php echo $next_order; ?>">Score<?php echo $col_arrow['score'];?></a></th>
+                <th class="<?php echo $col_active['deployment']; ?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=deployment&order=<?php echo $next_order; ?>">Deployment<?php echo $col_arrow['deployment'];?></a></th>
+                <th class="<?php echo $col_active['waves']; ?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=waves&order=<?php echo $next_order; ?>">Waves<?php echo $col_arrow['waves'];?></a></th>
+                <th class="<?php echo $col_active['strikes']; ?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=strikes&order=<?php echo $next_order; ?>">Strikes<?php echo $col_arrow['strikes'];?></a></th>
             </tr>
         </thead>
         <tbody>
@@ -333,7 +420,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                         <svg width="100%" height="30">
                             <rect width="100%" height="30" style="fill:<?php echo $lightcolor_deploy; ?>;"/>
                             <rect width="<?php echo $tb_player['deployed_gp']/$tb_player['gp']*100?>%" height="30" style="fill:<?php echo $color_deploy; ?>;">
-                            <title><?php $tb_player['deployed_gp']/$tb_player['gp']*100?>%</title>
+                            <title><?php echo round($tb_player['deployed_gp']/$tb_player['gp']*100,0)?>%</title>
                             </rect>
                         </svg>
                     </td>

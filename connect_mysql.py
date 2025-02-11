@@ -1473,7 +1473,8 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
 
     ## players
     # Get DB data
-    query = "SELECT round, player_id, gp, deployed_gp, score, strikes, waves "\
+    query = "SELECT round, player_id, gp, deployed_gp, score_strikes, score_platoons, "\
+            "score_deployed, strikes, waves "\
             "FROM tb_player_score "\
             "WHERE tb_id="+str(tb_db_id)
     goutils.log2("DBG", query)
@@ -1494,7 +1495,9 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         for round in range(1, len(player["rounds"])+1): # round from 1 to 6
             player_round = player["rounds"][round-1]
             deployed_gp = player_round["score"]["deployedMix"]
-            score = player_round["score"]["deployed"] + player_round["score"]["Platoons"] + player_round["score"]["strikes"]
+            score_strikes = player_round["score"]["strikes"]
+            score_platoons = player_round["score"]["Platoons"]
+            score_deployed = player_round["score"]["deployed"]
             strikes = player_round["strike_attempts"]
             waves = player_round["strike_waves"]
 
@@ -1502,9 +1505,11 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
             if not player_key in dict_db_players:
                 #need to create player/round in DB
                 query = "INSERT INTO tb_player_score(tb_id, round, player_id, "\
-                        "gp, deployed_gp, score, strikes, waves) "\
+                        "gp, deployed_gp, score_strikes, score_platoons, "\
+                        "score_deployed, strikes, waves) "\
                         "VALUES("+str(tb_db_id)+", "+str(round)+", '"+id+"', "\
-                        ""+str(gp)+", "+str(deployed_gp)+", "+str(score)+", "\
+                        ""+str(gp)+", "+str(deployed_gp)+", "+str(score_strikes)+", "\
+                        ""+str(score_platoons)+", "+str(score_deployed)+", "\
                         ""+str(strikes)+", "+str(waves)+") "
                 goutils.log2("DBG", query)
                 simple_execute(query)
@@ -1512,12 +1517,15 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
             else:
                 # player/round already exists
                 #  need to see if necessary to update
-                player_data = [deployed_gp, score, strikes, waves]
+                player_data = [deployed_gp, score_strikes, score_platoons, 
+                               score_deployed, strikes, waves]
                 if player_data != list(dict_db_players[player_key]):
                     query = "UPDATE tb_player_score "\
                             "SET gp="+str(gp)+", "\
                             "deployed_gp="+str(deployed_gp)+", "\
-                            "score="+str(score)+", "\
+                            "score_strikes="+str(score_strikes)+", "\
+                            "score_platoons="+str(score_platoons)+", "\
+                            "score_deployed="+str(score_deployed)+", "\
                             "strikes="+str(strikes)+", "\
                             "waves="+str(waves)+" "\
                             "WHERE tb_id="+str(tb_db_id)+" "\

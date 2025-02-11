@@ -81,15 +81,15 @@ try {
     <h3>Player List</h3>
 
     <!-- Table to display player names and lastUpdated, with clickable sortable headers -->
+    <div class="card">
     <table>
         <thead>
             <tr>
-                <?php $current_sort = isset($_GET['sort']) ? $_GET['sort'] : 'name'; ?>
                 <th>#</th>
-                <th class="<?php echo ($current_sort === 'name') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=name&order=<?php echo $next_order; ?>">Name</a></th>
+                <th class="<?php echo ($sort_column === 'name') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=name&order=<?php echo $next_order; ?>">Name</a></th>
                 <th >allyCode</a></th>
-                <th class="<?php echo ($current_sort === 'gp') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=gp&order=<?php echo $next_order; ?>">GP</a></th>
-                <th class="<?php echo ($current_sort === 'lastUpdated') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=lastUpdated&order=<?php echo $next_order; ?>">Last Updated</a></th>
+                <th class="<?php echo ($sort_column === 'gp') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=gp&order=<?php echo $next_order; ?>">GP</a></th>
+                <th class="<?php echo ($sort_column === 'lastUpdated') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=lastUpdated&order=<?php echo $next_order; ?>">Last Updated</a></th>
             </tr>
         </thead>
         <tbody>
@@ -119,6 +119,7 @@ try {
             ?>
         </tbody>
     </table>
+    </div>
     </div> <!-- container -->
     </div> <!-- site-content -->
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
