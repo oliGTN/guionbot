@@ -8,6 +8,7 @@ import datetime
 import time
 import wcwidth
 import asyncio
+from decimal import Decimal
 
 def wc_ljust(text, length):
     return text + ' ' * max(0, length - wcwidth.wcswidth(text))
@@ -1543,7 +1544,7 @@ def store_tb_events(guild_id, tb_id, list_events):
     # Get timestamp for latest registered event in DB
     query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tb_events"
     goutils.log2("DBG", query)
-    max_ts = get_value(query)
+    max_ts = int(get_value(query)*1000) # This value is of type Decimal
     if max_ts==None:
         max_ts=0
 
@@ -1558,7 +1559,7 @@ def store_tb_events(guild_id, tb_id, list_events):
             event_id = event
             event = list_events[event_id]
 
-        event_ts = round(int(event["timestamp"])*0.001, 3) # to prevent values like 1737416568.6330001
+        event_ts = int(event["timestamp"]) # to prevent values like 1737416568.6330001
         if event_ts <= max_ts:
             #goutils.log2("DBG", str(event_ts)+" < "+str(max_ts))
             continue
@@ -1576,7 +1577,7 @@ def store_tb_events(guild_id, tb_id, list_events):
             query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id, param2, param3) "\
                     "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                     "'CONFLICT_CONTRIBUTION', "\
                     "'"+zone_id+"', "\
                     "'"+author_id+"', "\
@@ -1592,7 +1593,7 @@ def store_tb_events(guild_id, tb_id, list_events):
             query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id) "\
                     "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                     "'COVERT_COMPLETE', "\
                     "'"+zone_id+"', "\
                     "'"+author_id+"') "
@@ -1607,7 +1608,7 @@ def store_tb_events(guild_id, tb_id, list_events):
             query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id, param0) "\
                     "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                     "'CONFLICT_DEPLOY', "\
                     "'"+zone_id+"', "\
                     "'"+author_id+"', "\
@@ -1625,7 +1626,7 @@ def store_tb_events(guild_id, tb_id, list_events):
             query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id, param0, param2, param3) "\
                     "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                     "'RECON_CONTRIBUTION', "\
                     "'"+zone_id+"', "\
                     "'"+author_id+"', "\
@@ -1846,17 +1847,19 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
 # Update tw_events table from list of events
 # list_events my be actually a dictionary
 def store_tw_events(guild_id, tw_id, list_events):
-    # Get timestamp for latest registered event in DB
-    query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tw_events"
-    goutils.log2("DBG", query)
-    max_ts = get_value(query)
-    if max_ts==None:
-        max_ts=0
-
     # Get the DB tw_id from the game tw_id and the guild_id
     query = "SELECT id FROM tw_history WHERE tw_id='"+tw_id+"' AND guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
     tw_db_id = get_value(query)
+
+    # Get timestamp for latest registered event of this TW id in DB
+    query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tw_events "\
+            "WHERE tw_id="+str(tw_db_id)
+    goutils.log2("DBG", query)
+    max_ts = int(get_value(query)*1000)
+    if max_ts==None:
+        max_ts=0
+    goutils.log2("DBG", max_ts)
 
     for event in list_events:
         #Manage the case where list_events is a dict
@@ -1864,10 +1867,13 @@ def store_tw_events(guild_id, tw_id, list_events):
             event_id = event
             event = list_events[event_id]
 
-        event_ts = round(int(event["timestamp"])*0.001, 3) # to prevent values like 1737416568.6330001
+        event_ts = int(event["timestamp"]) # to prevent values like 1737416568.6330001
         if event_ts <= max_ts:
-            #goutils.log2("DBG", str(event_ts)+" < "+str(max_ts))
+            goutils.log2("DBG", str(event_ts)+" <= "+str(max_ts))
             continue
+        print(type(event_ts), type(max_ts))
+        goutils.log2("DBG", "!!!" + str(event_ts)+" > "+str(max_ts))
+        goutils.log2("DBG", "!!! de "+str(event_ts-max_ts))
 
         author_id = event["authorId"]
         data=event["data"][0]
@@ -1884,7 +1890,7 @@ def store_tw_events(guild_id, tw_id, list_events):
                 query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id, squad_leader) "\
                         "VALUES("+str(tw_db_id)+", "\
-                        "FROM_UNIXTIME("+str(event_ts)+"), "\
+                        "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                         "'DEPLOY', "\
                         "'"+zone_id+"', "\
                         "'"+author_id+"', "\
@@ -1913,7 +1919,7 @@ def store_tw_events(guild_id, tw_id, list_events):
                         "author_id, squad_id, squad_player_id, squad_leader, "\
                         "squad_size, squad_dead, squad_tm) "\
                         "VALUES("+str(tw_db_id)+", "\
-                        "FROM_UNIXTIME("+str(event_ts)+"), "\
+                        "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                         "'"+event_type+"', "\
                         "'"+zone_id+"', "\
                         "'"+author_id+"', "\
@@ -1930,7 +1936,7 @@ def store_tw_events(guild_id, tw_id, list_events):
                 query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id) "\
                         "VALUES("+str(tw_db_id)+", "\
-                        "FROM_UNIXTIME("+str(event_ts)+"), "\
+                        "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                         "'"+event_type+"', "\
                         "'"+zone_id+"', "\
                         "'"+author_id+"', "\
@@ -1948,7 +1954,7 @@ def store_tw_events(guild_id, tw_id, list_events):
             query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                     "author_id, scoreDelta, scoreTotal) "\
                     "VALUES("+str(tw_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts)+"), "\
+                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
                     "'SCORE', "\
                     "'"+zone_id+"', "\
                     "'"+author_id+"', "\
