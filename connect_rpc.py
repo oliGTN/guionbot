@@ -2342,7 +2342,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                     else:
                         if activity["zoneData"]["guildId"] == guildId:
                             if "warSquad" in activity:
-                                squad_id = zone["warSquad"]["squadId"]
+                                squad_id = activity["warSquad"]["squadId"]
                                 if activity["warSquad"]["squadStatus"] in ("SQUADLOCKED", "SQUADDEFEATED"):
                                     if "squad" in activity["warSquad"]:
                                         zone_id = activity["zoneData"]["zoneId"]

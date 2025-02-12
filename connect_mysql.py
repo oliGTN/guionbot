@@ -1869,11 +1869,8 @@ def store_tw_events(guild_id, tw_id, list_events):
 
         event_ts = int(event["timestamp"]) # to prevent values like 1737416568.6330001
         if event_ts <= max_ts:
-            goutils.log2("DBG", str(event_ts)+" <= "+str(max_ts))
+            #goutils.log2("DBG", str(event_ts)+" <= "+str(max_ts))
             continue
-        print(type(event_ts), type(max_ts))
-        goutils.log2("DBG", "!!!" + str(event_ts)+" > "+str(max_ts))
-        goutils.log2("DBG", "!!! de "+str(event_ts-max_ts))
 
         author_id = event["authorId"]
         data=event["data"][0]
