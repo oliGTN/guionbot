@@ -1,5 +1,11 @@
 <?php
-session_start();  // Start the session to check if the user is logged in
+// server should keep session data for AT LEAST 1 hour
+ini_set('session.gc_maxlifetime', 3600*24*7);
+// each client should remember their session id for EXACTLY 1 hour
+session_set_cookie_params(3600*24*7);
+// Start the session to check if the user is logged in
+session_start();
+
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
 
 // Check if the user is logged in and if the user is an admin
@@ -141,16 +147,16 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     echo "<td rowspan='".$rowspan."' style='background-color:".$zone_color.";".$crossed."'>";
 
     if ($isMyGuildConfirmed) {
-        echo "<b>".$zone_name."</b> - ".min($zones[$side][$zone_name]['filled'], ($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories']))."/".$zones[$side][$zone_name]['size'];
+        echo "<b>".$zone_name."</b><br/>".min($zones[$side][$zone_name]['filled'], ($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories']))."/".$zones[$side][$zone_name]['size'];
         echo "</td'>\n";
 
     } else {
         // do not share sensitive information
         if ($zones[$side][$zone_name]['victories'] == 0) {
             // considered not open
-            echo "<b>".$zone_name."</b> - ?/".$zones[$side][$zone_name]['size'];
+            echo "<b>".$zone_name."</b><br/>?/".$zones[$side][$zone_name]['size'];
         } else {
-            echo "<b>".$zone_name."</b> - ".($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories'])."/".$zones[$side][$zone_name]['size'];
+            echo "<b>".$zone_name."</b><br/>".($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories'])."/".$zones[$side][$zone_name]['size'];
         }
         echo "</td'>\n";
     }
@@ -176,6 +182,26 @@ function openZone(evt, zoneSide, zoneName) {
 
   // Show the current tab, and add an "active" class to the button that opened the tab
   document.getElementById(zoneName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
+function openSide(evt, side) {
+  // Declare all variables
+  var i, tabcontent, tablinks;
+
+  // Get elements with class="teamside" and hide them
+  tabs = document.getElementsByClassName("teamside");
+  for (i = 0; i < tabs.length; i++) {
+    tabs[i].style.display = "none";
+  }
+
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("sidetablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(side+"teamside").style.display = "block";
   evt.currentTarget.className += " active";
 }
 </script>
@@ -248,17 +274,10 @@ function openZone(evt, zoneSide, zoneName) {
     <div><br/><?php echo "(last update on ".$tw['lastUpdated'].")"; ?></div>
     
     <!-- Overview of zones -->
-    <table>
-    <tr>
-        <td style="text-align:center">
+    <div class="row">
+    <div class="col s12">
+    <div class="col s6">
             <h3><?php echo $tw['homeScore'];?></h3>
-        </td>
-        <td style="text-align:center">
-            <h3><?php echo $tw['awayScore'];?></h3>
-        </td>
-    </tr>
-    <tr>
-        <td>
             <table style="background-color:dodgerblue;color:white">
                 <tr>
                     <?php zone_txt('F2', 'home', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
@@ -289,8 +308,10 @@ function openZone(evt, zoneSide, zoneName) {
                     <td style="width:0;background-color:black"></td>
                 </tr>
             </table>
-        </td>
-        <td>
+    </div>
+
+    <div class="col s6">
+            <h3><?php echo $tw['awayScore'];?></h3>
             <table style="background-color:red;color:white">
                 <tr>
                     <td style="width:0;background-color:black"></td>
@@ -321,12 +342,19 @@ function openZone(evt, zoneSide, zoneName) {
                     <td style="width:0;background-color:black"></td>
                 </tr>
             </table>
-        </td>
-    </tr>
+    </div>
+    </div>
+    </div>
 
     <?php if ($isMyGuildConfirmed||$isBonusGuild): ?>
-    <tr>
-        <td style="vertical-align:top">
+    <div class="card">
+    <div class="row">
+    <div class="col s12">
+        <div class="hide-on-med-and-up">
+              <button class="sidetablinks" onclick="openSide(event, 'home')" id="sidedefaultOpen">HOME</button>
+              <button class="sidetablinks" onclick="openSide(event, 'away')">Away</button>
+        </div>
+    <div class="col s6 teamside" id="hometeamside">
             <!-- HOME ZONES -->
             <!-- Zone links -->
             <div class="tab">
@@ -357,7 +385,7 @@ function openZone(evt, zoneSide, zoneName) {
                         $display_player = false;
                         }
                         $unit_short_id = explode(':', $unit['defId'])[0];
-                        echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='70px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
+                        echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
                     }
                     echo "</tr>";
                 }
@@ -365,8 +393,9 @@ function openZone(evt, zoneSide, zoneName) {
                 echo "</div>";
             }
             ?>
-        </td>
-        <td style="vertical-align:top">
+    </div> <!-- class="col s6" -->
+
+    <div class="col s6 teamside" id="awayteamside">
             <!-- AWAY ZONES -->
             <!-- Zone links -->
             <div class="tab">
@@ -396,7 +425,7 @@ function openZone(evt, zoneSide, zoneName) {
                         $display_player = false;
                         }
                         $unit_short_id = explode(':', $unit['defId'])[0];
-                        echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='70px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
+                        echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
 
                     }
                     echo "</tr>";
@@ -406,10 +435,11 @@ function openZone(evt, zoneSide, zoneName) {
             }
             ?>
 
-        </td>
-    </tr>
+        </div>
+        </div>
+        </div>
+        </div>
     <?php endif; ?>
-    </table>
 
     </div> <!-- container -->
     </div> <!-- site-content -->
@@ -419,6 +449,8 @@ function openZone(evt, zoneSide, zoneName) {
 </div>
 
 <script>
+// Get the element with id="sidedefaultOpen" and click on it
+document.getElementById("sidedefaultOpen").click();
 // Get the element with id="homedefaultOpen" and click on it
 document.getElementById("homedefaultOpen").click();
 // Get the element with id="awaydefaultOpen" and click on it

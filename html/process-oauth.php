@@ -67,7 +67,7 @@ $user_name = $result['global_name'];
 session_start();
 $_SESSION['user_id'] = $user_id;
 $_SESSION['user_name'] = $user_name;
-print_r($_SESSION);
+//print_r($_SESSION);
 
 try {
     // Prepare SQL to create the user if not already, and store the name

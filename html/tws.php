@@ -1,5 +1,11 @@
 <?php
-session_start();  // Start the session to check if the user is logged in
+// server should keep session data for AT LEAST 1 hour
+ini_set('session.gc_maxlifetime', 3600*24*7);
+// each client should remember their session id for EXACTLY 1 hour
+session_set_cookie_params(3600*24*7);
+// Start the session to check if the user is logged in
+session_start();
+
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
 
 // Check if the user is logged in and if the user is an admin
@@ -72,6 +78,7 @@ try {
     <?php include 'gheader.php' ; ?>
     
     <!-- Table of TB history -->
+    <div class="card">
     <table>
         <thead>
             <tr>
@@ -100,6 +107,7 @@ try {
             ?>
         </tbody>
     </table>
+    </div>
     </div> <!-- container -->
     </div> <!-- site-content -->
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>

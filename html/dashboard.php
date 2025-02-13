@@ -1,5 +1,11 @@
 <?php
-session_start();  // Start the session to access user info
+// server should keep session data for AT LEAST 1 hour
+ini_set('session.gc_maxlifetime', 3600*24*7);
+// each client should remember their session id for EXACTLY 1 hour
+session_set_cookie_params(3600*24*7);
+// Start the session to check if the user is logged in
+session_start();
+
 require 'websitedb.php';  // Include the database connection for websitedb
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
 
