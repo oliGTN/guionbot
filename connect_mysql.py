@@ -1544,9 +1544,11 @@ def store_tb_events(guild_id, tb_id, list_events):
     # Get timestamp for latest registered event in DB
     query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tb_events"
     goutils.log2("DBG", query)
-    max_ts = int(get_value(query)*1000) # This value is of type Decimal
-    if max_ts==None:
+    db_data = get_value(query)
+    if db_data==None:
         max_ts=0
+    else:
+        max_ts = int(db_data*1000)
 
     # Get the DB tb_id from the game tb_id and the guild_id
     query = "SELECT id FROM tb_history WHERE tb_id='"+tb_id+"' AND guild_id='"+guild_id+"'"
@@ -1856,9 +1858,11 @@ def store_tw_events(guild_id, tw_id, list_events):
     query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tw_events "\
             "WHERE tw_id="+str(tw_db_id)
     goutils.log2("DBG", query)
-    max_ts = int(get_value(query)*1000)
-    if max_ts==None:
+    db_data = get_value(query)
+    if db_data==None:
         max_ts=0
+    else:
+        max_ts = int(db_data*1000)
     goutils.log2("DBG", max_ts)
 
     for event in list_events:
