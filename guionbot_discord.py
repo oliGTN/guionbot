@@ -1127,7 +1127,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         manage_events.create_event("tw_start", guild_id, tw_id)
 
     # update DB
-    connect_mysql.update_tw(guild_id, tw_id, tw_round, opp_guild_id,
+    connect_mysql.update_tw(guild_id, tw_id, opp_guild_id,
                             opp_guild_name, score, opp_score,
                             homeGuild, awayGuild)
 

@@ -10,6 +10,8 @@ import wcwidth
 import asyncio
 from decimal import Decimal
 
+import connect_rpc
+
 def wc_ljust(text, length):
     return text + ' ' * max(0, length - wcwidth.wcswidth(text))
 
@@ -1640,7 +1642,27 @@ def store_tb_events(guild_id, tb_id, list_events):
 
 #################################
 # update TW in DB
-def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, opp_score,
+async def update_tw_from_guild(dict_guild):
+    guild_id = dict_guild["profile"]["id"]
+    tw = dict_guild["territoryWarStatus"][0]
+    opp_guild_id = tw["awayGuild"]["profile"]["id"]
+    opp_guild_name = tw["awayGuild"]["profile"]["name"]
+    score = sum([int(x['zoneStatus']['score']) \
+                 for x in tw['homeGuild']['conflictStatus']])
+    opp_score = sum([int(x['zoneStatus']['score']) \
+                     for x in tw['awayGuild']['conflictStatus']])
+
+    ret_dict = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
+
+    tw_id = ret_dict["tw_id"]
+    homeGuild = ret_dict["homeGuild"]
+    awayGuild = ret_dict["awayGuild"]
+
+    update_tw(guild_id, tw_id, opp_guild_id,
+              opp_guild_name, score, opp_score,
+              homeGuild, awayGuild)
+
+def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
               homeGuild, awayGuild):
     dict_tw = data.dict_tw
     now = datetime.datetime.now()
@@ -1657,9 +1679,10 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
         tw_ts = int(tw_id.split(":")[1][1:-3])
         tw_date = datetime.datetime.fromtimestamp(tw_ts).strftime("%Y/%m/%d %H:%M:%S")
         query = "INSERT INTO tw_history(tw_id, start_date, guild_id, " \
-                "away_guild_id, away_guild_name) " \
+                "away_guild_id, away_guild_name, homeScore, awayScore) " \
                 "VALUES('"+tw_id+"', '"+tw_date+"', '"+guild_id+"', " \
-                "'"+opp_guild_id+"', '"+opp_guild_name.replace("'", "''")+"') "
+                "'"+opp_guild_id+"', '"+opp_guild_name.replace("'", "''")+"', "\
+                ""+str(score)+", "+str(opp_score)+") "
         goutils.log2("DBG", query)
         simple_execute(query)
 
@@ -1734,7 +1757,7 @@ def update_tw(guild_id, tw_id, tw_round, opp_guild_id, opp_guild_name, score, op
 
                 # Get the id of the new Zone
                 query = "SELECT id FROM tw_zones " \
-                        "WHERE tw_id="+tw_db_id+" "\
+                        "WHERE tw_id="+str(tw_db_id)+" "\
                         "AND side='"+side+"' "\
                         "AND zone_id='"+zone_id+"' "
                 goutils.log2("DBG", query)

@@ -2191,15 +2191,18 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     else:
         event_types=""
 
-    ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, 
+    if with_attacks or dict_guild==None:
+        ec, et, ret_data = await get_guild_rpc_data(guild_id, event_types, force_update, 
                                                 allyCode=allyCode,
                                                 dict_guild=dict_guild)
-    if ec!=0:
-        goutils.log2("ERR", et)
-        return {"tw_id": None, "rpc": None}
+        if ec!=0:
+            goutils.log2("ERR", et)
+            return {"tw_id": None, "rpc": None}
 
-    dict_guild = ret_data[0]
-    dict_events = ret_data[2]
+        dict_guild = ret_data[0]
+        dict_events = ret_data[2]
+    else:
+        dict_events=None
 
     guildId = dict_guild["profile"]["id"]
 
