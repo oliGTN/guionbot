@@ -138,7 +138,9 @@ try {
         <h2>Welcome to Your Dashboard</h2>
 
         <?php if ($isAdmin): ?>
-            <p>You are logged in as an administrator.</p>
+            <div class="card">
+                <p style="color:green;display:inline">You are logged in as an administrator</p>
+            </div>
 
         <!-- Table to display user names -->
         <h2>List of Specific user guild associations</h2>
@@ -180,11 +182,14 @@ try {
         </form>
     
         <?php else: ?>
-            <p>You are logged in as a user: <?php echo $_SESSION['user_name'] ?></p>
-            <h3>My guilds</h3>
+            <div class="card">
+                <p style="color:green;display:inline">You are logged in as a user: <?php echo $_SESSION['user_name'] ?></p>
+            </div>
+
+            <div class="card">
             <table>
                 <tr>
-                    <th>Name</th>
+                    <th>My guilds</th>
                 </tr>
                 <?php
                 // Loop through each guild and display in a table row
@@ -197,23 +202,23 @@ try {
                 }
                 ?>
             </table>
-            <br/>
-            <h3>My bonus guilds</h3>
+            </div>
+
+            <?php if (!empty($my_bonus_guilds)): ?>
+            <div class="card">
             <table>
                 <tr>
-                    <th>Name</th>
+                    <th>My bonus guilds</th>
                 </tr>
                 <?php
                 // Loop through each guild and display in a table row
-                if (!empty($my_bonus_guilds)) {
                     foreach ($my_bonus_guilds as $user_guild) {
                         echo "<tr><td><a href='g.php?gid=".$user_guild['id']."'>" . htmlspecialchars($user_guild['name']) . "</a></td></tr>";
                     }
-                } else {
-                    echo "<tr><td colspan='2'>No guild found.</td></tr>";
-                }
                 ?>
             </table>
+            </div>
+            <?php endif; ?> <!-- !empty($my_bonus_guilds) -->
         <?php endif; ?>
     </div> <!-- container -->
     </div> <!-- site-content -->

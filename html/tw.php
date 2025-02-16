@@ -144,7 +144,8 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
         $zone_color .= 'red';
     }
 
-    echo "<td rowspan='".$rowspan."' style='background-color:".$zone_color.";".$crossed."'>";
+    $side_zone_name = substr($side, 0, 1).$zone_name;
+    echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:3px solid white" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
 
     if ($isMyGuildConfirmed) {
         echo "<b>".$zone_name."</b><br/>".min($zones[$side][$zone_name]['filled'], ($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories']))."/".$zones[$side][$zone_name]['size'];
@@ -168,41 +169,23 @@ function openZone(evt, zoneSide, zoneName) {
   // Declare all variables
   var i, tabcontent, tablinks;
 
-  // Get all elements with class="tabcontent" and hide them
-  tabcontent = document.getElementsByClassName(zoneSide+"tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
-
-  // Get all elements with class="tablinks" and remove the class "active"
-  tablinks = document.getElementsByClassName(zoneSide+"tablinks");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
-  }
-
-  // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(zoneName).style.display = "block";
-  evt.currentTarget.className += " active";
-}
-function openSide(evt, side) {
-  // Declare all variables
-  var i, tabcontent, tablinks;
-
-  // Get elements with class="teamside" and hide them
+  // Get all side elements with class="teamside" and hide them
   tabs = document.getElementsByClassName("teamside");
   for (i = 0; i < tabs.length; i++) {
     tabs[i].style.display = "none";
   }
 
-  // Get all elements with class="tablinks" and remove the class "active"
-  tablinks = document.getElementsByClassName("sidetablinks");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  // Get all zone elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName(zoneSide+"tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
   }
 
+  // Show the side tab, and add an "active" class to the button that opened the tab
+  document.getElementById(zoneSide+"teamside").style.display = "block";
+
   // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(side+"teamside").style.display = "block";
-  evt.currentTarget.className += " active";
+  document.getElementById(zoneName).style.display = "block";
 }
 </script>
 
@@ -269,8 +252,14 @@ function openSide(evt, side) {
     <div class="container">
 
     <h2>TW for <a href='/g.php?gid=<?php echo $guild['id']; ?>'><?php echo $guild['name']; ?></a> vs <a href='/g.php?gid=<?php echo $tw['away_guild_id']; ?>'><?php echo $tw['away_guild_name']; ?></a></h2>
-    <h3 style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?></h3><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i>)':''); ?></small>
-    <h3 style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></h3>
+
+    <div class="card">
+        <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i>)':''); ?></small>
+        </p>
+
+        <p style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></p>
+    </div>
+
     <div><br/><?php echo "(last update on ".$tw['lastUpdated'].")"; ?></div>
     
     <!-- Overview of zones -->
@@ -278,69 +267,53 @@ function openSide(evt, side) {
     <div class="col s12">
     <div class="col s6">
             <h3><?php echo $tw['homeScore'];?></h3>
-            <table style="background-color:dodgerblue;color:white">
-                <tr>
+            <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:dodgerblue;color:white">
+                <tr height="33">
                     <?php zone_txt('F2', 'home', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('F1', 'home', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('T2', 'home', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('T1', 'home', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
-                    <td style="width:0;background-color:black"></td>
                 </tr>
-                <tr>
-                    <td style="width:0;background-color:black"></td>
-                </tr>
-                <tr>
+                <tr height="33"/>
+                <tr height="33">
                     <?php zone_txt('T4', 'home', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('T3', 'home', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
-                    <td style="width:0;background-color:black"></td>
                 </tr>
-                <tr>
+                <tr height="33">
                     <?php zone_txt('B2', 'home', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('B1', 'home', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
-                    <td style="width:0;background-color:black"></td>
                 </tr>
-                <tr>
+                <tr height="33">
                     <?php zone_txt('B4', 'home', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('B3', 'home', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
-                    <td style="width:0;background-color:black"></td>
                 </tr>
-                <tr>
-                    <td style="width:0;background-color:black"></td>
-                </tr>
+                <tr height="33"/>
             </table>
     </div>
 
     <div class="col s6">
             <h3><?php echo $tw['awayScore'];?></h3>
-            <table style="background-color:red;color:white">
-                <tr>
-                    <td style="width:0;background-color:black"></td>
+            <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:red;color:white">
+                <tr height="33">
                     <?php zone_txt('T1', 'away', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('T2', 'away', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('F1', 'away', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('F2', 'away', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                 </tr>
-                <tr>
-                    <td style="width:0;background-color:black"></td>
-                </tr>
-                <tr>
-                    <td style="width:0;background-color:black"></td>
+                <tr height="33"/>
+                <tr height="33">
                     <?php zone_txt('T3', 'away', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('T4', 'away', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                 </tr>
-                <tr>
-                    <td style="width:0;background-color:black"></td>
+                <tr height="33">
                     <?php zone_txt('B1', 'away', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('B2', 'away', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
                 </tr>
-                <tr>
-                    <td style="width:0;background-color:black"></td>
+                <tr height="33">
                     <?php zone_txt('B3', 'away', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                     <?php zone_txt('B4', 'away', $zones, 2, $isMyGuildConfirmed||$isBonusGuild); ?>
                 </tr>
-                <tr>
-                    <td style="width:0;background-color:black"></td>
-                </tr>
+                <tr height="33"/>
             </table>
     </div>
     </div>
@@ -350,26 +323,8 @@ function openSide(evt, side) {
     <div class="card">
     <div class="row">
     <div class="col s12">
-        <div class="hide-on-med-and-up">
-              <button class="sidetablinks" onclick="openSide(event, 'home')" id="sidedefaultOpen">HOME</button>
-              <button class="sidetablinks" onclick="openSide(event, 'away')">Away</button>
-        </div>
-    <div class="col s6 teamside" id="hometeamside">
+    <div class="col s6 teamside" style="display:none" id="hometeamside">
             <!-- HOME ZONES -->
-            <!-- Zone links -->
-            <div class="tab">
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hT1')" id="homedefaultOpen">T1</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hT2')">T2</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hT3')">T3</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hT4')">T4</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hB1')">B1</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hB2')">B2</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hB3')">B3</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hB4')">B4</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hF1')">F1</button>
-              <button class="hometablinks" onclick="openZone(event, 'home', 'hF2')">F2</button>
-            </div>
-
             <!-- Zone content -->
             <?php
             foreach($squads['home'] as $zone_name => $zone_squads) {
@@ -395,22 +350,8 @@ function openSide(evt, side) {
             ?>
     </div> <!-- class="col s6" -->
 
-    <div class="col s6 teamside" id="awayteamside">
+    <div class="col s6 teamside" style="display:none" id="awayteamside">
             <!-- AWAY ZONES -->
-            <!-- Zone links -->
-            <div class="tab">
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aT1')" id="awaydefaultOpen">T1</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aT2')">T2</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aT3')">T3</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aT4')">T4</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aB1')">B1</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aB2')">B2</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aB3')">B3</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aB4')">B4</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aF1')">F1</button>
-              <button class="awaytablinks" onclick="openZone(event, 'away', 'aF2')">F2</button>
-            </div>
-
             <?php
             foreach($squads['away'] as $zone_name => $zone_squads) {
                 echo "<div id='a".$zone_name."' class='awaytabcontent'>";
