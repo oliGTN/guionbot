@@ -266,6 +266,7 @@ function openZone(evt, zoneSide, zoneName) {
     <div class="row">
     <div class="col s12">
     <div class="col s6">
+        <div class="card">
             <h3><?php echo $tw['homeScore'];?></h3>
             <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:dodgerblue;color:white">
                 <tr height="33">
@@ -289,9 +290,11 @@ function openZone(evt, zoneSide, zoneName) {
                 </tr>
                 <tr height="33"/>
             </table>
+        </div>
     </div>
 
     <div class="col s6">
+        <div class="card">
             <h3><?php echo $tw['awayScore'];?></h3>
             <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:red;color:white">
                 <tr height="33">
@@ -315,6 +318,7 @@ function openZone(evt, zoneSide, zoneName) {
                 </tr>
                 <tr height="33"/>
             </table>
+        </div>
     </div>
     </div>
     </div>

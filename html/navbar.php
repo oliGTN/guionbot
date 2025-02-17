@@ -4,9 +4,14 @@
     <a href="#" class="icon" id="header__icon" onclick="document.body.classList.toggle('with--sidebar')">&#x2630;</a>
 <nav class="menu pushed">
 <ul class="nav inverse">
-    <li class="<?php echo (   substr($_SERVER['REQUEST_URI'], 0, strlen('/index.php'))=='/index.php'
-                                           || $_SERVER['REQUEST_URI']=='/')? 'active' : ''; ?>">
+    <li class="<?php echo (   substr($_SERVER['REQUEST_URI'], 0, strlen('/index.php'))=='/index.php' || $_SERVER['REQUEST_URI']=='/')? 'active' : ''; ?>">
         <a href="index.php">Home</a>
+    </li>
+    <li class="drop">Events
+        <ul>
+            <li><a href="twall.php">All TWs</a></li>
+            <li><a href="tball.php">All TBs</a></li>
+        </ul>
     </li>
     <?php if (!isset($_SESSION['user_id'])): ?>
         <li>
