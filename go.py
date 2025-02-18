@@ -6331,6 +6331,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
         for c in sorted(list(dict_coverts.keys())):
             #TODO make it configurable with tb_definition.json
             if c == "tb3_mixed_phase02_conflict01_covert01":
+                # Bracca > Zeffo
                 query = "SELECT name FROM ( "\
                         "    SELECT players.name, "\
                         "    GROUP_CONCAT(CASE WHEN defId='CEREJUNDA' THEN relic_currentTier ELSE NULL END) AS `CEREJUNDA`, "\
@@ -6346,7 +6347,9 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                 ready_players = connect_mysql.get_column(query)
                 if ready_players == None:
                     ready_players = []
+
             elif c == "tb3_mixed_phase03_conflict03_covert02":
+                # > Mandalore
                 query = "SELECT name FROM ( "\
                         "    SELECT players.name, "\
                         "    GROUP_CONCAT(CASE WHEN defId='MANDALORBOKATAN' THEN relic_currentTier ELSE NULL END) AS `MANDALORBOKATAN`, "\
@@ -6357,6 +6360,29 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                         "    GROUP BY players.allyCode "\
                         ") T "\
                         "WHERE MANDALORBOKATAN>=9 AND THEMANDALORIANBESKARARMOR>=9 "
+                goutils.log2("DBG", query)
+                ready_players = connect_mysql.get_column(query)
+                if ready_players == None:
+                    ready_players = []
+
+            elif c == "tb3_mixed_phase03_conflict03_covert01":
+                # Reva
+                tagAlias = godata.get('tagAlias_dict.json')
+                list_ids = [x[0] for x in tagAlias["Inquisitorius"]]
+                list_ids.remove('GRANDINQUISITOR')
+                query = "SELECT players.name FROM players "\
+                        "JOIN ("\
+                        "    SELECT name, "\
+                        "    FROM players "\
+                        "    JOIN roster ON (players.allyCode=roster.allyCode AND defId IN "+str(tuple(list_ids))+" "\
+                        "                    AND relic_currentTier>=9) "\
+                        "    WHERE guildId='"+guild['profile']['id']+"' "\
+                        "    GROUP BY players.allyCode "\
+                        "    HAVING COUNT(defId) >= 4 "\
+                        ") T ON T.name=players.name"\
+                        "JOIN roster ON (players.allyCode=roster.allyCode AND defId ='GRANDINQUISITOR' "\
+                        "                AND relic_currentTier>=9) "\
+                        "WHERE guildId='"+guild['profile']['id']+"' "
                 goutils.log2("DBG", query)
                 ready_players = connect_mysql.get_column(query)
                 if ready_players == None:
