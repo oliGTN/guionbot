@@ -262,30 +262,34 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                 $score_step3 = $zone['score_step3'];
 
                 //manage symbols for bonus zones
+                $empty_star = "&#x2605;";
+                $full_star = "&#11088;";
+                $empty_circle = "&#x25CF;";
+                $full_circle = "&#x1F535";
                 if (substr($zone['zone_name'], -1)=='b') {
-                    $empty_star_12 = "&#x26AA;";
-                    $star_12 = "&#x1F535;";
+                    $empty_star_12 = $empty_circle;
+                    $star_12 = $full_circle;
                 } else {
-                    $empty_star_12 = "&#10025;";
-                    $star_12 = "&#11088;";
+                    $empty_star_12 = $empty_star;
+                    $star_12 = $full_star;
                 }
 
                 // prepare display variables
                 if ($score >= $score_step3) {
                     $step_count = 3;
-                    $star_txt = "$star_12$star_12&#11088;";
+                    $star_txt = "$star_12$star_12$full_star";
                     $next_step_score = $score_step3;
                 } elseif ($score >= $score_step2) {
                     $step_count = 2;
-                    $star_txt = "$star_12$star_12&#10025;";
+                    $star_txt = "$star_12$star_12$empty_star";
                     $next_step_score = $score_step3;
                 } elseif ($score >= $score_step1) {
                     $step_count = 1;
-                    $star_txt = "$star_12$empty_star_12&#10025;";
+                    $star_txt = "$star_12$empty_star_12$empty_star";
                     $next_step_score = $score_step2;
                 } else {
                     $step_count = 0;
-                    $star_txt = "$empty_star_12$empty_star_12&#10025;";
+                    $star_txt = "$empty_star_12$empty_star_12$empty_star";
                     $next_step_score = $score_step1;
                 }
 

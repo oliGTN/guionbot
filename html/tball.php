@@ -49,8 +49,8 @@ $query .= " FROM tb_history";
 $query .= " JOIN guilds ON guilds.id=guild_id";
 $query .= " JOIN tb_zones ON tb_zones.tb_id=tb_history.id";
 $query .= " WHERE tb_history.tb_id='".$tb_id."'";
-$query .= " ORDER BY name";
-//error_log("query = ".$query);
+$query .= " ORDER BY name, round";
+error_log("query = ".$query);
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
@@ -70,6 +70,7 @@ foreach($tb_db_data as $tb_line) {
         $tb_data[$guild_id] = [];
         $tb_data[$guild_id]['id'] = $tb_line['id'];
         $tb_data[$guild_id]['name'] = $tb_line['name'];
+        $tb_data[$guild_id]['name'] = $tb_line['name'];
         $tb_data[$guild_id]['zones'] = [];
     }
 
@@ -80,27 +81,31 @@ foreach($tb_db_data as $tb_line) {
     $score_step3 = $zone['score_step3'];
 
     //manage symbols for bonus zones
+    $empty_star = "&#x2605;";
+    $full_star = "&#11088;";
+    $empty_circle = "&#x25CF;";
+    $full_circle = "&#x1F535";
     if (substr($zone['zone_name'], -1)=='b') {
-        $empty_star_12 = "&#x26AA;";
-        $star_12 = "&#x1F535;";
+        $empty_star_12 = $empty_circle;
+        $star_12 = $full_circle;
     } else {
-        $empty_star_12 = "&#10025;";
-        $star_12 = "&#11088;";
+        $empty_star_12 = $empty_star;
+        $star_12 = $full_star;
     }
 
     // prepare display variables
     if ($score >= $score_step3) {
         $step_count = 3;
-        $star_txt = "$star_12$star_12&#11088;";
+        $star_txt = "$star_12$star_12$full_star";
     } elseif ($score >= $score_step2) {
         $step_count = 2;
-        $star_txt = "$star_12$star_12&#10025;";
+        $star_txt = "$star_12$star_12$empty_star";
     } elseif ($score >= $score_step1) {
         $step_count = 1;
-        $star_txt = "$star_12$empty_star_12&#10025;";
+        $star_txt = "$star_12$empty_star_12$empty_star";
     } else {
         $step_count = 0;
-        $star_txt = "$empty_star_12$empty_star_12&#10025;";
+        $star_txt = "$empty_star_12$empty_star_12$empty_star";
     }
 
     $tb_data[$guild_id]['zones'][$tb_line['zone_name']] = [];
@@ -151,7 +156,9 @@ function zone_txt($zone_name, $zones, $colspan) {
         } else { // LS
             $zone_color='dodgerblue';
         }
-        $star_txt = $zones[$zone_name]['star_txt'];
+        $zone_txt = $zone_name;
+        $zone_txt.= "<br/>";
+        $zone_txt.= $zones[$zone_name]['star_txt'];
     } else {
         // zone is closed
         if (strpos($zone_name, 'DS')!==false) {
@@ -161,10 +168,10 @@ function zone_txt($zone_name, $zones, $colspan) {
         } else { // LS
             $zone_color='blue';
         }
-        $star_txt = '';
+        $zone_txt = $zone_name;
     }
 
-    echo '<td colspan="'.$colspan.'" style="background-color:'.$zone_color.';text-align:center;border:3px solid white">'.$zone_name.'<br/>'.$star_txt.'</td>';
+    echo '<td colspan="'.$colspan.'" style="background-color:'.$zone_color.';text-align:center;border:3px solid white">'.$zone_txt.'</td>';
 }
 ?>
 
@@ -218,7 +225,6 @@ function zone_txt($zone_name, $zones, $colspan) {
     <!-- Overview of zones -->
     <div class="row">
     <div class="col s12">
-    <div class="col s6">
     <div class="card">
     <h3><a href="tb.php?id=<?php echo $tb['id'];?>"><?php echo $tb['name'];?></a>: <?php echo $tb_data[$guild_id]['stars']; ?>&#11088</h3>
 
@@ -281,7 +287,6 @@ function zone_txt($zone_name, $zones, $colspan) {
         </tr>
         </tbody>
     </table>
-    </div>
     </div>
     </div>
     </div>
