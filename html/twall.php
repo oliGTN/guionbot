@@ -26,7 +26,7 @@ try {
     error_log("Error fetching TW list: " . $e->getMessage());
     echo "Error fetching TW list: " . $e->getMessage();
 }
-if (isset($_GET['ts'])) {
+if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_GET['ts'], 1, 13)) && strlen($_GET['ts'])==14) {
     $tw_id = null;
     foreach($tw_list as $tw) {
         if (strpos($tw['tw_id'], $_GET['ts'])!==false ) {
@@ -65,21 +65,22 @@ try {
     echo "Error fetching TW data: " . $e->getMessage();
 }
 $tw_data = [];
-foreach($tw_db_data as $tb_line) {
-    $guild_id = $tb_line['guild_id'];
+foreach($tw_db_data as $tw_line) {
+    $guild_id = $tw_line['guild_id'];
     if (!isset($tw_data[$guild_id])) {
         $tw_data[$guild_id] = [];
-        $tw_data[$guild_id]['id'] = $tb_line['id'];
-        $tw_data[$guild_id]['homeName'] = $tb_line['homeName'];
-        $tw_data[$guild_id]['awayName'] = $tb_line['awayName'];
-        $tw_data[$guild_id]['homeScore'] = $tb_line['homeScore'];
-        $tw_data[$guild_id]['awayScore'] = $tb_line['awayScore'];
+        $tw_data[$guild_id]['id'] = $tw_line['id'];
+        $tw_data[$guild_id]['homeName'] = $tw_line['homeName'];
+        $tw_data[$guild_id]['awayName'] = $tw_line['awayName'];
+        $tw_data[$guild_id]['homeScore'] = $tw_line['homeScore'];
+        $tw_data[$guild_id]['awayScore'] = $tw_line['awayScore'];
         $tw_data[$guild_id]['zones'] = ['home'=>[], 'away'=>[]];
     }
-    $tw_data[$guild_id]['zones'][$tb_line['side']][$tb_line['zone_name']]['size'] = $tb_line['size'];
-    $tw_data[$guild_id]['zones'][$tb_line['side']][$tb_line['zone_name']]['filled'] = $tb_line['filled'];
-    $tw_data[$guild_id]['zones'][$tb_line['side']][$tb_line['zone_name']]['victories'] = $tb_line['victories'];
-    $tw_data[$guild_id]['zones'][$tb_line['side']][$tb_line['zone_name']]['fails'] = $tb_line['fails'];
+    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']] = [];
+    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['size'] = $tw_line['size'];
+    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['filled'] = $tw_line['filled'];
+    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['victories'] = $tw_line['victories'];
+    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['fails'] = $tw_line['fails'];
 }
 
 function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
