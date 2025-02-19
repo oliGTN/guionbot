@@ -1587,88 +1587,94 @@ async def on_raw_reaction_add(payload):
     await manage_reaction_add(user, message, reaction, emoji)
 
 async def manage_reaction_add(user, message, reaction, emoji):
-    global list_alerts_sent_to_admin
+    try:
+        global list_alerts_sent_to_admin
 
-    #prevent reacting to bot's reactions
-    if user == bot.user:
-        return
+        #prevent reacting to bot's reactions
+        if user == bot.user:
+            return
 
-    if isinstance(message.channel, DMChannel):
-        guild_name = "DM"
-        channel_name = "DM"
-    else:
-        guild_name = message.channel.guild.name
-        channel_name = guild_name+"/"+message.channel.name
+        if isinstance(message.channel, DMChannel):
+            guild_name = "DM"
+            channel_name = "DM"
+        else:
+            guild_name = message.channel.guild.name
+            channel_name = guild_name+"/"+message.channel.name
 
-    author = message.author.display_name
-    goutils.log2("DBG", "guild_name: "+guild_name)
-    goutils.log2("DBG", "message: "+str(message.content))
-    goutils.log2("DBG", "author of the message: "+str(author))
-    goutils.log2("DBG", "emoji: "+str(emoji)+" (unicode: "+hex(ord(emoji))+")")
-    goutils.log2("DBG", "user of the reaction: "+str(user))
+        author = message.author.display_name
+        goutils.log2("DBG", "guild_name: "+guild_name)
+        goutils.log2("DBG", "message: "+str(message.content))
+        goutils.log2("DBG", "author of the message: "+str(author))
+        goutils.log2("DBG", "emoji: "+str(emoji)+" (unicode: "+hex(ord(emoji))+")")
+        goutils.log2("DBG", "user of the reaction: "+str(user))
 
-    # Manage cycle arrows to re-launch a command
-    if emoji == emojis.cyclearrows:
-        # re-launch the command if it is a gobot command, originally launched by the author of the reaction
-        lower_msg = message.content.lower().strip()
-        if lower_msg.startswith("go.") and message.author==user:
-            #remove user reaction, add temporary hourglass from bot
-            await message.remove_reaction(emojis.cyclearrows, user)
-            await message.add_reaction(emojis.hourglass)
+        # Manage cycle arrows to re-launch a command
+        if emoji == emojis.cyclearrows:
+            # re-launch the command if it is a gobot command, originally launched by the author of the reaction
+            lower_msg = message.content.lower().strip()
+            print(lower_msg)
+            print(lower_msg.startswith("go.") , message.author==user)
+            if lower_msg.startswith("go.") and message.author==user:
+                #remove user reaction, add temporary hourglass from bot
+                await message.remove_reaction(emojis.cyclearrows, user)
+                await message.add_reaction(emojis.hourglass)
 
-            command_name = lower_msg.split(" ")[0].split(".")[1]
-            goutils.log2("INFO", "Command "+message.content+" re-launched by "+user.display_name+" in "+channel_name)
+                command_name = lower_msg.split(" ")[0].split(".")[1]
+                goutils.log2("INFO", "Command "+message.content+" re-launched by "+user.display_name+" in "+channel_name)
 
-            try:
-                await bot.process_commands(message)
-            except Exception as e:
-                goutils.log2("ERR", sys.exc_info()[0])
-                goutils.log2("ERR", e)
-                goutils.log2("ERR", traceback.format_exc())
-                if not bot_test_mode:
-                    await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.message_reaction_add:"+str(sys.exc_info()[0]))
+                try:
+                    await bot.process_commands(message)
+                except Exception as e:
+                    goutils.log2("ERR", sys.exc_info()[0])
+                    goutils.log2("ERR", e)
+                    goutils.log2("ERR", traceback.format_exc())
+                    if not bot_test_mode:
+                        await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.message_reaction_add:"+str(sys.exc_info()[0]))
 
-            #remove hourglass, add the cyclearrow reaction from bot (so it may be reclickable)
-            await message.remove_reaction(emojis.hourglass, bot.user)
-            await message.add_reaction(emojis.cyclearrows)
+                #remove hourglass, add the cyclearrow reaction from bot (so it may be reclickable)
+                await message.remove_reaction(emojis.hourglass, bot.user)
+                await message.add_reaction(emojis.cyclearrows)
 
-    # Manage the thumb up to messages sent to admins
-    if message.content in list_alerts_sent_to_admin \
-        and emoji == '\N{THUMBS UP SIGN}' \
-        and message.author == bot.user:
+        # Manage the thumb up to messages sent to admins
+        if message.content in list_alerts_sent_to_admin \
+            and emoji == '\N{THUMBS UP SIGN}' \
+            and message.author == bot.user:
 
-        list_alerts_sent_to_admin.remove(message.content)
-        await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
-        goutils.log2("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admin))
+            list_alerts_sent_to_admin.remove(message.content)
+            await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
+            goutils.log2("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admin))
 
-    #Manage reactions to PGS messages
-    for [rgt_user, list_msg_sizes] in list_tw_opponent_msgIDs:
-        list_msg = [x[0] for x in list_msg_sizes]
-        if message in list_msg:
-            if emoji in emojis.letters and rgt_user == user:
-                img1_url = list_msg[0].attachments[0].url
-                img1_size = list_msg_sizes[0][1][0]
+        #Manage reactions to PGS messages
+        for [rgt_user, list_msg_sizes] in list_tw_opponent_msgIDs:
+            list_msg = [x[0] for x in list_msg_sizes]
+            if message in list_msg:
+                if emoji in emojis.letters and rgt_user == user:
+                    img1_url = list_msg[0].attachments[0].url
+                    img1_size = list_msg_sizes[0][1][0]
 
-                img2_position = list_msg.index(message)
-                img2_url = message.attachments[0].url
-                img2_sizes = list_msg_sizes[img2_position][1]
+                    img2_position = list_msg.index(message)
+                    img2_url = message.attachments[0].url
+                    img2_sizes = list_msg_sizes[img2_position][1]
 
-                letter_position = emojis.letters.index(emoji)
-                if img1_url == img2_url:
-                    letter_position += 1
+                    letter_position = emojis.letters.index(emoji)
+                    if img1_url == img2_url:
+                        letter_position += 1
 
-                for msg in list_msg:
-                    await msg.delete()
-                list_tw_opponent_msgIDs.remove([rgt_user, list_msg_sizes])
+                    for msg in list_msg:
+                        await msg.delete()
+                    list_tw_opponent_msgIDs.remove([rgt_user, list_msg_sizes])
 
-                image = portraits.get_result_image_from_images(img1_url, img1_size,
-                                                               img2_url, img2_sizes,
-                                                               letter_position)
-                with BytesIO() as image_binary:
-                    image.save(image_binary, 'PNG')
-                    image_binary.seek(0)
-                    new_msg = await message.channel.send(content = "<@"+str(user.id)+"> Tu peux partager et commenter ton résultat",
-                           file=File(fp=image_binary, filename='image.png'))
+                    image = portraits.get_result_image_from_images(img1_url, img1_size,
+                                                                   img2_url, img2_sizes,
+                                                                   letter_position)
+                    with BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        new_msg = await message.channel.send(content = "<@"+str(user.id)+"> Tu peux partager et commenter ton résultat",
+                               file=File(fp=image_binary, filename='image.png'))
+
+    except Exception as e:
+        goutils.log2("ERR", traceback.format_exc())
 
 ##############################################################
 # Event: on_message
