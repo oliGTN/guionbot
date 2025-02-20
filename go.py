@@ -6289,6 +6289,9 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
     if zone_name==None:
         return 1, "Zone inconnue: "+zone_shortname, None
 
+    tb = guild["territoryBattleStatus"][0]
+    list_covert_zones = [x["zoneStatus"]["zoneId"] for x in tb["covertZoneStatus"] if x["zoneStatus"]["zoneState"]=="ZONEOPEN" if x["zoneStatus"]["zoneId"].startswith(zone_name)]
+
     dict_members = {}
     for m in guild["member"]:
         dict_members[m["playerId"]] = m["playerName"]
@@ -6328,7 +6331,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
     output_txt = "**Missions spéciales pour "+zone_shortname+"**"
     line_colors.append("black")
     if len(dict_coverts)>0:
-        for c in sorted(list(dict_coverts.keys())):
+        for c in sorted(list_covert_zones):
             #TODO make it configurable with tb_definition.json
             if c == "tb3_mixed_phase02_conflict01_covert01":
                 # Bracca > Zeffo
@@ -6368,21 +6371,36 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
             elif c == "tb3_mixed_phase03_conflict03_covert01":
                 # Reva
                 tagAlias = godata.get('tagAlias_dict.json')
-                list_ids = [x[0] for x in tagAlias["Inquisitorius"]]
+                list_ids = [x[0] for x in tagAlias["Inquisitorius"] if x[2]==1]
                 list_ids.remove('GRANDINQUISITOR')
                 query = "SELECT players.name FROM players "\
                         "JOIN ("\
-                        "    SELECT name, "\
+                        "    SELECT name "\
                         "    FROM players "\
                         "    JOIN roster ON (players.allyCode=roster.allyCode AND defId IN "+str(tuple(list_ids))+" "\
                         "                    AND relic_currentTier>=9) "\
                         "    WHERE guildId='"+guild['profile']['id']+"' "\
                         "    GROUP BY players.allyCode "\
                         "    HAVING COUNT(defId) >= 4 "\
-                        ") T ON T.name=players.name"\
+                        ") T ON T.name=players.name "\
                         "JOIN roster ON (players.allyCode=roster.allyCode AND defId ='GRANDINQUISITOR' "\
                         "                AND relic_currentTier>=9) "\
                         "WHERE guildId='"+guild['profile']['id']+"' "
+                goutils.log2("DBG", query)
+                ready_players = connect_mysql.get_column(query)
+                if ready_players == None:
+                    ready_players = []
+
+            elif c == "tb3_mixed_phase03_conflict01_bonus_covert01":
+                # Clones sur Mandalore
+                tagAlias = godata.get('tagAlias_dict.json')
+                list_ids = [x[0] for x in tagAlias["Soldat clone"] if x[2]==1]
+                query = "SELECT players.name FROM players "\
+                        "JOIN roster ON (players.allyCode=roster.allyCode AND defId IN "+str(tuple(list_ids))+" "\
+                        "                AND relic_currentTier>=9) "\
+                        "WHERE guildId='"+guild['profile']['id']+"' "\
+                        "GROUP BY players.allyCode "\
+                        "HAVING COUNT(defId) >= 5 "
                 goutils.log2("DBG", query)
                 ready_players = connect_mysql.get_column(query)
                 if ready_players == None:
@@ -6393,6 +6411,8 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
             output_txt += "\nMission "+c[-1]
             line_colors.append("black")
             success = 0
+            if not c in dict_coverts:
+                dict_coverts[c] = {}
             for p in sorted(list(dict_coverts[c].keys())):
                 output_txt += "\n  "+p+" (round "+dict_coverts[c][p]["round"]+")"
                 if "score" in dict_coverts[c][p] and dict_coverts[c][p]["score"]=="1":
