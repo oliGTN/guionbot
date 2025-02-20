@@ -6041,10 +6041,10 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
                     round_quality+=2
                 elif ratio_strikes>0.25:
                     round_quality+=1
-                elif ratio_strikes<-0.25:
-                    round_quality-=1
                 elif ratio_strikes<-0.5:
                     round_quality-=2
+                elif ratio_strikes<-0.25:
+                    round_quality-=1
 
             if prev_waves == 0:
                 percent_waves = " --"
@@ -6060,11 +6060,11 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
                     round_quality+=2
                 elif ratio_waves>0.25:
                     round_quality+=1
-                elif ratio_waves<-0.25:
-                    round_quality-=1
                 elif ratio_waves<-0.5:
                     round_quality-=2
-
+                elif ratio_waves<-0.25:
+                    round_quality-=1
+                    
             ratio_score = round(cur_score/dict_stats[p]["gp"], 1)
             short_score = round(cur_score/1000000, 1)
 
@@ -6082,10 +6082,10 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
             list_stats.append(line_stats)
             if round_quality>3:
                 list_colors.append("green")
-            elif round_quality<-1:
-                list_colors.append("orange")
             elif round_quality<-3:
                 list_colors.append("red")
+            elif round_quality<-1:
+                list_colors.append("orange")
             else:
                 list_colors.append("black")
 
