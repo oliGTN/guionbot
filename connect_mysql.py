@@ -1416,7 +1416,7 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
             query = "SELECT id FROM tb_zones " \
                     "WHERE tb_id="+tb_db_id+" "\
                     "AND zone_id='"+zone_fullname+"' "\
-                    "ORDER BY round "\
+                    "ORDER BY round DESC "\
                     "LIMIT 1 "
         goutils.log2("DBG", query)
         db_data = get_value(query)
