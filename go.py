@@ -6121,7 +6121,6 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
         return 1, err_txt
 
     guild = rpc_data[0]
-    current_events = rpc_data[2]
     if not "territoryBattleStatus" in guild:
         # TB has ended, get events from file
         max_endTime=0
@@ -6135,6 +6134,7 @@ async def print_tb_stats(guild_id, round=None, allyCode=None):
     else:
         tb_id = guild["territoryBattleStatus"][0]["instanceId"]
         tb_defId = guild["territoryBattleStatus"][0]["definitionId"]
+        current_events = rpc_data[2][tb_id]
 
     tb_type = tb_id.split(":")[0]
     current_startTime = int(tb_id.split(':')[1][1:])
