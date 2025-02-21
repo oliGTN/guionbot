@@ -1420,6 +1420,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_covert_zones = {}
+    dict_recon_zones = {}
     list_open_zones = []
     dict_zones = {}
     dict_phase = {"id": battle_id, 
@@ -1538,6 +1539,27 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 dict_covert_zones[covert_name] = {}
 
             dict_covert_zones[covert_name]["participation"] = done_coverts
+
+    for zone in battleStatus["reconZoneStatus"]:
+        if True: #zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
+            recon_name = zone["zoneStatus"]["zoneId"]
+            recon_shortname = recon_name.split("_")[-1]
+
+            zone_name = recon_name[:-len(recon_shortname)-1]
+            dict_zones[zone_name]["platoons"] = {}
+
+            for platoon in zone["platoon"]:
+                platoon_id = platoon["id"]
+                platoon_pos = int(platoon_id[-1])
+                if zone_name.startswith('tb3'):
+                    platoon_pos = 7-platoon_pos
+                platoon_filled = 0
+                for squad in platoon["squad"]:
+                    for unit in squad["unit"]:
+                        if "memberId" in unit and unit["memberId"]!="":
+                            platoon_filled += 1
+
+                dict_zones[zone_name]["platoons"][platoon_pos] = platoon_filled
 
     for event_id in dict_events:
         event=dict_events[event_id]
