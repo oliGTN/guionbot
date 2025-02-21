@@ -6080,12 +6080,14 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
                 list_colors.append("black")
 
             list_stats.append(line_stats)
-            if round_quality>3:
-                list_colors.append("green")
+            if cur_strikes==0:
+                list_colors.append("red")
             elif round_quality<-3:
                 list_colors.append("red")
             elif round_quality<-1:
                 list_colors.append("orange")
+            elif round_quality>3:
+                list_colors.append("green")
             else:
                 list_colors.append("black")
 
@@ -6290,7 +6292,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
         return 1, "Zone inconnue: "+zone_shortname, None
 
     tb = guild["territoryBattleStatus"][0]
-    list_covert_zones = [x["zoneStatus"]["zoneId"] for x in tb["covertZoneStatus"] if x["zoneStatus"]["zoneState"]=="ZONEOPEN" if x["zoneStatus"]["zoneId"].startswith(zone_name)]
+    list_covert_zones = [x["zoneStatus"]["zoneId"] for x in tb["covertZoneStatus"] if x["zoneStatus"]["zoneId"].startswith(zone_name)]
 
     dict_members = {}
     for m in guild["member"]:
@@ -6330,7 +6332,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
     line_colors = []
     output_txt = "**Missions spéciales pour "+zone_shortname+"**"
     line_colors.append("black")
-    if len(dict_coverts)>0:
+    if len(list_covert_zones)!=0:
         for c in sorted(list_covert_zones):
             #TODO make it configurable with tb_definition.json
             if c == "tb3_mixed_phase02_conflict01_covert01":
@@ -6427,6 +6429,9 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                     if not p in dict_coverts[c].keys():
                         output_txt += "\n  "+p+" > pas joué"
                         line_colors.append("gray")
+            else:
+                output_txt += "\n  *** les joueurs ready ne sont pas affichés pour ce combat"
+                line_colors.append("black")
             output_txt += "\n  >> "+str(success)+"/"+str(len(dict_coverts[c]))
             if ready_players != None:
                 output_txt += " et reste "+str(len(ready_players)-len(dict_coverts[c]))
@@ -6434,7 +6439,8 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
 
         ec, et, image = portraits.get_image_from_texttable(output_txt, line_colors)
     else:
-        output_txt += "\n  aucune de jouée"
+        output_txt += "\n aucune mission spéciale dans cette zone"
+        line_colors.append("black")
         image = None
 
     return 0, output_txt, image
