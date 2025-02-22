@@ -73,7 +73,7 @@ include 'gvariables.php';
 $query = "SELECT zone_name, zone_phase, score_step1, score_step2, score_step3,";
 $query .= " score, estimated_platoons, estimated_strikes, estimated_deployments,";
 $query .= " recon1_filled, recon2_filled, recon3_filled,";
-$query .= " recon4_filled, recon5_filled, recon6_filled";
+$query .= " recon4_filled, recon5_filled, recon6_filled, recon_cmdMsg";
 $query .= " FROM tb_zones";
 $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
 $query .= " ORDER BY CASE WHEN INSTR(zone_name, 'DS')>0 THEN 0 WHEN INSTR(zone_name, 'MS')>0 THEN 1 ELSE 2 END + CASE WHEN is_bonus THEN 0.5 ELSE 0 END";
@@ -341,6 +341,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                             <div class="row">
                             <div class="col s12 m4"><small>
                                 <b>Platoons</b>
+                                <p><?php echo $zone['recon_cmdMsg']; ?></p>
                                 <table>
                                     <tr>
                                         <td style="text-align:center;background-color:<?php echo ($zone['recon1_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon1_filled'];?></td>
