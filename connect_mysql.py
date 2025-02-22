@@ -1464,12 +1464,13 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         maxStrikeScore=0
         if "maxStrikeScore" in zone:
             maxStrikeScore=zone["maxStrikeScore"]
-        recon1_filled=zone["platoons"][1]
-        recon2_filled=zone["platoons"][2]
-        recon3_filled=zone["platoons"][3]
-        recon4_filled=zone["platoons"][4]
-        recon5_filled=zone["platoons"][5]
-        recon6_filled=zone["platoons"][6]
+        recon1_filled=zone["platoons"]["filling"][1]
+        recon2_filled=zone["platoons"]["filling"][2]
+        recon3_filled=zone["platoons"]["filling"][3]
+        recon4_filled=zone["platoons"]["filling"][4]
+        recon5_filled=zone["platoons"]["filling"][5]
+        recon6_filled=zone["platoons"]["filling"][6]
+        recon_cmdMsg=zone["platoons"]["cmdMsg"]
 
         query = "UPDATE tb_zones "\
                 "SET score="+str(score)+",  "\
@@ -1481,7 +1482,8 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
                 "    recon3_filled="+str(recon3_filled)+", "\
                 "    recon4_filled="+str(recon4_filled)+", "\
                 "    recon5_filled="+str(recon5_filled)+", "\
-                "    recon6_filled="+str(recon6_filled)+" "\
+                "    recon6_filled="+str(recon6_filled)+", "\
+                "    recon_cmdMsg='"+recon_cmdMsg+"' "\
                 "WHERE id="+zone_db_id+" "
         goutils.log2("DBG", query)
         simple_execute(query)

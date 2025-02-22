@@ -1544,9 +1544,13 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         if True: #zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
             recon_name = zone["zoneStatus"]["zoneId"]
             recon_shortname = recon_name.split("_")[-1]
+            if "commandMessage" in zone["zoneStatus"]:
+                cmdMsg = zone["zoneStatus"]["commandMessage"]
+            else:
+                cmdMsg = ""
 
             zone_name = recon_name[:-len(recon_shortname)-1]
-            dict_zones[zone_name]["platoons"] = {}
+            dict_zones[zone_name]["platoons"] = {"cmdMsg": cmdMsg, "filling": {}}
 
             for platoon in zone["platoon"]:
                 platoon_id = platoon["id"]
@@ -1559,7 +1563,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         if "memberId" in unit and unit["memberId"]!="":
                             platoon_filled += 1
 
-                dict_zones[zone_name]["platoons"][platoon_pos] = platoon_filled
+                dict_zones[zone_name]["platoons"]["filling"][platoon_pos] = platoon_filled
 
     for event_id in dict_events:
         event=dict_events[event_id]
