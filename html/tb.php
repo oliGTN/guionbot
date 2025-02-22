@@ -71,8 +71,12 @@ include 'gvariables.php';
 // --------------- GET ZONE INFO FOR THE TB -----------
 // Prepare the SQL query
 $query = "SELECT zone_name, zone_phase, score_step1, score_step2, score_step3,";
-$query .= " score, estimated_platoons, estimated_strikes, estimated_deployments FROM tb_zones";
+$query .= " score, estimated_platoons, estimated_strikes, estimated_deployments,";
+$query .= " recon1_filled, recon2_filled, recon3_filled,";
+$query .= " recon4_filled, recon5_filled, recon6_filled";
+$query .= " FROM tb_zones";
 $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
+$query .= " ORDER BY CASE WHEN INSTR(zone_name, 'DS')>0 THEN 0 WHEN INSTR(zone_name, 'MS')>0 THEN 1 ELSE 2 END + CASE WHEN is_bonus THEN 0.5 ELSE 0 END";
 //error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the zone information
@@ -334,6 +338,25 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                                 <text x="100%" y="40" text-anchor="end" font-size="10"><?php echo number_format($score_step3, 0, ".", " ");?></text>
                                 <text x="<?php echo $x_score;?>%" y="60" text-anchor="<?php echo ($score<$score_step3/2?"":"end");?>" font-size="12">&nbsp;<?php echo number_format($score, 0, ".", " ");?>&nbsp;</text>
                             </svg>
+                            <div class="row">
+                            <div class="col s12 m4"><small>
+                                <b>Platoons</b>
+                                <table>
+                                    <tr>
+                                        <td style="text-align:center;background-color:<?php echo ($zone['recon1_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon1_filled'];?></td>
+                                        <td style="text-align:center;background-color:<?php echo ($zone['recon4_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon4_filled'];?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center;background-color:<?php echo ($zone['recon2_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon2_filled'];?></td>
+                                        <td style="text-align:center;background-color:<?php echo ($zone['recon5_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon5_filled'];?></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="text-align:center;background-color:<?php echo ($zone['recon3_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon3_filled'];?></td>
+                                        <td style="text-align:center;background-color:<?php echo ($zone['recon6_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon6_filled'];?></td>
+                                    </tr>
+                                </table></small>
+                            </div>
+                            </div>
                         </div>
                     </div>
                 </div>
