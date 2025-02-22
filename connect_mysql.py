@@ -1204,10 +1204,14 @@ def compute_statq_avg(force_all):
 ########################################
 def get_warbot_info(server_id, channel_id):
     goutils.log2("DBG", "looking for bot_infos from server ID...")
-    query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
-    query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
-    query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
-    query+= "WHERE server_id="+str(server_id)
+    query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
+            "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
+            "guilds.name, gfile_name, echostation_id "\
+            "FROM guild_bots "\
+            "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
+            "JOIN players ON players.allyCode=guild_bots.allyCode "\
+            "JOIN guilds ON guilds.id=guild_bots.guild_id "\
+            "WHERE server_id="+str(server_id)
     goutils.log2("DBG", query)
     db_data = get_line(query)
 
@@ -1215,22 +1219,29 @@ def get_warbot_info(server_id, channel_id):
         if channel_id != None:
             #no warbot found from server, try it from the channel as test channel
             goutils.log2("DBG", "looking for bot_infos from guild channel ID...")
-            query = "SELECT guildId, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
-            query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
-            query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
-            query+= "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bot_infos.guild_id \n"
-            query+= "WHERE channel_id="+str(channel_id)
+            query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
+                    "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
+                    "guilds.name, gfile_name, echostation_id "\
+                    "FROM guild_bots "\
+                    "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
+                    "JOIN players ON players.allyCode=guild_bots.allyCode "\
+                    "JOIN guilds ON guilds.id=guild_bots.guild_id "\
+                    "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bots.guild_id "\
+                    "WHERE channel_id="+str(channel_id)
             goutils.log2("DBG", query)
             db_data = get_line(query)
 
             if db_data == None:
                 #no warbot found as test channel, try it from connected user
                 goutils.log2("DBG", "looking for bot_infos from user channel ID...")
-                query = "SELECT guildId, players.allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, gfile_name, echostation_id FROM guild_bot_infos \n"
-                query+= "JOIN players ON players.guildId=guild_bot_infos.guild_id \n"
-                query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
-                query+= "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode \n"
-                query+= "WHERE channel_id="+str(channel_id)
+                query = "SELECT guildId, players.allyCode, players.name, "\
+                        "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
+                        "guilds.name, gfile_name, echostation_id "\
+                        "FROM guild_bot_infos "\
+                        "JOIN players ON players.guildId=guild_bot_infos.guild_id "\
+                        "JOIN guilds ON guilds.id=guild_bot_infos.guild_id "\
+                        "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode "\
+                        "WHERE channel_id="+str(channel_id)
                 goutils.log2("DBG", query)
                 db_data = get_line(query)
 
@@ -1250,10 +1261,14 @@ def get_warbot_info(server_id, channel_id):
                    "echostation_id": db_data[8]}
 
 def get_warbot_info_from_guild(guild_id):
-    query = "SELECT guild_id, allyCode, players.name, tbChanRead_id, tbChanOut_id, tbRoleOut, guilds.name, server_id, gfile_name FROM guild_bot_infos \n"
-    query+= "JOIN players ON players.allyCode=guild_bot_infos.bot_allyCode \n"
-    query+= "JOIN guilds ON guilds.id=guild_bot_infos.guild_id \n"
-    query+= "WHERE guild_id='"+guild_id+"'"
+    query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
+            "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
+            "guilds.name, gfile_name, echostation_id "\
+            "FROM guild_bots "\
+            "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
+            "JOIN players ON players.allyCode=guild_bots.allyCode "\
+            "JOIN guilds ON guilds.id=guild_bots.guild_id "\
+            "WHERE guild_bots.guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
     db_data = get_line(query)
 

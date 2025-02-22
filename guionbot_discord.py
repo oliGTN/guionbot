@@ -99,11 +99,12 @@ async def bot_loop_60secs(bot):
         #
         # update when the time since last update is greater than the period and the time is rounded
         # (15 min bots are updated only at :00, :15, :30...)
-        query = "SELECT guild_id FROM guild_bot_infos "
-        query+= "WHERE timestampdiff(MINUTE, bot_LatestUpdate, CURRENT_TIMESTAMP)>=(bot_period_min-1) "
-        query+= "AND bot_locked_until<CURRENT_TIMESTAMP "
-        query+= "AND mod(minute(CURRENT_TIMESTAMP),bot_period_min)=0 "
-        query+= "AND NOT isnull(bot_allyCode) "
+        query = "SELECT guild_id "\
+                "FROM guild_bots "\
+                "WHERE timestampdiff(MINUTE, latest_update, CURRENT_TIMESTAMP)>=(period-1) "\
+                "AND isnull(locked_since) "\
+                "AND mod(minute(CURRENT_TIMESTAMP), period)=0 "\
+                "AND NOT isnull(allyCode) "
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_column(query)
         goutils.log2("DBG", "db_data: "+str(db_data))
@@ -1044,9 +1045,9 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                                                         manage_tw_end=True)
 
     #Get the output channel
-    query = "SELECT twChanOut_id FROM guild_bot_infos "
-    query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
-    query+= "WHERE guild_id='"+guild_id+"'"
+    query = "SELECT twChanOut_id "\
+            "FROM guild_bot_infos "\
+            "WHERE guild_id='"+guild_id+"'"
     goutils.log2('DBG', query)
     channel_id = connect_mysql.get_value(query)
 
@@ -1256,7 +1257,8 @@ async def update_rpc_data(guild_id, allyCode=None):
                 tb_channel_end = guild_bots[guild_id]["tb_channel_end"]
             else:
                 # no warbot, get infos from guild linked to player
-                query = "SELECT guildName, tbChanEnd_id FROM guild_bot_infos " \
+                query = "SELECT guildName, tbChanEnd_id "\
+                        "FROM guild_bot_infos " \
                         "JOIN players on players.guildId = guild_bot_infos.guild_id " \
                         "WHERE allyCode = "+str(allyCode)
                 goutils.log2("DBG", query)

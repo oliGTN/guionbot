@@ -46,11 +46,14 @@ async def release_sem(id):
     #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
-    query = "SELECT guild_id, bot_allyCode, bot_locked_until, priority_cache, " \
-            "twChanOut_id, tbChanOut_id, tbChanEnd_id, name " \
-            "FROM guild_bot_infos " \
-            "JOIN guilds ON guilds.id=guild_bot_infos.guild_id " \
-            "WHERE bot_allyCode != '' "
+    query = "SELECT guild_bots.guild_id, guild_bots.allyCode, "\
+            "locked_since, guild_bots.priority_cache, "\
+            "twChanOut_id, tbChanOut_id, tbChanEnd_id, " \
+            "guilds.name "\
+            "FROM guild_bots "\
+            "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
+            "JOIN guilds ON guilds.id=guild_bots.guild_id "\
+            "WHERE NOT isnull(guild_bots.allyCode) "
     #goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
 
@@ -58,7 +61,7 @@ def get_dict_bot_accounts():
     if db_data != None:
         for line in db_data:
             ret_dict[line[0]] = {"allyCode": str(line[1]), 
-                                 "LockedUntil": line[2], 
+                                 "locked_since": line[2], 
                                  "priority_cache":line[3],
                                  "tw_channel_out":line[4],
                                  "tb_channel_out":line[5],
@@ -67,26 +70,27 @@ def get_dict_bot_accounts():
 
     return ret_dict
 
-async def lock_bot_account_until(guild_id, until_seconds):
+async def lock_bot_account(guild_id):
     dict_bot_accounts = get_dict_bot_accounts()
     if not guild_id in dict_bot_accounts:
-        return 1, "Ce serveur discord n'a pas de warbot", None
+        return 1, "Ce serveur discord n'a pas de warbot"
 
-    locked_until_txt = datetime.datetime.fromtimestamp(int(time.time())+until_seconds).strftime("%Y-%m-%d %H:%M:%S")
-    query = "UPDATE guild_bot_infos SET bot_locked_until='"+locked_until_txt+"' WHERE guild_id='"+guild_id+"'"
+    locked_since_txt = datetime.datetime.fromtimestamp(int(time.time())).strftime("%Y-%m-%d %H:%M:%S")
+    query = "UPDATE guild_bots SET locked_since='"+locked_since_txt+"' WHERE guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
     connect_mysql.simple_execute(query)
 
     return 0, ""
 
-async def lock_bot_account(guild_id):
-    return await lock_bot_account_until(guild_id, 3600)
-
 async def unlock_bot_account(guild_id):
-    return await lock_bot_account_until(guild_id, 0)
+    query = "UPDATE guild_bots SET locked_since=NULL WHERE guild_id='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
+    return 0, ""
 
 def islocked_bot_account(bot_allyCode):
-    query = "SELECT (bot_locked_until>CURRENT_TIMESTAMP) FROM guild_bot_infos WHERE bot_allyCode="+str(bot_allyCode)
+    query = "SELECT NOT isnull(locked_since) FROM guild_bots WHERE allyCode="+str(bot_allyCode)
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_value(query)
     if db_data == None:
@@ -95,7 +99,10 @@ def islocked_bot_account(bot_allyCode):
         return db_data
 
 def ispriority_cache_bot_account(bot_allyCode):
-    query = "SELECT priority_cache FROM guild_bot_infos WHERE bot_allyCode="+str(bot_allyCode)
+    query = "SELECT guild_bots.priority_cache "\
+            "FROM guild_bots "\
+            "JOIN guild_bot_infos ON guild_bot_infos.guild_id=guild_bots.guild_id "\
+            "WHERE allyCode="+str(bot_allyCode)
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_value(query)
     if db_data == None:
@@ -596,7 +603,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
 
         if not use_cache_data:
             #log update time in DB - rounded to fix times (eg: always 00:05, 00:10 for 5 min period)
-            query = "UPDATE guild_bot_infos SET bot_latestUpdate=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
+            query = "UPDATE guild_bots SET latest_update=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
             query+= "WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
@@ -708,7 +715,7 @@ async def get_player_initialdata(ac, use_cache_data=False):
 
 async def get_bot_player_data(guild_id, use_cache_data):
     # Get alllyCode from guild ID
-    bot_allyCode = connect_mysql.get_value("SELECT bot_allyCode from guild_bot_infos WHERE guild_id='"+guild_id+"'")
+    bot_allyCode = connect_mysql.get_value("SELECT allyCode from guild_bots WHERE guild_id='"+guild_id+"'")
     if bot_allyCode == None:
         return 1, "Ce serveur discord n'a pas de warbot", None
     bot_allyCode = str(bot_allyCode)
@@ -905,8 +912,10 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
 async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=None, dict_guild=None, dict_events=None):
 
-    query = "SELECT bot_allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
-            "FROM guild_bot_infos WHERE guild_id='"+guild_id+"'"
+    query = "SELECT allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
+            "FROM guild_bots "\
+            "JOIN guild_bot_infos ON guild_bot_infos.guild_id=guild_bots.guild_id "\
+            "WHERE guild_bots.guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
     line = connect_mysql.get_line(query)
     if line == None:

@@ -2518,21 +2518,6 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     dict_unitsList = godata.get("unitsList_dict.json")
 
-    #Check if the guild can use RPC
-    if not guild_id in connect_rpc.get_dict_bot_accounts():
-        return []
-
-    query = "SELECT name, twChanOut_id FROM guild_bot_infos "
-    query+= "JOIN guilds on guilds.id = guild_bot_infos.guild_id "
-    query+= "WHERE guild_id='"+guild_id+"'"
-    goutils.log2('DBG', query)
-    db_data = connect_mysql.get_line(query)
-
-    guildName = db_data[0]
-    twChannel_id = db_data[1]
-    if twChannel_id == 0:
-        return 1, "ERR: commande inutilisable sur ce serveur\n", None
-
     rpc_data = await connect_rpc.get_tw_status(guild_id, 0)
     tw_id = rpc_data["tw_id"]
     if tw_id == None:
