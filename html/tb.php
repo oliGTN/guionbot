@@ -94,12 +94,21 @@ try {
 // --------------- GET CURRENT SCORE FOR THE TB -----------
 // Prepare the SQL query
 $query = "SELECT sum(case";
-$query .= " WHEN score>=score_step3 then CASE WHEN SUBSTRING(zone_name, -1, 1)='b' THEN 1 ELSE 3 END";
-$query .= " WHEN score>=score_step2 then CASE WHEN SUBSTRING(zone_name, -1, 1)='b' THEN 0 ELSE 2 END";
-$query .= " WHEN score>=score_step1 then CASE WHEN SUBSTRING(zone_name, -1, 1)='b' THEN 0 ELSE 1 END";
+$query .= " WHEN score>=score_step3 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 1 ELSE 3 END";
+$query .= " WHEN score>=score_step2 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 2 END";
+$query .= " WHEN score>=score_step1 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 1 END";
 $query .= " ELSE 0 END) AS stars";
 $query .= " FROM tb_zones";
-$query .= " WHERE tb_id=".$tb_id." AND round<=".$round;
+
+$query .= " JOIN (";
+$query .= "   SELECT tb_zones.tb_id AS tb_id, zone_name, max(round) AS max_round";
+$query .= "   FROM tb_zones";
+$query .= "   JOIN tb_history ON tb_zones.tb_id=tb_history.id";
+$query .= "   WHERE tb_zones.tb_id=".$tb_id;
+$query .= "   GROUP BY tb_id, zone_name";
+$query .= " ) T ON T.tb_id=tb_zones.tb_id AND T.zone_name = tb_zones.zone_name AND T.max_round = tb_zones.round";
+
+$query .= " WHERE tb_zones.tb_id=".$tb_id." AND round<=".$round;
 error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the zone information
