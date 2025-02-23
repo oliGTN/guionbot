@@ -139,7 +139,7 @@ async def bot_loop_60secs(bot):
                 "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
                 "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
                 "AND NOT isnull(allyCode) "
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         db_data = connect_mysql.get_column(query)
         goutils.log2("DBG", "db_data: "+str(db_data))
         if not db_data==None:
@@ -454,6 +454,7 @@ async def send_alert_to_bot_owner(guild_id, locked_since=None):
         message = "Le warbot de "+guild_name+" a été arrêté car tu as joué. Tape go.bot.enable pour le relancer"
     else:
         message = "Le warbot de "+guild_name+" a été arrêté à "+locked_since+". Tape go.bot.enable pour le relancer"
+    goutils.og2("INFO", message)
     await channel.send(message)
 
 ##############################################################
