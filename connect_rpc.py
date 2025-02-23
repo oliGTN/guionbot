@@ -116,7 +116,7 @@ def ispriority_cache_bot_account(bot_allyCode):
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
 #event_type: []/None, ["TB"], ["TW", CHAT"], ...
 async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
-                             dict_guild=None):
+                             dict_guild=None, dict_TBmapstats=None):
     calling_func = inspect.stack()[1][3]
     goutils.log2("DBG", "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id)+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
@@ -126,12 +126,13 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
         if ec!=0:
             return ec, et, None
 
-    if "territoryBattleStatus" in dict_guild:
-        ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update, allyCode=allyCode)
-        if ec!=0:
-            return ec, et, None
-    else:
-        dict_TBmapstats={}
+    if dict_TBmapstats==None:
+        if "territoryBattleStatus" in dict_guild:
+            ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update, allyCode=allyCode)
+            if ec!=0:
+                return ec, et, None
+        else:
+            dict_TBmapstats={}
 
     if event_types!=None and event_types!=[]:
         ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update, allyCode=allyCode)
@@ -319,8 +320,9 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
     guild_id = dict_guild["profile"]["id"]
-    goutils.log2("DBG", "START ["+calling_func+"]get_event_data("+guild_id+", "+str(event_types) \
-                 +", "+str(force_update)+", "+str(allyCode)+")")
+    goutils.log2("DBG", "START ["+calling_func+"]get_event_data("+guild_id+", "\
+                        +str(event_types)+", " \
+                        +str(force_update)+", "+str(allyCode)+")")
 
     guild_id = dict_guild["profile"]["id"]
 
@@ -1322,18 +1324,27 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         compute_estimated_platoons=False,
                         targets_platoons=None, allyCode=None,
-                        my_tb_round=None, my_list_open_zones=None):
+                        my_tb_round=None, my_list_open_zones=None,
+                        dict_guild=None, dict_TBmapstats=None):
     global prev_dict_guild
     global prev_mapstats
 
     dict_tb = godata.get("tb_definition.json")
 
-    ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], force_update, allyCode=allyCode)
+    ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], 
+                                  force_update, allyCode=allyCode,
+                                  dict_guild=dict_guild, 
+                                  dict_TBmapstats=dict_TBmapstats)
     if ec!=0:
         return 1, et, None
 
-    dict_guild=rpc_data[0]
-    mapstats=rpc_data[1]
+    if dict_guild==None:
+        dict_guild=rpc_data[0]
+    if dict_TBmapstats==None:
+        mapstats=rpc_data[1]
+    else:
+        mapstats=dict_TBmapstats
+
     dict_all_events=rpc_data[2]
     guildName = dict_guild["profile"]["name"]
     guildId = dict_guild["profile"]["id"]
@@ -1973,6 +1984,21 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     for zone_name in list_open_zones:
         current_score = dict_zones[zone_name]["score"]
 
+        #ALTERNATE solution to get score whe TB is over
+        # not ready  as sometimes good, sometimes wrong
+        #zone_summary = [ms for ms in mapstats if ms["mapStatId"]=="summary_zone_"+zone_name][0]
+        #print(zone_summary)
+        #if "playerStat" in zone_summary:
+        #    l = zone_summary["playerStat"]
+        #    #print(l)
+        #    k = [int(x["score"]) for x in l]
+        #    if "phase04_conflict01" in zone_name:
+        #        print(k)
+        #    current_score = sum(k)
+        #else:
+        #    current_score = 0
+        #print(zone_name, current_score)
+
         estimated_strike_score = 0
         estimated_strike_fights = 0
         max_strike_score = 0
@@ -2001,9 +2027,15 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_zones[zone_name]["deployment"] = 0
 
         star_for_score=0
-        for star_score in dict_tb[zone_name]["scores"]:
-            if current_score >= star_score:
+        if zone_name.endswith("bonus"):
+            # bonus zones have only 1 star, for the 3rd step
+            if current_score >= dict_tb[zone_name]["scores"][2]:
                 star_for_score += 1
+        else:
+            for star_score in dict_tb[zone_name]["scores"]:
+                if current_score >= star_score:
+                    star_for_score += 1
+
         dict_zones[zone_name]["stars"] = star_for_score
 
     # 3- fill with deployment points
