@@ -155,7 +155,7 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
 
         # retry Auth is allowed if the account is a real bot account,
         # or if the played account if trying to re-auth after a pause
-        retryAuth = not dict_bot_accounts[guild_id]["lock_when_played"] | dict_bot_accounts[guild_id]["force_auth"]
+        retryAuth = (not dict_bot_accounts[guild_id]["lock_when_played"]) | dict_bot_accounts[guild_id]["force_auth"]
 
         query = "UPDATE guild_bots SET force_auth=0 WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)

@@ -132,6 +132,20 @@ async def bot_loop_60secs(bot):
                     if not bot_test_mode:
                         await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
 
+        ########################
+        # look for inactive bots
+        query = "SELECT guild_id, locked_since "\
+                "FROM guild_bots "\
+                "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=60 "\
+                "AND mod(minute(CURRENT_TIMESTAMP), 60)=0 "\
+                "AND NOT isnull(allyCode) "
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+        goutils.log2("DBG", "db_data: "+str(db_data))
+        if not db_data==None:
+            for guild_id in db_data:
+                await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
+
         goutils.log2("DBG", "END loop")
 
 ##############################################################
@@ -423,7 +437,7 @@ def compute_territory_progress(dict_platoons, territory):
 #          to warn him that the warbot has stopped
 # Output: None
 ##############################################################
-async def send_alert_to_bot_owner(guild_id):
+async def send_alert_to_bot_owner(guild_id, locked_since=None):
     ec, et, bot_infos = connect_mysql.get_warbot_info_from_guild(guild_id)
     if ec != 0:
         return
@@ -436,7 +450,10 @@ async def send_alert_to_bot_owner(guild_id):
     member = bot.get_user(int(discord_id))
     channel = await member.create_dm()
 
-    message = "Le warbot de "+guild_name+" a été arrêté car tu as joué. Tape go.bot.enable pour le relancer"
+    if locked_since==None:
+        message = "Le warbot de "+guild_name+" a été arrêté car tu as joué. Tape go.bot.enable pour le relancer"
+    else:
+        message = "Le warbot de "+guild_name+" a été arrêté à "+locked_since+". Tape go.bot.enable pour le relancer"
     await channel.send(message)
 
 ##############################################################
