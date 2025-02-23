@@ -136,8 +136,8 @@ async def bot_loop_60secs(bot):
         # look for inactive bots
         query = "SELECT guild_id, locked_since "\
                 "FROM guild_bots "\
-                "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=60 "\
-                "AND mod(minute(CURRENT_TIMESTAMP), 60)=0 "\
+                "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
+                "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
                 "AND NOT isnull(allyCode) "
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_column(query)
