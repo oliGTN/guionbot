@@ -94,6 +94,22 @@ async def bot_loop_60secs(bot):
         goutils.log2("DBG", "START loop")
         t_start = time.time()
 
+        ########################
+        # look for inactive bots
+        # this is done before RPC update because RPC updates takes more than 
+        # one minute and then the mod(now, period) is never 0
+        query = "SELECT guild_id, locked_since "\
+                "FROM guild_bots "\
+                "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
+                "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
+                "AND NOT isnull(allyCode) "
+        goutils.log2("INFO", query)
+        db_data = connect_mysql.get_column(query)
+        goutils.log2("DBG", "db_data: "+str(db_data))
+        if not db_data==None:
+            for guild_id in db_data:
+                await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
+
         #######################################################################
         #UPDATE RPC data
         #
@@ -131,20 +147,6 @@ async def bot_loop_60secs(bot):
                     goutils.log2("ERR", traceback.format_exc())
                     if not bot_test_mode:
                         await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
-
-        ########################
-        # look for inactive bots
-        query = "SELECT guild_id, locked_since "\
-                "FROM guild_bots "\
-                "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
-                "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
-                "AND NOT isnull(allyCode) "
-        goutils.log2("INFO", query)
-        db_data = connect_mysql.get_column(query)
-        goutils.log2("DBG", "db_data: "+str(db_data))
-        if not db_data==None:
-            for guild_id in db_data:
-                await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
 
         goutils.log2("DBG", "END loop")
 
