@@ -95,7 +95,7 @@ def load_config_raids(guild_id, force_load):
         gfile_name = get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
-        query = "SELECT name FROM guilds WHERE guild_id='"+guild_id+"'"
+        query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
         guild_name = connect_mysql.get_value(query)
 
@@ -164,7 +164,7 @@ def load_config_teams(guild_id, force_load):
         gfile_name = get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
-        query = "SELECT name FROM guilds WHERE guild_id='"+guild_id+"'"
+        query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
         guild_name = connect_mysql.get_value(query)
 
@@ -468,7 +468,7 @@ def get_tb_triggers(guild_id, force_load):
         gfile_name = get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
-        query = "SELECT name FROM guilds WHERE guild_id='"+guild_id+"'"
+        query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
         guild_name = connect_mysql.get_value(query)
 
@@ -668,7 +668,7 @@ def load_tb_teams(guild_id, force_load):
         gfile_name = get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
-        query = "SELECT name FROM guilds WHERE guild_id='"+guild_id+"'"
+        query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
         guild_name = connect_mysql.get_value(query)
 
@@ -724,7 +724,7 @@ def load_tw_counters(guild_id, force_load):
         gfile_name = get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
-        query = "SELECT name FROM guilds WHERE guild_id='"+guild_id+"'"
+        query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
         guild_name = connect_mysql.get_value(query)
 

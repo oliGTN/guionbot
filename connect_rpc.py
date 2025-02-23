@@ -47,7 +47,7 @@ async def release_sem(id):
 
 def get_dict_bot_accounts():
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, "\
-            "locked_since, guild_bots.priority_cache, "\
+            "locked_since, guild_bots.priority_cache, lock_when_played, "\
             "twChanOut_id, tbChanOut_id, tbChanEnd_id, " \
             "guilds.name "\
             "FROM guild_bots "\
@@ -63,10 +63,11 @@ def get_dict_bot_accounts():
             ret_dict[line[0]] = {"allyCode": str(line[1]), 
                                  "locked_since": line[2], 
                                  "priority_cache":line[3],
-                                 "tw_channel_out":line[4],
-                                 "tb_channel_out":line[5],
-                                 "tb_channel_end":line[6],
-                                 "guildName":line[7]}
+                                 "lock_when_played":line[4],
+                                 "tw_channel_out":line[5],
+                                 "tb_channel_out":line[6],
+                                 "tb_channel_end":line[7],
+                                 "guildName":line[8]}
 
     return ret_dict
 
@@ -150,8 +151,10 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
             return 1, "Ce serveur discord n'a pas de warbot", None
 
         bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
+        retryAuth = not dict_bot_accounts[guild_id]["lock_when_played"]
     else:
         bot_allyCode = allyCode
+        retryAuth = 1
     goutils.log2("DBG", "connected account for "+str(guild_id)+" is "+str(bot_allyCode))
 
     #locking bot has priority. Cannot be overriden
@@ -166,7 +169,7 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
         else: #force_update==0
             use_cache_data = ispriority_cache_bot_account(bot_allyCode)
 
-    return await get_guild_data_from_ac(bot_allyCode, use_cache_data)
+    return await get_guild_data_from_ac(bot_allyCode, use_cache_data, retryAuth=retryAuth)
 
 ##############################################
 # AUTH functions
@@ -199,10 +202,11 @@ async def send_ea_otc(txt_allyCode, otc):
 
 #########################################
 # Get full guild data, using the allyCode
-async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
+async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
     # RPC REQUEST for guild
     url = "http://localhost:8000/guild"
-    params = {"allyCode": txt_allyCode, "use_cache_data":use_cache_data}
+    params = {"allyCode": txt_allyCode, "use_cache_data":use_cache_data,
+              "retryAuth": retryAuth}
     req_data = json.dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -215,6 +219,8 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data):
                         guild_json = cache_json["data"]
                     else:
                         guild_json = await(resp.json())
+                elif resp.status==401:
+                    return 401, "authentication failed", None
                 else:
                     return 1, "Cannot get guild data from RPC", None
 
@@ -600,13 +606,6 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             await asyncio.sleep(0)
 
         goutils.log2("DBG", "end loop dict_new_events")
-
-        if not use_cache_data:
-            #log update time in DB - rounded to fix times (eg: always 00:05, 00:10 for 5 min period)
-            query = "UPDATE guild_bots SET latest_update=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/bot_period_min,0)*60*bot_period_min) "
-            query+= "WHERE guild_id='"+guild_id+"'"
-        goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
 
     else:
         dict_events = {}
@@ -1606,7 +1605,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                     dict_strike_zones[strike_name]["eventStrikes"] += 1
                     dict_strike_zones[strike_name]["eventStrikeScore"] += score
 
-                strike_shortname="_".join(strike_name.split("_")[-2:])
+                if "bonus" in strike_name:
+                    strike_shortname="_".join(strike_name.split("_")[-3:])
+                else:
+                    strike_shortname="_".join(strike_name.split("_")[-2:])
 
                 done_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][2]["paramValue"][0]
                 total_waves = event_data["activity"][zoneData_key]["activityLogMessage"]["param"][3]["paramValue"][0]
@@ -1777,7 +1779,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
         # Compute stats for the zone
         for strike in dict_tb[zone]["strikes"]:
-            strike_shortname = "conflict0"+zone[-1]+"_"+strike
+            if zone.endswith("bonus"):
+                strike_shortname = "conflict0"+zone[-7]+"_bonus_"+strike
+            else:
+                strike_shortname = "conflict0"+zone[-1]+"_"+strike
             strike_name = zone+"_"+strike
 
             # First loop to get the amount of tries in this fight
@@ -1799,6 +1804,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                             tryCount += 1
                         elif dict_tb[zone]["type"]=="mix"   and playerName in finished_players["mix"]:
                             tryCount += 1
+            goutils.log2("DBG", "tryCount="+str( tryCount))
 
             #Previous idea: actual participation
             # not counting fights with 0 wave

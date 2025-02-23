@@ -114,8 +114,18 @@ async def bot_loop_60secs(bot):
                 #update RPC data before using different commands (tb alerts, tb_platoons)
                 try:
                     ec, et = await update_rpc_data(guild_id)
-                    if ec!=0 and not bot_test_mode:
+                    if ec==401:
+                        await connect_rpc.lock_bot_account(guild_id)
+                        await send_alert_to_bot_owner(guild_id)
+                    elif ec!=0 and not bot_test_mode:
                         await send_alert_to_admins(None, "["+guild_id+"] "+et)
+
+                    #log update time in DB - rounded to fix times
+                    # (eg: always 00:05, 00:10 for 5 min period)
+                    query = "UPDATE guild_bots SET latest_update=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/period,0)*60*period) "
+                    query+= "WHERE guild_id='"+guild_id+"'"
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
 
                 except Exception as e:
                     goutils.log2("ERR", traceback.format_exc())
@@ -405,6 +415,29 @@ def compute_territory_progress(dict_platoons, territory):
         if platoon_progress == 1:
             count += 1
     return count
+
+##############################################################
+# Function: send_alert_to_bot_owner
+# Parameters: guild_id - le id of the guild associated to the warbot
+# Purpose: send a message to the owner of the bot account
+#          to warn him that the warbot has stopped
+# Output: None
+##############################################################
+async def send_alert_to_bot_owner(guild_id):
+    ec, et, bot_infos = connect_mysql.get_warbot_info_from_guild(guild_id)
+    if ec != 0:
+        return
+
+    discord_id = bot_infos["discord_id"]
+    guild_name = bot_infos["guild_name"]
+    if discord_id == None:
+        return
+
+    member = bot.get_user(int(discord_id))
+    channel = await member.create_dm()
+
+    message = "Le warbot de "+guild_name+" a été arrêté car tu as joué. Tape go.bot.enable pour le relancer"
+    await channel.send(message)
 
 ##############################################################
 # Function: send_alert_to_admins
@@ -3299,12 +3332,29 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
         #Ensure command is launched from a server, not a DM
         if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            query = "SELECT guildId FROM player_discord "\
+                    "JOIN guild_bots ON guild_bots.allyCode=player_discord.allyCode "\
+                    "JOIN players ON players.allyCode=player_discord.allyCode "\
+                    "WHERE discord_id="+str(ctx.author.id)
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_column(query)
+            if db_data == None:
+                await ctx.send('ERR: vous ne contrôlez pas de warbot')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if len(db_data)>1:
+                await ctx.send("ERR: vous contrôlez plus d'un warbot")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = db_data[0]
+
+            ec, et, bot_infos = connect_mysql.get_warbot_info_from_guild(guild_id)
+
+        else:
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
