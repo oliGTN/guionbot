@@ -20,7 +20,31 @@ if (!isset($_GET['id'])) {
 $tb_id = $_GET['id'];
 
 if (!isset($_GET['round'])) {
-    $round = 1;
+    // Get the max round
+    // Prepare the SQL query
+    $query = "SELECT current_round";
+    $query .= " FROM tb_history";
+    $query .= " WHERE tb_history.id=".$tb_id;
+    //error_log("query = ".$query);
+    try {
+        // Prepare the SQL query
+        $stmt = $conn_guionbot->prepare($query);
+        $stmt->execute();
+
+        // Fetch all the results as an associative array
+        $rounds = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if (count($rounds)==0) {
+            error_log("Unknown TB id: redirect to index.php");
+            header("Location: index.php");
+            exit();
+        }
+        $round = $rounds[0]['current_round'];
+
+    } catch (PDOException $e) {
+        error_log("Error fetching guild data: " . $e->getMessage());
+        echo "Error fetching guild data: " . $e->getMessage();
+        $round = 1;
+    }
 } else {
     $round = $_GET['round'];
 }
