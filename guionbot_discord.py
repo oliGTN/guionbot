@@ -1657,13 +1657,14 @@ async def manage_reaction_add(user, message, reaction, emoji):
             channel_name = guild_name+"/"+message.channel.name
 
         author = message.author.display_name
-        goutils.log2("INFO", "guild_name: "+guild_name)
-        goutils.log2("INFO", "message: "+str(message.content))
-        goutils.log2("INFO", "author of the message: "+str(author))
-        goutils.log2("INFO", "emoji: "+str(emoji))
-        goutils.log2("INFO", "emoji: "+str(emoji)+" (unicode: "+ord(emoji)+")")
-        goutils.log2("INFO", "emoji: "+str(emoji)+" (unicode: "+hex(ord(emoji))+")")
-        goutils.log2("INFO", "user of the reaction: "+str(user))
+        goutils.log2("DBG", "guild_name: "+guild_name)
+        goutils.log2("DBG", "message: "+str(message.content))
+        goutils.log2("DBG", "author of the message: "+str(author))
+        if len(emoji)==1:
+            goutils.log2("DBG", "emoji: "+str(emoji)+" (unicode: "+hex(ord(emoji))+")")
+        else:
+            goutils.log2("DBG", "emoji: "+str(emoji))
+        goutils.log2("DBG", "user of the reaction: "+str(user))
 
         # Manage cycle arrows to re-launch a command
         if emoji == emojis.cyclearrows:
