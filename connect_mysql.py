@@ -1908,6 +1908,10 @@ def store_tw_events(guild_id, tw_id, list_events):
     goutils.log2("DBG", query)
     tw_db_id = get_value(query)
 
+    if tw_db_id==None:
+        # TW not registered yet, wait for next time
+        return
+
     # Get timestamp for latest registered event of this TW id in DB
     query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tw_events "\
             "WHERE tw_id="+str(tw_db_id)
