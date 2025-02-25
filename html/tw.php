@@ -169,6 +169,9 @@ function openZone(evt, zoneSide, zoneName) {
   // Declare all variables
   var i, tabcontent, tablinks;
 
+  // Get the default message "click a zone" and hide it
+  document.getElementById("defaultmessage").style.display = "none";
+
   // Get all side elements with class="teamside" and hide them
   tabs = document.getElementsByClassName("teamside");
   for (i = 0; i < tabs.length; i++) {
@@ -325,30 +328,39 @@ function openZone(evt, zoneSide, zoneName) {
 
     <?php if ($isMyGuildConfirmed||$isBonusGuild): ?>
     <div class="card">
+        <div id="defaultmessage">
+            Click on a zone to see the teams
+        </div>
     <div class="row">
     <div class="col s12">
     <div class="col s6 teamside" style="display:none" id="hometeamside">
             <!-- HOME ZONES -->
             <!-- Zone content -->
             <?php
-            foreach($squads['home'] as $zone_name => $zone_squads) {
+            //foreach($squads['home'] as $zone_name => $zone_squads) {
+            foreach(['B1', 'B2', 'B3', 'B4', 'T1', 'T2', 'T3', 'T4', 'F1', 'F2'] as $zone_name) {
                 echo "<div id='h".$zone_name."' class='hometabcontent'>";
-                echo "<h3>".$zones['home'][$zone_name]['commandMsg']."</h3>";
-                echo "<table>";
-                foreach($zone_squads as $squad_id => $squad) {
-                    echo "<tr>";
-                    $display_player = true;
-                    foreach($squad["cells"] as $cellIndex => $unit) {
-                        if ($display_player) {
-                        echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
-                        $display_player = false;
+                if (isset($squads['home'][$zone_name])) {
+                    $zone_squads = $squads['home'][$zone_name];
+                    echo "<b>".$zone_name.": ".$zones['away'][$zone_name]['commandMsg']."</br>\n";
+                    echo "<table>\n";
+                    foreach($zone_squads as $squad_id => $squad) {
+                        echo "<tr>";
+                        $display_player = true;
+                        foreach($squad["cells"] as $cellIndex => $unit) {
+                            if ($display_player) {
+                            echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
+                            $display_player = false;
+                            }
+                            $unit_short_id = explode(':', $unit['defId'])[0];
+                            echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
                         }
-                        $unit_short_id = explode(':', $unit['defId'])[0];
-                        echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
+                        echo "</tr>\n";
                     }
-                    echo "</tr>";
+                    echo "</table>\n";
+                } else {
+                    echo $zone_name.": zone not yet open, you cannot see inside";
                 }
-                echo "</table>";
                 echo "</div>";
             }
             ?>
@@ -357,25 +369,30 @@ function openZone(evt, zoneSide, zoneName) {
     <div class="col s6 teamside" style="display:none" id="awayteamside">
             <!-- AWAY ZONES -->
             <?php
-            foreach($squads['away'] as $zone_name => $zone_squads) {
+            foreach(['B1', 'B2', 'B3', 'B4', 'T1', 'T2', 'T3', 'T4', 'F1', 'F2'] as $zone_name) {
                 echo "<div id='a".$zone_name."' class='awaytabcontent'>";
-                echo "<h3>".$zones['away'][$zone_name]['commandMsg']."</h3>";
-                echo "<table>";
-                foreach($zone_squads as $squad_id => $squad) {
-                    echo "<tr>";
-                    $display_player = true;
-                    foreach($squad["cells"] as $cellIndex => $unit) {
-                        if ($display_player) {
-                        echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
-                        $display_player = false;
-                        }
-                        $unit_short_id = explode(':', $unit['defId'])[0];
-                        echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
+                if (isset($squads['away'][$zone_name])) {
+                    $zone_squads = $squads['away'][$zone_name];
+                    echo "<b>".$zone_name.": ".$zones['away'][$zone_name]['commandMsg']."</br>\n";
+                    echo "<table>\n";
+                    foreach($zone_squads as $squad_id => $squad) {
+                        echo "<tr>";
+                        $display_player = true;
+                        foreach($squad["cells"] as $cellIndex => $unit) {
+                            if ($display_player) {
+                            echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
+                            $display_player = false;
+                            }
+                            $unit_short_id = explode(':', $unit['defId'])[0];
+                            echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
 
+                        }
+                        echo "</tr>\n";
                     }
-                    echo "</tr>";
+                    echo "</table>\n";
+                } else {
+                    echo $zone_name.": zone not yet open, you cannot see inside";
                 }
-                echo "</table>";
                 echo "</div>";
             }
             ?>
@@ -392,15 +409,6 @@ function openZone(evt, zoneSide, zoneName) {
 
 </div>
 </div>
-
-<script>
-// Get the element with id="sidedefaultOpen" and click on it
-document.getElementById("sidedefaultOpen").click();
-// Get the element with id="homedefaultOpen" and click on it
-document.getElementById("homedefaultOpen").click();
-// Get the element with id="awaydefaultOpen" and click on it
-document.getElementById("awaydefaultOpen").click();
-</script>
 
 </body>
 </html>
