@@ -4139,7 +4139,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
                                 tb_round, allyCode=allyCode))
 
     #Update DB (short so no need to parallelize)
-    connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase,
+    await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase,
                                   dict_zones, dict_strike_zones,
                                   list_open_zones, dict_tb_players)
 

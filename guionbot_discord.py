@@ -1181,9 +1181,9 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         manage_events.create_event("tw_start", guild_id, tw_id)
 
     # update DB
-    connect_mysql.update_tw(guild_id, tw_id, opp_guild_id,
-                            opp_guild_name, score, opp_score,
-                            homeGuild, awayGuild)
+    await connect_mysql.update_tw(guild_id, tw_id, opp_guild_id,
+                                  opp_guild_name, score, opp_score,
+                                  homeGuild, awayGuild)
 
     # Display Link to opponent guild
     if swgohgg_opp_url != None:
@@ -1339,7 +1339,7 @@ async def update_rpc_data(guild_id, allyCode=None):
         await connect_gsheets.update_gwarstats(guild_id, dict_phase, dict_strike_zones,
                                                dict_tb_players, list_open_zones, dict_zones,
                                                tb_round, allyCode=allyCode)
-        connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase, 
+        await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase, 
                                       dict_zones, dict_strike_zones, 
                                       list_open_zones, dict_tb_players)
     

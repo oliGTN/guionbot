@@ -405,7 +405,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             list_rpc_events += resp_events['event']
 
             #Store the new events in the DB
-            connect_mysql.store_tb_events(guild_id, tb_id, resp_events['event'])
+            await connect_mysql.store_tb_events(guild_id, tb_id, resp_events['event'])
 
         #---------------
         #TW events
@@ -462,7 +462,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             list_rpc_events += resp_events['event']
 
             #Store the new events in the DB
-            connect_mysql.store_tw_events(guild_id, tw_id, resp_events['event'])
+            await connect_mysql.store_tw_events(guild_id, tw_id, resp_events['event'])
 
         #---------------
         #CHAT events

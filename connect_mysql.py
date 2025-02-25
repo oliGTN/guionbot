@@ -1372,7 +1372,7 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
 # update the TB history
 # update all zones, even past ones, as te volume is acceptable
 # update player data only if something has changed, for performance reasons
-def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players):
+async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players):
     dict_tb = data.get("tb_definition.json")
     now = datetime.datetime.now()
 
@@ -1505,6 +1505,9 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
         goutils.log2("DBG", query)
         simple_execute(query)
 
+        #breathe
+        asyncio.sleep(0)
+
     ## players
     # Get DB data
     query = "SELECT round, player_id, gp, deployed_gp, score_strikes, score_platoons, "\
@@ -1568,12 +1571,14 @@ def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_stri
                     goutils.log2("DBG", query)
                     simple_execute(query)
 
+        #breathe
+        asyncio.sleep(0)
 
     return 0, ""
 
 # Update tb_events table from list of events
 # list_events my be actually a dictionary
-def store_tb_events(guild_id, tb_id, list_events):
+async def store_tb_events(guild_id, tb_id, list_events):
     # Get timestamp for latest registered event in DB
     query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tb_events"
     goutils.log2("DBG", query)
@@ -1671,6 +1676,9 @@ def store_tb_events(guild_id, tb_id, list_events):
             goutils.log2("DBG", query)
             simple_execute(query)
 
+        #breathe
+        asyncio.sleep(0)
+
 #################################
 # update TW in DB
 async def update_tw_from_guild(dict_guild):
@@ -1689,11 +1697,11 @@ async def update_tw_from_guild(dict_guild):
     homeGuild = ret_dict["homeGuild"]
     awayGuild = ret_dict["awayGuild"]
 
-    update_tw(guild_id, tw_id, opp_guild_id,
+    await update_tw(guild_id, tw_id, opp_guild_id,
               opp_guild_name, score, opp_score,
               homeGuild, awayGuild)
 
-def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
+async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
               homeGuild, awayGuild):
     dict_tw = data.dict_tw
     now = datetime.datetime.now()
@@ -1807,6 +1815,9 @@ def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
                 goutils.log2("DBG", query)
                 simple_execute(query)
 
+            # breathe
+            await asyncio.sleep(0)
+
         # Get squads in DB
         query = "SELECT id, zone_name, player_name, is_beaten, fights, gp "\
                 "FROM tw_squads "\
@@ -1834,16 +1845,6 @@ def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
         list_squad_id = get_column(query)
         if list_squad_id == None:
             list_squad_id = []
-
-        dict_tw_squads = {}
-        for line in db_data:
-            squad_id = line[0]
-            zone_name = line[1]
-            player_name = line[2]
-            is_beaten = line[3]
-            fights = line[4]
-            gp = line[5]
-            dict_tw_squads[squad_id] = [zone_name, player_name, is_beaten, fights, gp]
 
         # Now get RPC data and compare with DB, create/insert if necessary
         squads = guild['list_defenses']
@@ -1897,12 +1898,15 @@ def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
 
                 cellIndex += 1
 
+            # breathe
+            await asyncio.sleep(0)
+
     return 0, ""
 
 ###########################################
 # Update tw_events table from list of events
 # list_events my be actually a dictionary
-def store_tw_events(guild_id, tw_id, list_events):
+async def store_tw_events(guild_id, tw_id, list_events):
     # Get the DB tw_id from the game tw_id and the guild_id
     query = "SELECT id FROM tw_history WHERE tw_id='"+tw_id+"' AND guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
@@ -2021,3 +2025,6 @@ def store_tw_events(guild_id, tw_id, list_events):
                     ""+scoreTotal+") "
             goutils.log2("DBG", query)
             simple_execute(query)
+
+        # breathe
+        await asyncio.sleep(0)
