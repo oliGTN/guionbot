@@ -925,9 +925,9 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=None, dict_guild=None, dict_events=None):
 
     query = "SELECT allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
-            "FROM guild_bots "\
-            "JOIN guild_bot_infos ON guild_bot_infos.guild_id=guild_bots.guild_id "\
-            "WHERE guild_bots.guild_id='"+guild_id+"'"
+            "FROM guild_bot_infos "\
+            "LEFT JOIN guild_bots ON guild_bot_infos.guild_id=guild_bots.guild_id "\
+            "WHERE guild_bot_infos.guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
     line = connect_mysql.get_line(query)
     if line == None:
@@ -945,7 +945,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
 
     if allyCode!=None:
         bot_allyCode = allyCode
-    elif bot_allyCode == '':
+    elif bot_allyCode == None:
         return 1, "ERR: no RPC bot for guild "+guild_id, None
 
     if dict_guild==None:
