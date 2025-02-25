@@ -556,7 +556,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                             prev_display_time = time.time()
 
                     goutils.log2("DBG", "after set_guild_loading_status...")
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(100)
                     goutils.log2("DBG", "after sleep...")
 
                 parallel_work.set_guild_loading_status(guild_name, None)
