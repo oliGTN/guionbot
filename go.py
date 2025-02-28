@@ -459,6 +459,8 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
     goutils.log2('DBG', query)
     connect_mysql.simple_execute(query)
 
+    #Update TB TW scores
+
     if load_players:
         #Get the list of players to detect which to add or remove
         query = "SELECT playerId FROM players "\

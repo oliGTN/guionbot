@@ -2028,3 +2028,38 @@ async def store_tw_events(guild_id, tw_id, list_events):
 
         # breathe
         await asyncio.sleep(0)
+
+async def update_guild(dict_guild):
+    guild_id = dict_guild["profile"]["id"]
+    if "territoryBattleResult" in dict_guild:
+        for tbr in dict_guild["territoryBattleResult"]:
+            tb_id = tbr["instanceId"]
+            tb_stars = tbr["totalStars"]
+            query = "UPDATE tb_history SET stars_final="+tb_stars+" "\
+                    "WHERE guild_id='"+guild_id+"' "\
+                    "AND tb_id='"+tb_id+"' "
+            goutils.log2("DBG", query)
+            simple_execute(query)
+
+async def update_extguild(dict_guild):
+    guild_id = dict_guild["profile"]["id"]
+    if "recentTerritoryWarResult" in dict_guild:
+        for twr in dict_guild["recentTerritoryWarResult"]:
+            tw_endtime = twr["endTimeSeconds"]
+            tw_warid = twr["territoryWarId"]
+            tw_score = twr["score"]
+            tw_oppscore = twr["opponentScore"]
+
+            tw_starttime = int(tw_endtime)-24*3600
+            tw_starttime = round(tw_starttime/3600)*3600 #because some end times are 19:01 instaed of 19:00, but start time are always right
+            tw_letter = tw_warid[-1]
+            tw_id = "TERRITORY_WAR_EVENT_"+tw_letter+":O"+str(tw_starttime)+"000"
+
+            query = "UPDATE tw_history SET homeScore="+tw_score+", "\
+                    "awayScore="+tw_oppscore+" "\
+                    "WHERE guild_id='"+guild_id+"' "\
+                    "AND tw_id='"+tw_id+"' "
+            goutils.log2("DBG", query)
+            simple_execute(query)
+
+

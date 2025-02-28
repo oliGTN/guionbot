@@ -251,6 +251,9 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
     else:
         return 1, "Aucune info de guilde disponible pour "+txt_allyCode, None
 
+    #Push some infos in DB
+    await connect_mysql.update_guild(dict_guild)
+
     return 0, "", dict_guild
 
 async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
@@ -665,6 +668,9 @@ async def get_extguild_data_from_id(guild_id, use_cache_data):
         return 1, guild_json["err_txt"], None
 
     dict_guild = guild_json["guild"]
+
+    #Update data in DB
+    await connect_mysql.update_extguild(dict_guild)
 
     return 0, "", dict_guild
 
