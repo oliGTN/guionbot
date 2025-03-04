@@ -116,7 +116,8 @@ def ispriority_cache_bot_account(bot_allyCode):
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
 #event_type: []/None, ["TB"], ["TW", CHAT"], ...
 async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
-                             dict_guild=None, dict_TBmapstats=None):
+                             dict_guild=None, dict_TBmapstats=None, 
+                             dict_events=None):
     calling_func = inspect.stack()[1][3]
     goutils.log2("DBG", "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id)+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
@@ -134,12 +135,13 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
         else:
             dict_TBmapstats={}
 
-    if event_types!=None and event_types!=[]:
-        ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update, allyCode=allyCode)
-        if ec!=0:
-            return ec, et, None
-    else:
-        dict_events = {}
+    if dict_events==None:
+        if event_types!=None and event_types!=[]:
+            ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update, allyCode=allyCode)
+            if ec!=0:
+                return ec, et, None
+        else:
+            dict_events = {}
 
     goutils.log2("DBG", "END get_guild_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
@@ -1331,7 +1333,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         compute_estimated_platoons=False,
                         targets_platoons=None, allyCode=None,
                         my_tb_round=None, my_list_open_zones=None,
-                        dict_guild=None, dict_TBmapstats=None):
+                        dict_guild=None, dict_TBmapstats=None,
+                        dict_all_events=None):
     global prev_dict_guild
     global prev_mapstats
 
@@ -1340,7 +1343,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], 
                                   force_update, allyCode=allyCode,
                                   dict_guild=dict_guild, 
-                                  dict_TBmapstats=dict_TBmapstats)
+                                  dict_TBmapstats=dict_TBmapstats,
+                                  dict_events=dict_all_events)
     if ec!=0:
         return 1, et, None
 
@@ -1350,8 +1354,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         mapstats=rpc_data[1]
     else:
         mapstats=dict_TBmapstats
-
-    dict_all_events=rpc_data[2]
+    if dict_all_events==None:
+        dict_all_events=rpc_data[2]
     guildName = dict_guild["profile"]["name"]
     guildId = dict_guild["profile"]["id"]
 
@@ -2175,6 +2179,16 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                     star_for_score += 1
         dict_zones[zone_name]["estimatedStars"] = star_for_score
 
+    #Update DB
+    await connect_mysql.update_tb_round(guild_id, 
+                                        dict_phase["id"], 
+                                        dict_phase["round"], 
+                                        dict_phase,
+                                        dict_zones, 
+                                        dict_strike_zones,
+                                        list_open_zones, 
+                                        dict_tb_players)
+
     return 0, "", {"phase": dict_phase, 
                    "strike_zones": dict_strike_zones, 
                    "players": dict_tb_players, 
@@ -2816,7 +2830,7 @@ async def update_K1_players():
     leaderboard_json = resp_json
     #Loop through plalers and add/update them
     for player in leaderboard_json["player"]:
-        await go.load_player(player["id"], 0, False)
+        await go.load_player(player["id"], 1, False)
 
 
 ####################################################

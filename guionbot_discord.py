@@ -1339,9 +1339,9 @@ async def update_rpc_data(guild_id, allyCode=None):
         await connect_gsheets.update_gwarstats(guild_id, dict_phase, dict_strike_zones,
                                                dict_tb_players, list_open_zones, dict_zones,
                                                tb_round, allyCode=allyCode)
-        await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase, 
-                                      dict_zones, dict_strike_zones, 
-                                      list_open_zones, dict_tb_players)
+        #await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase, 
+        #                              dict_zones, dict_strike_zones, 
+        #                              list_open_zones, dict_tb_players)
     
     #Update log channels
     ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, 1, allyCode=allyCode,

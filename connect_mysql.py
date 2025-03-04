@@ -533,7 +533,7 @@ async def update_player(dict_player):
             query += ",equipment = '"+eqpt_txt+"' "
 
             if "stats" in character:
-                for stat_id in ['1', '5', '6', '7', '14', '15', '16', '17', '18', '28']:
+                for stat_id in ['1', '5', '6', '7', '8', '14', '15', '16', '17', '18', '28']:
                     stat_value = 0
                     if stat_id in character["stats"]["final"]:
                         stat_value = character["stats"]["final"][stat_id]
@@ -541,7 +541,7 @@ async def update_player(dict_player):
                     query += ",stat"+stat_id+" = "+str(stat_value)+" "
 
                 if "mods" in character["stats"]:
-                    for stat_id in ['1', '5', '6', '7', '14', '15', '16', '17', '18', '28']:
+                    for stat_id in ['1', '5', '6', '7', '8', '14', '15', '16', '17', '18', '28']:
                         stat_value = None
 
                         if stat_id in ['14', '15']:
@@ -1070,6 +1070,7 @@ list_statq_stats.append(["health", 1, False])
 list_statq_stats.append(["speed", 5, False])
 list_statq_stats.append(["pd", 6, False])
 list_statq_stats.append(["sd", 7, False])
+list_statq_stats.append(["armor", 8, True])
 list_statq_stats.append(["cc", 14, True])
 list_statq_stats.append(["cd", 16, True])
 list_statq_stats.append(["potency", 17, True])
