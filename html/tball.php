@@ -44,7 +44,8 @@ if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_
 // Get the associated TB data
 // Prepare the SQL query
 $query = "SELECT tb_history.id AS id, guild_id, name, zone_name,";
-$query .= " round, score_step1, score_step2, score_step3, score";
+$query .= " round, score_step1, score_step2, score_step3, score,";
+$query .= " tb_history.lastUpdated AS lastUpdated";
 $query .= " FROM tb_history";
 $query .= " JOIN guilds ON guilds.id=guild_id";
 $query .= " JOIN tb_zones ON tb_zones.tb_id=tb_history.id";
@@ -70,7 +71,7 @@ foreach($tb_db_data as $tb_line) {
         $tb_data[$guild_id] = [];
         $tb_data[$guild_id]['id'] = $tb_line['id'];
         $tb_data[$guild_id]['name'] = $tb_line['name'];
-        $tb_data[$guild_id]['name'] = $tb_line['name'];
+        $tb_data[$guild_id]['lastUpdated'] = $tb_line['lastUpdated'];
         $tb_data[$guild_id]['zones'] = [];
     }
 
@@ -233,7 +234,7 @@ function zone_txt($zone_name, $zones, $colspan) {
     <div class="row">
     <div class="col s12">
     <div class="card">
-    <h3><a href="tb.php?id=<?php echo $tb['id'];?>"><?php echo $tb['name'];?></a>: <?php echo $tb_data[$guild_id]['stars']; ?>&#11088</h3>
+    <h3><a href="tb.php?id=<?php echo $tb['id'];?>"><?php echo $tb['name'];?></a>: <?php echo $tb_data[$guild_id]['stars']; ?>&#11088</h3> (last Update: <?php echo $tb['lastUpdated'];?>)
 
     <table style="display:block">
         <colgroup>
