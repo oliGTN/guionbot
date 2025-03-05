@@ -1526,6 +1526,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 for star_score in dict_tb[zone_name]["scores"]:
                     if zone_score >= star_score:
                         zone_stars += 1
+        else: #ZONELOCKED
+            #zone not yet opened, no need to add it
+            continue
+
         completed_stars += zone_stars
         dict_zones[zone_name] = {"score": zone_score, "completed_stars": zone_stars,
                                  "remainingPlatoonScore": 0}
@@ -1568,7 +1572,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             dict_strike_zones[strike_name]["eventStrikeScore"] = 0
 
     for zone in battleStatus["covertZoneStatus"]:
-        if True: #zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
+        if zone["zoneStatus"]["zoneState"] in ("ZONEOPEN", "ZONECOMPLETE"):
             covert_name = zone["zoneStatus"]["zoneId"]
             covert_shortname = covert_name.split("_")[-1]
 
@@ -1581,7 +1585,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             dict_covert_zones[covert_name]["participation"] = done_coverts
 
     for zone in battleStatus["reconZoneStatus"]:
-        if True: #zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
+        if zone["zoneStatus"]["zoneState"] in ("ZONEOPEN", "ZONECOMPLETE"):
             recon_name = zone["zoneStatus"]["zoneId"]
             recon_shortname = recon_name.split("_")[-1]
             if "commandMessage" in zone["zoneStatus"]:

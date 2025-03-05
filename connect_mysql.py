@@ -1444,8 +1444,9 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
         score_step3 = str(dict_tb[zone_fullname]["scores"][2])
         if db_data==None:
             if not zone_fullname in list_open_zones:
-                #should be a past zone but does not exist  mistake, skip it to prevent errors
-                continue
+                #past zone not yest recorded, possible for guilds with manual updates
+                # allow it
+                pass
 
             query = "INSERT INTO tb_zones(tb_id, zone_id, zone_name, zone_phase, round, "\
                     "score_step1, score_step2, score_step3, is_bonus) "\
@@ -1507,7 +1508,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
         simple_execute(query)
 
         #breathe
-        asyncio.sleep(0)
+        await asyncio.sleep(0)
 
     ## players
     # Get DB data
@@ -1573,7 +1574,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     simple_execute(query)
 
         #breathe
-        asyncio.sleep(0)
+        await asyncio.sleep(0)
 
     return 0, ""
 
@@ -1678,7 +1679,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
             simple_execute(query)
 
         #breathe
-        asyncio.sleep(0)
+        await asyncio.sleep(0)
 
 #################################
 # update TW in DB
