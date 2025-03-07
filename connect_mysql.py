@@ -1502,7 +1502,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 "    recon4_filled="+str(recon4_filled)+", "\
                 "    recon5_filled="+str(recon5_filled)+", "\
                 "    recon6_filled="+str(recon6_filled)+", "\
-                "    recon_cmdMsg='"+recon_cmdMsg+"' "\
+                "    recon_cmdMsg='"+recon_cmdMsg.replace("'", "''")+"' "\
                 "WHERE id="+zone_db_id+" "
         goutils.log2("DBG", query)
         simple_execute(query)
