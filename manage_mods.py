@@ -574,6 +574,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
     return ret_code, ret_txt, {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
 async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
+    dict_unitsList = godata.get("unitsList_dict.json")
+
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
 
@@ -585,11 +587,14 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     #Manage request for all characters
     if 'all' in list_character_alias:
         list_unit_ids=list(dict_player["rosterUnit"].keys())
+        list_unit_names = []
     else:
         #specific list of characters for one player
         list_unit_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_character_alias)
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+
+        list_unit_names = [dict_unitsList[id]["name"] for id in list_unit_ids]
 
     # Check if the config already exists
     query = "SELECT id\n"
@@ -647,7 +652,13 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
 
         config_unit_count += 1
             
-    return 0, "Conf "+conf_name+" créée pour "+txt_allyCode+" avec "+str(config_unit_count)+" persos et "+str(config_mod_count)+" mods"
+    return_txt = "Conf "+conf_name+" créée pour "+txt_allyCode+" avec "+str(config_unit_count)+" persos et "+str(config_mod_count)+" mods"
+    if list_unit_names != []:
+        return_txt += "\n"+str(list_unit_names)
+    else:
+        return_txt += "\n(tous les persos)"
+
+    return 0, return_txt
 
 def get_mod_config(conf_name, txt_allyCode):
     # Check if the config exists
