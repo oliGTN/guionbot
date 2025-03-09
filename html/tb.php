@@ -131,9 +131,8 @@ $query .= "   JOIN tb_history ON tb_zones.tb_id=tb_history.id";
 $query .= "   WHERE tb_zones.tb_id=".$tb_id;
 $query .= "   GROUP BY tb_id, zone_name";
 $query .= " ) T ON T.tb_id=tb_zones.tb_id AND T.zone_name = tb_zones.zone_name AND T.max_round = tb_zones.round";
-
 $query .= " WHERE tb_zones.tb_id=".$tb_id." AND round<=".$round;
-error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the zone information
     $stmt = $conn_guionbot->prepare($query);
@@ -150,9 +149,13 @@ try {
 // --------------- GET ROUND INFO FOR THE TB -----------
 // Prepare the SQL query
 $query = "SELECT sum(score_strikes) AS strikes, sum(score_platoons) AS platoons,";
-$query .= " sum(score_deployed) AS deployed";
+$query .= " sum(score_deployed) AS deployed,";
+$query .= " availableShipDeploy, availableCharDeploy, availableMixDeploy,";
+$query .= " remainingShipPlayers, remainingCharPlayers, remainingMixPlayers,";
+$query .= " deploymentTypeMix, totalPlayers";
 $query .= " FROM tb_player_score";
-$query .= " WHERE tb_id=".$tb_id." AND round=".$round;
+$query .= " JOIN tb_phases ON tb_phases.round = tb_player_score.round";
+$query .= " WHERE tb_player_score.tb_id=".$tb_id." AND tb_player_score.round=".$round;
 //error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the zone information
@@ -161,6 +164,7 @@ try {
 
     // Fetch all the results as an associative array
     $round_score = $stmt->fetchAll(PDO::FETCH_ASSOC)[0];
+//print_r($round_score);
 
 } catch (PDOException $e) {
     error_log("Error fetching round data: " . $e->getMessage());
@@ -283,6 +287,7 @@ if ($isMyGuildConfirmed) {
 <div class="card">
 Score for this round: <?php echo $round_stars; ?>&#11088
 </div>
+
     <!-- Cards for zones -->
 <div id="resume" class="active">
     <div class="row">    
@@ -355,10 +360,10 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                                 <rect width="<?php echo $x_score;?>%" height="30" style="fill:green;">
                                     <title>Current score: <?php echo number_format($score, 0, ".", " ");?></title>
                                 </rect>
-                                <rect x="<?php echo $x_score;?>%" width="<?php echo $x_strikes-$x_score;?>%" height="30" style="fill:orange;">
+                                <rect id="fights-<?php echo $zone['zone_name'];?>" x="<?php echo $x_score;?>%" width="<?php echo $x_strikes-$x_score;?>%" height="30" style="fill:orange;">
                                     <title>Estimated strikes: <?php echo number_format($estimated_strikes, 0, ".", " ");?></title>
                                 </rect>
-                                <rect x="<?php echo $x_strikes;?>%" width="<?php echo $x_deployments-$x_strikes;?>%" height="30" style="fill:yellow;">
+                                <rect id="deploy-<?php echo $zone['zone_name'];?>" x="<?php echo $x_strikes;?>%" width="<?php echo $x_deployments-$x_strikes;?>%" height="30" style="fill:yellow;">
                                     <title>Deployments: <?php echo number_format($estimated_strikes, 0, ".", " ");?></title>
                                 </rect>
                                 <rect width="100%" height="30" style="fill:none;stroke:black;"></rect>
@@ -437,6 +442,67 @@ Score for this round: <?php echo $round_stars; ?>&#11088
     </div>
     </div>
 </div>
+
+
+<div class="col s12 m12 l8">
+    <h4 class="no-wrap no-overflow">Remain to do</h4>
+    <div class="card">
+    <div class="card-content">
+    <div class="row">
+        <div class="col s4">
+            <div class="stat-panel">
+                <div class="stat-detail">
+                    <label>Not fully deployed Players</label>
+                    <div class="value xsmall pb-5">
+                        <value>
+                            <?php if ($round_score['deploymentTypeMix']) {
+                                echo $round_score['remainingMixPlayers']."/".$round_score['totalPlayers'];
+                            } else {
+                                echo "Ships: ".$round_score['remainingShipPlayers']."/".$round_score['totalPlayers']."<br/>";
+                                echo "Chars: ".$round_score['remainingCharPlayers']."/".$round_score['totalPlayers'];
+                            }?>
+                        </value>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col s4">
+            <div class="stat-panel">
+                <div class="stat-detail">
+                    <label>Remaining deployments</label>
+                    <div class="value xsmall pb-5">
+                        <value>
+                            <?php if ($round_score['deploymentTypeMix']) {
+                                echo number_format($round_score['availableMixDeploy'], 0, ".", " ");
+                            } else {
+                                echo "Ships: ".number_format($round_score['availableShipDeploy'], 0, ".", " ")."<br/>";
+                                echo "Chars: ".number_format($round_score['availableCharDeploy'], 0, ".", " ");
+                            }?>
+                        </value>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!--
+    <div class="row">
+        <div class="col s4">
+            <div>
+                <button type="button" id="button">re-deploy</button>
+            </div>
+        </div>
+        <div class="col s4">
+            <div>
+                <input type="checkbox" id="scales" name="scales" checked />
+                <label for="scales">With fights</label>
+            </div>
+        </div>
+    </div>
+-->
+    </div>
+    </div>
+</div>
+
 <div class="card">
     <!-- table for players -->
     <?php if ($isMyGuildConfirmed) : ?>
