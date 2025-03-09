@@ -513,8 +513,8 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                 $col_active = [];
                 $col_arrow = [];
                 foreach($valid_columns as $col) {
-                    $col_active[col] = false;
-                    $col_arrow[col] = '';
+                    $col_active[$col] = false;
+                    $col_arrow[$col] = '';
                 }
                 $col_active[$sort_column] = 'active-sort';
                 if ($sort_order == 'ASC') {
