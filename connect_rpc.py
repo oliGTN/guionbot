@@ -1777,6 +1777,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         zone_deployment_type = dict_tb[zone_name]["type"]
         if not zone_deployment_type in list_deployment_types:
             list_deployment_types.append(zone_deployment_type)
+            dict_phase["deployment_types"] = list_deployment_types
 
     #count remaining players
     lines_player = []

@@ -1377,6 +1377,9 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
     dict_tb = data.get("tb_definition.json")
     now = datetime.datetime.now()
 
+    ##################################
+    # Whole TB data
+    ##################################
     # Check / Create the TB in DB
     query = "SELECT id FROM tb_history " \
             "WHERE tb_id='"+tb_id+"' "\
@@ -1410,6 +1413,64 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
         goutils.log2("DBG", query)
         simple_execute(query)
 
+    ##################################
+    # TB phase / day / round
+    ##################################
+    # Check / Create the TB phase in DB
+    query = "SELECT id FROM tb_phases " \
+            "WHERE tb_id='"+tb_db_id+"' "\
+            "AND round="+str(tb_round)
+    goutils.log2("DBG", query)
+    db_data = get_value(query)
+
+    if db_data==None:
+        query = "INSERT INTO tb_phases(tb_id, round, prev_stars) " \
+                "VALUES("\
+                ""+str(tb_db_id)+", "\
+                ""+str(tb_round)+", "\
+                ""+str(dict_phase["prev_stars"])+") "
+        goutils.log2("DBG", query)
+        simple_execute(query)
+
+        # Get the id of the new TB phase
+        query = "SELECT id FROM tb_phases " \
+                "WHERE tb_id='"+tb_db_id+"' "\
+                "AND round="+str(tb_round)
+        goutils.log2("DBG", query)
+        phase_id = str(get_value(query))
+    else:
+        phase_id = str(db_data)
+
+    deploymentTypeMix = "mix" in dict_phase["deployment_types"]
+    availableShipDeploy  = dict_phase["availableShipDeploy"]
+    availableCharDeploy = dict_phase["availableCharDeploy"]
+    availableMixDeploy = dict_phase["availableMixDeploy"]
+    remainingShipDeploy = dict_phase["remainingShipDeploy"]
+    remainingCharDeploy = dict_phase["remainingCharDeploy"]
+    remainingMixDeploy = dict_phase["remainingMixDeploy"]
+    remainingShipPlayers = dict_phase["shipPlayers"]
+    remainingCharPlayers = dict_phase["charPlayers"]
+    remainingMixPlayers = dict_phase["mixPlayers"]
+
+    query = "UPDATE tb_phases "\
+            "SET "\
+            "deploymentTypeMix = "+str(deploymentTypeMix)+", "\
+            "availableShipDeploy  = "+str(availableShipDeploy)+", "\
+            "availableCharDeploy = "+str(availableCharDeploy)+", "\
+            "availableMixDeploy = "+str(availableMixDeploy)+", "\
+            "remainingShipDeploy = "+str(remainingShipDeploy)+", "\
+            "remainingCharDeploy = "+str(remainingCharDeploy)+", "\
+            "remainingMixDeploy = "+str(remainingMixDeploy)+", "\
+            "remainingShipPlayers = "+str(remainingShipPlayers)+", "\
+            "remainingCharPlayers = "+str(remainingCharPlayers)+", "\
+            "remainingMixPlayers = "+str(remainingMixPlayers)+" "\
+            "WHERE id="+str(phase_id)
+    goutils.log2("DBG", query)
+    simple_execute(query)
+
+    ##################################
+    # TB zones
+    ##################################
     i_zone = 0
     for zone_fullname in dict_zones:
         zone = dict_zones[zone_fullname]

@@ -105,7 +105,7 @@ async def bot_loop_60secs(bot):
                 "AND NOT isnull(allyCode) "
         goutils.log2("INFO", query)
         db_data = connect_mysql.get_column(query)
-        goutils.log2("INFO", "db_data: "+str(db_data))
+        goutils.log2("INFO", "locked_since > 1 hour db_data: "+str(db_data))
         if not db_data==None:
             for guild_id in db_data:
                 await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
