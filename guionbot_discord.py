@@ -4350,7 +4350,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     fights = cur_teams["fights"]
 
                     if team_count == 0:
-                        txt = "Rien de particulier à signaler pour notre défense "+unit_type[1]+" pour les teams "+beaten_txt[1]+"s"
+                        txt = "Rien de particulier à signaler pour "+home_away[1]+" "+unit_type[1]+" pour les teams "+beaten_txt[1]+"s"
                     elif team_count == 1:
                         txt = "Meilleure team de **"+home_away[1]+" "+unit_type[1]+"**, "+beaten_txt[1]+" après "+str(fights)+" combats"
                     else:
