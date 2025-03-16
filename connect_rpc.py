@@ -2424,6 +2424,10 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
 
                 zone_size = zone["squadCapacity"]
                 filled = zone["squadCount"] + victories
+                if "zoneState" in zone["zoneStatus"]:
+                    zoneState = zone["zoneStatus"]["zoneState"]
+                else:
+                    zoneState = None
                 if "commandMessage" in zone["zoneStatus"]:
                     commandMsg = zone["zoneStatus"]["commandMessage"]
                 else:
@@ -2432,7 +2436,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                     commandState = zone["zoneStatus"]["commandState"]
                 else:
                     commandState = None
-                list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg, commandState])
+                list_territories[guild].append([zone_shortname, zone_size, filled, victories, fails, commandMsg, commandState, zoneState])
 
     #Detect who has attacked what
     list_attacks = []

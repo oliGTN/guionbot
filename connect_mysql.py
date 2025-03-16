@@ -1838,6 +1838,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             fails = zone[4]
             commandMsg = zone[5]
             status = zone[6]
+            zoneState = zone[7]
             zone_id = dict_tw[zone_name]
 
             if commandMsg == None:
@@ -1847,15 +1848,21 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             if status == None:
                 status_txt = "NULL"
             else:
-                status_txt = "'"+status.replace("'", "''")+"'"
+                status_txt = "'"+status+"'"
+            if zoneState == None:
+                zoneState_txt = "NULL"
+            else:
+                zoneState_txt = "'"+zoneState+"'"
 
             if not zone_name in dict_tw_zones[side]:
                 query = "INSERT INTO tw_zones(tw_id, side, zone_id, zone_name, size, "\
-                        "filled, victories, fails, commandMsg, status) "\
+                        "filled, victories, fails, commandMsg, status, zoneState) "\
                         "VALUES("+str(tw_db_id)+", '"+side+"', '"+zone_id+"', "\
                         "'"+zone_name+"', "+str(size)+", "\
                         ""+str(filled)+", "+str(victories)+", "+str(fails)+", "\
-                        ""+cmdMsg_txt+", "+status_txt+") "
+                        ""+cmdMsg_txt+", "+cmdMsg_txt+", "
+                        ""+status_txt+", "+status_txt+", "
+                        ""+zoneState_txt+", "+zoneState_txt+") "
                 goutils.log2("DBG", query)
                 simple_execute(query)
 
@@ -1875,7 +1882,8 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         "    victories="+str(victories)+", "\
                         "    fails="+str(fails)+", "\
                         "    commandMsg="+cmdMsg_txt+", "\
-                        "    status="+status_txt+" "\
+                        "    status="+status_txt+", "\
+                        "    zoneState="+zoneState_txt+" "\
                         "WHERE id="+str(zone_db_id)+" "
                 goutils.log2("DBG", query)
                 simple_execute(query)
