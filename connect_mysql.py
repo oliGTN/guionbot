@@ -1847,7 +1847,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             if status == None:
                 status_txt = "NULL"
             else:
-                status_txt = "'"+status+"'"
+                status_txt = "'"+status.replace("'", "''")+"'"
 
             if not zone_name in dict_tw_zones[side]:
                 query = "INSERT INTO tw_zones(tw_id, side, zone_id, zone_name, size, "\
