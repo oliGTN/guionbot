@@ -13,7 +13,7 @@ require 'guionbotdb.php';  // Include the database connection for guionbotdb
 $query = "SELECT DISTINCT(tw_id), date(start_date) as start_date";
 $query .= " FROM tw_history";
 $query .= " ORDER BY start_date DESC";
-#error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
@@ -27,6 +27,7 @@ try {
     echo "Error fetching TW list: " . $e->getMessage();
 }
 if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_GET['ts'], 1, 13)) && strlen($_GET['ts'])==14) {
+    $selected_ts = $_GET['ts'];
     $tw_id = null;
     foreach($tw_list as $tw) {
         if (strpos($tw['tw_id'], $_GET['ts'])!==false ) {
@@ -38,20 +39,22 @@ if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_
     $latest_tw = array_values($tw_list)[0];
     $tw_id = $latest_tw['tw_id'];
     $tw_start_date = $latest_tw['start_date'];
+    $selected_ts = explode(":", $tw_id)[1];
 }
 
 
 // Get the associated TW data
 // Prepare the SQL query
 $query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName,  ga.name AS awayName, homeScore, awayScore,";
-$query .= " zone_name, side, size, filled, victories, fails";
+$query .= " zone_name, side, size, filled, victories, fails,";
+$query .= " zoneState, tw_history.lastUpdated AS lastUpdated";
 $query .= " FROM tw_history";
 $query .= " JOIN guilds AS gh ON gh.id=guild_id";
 $query .= " JOIN guilds AS ga ON ga.id=away_guild_id";
 $query .= " JOIN tw_zones ON tw_zones.tw_id=tw_history.id";
 $query .= " WHERE tw_history.tw_id='".$tw_id."'";
 $query .= " ORDER BY gh.name";
-error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
@@ -74,6 +77,7 @@ foreach($tw_db_data as $tw_line) {
         $tw_data[$guild_id]['awayName'] = $tw_line['awayName'];
         $tw_data[$guild_id]['homeScore'] = $tw_line['homeScore'];
         $tw_data[$guild_id]['awayScore'] = $tw_line['awayScore'];
+        $tw_data[$guild_id]['lastUpdated'] = $tw_line['lastUpdated'];
         $tw_data[$guild_id]['zones'] = ['home'=>[], 'away'=>[]];
     }
     $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']] = [];
@@ -81,6 +85,7 @@ foreach($tw_db_data as $tw_line) {
     $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['filled'] = $tw_line['filled'];
     $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['victories'] = $tw_line['victories'];
     $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['fails'] = $tw_line['fails'];
+    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['zoneState'] = $tw_line['zoneState'];
 }
 
 function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
@@ -104,7 +109,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:3px solid white" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
 
         // do not share sensitive information
-        if ($zones[$side][$zone_name]['victories'] == 0) {
+        if ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED') {
             // considered not open
             echo "<b>".$zone_name."</b><br/>?/".$zones[$side][$zone_name]['size'];
         } else {
@@ -144,7 +149,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
         <select style="width:200px" name="list" id="list" accesskey="target" onchange="twSelected()">
             <?php foreach($tw_list as $tw) {
                 $tw_id_short = explode(":", $tw['tw_id'])[1];
-                echo "<option value='".$tw_id_short."' ".($tw_id_short==$_GET['ts']?"selected='selected'":"").">".$tw['start_date']."</option>\n";
+                echo "<option value='".$tw_id_short."' ".($tw_id_short==$selected_ts?"selected='selected'":"").">".$tw['start_date']."</option>\n";
             }?>
         </select>
         </form>
@@ -163,11 +168,14 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
         $zones = $tw['zones'];
     ?>
     <!-- Overview of zones -->
+    <div class="card">
     <div class="row">
     <div class="col s12">
-    <div class="col s6">
+            <p><a href="tw.php?id=<?php echo $tw['id'];?>"><?php echo ($tw['homeScore']>=$tw['awayScore']?'&#9989;':'&#10060;')."<b>".$tw['homeName']." vs ".$tw['awayName']."</b>";?></a></p>
+            <p>(last Update on <?php echo $tw['lastUpdated'];?>)</p>
     <div class="card">
-            <p><a href="tw.php?id=<?php echo $tw['id'];?>"><?php echo ($tw['homeScore']>=$tw['awayScore']?'&#9989;':'&#10060;')."<b>".$tw['homeName']."</b>:<br>".$tw['homeScore'];?></a></p>
+    <div class="col s6">
+            <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo $tw['homeScore'];?></b>
             <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:dodgerblue;color:white">
                 <tr height="33">
                     <?php zone_txt('F2', 'home', $zones, 2, false); ?>
@@ -190,12 +198,12 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
                 </tr>
                 <tr height="33"/>
             </table>
-    </div>
-    </div>
+    </div> <!-- col s6 -->
+    </div> <!-- card -->
 
-    <div class="col s6">
     <div class="card">
-            <p><?php echo "<b>".$tw['awayName']."</b>:<br/>".$tw['awayScore'];?></p>
+    <div class="col s6">
+            <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo $tw['awayScore'];?></b>
             <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:red;color:white">
                 <tr height="33">
                     <?php zone_txt('T1', 'away', $zones, 3, false); ?>
@@ -218,10 +226,11 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
                 </tr>
                 <tr height="33"/>
             </table>
-    </div>
-    </div>
-    </div>
-    </div>
+    </div> <!-- col s6 -->
+    </div> <!-- card -->
+    </div> <!-- col s12 -->
+    </div> <!-- row -->
+    </div> <!-- card -->
 
     <?php } ?>
 
