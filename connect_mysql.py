@@ -1843,7 +1843,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             if commandMsg == None:
                 cmdMsg_txt = "NULL"
             else:
-                cmdMsg_txt = "'"+commandMsg+"'"
+                cmdMsg_txt = "'"+commandMsg.replace("'", "''")+"'"
             if status == None:
                 status_txt = "NULL"
             else:
@@ -1903,14 +1903,6 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             gp = line[5]
             dict_tw_squads[squad_id] = [zone_name, player_name, is_beaten, fights, gp]
 
-        # Get squad cells in DB
-        query = "SELECT squad_id "\
-                "FROM tw_squad_cells "
-        goutils.log2("DBG", query)
-        list_squad_id = get_column(query)
-        if list_squad_id == None:
-            list_squad_id = []
-
         # Now get RPC data and compare with DB, create/insert if necessary
         squads = guild['list_defenses']
         for squad in squads:
@@ -1949,7 +1941,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 tier = cell["gear"]
                 unitRelicTier = cell["relic"]
 
-                if not squad_id in list_squad_id:
+                if not squad_id in dict_tw_squads:
                     query = "INSERT INTO tw_squad_cells(squad_id, "\
                             "defId, cellIndex, level, tier, unitRelicTier) "\
                             "VALUES('"+squad_id+"', "\
