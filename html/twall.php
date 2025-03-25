@@ -144,16 +144,20 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
 
     <h2>All TWs</h2>
 
+    <div class="card">
+    <div class="row">
     <div class="dropdown">
         <form>
-        <select style="width:200px" name="list" id="list" accesskey="target" onchange="twSelected()">
+        <select style="width:200px" id="list" accesskey="target" onchange="twSelected()">
             <?php foreach($tw_list as $tw) {
                 $tw_id_short = explode(":", $tw['tw_id'])[1];
                 echo "<option value='".$tw_id_short."' ".($tw_id_short==$selected_ts?"selected='selected'":"").">".$tw['start_date']."</option>\n";
             }?>
         </select>
         </form>
-    </div>
+    </div> <!-- dropdown -->
+    </div> <!-- row -->
+    </div> <!-- card -->
     <script>
         function twSelected(){
             let userPicked = document.getElementById("list").value;

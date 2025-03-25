@@ -1860,9 +1860,9 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         "VALUES("+str(tw_db_id)+", '"+side+"', '"+zone_id+"', "\
                         "'"+zone_name+"', "+str(size)+", "\
                         ""+str(filled)+", "+str(victories)+", "+str(fails)+", "\
-                        ""+cmdMsg_txt+", "+cmdMsg_txt+", "\
-                        ""+status_txt+", "+status_txt+", "\
-                        ""+zoneState_txt+", "+zoneState_txt+") "
+                        ""+cmdMsg_txt+", "\
+                        ""+status_txt+", "\
+                        ""+zoneState_txt+") "
                 goutils.log2("DBG", query)
                 simple_execute(query)
 

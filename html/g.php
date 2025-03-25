@@ -104,6 +104,9 @@ try {
             // Loop through each player and display in a table row
             if (!empty($players)) {
                 $i_player = 1;
+                if (!isset($_SESSION['allyCodes'])) {
+                    $_SESSION['allyCodes'] = [];
+                }
                 foreach ($players as $player) {
                     $allyCode_display = substr($player['allyCode'], 0, 3) . "-";
                     $allyCode_display .= substr($player['allyCode'], 3, 3) . "-";
