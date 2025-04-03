@@ -553,6 +553,10 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
     current_tb_phase = {} # key = DS/MS/LS or top/mid/bot, value = number [1,6] of the phase
     detect_previous_BT = False
+
+    sort_by_location = False
+    sort_by_unit = False
+    sort_by_player = False
     
     # Read history of messages
     try:
@@ -560,17 +564,30 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
             if message.author.name == "EchoStation" or message.author.id == echostation_id:
                 if message.content.startswith('```prolog'):
                     #EB message by territory
-                    ret_re = re.search('```prolog\n.* \((.*)\):.*', message.content)
-                    territory_position = ret_re.group(1) #top, mid, bonus...
+                    sort_by_location = True
+
+                    ret_re = re.search('```prolog\n(.*) \((.*)\):.*', message.content)
+                    territory_name = ret_re.group(1) #Kashyyk, Zeffo, Hangar...
+                    territory_position = ret_re.group(2) #top, mid, bonus...
+
+                    if not territory_name in dict_tb["zone_names"]:
+                        return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+"), territoire '"+territory_name+"' inconnu", None
                       
+                    territory_name_position = dict_tb["zone_names"][territory_name]
+                    territory_phase = territory_name_position.split("-")[0][-1]
+                    territory_pos = territory_name_position.split("-")[1] #LS, DS, MS, top, mid, bot (+ optional 'b')
+
+                    if territory_pos in current_tb_phase and current_tb_phase[territory_pos]<territory_phase:
+                        detect_previous_BT = True
+                        return 1
+                    current_tb_phase[territory_pos] = territory_phase
+
                     for embed in message.embeds:
                         dict_embed = embed.to_dict()
                         if 'fields' in dict_embed:
-                            #on garde le nom de la BT mais on met X comme numéro de phase
-                            #le numéro de phase sera affecté plus tard
                             platoon_num = dict_embed["description"].split(" ")[2][0]
 
-                            platoon_name = tbs_name + "X-" + territory_position + "-" + platoon_num
+                            platoon_name = territory_name_position + "-" + platoon_num
                             for dict_player in dict_embed['fields']:
                                 player_name = dict_player['name']
                                 for character in dict_player['value'].split('\n'):
@@ -696,102 +713,34 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
                     goutils.log2("INFO", "EB Overview line: "+message_lines[0])
 
-                    for line in message_lines:
-                        if ":globe_with_meridians:" in line:
-                            ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
-                            if ret_re != None:
-                                territory_name = ret_re.group(1)
-                                territory_position = ret_re.group(2) #top, bottom, mid
-                                if territory_position == 'bottom':
-                                    territory_position = 'bot'
-                                
-                                if territory_name in dict_tb["zone_names"]:
-                                    # TEMPORARY
-                                    # Read next 3 lines to get amount of open/closed platoons
-                                    i_line = message_lines.index(line)
-                                    x_count=0
-                                    for subline in message_lines[i_line+1:i_line+4]:
-                                        print(subline)
-                                        print(subline.count(':x:'))
-                                        x_count+=subline.count(':x:')
-                                    if x_count==6:
-                                        goutils.log2("WAR", "Planet "+territory_name+" has no allocation >> skipped")
-                                        continue
-                                    # END TEMPORARY
+                    if not sort_by_location:
+                        #if EB is sorted by location, the names of territories is already defined
+                        tname_tpos_dict = {}
+                        for line in message_lines:
+                            if ":globe_with_meridians:" in line:
+                                ret_re = re.search(":.*: \*\*(.*) \((.*)\)\*\*", line)
+                                if ret_re != None:
+                                    territory_name = ret_re.group(1)
+                                    territory_position = ret_re.group(2) #top, bottom, mid
+                                    
+                                    if territory_position in tname_tpos_dict:
+                                        #ERROR
+                                        return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+") car il y a deux zones nommées '"+territory_position+"'. Essayez de trier les allocations par *Location*", None
 
-                                    territory_name_position = dict_tb["zone_names"][territory_name]
-                                    territory_phase = territory_name_position.split("-")[0][-1]
-                                    if territory_position == "left":
-                                        territory_pos = "DS"
-                                    elif territory_position == "right":
-                                        territory_pos = "LS"
-                                    elif territory_position == "mid":
-                                        if tbs_name == "ROTE":
-                                            territory_pos = "MS"
-                                        else:
-                                            territory_pos = "mid"
-                                    else: #if territory_position in ["top", "bot"]:
-                                        territory_pos = territory_position
+                                    tname_tpos_dict[territory_position] = territory_name
 
-                                    if territory_pos in current_tb_phase and current_tb_phase[territory_pos]<territory_phase:
-                                        detect_previous_BT = True
-                                        break
-                                    current_tb_phase[territory_pos] = territory_phase
+                        # Now that we have ensured no ambiguity in zone short names
+                        # then rename platoons
+                        for territory_position in tname_tpos_dict:
+                            territory_name = tname_tpos_dict[territory_position]
+                            ret_code = await replace_territory_name_in_platoons(territory_name, territory_position, dict_platoons_allocations, current_tb_phase)
+                            if ret_code == 1:
+                                #detect previous BT
+                                break
+                            elif ret_code == 2:
+                                #error in platoon parsing
+                                return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+"), territoire '"+territory_name+"' inconnu", None
 
-                                    #Check if this mission/territory has been allocated in previous message
-                                    existing_platoons = [i for i in dict_platoons_allocation.keys()
-                                                         if i.startswith(territory_name_position)]
-
-                                    if True: #len(existing_platoons) == 0:                    
-                                        #TODO risk of regression here. Check kept for provision
-                                        #necessary to remove the check when same zone has different allocations among several days
-                                        # with the right name for the territory, modify dictionary
-                                        keys_to_rename=[]                         
-                                        for platoon_name in dict_platoons_allocation:
-                                            if platoon_name.startswith(tbs_name + "X-"+territory_position):
-                                                keys_to_rename.append(platoon_name)
-                                            if platoon_name.startswith(tbs_name + "X-PLATOON") \
-                                            or platoon_name.startswith(tbs_name + "X-OPERATION"):
-                                                keys_to_rename.append(platoon_name)
-                                        for key in keys_to_rename:
-                                            new_key = territory_name_position+key[-2:]
-                                            if new_key in dict_platoons_allocation:
-                                                #Case of a platoon allocated twice
-                                                # - either part day1 and part day 2
-                                                # - or day2 replaces day1
-                                                #Anyway the logic is to add, in the day2 allocations (key),
-                                                # all allocations from day1 (new_key) that are not in conflict
-                                                # (day2 has priority)
-
-                                                for charname in dict_platoons_allocation[new_key]:
-                                                    if charname in dict_platoons_allocation[key]:
-                                                        added_players = [i for i in dict_platoons_allocation[new_key][charname] if i != 'Filled in another phase']
-                                                        players = dict_platoons_allocation[key][charname]
-                                                        for player in added_players:
-                                                            if "Filled in another phase" in players:
-                                                                players.remove("Filled in another phase")
-                                                                players.append(player)
-                                                            else:
-                                                                #platoon already full, previous player is ignored
-                                                                pass
-                                                        dict_platoons_allocation[key][charname] = players
-                                                    else:
-                                                        #should not happen, but just in case...
-                                                        dict_platoons_allocation[key][charname] = dict_platoons_allocation[new_key][charname]
-
-                                            # Now that the key is well defined, rename it
-                                            dict_platoons_allocation[new_key] = \
-                                                    dict_platoons_allocation[key]
-                                            del dict_platoons_allocation[key]
-                                                
-                                else:
-                                    war_txt = "["+str(tbChannel_id)+"] Unknown mission "+territory_name
-                                    goutils.log2("WAR", war_txt)
-                                    await send_alert_to_admins(None, war_txt)
-
-                    #if detect_previous_BT:
-                    #    #out of the main message reading loop
-                    #    break
 
                     # Assumption of a single Echostation allocation per phase
                     # no need to detect platoons from previous phases
@@ -856,6 +805,70 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
     return 0, "", {"phase": eb_phase,
                    "dict_platoons_allocation": dict_platoons_allocation}
+
+###############
+#OUT: 0 = OK / 1 = detect_previous_BT / 2 = unknown name
+async def replace_territory_name_in_platoons(territory_name, territory_position, dict_platoons_allocations, current_tb_phase):
+    if not territory_name in dict_tb["zone_names"]:
+        return 2
+
+    territory_name_position = dict_tb["zone_names"][territory_name]
+    tbs_name = territory_name_position.split("-")[0][:-1]
+    territory_phase = territory_name_position.split("-")[0][-1]
+    territory_pos = territory_name_position.split("-")[1] #LS, DS, MS, top, mid, bot (+ optional 'b')
+
+    if territory_pos in current_tb_phase and current_tb_phase[territory_pos]<territory_phase:
+        detect_previous_BT = True
+        return 1
+    current_tb_phase[territory_pos] = territory_phase
+
+    #Check if this mission/territory has been allocated in previous message
+    existing_platoons = [i for i in dict_platoons_allocation.keys()
+                         if i.startswith(territory_name_position)]
+
+    if True: #len(existing_platoons) == 0:                    
+        #TODO risk of regression here. Check kept for provision
+        #necessary to remove the check when same zone has different allocations among several days
+        # with the right name for the territory, modify dictionary
+        keys_to_rename=[]                         
+        for platoon_name in dict_platoons_allocation:
+            if platoon_name.startswith(tbs_name + "X-"+territory_position):
+                keys_to_rename.append(platoon_name)
+            if platoon_name.startswith(tbs_name + "X-PLATOON") \
+            or platoon_name.startswith(tbs_name + "X-OPERATION"):
+                keys_to_rename.append(platoon_name)
+        for key in keys_to_rename:
+            new_key = territory_name_position+key[-2:]
+            if new_key in dict_platoons_allocation:
+                #Case of a platoon allocated twice
+                # - either part day1 and part day 2
+                # - or day2 replaces day1
+                #Anyway the logic is to add, in the day2 allocations (key),
+                # all allocations from day1 (new_key) that are not in conflict
+                # (day2 has priority)
+
+                for charname in dict_platoons_allocation[new_key]:
+                    if charname in dict_platoons_allocation[key]:
+                        added_players = [i for i in dict_platoons_allocation[new_key][charname] if i != 'Filled in another phase']
+                        players = dict_platoons_allocation[key][charname]
+                        for player in added_players:
+                            if "Filled in another phase" in players:
+                                players.remove("Filled in another phase")
+                                players.append(player)
+                            else:
+                                #platoon already full, previous player is ignored
+                                pass
+                        dict_platoons_allocation[key][charname] = players
+                    else:
+                        #should not happen, but just in case...
+                        dict_platoons_allocation[key][charname] = dict_platoons_allocation[new_key][charname]
+
+            # Now that the key is well defined, rename it
+            dict_platoons_allocation[new_key] = \
+                    dict_platoons_allocation[key]
+            del dict_platoons_allocation[key]
+                    
+    return 0
 
 #####################
 # IN - guild_id: the game guild ID
