@@ -89,12 +89,10 @@ foreach($tw_db_data as $tw_line) {
 }
 
 function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
+    // this is a public page, we don't show filling status
     if ($zones[$side][$zone_name]['victories'] == $zones[$side][$zone_name]['size']) {
         $zone_color = 'dark';
         $crossed = 'background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px))';
-    } elseif ($zones[$side][$zone_name]['filled'] < $zones[$side][$zone_name]['size']) {
-        $zone_color = 'light';
-        $crossed = '';
     } else {
         $zone_color = '';
         $crossed = '';

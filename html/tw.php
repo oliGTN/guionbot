@@ -81,6 +81,7 @@ foreach($zone_list as $zone) {
     $zone_name = $zone['zone_name'];
     $zones[$side][$zone_name] = $zone;
 }
+//error_log(print_r($zones, true));
 
 // --------------- GET ZONE INFO FOR THE SQUADS -----------
 // Prepare the SQL query
@@ -131,7 +132,8 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     if ($zones[$side][$zone_name]['victories'] == $zones[$side][$zone_name]['size']) {
         $zone_color = 'dark';
         $crossed = 'background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px))';
-    } elseif ($zones[$side][$zone_name]['filled'] < $zones[$side][$zone_name]['size']) {
+    } elseif ($isMyGuildConfirmed & ($zones[$side][$zone_name]['filled'] < $zones[$side][$zone_name]['size'])) {
+        // filling status is only shown for guild players
         $zone_color = 'light';
         $crossed = '';
     } else {
@@ -342,7 +344,7 @@ function openZone(evt, zoneSide, zoneName) {
                 echo "<div id='h".$zone_name."' class='hometabcontent'>";
                 if (isset($squads['home'][$zone_name])) {
                     $zone_squads = $squads['home'][$zone_name];
-                    echo "<b>".$zone_name.": ".$zones['away'][$zone_name]['commandMsg']."</br>\n";
+                    echo "<b>".$zone_name.": ".$zones['home'][$zone_name]['commandMsg']."</br>\n";
                     echo "<table>\n";
                     foreach($zone_squads as $squad_id => $squad) {
                         echo "<tr>";
