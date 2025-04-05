@@ -733,7 +733,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                         # then rename platoons
                         for territory_position in tname_tpos_dict:
                             territory_name = tname_tpos_dict[territory_position]
-                            ret_code = await replace_territory_name_in_platoons(territory_name, territory_position, dict_platoons_allocations, current_tb_phase)
+                            ret_code = await replace_territory_name_in_platoons(territory_name, territory_position, dict_platoons_allocation, current_tb_phase)
                             if ret_code == 1:
                                 #detect previous BT
                                 break
@@ -808,7 +808,9 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
 ###############
 #OUT: 0 = OK / 1 = detect_previous_BT / 2 = unknown name
-async def replace_territory_name_in_platoons(territory_name, territory_position, dict_platoons_allocations, current_tb_phase):
+async def replace_territory_name_in_platoons(territory_name, territory_position, dict_platoons_allocation, current_tb_phase):
+    dict_tb = data.get("tb_definition.json")
+
     if not territory_name in dict_tb["zone_names"]:
         return 2
 
