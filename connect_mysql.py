@@ -1375,7 +1375,6 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
 # update player data only if something has changed, for performance reasons
 async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dict_strike_zones, list_open_zones, dict_tb_players):
     dict_tb = data.get("tb_definition.json")
-    now = datetime.datetime.now()
 
     ##################################
     # Whole TB data
@@ -1744,6 +1743,84 @@ async def store_tb_events(guild_id, tb_id, list_events):
         #breathe
         await asyncio.sleep(0)
 
+# store patoon progress
+# this helps checking platoons in case same player has to put
+#  same toon in same platoon 2 days in a row
+async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
+    ##################################
+    # Whole TB data
+    ##################################
+    # Get the TB in DB
+    query = "SELECT id FROM tb_history " \
+            "WHERE tb_id='"+tb_id+"' "\
+            "AND guild_id='"+guild_id+"' "
+    goutils.log2("DBG", query)
+    db_data = get_value(query)
+
+    if db_data==None:
+        #wait for TB to be created
+        goutils.log2("WAR", "TB "+tb_id+" does not exist for guild "+guild_id)
+        return
+    else:
+        tb_db_id = db_data
+
+    # Get stored platoons
+    query = "SELECT platoon_name, unit_name, player_name "\
+            "FROM tb_platoons "\
+            "WHERE tb_id="+str(tb_db_id)
+    goutils.log2("DBG", query)
+    db_data = get_value(query)
+    if db_data==None:
+        db_data = []
+
+    dict_db_platoons = []
+    for line in db_data:
+        platoon_name = line[0]
+        unit_name = line[1]
+        player_name = line[1]
+        if not platoon_name in dict_db_platoons:
+            dict_db_platoons[platoon_name] = {}
+        if not unit_name in dict_db_platoons[platoon_name]:
+            dict_db_platoons[platoon_name] = []
+        dict_db_platoons[platoon_name].append(player_name)
+
+    # Compare with latest know platoons
+    for platoon_name in dict_platoons_done:
+        if platoon_name in dict_db_platoons:
+            # platoon already known
+            for unit_name in dict_platoons_done[platoon_name]:
+                if unit_name in dict_db_platoons[platoon_name]:
+                    list_db_playernames = list(dict_db_platoons[platoon_name][unit_name])
+                    for player_name in dict_platoons_done[platoon_name][unit_name]:
+                        if player_name!='':
+                            if player_name in list_db_playernames:
+                                list_db_player_names.remove(player_name)
+                            else:
+                                query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
+                                        "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
+                                goutils.log2("DBG", query)
+                                simple_execute(query)
+                else:
+                    if player_name!='':
+                        for player_name in dict_platoons_done[platoon_name][unit_name]:
+                            query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
+                                    "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
+                            goutils.log2("DBG", query)
+                            simple_execute(query)
+
+        else:
+            # new platoon
+            for unit_name in dict_platoons_done[platoon_name]:
+                for player_name in dict_platoons_done[platoon_name][unit_name]:
+                    if player_name!='':
+                        query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
+                                "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
+                        goutils.log2("DBG", query)
+                        simple_execute(query)
+
+    return
+
+
 #################################
 # update TW in DB
 async def update_tw_from_guild(dict_guild):
@@ -1769,7 +1846,6 @@ async def update_tw_from_guild(dict_guild):
 async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_score,
               homeGuild, awayGuild):
     dict_tw = data.dict_tw
-    now = datetime.datetime.now()
 
     # Check / Create the TW in DB
     query = "SELECT id FROM tw_history " \

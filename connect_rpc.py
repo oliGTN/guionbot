@@ -863,12 +863,13 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
     open_zone_count = 0
     for battleStatus in dict_guild["territoryBattleStatus"]:
         if battleStatus["selected"]:
-            tb_id = battleStatus["definitionId"]
-            if not tb_id in dict_tb:
+            tb_defId = battleStatus["definitionId"]
+            if not tb_defId in dict_tb:
                 goutils.log2("WAR", "["+guildName+"] TB inconnue du bot")
                 return 1, "["+guildName+"] TB inconnue du bot", {}
 
-            tb_name = dict_tb[tb_id]["shortname"]
+            tb_name = dict_tb[tb_defId]["shortname"]
+            tb_id = battleStatus["instanceId"]
             active_round = tb_name + str(battleStatus["currentRound"])
 
             if active_round == 0:
@@ -926,7 +927,8 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
     if open_zone_count == 0:
         return 1, "No open territory", {}
 
-    return 0, "", {"round": active_round, 
+    return 0, "", {"tb_id": tb_id,
+                   "round": active_round, 
                    "platoons": dict_platoons,
                    "open_territories": list_open_territories}
 

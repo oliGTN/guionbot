@@ -269,8 +269,11 @@ async def bot_loop_5minutes(bot):
                     goutils.log2("DBG", "["+guild_id+"] "+str(err_txt))
                     dict_platoons_previously_done[guild_id] = {}
                 else:
+                    tb_id = ret_data["tb_id"]
                     tbs_round = ret_data["round"]
                     dict_platoons_done = ret_data["platoons"]
+
+                    await connect_mysql.update_tb_platoons(guild_id, tb_id, tbs_round, dict_platoons_done)
 
                     goutils.log2("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
                     goutils.log2("INFO", "["+guild_id+"] End of platoon parsing for TB: round " + tbs_round)
