@@ -1769,20 +1769,20 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
             "FROM tb_platoons "\
             "WHERE tb_id="+str(tb_db_id)
     goutils.log2("DBG", query)
-    db_data = get_value(query)
+    db_data = get_table(query)
     if db_data==None:
         db_data = []
 
-    dict_db_platoons = []
+    dict_db_platoons = {}
     for line in db_data:
         platoon_name = line[0]
         unit_name = line[1]
-        player_name = line[1]
+        player_name = line[2]
         if not platoon_name in dict_db_platoons:
             dict_db_platoons[platoon_name] = {}
         if not unit_name in dict_db_platoons[platoon_name]:
-            dict_db_platoons[platoon_name] = []
-        dict_db_platoons[platoon_name].append(player_name)
+            dict_db_platoons[platoon_name][unit_name] = []
+        dict_db_platoons[platoon_name][unit_name].append(player_name)
 
     # Compare with latest know platoons
     for platoon_name in dict_platoons_done:
@@ -1794,7 +1794,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
                     for player_name in dict_platoons_done[platoon_name][unit_name]:
                         if player_name!='':
                             if player_name in list_db_playernames:
-                                list_db_player_names.remove(player_name)
+                                list_db_playernames.remove(player_name)
                             else:
                                 query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
                                         "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
