@@ -1381,7 +1381,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 if my_tb_round == None:
                     tb_round = battleStatus["currentRound"]
                     if tb_round==7:
-                        goutils.log2("INFO", battleStatus)
+                        goutils.log2("INFO", battleStatus["instanceId"])
+                        goutils.log2("INFO", battleStatus["definitionId"])
+                        goutils.log2("INFO", battleStatus["conflictZoneStatus"])
+                        goutils.log2("INFO", battleStatus["currentRound"])
                 else:
                     tb_round = my_tb_round
 
