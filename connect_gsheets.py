@@ -1203,3 +1203,50 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
     feuille.update_cells(cells)
 
     return 0, ""
+
+def read_rote_operations():
+    dict_units = data.get("unitsList_dict.json")
+    rote_sheet_key = '1JqHbujIYTsHAkO9DCyQZFt0G-kKdhiwNBVgcI-VzJcw'
+
+    try:
+        goutils.log2("DBG", "Get client...")
+        get_gapi_client()
+        goutils.log2("DBG", "Open file...")
+        file = client.open_by_key(rote_sheet_key)
+        goutils.log2("DBG", "Open worksheet...")
+        worksheet=file.worksheet('long_format')
+        goutils.log2("DBG", "Read worksheet...")
+        list_op_chars=worksheet.get_all_values()
+    except Exception as e:
+        goutils.log2("ERR", sys.exc_info()[0])
+        goutils.log2("ERR", e)
+        goutils.log2("ERR", traceback.format_exc())
+        goutils.log2("WAR", "Cannot connect to Google API")
+        return None
+
+    relic_by_phase = {'1': 5,
+                      '2': 6,
+                      '3': 7,
+                      '4': 8,
+                      '5': 9,
+                      '6': 9}
+
+    dict_ops_by_relic = {}
+    goutils.log2("DBG", "Parse worksheet...")
+    for char in list_op_chars[1:]:
+        char_phase = char[1]
+        char_id = char[7]
+        
+        if dict_units[char_id]["combatType"]==1:
+            char_relic = relic_by_phase[char_phase]
+        else:
+            char_relic = 0
+
+        if not char_id in dict_ops_by_relic:
+            dict_ops_by_relic[char_id] = {}
+
+        if not char_relic in dict_ops_by_relic[char_id]:
+            dict_ops_by_relic[char_id][char_relic] = 0
+        dict_ops_by_relic[char_id][char_relic] += 1
+
+    return dict_ops_by_relic
