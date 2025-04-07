@@ -1204,10 +1204,31 @@ def update_gwarstats_sheet(feuille, tb_round, dict_phase, dict_zones, dict_strik
 
     return 0, ""
 
-def read_rote_operations():
+def read_rote_operations(list_zones=[]):
     dict_units = data.get("unitsList_dict.json")
-    rote_sheet_key = '1JqHbujIYTsHAkO9DCyQZFt0G-kKdhiwNBVgcI-VzJcw'
+    dict_tb = data.get("tb_definition.json")
 
+    # Check list of zones
+    list_planets = []
+    print(list_zones)
+    for z in list_zones:
+        if not z.startswith("ROTE"):
+            return 1, "Zone ROTE inconnue "+z, None
+        if not '-' in z:
+            # eg: "ROTE4"
+            if not z[4:] in ['1', '2', '3', '4', '5', '6']:
+                return 1, "Phase/zone inconnue "+z, None
+            list_planets += [k for k in dict_tb["zone_names"] if dict_tb["zone_names"][k].startswith(z)]
+
+        else:
+            # eg: "ROTE3-DS"
+            filtered_planets = [k for k in dict_tb["zone_names"] if dict_tb["zone_names"][k]==z]
+            if len(filtered_planets)!=1:
+                return 1, "Zone inconnue "+z, None
+
+            list_planets += filtered_planets
+
+    rote_sheet_key = '1JqHbujIYTsHAkO9DCyQZFt0G-kKdhiwNBVgcI-VzJcw'
     try:
         goutils.log2("DBG", "Get client...")
         get_gapi_client()
@@ -1222,7 +1243,7 @@ def read_rote_operations():
         goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
         goutils.log2("WAR", "Cannot connect to Google API")
-        return None
+        return 1, "Impossible d'ouvrir le fichier des pelotons ROTE", None
 
     relic_by_phase = {'1': 5,
                       '2': 6,
@@ -1235,7 +1256,11 @@ def read_rote_operations():
     goutils.log2("DBG", "Parse worksheet...")
     for char in list_op_chars[1:]:
         char_phase = char[1]
+        char_planet = char[2]
         char_id = char[7]
+
+        if len(list_planets)>0 and not char_planet in list_planets:
+            continue
         
         if dict_units[char_id]["combatType"]==1:
             char_relic = relic_by_phase[char_phase]
@@ -1249,4 +1274,4 @@ def read_rote_operations():
             dict_ops_by_relic[char_id][char_relic] = 0
         dict_ops_by_relic[char_id][char_relic] += 1
 
-    return dict_ops_by_relic
+    return 0, "", dict_ops_by_relic

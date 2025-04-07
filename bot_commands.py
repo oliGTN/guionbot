@@ -7,11 +7,13 @@ import re
 import difflib
 import sys
 import traceback
+from texttable import Texttable
 
 # BOT imports
 import go
 import connect_rpc
 import connect_mysql
+import connect_gsheets
 import goutils
 import portraits
 import data
@@ -779,3 +781,95 @@ async def register(ctx_interaction, args):
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())
 
+async def tb_rare_toons(ctx_interaction, guild_ac, list_zones):
+    resp_msg = await command_ack(ctx_interaction)
+
+    ec, et, guild_ac = await manage_me(ctx_interaction, guild_ac, allow_tw=False)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    # Get list of platoons from SWGOH wiki
+    ec, et, dict_ops = connect_gsheets.read_rote_operations(list_zones)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    # Get list of toons from guild
+    query = "SELECT players.name, defId, relic_currentTier "\
+            "FROM roster "\
+            "JOIN players ON players.allyCode=roster.allyCode "\
+            "WHERE guildId=(SELECT guildId FROM players WHERE allyCode="+guild_ac+") "\
+            "AND rarity=7 "\
+            "AND defId IN "+str(tuple(dict_ops.keys()))
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+    d_guild = {}
+    d_players = {}
+    for l in db_data:
+        ac = l[0]
+        defId = l[1]
+        relic = max(l[2]-2, 0)
+
+        if not ac in d_players:
+            d_players[ac] = {}
+        d_players[ac][defId]=relic
+
+        if not defId in d_guild:
+            d_guild[defId] = {}
+        if not relic in d_guild[defId]:
+            d_guild[defId][relic] = 0
+        d_guild[defId][relic] += 1
+
+    #get rare toons
+    d_rares = {}
+    for unit in dict_ops:
+        for relic in dict_ops[unit]:
+            req = dict_ops[unit][relic]
+            guild = 0
+            for g_relic in d_guild[unit]:
+                if g_relic >= relic:
+                    guild += d_guild[unit][g_relic]
+            if (guild-req) < 2 and relic<9:
+                #print(unit, dict_ops[unit], d_guild[unit])
+                d_rares[unit+":"+str(relic)]=[req, guild]
+
+    list_rares = [["Unit", "Needed", "Owned"]]
+    list_colors=["black"]
+    for u in sorted(d_rares.keys()):
+        list_rares.append([u, d_rares[u][0], d_rares[u][1]])
+        if d_rares[u][0] > d_rares[u][1]:
+            list_colors.append("orange")
+        else:
+            list_colors.append("black")
+
+    t = Texttable(0)
+    t.add_rows(list_rares)
+    t.set_deco(0)
+    ec, et, image = portraits.get_image_from_texttable(t.draw(), line_colors=list_colors)
+
+    zones_txt = "ROTE"
+    if list_zones!=[]:
+        zones_txt = str(list_zones)
+    await command_ok(ctx_interaction, resp_msg, "Liste des toons rares pour "+zones_txt, images=[image])
+
+    """
+    d_player_rare_count = {}
+    for ac in sorted(d_players.keys()):
+        d_player_rare_count[ac] = 0
+        list_rares = []
+        for u in d_rares:
+            uid = u.split(':')[0]
+            if uid in list_rares:
+                continue
+            list_rares.append(uid)
+            urelic = int(u.split(':')[1])
+            if uid in d_players[ac] and urelic>0:
+                p_relic = d_players[ac][uid]
+                if p_relic>=urelic:
+                    #print(str(ac)+" has rare "+uid+":R"+str(p_relic))
+                    d_player_rare_count[ac] +=1
+
+    for ac in sorted(d_player_rare_count.keys()):
+        #print(ac, d_player_rare_count[ac])
+    """

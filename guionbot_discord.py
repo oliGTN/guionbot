@@ -2812,6 +2812,20 @@ class TbCog(commands.GroupCog, name="bt"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+    @app_commands.command(name="rare-toons")
+    async def rare_toons(self, interaction: discord.Interaction,
+                         guilde: str="me",
+                         liste_zones: str=""):
+        try:
+            if liste_zones=='':
+                list_zones=[]
+            else:
+                list_zones = liste_zones.split(" ")
+            await bot_commands.tb_rare_toons(interaction, guilde, list_zones)
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
 
 ##############################################################
 # Class: ModsCog - for Google accounts
