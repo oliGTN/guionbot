@@ -75,8 +75,9 @@ try {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+    <meta charset="UTF-8">
     <title>GuiOn bot for SWGOH</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="basic.css">
@@ -85,6 +86,53 @@ try {
     <link rel="stylesheet" href="main.1.008.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
+  <style>
+    /* Styles de la pagination */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      list-style: none;
+      margin-top: 20px;
+      padding: 0;
+    }
+    .pagination li {
+      margin: 0 5px;
+    }
+    .pagination li a,
+    .pagination li span {
+      display: block;
+      padding: 8px 12px;
+      text-decoration: none;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+    }
+    .pagination li a {
+      color: #007bff;
+      background-color: #fff;
+      transition: background-color 0.3s;
+      cursor: pointer;
+    }
+    .pagination li a:hover {
+      background-color: #e9ecef;
+    }
+    .pagination li a.active {
+      background-color: #007bff;
+      color: #fff;
+      border-color: #007bff;
+    }
+    .pagination li a.disabled {
+      pointer-events: none;
+      color: #6c757d;
+      background-color: #fff;
+      border-color: #dee2e6;
+      cursor: default;
+    }
+    .pagination li span.ellipsis {
+      color: #6c757d;
+      border: none;
+      background: transparent;
+    }
+  </style>
 <body>
 <div class="site-container">
 <div class="site-pusher">
@@ -149,25 +197,7 @@ try {
     </div>
     
     <!-- Pagination Controls -->
-    <div class="pagination">
-        <?php if ($page > 1): ?>
-            <a href="index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $page-1; ?>">Previous</a>
-        <?php else: ?>
-            <a class="disabled">Previous</a>
-        <?php endif; ?>
-
-        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-            <a href="index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $i; ?>" class="<?php echo ($i == $page) ? 'active' : ''; ?>">
-                <?php echo $i; ?>
-            </a>
-        <?php endfor; ?>
-
-        <?php if ($page < $total_pages): ?>
-            <a href="index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $page+1; ?>">Next</a>
-        <?php else: ?>
-            <a class="disabled">Next</a>
-        <?php endif; ?>
-    </div>
+    <ul class="pagination" id="pagination"></ul>
 
     </div>
     </div>
@@ -175,7 +205,134 @@ try {
 
 </div>
 </div>
-</body>
 <?php include 'sitefooter.php' ; ?>
-<wavesge
-/html>
+
+    <!-- Pagination script -->
+  <script>
+    // Paramètres de pagination (exemple, à adapter selon tes données)
+    let totalPages = <?php echo $total_pages;?>;
+    let currentPage = <?php echo $page;?>;
+
+    // Détermine le nombre maximum de pages à afficher selon la largeur de l'écran
+    function getMaxVisiblePages() {
+      const width = window.innerWidth;
+      if (width < 576) return 3;     // Très petit écran
+      else if (width < 768) return 5; // Petit écran
+      else if (width < 992) return 7; // Écran moyen
+      else return 9;                // Grand écran
+    }
+
+    // Génère la liste des pages avec les ellipsis
+    function generatePagination(total, current, maxVisible) {
+      let pages = [];
+      if (total <= maxVisible) {
+        for (let i = 1; i <= total; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        let left = current - Math.floor((maxVisible - 3) / 2);
+        let right = current + Math.floor((maxVisible - 3) / 2);
+
+        if (left < 2) {
+          left = 2;
+          right = left + maxVisible - 3;
+        }
+        if (right > total - 1) {
+          right = total - 1;
+          left = right - maxVisible + 3;
+          if (left < 2) left = 2;
+        }
+
+        if (left > 2) pages.push("ellipsis");
+        for (let i = left; i <= right; i++) {
+          pages.push(i);
+        }
+        if (right < total - 1) pages.push("ellipsis");
+        pages.push(total);
+      }
+      return pages;
+    }
+
+    // Met à jour l'affichage de la pagination
+    function updatePagination() {
+      const paginationContainer = document.getElementById("pagination");
+      paginationContainer.innerHTML = ""; // On vide le conteneur
+
+      const maxVisible = getMaxVisiblePages();
+      const pages = generatePagination(totalPages, currentPage, maxVisible);
+
+      // Bouton "Previous"
+      const prevItem = document.createElement("li");
+      const prevLink = document.createElement("a");
+      prevLink.textContent = "Previous";
+      if (currentPage === 1) {
+        prevLink.classList.add("disabled");
+      } else {
+        prevLink.href = "#";
+        prevLink_url = "index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $page-1; ?>";
+        prevLink.href = prevLink_url;
+        //prevLink.addEventListener("click", function(e) {
+        //  e.preventDefault();
+        //  currentPage--;
+        //  updatePagination();
+        //});
+      }
+      prevItem.appendChild(prevLink);
+      paginationContainer.appendChild(prevItem);
+
+      // Boutons des pages
+      pages.forEach(function(page) {
+        const li = document.createElement("li");
+        if (page === "ellipsis") {
+          const span = document.createElement("span");
+          span.textContent = "...";
+          span.classList.add("ellipsis");
+          li.appendChild(span);
+        } else {
+          const a = document.createElement("a");
+          a.textContent = page;
+          if (page === currentPage) {
+            a.classList.add("active");
+          } else {
+            a.href = "#";
+            a_url = "index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page="+page;
+            a.href = a_url;
+            //a.addEventListener("click", function(e) {
+              //e.preventDefault();
+              //currentPage = page;
+              //updatePagination();
+            //});
+          }
+          li.appendChild(a);
+        }
+        paginationContainer.appendChild(li);
+      });
+
+      // Bouton "Next"
+      const nextItem = document.createElement("li");
+      const nextLink = document.createElement("a");
+      nextLink.textContent = "Next";
+      if (currentPage === totalPages) {
+        nextLink.classList.add("disabled");
+      } else {
+        nextLink.href = "#";
+        nextLink_url = "index.php?sort=<?php echo $sort_column; ?>&order=<?php echo $sort_order; ?>&page=<?php echo $page+1; ?>";
+        nextLink.href = nextLink_url;
+        //nextLink.addEventListener("click", function(e) {
+        //  e.preventDefault();
+        //  currentPage++;
+        //  updatePagination();
+        //});
+      }
+      nextItem.appendChild(nextLink);
+      paginationContainer.appendChild(nextItem);
+    }
+
+    // Mise à jour de la pagination au chargement et lors du redimensionnement
+    window.addEventListener("resize", updatePagination);
+    updatePagination();
+  </script>
+
+</body>
+</html>
