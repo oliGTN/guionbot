@@ -781,7 +781,7 @@ async def register(ctx_interaction, args):
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())
 
-async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac=None):
+async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_txt=None):
     resp_msg = await command_ack(ctx_interaction)
 
     ec, et, guild_ac = await manage_me(ctx_interaction, guild_ac, allow_tw=False)
@@ -789,11 +789,29 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac=
         await command_error(ctx_interaction, resp_msg, et)
         return
 
+    if filter_player_ac_txt != None:
+        ec, et, filter_player_ac_txt = await manage_me(ctx_interaction, filter_player_ac_txt, allow_tw=False)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, et)
+            return
+
     # Get list of platoons from SWGOH wiki
     ec, et, dict_ops = connect_gsheets.read_rote_operations(list_zones)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         return
+
+    # Get list of allyCodes from guild
+    query = "SELECT allyCode "\
+            "FROM players "\
+            "WHERE guildId=(SELECT guildId FROM players WHERE allyCode="+guild_ac+") "\
+            "AND guildId!='' "
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_column(query)
+    if db_data==None:
+        await command_error(ctx_interaction, resp_msg, guild_ac+" n'est dans aucune guilde")
+        return
+    list_guild_ac = db_data
 
     # Get list of toons from guild
     query = "SELECT players.name, defId, relic_currentTier "\
@@ -834,42 +852,82 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac=
                 #print(unit, dict_ops[unit], d_guild[unit])
                 d_rares[unit+":"+str(relic)]=[req, guild]
 
-    list_rares = [["Unit", "Needed", "Owned"]]
-    list_colors=["black"]
-    for u in sorted(d_rares.keys()):
-        list_rares.append([u, d_rares[u][0], d_rares[u][1]])
-        if d_rares[u][0] > d_rares[u][1]:
-            list_colors.append("orange")
+    if filter_player_ac_txt == None:
+        #No filter player, list rare toons of the guild
+        list_rares = [["Unit", "Needed", "Owned"]]
+        list_colors=["black"]
+        for u in sorted(d_rares.keys()):
+            list_rares.append([u, d_rares[u][0], d_rares[u][1]])
+            if d_rares[u][0] > d_rares[u][1]:
+                list_colors.append("orange")
+            else:
+                list_colors.append("black")
+
+        t = Texttable(0)
+        t.add_rows(list_rares)
+        t.set_deco(0)
+        ec, et, image = portraits.get_image_from_texttable(t.draw(), line_colors=list_colors)
+
+        zones_txt = "ROTE"
+        if list_zones!=[]:
+            zones_txt = str(list_zones)
+        await command_ok(ctx_interaction, resp_msg, "Liste des toons rares pour "+zones_txt, images=[image])
+
+    else:
+        #filter player is given, list rare toons of this player
+        ec, et, d_player = await go.load_player(filter_player_ac_txt, 1, False)
+        if ec != 0:
+            await command_error(ctx_interaction, resp_msg, et)
+
+        filter_player_ac = int(filter_player_ac_txt)
+        filter_player_name = d_player["name"]
+        list_rares = [["Unit", "Needed", "Owned"]]
+        if filter_player_ac in list_guild_ac:
+            # player is part of the guild
+            list_rares = []
+            for u in d_rares:
+                uid = u.split(':')[0]
+                if uid in list_rares:
+                    continue
+                list_rares.append(uid)
+                urelic = int(u.split(':')[1])
+                if uid in d_players[filter_player_name] and urelic>0:
+                    p_relic = d_players[filter_player_name][uid]
+                    if p_relic>=urelic:
+                        list_rares.append([u, d_rares[u][0], d_rares[u][1]])
+                        if d_rares[u][1] == 1:
+                            list_colors.append("green")
+                            #print(filter_player_name+" est le seul à avoir "+uid+":R"+str(p_relic))
+                        else:
+                            list_colors.append("black")
+                            #print(filter_player_name+" a le toon rare "+uid+":R"+str(p_relic))
+
         else:
-            list_colors.append("black")
+            # filter_player is not in the guild
+            list_rares = []
+            for u in d_rares:
+                uid = u.split(':')[0]
+                if uid in list_rares:
+                    continue
+                list_rares.append(uid)
+                urelic = int(u.split(':')[1])
+                if uid in d_player["rosterUnit"] and urelic>0:
+                    p_relic = d_player["rosterUnit"][uid]["relic"]["currentTier"]-2
+                    if p_relic>=urelic:
+                        list_rares.append([u, d_rares[u][0], d_rares[u][1]])
+                        if d_rares[u][1] == 0:
+                            list_colors.append("green")
+                            #print(filter_player_name+" a toon qui manque "+uid+":R"+str(p_relic))
+                        else:
+                            list_colors.append("black")
+                            #print(filter_player_name+" a le toon rare "+uid+":R"+str(p_relic))
+        t = Texttable(0)
+        t.add_rows(list_rares)
+        t.set_deco(0)
+        ec, et, image = portraits.get_image_from_texttable(t.draw(), line_colors=list_colors)
 
-    t = Texttable(0)
-    t.add_rows(list_rares)
-    t.set_deco(0)
-    ec, et, image = portraits.get_image_from_texttable(t.draw(), line_colors=list_colors)
+        zones_txt = "ROTE"
+        if list_zones!=[]:
+            zones_txt = str(list_zones)
+        await command_ok(ctx_interaction, resp_msg, "Liste des toons rares de "+filter_player_name+" pour "+zones_txt, images=[image])
 
-    zones_txt = "ROTE"
-    if list_zones!=[]:
-        zones_txt = str(list_zones)
-    await command_ok(ctx_interaction, resp_msg, "Liste des toons rares pour "+zones_txt, images=[image])
-
-    """
-    d_player_rare_count = {}
-    for ac in sorted(d_players.keys()):
-        d_player_rare_count[ac] = 0
-        list_rares = []
-        for u in d_rares:
-            uid = u.split(':')[0]
-            if uid in list_rares:
-                continue
-            list_rares.append(uid)
-            urelic = int(u.split(':')[1])
-            if uid in d_players[ac] and urelic>0:
-                p_relic = d_players[ac][uid]
-                if p_relic>=urelic:
-                    #print(str(ac)+" has rare "+uid+":R"+str(p_relic))
-                    d_player_rare_count[ac] +=1
-
-    for ac in sorted(d_player_rare_count.keys()):
-        #print(ac, d_player_rare_count[ac])
-    """

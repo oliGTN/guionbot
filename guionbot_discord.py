@@ -2511,6 +2511,8 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     @commands.command(name='sync', brief="Synchronise les commands slash")
     async def sync(self, ctx, *arg):
         try:
+            await ctx.message.add_reaction(emojis.thumb)
+
             if len(arg)>0 and arg[0]=="clear":
                 clear_commands=True
             else:
@@ -5768,7 +5770,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+err_alias_txt+'`' + txt + '`')
                         first_msg=False
                     else:
-                        await ctx.send('`' + txt + '`')
+                        await ctx.send('```' + txt + '```')
 
                 if list_unit_id==None:
                     await ctx.send("StatQ = "+str(round(statq, 2)))

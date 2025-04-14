@@ -1210,13 +1210,13 @@ def read_rote_operations(list_zones=[]):
 
     # Check list of zones
     list_planets = []
-    print(list_zones)
+    goutils.log2("DBG", list_zones)
     for z in list_zones:
         if not z.startswith("ROTE"):
             return 1, "Zone ROTE inconnue "+z, None
         if not '-' in z:
             # eg: "ROTE4"
-            if not z[4:] in ['1', '2', '3', '4', '5', '6']:
+            if not z[4:] in ['1', '2', '3', '4', '5', '6', '']:
                 return 1, "Phase/zone inconnue "+z, None
             list_planets += [k for k in dict_tb["zone_names"] if dict_tb["zone_names"][k].startswith(z)]
 
