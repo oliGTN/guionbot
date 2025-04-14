@@ -2815,13 +2815,19 @@ class TbCog(commands.GroupCog, name="bt"):
     @app_commands.command(name="rare-toons")
     async def rare_toons(self, interaction: discord.Interaction,
                          guilde: str="me",
-                         liste_zones: str=""):
+                         liste_zones: str="",
+                         joueur: str=""):
         try:
             if liste_zones=='':
                 list_zones=[]
             else:
                 list_zones = liste_zones.split(" ")
-            await bot_commands.tb_rare_toons(interaction, guilde, list_zones)
+            if joueur=="":
+                filter_player=None
+            else:
+                filter_player=joueur
+            await bot_commands.tb_rare_toons(interaction, guilde, list_zones, filter_player)
+
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")

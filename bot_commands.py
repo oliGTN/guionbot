@@ -781,7 +781,7 @@ async def register(ctx_interaction, args):
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())
 
-async def tb_rare_toons(ctx_interaction, guild_ac, list_zones):
+async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac=None):
     resp_msg = await command_ack(ctx_interaction)
 
     ec, et, guild_ac = await manage_me(ctx_interaction, guild_ac, allow_tw=False)
