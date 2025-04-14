@@ -897,7 +897,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
                     if p_relic>=urelic:
                         list_rares.append([u, d_rares[u][0], d_rares[u][1]])
                         if d_rares[u][1] == 1:
-                            list_colors.append("green")
+                            list_colors.append("orange")
                             #print(filter_player_name+" est le seul à avoir "+uid+":R"+str(p_relic))
                         else:
                             list_colors.append("black")
