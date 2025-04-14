@@ -882,14 +882,15 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
         filter_player_ac = int(filter_player_ac_txt)
         filter_player_name = d_player["name"]
         list_rares = [["Unit", "Needed", "Owned"]]
+        list_u_rares = []
+        list_colors=["black"]
         if filter_player_ac in list_guild_ac:
             # player is part of the guild
-            list_rares = []
             for u in d_rares:
                 uid = u.split(':')[0]
-                if uid in list_rares:
+                if uid in list_u_rares:
                     continue
-                list_rares.append(uid)
+                list_u_rares.append(uid)
                 urelic = int(u.split(':')[1])
                 if uid in d_players[filter_player_name] and urelic>0:
                     p_relic = d_players[filter_player_name][uid]
@@ -904,12 +905,11 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
 
         else:
             # filter_player is not in the guild
-            list_rares = []
             for u in d_rares:
                 uid = u.split(':')[0]
-                if uid in list_rares:
+                if uid in list_u_rares:
                     continue
-                list_rares.append(uid)
+                list_u_rares.append(uid)
                 urelic = int(u.split(':')[1])
                 if uid in d_player["rosterUnit"] and urelic>0:
                     p_relic = d_player["rosterUnit"][uid]["relic"]["currentTier"]-2
@@ -921,6 +921,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
                         else:
                             list_colors.append("black")
                             #print(filter_player_name+" a le toon rare "+uid+":R"+str(p_relic))
+        print(list_rares)
         t = Texttable(0)
         t.add_rows(list_rares)
         t.set_deco(0)
