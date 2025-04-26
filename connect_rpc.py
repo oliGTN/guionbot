@@ -12,6 +12,7 @@ import aiohttp
 import random
 import traceback
 
+import emojis
 import goutils
 import data as godata
 import connect_mysql
@@ -1445,11 +1446,41 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 err_code, csv, image = await go.print_tb_strike_stats(
                                                 guild_id, [], [],
                                                 allyCode=allyCode)
+
+                # Get TB result (stars and bonus)
+                tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
+                stars = 0
+                bonus = {}
+                for z in tbs["conflictZoneStatus"]:
+                    z_id = z["zoneStatus"]["zoneId"]
+                    z_name = dict_tb[z_id]["fullname"]
+                    z_score = int(z["zoneStatus"]["score"])
+                    z_steps = dict_tb[z_id]["scores"]
+                    my_stars = 0
+                    if z_score >= z_steps[0]:
+                        my_stars+=1
+                    if z_score >= z_steps[1]:
+                        my_stars+=1
+                    if z_score >= z_steps[2]:
+                        my_stars+=1
+
+                    if z_id.endswith("bonus"):
+                        #bonus planet
+                        bonus[z_name] = min(my_stars, 2)
+                        if my_stars==3:
+                            stars+=1
+                    else:
+                        stars+=my_stars
+                txt_results = str(stars)+emojis.star
+                for zb in bonus:
+                    if bonus[zb]>0:
+                        txt_results += " / "+zb+bonus[zb]*emojis.bluecircle
+
                 if err_code != 0:
                     goutils.log2("WAR", csv)
                     tb_summary = None
                 else:
-                    tb_summary=(csv, image)
+                    tb_summary=(csv, image, txt_results)
 
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
 

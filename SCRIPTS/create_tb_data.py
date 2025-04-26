@@ -114,6 +114,8 @@ for tb in game_data["territoryBattleDefinition"]:
             if is_bonus:
                 dict_tb[zone_id]["name"] += "b"
 
+        dict_tb[zone_id]["fullname"] = zone_name
+
         # add an entry by zone name
         dict_tb["zone_names"][zone_name] = dict_tb[zone_id]["name"]
 

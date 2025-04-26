@@ -7,6 +7,8 @@ hourglass = '\N{HOURGLASS}'
 warning = '\N{WARNING SIGN}'
 cyclearrows = '\U0001F504'
 prohibited = '\U0001F6AB'
+star = '\N{WHITE MEDIUM STAR}'
+bluecircle = '\N{LARGE BLUE CIRCLE}'
 letters = ['\N{REGIONAL INDICATOR SYMBOL LETTER A}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER B}', \
            '\N{REGIONAL INDICATOR SYMBOL LETTER C}', \

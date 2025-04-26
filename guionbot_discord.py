@@ -1282,7 +1282,8 @@ async def send_tb_summary(guild_name, tb_summary, channel_id):
         tb_end_channel = bot.get_channel(channel_id)
         msg_txt = "# BT de "+guild_name+" terminée le "+datetime.datetime.now().strftime("%d/%m")
 
-        (csv, image) = tb_summary
+        (csv, image, txt_results) = tb_summary
+        msg_txt += "\n"+txt_results
 
         #prepare csv file
         export_path="/tmp/tbsummary"+guild_name+".csv"
