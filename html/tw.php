@@ -54,7 +54,8 @@ include 'gvariables.php';
 
 // --------------- GET ZONE INFO FOR THE TW -----------
 // Prepare the SQL query
-$query = "SELECT side, zone_name, size, filled, victories, fails, commandMsg";
+$query = "SELECT side, zone_name, size, filled, victories, fails,";
+$query .= " zoneState";
 $query .= " FROM tw_zones";
 $query .= " WHERE tw_id=".$tw_id;
 #error_log("query = ".$query);
@@ -129,25 +130,42 @@ foreach($squad_list as $squad_element) {
 }
 
 function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
-    if ($zones[$side][$zone_name]['victories'] == $zones[$side][$zone_name]['size']) {
-        $zone_color = 'dark';
+    if ($zones[$side][$zone_name]['zoneState'] == 'ZONECOMPLETE') {
+        if ($side == 'home') {
+            $zone_color = 'darkblue';
+        } else {
+            $zone_color = 'darkred';
+        }
+
         $crossed = 'background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px))';
-    } elseif ($isMyGuildConfirmed & ($zones[$side][$zone_name]['filled'] < $zones[$side][$zone_name]['size'])) {
+
+    } elseif ($isMyGuildConfirmed & ($zones[$side][$zone_name]['filled'] < $zones[$side][$zone_name]['size']) | ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED')) {
         // filling status is only shown for guild players
-        $zone_color = 'light';
+        if ($side == 'home') {
+            $zone_color = 'lightblue';
+        } else {
+            $zone_color = 'pink';
+        }
+
         $crossed = '';
     } else {
-        $zone_color = '';
+        if ($side == 'home') {
+            $zone_color = 'blue';
+        } else {
+            $zone_color = 'red';
+        }
+        
         $crossed = '';
     }
-    if ($side == 'home') {
-        $zone_color .= 'blue';
+
+    if ($zones[$side][$zone_name]['zoneState'] == 'ZONEOPEN') {
+        $border_style = "5px solid yellow";
     } else {
-        $zone_color .= 'red';
+        $border_style = "3px solid white";
     }
 
     $side_zone_name = substr($side, 0, 1).$zone_name;
-    echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:3px solid white" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
+    echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:'.$border_style.'" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
 
     if ($isMyGuildConfirmed) {
         echo "<b>".$zone_name."</b><br/>".min($zones[$side][$zone_name]['filled'], ($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories']))."/".$zones[$side][$zone_name]['size'];

@@ -90,21 +90,41 @@ foreach($tw_db_data as $tw_line) {
 
 function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     // this is a public page, we don't show filling status
-    if ($zones[$side][$zone_name]['victories'] == $zones[$side][$zone_name]['size']) {
-        $zone_color = 'dark';
+    if ($zones[$side][$zone_name]['zoneState'] == 'ZONECOMPLETE') {
+        if ($side == 'home') {
+            $zone_color = 'darkblue';
+        } else {
+            $zone_color = 'darkred';
+        }
+
         $crossed = 'background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px))';
+($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED')
+    } elseif ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED') {
+        if ($side == 'home') {
+            $zone_color = 'lightblue';
+        } else {
+            $zone_color = 'pink';
+        }
+
+        $crossed = '';
     } else {
-        $zone_color = '';
+        if ($side == 'home') {
+            $zone_color = 'blue';
+        } else {
+            $zone_color = 'red';
+        }
+
         $crossed = '';
     }
-    if ($side == 'home') {
-        $zone_color .= 'blue';
+
+    if ($zones[$side][$zone_name]['zoneState'] == 'ZONEOPEN') {
+        $border_style = "5px solid yellow";
     } else {
-        $zone_color .= 'red';
+        $border_style = "3px solid white";
     }
 
     $side_zone_name = substr($side, 0, 1).$zone_name;
-    echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:3px solid white" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
+    echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:'.$border_style.'" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
 
         // do not share sensitive information
         if ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED') {
