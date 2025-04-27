@@ -98,7 +98,6 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
         }
 
         $crossed = 'background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px))';
-($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED')
     } elseif ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED') {
         if ($side == 'home') {
             $zone_color = 'lightblue';
