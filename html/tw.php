@@ -55,7 +55,7 @@ include 'gvariables.php';
 // --------------- GET ZONE INFO FOR THE TW -----------
 // Prepare the SQL query
 $query = "SELECT side, zone_name, size, filled, victories, fails,";
-$query .= " zoneState";
+$query .= " zoneState, commandMsg";
 $query .= " FROM tw_zones";
 $query .= " WHERE tw_id=".$tw_id;
 #error_log("query = ".$query);
