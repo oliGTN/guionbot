@@ -1837,7 +1837,7 @@ async def on_message(message):
                                     # Get guild information
                                     ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
                                     if ec != 0:
-                                        goutils.log2('ERR', ret_txt)
+                                        goutils.log2('ERR', et)
                                     else:
                                         #Get TB info
                                         if not "territoryBattleStatus" in dict_guild:
