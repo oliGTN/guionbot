@@ -6265,7 +6265,7 @@ async def print_tb_special_results(guild_id, zone_shortname, allyCode=None):
 
     return await print_tb_special_results_from_rpc(guild, mapstats, zone_shortname)
 
-async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
+async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dict_ready_players={}):
     dict_tb = godata.get("tb_definition.json")
 
     zone_name = None
@@ -6322,7 +6322,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
     if len(list_covert_zones)!=0:
         for c in sorted(list_covert_zones):
             #TODO make it configurable with tb_definition.json
-            if c == "tb3_mixed_phase02_conflict01_covert01":
+            if c == "tb3_mixed_phase02_conflict01_covert01" and not c in dict_ready_players:
                 # Bracca > Zeffo
                 query = "SELECT name FROM ( "\
                         "    SELECT players.name, "\
@@ -6340,7 +6340,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                 if ready_players == None:
                     ready_players = []
 
-            elif c == "tb3_mixed_phase03_conflict03_covert02":
+            elif c == "tb3_mixed_phase03_conflict03_covert02" and not c in dict_ready_players:
                 # > Mandalore
                 query = "SELECT name FROM ( "\
                         "    SELECT players.name, "\
@@ -6357,7 +6357,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                 if ready_players == None:
                     ready_players = []
 
-            elif c == "tb3_mixed_phase03_conflict03_covert01":
+            elif c == "tb3_mixed_phase03_conflict03_covert01" and not c in dict_ready_players:
                 # Reva
                 tagAlias = godata.get('tagAlias_dict.json')
                 list_ids = [x[0] for x in tagAlias["Inquisitorius"] if x[2]==1]
@@ -6380,7 +6380,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                 if ready_players == None:
                     ready_players = []
 
-            elif c == "tb3_mixed_phase03_conflict01_bonus_covert01":
+            elif c == "tb3_mixed_phase03_conflict01_bonus_covert01" and not c in dict_ready_players:
                 # Clones sur Mandalore
                 tagAlias = godata.get('tagAlias_dict.json')
                 list_ids = [x[0] for x in tagAlias["Soldat clone"] if x[2]==1]
@@ -6394,6 +6394,8 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname):
                 ready_players = connect_mysql.get_column(query)
                 if ready_players == None:
                     ready_players = []
+            elif c in dict_ready_players:
+                ready_players = dict_ready_players[c]
             else:
                 ready_players = None
 
