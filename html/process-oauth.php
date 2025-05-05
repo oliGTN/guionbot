@@ -74,7 +74,7 @@ try {
     $query = "INSERT INTO users(user_id, name)";
     $query .= " VALUES('".$user_id."', '".$user_name."')";
     $query .= " ON DUPLICATE KEY UPDATE name='".$user_name."'";
-    error_log($query);
+    //error_log($query);
     $stmt = $conn->prepare($query);
     $stmt->execute();
 
@@ -86,7 +86,7 @@ try {
 try {
     // Prepare SQL to check if user is admin
     $query = "SELECT is_admin FROM users WHERE user_id='".$user_id."'";
-    error_log($query);
+    //error_log($query);
     $stmt = $conn->prepare($query);
     $stmt->execute();
     $user_admin = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -104,7 +104,7 @@ try {
     $query .= " FROM players";
     $query .= " JOIN player_discord ON player_discord.allyCode = players.allyCode";
     $query .= " WHERE discord_id='".$user_id."'";
-    error_log($query);
+    //error_log($query);
     $stmt = $conn_guionbot->prepare($query);
     $stmt->execute();
     $user_allyCodes = $stmt->fetchAll(PDO::FETCH_ASSOC);

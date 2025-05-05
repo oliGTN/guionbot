@@ -1,6 +1,8 @@
     <?php $guild = $_SESSION['guild']; ?>
     
-    <h2><?php echo $guild['name']; ?></h2>
+    <h2><?php echo $guild['name']; ?>
+        <a href="https://swgoh.gg/g/<?php echo $guild['id']; ?>"><img src="IMAGES/LOGOS/swgohgg_logo.png" width="50" alt="swgoh.gg"/></a>
+    </h2>
 
     <div class="card">
         <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i>)':''); ?></small>

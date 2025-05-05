@@ -484,23 +484,23 @@ Score for this round: <?php echo $round_stars; ?>&#11088
             </div>
         </div>
     </div>
-<!--
+    <!--
     <div class="row">
         <div class="col s4">
             <div>
-                <button type="button" id="button">re-deploy</button>
+                <button type="button" id="btn_redeploy" onclick="fct_redeploy">re-deploy</button>
             </div>
         </div>
         <div class="col s4">
             <div>
-                <input type="checkbox" id="scales" name="scales" checked />
-                <label for="scales">With fights</label>
+                <input type="checkbox" id="with_fights" name="with_fights" checked />
+                <label for="with_fights">With fights</label>
             </div>
         </div>
     </div>
--->
-    </div>
-    </div>
+    -->
+    </div> <!-- card content -->
+    </div> <!-- card -->
 </div>
 
 <div class="card">
