@@ -600,7 +600,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
     gear2 = extended_gear(char2["currentTier"], relic2)
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
-            evo_txt = "gear changed to "+extendedgear_to_txt(gear2)
+            evo_txt = "gear changed to "+extendedgear_to_txt(gear_step)
             log2("DBG", defId+": "+evo_txt)
             connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
