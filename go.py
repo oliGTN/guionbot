@@ -2820,6 +2820,7 @@ async def print_lox(txt_allyCode, characters, compute_guild=False, all_omicrons=
 async def print_erx(txt_allyCode, days, compute_guild):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_categoryList = godata.get("categoryList_dict.json")
+    dict_categories = connect_gsheets.load_config_categories(False)
 
     #Update player/guild data
     if not compute_guild:
@@ -2966,6 +2967,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
                     unit_categories = []
                     unit_ships = []
 
+                #Game catagories
                 for category in unit_categories:
                     if category in dict_categoryList:
                         category_name = dict_categoryList[category]["descKey"]
@@ -2973,6 +2975,14 @@ async def print_erx(txt_allyCode, days, compute_guild):
                             stats_categories[category][1] += 1
                         else:
                             stats_categories[category] = [category_name, 1]
+
+                #Custom categories
+                for category_name in dict_categories:
+                    if unit_id in dict_categories[category_name]:
+                        if category_name in stats_categories:
+                            stats_categories[category_name][1] += 1
+                        else:
+                            stats_categories[category_name] = [category_name, 1]
 
                 for [ship_id, ship_name] in unit_ships:
                     if player_name in dict_ships and ship_id in dict_ships[player_name]:
@@ -3031,7 +3041,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
             ret_cmd += evo[1][0] + ": " + str(evo[1][1])+'\n'
 
         ret_cmd += "\n__TOP 10 FACTIONS__\n"
-        faction_items = [x for x in stats_categories.items() if x[0][:5] in ["affil", "profe"]]
+        faction_items = [x for x in stats_categories.items() if x[0][:5] in ["affil", "profe", "raid_"]]
         list_evo_categories = sorted(faction_items, key=lambda x:-x[1][1])
         for evo in list_evo_categories[:10]:
             ret_cmd += evo[1][0] + ": " + str(evo[1][1])+'\n'

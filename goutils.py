@@ -757,6 +757,7 @@ def get_characters_from_alias(list_alias):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_unitAlias = connect_gsheets.load_config_units(False)
     dict_tagAlias = data.get("tagAlias_dict.json")
+    dict_categories = connect_gsheets.load_config_categories(False)
     dict_capas = data.get('unit_capa_list.json')
 
     txt_not_found_characters = ''
@@ -823,13 +824,20 @@ def get_characters_from_alias(list_alias):
                     if not [character_id, character_name] in dict_id_name[character_alias]:
                         dict_id_name[character_alias].append([character_id, character_name])
             else:
-                closest_names=difflib.get_close_matches(tag_alias.lower(), dict_tagAlias.keys(), 3)
+                list_categories = list(dict_tagAlias.keys()) + list(dict_categories.keys())
+                closest_names=difflib.get_close_matches(tag_alias.lower(), list_categories, 3)
                 if len(closest_names)<1:
                     log2('WAR', "No tag found for "+tag_alias)
                     txt_not_found_characters += character_alias + ' '
                 else:
+                    found_name = closest_names[0]
+                    if found_name in dict_tagAlias:
+                        list_char_id = dict_tagAlias[found_name]
+                    else:
+                        list_char_id = dict_cwtagories[found_name]
+
                     dict_id_name[character_alias] = []
-                    for character_id in dict_tagAlias[closest_names[0]]:
+                    for character_id in list_char_id:
                         character_name = dict_unitsList[character_id]["name"]
                         char_ct = dict_unitsList[character_id]["combatType"]
                         char_cs = "role_capital" in dict_unitsList[character_id]["categoryId"]

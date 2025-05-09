@@ -1567,6 +1567,11 @@ async def read_gsheets(guild_id):
             err_txt += "ERR: erreur en mettant à jour les UNITS\n"
             err_code = 1
 
+        d = connect_gsheets.load_config_categories(True)
+        if d == None:
+            err_txt += "ERR: erreur en mettant à jour les CATEGORIES\n"
+            err_code = 1
+
         ec, l, d = connect_gsheets.load_config_teams(0, True)
         if ec != 0:
             err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
@@ -5857,38 +5862,44 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ppj 123456789 JKR\n"\
                       "Exemple: go.ppj me -v \"Dark Maul\" Bastila\n")
     async def ppj(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+            allyCode = await manage_me(ctx, allyCode, False)
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            if len(characters) > 0:
-                e, ret_cmd, images = await go.get_character_image( [[list(characters),
-                                                    allyCode, '']], False, True, '', None)
-                    
-                if e == 0:
-                    for image in images:
-                        with BytesIO() as image_binary:
-                            image.save(image_binary, 'PNG')
-                            image_binary.seek(0)
-                            await ctx.send(content = ret_cmd,
-                                   file=File(fp=image_binary, filename='image.png'))
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+            else:
+                if len(characters) > 0:
+                    e, ret_cmd, images = await go.get_character_image( [[list(characters),
+                                                        allyCode, '']], False, True, '', None)
+                        
+                    if e == 0:
+                        for image in images:
+                            with BytesIO() as image_binary:
+                                image.save(image_binary, 'PNG')
+                                image_binary.seek(0)
+                                await ctx.send(content = ret_cmd,
+                                       file=File(fp=image_binary, filename='image.png'))
 
-                    #Icône de confirmation de fin de commande dans le message d'origine
-                    await ctx.message.add_reaction(emojis.check)
+                        #Icône de confirmation de fin de commande dans le message d'origine
+                        await ctx.message.add_reaction(emojis.check)
+
+                    else:
+                        ret_cmd += 'ERR: merci de préciser un ou plusieurs persos'
+                        await ctx.send(ret_cmd)
+                        await ctx.message.add_reaction(emojis.redcross)
 
                 else:
-                    ret_cmd += 'ERR: merci de préciser un ou plusieurs persos'
+                    ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
                     await ctx.send(ret_cmd)
-                    await ctx.message.add_reaction(emojis.redcross)
+                    await ctx.message.add_reaction(emojis.redcross)                
 
-            else:
-                ret_cmd = 'ERR: merci de préciser un ou plusieurs persos'
-                await ctx.send(ret_cmd)
-                await ctx.message.add_reaction(emojis.redcross)                
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
                 
     ##############################################################
     # Command: rgt

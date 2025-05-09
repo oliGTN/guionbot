@@ -315,6 +315,49 @@ def load_config_units(force_load):
     return dict_units
 
 ##############################################################
+# Function: load_config_categories
+# Parameters: none
+# Purpose: lit l'onglet "categories" du fichier Sheets
+# Output:  dict_categories {key=category_name, value=[unit_id1, unit_id2, ...]}
+##############################################################
+def load_config_categories(force_load):
+    json_file = "CACHE"+os.path.sep+"config_categories.json"
+
+    if force_load or not os.path.isfile(json_file):
+        try:
+            get_gapi_client()
+            file = client.open("GuiOnBot config")
+            feuille=file.worksheet("categories")
+
+            list_dict_sheet=feuille.get_all_values()
+        except gspread.exceptions.WorksheetNotFound:
+            return {}
+        except Exception as e:
+            goutils.log2("ERR", sys.exc_info()[0])
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
+            goutils.log2("ERR", "Cannot connect to Google API")
+            return None
+
+        dict_categories = {}
+        i_col = 0
+        for cell in list_dict_sheet[1]:
+            if cell != "":
+                dict_categories[cell] = [x[i_col] for x in list_dict_sheet[2:] if x[i_col]!=""]
+                i_col += 1
+            else:
+                break
+
+        # store json file
+        fjson = open(json_file, 'w')
+        fjson.write(json.dumps(dict_categories, sort_keys=True, indent=4))
+        fjson.close()
+    else:
+        dict_categories = json.load(open(json_file, "r"))
+                
+    return dict_categories
+
+##############################################################
 # Function: load_config_statq
 # Parameters: none
 # Purpose: lit l'onglet "statq" du fichier CONFIG
