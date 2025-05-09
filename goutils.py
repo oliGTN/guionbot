@@ -834,7 +834,7 @@ def get_characters_from_alias(list_alias):
                     if found_name in dict_tagAlias:
                         list_char_id = dict_tagAlias[found_name]
                     else:
-                        list_char_id = dict_cwtagories[found_name]
+                        list_char_id = dict_categories[found_name]
 
                     dict_id_name[character_alias] = []
                     for character_id in list_char_id:
