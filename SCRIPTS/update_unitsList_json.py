@@ -204,7 +204,7 @@ for x in game_data["units"]:
     for tag in x["categoryId"]:
         if tag in dict_tags_by_id:
             for tag_name in dict_tags_by_id[tag]:
-                id_name = [x["baseId"], FRE_FR[x["nameKey"]], x["combatType"]]
+                id_name = x["baseId"]
                 if tag_name in dict_categories_by_name:
                     if not id_name in dict_categories_by_name[tag_name]:
                         dict_categories_by_name[tag_name].append(id_name)

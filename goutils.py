@@ -829,7 +829,7 @@ def get_characters_from_alias(list_alias):
                     txt_not_found_characters += character_alias + ' '
                 else:
                     dict_id_name[character_alias] = []
-                    for [character_id, xcn, xct] in dict_tagAlias[closest_names[0]]:
+                    for character_id in dict_tagAlias[closest_names[0]]:
                         character_name = dict_unitsList[character_id]["name"]
                         char_ct = dict_unitsList[character_id]["combatType"]
                         char_cs = "role_capital" in dict_unitsList[character_id]["categoryId"]
