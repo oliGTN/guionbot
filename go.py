@@ -6370,8 +6370,8 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
             elif c == "tb3_mixed_phase03_conflict03_covert01" and not c in dict_ready_players:
                 # Reva
                 tagAlias = godata.get('tagAlias_dict.json')
-                list_ids = [x[0] for x in tagAlias["Inquisitorius"] if x[2]==1]
-                list_ids.remove('GRANDINQUISITOR')
+                dict_unitsList = godata.get("unitsList_dict.json")
+                list_ids = [x for x in tagAlias["Inquisitorius"] if dict_unitsList[x]['combatType']==1 and x!='GRANDINQUISITOR']
                 query = "SELECT players.name FROM players "\
                         "JOIN ("\
                         "    SELECT name "\
@@ -6393,7 +6393,8 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
             elif c == "tb3_mixed_phase03_conflict01_bonus_covert01" and not c in dict_ready_players:
                 # Clones sur Mandalore
                 tagAlias = godata.get('tagAlias_dict.json')
-                list_ids = [x[0] for x in tagAlias["Soldat clone"] if x[2]==1]
+                dict_unitsList = godata.get("unitsList_dict.json")
+                list_ids = [x for x in tagAlias["Soldat clone"] if dict_unitsList[x]['combatType']==1]
                 query = "SELECT players.name FROM players "\
                         "JOIN roster ON (players.allyCode=roster.allyCode AND defId IN "+str(tuple(list_ids))+" "\
                         "                AND relic_currentTier>=9) "\
