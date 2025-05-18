@@ -1795,22 +1795,23 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     dict_remaining_deploy = {"ships": {"all": 0, "officers": 0},
                              "chars": {"all": 0, "officers": 0},
                              "mix":   {"all": 0, "officers": 0}}
-    for playerName in dict_tb_players:
-        playerData = dict_tb_players[playerName]
-        player_remain_deploy_ships = playerData["ship_gp"] - playerData["rounds"][tb_round-1]["score"]["deployedShips"]
-        player_remain_deploy_chars = playerData["char_gp"] - playerData["rounds"][tb_round-1]["score"]["deployedChars"]
-        player_remain_deploy_mix   = playerData["mix_gp"]  - playerData["rounds"][tb_round-1]["score"]["deployedMix"]
+    if tb_ongoing:
+        for playerName in dict_tb_players:
+            playerData = dict_tb_players[playerName]
+            player_remain_deploy_ships = playerData["ship_gp"] - playerData["rounds"][tb_round-1]["score"]["deployedShips"]
+            player_remain_deploy_chars = playerData["char_gp"] - playerData["rounds"][tb_round-1]["score"]["deployedChars"]
+            player_remain_deploy_mix   = playerData["mix_gp"]  - playerData["rounds"][tb_round-1]["score"]["deployedMix"]
 
-        dict_remaining_deploy["ships"]["all"] += player_remain_deploy_ships
-        dict_remaining_deploy["chars"]["all"] += player_remain_deploy_chars
-        dict_remaining_deploy["mix"]["all"] += player_remain_deploy_mix
+            dict_remaining_deploy["ships"]["all"] += player_remain_deploy_ships
+            dict_remaining_deploy["chars"]["all"] += player_remain_deploy_chars
+            dict_remaining_deploy["mix"]["all"] += player_remain_deploy_mix
 
-        if playerData["role"] > 2:
-            #This member is an officier of the guild
-            dict_remaining_deploy["ships"]["officers"] += player_remain_deploy_ships
-            dict_remaining_deploy["chars"]["officers"] += player_remain_deploy_chars
-            dict_remaining_deploy["mix"]["officers"] += player_remain_deploy_mix
-        
+            if playerData["role"] > 2:
+                #This member is an officier of the guild
+                dict_remaining_deploy["ships"]["officers"] += player_remain_deploy_ships
+                dict_remaining_deploy["chars"]["officers"] += player_remain_deploy_chars
+                dict_remaining_deploy["mix"]["officers"] += player_remain_deploy_mix
+            
     dict_phase["availableShipDeploy"] = dict_remaining_deploy["ships"]["all"]
     dict_phase["availableCharDeploy"] = dict_remaining_deploy["chars"]["all"]
     dict_phase["availableMixDeploy"] = dict_remaining_deploy["mix"]["all"]
@@ -1827,27 +1828,28 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     #Loop on all TB players to assess the list of who has finished playing
     finished_players = {"ships": [], "chars": [], "mix": []}
-    for playerName in dict_tb_players:
+    if tb_ongoing:
+        for playerName in dict_tb_players:
 
-        #depending on the TB, playing in ships/chars, or in mix,
-        # detect if the player has finished playing, by checking if all is deployed
-        # If the player has deployed < 99%, he is considered not finished 
-        # and count as +1 in the remaining players to fight
+            #depending on the TB, playing in ships/chars, or in mix,
+            # detect if the player has finished playing, by checking if all is deployed
+            # If the player has deployed < 99%, he is considered not finished 
+            # and count as +1 in the remaining players to fight
 
-        if "ships" in list_deployment_types:
-            ratio_deploy_ships = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedShips"] / dict_tb_players[playerName]["ship_gp"]
-            if ratio_deploy_ships >= 0.99:
-                finished_players["ships"].append(playerName)
+            if "ships" in list_deployment_types:
+                ratio_deploy_ships = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedShips"] / dict_tb_players[playerName]["ship_gp"]
+                if ratio_deploy_ships >= 0.99:
+                    finished_players["ships"].append(playerName)
 
-        if "chars" in list_deployment_types:
-            ratio_deploy_chars = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedChars"] / dict_tb_players[playerName]["char_gp"]
-            if ratio_deploy_chars >= 0.99:
-                finished_players["chars"].append(playerName)
+            if "chars" in list_deployment_types:
+                ratio_deploy_chars = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedChars"] / dict_tb_players[playerName]["char_gp"]
+                if ratio_deploy_chars >= 0.99:
+                    finished_players["chars"].append(playerName)
 
-        if "mix" in list_deployment_types:
-            ratio_deploy_mix = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedMix"] / dict_tb_players[playerName]["mix_gp"]
-            if ratio_deploy_mix >= 0.99:
-                finished_players["mix"].append(playerName)
+            if "mix" in list_deployment_types:
+                ratio_deploy_mix = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedMix"] / dict_tb_players[playerName]["mix_gp"]
+                if ratio_deploy_mix >= 0.99:
+                    finished_players["mix"].append(playerName)
 
     # Loop by zone then by strike in the zone
     for zone in list_open_zones:
