@@ -5773,7 +5773,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     if first_msg:
                         if err_alias_txt != "":
                             err_alias_txt = 'WAR: impossible de reconnaître ce(s) nom(s) >> '+err_alias_txt+"\n"
-                        await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+err_alias_txt+'`' + txt + '`')
+                        await ctx.send("statQ de "+playerName+" ("+guildName+")\n"+err_alias_txt+'```' + txt + '```')
                         first_msg=False
                     else:
                         await ctx.send('```' + txt + '```')
