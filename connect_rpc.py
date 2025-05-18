@@ -1464,17 +1464,22 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                     if z_score >= z_steps[2]:
                         my_stars+=1
 
+                    goutils.log2("DBG", z_id)
                     if z_id.endswith("bonus"):
                         #bonus planet
                         bonus[z_name] = min(my_stars, 2)
+                        goutils.log2("DBG", bonus)
                         if my_stars==3:
                             stars+=1
                     else:
                         stars+=my_stars
+                    goutils.log2("DBG", stars)
                 txt_results = str(stars)+emojis.star
+                goutils.log2("DBG", txt_results)
                 for zb in bonus:
                     if bonus[zb]>0:
                         txt_results += " / "+zb+bonus[zb]*emojis.bluecircle
+                        goutils.log2("DBG", txt_results)
 
                 if err_code != 0:
                     goutils.log2("WAR", csv)
