@@ -1448,38 +1448,41 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                                                 allyCode=allyCode)
 
                 # Get TB result (stars and bonus)
-                tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
-                stars = 0
-                bonus = {}
-                for z in tbs["conflictZoneStatus"]:
-                    z_id = z["zoneStatus"]["zoneId"]
-                    z_name = dict_tb[z_id]["fullname"]
-                    z_score = int(z["zoneStatus"]["score"])
-                    z_steps = dict_tb[z_id]["scores"]
-                    my_stars = 0
-                    if z_score >= z_steps[0]:
-                        my_stars+=1
-                    if z_score >= z_steps[1]:
-                        my_stars+=1
-                    if z_score >= z_steps[2]:
-                        my_stars+=1
+                if "territoryBattleStatus" in prev_dict_guild[guild_id]:
+                    tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
+                    stars = 0
+                    bonus = {}
+                    for z in tbs["conflictZoneStatus"]:
+                        z_id = z["zoneStatus"]["zoneId"]
+                        z_name = dict_tb[z_id]["fullname"]
+                        z_score = int(z["zoneStatus"]["score"])
+                        z_steps = dict_tb[z_id]["scores"]
+                        my_stars = 0
+                        if z_score >= z_steps[0]:
+                            my_stars+=1
+                        if z_score >= z_steps[1]:
+                            my_stars+=1
+                        if z_score >= z_steps[2]:
+                            my_stars+=1
 
-                    goutils.log2("DBG", z_id)
-                    if z_id.endswith("bonus"):
-                        #bonus planet
-                        bonus[z_name] = min(my_stars, 2)
-                        goutils.log2("DBG", bonus)
-                        if my_stars==3:
-                            stars+=1
-                    else:
-                        stars+=my_stars
-                    goutils.log2("DBG", stars)
-                txt_results = str(stars)+emojis.star
-                goutils.log2("DBG", txt_results)
-                for zb in bonus:
-                    if bonus[zb]>0:
-                        txt_results += " / "+zb+bonus[zb]*emojis.bluecircle
-                        goutils.log2("DBG", txt_results)
+                        goutils.log2("DBG", z_id)
+                        if z_id.endswith("bonus"):
+                            #bonus planet
+                            bonus[z_name] = min(my_stars, 2)
+                            goutils.log2("DBG", bonus)
+                            if my_stars==3:
+                                stars+=1
+                        else:
+                            stars+=my_stars
+                        goutils.log2("DBG", stars)
+                    txt_results = str(stars)+emojis.star
+                    goutils.log2("DBG", txt_results)
+                    for zb in bonus:
+                        if bonus[zb]>0:
+                            txt_results += " / "+zb+bonus[zb]*emojis.bluecircle
+                            goutils.log2("DBG", txt_results)
+                else:
+                    txt_results=""
 
                 if err_code != 0:
                     goutils.log2("WAR", csv)
