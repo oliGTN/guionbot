@@ -1448,7 +1448,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                                                 allyCode=allyCode)
 
                 # Get TB result (stars and bonus)
-                if "territoryBattleStatus" in prev_dict_guild[guild_id]:
+                if guild_id in prev_dict_guild \
+                   and "territoryBattleStatus" in prev_dict_guild[guild_id]:
                     tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
                     stars = 0
                     bonus = {}
