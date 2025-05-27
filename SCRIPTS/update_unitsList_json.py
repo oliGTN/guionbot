@@ -16,12 +16,12 @@ materialList_dict = {}
 for material in game_data["material"]:
     materialList_dict[material["id"]] = material
 
+#"""
 ####################
 #add custom data
-"""
 my_units = [
-          {"baseId": "GLAHSOKA",
-           "nameKey":"UNIT_GLAHSOKA_NAME",    # the key is defined a few lines below
+          {"baseId": "GRANDMASTERWINDU",
+           "nameKey":"UNIT_GRANDMASTERWINDU_NAME",    # the key is defined a few lines below
            "combatType":1,                  # 1: char / 2: ship
            "rarity":7,
            "maxRarity":7,
@@ -31,15 +31,15 @@ my_units = [
           ]
 for my_unit in my_units:
     game_data["units"].append(my_unit)
-FRE_FR["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
-ENG_US["UNIT_GLAHSOKA_NAME"] = "Ahsoka Tano"
-"""
+FRE_FR["UNIT_GRANDMASTERWINDU_NAME"] = "Grand Maître Windu"
+ENG_US["UNIT_GRANDMASTERWINDU_NAME"] = "Grand Master Windu"
 
 with open('DATA/FRE_FR.json', 'w') as f_loc:
     f_loc.write(json.dumps(FRE_FR, indent=4))
 with open('DATA/ENG_US.json', 'w') as f_loc:
     f_loc.write(json.dumps(ENG_US, indent=4))
 ####################
+#"""
 
 unitsList_dict = {}
 for unit in game_data["units"]:
