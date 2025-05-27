@@ -1588,8 +1588,8 @@ async def read_gsheets(guild_id):
             err_txt += "ERR: erreur en mettant à jour les TEAMS\n"
             err_code = 1
 
-        [dt, m] = connect_gsheets.get_tb_triggers(guild_id, True)
-        if dt == None:
+        err_code, [dt, m] = connect_gsheets.get_tb_triggers(guild_id, True)
+        if err_code != 0:
             err_txt += "ERR: erreur en mettant à jour les objectifs de BT\n"
             err_code = 1
 

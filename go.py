@@ -4407,7 +4407,10 @@ async def get_tb_alerts(guild_id, force_update):
     if active_round != "":
         dict_tb = godata.get("tb_definition.json")
         
-        [daily_targets, margin] = connect_gsheets.get_tb_triggers(guild_id, False)
+        err_code, [daily_targets, margin] = connect_gsheets.get_tb_triggers(guild_id, False)
+        if err_code!=0:
+            return 1, "No TB target for "+guild_id, None
+
         goutils.log2("DBG", "["+guild_id+"] tb_triggers="+str([daily_targets, margin]))
 
         #print(territory_scores)

@@ -517,7 +517,7 @@ def get_tb_triggers(guild_id, force_load):
 
     if gfile_name==None:
         goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
-        return 2, [], {}
+        return 2, None
 
     json_file = "CACHE"+os.path.sep+guild_name+"_config_tb.json"
 
@@ -528,7 +528,7 @@ def get_tb_triggers(guild_id, force_load):
             feuille=file.worksheet("BT")
         except:
             goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
-            return [None, 0]
+            return 0, [None, 0]
         
         #parsing title row
         col_top=0
@@ -607,7 +607,7 @@ def get_tb_triggers(guild_id, force_load):
     else:
         [daily_targets, margin] = json.load(open(json_file, "r"))
 
-    return [daily_targets, margin]
+    return 0, [daily_targets, margin]
 
 # IN: list_targets=[["ROTE1-DS", 3], ["ROTE2-MS", 3], ...]
 def set_tb_targets(guild_id, list_targets):
