@@ -52,7 +52,7 @@ def get_dict_bot_accounts():
             "twChanOut_id, tbChanOut_id, tbChanEnd_id, " \
             "guilds.name "\
             "FROM guild_bots "\
-            "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
+            "LEFT JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
             "JOIN guilds ON guilds.id=guild_bots.guild_id "\
             "WHERE NOT isnull(guild_bots.allyCode) "
     #goutils.log2("DBG", query)
@@ -556,7 +556,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             else:
                 continue
 
-            if event_ts <= eventLatest_ts:
+            if eventLatest_ts==None or event_ts <= eventLatest_ts:
                 continue
 
             if event_ts > max_event_ts:
