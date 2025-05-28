@@ -1054,6 +1054,11 @@ async def get_team_line_from_player(team_name_path, dict_teams, dict_team_gt, gv
 
         #Compute scores on the best characters
         top_tab_progress = sorted_tab_progress[i_subobj][:min_perso]
+
+        #Add empty characters in case existing ones are not enough compared to min_perso
+        if len(top_tab_progress) < min_perso:
+            top_tab_progress = top_tab_progress + [[0, '', False, '', 1]]*(min_perso-len(top_tab_progress))
+
         top_scores = [x[0] for x in top_tab_progress]
         sum_scores = sum(top_scores)
         top_weighted_scores = [x[0] * (not x[2]) * x[4] for x in top_tab_progress]
@@ -1315,7 +1320,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
                 guild_teams.name, \
                 guild_team_roster.unit_id, \
                 guild_team_roster_zetas.name as zeta, \
-                roster_skills.level, \
+                roster_skills.level \
                 FROM players \
                 JOIN guild_teams \
                 JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id \
@@ -3777,7 +3782,7 @@ def get_gv_graph(txt_allyCodes, characters):
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
     if ret_db == None:
-        return 1, "WAR: aucun progrès connu de "+character_ids_txt+" pour "+txt_allyCode, None
+        return 1, "WAR: aucun progrès connu de "+character_ids_txt+" pour "+sql_allyCodes, None
 
     min_date = None
     max_date = None
