@@ -570,7 +570,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         goutils.log2("DBG", "end loop list_rpc_events")
 
         # SET latest ts for events
-        if max_event_ts == 0:
+        if max_event_ts == 0 and eventLatest_ts!=None:
             max_event_ts = eventLatest_ts
         query = "UPDATE guild_bot_infos "
         query+= "SET eventLatest_ts="+str(max_event_ts)+" "
