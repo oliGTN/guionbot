@@ -2982,7 +2982,8 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             query = "SELECT name FROM mod_config_list " \
                     "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
-                    "WHERE channel_id="+str(user_id)
+                    "WHERE channel_id="+str(user_id)+" "\
+                    "ORDER BY lower(name)"
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_column(query)
             if db_data==None:
