@@ -1,7 +1,7 @@
 <?php
 $host = 'localhost'; // Or the appropriate host for your database
 $dbname = 'guionbotdb';
-include 'guionbotdb_secret.php'; // defines $username and $password
+include 'websitedb_secret.php'; // defines $username and $password
 
 try {
     // Create a PDO connection to guionbotdb

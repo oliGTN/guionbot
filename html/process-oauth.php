@@ -82,17 +82,17 @@ try {
     echo "Error: " . $e->getMessage();
 }    
 
-
 try {
     // Prepare SQL to check if user is admin
-    $query = "SELECT is_admin FROM users WHERE user_id='".$user_id."'";
+    $query = "SELECT is_admin, sql_select FROM users WHERE user_id='".$user_id."'";
     //error_log($query);
     $stmt = $conn->prepare($query);
     $stmt->execute();
-    $user_admin = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($user_admin) {
-        //error_log("user_admin=".$user_admin['is_admin']);
-        $_SESSION['admin'] = $user_admin['is_admin'];  // Mark the user as an admin if applicable
+    $user_details = $stmt->fetch(PDO::FETCH_ASSOC);
+    error_log(print_r($user_details, true));
+    if ($user_details) {
+        $_SESSION['admin'] = $user_details['is_admin'];  // Mark the user as an admin if applicable
+        $_SESSION['sql_select'] = $user_details['sql_select'];  // Mark the user with sql SELECT rights
     }
 } catch (PDOException $e) {
     echo "Error: " . $e->getMessage();

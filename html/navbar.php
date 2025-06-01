@@ -15,7 +15,7 @@
     </li>
     <?php if (!isset($_SESSION['user_id'])): ?>
         <li>
-        <a href="init-oauth.php">Login</a>
+            <a href="init-oauth.php">Login</a>
         </li>
     <?php else: ?>
     <li class="drop <?php echo (substr($_SERVER['REQUEST_URI'], 0, strlen('/dashboard.php'))=='/dashboard.php')? 'active' : ''; ?>"><?php echo $_SESSION['user_name']; ?>
@@ -24,6 +24,11 @@
             <li><a href="logout.php">Logout</a></li>
         </ul>
     </li>
+    <?php endif; ?>
+    <?php if (isset($_SESSION['sql_select']) && $_SESSION['sql_select']): ?>
+        <li class="<?php echo (   substr($_SERVER['REQUEST_URI'], 0, strlen('/sqlquery.php'))=='/sqlquery.php' || $_SERVER['REQUEST_URI']=='/')? 'active' : ''; ?>">
+            <a href="sqlquery.php">DB consult</a>
+        </li>
     <?php endif; ?>
 </ul>
 </nav>
