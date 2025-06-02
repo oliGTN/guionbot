@@ -185,7 +185,7 @@ async def registercheck(ctx_interaction, allyCode):
             return
 
         # Get data from DB
-        query = "SELECT guildName, name, discord_id, players.allyCode FROM players " \
+        query = "SELECT guildName, name, discord_id FROM players " \
                 "LEFT JOIN player_discord ON players.allyCode=player_discord.allyCode " \
                 "WHERE guildName=(SELECT guildName FROM players WHERE allyCode = "+str(allyCode)+") " \
                 "ORDER by name "
@@ -197,7 +197,6 @@ async def registercheck(ctx_interaction, allyCode):
         for line in db_data:
             player_name = line[1]
             discord_id = line[2]
-            allyCode = line[3]
             try:
                 if discord_id==None:
                     display_name = "**non défini**"
@@ -206,7 +205,7 @@ async def registercheck(ctx_interaction, allyCode):
                     display_name = "@"+discord_user.display_name
             except:
                 display_name = "*défini mais inconnu sur ce serveur*"
-            output_txt += "\n"+str(allyCode)+": "+player_name+" >>> "+display_name
+            output_txt += "\n"+player_name+" >>> "+display_name
 
         await command_ok(ctx_interaction, resp_msg, output_txt, intermediate=False)
 
