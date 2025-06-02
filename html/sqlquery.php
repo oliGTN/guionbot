@@ -53,6 +53,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sql_query'])) {
 
 ?>
 
+<script>
+function download(file, text) {
+
+    //creating an invisible element
+
+    let element = document.createElement('a');
+    element.setAttribute('href',
+        'data:text/plain;charset=utf-8, '
+        + encodeURIComponent(text));
+    element.setAttribute('download', file);
+    document.body.appendChild(element);
+    element.click();
+
+    document.body.removeChild(element);
+}
+
+function fct_download() {
+    console.log("eeeererer");
+    csv_content = "";
+
+    sql_table = document.getElementById("sql-results");
+    sql_rows = sql_table.getElementsByClassName("sql-row");
+    for (i = 0; i < sql_rows.length; i++) {
+        sql_row = sql_rows[i];
+        sql_columns = sql_row.getElementsByClassName("sql-column");
+        for (j = 0; j < sql_columns.length; j++) {
+            sql_column = sql_columns[j];
+            csv_content = csv_content + sql_column.innerHTML + ";";
+        }
+        csv_content = csv_content + "\n"
+    }
+    console.log(csv_content);
+    download("sqlresults.csv", csv_content);
+}
+</script>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -107,24 +142,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sql_query'])) {
                         </ul>
                     </li>
                 </ul>
-    
             </div>
 
+            <button type="button" id="btn_download" onclick="fct_download();">download</button>
 
             <div class="card">
-            <table>
+            <table id="sql-results">
                 <?php
                 if (!empty($sql_results)) {
-                    echo '<tr>';
+                    echo '<tr class="sql-row">';
                         foreach (array_keys($sql_results[0]) as $sql_column) {
-                            echo '<th>'.$sql_column.'</th>';
+                            echo '<th class="sql-column">'.$sql_column.'</th>';
                         }
                     echo '</tr>';
                     // Loop through each guild and display in a table row
                     foreach ($sql_results as $sql_result) {
-                        echo '<tr>';
+                        echo '<tr class="sql-row">';
                         foreach (array_keys($sql_result) as $sql_column) {
-                            echo '<td>'.$sql_result[$sql_column].'</td>';
+                            echo '<td class="sql-column">'.$sql_result[$sql_column].'</td>';
                         }
                         echo '</tr>';
                     }
