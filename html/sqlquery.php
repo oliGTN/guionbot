@@ -27,9 +27,14 @@ if (! $sql_select) {
 
 // Handle POST for SQL query
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sql_query'])) {
-    $query = $_POST['sql_query'];
+    $query = trim($_POST['sql_query']);
 
-    //Force a limit
+    // prevent ending ;
+    if (substr($query, -1)==';') {
+        $query = substr($query, 0, strlen($query)-1);
+    }
+
+    // //Force a limit
     $limited_query = 'SELECT * FROM ('.$query.') AS query LIMIT 0, 200';
 
 
@@ -81,10 +86,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sql_query'])) {
         
             <div class="card">
                 <b>Information</b>
-                <ul>
-                <li>- All queries are limited to 200 resuts by default</li>
-                <li>- look for these tables: roster, players</li>
-                <li>- <i>defId</i> column in <i>roster</i> table is the same as <i>base_id</i> <a href="https://swgoh.gg/api/characters/">here</a> (characters) or <a href="https://swgoh.gg/api/ships/">here</a> (ships).</li>
+                <ul style="list-style-type:disc;">
+                    <li>- All queries are limited to 200 resuts by default</li>
+                    <li>- look for these tables: roster, players</li>
+                    <li>- <i>defId</i> column in <i>roster</i> table is the same as <i>base_id</i> <a href="https://swgoh.gg/api/characters/">here</a> (characters) or <a href="https://swgoh.gg/api/ships/">here</a> (ships).</li>
+                    <li>- <i>relic_currentTier</i> column is 2 higher than actual relic of the character (relic_currentTer=5 > character is R3).</li>
+                    <li>- statistics:
+                        <ul style="list-style-type:disc;">
+                            <li>&nbsp;- stat1=Health</li>
+                            <li>&nbsp;- stat5=Speed</li>
+                            <li>&nbsp;- stat6=PhysicalDamages</li>
+                            <li>&nbsp;- stat7=SpecialDamages</li>
+                            <li>&nbsp;- stat8=Armor</li>
+                            <li>&nbsp;- stat14=CritChances</li>
+                            <li>&nbsp;- stat15=SpecialCritDamages</li>
+                            <li>&nbsp;- stat16=PhysicalCritDamages</li>
+                            <li>&nbsp;- stat17=Potency</li>
+                            <li>&nbsp;- stat18=Tenacity</li>
+                            <li>&nbsp;- stat28=Protection</li>
+                        </ul>
+                    </li>
                 </ul>
     
             </div>

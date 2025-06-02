@@ -50,7 +50,10 @@ $next_order = $sort_order === 'ASC' ? 'desc' : 'asc';
 
 //-------------- PREPARE THE QUERY for guilds
 // Prepare the SQL query to get guilds with pagination
-$query = "SELECT name, id, players, gp, lastUpdated, NOT isnull(bot_allyCode) AS bot FROM guilds LEFT JOIN guild_bot_infos ON (guild_bot_infos.guild_id=guilds.id)";
+$query = "SELECT name, id, players, gp, lastUpdated, NOT isnull(guild_bots.allyCode) AS bot";
+$query .= " FROM guilds";
+$query .= " LEFT JOIN guild_bot_infos ON (guild_bot_infos.guild_id=guilds.id)";
+$query .= " LEFT JOIN guild_bots ON (guild_bots.guild_id=guilds.id)";
 if ($search_term) {
     $query .= " WHERE name LIKE :search_term";
 }
