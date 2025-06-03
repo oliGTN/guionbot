@@ -776,6 +776,17 @@ async def register(ctx_interaction, args):
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
 
+        #Ensure that any discord_id has a main account
+        query = "UPDATE discord_id SET main=1 "\
+                "WHERE discord_id IN ( "\
+                "SELECT discord_id "\
+                "FROM player_discord "\
+                "GROUP BY discord_id "\
+                "HAVING max(main)=0 "\
+                ")"
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
         await command_ok(ctx_interaction, resp_msg, "Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
 
     except Exception as e:

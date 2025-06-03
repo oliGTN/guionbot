@@ -91,64 +91,62 @@ dict_tb_alerts_previously_done = {}
 # Output: none
 ##############################################################
 async def bot_loop_60secs(bot):
-        goutils.log2("DBG", "START loop")
-        t_start = time.time()
+    goutils.log2("DBG", "START loop")
+    t_start = time.time()
 
-        ########################
-        # look for inactive bots
-        # this is done before RPC update because RPC updates takes more than 
-        # one minute and then the mod(now, period) is never 0
-        query = "SELECT guild_id, locked_since "\
-                "FROM guild_bots "\
-                "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
-                "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
-                "AND NOT isnull(allyCode) "
-        goutils.log2("INFO", query)
-        db_data = connect_mysql.get_column(query)
-        goutils.log2("INFO", "locked_since > 1 hour db_data: "+str(db_data))
-        if not db_data==None:
-            for guild_id in db_data:
-                await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
+    ########################
+    # look for inactive bots
+    # this is done before RPC update because RPC updates takes more than 
+    # one minute and then the mod(now, period) is never 0
+    query = "SELECT guild_id, locked_since "\
+            "FROM guild_bots "\
+            "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
+            "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
+            "AND NOT isnull(allyCode) "
+    goutils.log2("INFO", query)
+    db_data = connect_mysql.get_column(query)
+    goutils.log2("INFO", "locked_since > 1 hour db_data: "+str(db_data))
+    if not db_data==None:
+        for guild_id in db_data:
+            await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
 
-        #######################################################################
-        #UPDATE RPC data
-        #
-        # update when the time since last update is greater than the period and the time is rounded
-        # (15 min bots are updated only at :00, :15, :30...)
-        query = "SELECT guild_id "\
-                "FROM guild_bots "\
-                "WHERE timestampdiff(MINUTE, latest_update, CURRENT_TIMESTAMP)>=(period-1) "\
-                "AND isnull(locked_since) "\
-                "AND mod(minute(CURRENT_TIMESTAMP), period)=0 "\
-                "AND NOT isnull(allyCode) "
-        goutils.log2("DBG", query)
-        db_data = connect_mysql.get_column(query)
-        goutils.log2("DBG", "db_data: "+str(db_data))
+    #######################################################################
+    #UPDATE RPC data
+    #
+    # update when the time since last update is greater than the period and the time is rounded
+    # (15 min bots are updated only at :00, :15, :30...)
+    query = "SELECT guild_id "\
+            "FROM guild_bots "\
+            "WHERE timestampdiff(MINUTE, latest_update, CURRENT_TIMESTAMP)>=(period-1) "\
+            "AND isnull(locked_since) "\
+            "AND mod(minute(CURRENT_TIMESTAMP), period)=0 "\
+            "AND NOT isnull(allyCode) "
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_column(query)
+    goutils.log2("DBG", "db_data: "+str(db_data))
 
-        if not db_data==None:
-            for guild_id in db_data:
-                #update RPC data before using different commands (tb alerts, tb_platoons)
-                try:
-                    ec, et = await update_rpc_data(guild_id)
-                    if ec==401:
-                        await connect_rpc.lock_bot_account(guild_id)
-                        await send_alert_to_bot_owner(guild_id)
-                    elif ec!=0 and not bot_test_mode:
-                        await send_alert_to_admins(None, "["+guild_id+"] "+et)
+    if not db_data==None:
+        for guild_id in db_data:
+            #update RPC data before using different commands (tb alerts, tb_platoons)
+            try:
+                ec, et = await update_rpc_data(guild_id)
+                if ec==401:
+                    await connect_rpc.lock_bot_account(guild_id)
+                    await send_alert_to_bot_owner(guild_id)
+                elif ec!=0 and not bot_test_mode:
+                    await send_alert_to_admins(None, "["+guild_id+"] "+et)
 
-                    #log update time in DB - rounded to fix times
-                    # (eg: always 00:05, 00:10 for 5 min period)
-                    query = "UPDATE guild_bots SET latest_update=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/period,0)*60*period) "
-                    query+= "WHERE guild_id='"+guild_id+"'"
-                    goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                #log update time in DB - rounded to fix times
+                # (eg: always 00:05, 00:10 for 5 min period)
+                query = "UPDATE guild_bots SET latest_update=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/period,0)*60*period) "
+                query+= "WHERE guild_id='"+guild_id+"'"
+                goutils.log2("DBG", query)
+                connect_mysql.simple_execute(query)
 
-                except Exception as e:
-                    goutils.log2("ERR", traceback.format_exc())
-                    if not bot_test_mode:
-                        await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
+            except Exception as e:
+                goutils.log2("ERR", traceback.format_exc())
 
-        goutils.log2("DBG", "END loop")
+    goutils.log2("DBG", "END loop")
 
 ##############################################################
 # Function: bot_loop_10minutes
@@ -352,8 +350,6 @@ async def bot_loop_5minutes(bot):
                     dict_platoons_previously_done[guild_id] = dict_platoons_done.copy()
 
         except Exception as e:
-            goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
-            goutils.log2("ERR", "["+guild_id+"]"+str(e))
             goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
@@ -1605,8 +1601,6 @@ async def read_gsheets(guild_id):
 
         return err_code, err_txt
     except Exception as e:
-        #goutils.log2("ERR", str(sys.exc_info()[0]))
-        #goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
 
         return 1, "error while loading gsheet data"
@@ -1863,8 +1857,6 @@ async def on_message(message):
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
 
     except Exception as e:
-        goutils.log2("ERR", str(sys.exc_info()[0]))
-        goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
         if not bot_test_mode:
             await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
@@ -1965,8 +1957,6 @@ async def on_message_edit(before, after):
                     await after.channel.send("Absence enregistrée pour "+player_name+" entre le "+start_date+" et le "+end_date)
 
     except Exception as e:
-        goutils.log2("ERR", str(sys.exc_info()[0]))
-        goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
 
 @bot.event
@@ -2030,8 +2020,6 @@ async def on_command_error(ctx, error):
     else:
         await ctx.send("ERR: erreur inconnue")
         await ctx.message.add_reaction(emojis.redcross)
-        goutils.log2("ERR", error)
-        goutils.log2("ERR", traceback.format_exception(error))
         goutils.log2("ERR", traceback.format_exc())
 
         # discord DM to admins
@@ -3187,8 +3175,6 @@ class AuthCog(commands.GroupCog, name="connect"):
                 await interaction.edit_original_response(content="Code accepté, vous pouvez utiliser le bot")
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
 
 ##############################################################
@@ -4931,9 +4917,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
     # Command: vtg
@@ -5252,7 +5237,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
-            # "erreur inconnue" already manages at go.xxx level
+            await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
     # Command: gvg
@@ -5435,6 +5420,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
+            await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
     # Command: gdp
@@ -5788,8 +5774,10 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send("StatQ = "+str(round(statq, 2)))
 
                 await ctx.message.add_reaction(emojis.check)
+
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
+            await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
     # Command: statqg
@@ -5904,8 +5892,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.error)
                 
     ##############################################################
     # Command: rgt
@@ -6608,8 +6595,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.check)
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60secs:"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
     # Command: shard
