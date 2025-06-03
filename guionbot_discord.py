@@ -5227,27 +5227,32 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.raf me SEE\n"\
                       "Exemple: go.raf me thrawn JKL")
     async def raf(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+            allyCode = await manage_me(ctx, allyCode, False)
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            if len(characters) == 0:
-                characters = ["all"]
-                
-            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 2)
-            if err_code == 0:
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("`"+txt+"`")
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emojis.check)
-            else:
-                await ctx.send(ret_cmd)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
+            else:
+                if len(characters) == 0:
+                    characters = ["all"]
+                    
+                err_code, ret_cmd = await go.print_gvj( characters, allyCode, 2)
+                if err_code == 0:
+                    for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                        await ctx.send("`"+txt+"`")
+
+                    #Icône de confirmation de fin de commande dans le message d'origine
+                    await ctx.message.add_reaction(emojis.check)
+                else:
+                    await ctx.send(ret_cmd)
+                    await ctx.message.add_reaction(emojis.redcross)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            # "erreur inconnue" already manages at go.xxx level
 
     ##############################################################
     # Command: gvg
@@ -5335,8 +5340,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                  brief="Stats de Perso d'un Joueur",
                  help="Stats de Perso d'un Joueur\n\n"\
                       "Potentiellement trié par étoiles, gear ou une stat (ex: vitesse)\n"\
-                      "Exemple: go.spg 123456789 JKR\n"\
-                      "Exemple: go.spg me JKR -étoiles\n"\
+                      "Exemple: go.spj 123456789 JKR\n"\
+                      "Exemple: go.spj me JKR -étoiles\n"\
                       "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
                       "Exemple: go.spj me -p all")
     async def spj(self, ctx, allyCode, *characters):
