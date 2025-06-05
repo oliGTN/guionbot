@@ -2990,17 +2990,17 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
     if db_data==None:
-        # running without estilates is still possible
+        # running without estimates is still possible
         db_data = []
 
-    #prepare estilate scores per player
+    #prepare estimate scores per player
     dict_estimates = {}
     for line in db_data:
         dict_estimates[line[0]] = line[1]
 
     #Get generic progress about the raid
     expire_time = int(raidStatus["expireTime"])
-    raid_join_time = raidStatus["joinPeriodEndTimeMs"]
+    raid_join_time = int(raidStatus["joinPeriodEndTimeMs"])
     guild_score = int(raidStatus["guildRewardScore"])
 
     dict_raid_members_by_id={}
@@ -3011,17 +3011,17 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
     potential_score = guild_score
     for member_id in dict_members_by_id:
         member = dict_members_by_id[member_id]
-        if member["guildJoinTime"]*1000 >= raid_join_time:
+        if int(member["guildJoinTime"])*1000 >= raid_join_time+48*3600*1000:
             #player joined after start of raid
+            goutils.log2("DBG", member["name"]+" is ignored as joined the guild after start of raid")
             continue
 
         if member_id in dict_raid_members_by_id:
             score = int(dict_raid_members_by_id[member_id]["memberProgress"])
         else:
-            #If the member if not in the raid status, it probably indicates
-            # that he joined the guild too late to participate
-            # No need to report that member in the status
-            continue
+            #If the member if not in the raid status, 
+            # consider he has not played
+            score = 0
 
         if member_id in dict_estimates:
             estimated_score = dict_estimates[member_id]
