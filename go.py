@@ -4892,14 +4892,15 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
         for conflictStatus in twStatus["homeGuild"]["conflictStatus"]:
             is_ship = conflictStatus["zoneStatus"]["zoneId"] in ['tw_jakku01_phase03_conflict01',
                                                                  'tw_jakku01_phase04_conflict01']
-            for warSquad in conflictStatus["warSquad"]:
-                playerName = warSquad["playerName"]
-                if not playerName in dict_leaderboard:
-                    dict_leaderboard[playerName] = [0, 0, 0, 0, 0]
-                if is_ship:
-                    dict_leaderboard[playerName][2] +=1
-                else:
-                    dict_leaderboard[playerName][0] +=1
+            if "warSquad" in conflictStatus:
+                for warSquad in conflictStatus["warSquad"]:
+                    playerName = warSquad["playerName"]
+                    if not playerName in dict_leaderboard:
+                        dict_leaderboard[playerName] = [0, 0, 0, 0, 0]
+                    if is_ship:
+                        dict_leaderboard[playerName][2] +=1
+                    else:
+                        dict_leaderboard[playerName][0] +=1
 
         dict_fulldef = {}
     else:
