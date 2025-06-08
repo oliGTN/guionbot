@@ -1254,7 +1254,10 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
             return "", 'ERR: joueur non trouvé pour code allié ' + txt_allyCode
 
         collection_name = d["name"]
-        guild_name = d["guildName"]
+        if "guildName" in d:
+            guild_name = d["guildName"]
+        else:
+            guild_name = ''
             
     elif compute_guild==1:
         #Get data for the guild and associated players

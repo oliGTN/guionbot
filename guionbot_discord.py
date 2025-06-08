@@ -205,8 +205,6 @@ async def bot_loop_5minutes(bot):
             ec, et, statusChan = await update_tw_status(guild_id)
 
         except Exception as e:
-            goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
-            goutils.log2("ERR", "["+guild_id+"]"+str(e))
             goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
@@ -242,8 +240,6 @@ async def bot_loop_5minutes(bot):
                                       guild_bots[guild_id]["tb_channel_end"])
 
         except Exception as e:
-            goutils.log2("ERR", "["+guild_id+"]"+str(sys.exc_info()[0]))
-            goutils.log2("ERR", "["+guild_id+"]"+str(e))
             goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
@@ -1701,8 +1697,6 @@ async def manage_reaction_add(user, message, reaction, emoji):
                 try:
                     await bot.process_commands(message)
                 except Exception as e:
-                    goutils.log2("ERR", sys.exc_info()[0])
-                    goutils.log2("ERR", e)
                     goutils.log2("ERR", traceback.format_exc())
                     if not bot_test_mode:
                         await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.message_reaction_add:"+str(sys.exc_info()[0]))
@@ -5175,27 +5169,34 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvj me SEE\n"\
                       "Exemple: go.gvj me thrawn JKL")
     async def gvj(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+            allyCode = await manage_me(ctx, allyCode, False)
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            if len(characters) == 0:
-                characters = ["all"]
-                
-            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
-            if err_code == 0:
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("`"+txt+"`")
-
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emojis.check)
-            else:
-                await ctx.send(ret_cmd)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
+            else:
+                if len(characters) == 0:
+                    characters = ["all"]
+                    
+                err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
+                if err_code == 0:
+                    for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                        await ctx.send("`"+txt+"`")
+
+                    #Icône de confirmation de fin de commande dans le message d'origine
+                    await ctx.message.add_reaction(emojis.check)
+                else:
+                    await ctx.send(ret_cmd)
+                    await ctx.message.add_reaction(emojis.redcross)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.gvj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
     # Command: raf
@@ -5237,6 +5238,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.raf"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
@@ -5420,6 +5423,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.spg"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
@@ -5777,6 +5782,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.statqj"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
@@ -5892,6 +5899,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.ppj"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.error)
                 
     ##############################################################
@@ -6595,6 +6604,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.check)
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.cpg"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
