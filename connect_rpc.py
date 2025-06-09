@@ -778,7 +778,7 @@ async def get_player_data(txt_allyCode, use_cache_data):
         return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     if "err_code" in dict_player:
-        return 1, dict_player["err_txt"], None
+        return dict_player["err_code"], dict_player["err_txt"], None
 
     return 0, "", dict_player
 
@@ -2767,7 +2767,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au compte "+txt_allyCode
+        return 1, "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt
     
     player_name = dict_player["name"]
     dict_roster = {}
