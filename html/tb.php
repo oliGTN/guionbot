@@ -154,7 +154,8 @@ $query .= " availableShipDeploy, availableCharDeploy, availableMixDeploy,";
 $query .= " remainingShipPlayers, remainingCharPlayers, remainingMixPlayers,";
 $query .= " deploymentTypeMix, totalPlayers";
 $query .= " FROM tb_player_score";
-$query .= " JOIN tb_phases ON tb_phases.round = tb_player_score.round";
+$query .= " JOIN tb_phases ON tb_phases.tb_id = tb_player_score.tb_id";
+$query .= " AND tb_phases.round = tb_player_score.round";
 $query .= " WHERE tb_player_score.tb_id=".$tb_id." AND tb_player_score.round=".$round;
 //error_log("query = ".$query);
 try {
@@ -172,7 +173,7 @@ try {
 }
 
 // --------------- GET PLAYER INFO FOR THE TB -----------
-if ($isMyGuildConfirmed) {
+if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
     if ($sort_column == 'deployment') {
         $sort_column_sql = 'deployed_gp/gp';
     } else {
