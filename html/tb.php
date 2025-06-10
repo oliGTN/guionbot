@@ -227,6 +227,14 @@ if ($isMyGuildConfirmed) {
     <h2 style="display:inline"><a href='/tbs.php?gid=<?php echo $guild['id']; ?>'>TB</a> for <a href='/g.php?gid=<?php echo $guild['id']; ?>'><?php echo $guild['name']; ?></a></h2> - <?php echo $tb['tb_name'];?>
     <div><?php echo "last update on ".$tb['lastUpdated']; ?></div>
 
+    <div class="card">
+        <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i>)':''); ?></small>
+        </p>
+
+        <p style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></p>
+        <p style="color:red;display:inline"><br/><?php echo ($isAdmin ? 'You are logged as an administrator' : ''); ?></p>
+    </div>
+
     
 <!-- Clickable round numbers for large screens -->
 <div class="phases hide-on-small-and-down">
@@ -505,7 +513,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088
 
 <div class="card">
     <!-- table for players -->
-    <?php if ($isMyGuildConfirmed) : ?>
+    <?php if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) : ?>
     <table>
         <thead>
             <tr>

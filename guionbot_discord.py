@@ -1366,7 +1366,7 @@ async def update_rpc_data(guild_id, allyCode=None):
             channel_id = ret_data[logType][0]
             list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
             if channel_id != 0:
-                output_channel = bot.get_channel(channel_id)
+                output_channel = (bot.get_channel(channel_id) or await bot.fetch_channel(channel_id))
                 if output_channel !=None:
                     output_txt = ""
                     for line in list_logs:

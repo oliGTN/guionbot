@@ -281,6 +281,7 @@ function openZone(evt, zoneSide, zoneName) {
         </p>
 
         <p style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></p>
+        <p style="color:red;display:inline"><br/><?php echo ($isAdmin ? 'You are logged as an administrator' : ''); ?></p>
     </div>
 
     <div><br/><?php echo "(last update on ".$tw['lastUpdated'].")"; ?></div>
