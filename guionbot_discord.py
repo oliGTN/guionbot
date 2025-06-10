@@ -98,7 +98,7 @@ async def bot_loop_60secs(bot):
     # look for inactive bots
     # this is done before RPC update because RPC updates takes more than 
     # one minute and then the mod(now, period) is never 0
-    query = "SELECT guild_id, locked_since "\
+    query = "SELECT guild_id, allyCode, locked_since, lock_when_played "\
             "FROM guild_bots "\
             "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
             "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
@@ -107,8 +107,20 @@ async def bot_loop_60secs(bot):
     db_data = connect_mysql.get_column(query)
     goutils.log2("INFO", "locked_since > 1 hour db_data: "+str(db_data))
     if not db_data==None:
-        for guild_id in db_data:
-            await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
+        for guild_bot in db_data:
+            guild_id = guild_bot[0]
+            allyCode = guild_bot[1]
+            locked_since = guild_bot[2]
+            lock_when_played = guild_bot[3]
+            if lock_when_played:
+                #player account, do not re-activate it, just warn
+                await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
+            else:
+                #bot account, re-activate it
+                query = "UPDATE guild_bots SET locked_since=null "\
+                        "WHERE allyCode="+str(allyCode)
+                goutils.log2("DBG", query)
+                connect_mysql.simple_execute(query)
 
     #######################################################################
     #UPDATE RPC data
