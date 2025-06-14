@@ -1867,6 +1867,7 @@ async def on_message(message):
         if not bot_test_mode:
             await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
+##############################################################
 @bot.event
 async def on_message_edit(before, after):
     try:
@@ -2284,7 +2285,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
-            await ctx.message.add_reaction(emojis.error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: fsj
@@ -2413,13 +2414,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         except discord.errors.NotFound as e:
             goutils.log2("ERR", "msg not found id="+str(msg_id))
             raise(e)
-            await ctx.message.add_reaction(emojis.error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
-            await ctx.message.add_reaction(emojis.error)
+            await ctx.message.add_reaction(emojis.redcross)
             return
 
         list_reactive_user_id = []
@@ -4924,7 +4925,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
-            await ctx.message.add_reaction(emojis.error)
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: vtg
@@ -5008,8 +5009,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: vtj
@@ -5099,8 +5100,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     @commands.check(member_command)
     @commands.command(name='fegv',
@@ -5221,8 +5222,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.gvj"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.gvj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: raf
@@ -5265,8 +5266,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.raf"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.raf"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: gvg
@@ -5450,8 +5451,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.spg"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.spg"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: gdp
@@ -5809,8 +5810,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.statqj"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.statqj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: statqg
@@ -5926,8 +5927,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.ppj"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.ppj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
                 
     ##############################################################
     # Command: rgt
@@ -6631,8 +6632,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
-                await send_alert_to_admins(message.channel.guild, "Exception in go.cpg"+str(sys.exc_info()[0]))
-            await ctx.message.add_reaction(emojis.error)
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.cpg"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: shard
