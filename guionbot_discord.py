@@ -1576,7 +1576,7 @@ async def read_gsheets(guild_id):
             err_txt += "ERR: erreur en mettant à jour les CATEGORIES\n"
             err_code = 1
 
-        ec, l, d = connect_gsheets.load_config_teams(0, True)
+        ec, l, d = connect_gsheets.load_config_teams(None, True)
         if ec != 0:
             err_txt += "ERR: erreur en mettant à jour les TEAMS GV\n"
             err_code = 1

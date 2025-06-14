@@ -25,7 +25,7 @@ client=None
 
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 
-def get_gfile_name(guild_id):
+def get_gfile_name(guild_id: str):
     query = "SELECT gfile_name FROM guild_bot_infos WHERE guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
     return connect_mysql.get_value(query)
@@ -60,7 +60,7 @@ def get_dict_columns(list_col_names, list_list_sheet):
                 dict_columns[col_name] = i_col
     return dict_columns
 
-def get_sheet_url(guild_id, sheet_name):
+def get_sheet_url(guild_id: str, sheet_name):
     gfile_name = get_gfile_name(guild_id)
     if gfile_name==None or gfile_name=='':
         return None
@@ -87,8 +87,8 @@ def get_sheet_url(guild_id, sheet_name):
 #                          {team_name:
 #                             [phase, normal, super]}]}
 ##############################################################
-def load_config_raids(guild_id, force_load):
-    if guild_id == 0:
+def load_config_raids(guild_id: str, force_load):
+    if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
@@ -156,10 +156,11 @@ def load_config_raids(guild_id, force_load):
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams(guild_id, force_load):
-    if guild_id == 0:
+def load_config_teams(guild_id: str, force_load):
+    if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
+        cache_name = "GuiOnBot"
     else:
         gfile_name = get_gfile_name(guild_id)
 
@@ -167,12 +168,13 @@ def load_config_teams(guild_id, force_load):
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
         guild_name = connect_mysql.get_value(query)
+        cache_name = guild_id
 
     if gfile_name==None:
         goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
         return 2, [], {}
 
-    json_file = "CACHE"+os.path.sep+guild_name+"_config_teams.json"
+    json_file = "CACHE/"+cache_name+"_config_teams.json"
 
     if force_load or not os.path.isfile(json_file):
         try:
@@ -196,7 +198,6 @@ def load_config_teams(guild_id, force_load):
         list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
         if txt != '':
             goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
-
 
         #Get latest definition of teams
         dict_teams={}
@@ -235,7 +236,7 @@ def load_config_teams(guild_id, force_load):
                                                                                 character_name]
     
         #Update DB
-        connect_mysql.update_guild_teams(guild_name, dict_teams)
+        connect_mysql.update_guild_teams(guild_id, dict_teams)
 
         # store json file
         fjson = open(json_file, 'w')
@@ -352,7 +353,7 @@ def load_config_categories(force_load):
                         break
                     if row_cell.startswith("tag:"):
                         list_ids, dict_id_name, txt_not_found_characters = \
-                            goutils.get_characters_from_alias([cell])
+                            goutils.get_characters_from_alias([row_cell])
                         for id in list_ids:
                             dict_categories[cell].append(id)
                     else:
@@ -516,8 +517,8 @@ def load_config_statq():
 #         dict of star tagrets by TB and by day
 #         margin of score before reaching the target
 ##############################################################
-def get_tb_triggers(guild_id, force_load):
-    if guild_id == 0:
+def get_tb_triggers(guild_id: str, force_load):
+    if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
@@ -623,7 +624,7 @@ def get_tb_triggers(guild_id, force_load):
     return 0, [daily_targets, margin]
 
 # IN: list_targets=[["ROTE1-DS", 3], ["ROTE2-MS", 3], ...]
-def set_tb_targets(guild_id, list_targets):
+def set_tb_targets(guild_id: str, list_targets):
     gfile_name = get_gfile_name(guild_id)
     try:
         get_gapi_client()
@@ -716,8 +717,8 @@ def set_tb_targets(guild_id, list_targets):
     
     return 0, ""
 
-def load_tb_teams(guild_id, force_load):
-    if guild_id == 0:
+def load_tb_teams(guild_id: str, force_load):
+    if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
@@ -772,8 +773,8 @@ def load_tb_teams(guild_id, force_load):
 
     return tb_teams
 
-def load_tw_counters(guild_id, force_load):
-    if guild_id == 0:
+def load_tw_counters(guild_id: str, force_load):
+    if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
@@ -832,7 +833,7 @@ def load_tw_counters(guild_id, force_load):
     return tw_counters
 
 ##############################################################
-async def close_tb_gwarstats(guild_id):
+async def close_tb_gwarstats(guild_id: str):
     gfile_name = get_gfile_name(guild_id)
 
     try:
@@ -896,7 +897,7 @@ async def close_tb_gwarstats(guild_id):
     return 0, ""
 
 ##############################################################
-async def update_gwarstats(guild_id, dict_phase, dict_strike_zones,
+async def update_gwarstats(guild_id: str, dict_phase, dict_strike_zones,
                            dict_tb_players, list_open_zones, dict_zones,
                            tb_round, allyCode=None):
 

@@ -77,7 +77,7 @@ dict_stat_names["tena"] =     [18, True, "Ténacité"]
 dict_stat_names["protec"] =     [28, False, "Protection"]
 dict_stat_names["protection"] = [28, False, "Protection"]
 
-BOT_GFILE = 0
+BOT_GFILE = None
 
 ##################################
 # Function: manage_disk_usage
@@ -1304,7 +1304,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
         query += "AND guild_teams.name LIKE '%-GV'\n"
     else:
         query += "AND NOT guild_teams.name LIKE '%-GV'\n"
-        query += "AND guild_teams.GuildName = '"+guild_name.replace("'", "''")+"'\n"
+        query += "AND guild_teams.guild_id = '"+guild_id+"'\n"
 
     if exclusive_player_list != None:
         query += "AND players.name IN "+str(tuple(exclusive_player_list)).replace(",)", ")")+"\n"
