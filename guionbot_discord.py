@@ -1566,9 +1566,9 @@ async def read_gsheets(guild_id):
         err_code = 0
         err_txt = ""
 
-        d = connect_gsheets.load_config_units(True)
-        if d == None:
-            err_txt += "ERR: erreur en mettant à jour les UNITS\n"
+        ec, et, d = connect_gsheets.load_config_units(True)
+        if ec != 0:
+            err_txt += "ERR: erreur en mettant à jour les UNITS - "+et+"\n"
             err_code = 1
 
         d = connect_gsheets.load_config_categories(True)

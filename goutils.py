@@ -755,7 +755,7 @@ def roster_from_dict_to_list(dict_player_in):
 def get_characters_from_alias(list_alias):
     #Recuperation des dernieres donnees sur gdrive
     dict_unitsList = data.get("unitsList_dict.json")
-    dict_unitAlias = connect_gsheets.load_config_units(False)
+    ec, et, dict_unitAlias = connect_gsheets.load_config_units(False)
     dict_tagAlias = data.get("tagAlias_dict.json")
     dict_categories = connect_gsheets.load_config_categories(False)
     dict_capas = data.get('unit_capa_list.json')

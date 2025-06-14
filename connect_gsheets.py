@@ -264,13 +264,13 @@ def load_config_units(force_load):
 
             list_dict_sheet=feuille.get_all_values()
         except gspread.exceptions.WorksheetNotFound:
-            return {}
+            return 1, "Worksheet not found: GuiOnNot config", {}
         except Exception as e:
             goutils.log2("ERR", sys.exc_info()[0])
             goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
             goutils.log2("ERR", "Cannot connect to Google API")
-            return None
+            return 1, "Cannot connect to Google API", None
 
         dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
     
@@ -312,7 +312,7 @@ def load_config_units(force_load):
     else:
         dict_units = json.load(open(json_file, "r"))
                 
-    return dict_units
+    return 0, "", dict_units
 
 ##############################################################
 # Function: load_config_categories
@@ -345,7 +345,8 @@ def load_config_categories(force_load):
         for cell in list_dict_sheet[1]:
             if cell != "":
                 dict_categories[cell] = []
-                for row_cell in list_dict_sheet[2:]:
+                for row in list_dict_sheet[2:]:
+                    row_cell = row[i_col]
                     if row_cell == "":
                         #end of the column, move to next column
                         break
