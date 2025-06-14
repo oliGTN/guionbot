@@ -205,7 +205,7 @@ def create_dict_teams(player_data, player_zeta_data, player_omicron_data, gv_cha
 
         line_omicron = line[3]
         line_level = line[4]
-        line_omicron_tier = dict_capas[line_defId][line_zeta]["zetaTier"]
+        line_omicron_tier = dict_capas[line_defId][line_omicron]["omicronTier"]
         is_omicron_active = (line_level >= line_omicron_tier)
         if line_playername in dict_players:
             if line_teamname in dict_players[line_playername][1]:
