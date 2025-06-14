@@ -4943,66 +4943,73 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.vtg 192126111 PADME NS DR\n"\
                            "Exemple: go.vtg me NS")
     async def vtg(self, ctx, allyCode, *teams):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        allyCode = await manage_me(ctx, allyCode, True)
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-        gfile_name = bot_infos["gfile_name"]
-        if gfile_name == None:
-            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        teams = list(teams)
-        if "-TW" in teams:
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
-                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                await ctx.send('ERR: commande non autorisée depuis un DM')
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            #Ensure command is launched from a server which is linked to a warbot
-            if guild_id == None:
-                await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+            allyCode = await manage_me(ctx, allyCode, True)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            tw_mode = True
-            teams.remove("-TW")
-        else:
-            tw_mode = False
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        if len(teams) == 0:
-            teams = ["all"]
+            guild_id = bot_infos["guild_id"]
+            gfile_name = bot_infos["gfile_name"]
+            if gfile_name == None:
+                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        err, ret_cmd = await go.print_vtg( teams, allyCode, guild_id, gfile_name, tw_mode)
-        if err == 0:
-            for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                await ctx.send(txt)
+            teams = list(teams)
+            if "-TW" in teams:
+                #Ensure command is launched from a server, not a DM
+                if ctx.guild == None:
+                    await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-            await ctx.message.add_reaction(emojis.check)
-        else:
-            await ctx.send(ret_cmd)
-            await ctx.message.add_reaction(emojis.redcross)
+                #Ensure command is launched from a server which is linked to a warbot
+                if guild_id == None:
+                    await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                tw_mode = True
+                teams.remove("-TW")
+            else:
+                tw_mode = False
+
+            if len(teams) == 0:
+                teams = ["all"]
+
+            err, ret_cmd = await go.print_vtg( teams, allyCode, guild_id, gfile_name, tw_mode)
+            if err == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send(txt)
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emojis.check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emojis.redcross)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.error)
 
     ##############################################################
     # Command: vtj
@@ -5021,72 +5028,79 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.vtj 192126111 PADME NS DR\n"\
                       "Exemple: go.vtj me NS")
     async def vtj(self, ctx, allyCode, *teams):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        allyCode = await manage_me(ctx, allyCode, False)
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-        gfile_name = bot_infos["gfile_name"]
-        if gfile_name == None:
-            await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        teams = list(teams)
-        if "-TW" in teams:
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
-                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                await ctx.send('ERR: commande non autorisée depuis un DM')
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            #Ensure command is launched from a server which is linked to a warbot
-            if guild_id == None:
-                await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+            allyCode = await manage_me(ctx, allyCode, False)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            tw_mode = True
-            teams.remove("-TW")
-        else:
-            tw_mode = False
+            guild_id = bot_infos["guild_id"]
+            gfile_name = bot_infos["gfile_name"]
+            if gfile_name == None:
+                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        if len(teams) == 0:
-            teams = ["all"]
+            teams = list(teams)
+            if "-TW" in teams:
+                #Ensure command is launched from a server, not a DM
+                if ctx.guild == None:
+                    await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-        err, txt, images = await go.print_vtj(teams, allyCode, guild_id, gfile_name, tw_mode)
-        if err != 0:
-            await ctx.send(txt)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
-                await ctx.send(sub_txt)
-            if images != None:
-                image = images[0]
-                with BytesIO() as image_binary:
-                    image.save(image_binary, 'PNG')
-                    image_binary.seek(0)
-                    await ctx.send(content = "",
-                        file=File(fp=image_binary, filename='image.png'))
+                #Ensure command is launched from a server which is linked to a warbot
+                if guild_id == None:
+                    await ctx.send("ERR: vous devez avoir un warbot pour utiliser l'option -TW")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-            #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emojis.check)
+                tw_mode = True
+                teams.remove("-TW")
+            else:
+                tw_mode = False
+
+            if len(teams) == 0:
+                teams = ["all"]
+
+            err, txt, images = await go.print_vtj(teams, allyCode, guild_id, gfile_name, tw_mode)
+            if err != 0:
+                await ctx.send(txt)
+                await ctx.message.add_reaction(emojis.redcross)
+            else:
+                for sub_txt in goutils.split_txt(txt, MAX_MSG_SIZE):
+                    await ctx.send(sub_txt)
+                if images != None:
+                    image = images[0]
+                    with BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        await ctx.send(content = "",
+                            file=File(fp=image_binary, filename='image.png'))
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                    await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.error)
 
     @commands.check(member_command)
     @commands.command(name='fegv',
