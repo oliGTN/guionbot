@@ -341,9 +341,21 @@ def load_config_categories(force_load):
 
         dict_categories = {}
         i_col = 0
+        #loop on custom categories
         for cell in list_dict_sheet[1]:
             if cell != "":
-                dict_categories[cell] = [x[i_col] for x in list_dict_sheet[2:] if x[i_col]!=""]
+                dict_categories[cell] = []
+                for row_cell in list_dict_sheet[2:]:
+                    if row_cell == "":
+                        #end of the column, move to next column
+                        break
+                    if row_cell.startswith("tag:"):
+                        list_ids, dict_id_name, txt_not_found_characters = \
+                            goutils.get_characters_from_alias([cell])
+                        for id in list_ids:
+                            dict_categories[cell].append(id)
+                    else:
+                        dict_categories[cell].append(row_cell)
                 i_col += 1
             else:
                 break
