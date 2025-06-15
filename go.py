@@ -1339,7 +1339,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
             query += "WHERE players."+shard_type+"Shard_id = \
                     (SELECT "+shard_type+"Shard_id FROM players WHERE allyCode='"+txt_allyCode+"')\n"
         query += "AND NOT guild_teams.name LIKE '%-GV'\n"
-        query += "AND guild_teams.GuildName = '"+guild_name.replace("'", "''")+"'\n"
+        query += "AND guild_teams.guild_id = '"+guild_id+"'\n"
            
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
         goutils.log2("DBG", query)
