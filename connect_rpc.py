@@ -1389,8 +1389,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 else:
                     tb_round = my_tb_round
 
-                if tb_round <= dict_tb[tb_type]["maxRound"]:
-                    tb_ongoing=True
+                if tb_round > dict_tb[tb_type]["maxRound"]:
+                    # Synthesis round, very short duration after end of TB
+                    tb_ongoing=False
 
                 tb_startTime = int(battleStatus["instanceId"].split(':')[1][1:])
                 tb_round_endTime = tb_startTime + tb_round*dict_tb[tb_type]["phaseDuration"]
