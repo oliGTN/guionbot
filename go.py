@@ -5904,7 +5904,7 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
     # Get current guild and mapstats data
     err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1, allyCode=allyCode)
     if err_code!=0:
-        return 1, err_txt
+        return 1, err_txt, None
 
     guild = rpc_data[0]
     current_mapstats = rpc_data[1]
@@ -6104,7 +6104,7 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
     if ec == 0:
         csv_content = txt
     else:
-        return ec, txt
+        return ec, txt, None
 
     list_stats = [["Round", "Joueur", "Combats", "Vagues réussies", "Score"],
                   ["", "", "(progrès)", "(progrès)", "(ratio /PG)"]] + list_stats
