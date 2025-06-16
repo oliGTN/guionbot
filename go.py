@@ -1539,6 +1539,10 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                         if len(list_team_names)==1 and list_team_names[0]!="all":
                             ret_print_vtx += line_print_vtx
 
+                        connect_mysql.update_gv_history(
+                            "", name, team, True,
+                            score, unlocked, "go.bot")
+
                 if total_not_enough > 0:
                     if len(list_team_names)==1 and list_team_names[0]!="all":
                         ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
@@ -1613,6 +1617,9 @@ async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                         ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
                     ret_print_vtx += " " + team + ": " + str(round(score, 1)) + "%\n"
 
+                    connect_mysql.update_gv_history(txt_allyCode, "", team, True,
+                                                    score, unlocked, "go.bot")
+            
                     list_char_allycodes = [[list_char, txt_allyCode, ""]]
                     if tw_mode:
                         image_mode = "TW"
