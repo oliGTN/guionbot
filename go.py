@@ -1718,7 +1718,7 @@ async def print_ftj(txt_allyCode, team, guild_id, gfile_name):
         for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
             ret_print_ftj += "Progrès de farm de la team "+team+" pour "+player_name+"\n"
             ret_print_ftj += player_txt + "> Global: "+ str(int(player_score))+"%"
-            connect_mysql.update_gv_history(txt_allyCode, "", "FARM", True,
+            connect_mysql.update_gv_history(txt_allyCode, "", team, True,
                                             player_score, unlocked, "go.bot")
 
     return 0, ret_print_ftj
@@ -3758,28 +3758,52 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
 #######################################################
 # get_gv_graph
 # IN txt_allyCode: identifier of the player
-# IN characters: list of GV characters
+# IN farm_list: list of GV characters OR farm teams
 # OUT: image of the graph
 #######################################################
-def get_gv_graph(txt_allyCodes, characters):
-    if "FARM" in characters:
-        character_ids_txt = "farm perso"
-    elif "all" in characters:
-        character_ids_txt = "tout le guide"
-    else:
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
-        if txt != '':
-            return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
-        character_ids_txt = str(tuple(list_character_ids)).replace(',)', ')')
-
+def get_gv_graph(txt_allyCodes, farm_list):
     sql_allyCodes = str(tuple(txt_allyCodes)).replace(',)', ')')
+
+    # get list of farm history
+    query = "SELECT defId FROM gv_history " \
+          + "WHERE gv_history.allyCode IN "+sql_allyCodes+" " \
+          + "GROUP BY defId"
+    goutils.log2("DBG", query)
+    ret_db = connect_mysql.get_column(query)
+    if ret_db == None:
+        return 1, "WAR: aucun progrès enregistré pour "+sql_allyCodes, None
+    player_farm_list = ret_db
+
+    if "FARM" in farm_list:
+        character_ids_txt = "farm perso"
+    elif "all" in farm_list:
+        character_ids_txt = "tous les farms"
+    else:
+        team_ids = []
+        remaining_farm_list = list(farm_list)
+
+        # first look for team names, exactly
+        for farm in farm_list:
+            if farm in player_farm_list:
+                remaining_farm_list.remove(farm)
+                team_ids.append(farm)
+
+        # then look for GV characters
+        if len(remaining_farm_list) > 0:
+            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(remaining_farm_list)
+            if txt != '':
+                return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
+            team_ids += list_character_ids
+
+        character_ids_txt = str(tuple(team_ids)).replace(',)', ')')
+
     query = "SELECT date, defId, progress, source, name FROM gv_history " \
           + "JOIN players ON players.allyCode = gv_history.allyCode " \
           + "WHERE gv_history.allyCode IN "+sql_allyCodes+" " \
           + "AND progress<=100 " # to filter out entries from RAF command
-    if "FARM" in characters:
+    if "FARM" in farm_list:
           query += "AND defId='FARM' "
-    elif not "all" in characters:
+    elif not "all" in farm_list:
           query += "AND defId IN "+character_ids_txt+" "
     query +="ORDER BY date DESC LIMIT 30"
     goutils.log2("DBG", query)
@@ -3792,7 +3816,7 @@ def get_gv_graph(txt_allyCodes, characters):
     dict_dates={}
     dict_values={}
 
-    if len(txt_allyCodes)==1 and len(characters)==1 and characters[0]!="all":
+    if len(txt_allyCodes)==1 and len(farm_list)==1 and farm_list[0]!="all":
         #display the one character progress, with both j.bot and go.bot
         for line in ret_db:
             if min_date==None or line[0]<min_date:
@@ -3808,7 +3832,7 @@ def get_gv_graph(txt_allyCodes, characters):
 
         graph_title = "Progrès de "+character_ids_txt
 
-    elif len(txt_allyCodes)>1 and len(characters)==1 and characters[0]!="all":
+    elif len(txt_allyCodes)>1 and len(farm_list)==1 and farm_list[0]!="all":
         #more than one player, one character, use only go.bot
         for line in ret_db:
             if line[3] == "go.bot":
@@ -3825,7 +3849,7 @@ def get_gv_graph(txt_allyCodes, characters):
 
         graph_title = "Progrès de "+character_ids_txt
 
-    elif len(txt_allyCodes)==1 and (len(characters)>1 or characters[0]=="all"):
+    elif len(txt_allyCodes)==1 and (len(farm_list)>1 or farm_list[0]=="all"):
         #one player, more than one character, use only go.bot
         for line in ret_db:
             if line[3] == "go.bot":
