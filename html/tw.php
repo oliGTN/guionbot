@@ -275,7 +275,31 @@ function event_table($events, $zone_name, $zone_side) {
         }
         echo "</table>\n";
     } else {
-        echo $zone_name.": no log yet... waiting for some action";
+        echo "No log yet... waiting for some action";
+    }
+}
+
+function squad_table($squads, $zones, $zone_name, $zone_side) {
+    if (isset($squads[$zone_side][$zone_name])) {
+        $zone_squads = $squads[$zone_side][$zone_name];
+        echo "<b>".$zone_name.": ".$zones[$zone_side][$zone_name]['commandMsg']."</br>\n";
+        echo "<table>\n";
+        foreach($zone_squads as $squad_id => $squad) {
+            echo "<tr>";
+            $display_player = true;
+            foreach($squad["cells"] as $cellIndex => $unit) {
+                if ($display_player) {
+                echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
+                $display_player = false;
+                }
+                $unit_short_id = explode(':', $unit['defId'])[0];
+                echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
+            }
+            echo "</tr>\n";
+        }
+        echo "</table>\n";
+    } else {
+        echo "Zone not yet open, you cannot see inside";
     }
 }
 ?>
@@ -483,27 +507,7 @@ function openZone(evt, zoneSide, zoneName) {
                 echo "<div id='h".$zone_name."' class='hometabcontent'>";
                 echo "<button type='button' class='collapsible'>Home ".$zone_name." teams</button>";
                 echo "<div class='collapsiblecontent'>";
-                if (isset($squads['home'][$zone_name])) {
-                    $zone_squads = $squads['home'][$zone_name];
-                    echo "<b>".$zone_name.": ".$zones['home'][$zone_name]['commandMsg']."</br>\n";
-                    echo "<table>\n";
-                    foreach($zone_squads as $squad_id => $squad) {
-                        echo "<tr>";
-                        $display_player = true;
-                        foreach($squad["cells"] as $cellIndex => $unit) {
-                            if ($display_player) {
-                            echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
-                            $display_player = false;
-                            }
-                            $unit_short_id = explode(':', $unit['defId'])[0];
-                            echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
-                        }
-                        echo "</tr>\n";
-                    }
-                    echo "</table>\n";
-                } else {
-                    echo $zone_name.": zone not yet open, you cannot see inside";
-                }
+                squad_table($squads, $zones, $zone_name, 'home');
                 echo "</div>"; //collapsibleelement
 
                 echo "<button type='button' class='collapsible'>Home ".$zone_name." logs</button>";
@@ -523,28 +527,7 @@ function openZone(evt, zoneSide, zoneName) {
                 echo "<div id='a".$zone_name."' class='awaytabcontent'>";
                 echo "<button type='button' class='collapsible'>Away ".$zone_name." teams</button>";
                 echo "<div class='collapsiblecontent'>";
-                if (isset($squads['away'][$zone_name])) {
-                    $zone_squads = $squads['away'][$zone_name];
-                    echo "<b>".$zone_name.": ".$zones['away'][$zone_name]['commandMsg']."</br>\n";
-                    echo "<table>\n";
-                    foreach($zone_squads as $squad_id => $squad) {
-                        echo "<tr>";
-                        $display_player = true;
-                        foreach($squad["cells"] as $cellIndex => $unit) {
-                            if ($display_player) {
-                            echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
-                            $display_player = false;
-                            }
-                            $unit_short_id = explode(':', $unit['defId'])[0];
-                            echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
-
-                        }
-                        echo "</tr>\n";
-                    }
-                    echo "</table>\n";
-                } else {
-                    echo $zone_name.": zone not yet open, you cannot see inside";
-                }
+                squad_table($squads, $zones, $zone_name, 'away');
                 echo "</div>"; //collapsibleelement
 
                 echo "<button type='button' class='collapsible'>Away ".$zone_name." logs</button>";
