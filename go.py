@@ -1830,6 +1830,7 @@ async def print_gvg(list_team_names, txt_allyCode):
         return 1, ret_get_team_progress
 
     list_lines = []
+    one_valid_team = False # True if at least one result to display
     for team in ret_get_team_progress:
         ret_team = ret_get_team_progress[team]
         character_id = team[:-3]
@@ -1837,6 +1838,7 @@ async def print_gvg(list_team_names, txt_allyCode):
             #error
             ret_print_gvg += ret_team + "\n"
         else:
+            one_valid_team = True
             for [player_score, player_unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
                 if not player_unlocked:
                     new_line = character_id + " - "+ player_name + ": " + \
@@ -1846,25 +1848,28 @@ async def print_gvg(list_team_names, txt_allyCode):
                         connect_mysql.update_gv_history("", player_name, character_id, True,
                                                         player_score, player_unlocked, "go.bot")
 
-    list_lines = sorted(list_lines, key=lambda x: -x[0])
-    ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
-    ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
-    if len(list_lines) > 0:
-        for [score, txt, unlocked] in list_lines[:MAX_GVG_LINES]:
-            if score > 95:
-                ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
-            elif score > 80:
-                ret_print_gvg += "\N{CONFUSED FACE}"
-            else:
-                ret_print_gvg += "\N{UP-POINTING RED TRIANGLE}"
-            ret_print_gvg += txt
-        
-        not_displayed_count = max(0, len(list_lines) - MAX_GVG_LINES)
-        if not_displayed_count > 0:
-            ret_print_gvg += "... et encore "+str(not_displayed_count)+" lignes mais ça fait trop à afficher"
+    if one_valid_team:
+        list_lines = sorted(list_lines, key=lambda x: -x[0])
+        ret_print_gvg += "Progrès dans le Guide de Voyage pour la guilde (top "+str(MAX_GVG_LINES)+")\n"
+        ret_print_gvg += "(seuls les joueurs qui n'ont pas le perso au max sont listés)\n"
+        if len(list_lines) > 0:
+            for [score, txt, unlocked] in list_lines[:MAX_GVG_LINES]:
+                if score > 95:
+                    ret_print_gvg += "\N{WHITE RIGHT POINTING BACKHAND INDEX}"
+                elif score > 80:
+                    ret_print_gvg += "\N{CONFUSED FACE}"
+                else:
+                    ret_print_gvg += "\N{UP-POINTING RED TRIANGLE}"
+                ret_print_gvg += txt
+            
+            not_displayed_count = max(0, len(list_lines) - MAX_GVG_LINES)
+            if not_displayed_count > 0:
+                ret_print_gvg += "... et encore "+str(not_displayed_count)+" lignes mais ça fait trop à afficher"
+        else:
+            ret_print_gvg += "... sauf que tout le monde l'a \N{SMILING FACE WITH HEART-SHAPED EYES}"
     else:
-        ret_print_gvg += "... sauf que tout le monde l'a \N{SMILING FACE WITH HEART-SHAPED EYES}"
-        
+        ret_print_gvg += emojis.redcross + " aucune team valable à afficher"
+            
     return 0, ret_print_gvg
 
 async def print_gvs(list_team_names, txt_allyCode):
