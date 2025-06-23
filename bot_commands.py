@@ -185,27 +185,23 @@ async def registercheck(ctx_interaction, allyCode):
             return
 
         # Get data from DB
-        query = "SELECT guildName, name, discord_id FROM players " \
+        query = "SELECT guildName, name, players.allyCode FROM players " \
                 "LEFT JOIN player_discord ON players.allyCode=player_discord.allyCode " \
-                "WHERE guildName=(SELECT guildName FROM players WHERE allyCode = "+str(allyCode)+") " \
+                "WHERE guildId=(SELECT guildId FROM players WHERE allyCode = "+str(allyCode)+") " \
+                "AND isnull(discord_id) " \
                 "ORDER by name "
         goutils.log2("DBG", query)
         db_data = connect_mysql.get_table(query)
 
-        guildName = db_data[0][0]
-        output_txt = "Liste des comptes discord de la guilde "+guildName
-        for line in db_data:
-            player_name = line[1]
-            discord_id = line[2]
-            try:
-                if discord_id==None:
-                    display_name = "**non défini**"
-                else:
-                    discord_user = await ctx_interaction.guild.fetch_member(discord_id)
-                    display_name = "@"+discord_user.display_name
-            except:
-                display_name = "*défini mais inconnu sur ce serveur*"
-            output_txt += "\n"+player_name+" >>> "+display_name
+        if db_data == None:
+            output_txt = "Aucun compte sans discord de la guilde "+guildName
+        else:
+            guildName = db_data[0][0]
+            output_txt = "Liste des comptes sans discord de la guilde "+guildName
+            for line in db_data:
+                player_name = line[1]
+                player_ac = line[2]
+                output_txt += "\n"+player_name+", "+str(player_ac)
 
         await command_ok(ctx_interaction, resp_msg, output_txt, intermediate=False)
 
