@@ -3009,7 +3009,11 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
         dict_raid_members_by_id[member["playerId"]] = member
 
     list_inactive_players = []
-    potential_score = guild_score
+    if target_percent==0:
+        potential_score = None
+    else:
+        potential_score = guild_score
+
     for member_id in dict_members_by_id:
         member = dict_members_by_id[member_id]
         if int(member["guildJoinTime"])*1000 >= raid_join_time+48*3600*1000:
@@ -3032,7 +3036,10 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
             estimated_score = 0
             status_txt = "Aucun combat"
 
-        if score <= estimated_score*target_percent/100:
+        if score==0 and target_percent==0:
+            #this is not enough
+            list_inactive_players.append({"name": member["playerName"], "status": status_txt})
+        elif score <= estimated_score*target_percent/100:
             #this is not enough
             list_inactive_players.append({"name": member["playerName"], "status": status_txt})
             potential_score += estimated_score*target_percent/100 - score
