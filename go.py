@@ -5268,7 +5268,7 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
             break
         allyCode_txt = fields[3]
         columns = line.split(",")
-        score_txt = columns[-4]
+        score_txt = columns[2]
         query = "INSERT INTO raid_estimates (raid_name, allyCode, score)\n"
         query+= "VALUES('"+raid_name+"', "+allyCode_txt+", "+score_txt+") \n"
         query+= "ON DUPLICATE KEY UPDATE score="+score_txt
