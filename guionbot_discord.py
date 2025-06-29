@@ -3863,8 +3863,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             dict_players_by_IG = connect_mysql.load_config_players()[0]
             expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
             score_txt = str(int(guild_score/100000)/10)
-            potential_score_txt = str(int(potential_score/100000)/10)
-            output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M, "+potential_score_txt+" M si tout le monde atteint "+str(target_progress)+"% de son max) : \n"
+            output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M"
+
+            if potential_score == None:
+                output_txt += ") : \n"
+            else:
+                potential_score_txt = str(int(potential_score/100000)/10)
+                output_txt += ", "+potential_score_txt+" M si tout le monde atteint "+str(target_progress)+"% de son max) : \n"
             if len(list_inactive_players) > 0 :
                 for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
                     if use_tags and p["name"] in dict_players_by_IG:
