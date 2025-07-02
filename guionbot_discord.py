@@ -101,7 +101,7 @@ async def bot_loop_60secs(bot):
     query = "SELECT guild_id, allyCode, locked_since, lock_when_played "\
             "FROM guild_bots "\
             "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
-            "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
+            #todo a remettre pour les bits joueurs "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
             "AND NOT isnull(allyCode) "
     goutils.log2("INFO", query)
     db_data = connect_mysql.get_column(query)
