@@ -48,7 +48,6 @@ bot_background_tasks = True
 
 #Global variables that may change during execution
 first_bot_loop_5minutes = True
-first_bot_loop_10minutes = True
 list_alerts_sent_to_admin = []
 latestLocalizationBundleVersion = ""
 latestGamedataVersion = ""
@@ -104,7 +103,7 @@ async def bot_loop_60secs(bot):
             "AND NOT isnull(allyCode) "
             #todo a remettre pour les bots joueurs "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
     goutils.log2("INFO", query)
-    db_data = connect_mysql.get_column(query)
+    db_data = connect_mysql.get_table(query)
     goutils.log2("INFO", "locked_since > 1 hour db_data: "+str(db_data))
     if not db_data==None:
         for guild_bot in db_data:
@@ -159,38 +158,6 @@ async def bot_loop_60secs(bot):
                 goutils.log2("ERR", traceback.format_exc())
 
     goutils.log2("DBG", "END loop")
-
-##############################################################
-# Function: bot_loop_10minutes
-# Parameters: none
-# Purpose: cette fonction est exécutée toutes les 600 secondes
-# Output: none
-##############################################################
-async def bot_loop_10minutes(bot):
-    global first_bot_loop_10minutes
-
-    goutils.log2("DBG", "START loop")
-    t_start = time.time()
-
-    if not first_bot_loop_10minutes:
-        try:
-            #REFRESH and CLEAN CACHE DATA FROM SWGOH API
-            await go.refresh_cache()
-
-        except Exception as e:
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
-
-        goutils.log2("DBG", "END loop")
-
-    else:
-        first_bot_loop_10minutes = False
-
-        goutils.log2("DBG", "END loop")
-
 
 ##############################################################
 # Function: bot_loop_5minutes
@@ -2132,18 +2099,6 @@ class Loop5minutes(commands.Cog):
     async def before_loop_5minutes(self):
         await self.bot.wait_until_ready()
 
-class Loop10minutes(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.loop_10minutes.start()
-
-    @tasks.loop(minutes=10)
-    async def loop_10minutes(self):
-        await bot_loop_10minutes(self.bot)
-    @loop_10minutes.before_loop
-    async def before_loop_10minutes(self):
-        await self.bot.wait_until_ready()
-
 class Loop60minutes(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -2502,11 +2457,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", str(sys.exc_info()[0]))
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", e)
-            goutils.log("ERR", "guionbot_discord.bot_loop_10minutes", traceback.format_exc())
-            if not bot_test_mode:
-                await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_10minutes:"+str(sys.exc_info()[0]))
+            goutils.log2("ERR", traceback.format_exc())
 
     @commands.check(admin_command)
     @commands.command(name='sync', brief="Synchronise les commands slash")
@@ -6775,7 +6726,6 @@ async def main():
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
         await bot.add_cog(Loop5minutes(bot))
-        #await bot.add_cog(Loop10minutes(bot))
         await bot.add_cog(Loop60minutes(bot))
 
     #Lancement du bot
