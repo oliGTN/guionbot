@@ -1020,15 +1020,17 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
 
 ##############################################################
 # Function: load_config_players
-# Parameters: none
+# Parameters: optional guild_id to filter players
 # Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>, isOfficer]}
 #          dict_players_by_ID {key=discord ID, value={"main":[allycode, isOfficer]
 #                                                     "alts":[[ac, isOff], [ac2, isOff]...]}}
 ##############################################################
-def load_config_players():
+def load_config_players(guild_id=None):
     query = "SELECT players.allyCode, players.name, player_discord.discord_id, player_discord.main, guildMemberLevel \n"
     query+= "FROM players \n"
     query+= "JOIN player_discord ON player_discord.allyCode=players.allyCode \n"
+    if guild_id!=None:
+        query+= "WHERE guildId='"+guild_id+"' \n"
     query+= "ORDER BY player_discord.discord_id, player_discord.main "
     goutils.log2("DBG", query)
     data_db = get_table(query)

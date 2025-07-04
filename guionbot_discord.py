@@ -887,8 +887,8 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     for platoon in dict_platoons_done:
         goutils.log2("DBG", "dict_platoons_done["+platoon+"]="+str(dict_platoons_done[platoon]))
 
-    #Recuperation des dernieres donnees sur gdrive
-    dict_players_by_IG = connect_mysql.load_config_players()[0]
+    #Recuperation de la liste des joueurs
+    dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
 
     if tbs_round == '':
         return 1, "Aucune BT en cours"
@@ -3603,7 +3603,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             if err_code == 0:
                 lines = ret_data["lines_player"]
                 endTime = ret_data["round_endTime"]
-                dict_players_by_IG = connect_mysql.load_config_players()[0]
+                dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
                 expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
                 output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
                 if len(lines)>0:
@@ -3685,7 +3685,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             # Launch the actual command
             err_code, err_txt, ret_data = await go.get_tw_insufficient_attacks(guild_id, args, allyCode=connected_allyCode)
             if err_code == 0:
-                dict_players_by_IG = connect_mysql.load_config_players()[0]
+                dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
 
                 if type(ret_data) == dict:
                     d_attacks = ret_data
@@ -3811,7 +3811,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            dict_players_by_IG = connect_mysql.load_config_players()[0]
+            dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
             expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
             score_txt = str(int(guild_score/100000)/10)
             output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M"
@@ -4792,7 +4792,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 return
 
             #Look in DB
-            query = "SELECT name, guildName, lastUpdated, char_gp, ship_gp, grand_arena_rank FROM players WHERE allyCode = " + allyCode
+            query = "SELECT name, guildName, lastUpdated, "\
+                    "char_gp, ship_gp, grand_arena_rank, guildId "\
+                    "FROM players WHERE allyCode = " + allyCode
             result = connect_mysql.get_line(query)
             if result != None:
                 player_name = result[0]
@@ -4801,18 +4803,20 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
                 gp = int((result[3]+result[4])/100000)/10
                 arena_rank = result[5]
+                guildId = result[6]
             else:
                 player_name = dict_player["name"]
                 guildName = dict_player["guildName"]
                 lastUpdated_txt = "joueur inconnu"
                 gp = "???"
                 arena_rank = "???"
+                guildId = dict_player["guildId"]
 
             if guildName == "None":
                 guildName = "*pas de guilde*"
 
             #Look for Discord Pseudo if in guild
-            dict_players_by_IG = connect_mysql.load_config_players()[0]
+            dict_players_by_IG = connect_mysql.load_config_players(guild_id=guildId)[0]
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
