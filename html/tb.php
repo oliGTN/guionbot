@@ -201,9 +201,7 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
 } else {
     $tb_players = [];
 }
-
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -236,11 +234,10 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
         <p style="color:red;display:inline"><br/><?php echo ($isAdmin ? 'You are logged as an administrator' : ''); ?></p>
     </div>
 
-    
 <!-- Clickable round numbers for large screens -->
 <div class="phases hide-on-small-and-down">
     <?php for($i = 1; $i <= $tb['max_round']; $i++) {
-        echo "<a href='tb.php?id=".$tb_id."&round=".$i."' ".($i==$round?"class='active'":"").">".($i==$tb['current_round']?"&#11093":"")."Round ".$i."</a>";
+        echo "<a href='tb.php?id=".$tb_id."&round=".$i."' ".($i==$round?"class='active'":'').">".($i==$tb['current_round']?"&#11093;":'')."Round ".$i."</a>";
         if ($i < $tb['max_round']) {
             echo "&gt;";
         }
@@ -263,6 +260,7 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
         cursor: default;
         border-bottom: 4px solid #9A6CFF;
     }
+
     .phases i.fas.fa-chevron-right {
         color: rgba(0, 0, 0, .3);
         font-size: 14px;
@@ -277,7 +275,7 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
         <form>
         <select style="width:200px" name="list" id="list" accesskey="target" onchange="phaseClicked()">
             <?php for($i = 1; $i <= $tb['max_round']; $i++) {
-                echo "<option value='".$i."' ".($i==$round?"selected='selected'":"").">".($i==$tb['current_round']?"&#11093":"")."Round ".$i."</option>\n";
+                echo "<option value='".$i."' ".($i==$round?"selected='selected'":'').">".($i==$tb['current_round']?"&#11093;":'')."Round ".$i."</option>\n";
             }?>
         </select>
         </form>
@@ -294,12 +292,12 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
 </div>
 
 <div class="card">
-Score for this round: <?php echo $round_stars; ?>&#11088
+Score for this round: <?php echo $round_stars; ?>&#11088;
 </div>
 
     <!-- Cards for zones -->
 <div id="resume" class="active">
-    <div class="row">    
+    <div class="row">
         <?php
         // Loop through each tb and display in a table row
         if (!empty($zones)) {
@@ -316,7 +314,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                 $empty_star = "&#x2605;";
                 $full_star = "&#11088;";
                 $empty_circle = "&#x25CF;";
-                $full_circle = "&#x1F535";
+                $full_circle = "&#x1F535;";
                 if (substr($zone['zone_name'], -1)=='b') {
                     $empty_star_12 = $empty_circle;
                     $star_12 = $full_circle;
@@ -383,12 +381,12 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                                 <text x="<?php echo $x_step1;?>%" y="40" text-anchor="end" font-size="10"><?php echo number_format($score_step1, 0, ".", " ");?></text>
                                 <text x="<?php echo $x_step2;?>%" y="40" text-anchor="end" font-size="10"><?php echo number_format($score_step2, 0, ".", " ");?></text>
                                 <text x="100%" y="40" text-anchor="end" font-size="10"><?php echo number_format($score_step3, 0, ".", " ");?></text>
-                                <text x="<?php echo $x_score;?>%" y="60" text-anchor="<?php echo ($score<$score_step3/2?"":"end");?>" font-size="12">&nbsp;<?php echo number_format($score, 0, ".", " ");?>&nbsp;</text>
+                                <text x="<?php echo $x_score;?>%" y="60" text-anchor="<?php echo ($score<$score_step3/2?'':"end");?>" font-size="12">&nbsp;<?php echo number_format($score, 0, ".", " ");?>&nbsp;</text>
                             </svg>
                             <div class="row">
-                            <div class="col s12 m4"><small>
+                            <div class="col s12"><small>
                                 <b>Platoons</b>
-                                <p><?php echo $zone['recon_cmdMsg']; ?></p>
+                                <p class="from-game-status"><?php echo $zone['recon_cmdMsg']; ?></p>
                                 <table>
                                     <tr>
                                         <td style="text-align:center;background-color:<?php echo ($zone['recon1_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon1_filled'];?></td>
@@ -518,7 +516,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088
     <table>
         <thead>
             <tr>
-                <?php
+<?php
                 $col_active = [];
                 $col_arrow = [];
                 foreach($valid_columns as $col) {
@@ -531,8 +529,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088
                 } else {
                     $col_arrow[$sort_column] = '↑';
                 }
-                ?>
-                
+?>
                 <th class="<?php echo $col_active['name'];?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=name&order=<?php echo $next_order; ?>">Player<?php echo $col_arrow['name'];?></a></th>
                 <th class="<?php echo $col_active['score']; ?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=score&order=<?php echo $next_order; ?>">Score<?php echo $col_arrow['score'];?></a></th>
                 <th class="<?php echo $col_active['deployment']; ?>"><a href="tb.php?id=<?php echo $tb_id;?>&round=<?php echo $round;?>&sort=deployment&order=<?php echo $next_order; ?>">Deployment<?php echo $col_arrow['deployment'];?></a></th>
@@ -575,7 +572,6 @@ Score for this round: <?php echo $round_stars; ?>&#11088
     <?php endif; ?>
 </div>
 
-
     </div> <!-- container -->
     </div> <!-- site-content -->
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
@@ -584,4 +580,3 @@ Score for this round: <?php echo $round_stars; ?>&#11088
 </body>
 <?php include 'sitefooter.php' ; ?>
 </html>
-
