@@ -1406,15 +1406,24 @@ async def manage_me(ctx, alias, allow_tw):
 
     ret_allyCode = []
 
+    #Get identity of command user
+    dict_players_by_ID = connect_mysql.load_config_players()[1]
+    if ctx!=None and ctx.author.id in dict_players_by_ID:
+        cmd_allyCode_txt = str(dict_players_by_ID[ctx.author.id]["main"][0])
+        cmd_guild_id = str(dict_players_by_ID[ctx.author.id]["main"][2])
+    else:
+        cmd_allyCode_txt = None
+        cmd_guild_id = None
+
+    # Loop on given aliases
     for alias in table_alias:
         #Special case of 'me' as allyCode
         if alias == 'me':
-            dict_players_by_ID = connect_mysql.load_config_players()[1]
-            #print(dict_players_by_ID)
-            if ctx.author.id in dict_players_by_ID:
-                ret_allyCode_txt = str(dict_players_by_ID[ctx.author.id]["main"][0])
+            if cmd_allyCode_txt != None:
+                ret_allyCode_txt = cmd_allyCode_txt
             else:
                 ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
+
         elif alias == "-TW":
             if not allow_tw:
                 return "ERR: l'option -TW n'est pas utilisable avec cette commande"
@@ -1447,7 +1456,6 @@ async def manage_me(ctx, alias, allow_tw):
             else: # '<@ without the !
                 discord_id = int(alias[2:-1])
             goutils.log2("INFO", "command launched with discord @mention "+alias)
-            dict_players_by_ID = connect_mysql.load_config_players()[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
             else:
@@ -1462,9 +1470,39 @@ async def manage_me(ctx, alias, allow_tw):
             ret_allyCode_txt = alias
 
         else:
-            # Look for the name among known player names
-            results = connect_mysql.get_table("SELECT name, allyCode FROM players WHERE NOT isnull(name)")
-            list_names = [x[0] for x in results]
+            if cmd_guild_id != None:
+                # Look for the name among user's guild player names
+                query = "SELECT name, allyCode FROM players "\
+                        "WHERE NOT isnull(name) "\
+                        "AND guildId='"+cmd_guild_id+"' "
+                goutils.log2("DBG", query)
+                guild_db_results = connect_mysql.get_table(query)
+
+                list_names = [x[0] for x in guild_db_results]
+                closest_guild_names_db=difflib.get_close_matches(alias, list_names, 1)
+                if len(closest_guild_names_db) == 0:
+                    closest_guild_name_db = ""
+                    closest_guild_name_db_score = 0
+                else:
+                    closest_guild_name_db = closest_guild_names_db[0]
+                    closest_guild_name_db_score = difflib.SequenceMatcher(None, alias, closest_guild_name_db).ratio()
+                    for r in guild_db_results:
+                        if r[0] == closest_guild_name_db:
+                            closest_guild_name_db_ac = str(r[1])
+            else:
+                closest_guild_name_db = ""
+                closest_guild_name_db_score = 0
+
+            # Look for the name among all player names
+            # (including current guild. If there is a better match
+            # elsewhere it will still be a better match. If there is an
+            # equal match, we'll manage it later)
+            query = "SELECT name, allyCode FROM players "\
+                    "WHERE NOT isnull(name) "
+            goutils.log2("DBG", query)
+            all_db_results = connect_mysql.get_table(query)
+
+            list_names = [x[0] for x in all_db_results]
             closest_names_db=difflib.get_close_matches(alias, list_names, 1)
             if len(closest_names_db) == 0:
                 closest_name_db = ""
@@ -1472,6 +1510,9 @@ async def manage_me(ctx, alias, allow_tw):
             else:
                 closest_name_db = closest_names_db[0]
                 closest_name_db_score = difflib.SequenceMatcher(None, alias, closest_name_db).ratio()
+                for r in all_db_results:
+                    if r[0] == closest_name_db:
+                        closest_name_db_ac = str(r[1])
 
             #check among discord names
             if ctx != None and ctx.guild != None and (closest_name_db != alias):
@@ -1487,29 +1528,33 @@ async def manage_me(ctx, alias, allow_tw):
                 else:
                     closest_name_discord = closest_names_discord[0]
                     closest_name_discord_score = difflib.SequenceMatcher(None, alias, closest_name_discord).ratio()
-
-                if closest_name_db_score >= closest_name_discord_score:
-                    select_db_name = True
-                else:
-                    select_db_name = False
             else:
-                select_db_name = True
+                closest_name_discord = ""
+                closest_name_discord_score = 0
 
-            if select_db_name:
-                if closest_name_db_score == 0:
-                    goutils.log2("WAR", alias +" not found in DB and in discord")
-                    ret_allyCode_txt = "ERR: le joueur "+alias+" n'a pas été trouvé"
-                else:
-                    goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
-                    for r in results:
-                        if r[0] == closest_name_db:
-                            ret_allyCode_txt = str(r[1])
+            #Compare results and select the winner
+            if closest_guild_name_db_score == 0 \
+               and closest_name_db_score == 0 \
+               and closest_name_discord_score == 0:
+
+                goutils.log2("WAR", alias +" not found in DB and in discord")
+                ret_allyCode_txt = "ERR: le joueur "+alias+" n'a pas été trouvé"
+
+            elif closest_guild_name_db_score >= closest_name_db_score \
+                 and closest_guild_name_db_score >= closest_name_discord_score:
+
+                goutils.log2("INFO", alias +" looks like the DB guild name "+closest_guild_name_db)
+                ret_allyCode_txt = closest_guild_name_db_ac
+
+            elif closest_name_db_score >= closest_name_discord_score:
+
+                goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
+                ret_allyCode_txt = closest_name_db_ac
 
             else:
                 goutils.log2("INFO", alias + " looks like the discord name "+closest_name_discord)
 
                 discord_id = [x[0] for x in guild_members_clean if x[1] == closest_name_discord][0]
-                dict_players_by_ID = connect_mysql.load_config_players()[1]
                 if discord_id in dict_players_by_ID:
                     ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
                 else:
@@ -1663,8 +1708,8 @@ async def manage_reaction_add(user, message, reaction, emoji):
         if emoji == emojis.cyclearrows:
             # re-launch the command if it is a gobot command, originally launched by the author of the reaction
             lower_msg = message.content.lower().strip()
-            print(lower_msg)
-            print(lower_msg.startswith("go.") , message.author==user)
+            #print(lower_msg)
+            #print(lower_msg.startswith("go.") , message.author==user)
             if lower_msg.startswith("go.") and message.author==user:
                 #remove user reaction, add temporary hourglass from bot
                 await message.remove_reaction(emojis.cyclearrows, user)
