@@ -780,7 +780,7 @@ async def register(ctx_interaction, args):
         connect_mysql.simple_execute(query)
 
         #Ensure that any discord_id has a main account
-        query = "UPDATE discord_id SET main=1 "\
+        query = "UPDATE player_discord SET main=1 "\
                 "WHERE discord_id IN ( "\
                 "SELECT discord_id "\
                 "FROM player_discord "\
