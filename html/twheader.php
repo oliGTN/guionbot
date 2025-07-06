@@ -52,7 +52,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
         $crossed = '';
     } else {
         if ($side == 'home') {
-            $zone_color = 'blue';
+            $zone_color = 'dodgerblue';
         } else {
             $zone_color = 'red';
         }
