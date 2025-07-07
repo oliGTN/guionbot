@@ -5608,38 +5608,45 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.graphj me modq #graph sur 12 mois\n" \
                       "Exemple: go.graphj me -Y modq #graph sur un an")
     async def graphj(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        args = list(args)
-        if len(args) >= 2:
-            allyCode = args[0]
-            list_params = args[1:]
+            args = list(args)
+            if len(args) >= 2:
+                list_allyCodes = args[0]
+                list_params = args[1:]
 
-            is_year = False
-            if "-Y" in list_params:
-                list_params.remove("-Y")
-                is_year = True
-            elif "-y" in list_params:
-                list_params.remove("-y")
-                is_year = True
-            if len(list_params)<1:
+                is_year = False
+                if "-Y" in list_params:
+                    list_params.remove("-Y")
+                    is_year = True
+                elif "-y" in list_params:
+                    list_params.remove("-y")
+                    is_year = True
+                if len(list_params)<1:
+                    await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
+                parameter = list_params[0]
+            else:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            parameter = list_params[0]
-        else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help graphj")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            list_allyCodes = list_allyCodes.split('/')
+            allyCodes = []
+            for allyCode in list_allyCodes:
+                allyCode = await manage_me(ctx, allyCode, False)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+                if allyCode[0:3] == 'ERR':
+                    await ctx.send(allyCode)
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            e, err_txt, image = await go.get_player_time_graph( allyCode, False, parameter, is_year)
+                allyCodes.append(allyCode)
+
+            e, err_txt, image = await go.get_player_time_graph( allyCodes, False, parameter, is_year)
             if e != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -5650,6 +5657,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send(content = "",
                            file=File(fp=image_binary, filename='image.png'))
                 await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.graphj"+str(sys.exc_info()[0]))
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: graphg

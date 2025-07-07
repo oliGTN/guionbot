@@ -3890,8 +3890,9 @@ def get_gv_graph(txt_allyCodes, farm_list):
     # http://matplotlib.org/1.2.1/examples/pylab_examples/show_colormaps.html
     colormap = plt.cm.gist_ncar
     color_source = np.linspace(0, 1, len(dict_dates))
-    color_repeat = np.repeat(color_source, 2)
-    plt.gca().set_prop_cycle(plt.cycler('color', plt.cm.jet(color_repeat)))
+    color_repeat = np.repeat(color_source, 2) #required as there are 2 curves per player
+    color_list = plt.cm.jet(color_source)
+    plt.gca().set_prop_cycle(plt.cycler('color', color_list))
 
     #add series
     for key in dict_dates:
@@ -3989,12 +3990,12 @@ def get_gv_graph(txt_allyCodes, farm_list):
     return 0, "", image
 
 ###############################
-# txt_allyCode >> allyCode of the player, or one player of the guild
+# list_allyCodes >> list of allyCode of the players, or list of one player for a guild
 # guild_graph (boolean) >> True if the graph is for the guild
 # parameter >> ["gp", "arena_char_rank", "arena_ship_rank", "gac_rating", "modq", "statq"]
 # is_year = True >> graph one 12 months, instead of 30 days (default)
 ###############################
-async def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
+async def get_player_time_graph(list_allyCodes, guild_graph, parameter, is_year):
     dict_params = {"gp": ["ship_gp+char_gp", "sum"],
                    "pg": ["ship_gp+char_gp", "sum"],
                    "arena_char_rank": ["arena_char_rank", "avg"],
@@ -4003,74 +4004,122 @@ async def get_player_time_graph(txt_allyCode, guild_graph, parameter, is_year):
                    "modq": ["modq", "avg"],
                    "statq": ["statq", "avg"]}
 
+    if type(list_allyCodes) != list:
+        list_allyCodes = [list_allyCodes]
+
+    if guild_graph and len(list_allyCodes)>1:
+        return 1, "ERR: un seul joueur possible pour un graph de guilde", None
+
     if not parameter in dict_params:
         return 1, "ERR: le paramètre "+parameter+" est inconnu dans la liste "+str(list(dict_params.keys())), None
 
-    # refresh player info from game
-    e, t, d = await load_player(txt_allyCode, 1, False)
-    if e != 0:
-        return 1, "ERR: erreur de mise à jour des données pour "+txt_allyCode, None
+    for txt_allyCode in list_allyCodes:
+        # refresh player info from game
+        e, t, d = await load_player(txt_allyCode, 1, False)
+        if e != 0:
+            return 1, "ERR: erreur de mise à jour des données pour "+txt_allyCode, None
 
     #get basic player info
-    query = "SELECT name, guildName FROM players WHERE allyCode="+txt_allyCode
-    db_data = connect_mysql.get_line(query)
-    if db_data == None:
-        return 1, "ERR: aucun joueur connu pour le code "+txt_allyCode, None
-    playerName = db_data[0]
-    guildName = db_data[1]
+    db_txt_allyCodes = str(tuple(list_allyCodes)).replace(",)", ")")
+    query = "SELECT allyCode, name, guildName FROM players WHERE allyCode IN "+db_txt_allyCodes
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+    if db_data == None or len(db_data)<len(list_allyCodes):
+        return 1, "ERR: informations manquantes pour les codes "+db_txt_allyCodes, None
+
+    dict_players = {}
+    for line in db_data:
+        ac = str(line[0])
+        playerName = line[1]
+        guildName = line[2]
+        dict_players[ac] = [playerName, guildName]
 
     if guild_graph:
+        txt_allyCode = list_allyCodes[0]
+        playerName = dict_players[txt_allyCode][0]
+        guildName = dict_players[txt_allyCode][1]
+
         if guildName == None or guildName == '':
             return 1, "ERR: aucune guilde connue pour le joueur "+txt_allyCode, None
 
         txt_param = dict_params[parameter][1]+"("+dict_params[parameter][0]+")"
-        query = "SELECT date, "+txt_param+" AS pp FROM gp_history " \
+        query = "SELECT date, "+txt_param+" AS pp, allyCode FROM gp_history " \
               + "WHERE guildName=(SELECT guildName FROM players WHERE allyCode = "+txt_allyCode+") " \
               + "GROUP BY date "
     else:
         txt_param = dict_params[parameter][0]
-        query = "SELECT date, "+txt_param+" AS pp FROM gp_history " \
-              + "WHERE allyCode = "+txt_allyCode+" "
+        query = "SELECT date, "+txt_param+" AS pp, allyCode FROM gp_history " \
+              + "WHERE allyCode IN "+db_txt_allyCodes+" "
 
     if is_year:
-        query = "SELECT max(date), pp FROM ( " \
+        query = "SELECT max(date), pp, allyCode FROM ( " \
               + query \
-              + ") T GROUP BY yearweek(date) ORDER BY DATE DESC LIMIT 52"
+              + ") T GROUP BY yearweek(date), allyCode ORDER BY DATE DESC LIMIT 52"
     else:
         query = query + "ORDER BY DATE DESC LIMIT 30"
 
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
     if db_data == None:
-        return 1, "ERR: aucun "+parameter+" connu pour "+txt_allyCode, None
-
-    d_kpi = []
-    v_kpi = []
-    min_date = None
-    max_date = None
-    for line in db_data:
-        if min_date==None or line[0]<min_date:
-            min_date = line[0]
-        if max_date==None or line[0]>max_date:
-            max_date = line[0]
-
-        d_kpi.append(line[0])
-        v_kpi.append(line[1])
+        return 1, "ERR: aucun "+parameter+" connu pour "+db_txt_allyCodes, None
 
     #Create plot
     fig, ax = plt.subplots()
-    #add series
-    ax.plot(d_kpi, v_kpi, label=parameter)
+    #set colormap
+    # Have a look at the colormaps here and decide which one you'd like:
+    # http://matplotlib.org/1.2.1/examples/pylab_examples/show_colormaps.html
+    colormap = plt.cm.gist_ncar
+    color_source = np.linspace(0, 1, len(list_allyCodes))
+    color_list = plt.cm.jet(color_source)
+    plt.gca().set_prop_cycle(plt.cycler('color', color_list))
+
+    min_date = None
+    max_date = None
+
+    #Create series
+    for ac in list_allyCodes:
+        d_kpi = []
+        v_kpi = []
+        db_data_ac = [x for x in db_data if str(x[2])==ac]
+        for line in db_data_ac:
+            if min_date==None or line[0]<min_date:
+                min_date = line[0]
+            if max_date==None or line[0]>max_date:
+                max_date = line[0]
+
+            d_kpi.append(line[0])
+            v_kpi.append(line[1])
+
+        #add series
+        playerName = dict_players[ac][0]
+        ax.plot(d_kpi, v_kpi, label=playerName)
+
     #format dates on X axis
     date_format = mdates.DateFormatter("%d-%m")
     ax.xaxis.set_major_formatter(date_format)
 
+    if len(list_allyCodes)>1:
+        #Legend only useful if more than one player
+
+        # Shrink current axis by 20% to make room
+        # for the legend
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+        # Put a legend to the right of the current axis
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
     #add title
     if guild_graph:
         title = "Progrès "+parameter+" pour la guilde "+guildName
+    elif len(list_allyCodes)>1:
+        list_playerNames = [dict_players[x][0] for x in list_allyCodes]
+        playerNames = str(list_playerNames)
+        title = "Progrès "+parameter+" pour les joueurs"
     else:
         title = "Progrès "+parameter+" pour le joueur "+playerName
     fig.suptitle(title)
+
     #set min/max on X axis
     if min_date == max_date:
         ax.set_xlim([min_date-datetime.timedelta(days=1), 
@@ -4135,7 +4184,7 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode
 
 #############################################################################
 # find_best_toons_in_guild
-# IN: txt_alllyCode: one allyCode in the guild
+# IN: txt_allyCode: one allyCode in the guild
 # IN: character_id: defId of the toon
 # IN: max_gear: maximum gear or relic level ("G8" or "R5")
 # OUT: list [[playerName, rarity, gear/relic], ...]
