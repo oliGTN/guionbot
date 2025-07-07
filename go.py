@@ -4899,7 +4899,7 @@ async def detect_fulldef(guild_id, force_update, allyCode=None):
 # - missing registrations in round -1
 # - insufficient defenses in round 0
 # - insufficient attacks in round 1
-async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
+async def get_tw_insufficient_attacks(guild_id, args, allyCode=None, fulldef_detection=False):
     if allyCode==None:
         ec, et, ret_dict = await connect_rpc.get_tw_active_players(guild_id, 0)
     else:
@@ -4949,9 +4949,14 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None):
         if ec != 0:
             return ec, et, None
 
-        ec, et, dict_fulldef = await detect_fulldef(guild_id, -1, allyCode=allyCode)
-        if ec != 0:
-            return ec, et, None
+        if fulldef_detection:
+            ec, et, dict_fulldef = await detect_fulldef(guild_id, -1, allyCode=allyCode)
+            if ec != 0:
+                return ec, et, None
+        else:
+            dict_fulldef = {}
+            for player in list_active_players:
+                dict_fulldef[player] = -1
 
     dict_players = connect_mysql.load_config_players()[0]
 

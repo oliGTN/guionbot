@@ -3726,16 +3726,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             guild_id = bot_infos["guild_id"]
             connected_allyCode = bot_infos["allyCode"]
+            fulldef_detection = bot_infos["twFulldefDetection"]
 
             # Launch the actual command
-            err_code, err_txt, ret_data = await go.get_tw_insufficient_attacks(guild_id, args, allyCode=connected_allyCode)
+            err_code, err_txt, ret_data = await go.get_tw_insufficient_attacks(guild_id, args, allyCode=connected_allyCode, fulldef_detection=fulldef_detection)
             if err_code == 0:
                 dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
 
                 if type(ret_data) == dict:
                     d_attacks = ret_data
                     output_txt="La guilde a besoin de vous pour la GT svp : \n"
-                    for [p, values] in sorted(d_attacks.items(), key=lambda x: x[1][2]):
+                    for [p, values] in sorted(d_attacks.items(), key=lambda x: (x[1][2], x[0])):
                         char_attacks = values[0]
                         ship_attacks = values[1]
                         fulldef = values[2]
