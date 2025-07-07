@@ -552,7 +552,11 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
         #Manage display to user
         if (time.time() - prev_display_time) > 5:
-            await interaction.edit_original_response(content=emojis.hourglass+" Reste "+str(len(mod_allocations)-count_no_move)+"/"+str(original_unit_count)+"...")
+            new_msg_content = emojis.hourglass+" Reste "+str(len(mod_allocations)-count_no_move)+"/"+str(original_unit_count)+"..."
+            try:
+                await interaction.edit_original_response(content=new_msg_content)
+            except Exception as e:
+                goutils.log2("WAR", "Unable to update discord msg to: "+new_msg_content)
             prev_display_time = time.time()
 
     goutils.log2("INFO", "Max inventory: "+str(max_inventory))
