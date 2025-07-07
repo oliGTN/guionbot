@@ -330,8 +330,6 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         +str(event_types)+", " \
                         +str(force_update)+", "+str(allyCode)+")")
 
-    guild_id = dict_guild["profile"]["id"]
-
     if allyCode == None:
         dict_bot_accounts = get_dict_bot_accounts()
         if not guild_id in dict_bot_accounts:
@@ -579,7 +577,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         connect_mysql.simple_execute(query)
 
         #if max(dict_event_counts.values()) > 0:
-        goutils.log2("INFO", "New events: "+str(dict_event_counts))
+        goutils.log2("INFO", "["+guild_id+"] New events: "+str(dict_event_counts))
 
         #PREPARE dict_events to return
         goutils.log2("DBG", "start loop dict_new_events")

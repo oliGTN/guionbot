@@ -1021,16 +1021,17 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
 ##############################################################
 # Function: load_config_players
 # Parameters: optional guild_id to filter players
-# Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>, isOfficer]}
-#          dict_players_by_ID {key=discord ID, value={"main":[allycode, isOfficer]
-#                                                     "alts":[[ac, isOff], [ac2, isOff]...]}}
+# Output:  dict_players_by_IG {key=IG name, value=[allycode, <@id>, isOfficer, guild_id]}
+#          dict_players_by_ID {key=discord ID, value={"main":[allycode, isOfficer, guild_id]
+#                                                     "alts":[[ac, isOff, guild_id], [ac2, isOff, guild_id]...]}}
 ##############################################################
 def load_config_players(guild_id=None):
-    query = "SELECT players.allyCode, players.name, player_discord.discord_id, player_discord.main, guildMemberLevel \n"
-    query+= "FROM players \n"
-    query+= "JOIN player_discord ON player_discord.allyCode=players.allyCode \n"
+    query = "SELECT players.allyCode, players.name, player_discord.discord_id, "\
+            "player_discord.main, guildMemberLevel, guildId "\
+            "FROM players "\
+            "JOIN player_discord ON player_discord.allyCode=players.allyCode "
     if guild_id!=None:
-        query+= "WHERE guildId='"+guild_id+"' \n"
+        query+= "WHERE guildId='"+guild_id+"' "
     query+= "ORDER BY player_discord.discord_id, player_discord.main "
     goutils.log2("DBG", query)
     data_db = get_table(query)
@@ -1045,22 +1046,23 @@ def load_config_players(guild_id=None):
         did = line[2]
         isMain = line[3]
         isOff = (line[4]!=2)
+        guild_id = line[5]
 
         # dict_players_by_IG
         dict_players_by_IG[name] = [ac, name]
         if list_did.count(did) == 1:
-            dict_players_by_IG[name] = [ac, "<@"+str(did)+">", isOff]
+            dict_players_by_IG[name] = [ac, "<@"+str(did)+">", isOff, guild_id]
         else:
-            dict_players_by_IG[name] = [ac, "<@"+str(did)+"> ["+name+"]", isOff]
+            dict_players_by_IG[name] = [ac, "<@"+str(did)+"> ["+name+"]", isOff, guild_id]
 
         # dict_players_by_ID
         if not did in dict_players_by_ID:
             dict_players_by_ID[did] = {"main": None, "alts": []}
             
         if isMain:
-            dict_players_by_ID[did]["main"] = [ac, isOff]
+            dict_players_by_ID[did]["main"] = [ac, isOff, guild_id]
         else:
-            dict_players_by_ID[did]["alts"].append([ac, isOff])
+            dict_players_by_ID[did]["alts"].append([ac, isOff, guild_id])
 
     return dict_players_by_IG, dict_players_by_ID
 
