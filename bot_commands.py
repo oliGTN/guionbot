@@ -731,7 +731,7 @@ async def register(ctx_interaction, args):
 
             #Ensure command is launched from a DM, not a server
             if ctx_interaction.guild != None:
-                await command_error(ctx_interaction, resp_msg, "Pour des raisons de confidentialité, cette commande doit être envoyée en message privée au bot.")
+                await command_error(ctx_interaction, resp_msg, "Pour des raisons de confidentialité, cette commande doit être envoyée en message privé au bot.")
                 return
 
             #Launch or get the challenge
