@@ -733,6 +733,8 @@ async def update_player(dict_player):
                 datacron_level_3 = None
                 datacron_level_6 = None
                 datacron_level_9 = None
+                datacron_level_12 = None
+                datacron_level_15 = None
 
                 if "affix" in datacron:
                     if len(datacron["affix"]) >= 3:
@@ -753,6 +755,18 @@ async def update_player(dict_player):
                         target = dict_rules[targetRule][0]
                         datacron_level_9 = abilityId+":"+target
 
+                    if len(datacron["affix"]) >= 12:
+                        abilityId = datacron["affix"][11]["abilityId"]
+                        targetRule = datacron["affix"][11]["targetRule"]
+                        target = dict_rules[targetRule][0]
+                        datacron_level_12 = abilityId+":"+target
+
+                    if len(datacron["affix"]) >= 15:
+                        abilityId = datacron["affix"][14]["abilityId"]
+                        targetRule = datacron["affix"][14]["targetRule"]
+                        target = dict_rules[targetRule][0]
+                        datacron_level_15 = abilityId+":"+target
+
         
                 query = "INSERT IGNORE INTO datacrons(id) "\
                        +"VALUES('"+datacron_id+"')"
@@ -768,6 +782,10 @@ async def update_player(dict_player):
                     query+= ", level_6 = '"+str(datacron_level_6)+"' "
                 if datacron_level_9 != None:
                     query+= ", level_9 = '"+str(datacron_level_9)+"' "
+                if datacron_level_12 != None:
+                    query+= ", level_12 = '"+str(datacron_level_12)+"' "
+                if datacron_level_15 != None:
+                    query+= ", level_15 = '"+str(datacron_level_15)+"' "
                 query+= "WHERE id = '"+datacron_id+"'"
                 goutils.log2("DBG", query)
                 cursor.execute(query)

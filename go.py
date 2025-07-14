@@ -5637,10 +5637,13 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
             dtc=player["datacron"][dtcid]
             lvl6 = None
             lvl9 = None
+            lvl12 = None
+            lvl15 = None
             if not "affix" in dtc:
                 continue
 
             if len(dtc["affix"]) < 6:
+                # Not useful to display dtcs below lvl6
                 continue
             abilityId = dtc["affix"][5]["abilityId"]
             ability_short = "_".join(abilityId.split("_")[2:])
@@ -5652,8 +5655,20 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
                 ability_short = "_".join(abilityId.split("_")[2:])
                 target_rule = dtc["affix"][8]["targetRule"][16:]
                 lvl9 = ability_short+"("+target_rule+")"
-                #lvl9 = dtc["affix"][8]["targetRule"][16:]
-            key_dtc = "LVL6="+lvl6+" / LVL9="+str(lvl9)
+            if len(dtc["affix"]) >= 12:
+                abilityId = dtc["affix"][11]["abilityId"]
+                ability_short = "_".join(abilityId.split("_")[2:])
+                target_rule = dtc["affix"][11]["targetRule"][16:]
+                lvl12 = ability_short+"("+target_rule+")"
+            if len(dtc["affix"]) >= 15:
+                abilityId = dtc["affix"][14]["abilityId"]
+                ability_short = "_".join(abilityId.split("_")[2:])
+                target_rule = dtc["affix"][14]["targetRule"][16:]
+                lvl15 = ability_short+"("+target_rule+")"
+            if "focused" in dtc["templateId"]:
+                key_dtc = "LVL6="+lvl6+" / LVL9="+str(lvl9)+" / LVL12="+str(lvl12)+" / LVL15="+str(lvl15)
+            else:
+                key_dtc = "LVL6="+lvl6+" / LVL9="+str(lvl9)
 
             if not key_dtc in dict_dtc:
                 dict_dtc[key_dtc] = []

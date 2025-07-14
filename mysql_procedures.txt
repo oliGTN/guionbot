@@ -46,6 +46,8 @@ CREATE TABLE `datacrons` (
   `level_3` varchar(100) DEFAULT NULL,
   `level_6` varchar(100) DEFAULT NULL,
   `level_9` varchar(100) DEFAULT NULL,
+  `level_12` varchar(100) DEFAULT NULL,
+  `level_15` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -612,7 +614,7 @@ CREATE TABLE `roster` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `roster_key` (`allyCode`,`defId`),
   CONSTRAINT `roster_ibfk_1` FOREIGN KEY (`allyCode`) REFERENCES `players` (`allyCode`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21096587 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21096960 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -631,7 +633,7 @@ CREATE TABLE `roster_evolutions` (
   PRIMARY KEY (`id`),
   KEY `allyCode_idx1` (`allyCode`),
   KEY `defId_idx1` (`defId`)
-) ENGINE=InnoDB AUTO_INCREMENT=16619521 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=16620311 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -651,7 +653,7 @@ CREATE TABLE `roster_skills` (
   UNIQUE KEY `roster_skills_key` (`roster_id`,`name`),
   KEY `skills_roster_id` (`roster_id`),
   CONSTRAINT `roster_skills_ibfk_1` FOREIGN KEY (`roster_id`) REFERENCES `roster` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=102989757 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=102991373 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -878,7 +880,7 @@ CREATE TABLE `tw_events` (
   PRIMARY KEY (`id`),
   KEY `tw_id` (`tw_id`),
   CONSTRAINT `tw_events_ibfk_1` FOREIGN KEY (`tw_id`) REFERENCES `tw_history` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=159402 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=159499 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -933,7 +935,7 @@ CREATE TABLE `tw_squad_cells` (
   `tier` smallint(6) DEFAULT NULL,
   `unitRelicTier` smallint(6) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=454873 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+) ENGINE=InnoDB AUTO_INCREMENT=455412 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1649,4 +1651,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-07-14 23:50:12
+-- Dump completed on 2025-07-15  0:29:04
