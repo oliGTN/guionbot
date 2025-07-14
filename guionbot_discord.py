@@ -5210,20 +5210,26 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if allyCode[0:3] == 'ERR':
                 await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
-            else:
-                if len(characters) == 0:
-                    characters = ["all"]
-                    
-                err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
-                if err_code == 0:
-                    for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                        await ctx.send("`"+txt+"`")
+                return
 
-                    #Icône de confirmation de fin de commande dans le message d'origine
-                    await ctx.message.add_reaction(emojis.check)
-                else:
-                    await ctx.send(ret_cmd)
-                    await ctx.message.add_reaction(emojis.redcross)
+            if type(allyCode)==list:
+                await ctx.send("ERR: cette commande ne prend qu'un seul joueur en paramètre")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            if len(characters) == 0:
+                characters = ["all"]
+                
+            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emojis.check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
@@ -5254,20 +5260,26 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             if allyCode[0:3] == 'ERR':
                 await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
-            else:
-                if len(characters) == 0:
-                    characters = ["all"]
-                    
-                err_code, ret_cmd = await go.print_gvj( characters, allyCode, 2)
-                if err_code == 0:
-                    for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                        await ctx.send("`"+txt+"`")
+                return
 
-                    #Icône de confirmation de fin de commande dans le message d'origine
-                    await ctx.message.add_reaction(emojis.check)
-                else:
-                    await ctx.send(ret_cmd)
-                    await ctx.message.add_reaction(emojis.redcross)
+            if type(allyCode)==list:
+                await ctx.send("ERR: cette commande ne prend qu'un seul joueur en paramètre")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            if len(characters) == 0:
+                characters = ["all"]
+                
+            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 2)
+            if err_code == 0:
+                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                    await ctx.send("`"+txt+"`")
+
+                #Icône de confirmation de fin de commande dans le message d'origine
+                await ctx.message.add_reaction(emojis.check)
+            else:
+                await ctx.send(ret_cmd)
+                await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
@@ -5291,14 +5303,21 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.gvg me thrawn JKL\n"\
                       "La commande n'affiche que les 40 premiers.")
     async def gvg(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, True)
+            allyCode = await manage_me(ctx, allyCode, True)
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            if type(allyCode)==list:
+                await ctx.send("ERR: cette commande ne prend qu'un seul joueur en paramètre")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
             if len(characters) == 0:
                 characters = ["all"]
 
@@ -5312,6 +5331,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             else:
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emojis.redcross)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.raf"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: gvs
