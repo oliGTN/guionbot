@@ -2123,7 +2123,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                 return "ERR: no TW ongoing"
 
             list_opponent_squads = rpc_data["awayGuild"]["list_defenses"]
-            tuple_opp_players = tuple(set([x[1] for x in list_opponent_squads]))
+            tuple_opp_players = tuple(set([x["player_name"] for x in list_opponent_squads]))
             if len(tuple_opp_players)==0:
                 return "ERR: impossible de détecter les adversaires sur cette zone"
 
@@ -2140,17 +2140,17 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             #filter the players that needs to be displayed
             dict_tw_zone_players = {}
             for team in list_opponent_squads:
-                zone=team[0]
+                zone=team["zone_short_name"]
                 if tw_zone=="all" or zone==tw_zone:
-                    team_char_ids = [x["unitId"] for x in team[2]]
+                    team_char_ids = [x["unitId"] for x in team["list_defId"]]
                     if character_id in team_char_ids:
-                        team_player_name = team[1]
+                        team_player_name = team["player_name"]
                         dict_tw_zone_players[team_player_name] = zone
 
         #Get data for the guild and associated players
         err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
         if err_code != 0:
-            return "ERR: cannot get guild data from SWGOH.HELP API"
+            return "ERR: cannot get guild data from RPC"
                             
         db_stat_data_char = []
         goutils.log2("INFO", "Get guild_data from DB...")
@@ -2565,9 +2565,9 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
 
     list_opp_squad_ids = []
     for opp_squad in list_opponent_squads:
-        territory = opp_squad[0]
-        player_name = opp_squad[1]
-        squad_char_ids = [x["unitId"] for x in opp_squad[2]]
+        territory = opp_squad["zone_short_name"]
+        player_name = opp_squad["player_name"]
+        squad_char_ids = [x["unitId"] for x in opp_squad["list_defId"]]
         list_opp_squad_ids.append([territory, player_name, squad_char_ids])
 
     list_opp_squads_with_char = list(filter(lambda x:char_def_id in x[2], list_opp_squad_ids))
@@ -3102,20 +3102,20 @@ async def get_tw_alerts(guild_id,
     # OPPONENT territories
     ########################################
     if len(list_opponent_squads) > 0:
-        list_opponent_players = [x[1] for x in list_opponent_squads]
+        list_opponent_players = [x["player_name"] for x in list_opponent_squads]
         longest_opp_player_name = max(list_opponent_players, key=len)
         longest_opp_player_name = longest_opp_player_name.replace("'", "''")
-        list_open_tw_territories = set([x[0] for x in list_opponent_squads])
+        list_open_tw_territories = set([x["zone_short_name"] for x in list_opponent_squads])
 
         for territory_name in list_open_tw_territories:
             territory = [x for x in list_opp_territories if x[0]==territory_name][0]
             orders = territory[5]
             state = territory[6]
 
-            list_opp_squads_terr = [x for x in list_opponent_squads if (x[0]==territory_name and len(x[2])>0)]
-            list_opp_remaining_squads_terr = [x for x in list_opponent_squads if (x[0]==territory_name and len(x[2])>0 and not x[3])]
+            list_opp_squads_terr = [x for x in list_opponent_squads if (x["zone_short_name"]==territory_name and len(x[2])>0)]
+            list_opp_remaining_squads_terr = [x for x in list_opponent_squads if (x["zone_short_name"]==territory_name and len(x["list_defId"])>0 and not x["is_beaten"])]
             counter_leaders = Counter([x[2][0]["unitId"] for x in list_opp_squads_terr])
-            counter_remaining_leaders = Counter([x[2][0]["unitId"] for x in list_opp_remaining_squads_terr])
+            counter_remaining_leaders = Counter([x["list_defId"][0]["unitId"] for x in list_opp_remaining_squads_terr])
 
             n_territory = int(territory_name[1])
             if territory_name[0] == "T" and int(territory_name[1]) > 2:
@@ -3224,8 +3224,8 @@ async def get_tw_alerts(guild_id,
             terr_msg += "**DEFENSE** - "+territory_fullname+" ("+territory_name+txt_orders+") "+str(filled)+"/"+str(size)+"\n"
 
             #detect leaders
-            list_def_squads_terr = [x for x in list_def_squads if (x[0]==territory_name and len(x[2])>0)]
-            counter_leaders = Counter([x[2][0]["unitId"] for x in list_def_squads_terr])
+            list_def_squads_terr = [x for x in list_def_squads if (x["zone_short_name"]==territory_name and len(x["list_defId"])>0)]
+            counter_leaders = Counter([x["list_defId"][0]["unitId"] for x in list_def_squads_terr])
             #sort by values
             counter_leaders = dict(sorted(dict(counter_leaders).items(), key=lambda x:-x[1]))
             
@@ -4150,8 +4150,8 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode
 
     dict_home_def_toon_player = {}
     for squad in list_home_def_squads:
-        player = squad[1]
-        for char in squad[2]:
+        player = squad["player_name"]
+        for char in squad["list_defId"]:
             char_id = char["unitId"]
             if not char_id in dict_home_def_toon_player:
                 dict_home_def_toon_player[char_id] = {}
@@ -4160,8 +4160,8 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode
 
     dict_away_def_toon_player = {}
     for squad in list_away_def_squads:
-        player = squad[1]
-        for char in squad[2]:
+        player = squad["player_name"]
+        for char in squad["list_defId"]:
             char_id = char["unitId"]
             if not char_id in dict_away_def_toon_player:
                 dict_away_def_toon_player[char_id] = {}
@@ -5440,7 +5440,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
     if tw_id == None:
         return 2, "ERR: pas de GT en cours"
 
-    list_opponent_squads = [x for x in rpc_data["awayGuild"]["list_defenses"] if not x[3]]
+    list_opponent_squads = [x for x in rpc_data["awayGuild"]["list_defenses"] if not x["is_beaten"]]
     opp_guild_name = rpc_data["opp_guildName"]
 
     # Get data for this player
@@ -5752,7 +5752,7 @@ def filter_tw_best_teams(tw_teams):
 
     for [terr_prefixes, unit_type_txt] in [["TB", "chars"], ["F", "ships"]]:
         for [beaten, beaten_txt] in [[False, "remaining"], [True, "beaten"]]:
-            terr_beaten_teams = [x for x in tw_teams if (x[0][0] in terr_prefixes and x[3]==beaten)]
+            terr_beaten_teams = [x for x in tw_teams if (x["zone_short_name"][0] in terr_prefixes and x["is_beaten"]==beaten)]
             #goutils.log2('DBG', "tw_teams="+str(tw_teams))
             #goutils.log2('DBG', "terr_beaten_teams="+str(terr_beaten_teams))
             if len(terr_beaten_teams) > 0:

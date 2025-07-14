@@ -2321,8 +2321,20 @@ async def get_tw_opponent_leader(guild_id, allyCode=None):
 # {
 #   "tw_id": None / "TERRITORY_WAR_EVENT_C:01681236000000", 
 #   "tw_round": tw_round, 
-#   "homeGuild": {"list_defenses": [["T1", "Karcot", ["GENERALSKYWALGER", "ARCTROOPER", ...], <is_beaten>, <fights>],
-#                                ["T1", "JeanLuc"...
+#   "homeGuild": {"list_defenses": [{"zone_short_name": "T1",
+#                                    "zone_id": "tw_jakku01_phase04_conflict03",
+#                                    "player_name": "Karcot",
+#                                    "player_id": <player id>,
+#                                    "list_defId": ["GENERALSKYWALGER", "ARCTROOPER", ...], 
+#                                    "is_beaten": <is_beaten>, 
+#                                    "fights": <fights>, "
+#                                    "team_gp": <team gp>, "
+#                                    "squad_id": <squad_id>, 
+#                                    "datacron_id": <datacron_id>},
+#                                   {"zone_short_name": "T1",
+#                                    "playerName": "JeanLuc",
+#                                    ...}
+#                                  ]
 #                 "list_territories": [["T1", <size>, <filled>, <victories>, <fails>, <commandMsg>, <status>], ...]
 #                }, 
 #   "awayGuild": {"list_defenses": ...,
@@ -2442,6 +2454,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                     for squad in zone["warSquad"]:
                         squad_id = squad["squadId"]
                         player_name = squad["playerName"]
+                        player_id = squad["playerId"]
                         list_chars = []
                         for c in squad["squad"]["cell"]:
                             unit_id = c["unitDefId"].split(":")[0]
@@ -2462,7 +2475,23 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                         is_beaten = (squad["squadStatus"]=="SQUADDEFEATED")
                         fights = squad["successfulDefends"]
                         team_gp = squad["power"]
-                        list_defenses[guild].append([zone_shortname, player_name, list_chars, is_beaten, fights, team_gp, squad_id])
+                        if "datacron" in squad["squad"]:
+                            datacron_id = squad["squad"]["datacron"]["id"]
+                        else:
+                            datacron_id = None
+
+                        my_defense  = {"zone_short_name": zone_shortname,
+                                       "zone_id": zone_id,
+                                       "player_name": player_name,
+                                       "player_id": player_id,
+                                       "list_defId": list_chars,
+                                       "is_beaten": is_beaten, 
+                                       "fights": fights,
+                                       "team_gp": team_gp,
+                                       "squad_id": squad_id, 
+                                       "datacron_id": datacron_id
+                                      }
+                        list_defenses[guild].append(my_defense)
 
                         if is_beaten:
                             victories+=1

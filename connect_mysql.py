@@ -1978,7 +1978,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             await asyncio.sleep(0)
 
         # Get squads in DB
-        query = "SELECT id, zone_name, player_name, is_beaten, fights, gp "\
+        query = "SELECT id, zone_name, player_name, is_beaten, fights, gp, datacron_id "\
                 "FROM tw_squads "\
                 "WHERE tw_id="+str(tw_db_id)+" "\
                 "AND side='"+side+"'"
@@ -1995,26 +1995,35 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             is_beaten = line[3]
             fights = line[4]
             gp = line[5]
-            dict_tw_squads[squad_id] = [zone_name, player_name, is_beaten, fights, gp]
+            datacron_id = line[6]
+            dict_tw_squads[squad_id] = [zone_name, player_name, 
+                                        is_beaten, fights, gp,
+                                        datacron_id]
 
         # Now get RPC data and compare with DB, create/insert if necessary
         squads = guild['list_defenses']
         for squad in squads:
-            zone_name = squad[0]
-            player_name = squad[1]
-            cells = squad[2]
-            is_beaten = squad[3]
-            fights = squad[4]
-            squad_gp = squad[5]
-            squad_id = squad[6]
+            zone_name = squad["zone_short_name"]
+            player_name = squad["player_name"]
+            cells = squad["list_defId"]
+            is_beaten = squad["is_beaten"]
+            fights = squad["fights"]
+            squad_gp = squad["team_gp"]
+            squad_id = squad["squad_id"]
+            datacron_id = squad["datacron_id"]
+            if datacron_id==None:
+                datacron_id_txt="NULL"
+            else:
+                datacron_id_txt="'"+datacron_id+"'"
 
             # Check / create squads in DB
             if not squad_id in dict_tw_squads:
                 query = "INSERT INTO tw_squads(id, tw_id, side, zone_name, player_name, "\
-                        "is_beaten, fights, gp) "\
+                        "is_beaten, fights, gp, datacron_id) "\
                         "VALUES('"+squad_id+"', "+str(tw_db_id)+", '"+side+"', "\
                         "'"+zone_name+"', '"+player_name.replace("'", "''")+"', "\
-                        ""+str(is_beaten)+", "+str(fights)+", "+str(squad_gp)+") "
+                        ""+str(is_beaten)+", "+str(fights)+", "+str(squad_gp)+", "\
+                        ""+datacron_id_txt+")"
                 goutils.log2("DBG", query)
                 simple_execute(query)
             else:
