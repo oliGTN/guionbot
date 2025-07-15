@@ -102,7 +102,7 @@ try {
                     echo "\t\t\t\t<td style='color:".$score_color."'><b>".$tw['homeScore']."/".$tw['awayScore']."</b></td></tr>\n";
                 }
             } else {
-                echo "<tr><td colspan='3'>No Tw found.</td></tr>";
+                echo "<tr><td colspan='3'>No TW found.</td></tr>";
             }
             ?>
         </tbody>

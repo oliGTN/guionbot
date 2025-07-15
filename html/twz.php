@@ -22,9 +22,11 @@ $tw_id = $_GET['id'];
 
 // Get the associated TW data
 // Prepare the SQL query
-$query = "SELECT guild_id, away_guild_id, away_guild_name, homeScore, awayScore,";
-$query .= " lastUpdated FROM tw_history";
-$query .= " WHERE id=".$tw_id;
+$query = "SELECT guild_id, guilds.name AS guild_name,";
+$query .= " away_guild_id, away_guild_name, homeScore, awayScore,";
+$query .= " tw_history.lastUpdated AS lastUpdated FROM tw_history";
+$query .= " JOIN guilds ON guilds.id = guild_id";
+$query .= " WHERE tw_history.id=".$tw_id;
 //error_log("query = ".$query);
 try {
     // Prepare the SQL query
@@ -41,13 +43,13 @@ try {
 }
 $guild_id = $tw['guild_id'];
 
-// The guild page needs to be visited first
-if (!isset($_SESSION['guild']) || ($_SESSION['guild']['id']!=$guild_id)){
-    error_log("No valid guild data, redirect to g.php?gid=$guild_id");
-    header("Location: g.php?gid=$guild_id");
-    exit();
-}
-$guild = $_SESSION['guild'];
+//// The guild page needs to be visited first
+//if (!isset($_SESSION['guild']) || ($_SESSION['guild']['id']!=$guild_id)){
+//    error_log("No valid guild data, redirect to g.php?gid=$guild_id");
+//    header("Location: g.php?gid=$guild_id");
+//    exit();
+//}
+//$guild = $_SESSION['guild'];
 
 // define $isMyGuild, $isOfficer FROM $guild_id
 include 'gvariables.php';
@@ -388,7 +390,9 @@ function openZone(evt, zoneSide, zoneName) {
         </div>
         </div>
         </div>
-    <?php endif; ?>
+    <?php else: ?>
+        You are not allowed to see zone contents for this guild
+    <?php endif; //($isMyGuildConfirmed||$isBonusGuild) ?>
 
     </div> <!-- container -->
     </div> <!-- site-content -->
