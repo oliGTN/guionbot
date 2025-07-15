@@ -3114,7 +3114,7 @@ async def get_tw_alerts(guild_id,
 
             list_opp_squads_terr = [x for x in list_opponent_squads if (x["zone_short_name"]==territory_name and len(x["list_defId"])>0)]
             list_opp_remaining_squads_terr = [x for x in list_opponent_squads if (x["zone_short_name"]==territory_name and len(x["list_defId"])>0 and not x["is_beaten"])]
-            counter_leaders = Counter([x[2][0]["unitId"] for x in list_opp_squads_terr])
+            counter_leaders = Counter([x["list_defId"][0]["unitId"] for x in list_opp_squads_terr])
             counter_remaining_leaders = Counter([x["list_defId"][0]["unitId"] for x in list_opp_remaining_squads_terr])
 
             n_territory = int(territory_name[1])
