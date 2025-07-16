@@ -769,13 +769,14 @@ async def get_modopti_export(txt_allyCode):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     # get swgoh.gg character list for images
-    swgohgg_characters_url = 'https://swgoh.gg/api/characters'
-    goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
-    r = requests.get(swgohgg_characters_url, allow_redirects=True)
-    list_characters = json.loads(r.content.decode('utf-8'))
-    dict_images = {}
-    for c in list_characters:
-        dict_images[c["base_id"]] = c["image"]
+    #swgohgg_characters_url = 'https://swgoh.gg/api/characters'
+    #goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
+    #r = requests.get(swgohgg_characters_url, allow_redirects=True)
+    #list_characters = json.loads(r.content.decode('utf-8'))
+    #dict_images = {}
+    #for c in list_characters:
+    #    dict_images[c["base_id"]] = c["image"]
+    swgohgg_img_path = "https://game-assets.swgoh.gg/textures/"
 
     #Get player API data
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, True)
@@ -1017,7 +1018,8 @@ async def get_modopti_export(txt_allyCode):
         my_unit_setting = {}
         my_unit_setting["baseID"] = unit_defId
         my_unit_setting["name"] = dict_unitsList[unit_defId]["name"]
-        my_unit_setting["avatarUrl"] = dict_images[unit_defId]
+        #my_unit_setting["avatarUrl"] = dict_images[unit_defId]
+        my_unit_setting["avatarUrl"] = swgohgg_img_path+dict_unitsList[unit_defId]["thumbnailName"]+".png"
         my_unit_setting["description"] = ""
         
         forceAlignment = dict_unitsList[unit_defId]["forceAlignment"]

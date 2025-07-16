@@ -37,28 +37,32 @@ reverse_guild_logos = ['guild_icon_senate',
 def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
-        swgohgg_characters_url = 'https://swgoh.gg/api/characters'
-        goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
-        r = requests.get(swgohgg_characters_url, allow_redirects=True)
+        #swgohgg_characters_url = 'https://swgoh.gg/api/characters'
+        #goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
+        #r = requests.get(swgohgg_characters_url, allow_redirects=True)
         #print(r.content[:200])
-        list_characters = json.loads(r.content.decode('utf-8'))
+        #list_characters = json.loads(r.content.decode('utf-8'))
 
-        swgohgg_ships_url = 'https://swgoh.gg/api/ships'
-        goutils.log2("DBG", "Get data from " + swgohgg_ships_url)
-        r = requests.get(swgohgg_ships_url, allow_redirects=True)
-        list_ships = json.loads(r.content.decode('utf-8'))
+        #swgohgg_ships_url = 'https://swgoh.gg/api/ships'
+        #goutils.log2("DBG", "Get data from " + swgohgg_ships_url)
+        #r = requests.get(swgohgg_ships_url, allow_redirects=True)
+        #list_ships = json.loads(r.content.decode('utf-8'))
 
-        list_units = list_characters + list_ships
+        #list_units = list_characters + list_ships
 
-        swgohgg_img_url = ''
-        for character in list_units:
-            if character['base_id'] == character_id:
-                swgohgg_img_url = character['image']
+        #swgohgg_img_url = ''
+        #for character in list_units:
+        #    if character['base_id'] == character_id:
+        #        swgohgg_img_url = character['image']
+
+        dict_unitsList = data.get("unitsList_dict.json")
+        swgohgg_img_path = "https://game-assets.swgoh.gg/textures/"
+        swgohgg_img_url = swgohgg_img_path+dict_unitsList[character_id]["thumbnailName"]+".png"
 
         if swgohgg_img_url == '':
             goutils.log2("ERR", "Cannot find image name for "+character_id)
         else:
-            goutils.log2("INFO", "download portrait from swgoh.gg "+swgohgg_img_url)
+            goutils.log2("INFO", "download portrait from hotutils "+swgohgg_img_url)
             r = requests.get(swgohgg_img_url, allow_redirects=True)
             f = open(character_img_name, 'wb')
             f.write(r.content)
