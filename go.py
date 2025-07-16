@@ -3568,7 +3568,10 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                 query+= "   LEFT JOIN roster_skills AS rsULTI ON (rsULTI.roster_id = roster.id AND rsULTI.name='ULTI')"
 
             if dtc_selftag != None:
-                query+= "   LEFT JOIN datacrons ON (datacrons.allyCode = roster.allyCode AND datacrons.level_9 like '%:"+dtc_selftag+"')"
+                query+= "   LEFT JOIN datacrons ON (datacrons.allyCode = roster.allyCode AND ("
+                query+= "      datacrons.level_9 like '%:"+dtc_selftag+"' "
+                query+= "      OR datacrons.level_12 like '%:"+dtc_selftag+"' "
+                query+= "      OR datacrons.level_15 like '%:"+dtc_selftag+"'))"
 
             query+= "   WHERE guildName=(" 
             query+= "      SELECT guildName from players WHERE allyCode="+txt_allyCode+") " 
@@ -3595,7 +3598,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                         query += "      OR isnull(rsULTI.level) "
 
                     if dtc_selftag != None:
-                        query += "      OR isnull(datacrons.level_9) "
+                        query+= "      OR (NOT datacrons.level_9 LIKE '%:"+dtc_selftag+"' "
+                        query+= "      AND NOT datacrons.level_12 LIKE '%:"+dtc_selftag+"' "
+                        query+= "      AND NOT datacrons.level_15 LIKE '%:"+dtc_selftag+"')"
 
                     query+= "      ) "
 
@@ -3616,7 +3621,9 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     query += "      AND rsULTI.level=1 "
 
                 if dtc_selftag != None:
-                    query += "      AND NOT isnull(datacrons.level_9) "
+                    query += "      AND (datacrons.level_9 like '%:"+dtc_selftag+"' "
+                    query += "      OR datacrons.level_12 like '%:"+dtc_selftag+"' "
+                    query += "      OR datacrons.level_15 like '%:"+dtc_selftag+"')"
             query += ") "
             intro_txt += " et"
 
