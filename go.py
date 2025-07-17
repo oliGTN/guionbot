@@ -5778,20 +5778,20 @@ def filter_tw_best_teams(tw_teams):
             #goutils.log2('DBG', "tw_teams="+str(tw_teams))
             #goutils.log2('DBG', "terr_beaten_teams="+str(terr_beaten_teams))
             if len(terr_beaten_teams) > 0:
-                max_fights = max(terr_beaten_teams, key=lambda x: x[4])[4]
+                max_fights = max(terr_beaten_teams, key=lambda x: x["fights"])["fights"]
                 goutils.log2('DBG', "max_fights="+str(max_fights))
                 list_team_txt = []
                 list_team_img = []
 
                 # Report teams which managed at least 2 fails
                 if (max_fights + int(not(beaten))) > 2:
-                    best_terr_beaten_teams = [x for x in terr_beaten_teams if x[4]==max_fights]
+                    best_terr_beaten_teams = [x for x in terr_beaten_teams if x["fights"]==max_fights]
                     goutils.log2('DBG', "best_terr_beaten_teams="+str(best_terr_beaten_teams))
                     for t in best_terr_beaten_teams:
                         # text description
-                        player_name = t[1]
-                        team_gp = t[5]
-                        list_unit_names = [dict_unitsList[x["unitId"]]["name"] for x in t[2]]
+                        player_name = t["player_name"]
+                        team_gp = t["team_gp"]
+                        list_unit_names = [dict_unitsList[x["unitId"]]["name"] for x in t["list_defId"]]
                         team_txt = player_name + " "
                         for u in list_unit_names:
                             team_txt += '"'+u.replace('"', '')+'" '
@@ -5799,7 +5799,7 @@ def filter_tw_best_teams(tw_teams):
 
                         # image
                         list_units = []
-                        for tw_unit in t[2]:
+                        for tw_unit in t["list_defId"]:
                             unitDefId = tw_unit["unitDefId"]
                             txt_rarity = unitDefId.split(':')[1]
                             rarity = dict_rarity[txt_rarity]
