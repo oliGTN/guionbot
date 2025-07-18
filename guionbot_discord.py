@@ -4897,6 +4897,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     warstats_url = "introuvable"
             except requests.exceptions.ReadTimeout as e:
                 warstats_url = "*site indisponible pour le moment*"
+            except requests.exceptions.SSLError as e:
+                warstats_url = "*site indisponible pour le moment*"
             except urllib.error.HTTPError as e:
                 warstats_url = "introuvable"
 
