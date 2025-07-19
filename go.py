@@ -4084,10 +4084,14 @@ async def get_player_time_graph(list_allyCodes, guild_graph, parameter, is_year)
     max_date = None
 
     #Create series
+    print(list_allyCodes)
     for ac in list_allyCodes:
         d_kpi = []
         v_kpi = []
-        db_data_ac = [x for x in db_data if str(x[2])==ac]
+        if guild_graph:
+            db_data_ac = db_data
+        else:
+            db_data_ac = [x for x in db_data if str(x[2])==ac]
         for line in db_data_ac:
             if min_date==None or line[0]<min_date:
                 min_date = line[0]
