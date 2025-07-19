@@ -3803,7 +3803,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.check(officer_command)
     @commands.command(name='raidrappel',
             brief="Tag les joueurs qui n'ont pas assez attaqué en raid",
-            help="go.raidrappel")
+            help="go.raidrappel    > tag les joueurs sous 50% par défaut\n" \
+                 "go.raidrappel 80 > tag les joueurs sous 80%")
     async def raidrappel(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
