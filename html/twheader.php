@@ -105,7 +105,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     <div class="col s12">
     <div class="col s6">
         <div class="card">
-            <h3><?php echo $tw['homeScore'];?></h3>
+            <h3><?php echo $tw['homeScore'];?>/<small><?php echo $tw['homePotentialScore'];?></small></h3>
             <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:dodgerblue;color:white">
                 <tr height="33">
                     <?php zone_txt('F2', 'home', $zones, 2, $isMyGuildConfirmed|$isBonusGuild|$isAdmin); ?>
@@ -133,7 +133,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
 
     <div class="col s6">
         <div class="card">
-            <h3><?php echo $tw['awayScore'];?></h3>
+            <h3><?php echo $tw['awayScore'];?>/<small><?php echo $tw['awayPotentialScore'];?></small></h3>
             <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:red;color:white">
                 <tr height="33">
                     <?php zone_txt('T1', 'away', $zones, 3, $isMyGuildConfirmed||$isBonusGuild); ?>
