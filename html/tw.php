@@ -131,7 +131,7 @@ $query .= " JOIN players ON players.playerId=tw_events.author_id";
 $query .= " WHERE tw_id=".$tw_id." AND guildId='".$guild_id."' AND event_type!='SCORE'";
 $query .= " GROUP BY allyCode, event_type, zone_id IN ('tw_jakku01_phase03_conflict01', 'tw_jakku01_phase04_conflict01')";
 $query .= " ORDER BY name";
-error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the zone information
     $stmt = $conn_guionbot->prepare($query);
