@@ -77,10 +77,6 @@ try {
     error_log("Error fetching TW data: " . $e->getMessage());
     echo "Error fetching TW data: " . $e->getMessage();
 }
-$tw['awayPotentialScore'] = $tw['awayScore'];
-$tw['awayPotentialScore'] += $fight_scores[0]['sum(score)'];
-$tw['homePotentialScore'] = $tw['homeScore'];
-$tw['homePotentialScore'] += $fight_scores[1]['sum(score)'];
 
 // Get potential score from clearing zones
 $query = "SELECT side, sum(score)";
@@ -101,14 +97,18 @@ try {
     $stmt->execute();
 
     // Fetch all the results as an associative array
-    $fight_scores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $clear_scores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
     error_log("Error fetching TW data: " . $e->getMessage());
     echo "Error fetching TW data: " . $e->getMessage();
 }
-$tw['awayPotentialScore'] += $fight_scores[0]['sum(score)'];
-$tw['homePotentialScore'] += $fight_scores[1]['sum(score)'];
+$tw['awayPotentialScore'] = $tw['awayScore'];
+$tw['awayPotentialScore'] += $fight_scores[1]['sum(score)'];
+$tw['awayPotentialScore'] += $clear_scores[1]['sum(score)'];
+$tw['homePotentialScore'] = $tw['homeScore'];
+$tw['homePotentialScore'] += $fight_scores[0]['sum(score)'];
+$tw['homePotentialScore'] += $clear_scores[0]['sum(score)'];
 
 
 //// The guild page needs to be visited first
