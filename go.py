@@ -5473,9 +5473,9 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
         # Check opponent stats
         required_opp_units = ['GEONOSIANBROODALPHA', 'GEONOSIANSPY', 'SUNFAC', 'GEONOSIANSOLDIER', 'POGGLETHELESSER']
         for squad in list_opponent_squads:
-            opp_player_name = squad[1]
-            opp_units = [x["unitId"] for x in squad[2]]
-            #print(squad[1]+": "+str(opp_units))
+            opp_player_name = squad["player_name"]
+            opp_units = [x["unitId"] for x in squad["list_defId"]]
+            #print(squad["player_name"]+": "+str(opp_units))
             counter_required = 0
             for unit in opp_units:
                 if unit in required_opp_units:
