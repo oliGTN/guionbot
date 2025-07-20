@@ -20,36 +20,8 @@ if (!isset($_GET['id'])) {
 
 $tw_id = $_GET['id'];
 
-// Get the associated TW data
-// Prepare the SQL query
-$query = "SELECT guild_id, guilds.name AS guild_name,";
-$query .= " away_guild_id, away_guild_name, homeScore, awayScore,";
-$query .= " tw_history.lastUpdated AS lastUpdated FROM tw_history";
-$query .= " JOIN guilds ON guilds.id = guild_id";
-$query .= " WHERE tw_history.id=".$tw_id;
-//error_log("query = ".$query);
-try {
-    // Prepare the SQL query
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
-
-    // Fetch all the results as an associative array
-    $tw_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $tw = array_values($tw_list)[0];
-
-} catch (PDOException $e) {
-    error_log("Error fetching TW data: " . $e->getMessage());
-    echo "Error fetching TW data: " . $e->getMessage();
-}
-$guild_id = $tw['guild_id'];
-
-//// The guild page needs to be visited first
-//if (!isset($_SESSION['guild']) || ($_SESSION['guild']['id']!=$guild_id)){
-//    error_log("No valid guild data, redirect to g.php?gid=$guild_id");
-//    header("Location: g.php?gid=$guild_id");
-//    exit();
-//}
-//$guild = $_SESSION['guild'];
+// Get the associated TW data (define $tw)
+include 'twvariables.php';
 
 // define $isMyGuild, $isOfficer FROM $guild_id
 include 'gvariables.php';

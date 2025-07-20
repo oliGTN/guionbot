@@ -115,4 +115,5 @@ try {
 </div>
 </div>
 </body>
+<?php include 'sitefooter.php' ; ?>
 </html>

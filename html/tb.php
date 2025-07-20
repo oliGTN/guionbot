@@ -180,7 +180,8 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
         $sort_column_sql = $sort_column;
     }
     // Prepare the SQL query
-    $query = "SELECT name, gp, deployed_gp, score_strikes+score_deployed as score, strikes, waves";
+    $query = "SELECT name, allyCode, gp, deployed_gp,";
+    $query .= " score_strikes+score_deployed as score, strikes, waves";
     $query .= " FROM tb_player_score";
     $query .= " JOIN players ON players.playerId=tb_player_score.player_id";
     $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
@@ -550,7 +551,9 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
                     $color_deploy='green';
                     $lightcolor_deploy='lightgreen';
                 }
-                echo "<tr>\n";
+                $isMyallyCode = in_array(intval($tb_player['allyCode']), array_keys($_SESSION['allyCodes']), true);
+                $line_color = ($isMyallyCode?'lightgray':'');
+                echo "<tr style='background-color:".$line_color."'>\n";
                 echo "\t<td>".$tb_player['name']."</td>\n";
                 echo "\t<td class='hide-on-large-only'>".round($tb_player['score']/1000000, 1)."M</td>\n";
                 echo "\t<td class='hide-on-med-and-down'>".number_format($tb_player['score'], 0, ".", " ")."</td>\n";
