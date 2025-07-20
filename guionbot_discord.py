@@ -4739,36 +4739,44 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.gtcontrej 123456789 ITvsGEOS\n"\
                            "Exemple: go.gtcontrej 123456789 SEEvsJMK")
     async def gtcontrej(self, ctx, allyCode, counter_type):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        allyCode = await manage_me(ctx, allyCode, False)
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
+            allyCode = await manage_me(ctx, allyCode, False)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send("ERR: vous devez avoir un warbot pour utiliser cette commande")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: vous devez avoir un warbot pour utiliser cette commande")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        guild_id = bot_infos["guild_id"]
+            guild_id = bot_infos["guild_id"]
 
-        ec, txt = await go.check_tw_counter(allyCode, guild_id, counter_type)
-        if ec != 0:
+            ec, txt = await go.check_tw_counter(allyCode, guild_id, counter_type)
+            if ec != 0:
+                await ctx.send(txt)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
             await ctx.send(txt)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            await ctx.message.add_reaction(emojis.check)
 
-        await ctx.send(txt)
-        await ctx.message.add_reaction(emojis.check)
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.graphj"+str(sys.exc_info()[0]))
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
 
     @commands.check(member_command)
     @commands.command(name='register',
