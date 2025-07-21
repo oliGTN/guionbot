@@ -10,10 +10,11 @@ require 'guionbotdb.php';  // Include the database connection for guionbotdb
 
 // Get the list of TBs
 // Prepare the SQL query
-$query = "SELECT DISTINCT(tb_id), date(start_date) as start_date";
+$query = "SELECT DISTINCT(substring_index(tb_id,':',-1)) as tb_ts,";
+$query .= " date(start_date) as start_date";
 $query .= " FROM tb_history";
 $query .= " ORDER BY start_date DESC";
-#error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
@@ -27,31 +28,32 @@ try {
     echo "Error fetching TB list: " . $e->getMessage();
 }
 if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_GET['ts'], 1, 13)) && strlen($_GET['ts'])==14) {
-    $tb_id = null;
+    $tb_ts = null;
     foreach($tb_list as $tb) {
-        if (strpos($tb['tb_id'], $_GET['ts'])!==false ) {
-            $tb_id = $tb['tb_id'];
+        if ($tb['tb_ts'] === $_GET['ts']) {
+            $tb_ts = $tb['tb_ts'];
             $tb_start_date = $tb['start_date'];
         }
     }
 } else {
     $latest_tb = array_values($tb_list)[0];
-    $tb_id = $latest_tb['tb_id'];
+    $tb_ts = $latest_tb['tb_ts'];
     $tb_start_date = $latest_tb['start_date'];
 }
 
 
 // Get the associated TB data
 // Prepare the SQL query
-$query = "SELECT tb_history.id AS id, guild_id, name, zone_name,";
+$query = "SELECT tb_history.id AS id, tb_history.tb_id as tb_id,";
+$query .= " guild_id, name, tb_name, zone_name,";
 $query .= " round, score_step1, score_step2, score_step3, score,";
 $query .= " tb_history.lastUpdated AS lastUpdated";
 $query .= " FROM tb_history";
 $query .= " JOIN guilds ON guilds.id=guild_id";
 $query .= " JOIN tb_zones ON tb_zones.tb_id=tb_history.id";
-$query .= " WHERE tb_history.tb_id='".$tb_id."'";
+$query .= " WHERE tb_history.tb_id like '%:".$tb_ts."'";
 $query .= " ORDER BY name, round";
-error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
@@ -62,7 +64,7 @@ try {
 
 } catch (PDOException $e) {
     error_log("Error fetching TW data: " . $e->getMessage());
-    echo "Error fetching TW data: " . $e->getMessage();
+    echo "Error fetching TB data: " . $e->getMessage();
 }
 $tb_data = [];
 foreach($tb_db_data as $tb_line) {
@@ -71,6 +73,9 @@ foreach($tb_db_data as $tb_line) {
         $tb_data[$guild_id] = [];
         $tb_data[$guild_id]['id'] = $tb_line['id'];
         $tb_data[$guild_id]['name'] = $tb_line['name'];
+        $tb_data[$guild_id]['tb_name'] = $tb_line['tb_name'];
+        $tb_data[$guild_id]['tb_id'] = $tb_line['tb_id'];
+        $tb_data[$guild_id]['tb_type'] = explode(':', $tb_line['tb_id'])[0];
         $tb_data[$guild_id]['lastUpdated'] = $tb_line['lastUpdated'];
         $tb_data[$guild_id]['zones'] = [];
     }
@@ -126,12 +131,12 @@ $query .= " JOIN (";
 $query .= "   SELECT guild_id, zone_name, max(round) AS max_round";
 $query .= "   FROM tb_zones";
 $query .= "   JOIN tb_history ON tb_zones.tb_id=tb_history.id";
-$query .= "   WHERE tb_history.tb_id='".$tb_id."'";
+$query .= "   WHERE tb_history.tb_id like '%:".$tb_ts."'";
 $query .= "   GROUP BY guild_id, zone_name";
 $query .= " ) T ON T.guild_id=tb_history.guild_id AND T.zone_name = tb_zones.zone_name AND T.max_round = tb_zones.round";
-$query .= " WHERE tb_history.tb_id='".$tb_id."'";
+$query .= " WHERE tb_history.tb_id like '%:".$tb_ts."'";
 $query .= " GROUP BY guild_id";
-error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query to fetch the zone information
     $stmt = $conn_guionbot->prepare($query);
@@ -154,7 +159,7 @@ foreach($guild_stars as $tb_line) {
     }
 }
 
-function zone_txt($zone_name, $zones, $colspan) {
+function zone_ROTE_txt($zone_name, $zones, $colspan) {
     if (isset($zones[$zone_name])) {
         // the zone exists, so it is open
         if (strpos($zone_name, 'DS')!==false) {
@@ -180,6 +185,30 @@ function zone_txt($zone_name, $zones, $colspan) {
     }
 
     echo '<td colspan="'.$colspan.'" style="background-color:'.$zone_color.';text-align:center;border:3px solid white">'.$zone_txt.'</td>';
+}
+
+function zone_txt($zone_name, $zones, $rowspan, $darklight) {
+    if (isset($zones[$zone_name])) {
+        // the zone exists, so it is open
+        if ($darklight==='dark') {
+            $zone_color='red';
+        } else { // light
+            $zone_color='dodgerblue';
+        }
+        $zone_txt = $zone_name;
+        $zone_txt.= "<br/>";
+        $zone_txt.= $zones[$zone_name]['star_txt'];
+    } else {
+        // zone is closed
+        if ($darklight==='dark') {
+            $zone_color='darkred';
+        } else { // light
+            $zone_color='blue';
+        }
+        $zone_txt = $zone_name;
+    }
+
+    echo '<td rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';text-align:center;border:3px solid white">'.$zone_txt.'</td>';
 }
 ?>
 
@@ -212,7 +241,7 @@ function zone_txt($zone_name, $zones, $colspan) {
         <form>
         <select style="width:200px" name="list" id="list" accesskey="target" onchange="tbSelected()">
             <?php foreach($tb_list as $tb) {
-                $tb_id_short = explode(":", $tb['tb_id'])[1];
+                $tb_id_short = $tb['tb_ts'];
                 echo "<option value='".$tb_id_short."' ".($tb_id_short==$_GET['ts']?"selected='selected'":"").">".$tb['start_date']."</option>\n";
             }?>
         </select>
@@ -236,6 +265,7 @@ function zone_txt($zone_name, $zones, $colspan) {
     <div class="card">
     <h3><a href="tb.php?id=<?php echo $tb['id'];?>"><?php echo $tb['name'];?></a>: <?php echo $tb_data[$guild_id]['stars']; ?>&#11088</h3> (last Update: <?php echo $tb['lastUpdated'];?>)
 
+<?php if ($tb['tb_type'] === 'TB_EVENT_TB3_MIXED') { ?>
     <table style="display:block">
         <colgroup>
             <col span="1" style="width:10%"/>
@@ -252,49 +282,84 @@ function zone_txt($zone_name, $zones, $colspan) {
         <tbody>
         <tr style="border:3px solid white">
             <td style="background-color:black;border:3px solid white" colspan="1"></td>
-            <?php zone_txt('ROTE6-DS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE6-DS', $zones, 2); ?>
             <td style="background-color:black;border:3px solid white" colspan="2"></td>
-            <?php zone_txt('ROTE6-MS', $zones, 2); ?>
-            <?php zone_txt('ROTE6-LS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE6-MS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE6-LS', $zones, 2); ?>
             <td style="background-color:black;border:3px solid white" colspan="1"></td>
         </tr>
         <tr>
-            <?php zone_txt('ROTE5-DS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE5-DS', $zones, 2); ?>
             <td style="background-color:black;border:3px solid white" colspan="2"></td>
-            <?php zone_txt('ROTE5-MS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE5-MS', $zones, 2); ?>
             <td style="background-color:black;border:3px solid white" colspan="2"></td>
-            <?php zone_txt('ROTE5-LS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE5-LS', $zones, 2); ?>
         <tr>
             <td style="background-color:black;border:3px solid white" colspan="1"></td>
-            <?php zone_txt('ROTE4-DS', $zones, 2); ?>
-            <?php zone_txt('ROTE4-MSb', $zones, 2); ?>
-            <?php zone_txt('ROTE4-MS', $zones, 2); ?>
-            <?php zone_txt('ROTE4-LS', $zones, 2); ?>
-            <td style="background-color:black;border:3px solid white" colspan="1"></td>
-        </tr>
-        <tr>
-            <?php zone_txt('ROTE3-DS', $zones, 2); ?>
-            <td style="background-color:black;border:3px solid white" colspan="2"></td>
-            <?php zone_txt('ROTE3-MS', $zones, 2); ?>
-            <?php zone_txt('ROTE3-LSb', $zones, 2); ?>
-            <?php zone_txt('ROTE3-LS', $zones, 2); ?>
-        </tr>
-        <tr>
-            <td style="background-color:black;border:3px solid white" colspan="1"></td>
-            <?php zone_txt('ROTE2-DS', $zones, 2); ?>
-            <?php zone_txt('ROTE2-MS', $zones, 4); ?>
-            <?php zone_txt('ROTE2-LS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE4-DS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE4-MSb', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE4-MS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE4-LS', $zones, 2); ?>
             <td style="background-color:black;border:3px solid white" colspan="1"></td>
         </tr>
         <tr>
+            <?php zone_ROTE_txt('ROTE3-DS', $zones, 2); ?>
             <td style="background-color:black;border:3px solid white" colspan="2"></td>
-            <?php zone_txt('ROTE1-DS', $zones, 2); ?>
-            <?php zone_txt('ROTE1-MS', $zones, 2); ?>
-            <?php zone_txt('ROTE1-LS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE3-MS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE3-LSb', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE3-LS', $zones, 2); ?>
+        </tr>
+        <tr>
+            <td style="background-color:black;border:3px solid white" colspan="1"></td>
+            <?php zone_ROTE_txt('ROTE2-DS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE2-MS', $zones, 4); ?>
+            <?php zone_ROTE_txt('ROTE2-LS', $zones, 2); ?>
+            <td style="background-color:black;border:3px solid white" colspan="1"></td>
+        </tr>
+        <tr>
+            <td style="background-color:black;border:3px solid white" colspan="2"></td>
+            <?php zone_ROTE_txt('ROTE1-DS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE1-MS', $zones, 2); ?>
+            <?php zone_ROTE_txt('ROTE1-LS', $zones, 2); ?>
             <td style="background-color:black;border:3px solid white" colspan="2"></td>
         </tr>
         </tbody>
     </table>
+<?php } else if ($tb['tb_type'] === 'TB_EVENT_GEONOSIS_SEPARATIST') { ?>
+    <table style="display:block">
+        <colgroup>
+            <col span="1" style="width:25%"/>
+            <col span="1" style="width:25%"/>
+            <col span="1" style="width:25%"/>
+            <col span="1" style="width:25%"/>
+        </colgroup>
+        <tbody>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('GDS1-top', $zones, 3, 'dark'); ?>
+            <?php zone_txt('GDS2-top', $zones, 2, 'dark'); ?>
+            <?php zone_txt('GDS3-top', $zones, 2, 'dark'); ?>
+            <?php zone_txt('GDS4-top', $zones, 2, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33"/>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('GDS2-mid', $zones, 2, 'dark'); ?>
+            <?php zone_txt('GDS3-mid', $zones, 2, 'dark'); ?>
+            <?php zone_txt('GDS4-mid', $zones, 2, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('GDS1-bot', $zones, 3, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('GDS2-bot', $zones, 2, 'dark'); ?>
+            <?php zone_txt('GDS3-bot', $zones, 2, 'dark'); ?>
+            <?php zone_txt('GDS4-bot', $zones, 2, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33"/>
+        </tbody>
+    </table>
+<?php } else { ?>
+    <br/><b><?php echo $tb['tb_name'];?></b> is not implemented. Please contact the support.
+<?php } ?>
     </div>
     </div>
     </div>
