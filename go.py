@@ -4530,7 +4530,9 @@ async def get_tb_alerts(guild_id, force_update):
         if tb_name == "ROTE":
             pos_conflict = [[0, "02"], [1, "03"], [2, "01"]]
         else:
-            if tb_name == "GDS" and round_number==1:
+            if tb_name in ["GDS", "HDS"] and round_number==1:
+                pos_conflict = [[0, "01"], [2, "02"]]
+            elif tb_name in ["HDS"] and round_number==2:
                 pos_conflict = [[0, "01"], [2, "02"]]
             else:
                 pos_conflict = [[0, "01"], [1, "02"], [2, "03"]]
