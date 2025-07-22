@@ -263,7 +263,7 @@ function zone_txt($zone_name, $zones, $rowspan, $darklight) {
     <div class="row">
     <div class="col s12">
     <div class="card">
-    <h3><a href="tb.php?id=<?php echo $tb['id'];?>"><?php echo $tb['name'];?></a>: <?php echo $tb_data[$guild_id]['stars']; ?>&#11088</h3> (last Update: <?php echo $tb['lastUpdated'];?>)
+    <h3><a href="tb.php?id=<?php echo $tb['id'];?>"><?php echo $tb['name'];?></a>: <?php echo $tb_data[$guild_id]['stars']; ?>&#11088</h3><?php echo $tb['tb_name'];?><br/>(last Update: <?php echo $tb['lastUpdated'];?>)
 
 <?php if ($tb['tb_type'] === 'TB_EVENT_TB3_MIXED') { ?>
     <table style="display:block">
