@@ -1280,7 +1280,7 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
         ret_print_player = ""
 
         if dict_tb[dict_phase["type"]]["shortname"] == "ROTE":
-            if dict_deployment_types["mix"]:
+            if "mix" in dict_deployment_types and dict_deployment_types["mix"]:
                 ratio_deploy_mix = player_score["deployedMix"] / player["mix_gp"]
                 if ratio_deploy_mix < 0.99:
                     undeployed_player = True
@@ -1291,7 +1291,7 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
                     if player_isOff:
                         total_remainingMix[1] += player["mix_gp"]-player_score["deployedMix"]
         else:
-            if dict_deployment_types["ships"]:
+            if "ships" in dict_deployment_types and dict_deployment_types["ships"]:
                 ratio_deploy_ships = player_score["deployedShips"] / player["ship_gp"]
                 if ratio_deploy_ships < 0.99:
                     undeployed_player = True
@@ -1302,7 +1302,7 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
                     if player_isOff:
                         total_remainingShips[1] += player["ship_gp"]-player_score["deployedShips"]
 
-            if dict_deployment_types["chars"]:
+            if "chars" in dict_deployment_types and dict_deployment_types["chars"]:
                 ratio_deploy_chars = player_score["deployedChars"] / player["char_gp"]
                 if ratio_deploy_chars < 0.99:
                     undeployed_player = True
