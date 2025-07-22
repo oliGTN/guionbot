@@ -152,7 +152,7 @@ $query = "SELECT sum(score_strikes) AS strikes, sum(score_platoons) AS platoons,
 $query .= " sum(score_deployed) AS deployed,";
 $query .= " availableShipDeploy, availableCharDeploy, availableMixDeploy,";
 $query .= " remainingShipPlayers, remainingCharPlayers, remainingMixPlayers,";
-$query .= " deploymentTypeMix, totalPlayers";
+$query .= " deploymentType, totalPlayers";
 $query .= " FROM tb_player_score";
 $query .= " JOIN tb_phases ON tb_phases.tb_id = tb_player_score.tb_id";
 $query .= " AND tb_phases.round = tb_player_score.round";
@@ -180,7 +180,7 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
         $sort_column_sql = $sort_column;
     }
     // Prepare the SQL query
-    $query = "SELECT name, allyCode, gp, deployed_gp,";
+    $query = "SELECT name, allyCode, gp, ship_gp, char_gp, deployed_gp,";
     $query .= " score_strikes+score_deployed as score, strikes, waves";
     $query .= " FROM tb_player_score";
     $query .= " JOIN players ON players.playerId=tb_player_score.player_id";
@@ -463,8 +463,10 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
                     <label>Not fully deployed Players</label>
                     <div class="value xsmall pb-5">
                         <value>
-                            <?php if ($round_score['deploymentTypeMix']) {
+                            <?php if ($round_score['deploymentType']==0) {
                                 echo $round_score['remainingMixPlayers']."/".$round_score['totalPlayers'];
+                            } else if ($round_score['deploymentType']==1) {
+                                echo $round_score['remainingCharPlayers']."/".$round_score['totalPlayers'];
                             } else {
                                 echo "Ships: ".$round_score['remainingShipPlayers']."/".$round_score['totalPlayers']."<br/>";
                                 echo "Chars: ".$round_score['remainingCharPlayers']."/".$round_score['totalPlayers'];
@@ -480,8 +482,10 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
                     <label>Remaining deployments</label>
                     <div class="value xsmall pb-5">
                         <value>
-                            <?php if ($round_score['deploymentTypeMix']) {
+                            <?php if ($round_score['deploymentType']==0) {
                                 echo number_format($round_score['availableMixDeploy'], 0, ".", " ");
+                            } else if ($round_score['deploymentType']==1) {
+                                echo number_format($round_score['availableCharDeploy'], 0, ".", " ");
                             } else {
                                 echo "Ships: ".number_format($round_score['availableShipDeploy'], 0, ".", " ")."<br/>";
                                 echo "Chars: ".number_format($round_score['availableCharDeploy'], 0, ".", " ");
@@ -540,7 +544,11 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
         </thead>
         <tbody>
             <?php foreach ($tb_players as $tb_player) {
-                $ratio_deployed = $tb_player['deployed_gp']/$tb_player['gp'];
+                if ($round_score['deploymentType']==1) { 
+                    $ratio_deployed = $tb_player['deployed_gp']/$tb_player['char_gp'];
+                } else {
+                    $ratio_deployed = $tb_player['deployed_gp']/$tb_player['gp'];
+                }
                 if ($ratio_deployed<0.1) {
                     $color_deploy='red';
                     $lightcolor_deploy='lightpink';
@@ -561,9 +569,14 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
                     <td>
                         <svg width="100%" height="30">
                             <rect width="100%" height="30" style="fill:<?php echo $lightcolor_deploy; ?>;"/>
+                            <?php if ($round_score['deploymentType']==1) { ?>
+                            <rect width="<?php echo $tb_player['deployed_gp']/$tb_player['char_gp']*100?>%" height="30" style="fill:<?php echo $color_deploy; ?>;">
+                            <title><?php echo round($tb_player['deployed_gp']/$tb_player['char_gp']*100,0)?>%</title>
+                            <?php } else { ?>
                             <rect width="<?php echo $tb_player['deployed_gp']/$tb_player['gp']*100?>%" height="30" style="fill:<?php echo $color_deploy; ?>;">
                             <title><?php echo round($tb_player['deployed_gp']/$tb_player['gp']*100,0)?>%</title>
                             </rect>
+                            <?php } ?>
                         </svg>
                     </td>
                 <?php echo "\t<td style='text-align:center'>".$tb_player['waves']."</td>\n"; ?>
