@@ -1488,7 +1488,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
     query = "UPDATE tb_phases "\
             "SET "\
             "totalPlayers = "+str(totalPlayers)+", "\
-            "deploymentTypeMix = "+str(deploymentType)+", "\
+            "deploymentType = "+str(deploymentType)+", "\
             "availableShipDeploy  = "+str(availableShipDeploy)+", "\
             "availableCharDeploy = "+str(availableCharDeploy)+", "\
             "availableMixDeploy = "+str(availableMixDeploy)+", "\
