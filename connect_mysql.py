@@ -1626,6 +1626,8 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
         player = dict_tb_players[player_name]
         id = player["id"]
         gp = player["mix_gp"]
+        char_gp = player["char_gp"]
+        ship_gp = player["ship_gp"]
         for round in range(1, len(player["rounds"])+1): # round from 1 to 6
             player_round = player["rounds"][round-1]
             deployed_gp = player_round["score"]["deployedMix"]
@@ -1639,10 +1641,11 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             if not player_key in dict_db_players:
                 #need to create player/round in DB
                 query = "INSERT INTO tb_player_score(tb_id, round, player_id, "\
-                        "gp, deployed_gp, score_strikes, score_platoons, "\
+                        "gp, char_gp, ship_gp, deployed_gp, score_strikes, score_platoons, "\
                         "score_deployed, strikes, waves) "\
                         "VALUES("+str(tb_db_id)+", "+str(round)+", '"+id+"', "\
-                        ""+str(gp)+", "+str(deployed_gp)+", "+str(score_strikes)+", "\
+                        ""+str(gp)+", "+str(char_gp)+", "+str(ship_gp)+", "\
+                        ""+str(deployed_gp)+", "+str(score_strikes)+", "\
                         ""+str(score_platoons)+", "+str(score_deployed)+", "\
                         ""+str(strikes)+", "+str(waves)+") "
                 goutils.log2("DBG", query)
@@ -1656,6 +1659,8 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 if player_data != list(dict_db_players[player_key]):
                     query = "UPDATE tb_player_score "\
                             "SET gp="+str(gp)+", "\
+                            "char_gp="+str(char_gp)+", "\
+                            "ship_gp="+str(ship_gp)+", "\
                             "deployed_gp="+str(deployed_gp)+", "\
                             "score_strikes="+str(score_strikes)+", "\
                             "score_platoons="+str(score_platoons)+", "\
