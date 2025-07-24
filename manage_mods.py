@@ -528,7 +528,12 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
                 if ec!=0:
                     cost_txt = str(mod_add_count)+" mods déplacés, sur "+str(unit_count)+" persos ("+str(int(unequip_cost/100000)/10)+"M crédits)"
-                    return ec, str([target_char_defId, mods_to_add, mods_to_remove])+": "+et, {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
+
+                    if et == 'STAT_MOD_ERROR_MOD_STORAGE_FULL_KEY':
+                        err_txt = "inventaire plein"
+                    else:
+                        err_txt = str([target_char_defId, mods_to_add, mods_to_remove])+": "+et
+                    return ec, err_txt, {"cost": cost_txt, "missing": missing_mods, "forbidden": forbidden_mods}
 
         elif len(mods_to_remove) > 0:
             if not is_simu:
