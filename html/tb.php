@@ -180,7 +180,8 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
         $sort_column_sql = $sort_column;
     }
     // Prepare the SQL query
-    $query = "SELECT name, allyCode, gp, ship_gp, char_gp, deployed_gp,";
+    $query = "SELECT name, allyCode, deployed_gp,";
+    $query .= " tb_player_score.gp AS gp, tb_player_score.ship_gp AS ship_gp, tb_player_score.char_gp AS char_gp,";
     $query .= " score_strikes+score_deployed as score, strikes, waves";
     $query .= " FROM tb_player_score";
     $query .= " JOIN players ON players.playerId=tb_player_score.player_id";
