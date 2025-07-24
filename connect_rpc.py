@@ -3130,3 +3130,46 @@ async def get_metadata():
     metadata = resp_json
     return 0, "", metadata
 
+async def set_zoneOrder(guild_id, map_id,
+                        zone_id, zone_msg, zone_cmd, zone_instance,
+                        allyCode=None):
+    if allyCode == None:
+        dict_bot_accounts = get_dict_bot_accounts()
+        if not guild_id in dict_bot_accounts:
+            return 1, "Ce serveur discord n'a pas de warbot"
+
+        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
+    else:
+        bot_allyCode = allyCode
+    goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
+
+    url = "http://localhost:8000/zoneOrder"
+    params = {"allyCode": bot_allyCode,
+              "map_id": map_id,
+              "zone_id": zone_id,
+              "zone_msg": zone_msg,
+              "zone_cmd": zone_cmd}
+    if zone_instance != None:
+        params["zone_instance"] = zone_instance
+    req_data = json.dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "set zoneOrder status="+str(resp.status))
+                if resp.status==200:
+                    resp_json = await(resp.json())
+                else:
+                    return 1, "ERR during RPC metadata - code "+str(resp.status)
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if "err_code" in resp_json:
+        return resp_json["err_code"], resp_json["err_txt"]
+
+    return 0, ""
+
