@@ -5896,6 +5896,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.redcross)
             return
 
+        e, t, dict_player = await go.load_player( allyCode, 1, False)
+        if e!=0:
+            await ctx.send(t)
+            await ctx.message.add_reaction(emojis.redcross)
+            return
+
         query = "SELECT name, statq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY statq DESC, name"
         goutils.log2("DBG", query)
         output = connect_mysql.text_query(query)

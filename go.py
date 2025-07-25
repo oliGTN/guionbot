@@ -506,7 +506,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
         goutils.log2("DBG", "force_update="+str(force_update))
 
         if is_new_guild or need_refresh_due_to_time or need_to_add_players or force_update:
-            #The guild is not defined yet, add it
+            #The guild needs to be loaded again
             guild_loading_status = parallel_work.get_guild_loading_status(guild_name)
 
             if is_new_guild or need_refresh_due_to_time or force_update:
@@ -526,14 +526,13 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                     guild_loading_status = parallel_work.get_guild_loading_status(guild_name)
             else:
                 #Ensure only one guild loading at a time
-                #while len(dict_loading_guilds) > 1:
                 list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
                 while len(list_other_guilds_loading_status) > 0:
                     goutils.log2('INFO', "Guild "+guild_name+" loading "\
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
                     if ctx_interaction!=None:
                         await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "En file d'attente derrière "+str(list_other_guilds_loading_status)+"..." , intermediate=True)
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(5)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
 
                 #Request to load this guild
@@ -1263,7 +1262,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
         #Get data for the guild and associated players
         err_code, err_txt, guild = await load_guild(txt_allyCode, True, True)
         if err_code != 0:
-            goutils.log2("WAR", "cannot get guild data from SWGOH.HELP API. Using previous data.")
+            goutils.log2("WAR", "cannot get guild data from RPC. Using previous data.")
         collection_name = guild["profile"]["name"]
         guild_name = collection_name
     else:
