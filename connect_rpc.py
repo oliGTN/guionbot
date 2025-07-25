@@ -845,7 +845,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
 
     active_round = "" # "GLS4"
     dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
-    list_open_territories = [] # [{"phase":4, "cmdMsg": "full pelotons", "cmdState":"FOCUSED"}, ...]
+    list_open_territories = [] # [{"phase":4, "cmdMsg": "3 étoiles", "cmdState":"FOCUSED"}, ...]
 
     guildName = dict_guild["profile"]["name"]
 
@@ -1575,10 +1575,26 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         else: #ZONELOCKED
             #zone not yet opened, no need to add it
             continue
-
         completed_stars += zone_stars
+
+        if "commandMessage" in zone["zoneStatus"]:
+            cmdMsg = zone["zoneStatus"]["commandMessage"]
+        else:
+            cmdMsg = ""
+
+        if "commandState" in zone["zoneStatus"] \
+           and zone["zoneStatus"]["commandState"]=="FOCUSED":
+            cmdCmd = 2
+        elif "commandState" in zone["zoneStatus"] \
+           and zone["zoneStatus"]["commandState"]=="IGNORED":
+            cmdCmd = 3
+        else:
+            cmdCmd = 1
+
         dict_zones[zone_name] = {"score": zone_score, "completed_stars": zone_stars,
+                                 "cmdMsg": cmdMsg, "cmdCmd": cmdCmd,
                                  "remainingPlatoonScore": 0}
+
     dict_phase["prev_stars"] = completed_stars
 
     #sort the dict to display zones in the same order as the game
@@ -1595,27 +1611,26 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     total_players_guild = len(dict_tb_players)
     dict_phase["TotalPlayers"] = total_players_guild
     for zone in battleStatus["strikeZoneStatus"]:
-        if True: #zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
-            strike_name = zone["zoneStatus"]["zoneId"]
-            strike_shortname = strike_name.split("_")[-1]
+        strike_name = zone["zoneStatus"]["zoneId"]
+        strike_shortname = strike_name.split("_")[-1]
 
-            zone_name = strike_name[:-len(strike_shortname)-1]
+        zone_name = strike_name[:-len(strike_shortname)-1]
 
-            done_strikes = zone["playersParticipated"]
-            score = int(zone["zoneStatus"]["score"])
-            not_done_strikes = total_players_guild - done_strikes
-            remaining_fight = not_done_strikes * dict_tb[zone_name]["strikes"][strike_shortname][1]
-            if not strike_name in dict_strike_zones:
-                dict_strike_zones[strike_name] = {}
+        done_strikes = zone["playersParticipated"]
+        score = int(zone["zoneStatus"]["score"])
+        not_done_strikes = total_players_guild - done_strikes
+        remaining_fight = not_done_strikes * dict_tb[zone_name]["strikes"][strike_shortname][1]
+        if not strike_name in dict_strike_zones:
+            dict_strike_zones[strike_name] = {}
 
-            dict_strike_zones[strike_name]["participation"] = done_strikes
-            dict_strike_zones[strike_name]["score"] = score
-            dict_strike_zones[strike_name]["maxPossibleStrikes"] = not_done_strikes
-            dict_strike_zones[strike_name]["maxPossibleScore"] = remaining_fight
-            dict_strike_zones[strike_name]["estimatedStrikes"] = 0
-            dict_strike_zones[strike_name]["estimatedScore"] = 0
-            dict_strike_zones[strike_name]["eventStrikes"] = 0
-            dict_strike_zones[strike_name]["eventStrikeScore"] = 0
+        dict_strike_zones[strike_name]["participation"] = done_strikes
+        dict_strike_zones[strike_name]["score"] = score
+        dict_strike_zones[strike_name]["maxPossibleStrikes"] = not_done_strikes
+        dict_strike_zones[strike_name]["maxPossibleScore"] = remaining_fight
+        dict_strike_zones[strike_name]["estimatedStrikes"] = 0
+        dict_strike_zones[strike_name]["estimatedScore"] = 0
+        dict_strike_zones[strike_name]["eventStrikes"] = 0
+        dict_strike_zones[strike_name]["eventStrikeScore"] = 0
 
     for zone in battleStatus["covertZoneStatus"]:
         if zone["zoneStatus"]["zoneState"] in ("ZONEOPEN", "ZONECOMPLETE"):
@@ -1634,13 +1649,25 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         if zone["zoneStatus"]["zoneState"] in ("ZONEOPEN", "ZONECOMPLETE"):
             recon_name = zone["zoneStatus"]["zoneId"]
             recon_shortname = recon_name.split("_")[-1]
+
             if "commandMessage" in zone["zoneStatus"]:
                 cmdMsg = zone["zoneStatus"]["commandMessage"]
             else:
                 cmdMsg = ""
 
+            if "commandState" in zone["zoneStatus"] \
+               and zone["zoneStatus"]["commandState"]=="FOCUSED":
+                cmdCmd = 2
+            elif "commandState" in zone["zoneStatus"] \
+               and zone["zoneStatus"]["commandState"]=="IGNORED":
+                cmdCmd = 3
+            else:
+                cmdCmd = 1
+
             zone_name = recon_name[:-len(recon_shortname)-1]
-            dict_zones[zone_name]["platoons"] = {"cmdMsg": cmdMsg, "filling": {}}
+            dict_zones[zone_name]["platoons"] = {"cmdMsg": cmdMsg, 
+                                                 "cmdCmd": cmdCmd, 
+                                                 "filling": {}}
 
             for platoon in zone["platoon"]:
                 platoon_id = platoon["id"]

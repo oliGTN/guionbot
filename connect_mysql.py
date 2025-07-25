@@ -1578,6 +1578,8 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
         maxStrikeScore=0
         if "maxStrikeScore" in zone:
             maxStrikeScore=zone["maxStrikeScore"]
+        cmdMsg=zone["cmdMsg"]
+        cmdCmd=zone["cmdCmd"]
         recon1_filled=zone["platoons"]["filling"][1]
         recon2_filled=zone["platoons"]["filling"][2]
         recon3_filled=zone["platoons"]["filling"][3]
@@ -1585,19 +1587,23 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
         recon5_filled=zone["platoons"]["filling"][5]
         recon6_filled=zone["platoons"]["filling"][6]
         recon_cmdMsg=zone["platoons"]["cmdMsg"]
+        recon_cmdCmd=zone["platoons"]["cmdCmd"]
 
         query = "UPDATE tb_zones "\
                 "SET score="+str(score)+",  "\
                 "    estimated_strikes="+str(estimatedStrikeScore)+", "\
                 "    estimated_deployments="+str(deployment)+", "\
                 "    max_fights="+str(maxStrikeScore)+", "\
+                "    cmdMsg='"+cmdMsg.replace("'", "''")+"', "\
+                "    cmdCmd="+str(cmdCmd)+", "\
                 "    recon1_filled="+str(recon1_filled)+", "\
                 "    recon2_filled="+str(recon2_filled)+", "\
                 "    recon3_filled="+str(recon3_filled)+", "\
                 "    recon4_filled="+str(recon4_filled)+", "\
                 "    recon5_filled="+str(recon5_filled)+", "\
                 "    recon6_filled="+str(recon6_filled)+", "\
-                "    recon_cmdMsg='"+recon_cmdMsg.replace("'", "''")+"' "\
+                "    recon_cmdMsg='"+recon_cmdMsg.replace("'", "''")+"', "\
+                "    recon_cmdCmd="+str(recon_cmdCmd)+" "\
                 "WHERE id="+zone_db_id+" "
         goutils.log2("DBG", query)
         simple_execute(query)
