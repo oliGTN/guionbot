@@ -54,7 +54,6 @@ if (isset($entityBody['guild_id'])) {
                     $cmd_exec .= ' '.$zone_id;
                     $cmd_exec .= ' "'.$zone_msg.'"';
                     $cmd_exec .= ' '.$zone_cmd;
-                    //$cmd_exec='cd /home/pi/GuionBot/guionbot-dev/; pip install -r requirements.txt';
                     error_log($cmd_exec);
                     exec($cmd_exec, $output, $retval);
                     foreach($output as $line) {
