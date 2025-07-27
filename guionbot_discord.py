@@ -31,6 +31,7 @@ import goutils
 import connect_gsheets
 import connect_mysql
 import connect_rpc
+import parallel_work
 import portraits
 import data
 import manage_mods
