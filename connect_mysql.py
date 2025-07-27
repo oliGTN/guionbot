@@ -1057,30 +1057,31 @@ def load_config_players(guild_id=None):
     dict_players_by_IG = {}
     dict_players_by_ID = {}
 
-    list_did = [x[2] for x in data_db]
-    for line in data_db:
-        ac = line[0]
-        name = line[1]
-        did = line[2]
-        isMain = line[3]
-        isOff = (line[4]!=2)
-        guild_id = line[5]
+    if data_db != None:
+        list_did = [x[2] for x in data_db]
+        for line in data_db:
+            ac = line[0]
+            name = line[1]
+            did = line[2]
+            isMain = line[3]
+            isOff = (line[4]!=2)
+            guild_id = line[5]
 
-        # dict_players_by_IG
-        dict_players_by_IG[name] = [ac, name]
-        if list_did.count(did) == 1:
-            dict_players_by_IG[name] = [ac, "<@"+str(did)+">", isOff, guild_id]
-        else:
-            dict_players_by_IG[name] = [ac, "<@"+str(did)+"> ["+name+"]", isOff, guild_id]
+            # dict_players_by_IG
+            dict_players_by_IG[name] = [ac, name]
+            if list_did.count(did) == 1:
+                dict_players_by_IG[name] = [ac, "<@"+str(did)+">", isOff, guild_id]
+            else:
+                dict_players_by_IG[name] = [ac, "<@"+str(did)+"> ["+name+"]", isOff, guild_id]
 
-        # dict_players_by_ID
-        if not did in dict_players_by_ID:
-            dict_players_by_ID[did] = {"main": None, "alts": []}
-            
-        if isMain:
-            dict_players_by_ID[did]["main"] = [ac, isOff, guild_id]
-        else:
-            dict_players_by_ID[did]["alts"].append([ac, isOff, guild_id])
+            # dict_players_by_ID
+            if not did in dict_players_by_ID:
+                dict_players_by_ID[did] = {"main": None, "alts": []}
+                
+            if isMain:
+                dict_players_by_ID[did]["main"] = [ac, isOff, guild_id]
+            else:
+                dict_players_by_ID[did]["alts"].append([ac, isOff, guild_id])
 
     return dict_players_by_IG, dict_players_by_ID
 

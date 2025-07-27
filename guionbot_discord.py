@@ -4872,7 +4872,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 guildName = "*pas de guilde*"
 
             #Look for Discord Pseudo if in guild
-            dict_players_by_IG = connect_mysql.load_config_players(guild_id=guildId)[0]
+            db_data = connect_mysql.load_config_players(guild_id=guildId)
+            dict_players_by_IG = db_data[1]
+
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
                 ret_re = re.search("<@(\\d*)>.*", discord_mention)
