@@ -3164,7 +3164,9 @@ async def set_zoneOrder(guild_id, map_id,
         dict_bot_accounts = get_dict_bot_accounts()
         if not guild_id in dict_bot_accounts:
             return 1, "Ce serveur discord n'a pas de warbot"
-        if islocked_bot_account(bot_allyCode):
+        
+        islocked = (dict_bot_accounts[guild_id]['locked_since']!=None)
+        if islocked:
             use_cache_data = True
             err_msg = "the connected account is being used... cannot launch request"
             goutils.log2("WAR", err_msg)
