@@ -7,6 +7,9 @@ session_set_cookie_params(3600*24*7);
 session_start();
 
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
+include 'tbrequests.php';
+include 'gvariables.php';
+include 'tbheader.php';
 
 // Check if the user is logged in and if the user is an admin
 $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
@@ -18,6 +21,13 @@ if (!isset($_GET['id'])) {
     exit();
 }
 $tb_id = $_GET['id'];
+$round = get_round_from_get();
+$tb = get_tb_from_id($tb_id);
+$guild_id = $tb['guild_id'];
+$guild_name = $tb['guild_name'];
+$zones = get_tb_round_zones($tb_id, $round);
+
+list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
 //Get TB infos
 // Prepare the SQL query
@@ -40,36 +50,6 @@ try {
     echo "Error fetching TB data: " . $e->getMessage();
     header("Location: index.php");
     exit();
-}
-
-if (!isset($_GET['round'])) {
-    // Get the max round
-    // Prepare the SQL query
-    $query = "SELECT current_round";
-    $query .= " FROM tb_history";
-    $query .= " WHERE tb_history.id=".$tb_id;
-    //error_log("query = ".$query);
-    try {
-        // Prepare the SQL query
-        $stmt = $conn_guionbot->prepare($query);
-        $stmt->execute();
-
-        // Fetch all the results as an associative array
-        $rounds = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        if (count($rounds)==0) {
-            error_log("Unknown TB id: redirect to index.php");
-            header("Location: index.php");
-            exit();
-        }
-        $round = $rounds[0]['current_round'];
-
-    } catch (PDOException $e) {
-        error_log("Error fetching guild data: " . $e->getMessage());
-        echo "Error fetching guild data: " . $e->getMessage();
-        $round = 1;
-    }
-} else {
-    $round = $_GET['round'];
 }
 
 // Get existing zone commands
@@ -119,7 +99,7 @@ try {
     <div class="site-content">
     <div class="container">
 
-<?php include 'tbheader.php'; ?>
+<?php display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGuild, $isMyGuildConfirmed, $isOfficer, $isBonusGuild, $isAdmin); ?>
 
 <?php include 'tbnavbar.php'; ?>
 
@@ -155,6 +135,7 @@ function input_order($zone_id, $input_name, $tb_orders) {
 ?>
 
 <?php
+    if (($isMyGuildConfirmed&$isOfficer)|$isAdmin) {
     if (!empty($zones)) {
         foreach ($zones as $zone) {
             $zone_id = $zone['zone_id'];
@@ -178,6 +159,9 @@ function input_order($zone_id, $input_name, $tb_orders) {
 
 <?php
         }
+    } // empty zones
+    } else { //not guild officer
+        echo "You need to be an officer of the guild";
     }
 
 ?>

@@ -22,6 +22,11 @@ if (!isset($_GET['id'])) {
 }
 $tb_id = $_GET['id'];
 $round = get_round_from_get();
+$round_score = get_tb_round_score($tb_id, $round);
+$tb = get_tb_from_id($tb_id);
+$guild_id = $tb['guild_id'];
+$guild_name = $tb['guild_name'];
+$zones = get_tb_round_zones($tb_id, $round);
 
 // --------------- SORTING PLAYERS BY COLUMN -----------
 // Get sort parameters from URL or set default
@@ -32,10 +37,6 @@ $sort_order = isset($_GET['order']) && strtolower($_GET['order']) === 'asc' ? 'A
 // Toggle sort order for next click
 $next_order = $sort_order === 'ASC' ? 'desc' : 'asc';
 
-$round_score = get_tb_round_score($tb_id, $round);
-$tb = get_tb_from_id($tb_id);
-$guild_id = $tb['guild_id'];
-$guild_name = $tb['guild_name'];
 
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
@@ -68,7 +69,7 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
     <div class="site-content">
     <div class="container">
 
-<?php display_tb_header($guild_id, $guild_name, $tb, $round, $isMyGuild, $isMyGuildConfirmed, $isOfficer, $isBonusGuild, $isAdmin); ?>
+<?php display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGuild, $isMyGuildConfirmed, $isOfficer, $isBonusGuild, $isAdmin); ?>
 
 <?php include 'tbnavbar.php'; ?>
 

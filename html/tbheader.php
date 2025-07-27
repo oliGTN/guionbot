@@ -1,9 +1,8 @@
 <?php
 
-function display_tb_header($guild_id, $guild_name, $tb, $round, $isMyGuild, $isMyGuildConfirmed, $isOfficer, $isBonusGuild, $isAdmin) {
+function display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGuild, $isMyGuildConfirmed, $isOfficer, $isBonusGuild, $isAdmin) {
     $tb_id = $tb['tb_id'];
     $round_stars = get_tb_round_stars($tb_id, $round);
-    $zones = get_tb_round_zones($tb_id, $round);
 ?>    
     <h2 style="display:inline"><a href='/tbs.php?gid=<?php echo $guild_id; ?>'>TB</a> for <a href='/g.php?gid=<?php echo $guild_id; ?>'><?php echo $guild_name; ?></a></h2> - <?php echo $tb['tb_name'];?>
     <div><?php echo "last update on ".$tb['lastUpdated']; ?></div>
