@@ -6825,6 +6825,8 @@ async def main():
     for cache_file in list_cache_files:
         if cache_file.endswith(".tmp"):
             os.remove("CACHE/"+cache_file)
+    parallel_work.clean_cache()
+
 
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")

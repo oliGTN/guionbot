@@ -37,7 +37,7 @@ async def main():
                 if ec==0:
                     #Update message and command in tb_zones
                     if "recon" in zone_id:
-                        tb_zone_id = zone_id[:-7]
+                        tb_zone_id = zone_id[:-8]
                         db_cmdMsg = "recon_cmdMsg"
                         db_cmdCmd = "recon_cmdCmd"
                     else:
@@ -51,7 +51,7 @@ async def main():
                             "WHERE tb_history.tb_id='"+map_id+"' " \
                             "AND tb_history.guild_id='"+guild_id+"' " \
                             "AND tb_zones.round=tb_history.current_round " \
-                            "AND tb_zones.zone_id='"+zone_id+"'"
+                            "AND tb_zones.zone_id='"+tb_zone_id+"'"
                     goutils.log2("DBG", query)
                     connect_mysql.simple_execute(query)
 
@@ -60,32 +60,30 @@ async def main():
                     query = "SELECT id FROM tb_orders " \
                             "WHERE guild_id='"+guild_id+"' " \
                             "AND tb_type='"+tb_type+"' " \
-                            "AND zone_id='"+zone_id+"' " \
-                            "AND round=(SELECT current_round FROM tb_history WHERE tb_history.tb_id='"+map_id+"' AND tb_history.guild_id='"+guild_id+"')"
+                            "AND zone_id='"+zone_id+"' "
                     goutils.log2("DBG", query)
                     db_data = connect_mysql.get_value(query)
 
                     if db_data==None:
                         query = "INSERT INTO tb_orders(guild_id, tb_type, " \
-                                "zone_id, round) " \
+                                "zone_id) " \
                                 "VALUES('"+guild_id+"', " \
                                 "'"+tb_type+"', " \
-                                "'"+zone_id+"', " \
-                                "(SELECT current_round FROM tb_history WHERE tb_history.tb_id='"+map_id+"' AND tb_history.guild_id='"+guild_id+"'))"
+                                "'"+zone_id+"') "
                         goutils.log2("DBG", query)
                         connect_mysql.simple_execute(query)
 
                         query = "SELECT id FROM tb_orders " \
                                 "WHERE guild_id='"+guild_id+"' " \
                                 "AND tb_type='"+tb_type+"' " \
-                                "AND zone_id='"+zone_id+"' " \
-                                "AND round=(SELECT current_round FROM tb_history WHERE tb_history.tb_id='"+map_id+"' AND tb_history.guild_id='"+guild_id+"')"
+                                "AND zone_id='"+zone_id+"' "
                         goutils.log2("DBG", query)
                         db_data = connect_mysql.get_value(query)
 
                     order_id = str(db_data)
                     query = "UPDATE tb_orders " \
-                            "SET cmdMsg='"+zone_msg+"' " \
+                            "SET cmdMsg='"+zone_msg+"', " \
+                            "cmdCmd="+str(zone_cmd)+" " \
                             "WHERE id="+order_id
                     goutils.log2("DBG", query)
                     connect_mysql.simple_execute(query)

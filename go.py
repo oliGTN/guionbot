@@ -47,9 +47,6 @@ emoji_check = "\N{WHITE HEAVY CHECK MARK}"
 emoji_cross = "\N{CROSS MARK}"
 emoji_frowning = "\N{SLIGHTLY FROWNING FACE}"
 
-#Clean temp files
-parallel_work.clean_cache()
-
 dict_stat_names={} # unitStatUd, is percentage
 dict_stat_names["santé"] =  [1, False, "Santé"]
 dict_stat_names["health"] = [1, False, "Santé"]
