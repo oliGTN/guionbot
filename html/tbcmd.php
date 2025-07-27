@@ -142,7 +142,8 @@ function input_order($zone_id, $input_name, $tb_orders) {
         
     echo '<div id="input-'.$zone_id.'">';
     echo '<label for="msg-'.$zone_id.'" style="font-size:18px">'.$input_name.': </label>';
-    echo '<input type="text" id="msg-'.$zone_id.'" style="width: 300px" maxlength="75" value="'.$tb_orders[$zone_id]['cmdMsg'].'">';
+    echo '<input type="text" id="msg-'.$zone_id.'" style="width: 300px" maxlength="75" value="'.$tb_orders[$zone_id]['cmdMsg'].'"/>';
+    echo '<br/>';
     echo '<input type="radio" name="radio-'.$zone_id.'" id="None-'.$zone_id.'" value="1" '.($tb_orders[$zone_id]['cmdCmd']==1?'checked':'').'/>';
     echo '<label for="None-'.$zone_id.'">None</label>';
     echo '<input type="radio" name="radio-'.$zone_id.'" id="Focus-'.$zone_id.'" value="2" '.($tb_orders[$zone_id]['cmdCmd']==2?'checked':'').'/>';
@@ -168,7 +169,7 @@ function input_order($zone_id, $input_name, $tb_orders) {
     <br/>
     <?php input_order($zone_id.'_recon01', 'Platoons', $tb_orders); ?>
     <br/>
-    <input type="submit" id="btn-<?php echo $zone_id; ?>" value="Send">
+    <input type="submit" id="btn-<?php echo $zone_id; ?>" value="Send"/>
 </form>
                     </div>
                 </div>
@@ -200,13 +201,13 @@ function tbmsg_send (e) {
     let cmd_list = origin_form.getElementsByTagName('div');
 
     list_orders = [];
+    var btn_id;
     for(let i=0;i<cmd_list.length;i++){
         cmd = cmd_list[i];
         let zone_id = cmd.getAttribute('id').split('-')[1];
         if (i==0) {
-            let btn_id = 'btn-'+zone_id;
-            var btn = document.getElementById(btn_id)
-            btn.disabled="disabled"; // TO-DO fix this as it does not work
+            btn_id = 'btn-'+zone_id;
+            document.getElementById(btn_id).disabled=true;
         }
         let msg_id = 'msg-'+zone_id;
         let msg = document.getElementById(msg_id).value;
@@ -227,13 +228,22 @@ function tbmsg_send (e) {
         list_orders.push(my_order);
 
     };
+    //console.log(list_orders);
 
+    setTimeout(send_order.bind(null, btn_id, list_orders), 10*list_orders.length);
+
+    return false;
+}
+
+function send_order(btn_id, list_orders) {
     var body_json = {
         guild_id: '<?php echo $guild_id; ?>',
         tb_id: '<?php echo $tb_full_id; ?>',
         list_orders: list_orders
     };
-    fetch("/tbzmsg.php", {
+    var err_code=0;
+    var err_txt="";
+    return fetch("/tbzmsg.php", {
         method: "post",
         headers: {
             'Accept': 'application/json',
@@ -243,14 +253,19 @@ function tbmsg_send (e) {
         //make sure to serialize your JSON body
         body: JSON.stringify(body_json)
     })
-    .then((response) => response.json())
+    .then((response) => {return response.json()})
     .then((data) => {
-       console.log(data);
+        //console.log(data);
+        err_code = data['err_code'];
+        err_txt = data['err_txt'];
+
+        document.getElementById(btn_id).disabled = false;
+        if (err_code==0) {
+            window.alert("Orders correcty sent to the game");
+        } else {
+            window.alert("ERROR: "+err_txt);
+        }
     });
-
-    btn.removeAttribute('disabled');
-
-    return false;
 }
 
 </script>

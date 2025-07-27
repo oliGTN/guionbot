@@ -70,7 +70,6 @@ function download(file, text) {
 }
 
 function fct_download() {
-    console.log("eeeererer");
     csv_content = "";
 
     sql_table = document.getElementById("sql-results");
@@ -84,7 +83,7 @@ function fct_download() {
         }
         csv_content = csv_content + "\n"
     }
-    console.log(csv_content);
+    //console.log(csv_content);
     download("sqlresults.csv", csv_content);
 }
 </script>

@@ -1,102 +1,11 @@
 <?php
-// displays TB zones from $tb_id and $round
-if (!isset($tb_id) | !isset($round)) {
-    header("Location: index.php");
-    exit();
-}
 
-// Get the associated guild and check if the user is allowed
-// Prepare the SQL query
-$query = "SELECT guild_id, tb_name, start_date, lastUpdated,";
-$query .= " current_round, max(round) AS max_round FROM tb_history";
-$query .= " JOIN tb_zones ON tb_zones.tb_id=tb_history.id";
-$query .= " WHERE tb_zones.tb_id=".$tb_id;
-//error_log("query = ".$query);
-try {
-    // Prepare the SQL query
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
-
-    // Fetch all the results as an associative array
-    $tb_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $tb = array_values($tb_list)[0];
-
-} catch (PDOException $e) {
-    error_log("Error fetching guild data: " . $e->getMessage());
-    echo "Error fetching guild data: " . $e->getMessage();
-}
-$guild_id = $tb['guild_id'];
-
-// The guild page needs to be visited first
-if (!isset($_SESSION['guild']) || ($_SESSION['guild']['id']!=$guild_id)){
-    //error_log("No valid guild data, redirect to g.php?gid=$guild_id");
-    //header("Location: g.php?gid=$guild_id");
-    //exit();
-    include 'gdata.php';
-}
-$guild = $_SESSION['guild'];
-
-// define $isMyGuild, $isOfficer FROM $guild_id
-include 'gvariables.php';
-
-// --------------- GET ZONE INFO FOR THE TB -----------
-// Prepare the SQL query
-$query = "SELECT zone_name, zone_id, zone_phase, score_step1, score_step2, score_step3,";
-$query .= " score, estimated_platoons, estimated_strikes, estimated_deployments,";
-$query .= " recon1_filled, recon2_filled, recon3_filled,";
-$query .= " recon4_filled, recon5_filled, recon6_filled, recon_cmdMsg";
-$query .= " FROM tb_zones";
-$query .= " WHERE tb_id=".$tb_id." AND round=".$round;
-$query .= " ORDER BY CASE WHEN INSTR(zone_name, 'DS')>0 THEN 0 WHEN INSTR(zone_name, 'MS')>0 THEN 1 ELSE 2 END + CASE WHEN is_bonus THEN 0.5 ELSE 0 END";
-//error_log("query = ".$query);
-try {
-    // Prepare the SQL query to fetch the zone information
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
-
-    // Fetch all the results as an associative array
-    $zones = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-} catch (PDOException $e) {
-    error_log("Error fetching zone data: " . $e->getMessage());
-    echo "Error fetching zone data: " . $e->getMessage();
-}
-
-// --------------- GET CURRENT SCORE FOR THE TB -----------
-// Prepare the SQL query
-$query = "SELECT sum(case";
-$query .= " WHEN score>=score_step3 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 1 ELSE 3 END";
-$query .= " WHEN score>=score_step2 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 2 END";
-$query .= " WHEN score>=score_step1 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 1 END";
-$query .= " ELSE 0 END) AS stars";
-$query .= " FROM tb_zones";
-
-$query .= " JOIN (";
-$query .= "   SELECT tb_zones.tb_id AS tb_id, zone_name, max(round) AS max_round";
-$query .= "   FROM tb_zones";
-$query .= "   JOIN tb_history ON tb_zones.tb_id=tb_history.id";
-$query .= "   WHERE tb_zones.tb_id=".$tb_id;
-$query .= "   GROUP BY tb_id, zone_name";
-$query .= " ) T ON T.tb_id=tb_zones.tb_id AND T.zone_name = tb_zones.zone_name AND T.max_round = tb_zones.round";
-$query .= " WHERE tb_zones.tb_id=".$tb_id." AND round<=".$round;
-//error_log("query = ".$query);
-try {
-    // Prepare the SQL query to fetch the zone information
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
-
-    // Fetch all the results as an associative array
-    $round_stars = $stmt->fetchAll(PDO::FETCH_ASSOC)[0]['stars'];
-
-} catch (PDOException $e) {
-    error_log("Error fetching TB data: " . $e->getMessage());
-    echo "Error fetching TB data: " . $e->getMessage();
-}
-
-?>
-
-
-    <h2 style="display:inline"><a href='/tbs.php?gid=<?php echo $guild['id']; ?>'>TB</a> for <a href='/g.php?gid=<?php echo $guild['id']; ?>'><?php echo $guild['name']; ?></a></h2> - <?php echo $tb['tb_name'];?>
+function display_tb_header($guild_id, $guild_name, $tb, $round, $isMyGuild, $isMyGuildConfirmed, $isOfficer, $isBonusGuild, $isAdmin) {
+    $tb_id = $tb['tb_id'];
+    $round_stars = get_tb_round_stars($tb_id, $round);
+    $zones = get_tb_round_zones($tb_id, $round);
+?>    
+    <h2 style="display:inline"><a href='/tbs.php?gid=<?php echo $guild_id; ?>'>TB</a> for <a href='/g.php?gid=<?php echo $guild_id; ?>'><?php echo $guild_name; ?></a></h2> - <?php echo $tb['tb_name'];?>
     <div><?php echo "last update on ".$tb['lastUpdated']; ?></div>
 
     <div class="card">
@@ -284,3 +193,6 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
     </div>
 </div>
 
+<?php
+}
+?>

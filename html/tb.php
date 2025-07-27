@@ -7,6 +7,9 @@ session_set_cookie_params(3600*24*7);
 session_start();
 
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
+include 'tbrequests.php';
+include 'gvariables.php';
+include 'tbheader.php';
 
 // Check if the user is logged in and if the user is an admin
 $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
@@ -18,36 +21,7 @@ if (!isset($_GET['id'])) {
     exit();
 }
 $tb_id = $_GET['id'];
-
-if (!isset($_GET['round'])) {
-    // Get the max round
-    // Prepare the SQL query
-    $query = "SELECT current_round";
-    $query .= " FROM tb_history";
-    $query .= " WHERE tb_history.id=".$tb_id;
-    //error_log("query = ".$query);
-    try {
-        // Prepare the SQL query
-        $stmt = $conn_guionbot->prepare($query);
-        $stmt->execute();
-
-        // Fetch all the results as an associative array
-        $rounds = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        if (count($rounds)==0) {
-            error_log("Unknown TB id: redirect to index.php");
-            header("Location: index.php");
-            exit();
-        }
-        $round = $rounds[0]['current_round'];
-
-    } catch (PDOException $e) {
-        error_log("Error fetching guild data: " . $e->getMessage());
-        echo "Error fetching guild data: " . $e->getMessage();
-        $round = 1;
-    }
-} else {
-    $round = $_GET['round'];
-}
+$round = get_round_from_get();
 
 // --------------- SORTING PLAYERS BY COLUMN -----------
 // Get sort parameters from URL or set default
@@ -58,65 +32,21 @@ $sort_order = isset($_GET['order']) && strtolower($_GET['order']) === 'asc' ? 'A
 // Toggle sort order for next click
 $next_order = $sort_order === 'ASC' ? 'desc' : 'asc';
 
+$round_score = get_tb_round_score($tb_id, $round);
+$tb = get_tb_from_id($tb_id);
+$guild_id = $tb['guild_id'];
+$guild_name = $tb['guild_name'];
 
-// --------------- GET ROUND INFO FOR THE TB -----------
-// Prepare the SQL query
-$query = "SELECT sum(score_strikes) AS strikes, sum(score_platoons) AS platoons,";
-$query .= " sum(score_deployed) AS deployed,";
-$query .= " availableShipDeploy, availableCharDeploy, availableMixDeploy,";
-$query .= " remainingShipPlayers, remainingCharPlayers, remainingMixPlayers,";
-$query .= " deploymentType, totalPlayers";
-$query .= " FROM tb_player_score";
-$query .= " JOIN tb_phases ON tb_phases.tb_id = tb_player_score.tb_id";
-$query .= " AND tb_phases.round = tb_player_score.round";
-$query .= " WHERE tb_player_score.tb_id=".$tb_id." AND tb_player_score.round=".$round;
-//error_log("query = ".$query);
-try {
-    // Prepare the SQL query to fetch the zone information
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
-
-    // Fetch all the results as an associative array
-    $round_score = $stmt->fetchAll(PDO::FETCH_ASSOC)[0];
-//print_r($round_score);
-
-} catch (PDOException $e) {
-    error_log("Error fetching round data: " . $e->getMessage());
-    echo "Error fetching round data: " . $e->getMessage();
-}
+list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
 // --------------- GET PLAYER INFO FOR THE TB -----------
 if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
-    if ($sort_column == 'deployment') {
-        $sort_column_sql = 'deployed_gp/gp';
-    } else {
-        $sort_column_sql = $sort_column;
-    }
-    // Prepare the SQL query
-    $query = "SELECT name, allyCode, deployed_gp,";
-    $query .= " tb_player_score.gp AS gp, tb_player_score.ship_gp AS ship_gp, tb_player_score.char_gp AS char_gp,";
-    $query .= " score_strikes+score_deployed as score, strikes, waves";
-    $query .= " FROM tb_player_score";
-    $query .= " JOIN players ON players.playerId=tb_player_score.player_id";
-    $query .= " WHERE tb_id=".$tb_id." AND round=".$round;
-    $query .= " ORDER BY $sort_column_sql $sort_order";
-    //error_log("query = ".$query);
-    try {
-        // Prepare the SQL query to fetch the zone information
-        $stmt = $conn_guionbot->prepare($query);
-        $stmt->execute();
-
-        // Fetch all the results as an associative array
-        $tb_players = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    } catch (PDOException $e) {
-        error_log("Error fetching player data: " . $e->getMessage());
-        echo "Error fetching player data: " . $e->getMessage();
-    }
+    $tb_players = get_tb_players($tb_id, $round, $sort_column, $sort_order);
 } else {
     $tb_players = [];
 }
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -138,7 +68,7 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
     <div class="site-content">
     <div class="container">
 
-<?php include 'tbheader.php'; ?>
+<?php display_tb_header($guild_id, $guild_name, $tb, $round, $isMyGuild, $isMyGuildConfirmed, $isOfficer, $isBonusGuild, $isAdmin); ?>
 
 <?php include 'tbnavbar.php'; ?>
 

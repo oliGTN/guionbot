@@ -179,7 +179,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
         function twSelected(){
             let userPicked = document.getElementById("list").value;
             new_url ="twall.php?ts="+userPicked;
-            console.log(new_url);
+            //console.log(new_url);
             window.location.href=new_url;
         }
     </script>

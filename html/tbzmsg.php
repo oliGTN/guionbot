@@ -7,6 +7,7 @@ session_set_cookie_params(3600*24*7);
 session_start();
 
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
+include 'gvariables.php';
 
 // Check if the user is logged in and if the user is an admin
 $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
@@ -18,7 +19,7 @@ error_log(print_r($entityBody["guild_id"],true));
 // define $isMyGuild, $isOfficer FROM $guild_id
 if (isset($entityBody['guild_id'])) {
     $guild_id = $entityBody['guild_id'];
-    include 'gvariables.php';
+    list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
     if (($isMyGuildConfirmed&$isOfficer)|$isAdmin) {
         if (!isset($entityBody['tb_id'])) {
@@ -66,6 +67,7 @@ if (isset($entityBody['guild_id'])) {
                     } else {
                         $err_code = 500;
                         $err_txt = "execution error, code=".$retval;
+                        break;
                     }
                 }
             }

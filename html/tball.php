@@ -251,7 +251,7 @@ function zone_txt($zone_name, $zones, $rowspan, $darklight) {
         function tbSelected(){
             let userPicked = document.getElementById("list").value;
             new_url ="tball.php?ts="+userPicked;
-            console.log(new_url);
+            //console.log(new_url);
             window.location.href=new_url;
         }
     </script>

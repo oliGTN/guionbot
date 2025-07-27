@@ -7,6 +7,7 @@ session_set_cookie_params(3600*24*7);
 session_start();
 
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
+include 'gvariables.php';
 
 // Check if the user is logged in and if the user is an admin
 $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
@@ -21,8 +22,7 @@ if (!isset($_GET['gid'])) {
 $guild_id = $_GET['gid'];
 
 // define $isMyGuild, $isOfficer FROM $guild_id
-include 'gvariables.php';
-//echo "isMyGuild=".$isMyGuild;
+list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
 // The guild page (this file) is where the basic guild ifo is gathered
 if (isset($_SESSION['guild'])){
