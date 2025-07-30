@@ -3072,7 +3072,7 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
         member = dict_members_by_id[member_id]
         if int(member["guildJoinTime"])*1000 >= raid_join_time+48*3600*1000:
             #player joined after start of raid
-            goutils.log2("DBG", member["name"]+" is ignored as joined the guild after start of raid")
+            goutils.log2("DBG", member["playerName"]+" is ignored as joined the guild after start of raid")
             continue
 
         if member_id in dict_raid_members_by_id:
