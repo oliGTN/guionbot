@@ -142,16 +142,31 @@ function input_order($zone_id, $input_name, $tb_orders) {
 ?>
                 <div class="col s12 m12 l4">
                     <div class="valign-wrapper full-line">
-                    <h4><?php echo $zone['zone_name']?></h4>
+                    <h4><?php echo $zone['zone_name'].' - <small>'.$dict_tb[$zone_id]['fullname']?></small></h4>
                     </div>
                     <div class="card zone">
-<form target="_blank" onSubmit="tbmsg_send(event);">
-    <?php input_order($zone_id, 'Deployment', $tb_orders); ?>
-    <br/>
-    <?php input_order($zone_id.'_recon01', 'Platoons', $tb_orders); ?>
-    <br/>
-    <input type="submit" id="btn-<?php echo $zone_id; ?>" value="Send"/>
-</form>
+                        <form target="_blank" onSubmit="tbmsg_send(event);">
+                            <?php input_order($zone_id, 'Deployment', $tb_orders); ?>
+                            <br/>
+                            <?php input_order($zone_id.'_recon01', 'Platoons', $tb_orders); ?>
+<?php
+            $n_strike=1;
+            foreach ($dict_tb[$zone_id]['strikes'] as $strike_id => $strike) {
+                            echo '<br/>';
+                            input_order($zone_id.'_'.$strike_id, 'Strike#'.$n_strike.($strike[2]=='COMBAT_SHIP'?'&#x2708;':'&#x1fa96;'), $tb_orders);
+                            $n_strike+=1;
+            }
+            $n_covert=1;
+            foreach ($dict_tb[$zone_id]['coverts'] as $covert_id => $covert) {
+                            echo '<br/>';
+                            input_order($zone_id.'_'.$covert_id, 'Special#'.$n_covert, $tb_orders);
+                            $n_covert+=1;
+            }
+?>
+                            <br/>
+                            <input type="submit" id="btn-<?php echo $zone_id; ?>" value="Send"/>
+            
+                        </form>
                     </div>
                 </div>
 

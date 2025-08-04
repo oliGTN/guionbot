@@ -143,7 +143,8 @@ for tb in game_data["territoryBattleDefinition"]:
 
         score_table = dict_tables[s["encounterRewardTable"]]
         dict_tb[conflict_id]["strikes"][strike_id] = [int(score_table["row"][-1]["key"]),
-                                                      int(score_table["row"][-1]["value"].split(":")[1])]
+                                                      int(score_table["row"][-1]["value"].split(":")[1]),
+                                                      s["combatType"]]
                                                      
     for c in tb["covertZoneDefinition"]:
         #print(c)

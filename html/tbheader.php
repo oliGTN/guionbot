@@ -22,7 +22,11 @@ function display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGui
         if ($i < $tb['max_round']) {
             echo "&gt;";
         }
-    }?>
+    }
+
+    $string = file_get_contents("../DATA/tb_definition.json");
+    $dict_tb = json_decode($string, true);
+?>
 </div>
 <!-- style for clickable rounds -->
 <style type="text/css">
@@ -83,6 +87,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
         // Loop through each tb and display in a table row
         if (!empty($zones)) {
             foreach ($zones as $zone) {
+                $zone_id = $zone['zone_id'];
                 $score = $zone['score'];
                 $estimated_platoons = $zone['estimated_platoons'];
                 $estimated_strikes = $zone['estimated_strikes'];
@@ -134,7 +139,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
 
                 <div class="col s12 m12 l4">
                     <div class="valign-wrapper full-line">
-                    <h4><?php echo $zone['zone_name']?></h4>
+                    <h4><?php echo $zone['zone_name'].' - <small>'.$dict_tb[$zone_id]['fullname']?></small></h4>
                     </div>
                     <div class="card zone">
                         <div class="card-content">
