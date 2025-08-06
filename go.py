@@ -1726,6 +1726,7 @@ async def print_ftj(txt_allyCode, team, guild_id, gfile_name):
 
     return 0, ret_print_ftj
 
+#IN: score_type (1: progress % / 2: yellow energy)
 async def print_gvj(list_team_names, txt_allyCode, score_type):
     ret_print_gvj = ""
 
