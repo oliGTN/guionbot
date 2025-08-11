@@ -9,6 +9,8 @@ import time
 import wcwidth
 import asyncio
 from decimal import Decimal
+import hashlib
+import json
 
 import connect_rpc
 
@@ -59,7 +61,7 @@ def db_connect():
             
     return mysql_db
         
-def update_guild_teams(guild_name, dict_team):
+def update_guild_teams(guild_id, dict_team):
 #         dict_team {
 #             team_name:{
 #                 "rarity": unlocking rarity of GV character
@@ -72,91 +74,129 @@ def update_guild_teams(guild_name, dict_team):
 #                 ]
 #             }
 #         }
-    cursor = None
-    try:
-        mysql_db = db_connect()
-        cursor = mysql_db.cursor(buffered=True)
+    # Manage the SQL case where guild_id=null
+    if guild_id==None:
+        guild_id_test = 'isnull(guild_id)'
+        guild_id_txt = 'NULL'
+    else:
+        guild_id_test = "guild_id='"+guild_id+"'"
+        guild_id_txt = "'"+guild_id+"'"
 
-        guild_teams_txt = ""
-        # "JKR;None/Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important;1|GENERALKENOBI...\DR/Requis..."
-        
-        for team_name in dict_team:
-            team_rarity = dict_team[team_name]["rarity"]
-            if team_rarity == '':
-                team_rarity = 0
-            team = dict_team[team_name]["categories"]
+    # Get all team names, in order to delete the teams
+    # that are not defined anymore
+    query = "SELECT name FROM guild_teams "\
+            "WHERE "+guild_id_test+" "
+    goutils.log2("DBG", query)
+    teams_to_remove = get_column(query)
+
+    for team_name in dict_team:
+        # Note the team as existing, so not to be removed
+        teams_to_remove.remove(team_name)
+
+        # team md5
+        team_dict = dict_team[team_name]
+        team_txt = json.dumps(team_dict, sort_keys=True)
+        team_unicode = team_txt.encode('utf-8')
+        team_md5 = hashlib.md5(team_unicode).hexdigest()
+
+        # Check if team exists
+        query = "SELECT md5 FROM guild_teams "\
+                "WHERE "+guild_id_test+" "\
+                "AND name='"+team_name+"' "
+        goutils.log2("DBG", query)
+        existing_md5 = get_value(query)
+
+        if existing_md5 == team_md5:
+            # the team exists and is unchanged
+            continue
+        else:
+            # delete team
+            query = "DELETE FROM guild_teams "\
+                    "WHERE "+guild_id_test+" "\
+                    "AND name='"+team_name+"' "
+            goutils.log2("DBG", query)
+            simple_execute(query)
+
+        # create team
+        team_rarity = dict_team[team_name]["rarity"]
+        if team_rarity == '':
+            team_rarity = 0
+        query = "INSERT INTO guild_teams(guild_id, name, GVrarity, md5) "\
+                "VALUES("+guild_id_txt+", '"+team_name+"', "+str(team_rarity)+", '"+team_md5+"') "
+        goutils.log2("DBG", query)
+        simple_execute(query)
+
+        # get team ID
+        query = "SELECT id FROM guild_teams "\
+                "WHERE "+guild_id_test+" "\
+                "AND name='"+team_name+"' "
+        goutils.log2("DBG", query)
+        team_id = get_value(query)
+
+        subteam_list = dict_team[team_name]["categories"]
+        for sub_team in subteam_list:
+            subteam_name = sub_team[0]
+            subteam_min = sub_team[1]
+            subteam_toons = sub_team[2]
             
-            subteams_txt = ""
-            # Requis;4|JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA.../Important...
-            for sub_team in team:
-                subteam_name = sub_team[0]
-                subteam_min = sub_team[1]
-                subteam_toons = sub_team[2]
-                
-                toons_txt = ""
-                # JEDIKNIGHTREVAN;6;11;7;12;vit;capa;mod;pg;Chef,Unique1|BASTILA...
-                for toon_id in subteam_toons:
-                    toon = subteam_toons[toon_id]
-                    toon_rarity_min = toon[1]
-                    toon_gear_min = toon[2]
-                    toon_rarity_reco = toon[3]
-                    toon_gear_reco = toon[4]
-                    
-                    toon_zetas = ''
-                    for zeta in toon[5].split(","):
-                        zeta_id = goutils.get_capa_id_from_short(toon_id, zeta)
-                        toon_zetas += zeta_id+","
-                    if len(toon_zetas)>0:
-                        toon_zetas = toon_zetas[:-1]
+            # create team
+            query = "INSERT INTO guild_subteams(team_id, name, minimum) "\
+                    "VALUES("+str(team_id)+", '"+subteam_name+"', "+str(subteam_min)+") "
+            goutils.log2("DBG", query)
+            simple_execute(query)
 
-                    toon_omicrons = ''
-                    for omicron in toon[6].split(","):
-                        omicron_id = goutils.get_capa_id_from_short(toon_id, omicron)
-                        toon_omicrons += omicron_id+","
-                    if len(toon_omicrons)>0:
-                        toon_omicrons = toon_omicrons[:-1]
-                    
-                    toons_txt += toon_id + ";" + \
-                                 str(toon_rarity_min) + ";" + \
-                                 str(toon_gear_min) + ";" + \
-                                 str(toon_rarity_reco) + ";" + \
-                                 str(toon_gear_reco) + ";" + \
-                                 str(toon_zetas) + ";" + \
-                                 str(toon_omicrons) + "|"
-                
-                # remove last "|"
-                toons_txt = toons_txt[:-1]
-                
-                subteams_txt += subteam_name + ";" + \
-                                str(subteam_min) + "|" + \
-                                toons_txt + "/"
+            # get subteam ID
+            query = "SELECT id FROM guild_subteams "\
+                    "WHERE team_id="+str(team_id)+" "\
+                    "AND name='"+subteam_name+"' "
+            goutils.log2("DBG", query)
+            subteam_id = get_value(query)
 
-            # remove last "/"
-            subteams_txt = subteams_txt[:-1]
+            for toon_id in subteam_toons:
+                toon = subteam_toons[toon_id]
+                toon_rarity_min = toon[1]
+                toon_gear_min = str(toon[2])
+                toon_rarity_reco = toon[3]
+                toon_gear_reco = str(toon[4])
+                
+                # create roster element of subteam
+                query = "INSERT INTO guild_team_roster(subteam_id, unit_id, "\
+                        "rarity_min, gear_min, rarity_reco, gear_reco) "\
+                        "VALUE("+str(subteam_id)+", '"+toon_id+"', "\
+                        ""+str(toon_rarity_min)+", '"+toon_gear_min+"', "\
+                        ""+str(toon_rarity_reco)+", '"+toon_gear_reco+"') "
+                goutils.log2("DBG", query)
+                simple_execute(query)
+
+                # get roster ID
+                query = "SELECT id FROM guild_team_roster "\
+                        "WHERE subteam_id="+str(subteam_id)+" "\
+                        "AND unit_id='"+toon_id+"' "
+                goutils.log2("DBG", query)
+                roster_id = get_value(query)
+
+                for zeta in toon[5].split(","):
+                    zeta_id = goutils.get_capa_id_from_short(toon_id, zeta)
+                    query = "INSERT INTO guild_team_roster_zetas(roster_id, name) "\
+                            "VALUES("+str(roster_id)+", '"+zeta_id+"') "
+                    goutils.log2("DBG", query)
+                    simple_execute(query)
+
+                for omicron in toon[6].split(","):
+                    omicron_id = goutils.get_capa_id_from_short(toon_id, omicron)
+                    query = "INSERT INTO guild_team_roster_omicrons(roster_id, name) "\
+                            "VALUES("+str(roster_id)+", '"+omicron_id+"') "
+                    goutils.log2("DBG", query)
+                    simple_execute(query)
+
+        # delete not existing teams that were existing before
+        query = "DELETE FROM guild_teams "\
+                "WHERE "+guild_id_test+" "\
+                "AND name IN "+ str(tuple(teams_to_remove)).replace(",)", ")")
+        goutils.log2("DBG", query)
+        simple_execute(query)
             
-            guild_teams_txt += team_name + ";" \
-                             + str(team_rarity) + "/" \
-                             + subteams_txt + "\\"
-       
-        # remove last "\"
-        subteams_txt = subteams_txt[:-1]
-
-            
-        # Launch the unique update with all information
-        query_parameters = (guild_name, guild_teams_txt)
-        goutils.log2("DBG", query_parameters)
-        #print("CALL update_guild_teams"+str(query_parameters))
-        cursor.callproc('update_guild_teams', query_parameters)
-        
-        mysql_db.commit()
-    except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
-        
-    finally:
-        if cursor != None:
-            cursor.close()
-
+########################################
 def text_query(query):
     rows = []
     cursor = None
