@@ -5341,6 +5341,19 @@ def update_raid_estimates_from_wookiebot(raid_name, file_content):
 
     return 0, ""
 
+def update_gl_progress_from_wookiebot(gl_name, file_content):
+    #print(file_content[:100])
+    for line in file_content.split("\n")[1:]:
+        fields = line.split(',')
+        if len(fields)<3:
+            break
+        allyCode_txt = fields[1][1:-1] #removing the " at both ends
+        progress = float(fields[2])
+        completed = (fields[3] != '"-"')
+        connect_mysql.update_gv_history(allyCode_txt, None, gl_name, True, progress, completed, "wookiebot")
+
+    return 0, ""
+
 def store_eb_allocations(guild_id, tb_name, phase, allocations):
     goutils.log2("INFO", (guild_id, tb_name, phase))
     if phase[-1] == "1":

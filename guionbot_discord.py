@@ -1992,24 +1992,60 @@ async def on_message_delete(message):
 
 # This function is called in on_message and on_message_edit
 async def store_wookiebot_raid_estimates(message):
-    for attachment in message.attachments:
-        goutils.log2("DBG", "Reading attachment...")
-        if not attachment.filename.endswith(".csv"):
-            continue
-        raid_shortname = attachment.filename.split("_")[0]
-        if raid_shortname=="krayt":
-            raid_name = "kraytdragon"
-        elif raid_shortname=="endor":
-            raid_name = "speederbike"
+    if message.interaction==None:
+        if message.reference==None:
+            return
         else:
-            raid_name = raid_shortname
+            goutils.log2("INFO", message.reference)
+            previous_msg_id = message.reference.message_id
+            goutils.log2("INFO", message_id)
+            previous_msg = await message.channel.fetch_message(previous_msg_id)
+            cmd_interaction = previous_msg.interaction
+    else:
+        cmd_interaction = message.interaction
 
-        goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
-        file_content = await attachment.read()
-        file_txt = file_content.decode('utf-8')
-        ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
-        if ec != 0:
-            goutils.log2("ERR", et)
+    if cmd_interaction == None:
+        return
+
+    cmd_name = cmd_interaction.name
+    print(cmd_name)
+    if cmd_name == "raid guild":
+        for attachment in message.attachments:
+            goutils.log2("DBG", "Reading attachment...")
+            if not attachment.filename.endswith(".csv"):
+                continue
+            raid_shortname = attachment.filename.split("_")[0]
+            if raid_shortname=="krayt":
+                raid_name = "kraytdragon"
+            elif raid_shortname=="endor":
+                raid_name = "speederbike"
+            else:
+                raid_name = raid_shortname
+
+            goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
+            file_content = await attachment.read()
+            file_txt = file_content.decode('utf-8')
+            ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
+            if ec != 0:
+                goutils.log2("ERR", et)
+
+    elif cmd_name == "guild ready gl":
+        for attachment in message.attachments:
+            goutils.log2("DBG", "Reading attachment...")
+            if not attachment.filename.endswith(".csv"):
+                continue
+            gl_shortname = attachment.filename.split("-")[0]
+            if gl_shortname=="HONDO":
+                gl_name = "GLHONDO"
+            else:
+                gl_name = gl_shortname
+
+            goutils.log2("INFO", "Storing GV progress from WookieBot for GL "+gl_name)
+            file_content = await attachment.read()
+            file_txt = file_content.decode('utf-8')
+            ec, et = go.update_gl_progress_from_wookiebot(gl_name, file_txt)
+            if ec != 0:
+                goutils.log2("ERR", et)
 
 ##############################################################
 # Event: on_error_command
