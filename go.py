@@ -3833,7 +3833,8 @@ def get_gv_graph(txt_allyCodes, farm_list):
     dict_values={}
 
     if len(txt_allyCodes)==1 and len(farm_list)==1 and farm_list[0]!="all":
-        #display the one character progress, with both j.bot and go.bot
+        #Only one player, only one unit
+        #display the one character progress, use all bots
         for line in ret_db:
             if min_date==None or line[0]<min_date:
                 min_date = line[0]
@@ -3894,7 +3895,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
     # http://matplotlib.org/1.2.1/examples/pylab_examples/show_colormaps.html
     colormap = plt.cm.gist_ncar
     color_source = np.linspace(0, 1, len(dict_dates))
-    color_repeat = np.repeat(color_source, 2) #required as there are 2 curves per player
+    color_repeat = np.repeat(color_source, 3) #required as there are 3 curves/bots per player
     color_list = plt.cm.jet(color_source)
     plt.gca().set_prop_cycle(plt.cycler('color', color_list))
 
@@ -3902,6 +3903,8 @@ def get_gv_graph(txt_allyCodes, farm_list):
     for key in dict_dates:
         if key == 'j.bot':
             marker = 'x'
+        elif key == 'wookiebot':
+            marker = 'o'
         else:
             marker = '.'
         ax.plot(dict_dates[key], dict_values[key], label=key, marker=marker)
@@ -3962,7 +3965,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
             #plot a dashed line for the extrapolation
             ax.plot(list_dates_fit, list_values_fit, linestyle="dashed")
         else:
-            #in case no extrapolayion is possible, we still need to draw a line to ensure 
+            #in case no extrapolation is possible, we still need to draw a line to ensure 
             # color alternance
             # So... just redraw the same, without the label to prevent double in legend
             ax.plot(dict_dates[key], dict_values[key], marker=marker)
