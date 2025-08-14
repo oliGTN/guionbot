@@ -1998,7 +1998,7 @@ async def store_wookiebot_raid_estimates(message):
         else:
             goutils.log2("INFO", message.reference)
             previous_msg_id = message.reference.message_id
-            goutils.log2("INFO", message_id)
+            goutils.log2("INFO", previous_msg_id)
             previous_msg = await message.channel.fetch_message(previous_msg_id)
             cmd_interaction = previous_msg.interaction
     else:
