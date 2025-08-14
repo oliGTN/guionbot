@@ -3895,8 +3895,8 @@ def get_gv_graph(txt_allyCodes, farm_list):
     # http://matplotlib.org/1.2.1/examples/pylab_examples/show_colormaps.html
     colormap = plt.cm.gist_ncar
     color_source = np.linspace(0, 1, len(dict_dates))
-    color_repeat = np.repeat(color_source, 3) #required as there are 3 curves/bots per player
-    color_list = plt.cm.jet(color_source)
+    color_repeat = np.repeat(color_source, 2) #1 for known values, 1 for extrapolation
+    color_list = plt.cm.jet(color_repeat)
     plt.gca().set_prop_cycle(plt.cycler('color', color_list))
 
     #add series
