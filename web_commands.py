@@ -1,31 +1,39 @@
 import sys
 from asyncio import run
-from json import dumps
+from json import dumps as json_dumps, loads as json_loads
+from base64 import b64decode
 
 from connect_rpc import set_zoneOrder
 from connect_mysql import simple_execute, get_value
 from goutils import log2
 
 async def main():
-    print("start", flush=True)
     if len(sys.argv)==1:
         ec = 400
         et = "missing request name"
 
     elif sys.argv[1] == "TBzoneOrder":
-        if len(sys.argv) != 7:
+        if len(sys.argv) != 3:
             ec = 400
             et = "incorrect parameter count"
         else:
-            guild_id = sys.argv[2]
-            map_id = sys.argv[3]
-            zone_id = sys.argv[4]
-            zone_msg = sys.argv[5]
-            if not sys.argv[6].isnumeric() or not int(sys.argv[6]) in (1,2,3):
-                ec = 400
-                et = "incorrect parameter count"
-            else:
-                zone_cmd = int(sys.argv[6])
+            order_txt = b64decode(sys.argv[2])
+            order_dict = json_loads(order_txt)
+            print(order_dict)
+            guild_id = order_dict['guild_id']
+            map_id = order_dict['tb_id']
+
+            for order in order_dict['list_orders']:
+                zone_id = order['zone_id']
+                zone_msg = order['zone_msg']
+                zone_cmd = order['zone_cmd']
+
+                if not zone_cmd.isnumeric() or not int(zone_cmd) in (1,2,3):
+                    ec = 400
+                    et = "incorrect parameter count"
+                    continue
+
+                zone_cmd = int(zone_cmd)
                 ec, et = await set_zoneOrder(
                             guild_id,
                             map_id,
@@ -94,7 +102,7 @@ async def main():
 
     ret_json = {"err_code": ec, "err_txt": et}
 
-    print(dumps(ret_json))
+    print(json_dumps(ret_json))
 
     return
 

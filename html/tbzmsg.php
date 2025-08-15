@@ -22,55 +22,31 @@ if (isset($entityBody['guild_id'])) {
     list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
     if (($isMyGuildConfirmed&$isOfficer)|$isAdmin) {
-        if (!isset($entityBody['tb_id'])) {
-            $err_code = 400;
-            $err_txt = "Missing parameters1";
-        } else if (!isset($entityBody['list_orders'])) {
-            $err_code = 400;
-            $err_txt = "Missing parameters2";
-        } else {
-            $tb_id = $entityBody['tb_id'];
-            foreach($entityBody['list_orders'] as $order) {
-                if (!isset($order['zone_id'])) {
-                    $err_code = 400;
-                    $err_txt = "Missing parameters3";
-                } else if (!isset($order['zone_msg'])) {
-                    $err_code = 400;
-                    $err_txt = "Missing parameters4";
-                } else if (!isset($order['zone_cmd'])) {
-                    $err_code = 400;
-                    $err_txt = "Missing parameters5";
-                } else {
-                    $zone_id = $order["zone_id"];
-                    $zone_msg = $order["zone_msg"];
-                    $zone_cmd = $order["zone_cmd"];
+        // dump entityBody into base64 string
+        $my_json_content = json_encode($entityBody);
+        //error_log("my_json_content=".$my_json_content);
+        $my_json_base64 = base64_encode($my_json_content);
+        //error_log("my_json_base64=".$my_json_base64);
 
-                    $output = null;
-                    $retval = null;
-                    $cmd_exec = 'cd /home/pi/GuionBot/guionbot-dev/;';
-                    $cmd_exec .= 'python web_commands.py';
-                    $cmd_exec .= ' TBzoneOrder';
-                    $cmd_exec .= ' '.$guild_id;
-                    $cmd_exec .= ' '.$tb_id;
-                    $cmd_exec .= ' '.$zone_id;
-                    $cmd_exec .= ' "'.$zone_msg.'"';
-                    $cmd_exec .= ' '.$zone_cmd;
-                    error_log($cmd_exec);
-                    exec($cmd_exec, $output, $retval);
-                    foreach($output as $line) {
-                        error_log($line);
-                    }
-                    if ($retval == 0) {
-                        $output_json = json_decode(end($output), true);
-                        $err_code = $output_json['err_code'];
-                        $err_txt = $output_json['err_txt'];
-                    } else {
-                        $err_code = 500;
-                        $err_txt = "execution error, code=".$retval;
-                        break;
-                    }
-                }
-            }
+        // run the command
+        $output = null;
+        $retval = null;
+        $cmd_exec = 'cd /home/pi/GuionBot/guionbot-dev/;';
+        $cmd_exec .= 'python web_commands.py';
+        $cmd_exec .= ' TBzoneOrder';
+        $cmd_exec .= ' '.$my_json_base64;
+        error_log($cmd_exec);
+        exec($cmd_exec, $output, $retval);
+        foreach($output as $line) {
+            error_log($line);
+        }
+        if ($retval == 0) {
+            $output_json = json_decode(end($output), true);
+            $err_code = $output_json['err_code'];
+            $err_txt = $output_json['err_txt'];
+        } else {
+            $err_code = 500;
+            $err_txt = "execution error, code=".$retval;
         }
     } else {
         $err_code = 400;
