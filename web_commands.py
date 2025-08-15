@@ -1,13 +1,13 @@
 import sys
-import asyncio
-import json
+from asyncio import run
+from json import dumps
 
-import connect_rpc
-import connect_mysql
-import mysql
-import goutils
+from connect_rpc import set_zoneOrder
+from connect_mysql import simple_execute, get_value
+from goutils import log2
 
 async def main():
+    print("start", flush=True)
     if len(sys.argv)==1:
         ec = 400
         et = "missing request name"
@@ -26,7 +26,7 @@ async def main():
                 et = "incorrect parameter count"
             else:
                 zone_cmd = int(sys.argv[6])
-                ec, et = await connect_rpc.set_zoneOrder(
+                ec, et = await set_zoneOrder(
                             guild_id,
                             map_id,
                             zone_id,
@@ -52,8 +52,8 @@ async def main():
                             "AND tb_history.guild_id='"+guild_id+"' " \
                             "AND tb_zones.round=tb_history.current_round " \
                             "AND tb_zones.zone_id='"+tb_zone_id+"'"
-                    goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                    log2("DBG", query)
+                    simple_execute(query)
 
                     #Store order for next time
                     tb_type = map_id.split(':')[0]
@@ -61,8 +61,8 @@ async def main():
                             "WHERE guild_id='"+guild_id+"' " \
                             "AND tb_type='"+tb_type+"' " \
                             "AND zone_id='"+zone_id+"' "
-                    goutils.log2("DBG", query)
-                    db_data = connect_mysql.get_value(query)
+                    log2("DBG", query)
+                    db_data = get_value(query)
 
                     if db_data==None:
                         query = "INSERT INTO tb_orders(guild_id, tb_type, " \
@@ -70,23 +70,23 @@ async def main():
                                 "VALUES('"+guild_id+"', " \
                                 "'"+tb_type+"', " \
                                 "'"+zone_id+"') "
-                        goutils.log2("DBG", query)
-                        connect_mysql.simple_execute(query)
+                        log2("DBG", query)
+                        simple_execute(query)
 
                         query = "SELECT id FROM tb_orders " \
                                 "WHERE guild_id='"+guild_id+"' " \
                                 "AND tb_type='"+tb_type+"' " \
                                 "AND zone_id='"+zone_id+"' "
-                        goutils.log2("DBG", query)
-                        db_data = connect_mysql.get_value(query)
+                        log2("DBG", query)
+                        db_data = get_value(query)
 
                     order_id = str(db_data)
                     query = "UPDATE tb_orders " \
                             "SET cmdMsg='"+zone_msg+"', " \
                             "cmdCmd="+str(zone_cmd)+" " \
                             "WHERE id="+order_id
-                    goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                    log2("DBG", query)
+                    simple_execute(query)
 
     else:
         ec = 400
@@ -94,7 +94,7 @@ async def main():
 
     ret_json = {"err_code": ec, "err_txt": et}
 
-    print(json.dumps(ret_json))
+    print(dumps(ret_json))
 
     return
 
@@ -102,5 +102,5 @@ async def main():
 ####################
 ### MAIN
 ####################
-asyncio.run(main())
+run(main())
 
