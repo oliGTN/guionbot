@@ -6665,3 +6665,25 @@ async def register_confirm(txt_allyCode, discord_id):
         else:
             #challenge NOK
             return 1, "Vous n'avez pas rempli les conditions demandées, veuillez reprendre à zéro en relançant la commande à l'identique."
+
+#######################################
+async def update_tw_from_guild(dict_guild):
+    guild_id = dict_guild["profile"]["id"]
+    tw = dict_guild["territoryWarStatus"][0]
+    opp_guild_id = tw["awayGuild"]["profile"]["id"]
+    opp_guild_name = tw["awayGuild"]["profile"]["name"]
+    score = sum([int(x['zoneStatus']['score']) \
+                 for x in tw['homeGuild']['conflictStatus']])
+    opp_score = sum([int(x['zoneStatus']['score']) \
+                     for x in tw['awayGuild']['conflictStatus']])
+
+    ret_dict = await connect_rpc.get_tw_status(guild_id, 0, dict_guild=dict_guild)
+
+    tw_id = ret_dict["tw_id"]
+    homeGuild = ret_dict["homeGuild"]
+    awayGuild = ret_dict["awayGuild"]
+
+    await connect_mysql.update_tw(guild_id, tw_id, opp_guild_id,
+              opp_guild_name, score, opp_score,
+              homeGuild, awayGuild)
+
