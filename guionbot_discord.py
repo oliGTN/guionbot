@@ -3204,18 +3204,18 @@ class ModsCog(commands.GroupCog, name="mods"):
             dict_player_mods = manage_mods.get_dict_player_mods(dict_player)
 
             #Run the function
-            ec, et, dict_export = await manage_mods.upgrade_roster_mods(
-                                        dict_player_mods,
-                                        12,
-                                        txt_allyCode,
-                                        is_simu=simulation,
-                                        only_speed_sec=only_speed_sec)
+            ec, et = await manage_mods.upgrade_roster_mods(
+                              dict_player_mods,
+                              12,
+                              txt_allyCode,
+                              is_simu=simulation,
+                              only_speed_sec=only_speed_sec)
 
             if ec != 0:
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
                 return
 
-            await interaction.edit_original_response(content=emojis.check+" mods améliorés au niveau 12")
+            await interaction.edit_original_response(content=emojis.check+et)
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
