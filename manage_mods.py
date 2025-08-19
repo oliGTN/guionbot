@@ -52,6 +52,9 @@ dict_upgrade_level_cost = {1: {3: 6900, 6: 18400, 9: 37900, 12: 86200, 15: 24830
                           12: {                                        15: 162100}}
 
 def transform_mod_list_to_dict(dict_player):
+    #Get game mod data
+    mod_list = godata.get("modList_dict.json")
+
     for unit_id in dict_player["rosterUnit"]:
         if not "equippedStatMod" in dict_player["rosterUnit"][unit_id]:
             #no mod for this unit
