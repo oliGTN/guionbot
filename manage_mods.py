@@ -1036,7 +1036,7 @@ async def upgrade_roster_mods(dict_player_mods, target_level, allyCode, is_simu=
     if err_code == 0:
         mod_count = len(list_mods)
         if is_simu:
-            cost_txt = str(mod_count)+" mods à passer au niveau "+str(target_level)+"r(unit_count)+" persos ("+str(int(upgrade_cost/100000)/10)+"M crédits nécessaires)"
+            cost_txt = str(mod_count)+" mods à passer au niveau "+str(target_level)+" ("+str(int(upgrade_cost/100000)/10)+"M crédits nécessaires)"
         else:
             cost_txt = str(mod_count)+" mods passés au niveau "+str(target_level)+" ("+str(int(upgrade_cost/100000)/10)+"M crédits)"
 
