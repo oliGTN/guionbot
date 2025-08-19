@@ -14,7 +14,7 @@ from json import dumps as json_dumps
 def wc_ljust(text, length):
     return text + ' ' * max(0, length - wcswidth(text))
 
-from goutils import log2 as golog
+from goutils import log2 as golog, get_characters_from_alias, get_capa_id_from_short
 import data
 
 mysql_db = None
@@ -172,14 +172,14 @@ def update_guild_teams(guild_id, dict_team):
                 roster_id = get_value(query)
 
                 for zeta in toon[5].split(","):
-                    zeta_id = goutils.get_capa_id_from_short(toon_id, zeta)
+                    zeta_id = get_capa_id_from_short(toon_id, zeta)
                     query = "INSERT INTO guild_team_roster_zetas(roster_id, name) "\
                             "VALUES("+str(roster_id)+", '"+zeta_id+"') "
                     golog("DBG", query)
                     simple_execute(query)
 
                 for omicron in toon[6].split(","):
-                    omicron_id = goutils.get_capa_id_from_short(toon_id, omicron)
+                    omicron_id = get_capa_id_from_short(toon_id, omicron)
                     query = "INSERT INTO guild_team_roster_omicrons(roster_id, name) "\
                             "VALUES("+str(roster_id)+", '"+omicron_id+"') "
                     golog("DBG", query)
@@ -938,7 +938,7 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
         if is_ID:
             character_id = character
         else:
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character])
+            list_character_ids, dict_id_name, txt = get_characters_from_alias([character])
             character_id = list_character_ids[0]
         golog("DBG", "character_id="+character_id)
 
