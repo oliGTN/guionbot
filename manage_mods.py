@@ -22,148 +22,6 @@ import connect_crinolo
 import data as godata
 import emojis
 
-class ModOptimizerListParser(HTMLParser):
-    def __init__(self):
-        HTMLParser.__init__(self)
-
-        self.state_parser=0
-        #   en recherche de div class='mod-row set'
-        #2: en recherche de div class='character-id'
-        #3: en recherche de h3
-        #4: en recherche de text
-        #5: en recherche de div class='mod-set-detail'
-        #6: en recherche de div class='mod-image *'
-        #8: en recherche de div class='mod-stats'
-        #9: en recherche de li > 10
-        #                OU div class="assigned-character' > 11
-        #                OU button > 11
-        #10: en recherche de text PUIS 9
-        #11: en recherche de img
-        #12: en recherche de text PUIS 6
-        #   en recherche de tbody > 1
-
-        self.current_mod_allocation = {}
-        self.cur_mod = {}
-        self.list_allocations = []
-
-    def handle_starttag(self, tag, attrs):
-        #at any point, this tag realigns the parser on the right state
-        if tag=='div':
-            for name, value in attrs:
-                if name=='class' and value=='mod-row set':
-                    self.current_mod_allocation = {}
-                    self.state_parser=2
-
-        if self.state_parser==2:
-            if tag=='div':
-                for name, value in attrs:
-                    if name=='class' and value=='character-id':
-                        self.state_parser=3
-
-        if self.state_parser==3:
-            if tag=='h3':
-                self.state_parser=4
-
-        if self.state_parser==5:
-            if tag=='div':
-                for name, value in attrs:
-                    if name=='class' and value=='mod-set-detail':
-                        self.current_mod_allocation["mods"] = {}
-                        self.state_parser=6
-
-        if self.state_parser==6:
-            if tag=='div':
-                for name, value in attrs:
-                    if name=='class' and value.startswith("mod-image"):
-                        re_pattern = "mod-image dots-([0-9]) (square|arrow|diamond|triangle|circle|cross) (offense|health|speed|potency|tenacity|critchance|critdamage|defense) (.*)"
-                        ret_re = re.search(re_pattern, value)
-                        mod_dots = ret_re.group(1)
-                        mod_shape = ret_re.group(2)
-                        mod_stat = ret_re.group(3)
-                        mod_color = ret_re.group(4)
-
-                        self.cur_mod = {"pips": int(mod_dots),
-                                   "set": mod_stat,
-                                   "color": mod_color}
-
-                        self.current_mod_allocation["mods"][mod_shape] = self.cur_mod
-
-                        self.state_parser=8
-
-        if self.state_parser==8:
-            if tag=='div':
-                for name, value in attrs:
-                    if name=='class' and value=="mod-stats":
-                        self.state_parser=9
-
-        if self.state_parser==9:
-            if tag=='li':
-                self.state_parser=10
-
-        if self.state_parser==9:
-            if tag=='div':
-                for name, value in attrs:
-                    if name=='class' and value=="assigned-character":
-                        self.state_parser=11
-
-        if self.state_parser==9:
-            if tag=='button':
-                self.state_parser=11
-
-        if self.state_parser==11:
-            if tag=='span':
-                for name, value in attrs:
-                    if name=='class' and value=="avatar-name":
-                        self.state_parser=12
-
-        #at any point, this tag realigns the parser on the right state
-        if tag=='tbody':
-            if len(self.current_mod_allocation)>0:
-                #print(self.current_mod_allocation)
-                self.list_allocations.append(self.current_mod_allocation.copy())
-            self.state_parser=9
-
-
-        #if "character" in self.current_mod_allocation and \
-        #   self.current_mod_allocation["character"]=="Old Daka":
-        #    print(self.state_parser)
-
-
-
-    def handle_endtag(self, tag):
-        pass
-
-    def handle_data(self, data):
-        data = data.strip()
-        if self.state_parser==4:
-            self.current_mod_allocation["character"] = data
-            self.state_parser=5
-
-        if self.state_parser==10:
-            re_pattern = "([0-9]*\.?[0-9]*%?) (.*)"
-            ret_re = re.search(re_pattern, data)
-            if ret_re != None:
-                stat_value = ret_re.group(1)
-                stat_type = ret_re.group(2)
-
-                if not "primary" in self.cur_mod:
-                    self.cur_mod["primary"] = [stat_value, stat_type]
-                    self.cur_mod["secondary"] = []
-                else:
-                    self.cur_mod["secondary"].append([stat_value, stat_type])
-
-                self.state_parser=9
-            elif data == "None":
-                self.state_parser=9
-
-
-        if self.state_parser==12:
-            self.cur_mod["character"] = data
-            self.state_parser=6
-
-    def get_allocations(self):
-        return self.list_allocations
-
 #############
 # MAIN
 #############
@@ -187,108 +45,60 @@ dict_stat_by_set = {'1': "health",
                     '6': "critdamage",
                     '7': "potency",
                     '8': "tenacity"}
+dict_upgrade_level_cost = {1: {3: 6900, 6: 18400, 9: 37900, 12: 86200, 15: 248300},
+                           3: {         6: 11500, 9: 31000, 12: 79300, 15: 241400},
+                           6: {                   9: 19500, 12: 67800, 15: 229900},
+                           9: {                             12: 48300, 15: 210400},
+                          12: {                                        15: 162100}}
 
+def transform_mod_list_to_dict(dict_player):
+    for unit_id in dict_player["rosterUnit"]:
+        if not "equippedStatMod" in dict_player["rosterUnit"][unit_id]:
+            #no mod for this unit
+            continue
 
-def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
-    ##########################
-    # STEP1
-    # Read Mod Optimizer HTM
-    # Get a list of mods per unit, with the target mod, 
-    #  its characteristic, and which unit has it now
-    #
-    # modopti_allocations - list
-    # modopti_allocation element - dict
-    #    character: 'English unit name'
-    #    mods - list
-    #    mod element - dict
-    #       'square': {'pips': 5, 
-    #                  'set': 'potency', 
-    #                  'color': 'blue'
-    #                  'primary': ['5.88%', 'Offense'],
-    #                  'secondary': [['10', 'Speed'], 
-    #                                ['1.36%', 'Protection'], 
-    #                                ['1148', 'Protection'], 
-    #                                ['1.38%', 'Defense']], 
-    #                  'character': 'Resistance Hero Poe'},
-    #       'arrow': ...
-    ##########################
-    modopti_parser = ModOptimizerListParser()
-    modopti_parser.feed(html_content)
-    modopti_allocations = modopti_parser.get_allocations()
+        unit_mods = dict_player["rosterUnit"][unit_id]["equippedStatMod"]
+        dict_player["rosterUnit"][unit_id]["equippedStatMod"] = {}
+        for mod in unit_mods:
+            mod_id = mod["id"]
+            mod_slot = mod_list[mod_defId]["slot"]
+            dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
 
-    ##########################
-    # STEP2
-    # Transform ModOpti allocation into mod id allocation
-    # Read current player info to get mod IDs
-    # Check consistency of characteristics in the process
-    ##########################
-    mod_allocations = []
-    # mod_allocations - list
-    # mod_allocation element - dict
-    # {'unit_id': "PRINCESSLEIA",
-    #  'mods': [{'id': '9Ax0P8ybxxxxx', 'slot': 4, 'rarity': 5},
-    #           {'id': '8Phsg65trTGxxxx', ...}
-    #          ]
-    # }
-
+def get_dict_player_mods(dict_player, initialdata=None):
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
 
-    #Prepare the dict to transform names into unit ID
-    dict_units = godata.get("unitsList_dict.json")
-    ENG_US = godata.get("ENG_US.json")
-    dict_names = {}
-    for unit_id in dict_units:
-        unit_name = ENG_US[dict_units[unit_id]["nameKey"]]
-        dict_names[unit_name] = unit_id
+    dict_player_mods = {}
 
-    # loop allocations
-    for a in modopti_allocations:
-        target_char_name = a["character"]
-        target_char_defId = dict_names[target_char_name]
+    for unit_id in dict_player["rosterUnit"]:
+        if not "equippedStatMod" in dict_player["rosterUnit"][unit_id]:
+            #no mod for this unit
+            continue
 
-        mod_allocation = {'unit_id': target_char_defId, 'mods': []}
-        for allocated_mod_shape in a["mods"]:
-            allocated_mod = a["mods"][allocated_mod_shape]
-            allocated_mod_slot = dict_slot_by_shape[allocated_mod_shape]
+        unit_mods = dict_player["rosterUnit"][unit_id]["equippedStatMod"]
+        for mod in unit_mods:
+            mod_id = mod["id"]
+            mod_level = mod["level"]
+            mod_defId = mod["definitionId"]
+            mod_slot = mod_list[mod_defId]["slot"]
+            mod_rarity = mod_list[mod_defId]["rarity"]
+            dict_player_mods[mod_id] = mod
+            dict_player_mods[mod_id]["unit_id"] = unit_id
+            dict_player_mods[mod_id]["slot"] = mod_slot
+            dict_player_mods[mod_id]["rarity"] = mod_rarity
 
-            if "character" in allocated_mod:
-                #the consistency can only be done if there is a source character
-                source_char_name = allocated_mod["character"]
-                source_char_defId = dict_names[source_char_name]
+    if initialdata!=None:
+        # Add the unequipped mods to the dictionary
+        if not "unequippedMod" in initialdata["inventory"]:
+            initialdata["inventory"]["unequippedMod"]=[]
+        for mod in initialdata["inventory"]["unequippedMod"]:
+            mod_id = mod["id"]
+            mod_defId = mod["definitionId"]
+            mod_slot = mod_list[mod_defId]["slot"]
+            mod_rarity = mod_list[mod_defId]["rarity"]
+            dict_player_mods[mod_id] = {"unit_id": None, "slot": mod_slot, "rarity": mod_rarity}
 
-                #get a dict (char_mods) with existing mods for the source character (before any move)
-                char_mods = {}
-                for roster_mod in initial_dict_player["rosterUnit"][source_char_defId]["equippedStatMod"]:
-                    mod_defId = roster_mod["definitionId"] #string
-                    mod_rarity = mod_list[mod_defId]["rarity"]
-                    mod_setId = mod_list[mod_defId]["setId"]
-                    mod_slot = mod_list[mod_defId]["slot"]
-                    mod_id = roster_mod["id"]
-                    char_mods[mod_slot] = {"pips": mod_rarity,
-                                          "set": dict_stat_by_set[mod_setId],
-                                          "id": mod_id}
-
-                #compare replacement mod characteristics with the mod from the source character
-                if allocated_mod_slot in char_mods:
-                    replacement_mod = char_mods[allocated_mod_slot]
-                    if    replacement_mod["pips"] != allocated_mod["pips"] \
-                       or replacement_mod["set"] != allocated_mod["set"]:
-                        #print("\t"+allocated_mod_shape+": "+str(allocated_mod))
-                        #print("\t\t"+str(replacement_mod))
-                        #print("\t>>> ERREUR incohérence")
-                        return 1, "ERR: incohérence sur le "+allocated_mod_shape+" de "+allocated_mod["character"], None
-                else:
-                    return 1, "ERR: pas de "+allocated_mod_shape+" trouvé sur "+source_char_name, None
-
-
-            mod_allocation['mods'].append({"id": replacement_mod["id"], 
-                                           "slot": allocated_mod_slot,
-                                           "rarity": replacement_mod["pips"]})
-
-        mod_allocations.append(mod_allocation)
-
-    return 0, "", mod_allocations
+    return dict_player_mods
 
 ##########################
 # STEP3
@@ -298,9 +108,6 @@ def get_mod_allocations_from_modoptimizer(html_content, initial_dict_player):
 # One command per unit, listing all the mods to add and all the mods to remove
 ##########################
 async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction, initialdata=None):
-    #Get game mod data
-    mod_list = godata.get("modList_dict.json")
-
     await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...")
 
     # Get player data
@@ -323,31 +130,10 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
     await interaction.edit_original_response(content=emojis.hourglass+" Récupération de la liste des mods...")
-    dict_player_mods = {}
-    for unit_id in dict_player["rosterUnit"]:
-        if not "equippedStatMod" in dict_player["rosterUnit"][unit_id]:
-            #no mod for this unit
-            continue
+    dict_player_mods = get_dict_player_mods(dict_player, initialdata)
 
-        unit_mods = dict_player["rosterUnit"][unit_id]["equippedStatMod"]
-        dict_player["rosterUnit"][unit_id]["equippedStatMod"] = {}
-        for mod in unit_mods:
-            mod_id = mod["id"]
-            mod_defId = mod["definitionId"]
-            mod_slot = mod_list[mod_defId]["slot"]
-            mod_rarity = mod_list[mod_defId]["rarity"]
-            dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
-            dict_player_mods[mod_id] = {"unit_id": unit_id, "slot": mod_slot, "rarity": mod_rarity}
-
-    # Add the unequipped mods to the dictionary
-    if not "unequippedMod" in initialdata["inventory"]:
-        initialdata["inventory"]["unequippedMod"]=[]
-    for mod in initialdata["inventory"]["unequippedMod"]:
-        mod_id = mod["id"]
-        mod_defId = mod["definitionId"]
-        mod_slot = mod_list[mod_defId]["slot"]
-        mod_rarity = mod_list[mod_defId]["rarity"]
-        dict_player_mods[mod_id] = {"unit_id": None, "slot": mod_slot, "rarity": mod_rarity}
+    # transform mod list into dict of mod_id by slot
+    transform_mod_list_to_dict(dict_player)
 
     #Get the free space in mod inventory
     initial_inventory = len(initialdata["inventory"]["unequippedMod"])
@@ -1183,3 +969,67 @@ async def get_mod_stats(txt_allyCode):
         set_count[k]=set_count[k]/total_mods
 
     return set_count
+
+################################
+# upgrade all mods within mod_allocations to level 15
+async def upgrade_allocated_mods_to_15(mod_allocations, dict_player_mods, allyCode, is_simu):
+    # list all mods below level 15
+    list_mods = []
+    upgrade_cost = 0
+    for a in mod_allocations:
+        for allocated_mod in a["mods"]:
+            allocated_mod_id = allocated_mod["id"]
+            mod_level = dict_player_mods[allocated_mod_id]["level"]
+            if mod_level<15:
+                list_mods.append(allocated_mod_id)
+                mod_upgrade_cost = dict_upgrade_level_cost[mod_level][15]
+                upgrade_cost += mod_upgrade_cost
+
+    if not is_simu:
+        # launch the request
+        err_code, err_txt = await connect_rpc.upgrade_level_mods(list_mods, 15, allyCode)
+    else:
+        err_code = 0
+        err_txt = ""
+
+    return err_code, err_txt, upgrade_cost
+
+############################################################
+# upgrade all equipped mods to specified level
+# option for mods having speed as a secondary
+# dict_player_mods should only contain only equipped mods
+async def upgrade_roster_mods(dict_player_mods, target_level, allyCode, is_simu=False, only_speed_sec=False):
+    # list all mods below target level
+    list_mods = []
+    upgrade_cost = 0
+    for mod_id in dict_player_mods:
+        mod = dict_player_mods[mod_id]
+        mod_level = mod["level"]
+        if mod_level<target_level:
+            if only_speed_sec:
+                if not "secondaryStat" in mod:
+                    # no secondary = no speed secondary
+                    # exit loop and go to next mod
+                    continue
+
+                has_speed_sec = False
+                for secStat in mod["secondaryStat"]:
+                    if secStat["stat"]["unitStatId"] == 5:
+                        has_speed_sec = True
+                if not has_speed_sec:
+                    # no speed secondary
+                    # exit loop and go to next mod
+                    continue
+
+            list_mods.append(mod_id)
+            mod_upgrade_cost = dict_upgrade_level_cost[mod_level][target_level]
+            upgrade_cost += mod_upgrade_cost
+
+    if not is_simu:
+        # launch the request
+        err_code, err_txt = await connect_rpc.upgrade_level_mods(list_mods, target_level, allyCode)
+    else:
+        err_code = 0
+        err_txt = ""
+
+    return err_code, err_txt, upgrade_cost

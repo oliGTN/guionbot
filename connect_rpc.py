@@ -3131,6 +3131,65 @@ async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode
 
     return 0, ""
 
+async def reveal_stat_mods(list_mods, txt_allyCode):
+    url = "http://localhost:8000/revealMods"
+    params = {"allyCode": txt_allyCode,
+              "list_mods": list_mods}
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                golog("DBG", "revealMods status="+str(resp.status))
+                if resp.status==200:
+                    resp_json = await(resp.json())
+
+                elif resp.status==201:
+                    return 1, "ERR: il faut au moins un mod à révéler"
+                else:
+                    return 1, "ERR during RPC revealMods - code "+str(resp.status)
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if "err_code" in resp_json:
+        return resp_json["err_code"], resp_json["err_txt"]
+
+    return 0, ""
+
+async def upgrade_level_mods(list_mods, target_level, txt_allyCode):
+    url = "http://localhost:8000/levelMods"
+    params = {"allyCode": txt_allyCode,
+              "list_mods": list_mods,
+              "mod_level": target_level}
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                golog("DBG", "levelMods status="+str(resp.status))
+                if resp.status==200:
+                    resp_json = await(resp.json())
+
+                elif resp.status==201:
+                    return 1, "ERR: il faut au moins un mod à révéler"
+                else:
+                    return 1, "ERR during RPC levelMods - code "+str(resp.status)
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if "err_code" in resp_json:
+        return resp_json["err_code"], resp_json["err_txt"]
+
+    return 0, ""
+
 async def get_metadata():
     url = "http://localhost:8000/metadata"
     params = {}

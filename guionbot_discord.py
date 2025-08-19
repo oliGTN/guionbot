@@ -2906,12 +2906,12 @@ class ModsCog(commands.GroupCog, name="mods"):
             await fichier.save(file_savename)
             file_content = await fichier.read()
             try:
-                html_content = file_content.decode('utf-8')
+                json_content = file_content.decode('utf-8')
             except :
                 await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
                 return
 
-            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(html_content, txt_allyCode, simulation, interaction)
+            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(json_content, txt_allyCode, simulation, interaction)
             # Prepare warning info, to be displayed if error or success
             cost_and_missing = ""
             if "cost" in ret_data:
@@ -3169,6 +3169,53 @@ class ModsCog(commands.GroupCog, name="mods"):
 
                 await interaction.edit_original_response(content=emojis.check+" fichier prêt", 
                                                          attachments=[discord.File(export_path)])
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+    @app_commands.command(name="level-12")
+    @app_commands.rename(only_speed_sec="avec-secondaire-vitesse")
+    async def upgrade_roster_level_12(self, interaction: discord.Interaction,
+                                      simulation: bool=False,
+                                      only_speed_sec: bool=False):
+        try:
+            await interaction.response.defer(thinking=True)
+
+            channel_id = interaction.channel_id
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
+                return
+
+            txt_allyCode = str(bot_infos["allyCode"])
+
+            goutils.log2("INFO", "mods.upgrade_roster_level_12("+txt_allyCode+")")
+
+            #Get player data
+            ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
+            if ec!=0:
+                await interaction.edit_original_response(content=emojis.redcross+" "+et)
+                return
+
+            #Get player mods
+            dict_player_mods = manage_mods.get_dict_player_mods(dict_player)
+
+            #Run the function
+            ec, et, dict_export = await manage_mods.upgrade_roster_mods(
+                                        dict_player_mods,
+                                        12,
+                                        txt_allyCode,
+                                        is_simu=simulation,
+                                        only_speed_sec=only_speed_sec)
+
+            if ec != 0:
+                await interaction.edit_original_response(content=emojis.redcross+" "+et)
+                return
+
+            await interaction.edit_original_response(content=emojis.check+" mods améliorés au niveau 12")
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
