@@ -64,6 +64,7 @@ def transform_mod_list_to_dict(dict_player):
         dict_player["rosterUnit"][unit_id]["equippedStatMod"] = {}
         for mod in unit_mods:
             mod_id = mod["id"]
+            mod_defId = mod["definitionId"]
             mod_slot = mod_list[mod_defId]["slot"]
             dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
 
