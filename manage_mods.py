@@ -1029,6 +1029,7 @@ async def upgrade_roster_mods(dict_player_mods, target_level, allyCode, is_simu=
             mod_upgrade_cost = dict_upgrade_level_cost[mod_level][target_level]
             upgrade_cost += mod_upgrade_cost
 
+    err_code=0
     if not is_simu:
         # launch the request
         err_code, err_txt = await connect_rpc.upgrade_level_mods(list_mods, target_level, allyCode)
