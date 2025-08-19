@@ -3215,7 +3215,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
                 return
 
-            await interaction.edit_original_response(content=emojis.check+et)
+            await interaction.edit_original_response(content=emojis.check+" "+et)
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
