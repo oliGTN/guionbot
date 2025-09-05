@@ -5,7 +5,7 @@ from base64 import b64decode
 
 from connect_rpc import set_zoneOrder
 from connect_mysql import simple_execute, get_value
-from goutils import log2
+import goutils
 
 async def main():
     if len(sys.argv)==1:
@@ -60,7 +60,7 @@ async def main():
                             "AND tb_history.guild_id='"+guild_id+"' " \
                             "AND tb_zones.round=tb_history.current_round " \
                             "AND tb_zones.zone_id='"+tb_zone_id+"'"
-                    log2("DBG", query)
+                    goutils.log2("DBG", query)
                     simple_execute(query)
 
                     #Store order for next time
@@ -69,7 +69,7 @@ async def main():
                             "WHERE guild_id='"+guild_id+"' " \
                             "AND tb_type='"+tb_type+"' " \
                             "AND zone_id='"+zone_id+"' "
-                    log2("DBG", query)
+                    goutils.log2("DBG", query)
                     db_data = get_value(query)
 
                     if db_data==None:
@@ -78,14 +78,14 @@ async def main():
                                 "VALUES('"+guild_id+"', " \
                                 "'"+tb_type+"', " \
                                 "'"+zone_id+"') "
-                        log2("DBG", query)
+                        goutils.log2("DBG", query)
                         simple_execute(query)
 
                         query = "SELECT id FROM tb_orders " \
                                 "WHERE guild_id='"+guild_id+"' " \
                                 "AND tb_type='"+tb_type+"' " \
                                 "AND zone_id='"+zone_id+"' "
-                        log2("DBG", query)
+                        goutils.log2("DBG", query)
                         db_data = get_value(query)
 
                     order_id = str(db_data)
@@ -93,7 +93,7 @@ async def main():
                             "SET cmdMsg='"+zone_msg+"', " \
                             "cmdCmd="+str(zone_cmd)+" " \
                             "WHERE id="+order_id
-                    log2("DBG", query)
+                    goutils.log2("DBG", query)
                     simple_execute(query)
 
     else:
