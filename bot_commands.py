@@ -14,6 +14,7 @@ import go
 import connect_rpc
 import connect_mysql
 import connect_gsheets
+import manage_mods
 import goutils
 import portraits
 import data
@@ -945,4 +946,56 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
         if list_zones!=[]:
             zones_txt = str(list_zones)
         await command_ok(ctx_interaction, resp_msg, "Liste des toons rares de "+filter_player_name+" pour "+zones_txt, images=[image])
+
+###############################
+async def upgrade_roster_level_12(ctx_interaction, simulation, only_speed_sec, with_inventory, connected_allyCode=None):
+    resp_msg = await command_ack(ctx_interaction)
+
+    if connected_allyCode == None:
+        channel_id = ctx_interaction.channel_id
+
+        #get bot config from DB
+        ec, et, bot_infos = connect_mysql.get_google_player_info(channel_id)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, et)
+            return
+    
+        txt_allyCode = str(bot_infos["allyCode"])
+    else:
+        txt_allyCode = connected_allyCode
+
+    goutils.log2("INFO", "mods.upgrade_roster_level_12("+txt_allyCode+")")
+
+    #Get player data
+    ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    if with_inventory:
+        ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+        if ec!=0:
+            await command_error(ctx_interaction, resp_msg, et)
+            return
+    else:
+        initialdata = None
+
+    #Get player mods
+    dict_player_mods = manage_mods.get_dict_player_mods(
+                            dict_player,
+                            initialdata = initialdata)
+
+    #Run the function
+    ec, et = await manage_mods.upgrade_roster_mods(
+                      dict_player_mods,
+                      12,
+                      txt_allyCode,
+                      is_simu=simulation,
+                      only_speed_sec=only_speed_sec)
+
+    if ec != 0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    await command_ok(ctx_interaction, resp_msg, et)
 

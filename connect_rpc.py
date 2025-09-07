@@ -3174,7 +3174,7 @@ async def upgrade_level_mods(list_mods, target_level, txt_allyCode):
                     resp_json = await(resp.json())
 
                 elif resp.status==201:
-                    return 1, "ERR: il faut au moins un mod à révéler"
+                    return 1, "ERR: il faut au moins un mod à monter"
                 else:
                     return 1, "ERR during RPC levelMods - code "+str(resp.status)
 

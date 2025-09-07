@@ -100,7 +100,10 @@ def get_dict_player_mods(dict_player, initialdata=None):
             mod_defId = mod["definitionId"]
             mod_slot = mod_list[mod_defId]["slot"]
             mod_rarity = mod_list[mod_defId]["rarity"]
-            dict_player_mods[mod_id] = {"unit_id": None, "slot": mod_slot, "rarity": mod_rarity}
+            dict_player_mods[mod_id] = mod
+            dict_player_mods[mod_id]["unit_id"] = None
+            dict_player_mods[mod_id]["slot"] = mod_slot
+            dict_player_mods[mod_id]["rarity"] = mod_rarity
 
     return dict_player_mods
 
@@ -1028,6 +1031,9 @@ async def upgrade_roster_mods(dict_player_mods, target_level, allyCode, is_simu=
             list_mods.append(mod_id)
             mod_upgrade_cost = dict_upgrade_level_cost[mod_level][target_level]
             upgrade_cost += mod_upgrade_cost
+
+    if len(list_mods)==0:
+        return 1, "Aucun mod à passer au niveau "+str(target_level)
 
     err_code=0
     if not is_simu:
