@@ -860,8 +860,8 @@ async def update_player(dict_player):
             p_statq = "NULL"
 
         query = "UPDATE players "\
-               +"SET modq = "+str(p_modq)+", "\
-               +"    statq = "+str(p_statq)+" "\
+               +"SET modq = GREATEST("+str(p_modq)+", modq), "\
+               +"    statq = GREATEST("+str(p_statq)+", statq) "\
                +"WHERE allyCode = "+str(p_allyCode)
         #goutils.log2("DBG", query)
         cursor.execute(query)
