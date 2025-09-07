@@ -129,9 +129,10 @@ async def refresh_cache():
         goutils.log2('ERR', "Unable to refresh guilds")
         return 1
 
-    # Get the shards to be refreshed
+    # Get the shards to be refreshed / every 24 hours
     query = "SELECT id, type "\
            +"FROM shards "\
+           +"WHERE current_timestamp>timestampadd(HOUR, 24, lastUpdated) "\
            +"ORDER BY lastUpdated"
     goutils.log2('DBG', query)
     ret_table = connect_mysql.get_table(query)
