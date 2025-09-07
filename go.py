@@ -125,9 +125,7 @@ async def refresh_cache():
             else:
                 goutils.log2('ERR', 1)
                 return 1
-    else:
-        goutils.log2('ERR', "Unable to refresh guilds")
-        return 1
+
 
     # Get the shards to be refreshed / every 24 hours
     query = "SELECT id, type "\
@@ -149,9 +147,6 @@ async def refresh_cache():
                 goutils.log2('ERR', t)
                 return 1
 
-    else:
-        goutils.log2('ERR', "Unable to refresh shards")
-        return 1
 
     # Refresh the oldest known player
     query = "SELECT allyCode "\
