@@ -103,7 +103,7 @@ async def refresh_cache():
     query = "SELECT guilds.name, id, allyCode "\
            +"FROM guilds "\
            +"JOIN players on players.guildName = guilds.name "\
-           +"WHERE update_perdio_hours>0 "\
+           +"WHERE update_period_hours>0 "\
            +"AND current_timestamp>timestampadd(HOUR, update_period_hours, guilds.lastUpdated) "\
            +"ORDER BY guilds.lastUpdated"
     goutils.log2('DBG', query)
