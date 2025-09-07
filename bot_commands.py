@@ -948,7 +948,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
         await command_ok(ctx_interaction, resp_msg, "Liste des toons rares de "+filter_player_name+" pour "+zones_txt, images=[image])
 
 ###############################
-async def upgrade_roster_level_12(ctx_interaction, simulation, only_speed_sec, with_inventory, connected_allyCode=None):
+async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_speed_sec, with_inventory, connected_allyCode=None):
     resp_msg = await command_ack(ctx_interaction)
 
     if connected_allyCode == None:
@@ -964,7 +964,7 @@ async def upgrade_roster_level_12(ctx_interaction, simulation, only_speed_sec, w
     else:
         txt_allyCode = connected_allyCode
 
-    goutils.log2("INFO", "mods.upgrade_roster_level_12("+txt_allyCode+")")
+    goutils.log2("INFO", "mods.upgrade_mod_level_up("+txt_allyCode+")")
 
     #Get player data
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
@@ -988,7 +988,7 @@ async def upgrade_roster_level_12(ctx_interaction, simulation, only_speed_sec, w
     #Run the function
     ec, et = await manage_mods.upgrade_roster_mods(
                       dict_player_mods,
-                      12,
+                      target_level,
                       txt_allyCode,
                       is_simu=simulation,
                       only_speed_sec=only_speed_sec)

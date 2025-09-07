@@ -3173,16 +3173,22 @@ class ModsCog(commands.GroupCog, name="mods"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
-    @app_commands.command(name="level-12")
+    @app_commands.command(name="level-up")
     @app_commands.rename(only_speed_sec="avec-secondaire-vitesse")
     @app_commands.rename(with_inventory="avec-inventaire")
-    async def upgrade_roster_level_12(self, interaction: discord.Interaction,
+    @app_commands.rename(target_level="niveau")
+    @app_commands.choices(target_level=[
+        app_commands.Choice(name="12", value=12),
+        app_commands.Choice(name="15", value=15)])
+    async def upgrade_mod_level_up(self, interaction: discord.Interaction,
+                                      target_level: int,
                                       simulation: bool=False,
                                       only_speed_sec: bool=False,
                                       with_inventory: bool=False):
         try:
-            await bot_commands.upgrade_roster_level_12(
+            await bot_commands.upgrade_mod_level(
                         interaction,
+                        target_level,
                         simulation,
                         only_speed_sec,
                         with_inventory)
