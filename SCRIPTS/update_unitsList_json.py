@@ -2,6 +2,18 @@ import sys
 import json
 import os
 
+def remove_format_from_desc(desc):
+    while "[" in desc and "]" in desc:
+        origin_desc = desc
+        pos_open = desc.find("[")
+        pos_close = desc.find("]")
+        desc = desc[:pos_open] + desc[pos_close+1:]
+        if desc == origin_desc:
+            print("!!! infinite loop in remove_format")
+            sys.exit(1)
+
+    return desc.replace("\\n", "\n")
+
 #####################################
 # This script adapts the official file from SWGOH.HELP API
 # It transfoms the initial list into a dictionary, with the unit_id as key
@@ -183,10 +195,13 @@ for x in game_data["category"]:
             tag_name = loc[x["descKey"]]
         else:
             tag_name = x["descKey"]
+        tag_name = remove_format_from_desc(tag_name)
+
         if not tag_id.startswith("selftag_") \
             and not tag_id.startswith("specialmission_") \
             and not tag_name == "Placeholder":
 
+            print(tag_id, tag_name)
             if tag_id in dict_tags_by_id:
                 if not tag_name in dict_tags_by_id[tag_id]:
                     dict_tags_by_id[tag_id].append(tag_name)
@@ -223,7 +238,7 @@ for category in game_data["category"]:
     if category['id'] in categoryList_dict:
         print('WAR: double definition of '+category['id'])
     if category["descKey"] in FRE_FR:
-        category["descKey"] = FRE_FR[category["descKey"]]
+        category["descKey"] = remove_format_from_desc(FRE_FR[category["descKey"]])
     categoryList_dict[category['id']] = category
 
 fnew = open('DATA'+os.path.sep+'categoryList_dict.json', 'w')
