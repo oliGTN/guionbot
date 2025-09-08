@@ -100,12 +100,16 @@ def manage_disk_usage():
 async def refresh_cache():
     # Get the guilds to be refreshed
     # the query gets one allyCode by guild in the DB
-    query = "SELECT guilds.name, id, allyCode "\
-           +"FROM guilds "\
-           +"JOIN players on players.guildName = guilds.name "\
-           +"WHERE update_period_hours>0 "\
-           +"AND current_timestamp>timestampadd(HOUR, update_period_hours, guilds.lastUpdated) "\
-           +"ORDER BY guilds.lastUpdated"
+    query = "SELECT name, id, allyCode FROM "\
+           +"( "\
+           +"  SELECT guilds.name, id, allyCode, update_period_hours, min(players.lastUpdated) as lastUpdated "\
+           +"  FROM guilds "\
+           +"  JOIN players on players.guildId = guilds.id "\
+           +"  WHERE update_period_hours>0 "\
+           +"  GROUP BY guilds.id "\
+           +") T "\
+           +"WHERE current_timestamp>timestampadd(HOUR, update_period_hours, lastUpdated) "\
+           +"ORDER BY lastUpdated"
     goutils.log2('DBG', query)
     ret_table = connect_mysql.get_table(query)
     
