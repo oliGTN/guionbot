@@ -310,7 +310,7 @@ function openZone(evt, zoneSide, zoneName) {
 
     <?php include 'twheader.php' ; ?>
 
-    <?php if ($isMyGuildConfirmed||$isBonusGuild): ?>
+    <?php if ($isMyGuildConfirmed||$isBonusGuild||$isAdmin): ?>
     <div class="card">
         <div id="defaultmessage">
             Click on a zone to see the teams
@@ -365,7 +365,7 @@ function openZone(evt, zoneSide, zoneName) {
         </div>
     <?php else: ?>
         You are not allowed to see zone contents for this guild
-    <?php endif; //($isMyGuildConfirmed||$isBonusGuild) ?>
+    <?php endif; //($isMyGuildConfirmed||$isBonusGuild||$isAdmin) ?>
 
     </div> <!-- container -->
     </div> <!-- site-content -->

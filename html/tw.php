@@ -145,7 +145,7 @@ if ($sort_column<>'name') {
 
     <?php include 'twheader.php' ; ?>
 
-    <?php if ($isMyGuildConfirmed||$isBonusGuild): ?>
+    <?php if ($isMyGuildConfirmed||$isBonusGuild||$isAdmin): ?>
     <h3> Player stats</h3>
     <div class="card">
     <table>
