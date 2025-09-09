@@ -31,6 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['associate_guilds'])) 
             $insert_stmt = $conn->prepare("INSERT INTO user_guilds (user_id, guild_id) VALUES (:user_id, :guild_id)");
             $insert_stmt->execute(['user_id' => $user_id, 'guild_id' => $guild_id]);
         }
+
+        //add the bonus guild to $_SESSION is current user is target user
+        if ($_SESSION['user_id'] == $user_id) {
+            array_push($_SESSION['user_bonus_guilds'], $guild_id);
+        }
     }
     echo "<script>alert('Guild(s) successfully associated with the user.');</script>";
 }
@@ -43,6 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deassociate_guilds'])
         //error_log($query.' '.$user_id.' '.$guild_id);
         $stmt = $conn->prepare($query);
         $stmt->execute(['user_id' => $user_id, 'guild_id' => $guild_id]);
+
+        //remove the bonus guild from $_SESSION if current user is target user
+        if ($_SESSION['user_id'] == $user_id) {
+            $_SESSION['user_bonus_guilds'] = array_diff($_SESSION['user_bonus_guilds'], array($guild_id));
+        }
     }
     echo "<script>alert('Guild(s) successfully de-associated with the user.');</script>";
 }
