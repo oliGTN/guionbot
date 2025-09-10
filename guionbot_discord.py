@@ -2240,11 +2240,13 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         # get the DB information
         query = "SELECT guilds.name AS Guilde, \
                  count(*) as Joueurs, \
-                 guilds.lastUpdated as MàJ \
+                 guilds.lastUpdated as MàJ, \
+                 NOT(isnull(guild_bots.period)) as Warbot \
                  FROM guilds \
-                 JOIN players ON players.guildName = guilds.name \
-                 WHERE `update`=1 \
-                 GROUP BY guilds.name \
+                 JOIN players ON players.guildId = guilds.id \
+                 LEFT JOIN guild_bots ON guild_bots.guild_id = guilds.id \
+                 WHERE update_period_hours>0 \
+                 GROUP BY guilds.id \
                  ORDER BY guilds.lastUpdated DESC"
         goutils.log2("DBG", query)
         output_players = connect_mysql.text_query(query)
