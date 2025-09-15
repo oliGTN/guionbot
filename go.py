@@ -4249,12 +4249,6 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
     tb_round = dict_phase["round"]
     tb_id = dict_phase["id"]
  
-    # Launch parallel task to update gwarstat
-    asyncio.create_task(connect_gsheets.update_gwarstats(
-                                guild_id, dict_phase, dict_strike_zones,
-                                dict_tb_players, list_open_zones, dict_zones,
-                                tb_round, allyCode=allyCode))
-
     #Update DB (short so no need to parallelize)
     await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase,
                                   dict_zones, dict_strike_zones,

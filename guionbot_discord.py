@@ -1317,7 +1317,7 @@ async def update_rpc_data(guild_id, allyCode=None):
             await send_tb_summary(guildName, tb_data["tb_summary"], tb_channel_end)
 
     else:
-        #TB ongoing, update gwarstats
+        #TB ongoing
 
         dict_phase = tb_data["phase"]
         dict_strike_zones = tb_data["strike_zones"]
@@ -1327,9 +1327,6 @@ async def update_rpc_data(guild_id, allyCode=None):
         tb_round = dict_phase["round"]
         tb_id = dict_phase["id"]
 
-        await connect_gsheets.update_gwarstats(guild_id, dict_phase, dict_strike_zones,
-                                               dict_tb_players, list_open_zones, dict_zones,
-                                               tb_round, allyCode=allyCode)
         #await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase, 
         #                              dict_zones, dict_strike_zones, 
         #                              list_open_zones, dict_tb_players)
@@ -4010,11 +4007,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # Main call
-            err_code, ret_txt, images = await go.print_tb_status(guild_id, tb_phase_target, 0,
-                                                                 estimate_fights=estimate_fights,
-                                                                 estimate_platoons=estimate_platoons,
-                                                                 targets_platoons=targets_platoons,
-                                                                 allyCode=connected_allyCode)
+            err_code, ret_txt, images = await go.print_tb_status(
+                                            guild_id, tb_phase_target, 0,
+                                            estimate_fights=estimate_fights,
+                                            estimate_platoons=estimate_platoons,
+                                            targets_platoons=targets_platoons,
+                                            allyCode=connected_allyCode)
+
             if err_code == 0:
                 for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                     await output_channel.send(txt)
