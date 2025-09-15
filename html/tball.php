@@ -242,7 +242,7 @@ function zone_txt($zone_name, $zones, $rowspan, $darklight) {
         <select style="width:200px" name="list" id="list" accesskey="target" onchange="tbSelected()">
             <?php foreach($tb_list as $tb) {
                 $tb_id_short = $tb['tb_ts'];
-                echo "<option value='".$tb_id_short."' ".($tb_id_short==$_GET['ts']?"selected='selected'":"").">".$tb['start_date']."</option>\n";
+                echo "<option value='".$tb_id_short."' ".($tb_id_short==$tb_ts?"selected='selected'":"").">".$tb['start_date']."</option>\n";
             }?>
         </select>
         </form>

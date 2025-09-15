@@ -970,7 +970,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         list_terr_status.append([terr["zone_name"], terr_txt])
 
     #sort by zone position
-    list_terr_status = sorted(list_terr_status, key=lambda x:dict_tb[tb_id]["zonePositions"][x[0].split("-")[1].strip("b")] + 0.5*x[0].split("-")[1].endswith("b"))
+    list_terr_status = sorted(list_terr_status, key=lambda x:dict_tb[tb_id]["zonePositions"][x[0].split("-")[1].rstrip("b")] + 0.5*x[0].split("-")[1].endswith("b"))
     for terr_status in list_terr_status:
         full_txt += terr_status[1]+"\n"
     full_txt += "---\n"

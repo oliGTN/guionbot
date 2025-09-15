@@ -21,7 +21,7 @@ if (!isset($_GET['id'])) {
     exit();
 }
 $tb_id = $_GET['id'];
-$round = get_round_from_get();
+$round = get_round_from_get($tb_id);
 $round_score = get_tb_round_score($tb_id, $round);
 $tb = get_tb_from_id($tb_id);
 $guild_id = $tb['guild_id'];

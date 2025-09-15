@@ -1,14 +1,16 @@
 <?php
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
 
-function get_round_from_get() {
+function get_round_from_get($tb_id) {
+    global $conn_guionbot;
+
     if (!isset($_GET['round'])) {
         // Get the max round
         // Prepare the SQL query
         $query = "SELECT current_round";
         $query .= " FROM tb_history";
         $query .= " WHERE tb_history.id=".$tb_id;
-        //error_log("query = ".$query);
+        error_log("query = ".$query);
         try {
             // Prepare the SQL query
             $stmt = $conn_guionbot->prepare($query);
