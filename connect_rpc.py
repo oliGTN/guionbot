@@ -2063,29 +2063,37 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     # 2- estimated fights
     #####################################################
 
-    # Get estimated strike count and score from past TBs
-    query = "SELECT zone_id, min(score), min(c) FROM "\
-            "( "\
-            "SELECT tb_id, zone_id, round, sum(param0) AS score, count(param0) AS c FROM  "\
-            "( "\
-            "SELECT tbe.tb_id, zone_id, timestampdiff(DAY, start_date, timestamp)+1 as round, param0 FROM tb_events AS tbe "\
-            "JOIN tb_history AS tbh ON tbh.id=tbe.tb_id "\
-            "WHERE NOT isnull(param0) AND event_type='CONFLICT_CONTRIBUTION' "\
-            "AND timestampdiff(DAY, start_date, current_timestamp)<60 "\
-            "AND timestampdiff(DAY, start_date, current_timestamp)>7 "\
-            "AND tbh.guild_id = '"+guild_id+"' "\
-            "AND zone_id IN "+str(tuple(list_open_zones))+" "\
-            ") T1 "\
-            "GROUP BY tb_id, zone_id, round "\
-            ") T2 "\
-            "GROUP BY zone_id "
+    query = "SELECT tbFightPredictionType FROM guild_bot_infos "\
+            "WHERE guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
-    if db_data==None:
-        db_data=[]
-    dict_zone_estimates = {}
-    for line in db_data:
-        dict_zone_estimates[line[0]] = [line[1], line[2]]
+    tbFightPredictionType = connect_mysql.get_value(query)
+    if tbFightPredictionType==None:
+        tbFightPredictionType=0
+
+    if tbFightPredictionType == 1:
+        # Get estimated strike count and score from past TBs
+        query = "SELECT zone_id, min(score), min(c) FROM "\
+                "( "\
+                "SELECT tb_id, zone_id, round, sum(param0) AS score, count(param0) AS c FROM  "\
+                "( "\
+                "SELECT tbe.tb_id, zone_id, timestampdiff(DAY, start_date, timestamp)+1 as round, param0 FROM tb_events AS tbe "\
+                "JOIN tb_history AS tbh ON tbh.id=tbe.tb_id "\
+                "WHERE NOT isnull(param0) AND event_type='CONFLICT_CONTRIBUTION' "\
+                "AND timestampdiff(DAY, start_date, current_timestamp)<60 "\
+                "AND timestampdiff(DAY, start_date, current_timestamp)>7 "\
+                "AND tbh.guild_id = '"+guild_id+"' "\
+                "AND zone_id IN "+str(tuple(list_open_zones))+" "\
+                ") T1 "\
+                "GROUP BY tb_id, zone_id, round "\
+                ") T2 "\
+                "GROUP BY zone_id "
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_table(query)
+        if db_data==None:
+            db_data=[]
+        dict_zone_estimates = {}
+        for line in db_data:
+            dict_zone_estimates[line[0]] = [line[1], line[2]]
 
     #compute zone stats apart for deployments
     for zone_name in list_open_zones:
@@ -2131,7 +2139,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_zones[zone_name]["covertFights"] = cur_covert_fights
         dict_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
         dict_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
-        if zone_name in dict_zone_estimates:
+
+        if tbFightPredictionType == 1 and zone_name in dict_zone_estimates:
+            #adapt fight estimations to past TBs, if the zone has been played
             sum_strike_fights = 0
             for s in cur_strike_fights:
                 sum_strike_fights += cur_strike_fights[s]

@@ -1292,7 +1292,7 @@ async def update_rpc_data(guild_id, allyCode=None):
     #Update g-sheet during TB
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, allyCode=allyCode)
     if ec != 0:
-        # No TB ongoing
+        # No TB ongoing - close TB
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
             # Display TB summary
             if allyCode==None:
@@ -1316,20 +1316,6 @@ async def update_rpc_data(guild_id, allyCode=None):
 
             await send_tb_summary(guildName, tb_data["tb_summary"], tb_channel_end)
 
-    else:
-        #TB ongoing
-
-        dict_phase = tb_data["phase"]
-        dict_strike_zones = tb_data["strike_zones"]
-        dict_tb_players = tb_data["players"]
-        list_open_zones = tb_data["open_zones"]
-        dict_zones = tb_data["zones"]
-        tb_round = dict_phase["round"]
-        tb_id = dict_phase["id"]
-
-        #await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase, 
-        #                              dict_zones, dict_strike_zones, 
-        #                              list_open_zones, dict_tb_players)
     
     #Update log channels
     ec, et, ret_data = await connect_rpc.get_guildLog_messages(guild_id, True, 1, allyCode=allyCode,
