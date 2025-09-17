@@ -1860,7 +1860,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             # and count as +1 in the remaining players to fight
 
             if "ships" in list_deployment_types:
-                ratio_deploy_ships = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedShips"] / dict_tb_players[playerName]["ship_gp"]
+                if dict_tb_players[playerName]["ship_gp"] == 0:
+                    ratio_deploy_ships = 1.0
+                else:
+                    ratio_deploy_ships = dict_tb_players[playerName]["rounds"][tb_round-1]["score"]["deployedShips"] / dict_tb_players[playerName]["ship_gp"]
                 if ratio_deploy_ships >= 0.99:
                     finished_players["ships"].append(playerName)
 
