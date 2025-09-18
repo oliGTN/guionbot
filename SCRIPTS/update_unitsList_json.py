@@ -31,6 +31,7 @@ for material in game_data["material"]:
 #"""
 ####################
 #add custom data
+"""
 my_units = [
           {"baseId": "GLHONDO",
            "nameKey":"UNIT_GLHONDO_NAME",    # the key is defined a few lines below
@@ -45,6 +46,7 @@ for my_unit in my_units:
     game_data["units"].append(my_unit)
 FRE_FR["UNIT_GLHONDO_NAME"] = "Roi Hondo"
 ENG_US["UNIT_GLHONDO_NAME"] = "King Hondo"
+"""
 #End custom data
 
 with open('DATA/FRE_FR.json', 'w') as f_loc:
