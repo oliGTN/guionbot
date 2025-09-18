@@ -6544,7 +6544,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                 if ready_players == None:
                     ready_players = []
 
-            if c == "geonosis_separatist_phase01_conflict02_covert01" and not c in dict_ready_players:
+            elif c == "geonosis_separatist_phase01_conflict02_covert01" and not c in dict_ready_players:
                 # Separatist mission on GDS1-bot
                 query = "SELECT name FROM ( "\
                         "    SELECT players.name, "\
