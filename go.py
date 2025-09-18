@@ -6543,6 +6543,51 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                 ready_players = connect_mysql.get_column(query)
                 if ready_players == None:
                     ready_players = []
+
+            if c == "geonosis_separatist_phase01_conflict02_covert01" and not c in dict_ready_players:
+                # Separatist mission on GDS1-bot
+                query = "SELECT name FROM ( "\
+                        "    SELECT players.name, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='NUTEGUNRAY' AND rarity>=6 AND gp>=16500 THEN 1 ELSE NULL END) AS `NUTEGUNRAY`, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='B1BATTLEDROIDV2' AND rarity>=6 AND gp>=16500 THEN 1 ELSE NULL END) AS `B1BATTLEDROIDV2`, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='B2SUPERBATTLEDROID' AND rarity>=6 AND gp>=16500 THEN 1 ELSE NULL END) AS `B2SUPERBATTLEDROID`, "\
+                        "    GROUP_CONCAT(CASE WHEN defId='DROIDEKA' AND rarity>=6 AND gp>=16500 THEN 1 ELSE NULL END) AS `DROIDEKA` "\
+                        "    FROM players "\
+                        "    JOIN roster ON (players.allyCode=roster.allyCode AND defId IN ('NUTEGUNRAY', 'B1BATTLEDROIDV2', 'B2SUPERBATTLEDROID', 'DROIDEKA')) "\
+                        "    WHERE guildId='"+guild['profile']['id']+"' "\
+                        "    GROUP BY players.allyCode "\
+                        ") T "\
+                        "WHERE NUTEGUNRAY=1 AND B1BATTLEDROIDV2=1 AND B2SUPERBATTLEDROID=1 AND DROIDEKA=1 "
+                goutils.log2("DBG", query)
+                ready_players = connect_mysql.get_column(query)
+                if ready_players == None:
+                    ready_players = []
+
+            elif c == "geonosis_separatist_phase03_conflict02_covert01" and not c in dict_ready_players:
+                # Wat
+                tagAlias = godata.get('tagAlias_dict.json')
+                dict_unitsList = godata.get("unitsList_dict.json")
+                list_ids = [x for x in tagAlias["geonosian"] if dict_unitsList[x]['combatType']==1 and x!='GEONOSIANBROODALPHA']
+                query = "SELECT players.name FROM players "\
+                        "JOIN ("\
+                        "    SELECT name "\
+                        "    FROM players "\
+                        "    JOIN roster ON (players.allyCode=roster.allyCode AND defId IN "+str(tuple(list_ids))+" "\
+                        "                    AND rarity=7 "\
+                        "                    AND gp>=16500) "\
+                        "    WHERE guildId='"+guild['profile']['id']+"' "\
+                        "    GROUP BY players.allyCode "\
+                        "    HAVING COUNT(defId) >= 4 "\
+                        ") T ON T.name=players.name "\
+                        "JOIN roster ON (players.allyCode=roster.allyCode AND defId ='GEONOSIANBROODALPHA' "\
+                        "                AND rarity=7 "\
+                        "                AND gp>=16500) "\
+                        "WHERE guildId='"+guild['profile']['id']+"' "
+                goutils.log2("DBG", query)
+                ready_players = connect_mysql.get_column(query)
+                if ready_players == None:
+                    ready_players = []
+
             elif c in dict_ready_players:
                 ready_players = dict_ready_players[c]
             else:
