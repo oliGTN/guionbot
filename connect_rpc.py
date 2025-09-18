@@ -1332,6 +1332,7 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 ##############################################################
 async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         compute_estimated_platoons=False,
+                        compute_estimated_fights=True,
                         targets_platoons=None, allyCode=None,
                         my_tb_round=None, my_list_open_zones=None,
                         dict_guild=None, dict_TBmapstats=None,
@@ -2066,14 +2067,15 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     # 2- estimated fights
     #####################################################
 
-    query = "SELECT tbFightPredictionType FROM guild_bot_infos "\
-            "WHERE guild_id='"+guild_id+"'"
-    goutils.log2("DBG", query)
-    tbFightPredictionType = connect_mysql.get_value(query)
-    if tbFightPredictionType==None:
-        tbFightPredictionType=0
+    if compute_estimated_fights:
+        query = "SELECT tbFightPredictionType FROM guild_bot_infos "\
+                "WHERE guild_id='"+guild_id+"'"
+        goutils.log2("DBG", query)
+        tbFightPredictionType = connect_mysql.get_value(query)
+        if tbFightPredictionType==None:
+            tbFightPredictionType=0
 
-    if tbFightPredictionType == 1:
+    if compute_estimated_fights and tbFightPredictionType == 1:
         # Get estimated strike count and score from past TBs
         query = "SELECT zone_id, min(score), min(c) FROM "\
                 "( "\
@@ -2140,17 +2142,22 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_zones[zone_name]["strikeScore"] = cur_strike_score
         dict_zones[zone_name]["strikeFights"] = cur_strike_fights
         dict_zones[zone_name]["covertFights"] = cur_covert_fights
-        dict_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
-        dict_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
 
-        if tbFightPredictionType == 1 and zone_name in dict_zone_estimates:
-            #adapt fight estimations to past TBs, if the zone has been played
-            sum_strike_fights = 0
-            for s in cur_strike_fights:
-                sum_strike_fights += cur_strike_fights[s]
+        if compute_estimated_fights:
+            dict_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
+            dict_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
 
-            dict_zones[zone_name]["estimatedStrikeFights"] = max(0, dict_zone_estimates[zone_name][1] - sum_strike_fights)
-            dict_zones[zone_name]["estimatedStrikeScore"] = max(0, dict_zone_estimates[zone_name][0] - cur_strike_score)
+            if tbFightPredictionType == 1 and zone_name in dict_zone_estimates:
+                #adapt fight estimations to past TBs, if the zone has been played
+                sum_strike_fights = 0
+                for s in cur_strike_fights:
+                    sum_strike_fights += cur_strike_fights[s]
+
+                dict_zones[zone_name]["estimatedStrikeFights"] = max(0, dict_zone_estimates[zone_name][1] - sum_strike_fights)
+                dict_zones[zone_name]["estimatedStrikeScore"] = max(0, dict_zone_estimates[zone_name][0] - cur_strike_score)
+        else:
+            dict_zones[zone_name]["estimatedStrikeFights"] = 0
+            dict_zones[zone_name]["estimatedStrikeScore"] = 0
 
         dict_zones[zone_name]["maxStrikeScore"] = max_strike_score
         dict_zones[zone_name]["deployment"] = 0
@@ -2299,14 +2306,16 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_zones[zone_name]["estimatedStars"] = star_for_score
 
     #Update DB
-    await connect_mysql.update_tb_round(guild_id, 
-                                        dict_phase["id"], 
-                                        dict_phase["round"], 
-                                        dict_phase,
-                                        dict_zones, 
-                                        dict_strike_zones,
-                                        list_open_zones, 
-                                        dict_tb_players)
+    if compute_estimated_fights and not compute_estimated_platoons:
+        #website only displays fight estimates
+        await connect_mysql.update_tb_round(guild_id, 
+                                            dict_phase["id"], 
+                                            dict_phase["round"], 
+                                            dict_phase,
+                                            dict_zones, 
+                                            dict_strike_zones,
+                                            list_open_zones, 
+                                            dict_tb_players)
 
     return 0, "", {"phase": dict_phase, 
                    "strike_zones": dict_strike_zones, 
