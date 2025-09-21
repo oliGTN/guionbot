@@ -1292,7 +1292,10 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
                         total_remainingMix[1] += player["mix_gp"]-player_score["deployedMix"]
         else:
             if "ships" in dict_deployment_types and dict_deployment_types["ships"]:
-                ratio_deploy_ships = player_score["deployedShips"] / player["ship_gp"]
+                if dict_tb_players[playerName]["ship_gp"] == 0:
+                    ratio_deploy_ships = 1.0
+                else:
+                    ratio_deploy_ships = player_score["deployedShips"] / player["ship_gp"]
                 if ratio_deploy_ships < 0.99:
                     undeployed_player = True
                     ret_print_player += "Fleet: {:,}".format(player_score["deployedShips"]) \
