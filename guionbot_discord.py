@@ -1278,7 +1278,29 @@ async def send_tb_summary(guild_name, tb_summary, channel_id):
 async def update_rpc_data(guild_id, allyCode=None):
     goutils.log2("DBG", (guild_id, allyCode))
 
+    #Get guild infos from warbot or player
     guild_bots = connect_rpc.get_dict_bot_accounts()
+    if allyCode==None:
+        # this is a guild with warbot
+        guildName = guild_bots[guild_id]["guildName"]
+        tb_channel_end = guild_bots[guild_id]["tb_channel_end"]
+        fight_estimation_type = guild_bots[guild_id]["tbFightEstimationType"]
+    else:
+        # no warbot, get infos from guild linked to player
+        query = "SELECT guildName, tbChanEnd_id, tbFightEstimationType "\
+                "FROM guild_bot_infos " \
+                "JOIN players on players.guildId = guild_bot_infos.guild_id " \
+                "WHERE allyCode = "+str(allyCode)
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_line(query)
+        if db_data == None:
+            guildName = ""
+            tb_channel_end = 0
+            fight_estimation_type = 0
+        else:
+            guildName = db_data[0]
+            tb_channel_end = db_data[1]
+            fight_estimation_type = db_data[2]
 
     #This RPC call gets everything once, so that next calls in the 
     # following lines are able to use cache data
@@ -1289,31 +1311,14 @@ async def update_rpc_data(guild_id, allyCode=None):
     dict_guild = ret_data[0]
     dict_events = ret_data[2]
 
-    #Update g-sheet during TB
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, allyCode=allyCode)
+    #Update DB and website during TB
+    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, 
+                                fight_estimation_type=fight_estimation_type,
+                                allyCode=allyCode)
     if ec != 0:
         # No TB ongoing - close TB
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
             # Display TB summary
-            if allyCode==None:
-                # this is a guild with warbot
-                guildName = guild_bots[guild_id]["guildName"]
-                tb_channel_end = guild_bots[guild_id]["tb_channel_end"]
-            else:
-                # no warbot, get infos from guild linked to player
-                query = "SELECT guildName, tbChanEnd_id "\
-                        "FROM guild_bot_infos " \
-                        "JOIN players on players.guildId = guild_bot_infos.guild_id " \
-                        "WHERE allyCode = "+str(allyCode)
-                goutils.log2("DBG", query)
-                db_data = connect_mysql.get_line(query)
-                if db_data == None:
-                    guildName = ""
-                    tb_channel_end = 0
-                else:
-                    guildName = db_data[0]
-                    tb_channel_end = db_data[1]
-
             await send_tb_summary(guildName, tb_data["tb_summary"], tb_channel_end)
 
     
@@ -3941,8 +3946,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='tbs',
             brief="Statut de la BT",
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
-                 "go.tbs \"DS:1 LS:3 MS:2\" [-estime] [-pelotons]\n" \
-                 "go.tbs \"DS:1 LS:3 MS:2\" -e -p=DS:6/MS:4/LS:0")
+                 "go.tbs DS:1/LS:3/MS:2 [-estime] [-pelotons]\n" \
+                 "go.tbs DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0\n" \
+                 "go.tbs simu=ROTE DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0")
     async def tbs(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -3952,6 +3958,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             estimate_fights = False
             estimate_platoons = False
             targets_platoons = None
+            simulated_tb = None
             output_channel = ctx.message.channel
             for arg in args:
                 if arg.startswith("-e"):
@@ -3961,6 +3968,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     estimate_platoons = True
                     if "=" in arg:
                         targets_platoons = arg.split('=')[1]
+                    options.remove(arg)
+                elif arg.startswith("-s"):
+                    if "=" in arg:
+                        simulated_tb = arg.split('=')[1]
                     options.remove(arg)
                 elif arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
@@ -3991,12 +4002,15 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             guild_id = bot_infos["guild_id"]
             connected_allyCode = bot_infos["allyCode"]
+            fight_estimation_type = bot_infos["tbFightEstimationType"]
 
             # Main call
             err_code, ret_txt, images = await go.print_tb_status(
                                             guild_id, tb_phase_target, 0,
+                                            simulated_tb=simulated_tb,
                                             estimate_fights=estimate_fights,
                                             estimate_platoons=estimate_platoons,
+                                            fight_estimation_type=fight_estimation_type,
                                             targets_platoons=targets_platoons,
                                             allyCode=connected_allyCode)
 

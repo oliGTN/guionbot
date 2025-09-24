@@ -1267,7 +1267,8 @@ def get_warbot_info(server_id, channel_id):
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
             "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
             "twFulldefDetection, "\
-            "guilds.name, gfile_name, echostation_id "\
+            "guilds.name, gfile_name, echostation_id, "\
+            "tbFightEstimationType "\
             "FROM guild_bots "\
             "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
             "JOIN players ON players.allyCode=guild_bots.allyCode "\
@@ -1283,7 +1284,8 @@ def get_warbot_info(server_id, channel_id):
             query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
                     "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
                     "twFulldefDetection, "\
-                    "guilds.name, gfile_name, echostation_id "\
+                    "guilds.name, gfile_name, echostation_id, "\
+                    "tbFightEstimationType "\
                     "FROM guild_bots "\
                     "JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
                     "JOIN players ON players.allyCode=guild_bots.allyCode "\
@@ -1299,7 +1301,8 @@ def get_warbot_info(server_id, channel_id):
                 query = "SELECT guildId, players.allyCode, players.name, "\
                         "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
                         "twFulldefDetection, "\
-                        "guilds.name, gfile_name, echostation_id "\
+                        "guilds.name, gfile_name, echostation_id, "\
+                        "tbFightEstimationType "\
                         "FROM guild_bot_infos "\
                         "JOIN players ON players.guildId=guild_bot_infos.guild_id "\
                         "JOIN guilds ON guilds.id=guild_bot_infos.guild_id "\
@@ -1322,7 +1325,8 @@ def get_warbot_info(server_id, channel_id):
                    "twFulldefDetection": db_data[6],
                    "guild_name": db_data[7],
                    "gfile_name": db_data[8],
-                   "echostation_id": db_data[9]}
+                   "echostation_id": db_data[9],
+                   "tbFightEstimationType": db_data[10]}
 
 def get_warbot_info_from_guild(guild_id):
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\

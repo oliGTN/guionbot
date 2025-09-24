@@ -50,7 +50,7 @@ def get_dict_bot_accounts():
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, "\
             "locked_since, guild_bots.priority_cache, lock_when_played, force_auth,"\
             "twChanOut_id, tbChanOut_id, tbChanEnd_id, " \
-            "guilds.name "\
+            "guilds.name, tbFightEstimationType "\
             "FROM guild_bots "\
             "LEFT JOIN guild_bot_infos ON guild_bots.guild_id=guild_bot_infos.guild_id "\
             "JOIN guilds ON guilds.id=guild_bots.guild_id "\
@@ -1334,8 +1334,10 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 
 ##############################################################
 async def get_tb_status(guild_id, list_target_zone_steps, force_update,
+                        simulated_tb=None,
                         compute_estimated_platoons=False,
                         compute_estimated_fights=True,
+                        fight_estimation_type=0,
                         targets_platoons=None, allyCode=None,
                         my_tb_round=None, my_list_open_zones=None,
                         dict_guild=None, dict_TBmapstats=None,
@@ -1371,7 +1373,74 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     # Get TB id, basic infos and TB events
     tb_ongoing=False
-    if "territoryBattleStatus" in dict_guild:
+    if simulated_tb!=None:
+        tb_ongoing = True
+        tb_round = 1
+        tb_type = dict_tb[simulated_tb]["id"]
+        tb_instanceDefId = dict_tb[simulated_tb]["instanceDefId"]
+        tb_startTime = int(time.time())*1000 #use current time by default
+        tb_round_endTime = tb_startTime + tb_round*dict_tb[tb_type]["phaseDuration"]
+        tb_round_startTime = tb_round_endTime - dict_tb[tb_type]["phaseDuration"]
+        battle_id = tb_instanceDefId+':O'+str(tb_startTime)
+
+        #Initialize fake battleStatus
+        battleStatus = {"instanceId": battle_id,
+                        "definitionId": tb_type,
+                        "conflictZoneStatus": [],
+                        "strikeZoneStatus": [],
+                        "covertZoneStatus": [],
+                        "reconZoneStatus": [],
+                        "currentRound": tb_round,
+                        "currentStat": {},
+                        "selected": True}
+        zone_prefix = dict_tb[tb_type]["prefix"]
+
+        #Add conflit zones
+        for conflict_id in ['01', '02', '03']:
+            zone_id = zone_prefix+"_phase01_conflict"+conflict_id
+            zoneStatus = {"zoneStatus": {
+                            "zoneId": zone_id,
+                            "zoneState": "ZONEOPEN",
+                            "score": 0}
+                         }
+            battleStatus["conflictZoneStatus"].append(zoneStatus)
+
+            #Add strike zones
+            for strike_id in dict_tb[zone_id]["strikes"]: #'strike02'
+                strikeStatus = {"playersParticipated": 0,
+                                "zoneStatus": {
+                                    "zoneId": zone_id+"_"+strike_id,
+                                    "zoneState": "ZONEOPEN",
+                                    "score": 0}
+                               }
+                battleStatus["strikeZoneStatus"].append(strikeStatus)
+
+            #Add covert zones
+            for covert_id in dict_tb[zone_id]["coverts"]: #'covert02'
+                covertStatus = {"playersParticipated": 0,
+                                "zoneStatus": {
+                                    "zoneId": zone_id+"_"+covert_id,
+                                    "zoneState": "ZONEOPEN",
+                                    "score": 0}
+                               }
+                battleStatus["covertZoneStatus"].append(covertStatus)
+
+            #Add platoon zone
+            reconStatus = {"zoneStatus": {
+                               "zoneId": zone_id+"_recon01",
+                               "zoneState": "ZONEOPEN"},
+                           "platoon": []
+                          }
+            battleStatus["reconZoneStatus"].append(reconStatus)
+
+        #Add fake data to dict_guild
+        dict_guild["territoryBattleStatus"]=[battleStatus]
+
+        #Initialize empty list of events
+        dict_events={}
+
+
+    elif "territoryBattleStatus" in dict_guild:
         for battleStatus in dict_guild["territoryBattleStatus"]:
             if battleStatus["selected"]:
                 battle_id = battleStatus["instanceId"]
@@ -2070,15 +2139,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     # 2- estimated fights
     #####################################################
 
-    if compute_estimated_fights:
-        query = "SELECT tbFightPredictionType FROM guild_bot_infos "\
-                "WHERE guild_id='"+guild_id+"'"
-        goutils.log2("DBG", query)
-        tbFightPredictionType = connect_mysql.get_value(query)
-        if tbFightPredictionType==None:
-            tbFightPredictionType=0
-
-    if compute_estimated_fights and tbFightPredictionType == 1:
+    if compute_estimated_fights and fight_estimation_type == 1:
         # Get estimated strike count and score from past TBs
         query = "SELECT zone_id, min(score), min(c) FROM "\
                 "( "\
@@ -2150,7 +2211,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             dict_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
             dict_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
 
-            if tbFightPredictionType == 1 and zone_name in dict_zone_estimates:
+            if fight_estimation_type == 1 and zone_name in dict_zone_estimates:
                 #adapt fight estimations to past TBs, if the zone has been played
                 sum_strike_fights = 0
                 for s in cur_strike_fights:
@@ -2222,11 +2283,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     else:
         list_target_zone_steps = list_target_zone_steps.strip()
-        while '  ' in list_target_zone_steps:
-            list_target_zone_steps = list_target_zone_steps.replace('  ', ' ')
 
         already_computed_zones = []
-        for target_zone_stars in list_target_zone_steps.split(" "):
+        for target_zone_stars in list_target_zone_steps.split("/"):
             if not ":" in target_zone_stars:
                 return 1, target_zone_stars + " --> chaque objectif de zone doit être de la forme <zone>:<étoiles> (ex: top:3)", None
 
@@ -2309,7 +2368,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_zones[zone_name]["estimatedStars"] = star_for_score
 
     #Update DB
-    if compute_estimated_fights and not compute_estimated_platoons:
+    if simulated_tb==None and compute_estimated_fights and not compute_estimated_platoons:
         #website only displays fight estimates
         await connect_mysql.update_tb_round(guild_id, 
                                             dict_phase["id"], 

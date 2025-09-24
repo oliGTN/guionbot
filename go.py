@@ -4231,14 +4231,18 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
     return 0, "", ret_db
 
 async def print_tb_status(guild_id, targets_zone_stars, force_update, 
+                          simulated_tb=None,
                           estimate_fights=False, estimate_platoons=False,
+                          fight_estimation_type=0,
                           targets_platoons=None, allyCode=None):
     dict_tb = godata.get("tb_definition.json")
 
     ec, et, tb_data = await connect_rpc.get_tb_status(
                                 guild_id, targets_zone_stars, force_update,
+                                simulated_tb=simulated_tb,
                                 compute_estimated_platoons=estimate_platoons,
                                 compute_estimated_fights=estimate_fights,
+                                fight_estimation_type=fight_estimation_type,
                                 targets_platoons=targets_platoons, 
                                 allyCode=allyCode)
     if ec!=0:
@@ -4248,15 +4252,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
     list_open_zones = tb_data["open_zones"]
     dict_zones = tb_data["zones"]
     dict_strike_zones = tb_data["strike_zones"]
-    dict_tb_players = tb_data["players"]
-    tb_round = dict_phase["round"]
-    tb_id = dict_phase["id"]
  
-    #Update DB (short so no need to parallelize)
-    await connect_mysql.update_tb_round(guild_id, tb_id, tb_round, dict_phase,
-                                  dict_zones, dict_strike_zones,
-                                  list_open_zones, dict_tb_players)
-
     list_deployment_types = []
     for zone_name in list_open_zones:
         zone_deployment_type = dict_tb[zone_name]["type"]
@@ -4265,10 +4261,6 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
 
     # START THE DISPLAY PART
     ret_print_tb_status = "**Territory Battle** - round "+str(dict_phase["round"])+"\n"
-    sheet_url = connect_gsheets.get_sheet_url(guild_id, "BT graphs")
-    if sheet_url != None:
-        ret_print_tb_status += "More details, including players: "+sheet_url+"\n"
-
     ret_print_tb_status+="---------------\n"
     available_ship_deploy = dict_phase["availableShipDeploy"]
     available_char_deploy = dict_phase["availableCharDeploy"]
