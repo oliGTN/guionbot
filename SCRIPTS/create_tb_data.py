@@ -6,30 +6,35 @@ ENG_US = json.load(open('DATA/ENG_US.json', 'r'))
 
 # shortname, [conflit01, conflict02, conflict03]
 tb_aliases = {"t01D": {"alias": "HLS", 
+                       "instanceDefId": "TB_EVENT_HOTH_REBELLION", 
                        "conflict01": "top", 
                        "conflict02": "mid", 
                        "conflict03": "bot", 
                        "positions": ["top", "mid", "bot"]
                        },
               "t02D": {"alias": "HDS", 
+                       "instanceDefId": "TB_EVENT_HOTH_EMPIRE", 
                        "conflict01": "top", 
                        "conflict02": "mid", 
                        "conflict03": "bot", 
                        "positions": ["top", "mid", "bot"]
                        },
               "t03D": {"alias": "GDS", 
+                       "instanceDefId": "TB_EVENT_GEONOSIS_SEPARATIST", 
                        "conflict01": "top", 
                        "conflict02": "mid", 
                        "conflict03": "bot", 
                        "positions": ["top", "mid", "bot"]
                        },
               "t04D": {"alias": "GLS", 
+                       "instanceDefId": "TB_EVENT_GEONOSIS_REPUBLIC", 
                        "conflict01": "top", 
                        "conflict02": "mid", 
                        "conflict03": "bot", 
                        "positions": ["top", "mid", "bot"]
                        },
               "t05D": {"alias": "ROTE", 
+                       "instanceDefId": "TB_EVENT_TB3_MIXED", 
                        "conflict01": "LS", 
                        "conflict02": "DS", 
                        "conflict03": "MS", 
@@ -70,7 +75,8 @@ dict_tb={"zone_names": {}}
 for tb in game_data["territoryBattleDefinition"]:
     tb_id = tb["id"]
     tb_alias = tb_aliases[tb_id]["alias"]
-    dict_tb[tb_alias] = {"id": tb_id}
+    tb_defId = tb_aliases[tb_id]["instanceDefId"]
+    dict_tb[tb_alias] = {"id": tb_id, "instanceDefId": tb_defId}
 
     tb_rounds = int(tb["roundCount"])
     dict_tb[tb_id] = {"phaseDuration": int(6*24*3600*1000/tb_rounds),
