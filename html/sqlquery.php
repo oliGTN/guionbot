@@ -24,7 +24,7 @@ if (! $sql_select) {
     exit();
 }
 
-
+$sql_limit=1000;
 // Handle POST for SQL query
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sql_query'])) {
     $query = trim($_POST['sql_query']);
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sql_query'])) {
     }
 
     // //Force a limit
-    $limited_query = 'SELECT * FROM ('.$query.') AS query LIMIT 0, 200';
+    $limited_query = 'SELECT * FROM ('.$query.') AS query LIMIT 0, '.$sql_limit;
 
 
     //execute the query
@@ -121,7 +121,7 @@ function fct_download() {
             <div class="card">
                 <b>Information</b>
                 <ul style="list-style-type:disc;">
-                    <li>- All queries are limited to 200 resuts by default</li>
+                <li>- All queries are limited to <?php echo $sql_limit;?> resuts by default</li>
                     <li>- look for these tables: roster, players</li>
                     <li>- <i>defId</i> column in <i>roster</i> table is the same as <i>base_id</i> <a href="https://swgoh.gg/api/characters/">here</a> (characters) or <a href="https://swgoh.gg/api/ships/">here</a> (ships).</li>
                     <li>- <i>relic_currentTier</i> column is 2 higher than actual relic of the character (relic_currentTer=5 > character is R3).</li>
@@ -143,8 +143,15 @@ function fct_download() {
                 </ul>
             </div>
 
+<?php
+            if (!empty($sql_results)) {
+?>
             <button type="button" id="btn_download" onclick="fct_download();">download</button>
+<?php
 
+                echo count($sql_results).' results';
+            }
+?>
             <div class="card">
             <table id="sql-results">
                 <?php
