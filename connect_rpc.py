@@ -69,7 +69,8 @@ def get_dict_bot_accounts():
                                  "tw_channel_out":line[6],
                                  "tb_channel_out":line[7],
                                  "tb_channel_end":line[8],
-                                 "guildName":line[9]}
+                                 "guildName":line[9],
+                                 "tbFightEstimationType":line[10]}
 
     return ret_dict
 
