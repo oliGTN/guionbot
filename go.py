@@ -198,7 +198,7 @@ async def refresh_cache():
 # return: err_code, err_text, dict_player
 ##################################
 async def load_player(ac_or_id, force_update, no_db, load_roster=True):
-    goutils.log2("DBG", "START")
+    goutils.log2("DBG", "START: "+ ac_or_id)
 
     #get playerId from allyCode:
     if len(ac_or_id) == 9:
@@ -268,6 +268,8 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
         #Add mandatory elements to compute stats
         # Stats only computed if the roster is included
         if load_roster:
+            if not "rosterUnit" in dict_player_list:
+                dict_player_list["rosterUnit"] = []
             for unit in dict_player_list["rosterUnit"]:
                 if not "equipment" in unit:
                     unit["equipment"] = []
@@ -4232,9 +4234,12 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
 
 async def print_tb_status(guild_id, targets_zone_stars, force_update, 
                           simulated_tb=None,
-                          estimate_fights=False, estimate_platoons=False,
+                          estimate_fights=False, 
+                          estimate_platoons=False,
                           fight_estimation_type=0,
-                          targets_platoons=None, allyCode=None):
+                          targets_platoons=None, 
+                          prev_round=None, 
+                          allyCode=None):
     dict_tb = godata.get("tb_definition.json")
 
     ec, et, tb_data = await connect_rpc.get_tb_status(
@@ -4244,6 +4249,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
                                 compute_estimated_fights=estimate_fights,
                                 fight_estimation_type=fight_estimation_type,
                                 targets_platoons=targets_platoons, 
+                                prev_round=prev_round, 
                                 allyCode=allyCode)
     if ec!=0:
         return 1, et, None
@@ -4364,7 +4370,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
         ret_print_tb_status += "Unused deployment mix: "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
     ret_print_tb_status += "----------------------------\n"
 
-    return 0, ret_print_tb_status, list_images
+    return 0, ret_print_tb_status, {"images": list_images, "prev_round": tb_data}
 
 def draw_score_zone(zone_img_draw, start_score, delta_score, max_score, color, position):
     goutils.log2("DBG", "draw_score_zone("+str(start_score)+", "+str(delta_score)+", "+str(max_score)+")")

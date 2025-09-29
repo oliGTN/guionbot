@@ -140,6 +140,13 @@ for tb in game_data["territoryBattleDefinition"]:
 
         dict_tb[zone_id]["strikes"] = {}
         dict_tb[zone_id]["coverts"] = {}
+        dict_tb[zone_id]["unlocks"] = []
+
+        # get the unlocked zones
+        if "unlockRequirement" in c["zoneDefinition"][0]:
+            for reqItem in c["zoneDefinition"][0]["unlockRequirement"]["requirementItem"]:
+                if "id" in reqItem and reqItem["id"] in dict_tb:
+                    dict_tb[reqItem["id"]]["unlocks"].append(zone_id)
 
     for s in tb["strikeZoneDefinition"]:
         #print(s)

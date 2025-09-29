@@ -3948,28 +3948,17 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
                  "go.tbs DS:1/LS:3/MS:2 [-estime] [-pelotons]\n" \
                  "go.tbs DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0\n" \
-                 "go.tbs simu=ROTE DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0")
+                 "go.tbs -simu=ROTE DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0")
     async def tbs(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
 
-            # Manage command parameters
+            # Manage unique command parameters
             options = list(args)
-            estimate_fights = False
-            estimate_platoons = False
-            targets_platoons = None
             simulated_tb = None
             output_channel = ctx.message.channel
             for arg in args:
-                if arg.startswith("-e"):
-                    estimate_fights = True
-                    options.remove(arg)
-                elif arg.startswith("-p"):
-                    estimate_platoons = True
-                    if "=" in arg:
-                        targets_platoons = arg.split('=')[1]
-                    options.remove(arg)
-                elif arg.startswith("-s"):
+                if arg.startswith("-s"):
                     if "=" in arg:
                         simulated_tb = arg.split('=')[1]
                     options.remove(arg)
@@ -3982,10 +3971,43 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                         display_mentions=False
                     options.remove(arg)
 
-            if len(options) == 0:
-                tb_phase_target = ""
-            else:
-                tb_phase_target = options[0]
+            #Then split remaining arguments by "+" as phase separator
+            remaining_options = " ".join(options)
+            all_phase_option_txt = remaining_options.split("+")
+            list_phase_options = []
+            for phase_option_txt in all_phase_option_txt:
+                my_option_txt = phase_option_txt.strip()
+                while '\n' in my_option_txt:
+                    my_option_txt.replace('\n', ' ')
+                while '  ' in my_option_txt:
+                    my_option_txt.replace('  ', ' ')
+                phase_args = my_option_txt.split(' ')
+
+                estimate_fights = False
+                estimate_platoons = False
+                platoon_targets = None
+                phase_options = list(phase_args)
+                for arg in phase_args:
+                    if arg.startswith("-e"):
+                        estimate_fights = True
+                        phase_options.remove(arg)
+                    elif arg.startswith("-p"):
+                        estimate_platoons = True
+                        if "=" in arg:
+                            platoon_targets = arg.split('=')[1]
+                        phase_options.remove(arg)
+
+                if len(phase_options) == 0:
+                    star_targets = ""
+                else:
+                    star_targets = phase_options[0]
+
+                d_phase_options={"estimate_fights": estimate_fights,
+                                 "estimate_platoons": estimate_platoons,
+                                 "platoon_targets": platoon_targets,
+                                 "star_targets": star_targets}
+
+                list_phase_options.append(d_phase_options)
 
             #Ensure command is launched from a server, not a DM
             if ctx.guild == None:
@@ -4004,34 +4026,47 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
             fight_estimation_type = bot_infos["tbFightEstimationType"]
 
-            # Main call
-            err_code, ret_txt, images = await go.print_tb_status(
-                                            guild_id, tb_phase_target, 0,
-                                            simulated_tb=simulated_tb,
-                                            estimate_fights=estimate_fights,
-                                            estimate_platoons=estimate_platoons,
-                                            fight_estimation_type=fight_estimation_type,
-                                            targets_platoons=targets_platoons,
-                                            allyCode=connected_allyCode)
+            # Loop by phase
+            prev_round = None
+            for phase_options in list_phase_options:
+                star_targets = phase_options["star_targets"]
+                estimate_fights = phase_options["estimate_fights"]
+                estimate_platoons = phase_options["estimate_platoons"]
+                platoon_targets = phase_options["platoon_targets"]
 
-            if err_code == 0:
-                for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                    await output_channel.send(txt)
+                # Main call
+                err_code, ret_txt, ret_data = await go.print_tb_status(
+                                                guild_id, star_targets, 0,
+                                                simulated_tb=simulated_tb,
+                                                estimate_fights=estimate_fights,
+                                                estimate_platoons=estimate_platoons,
+                                                targets_platoons=platoon_targets,
+                                                fight_estimation_type=fight_estimation_type,
+                                                prev_round = prev_round,
+                                                allyCode=connected_allyCode)
 
-                if images != None:
-                    for image in images:
-                        with BytesIO() as image_binary:
-                            image.save(image_binary, 'PNG')
-                            image_binary.seek(0)
-                            await output_channel.send(content = "",
-                                file=File(fp=image_binary, filename='image.png'))
+                if err_code == 0:
+                    images = ret_data["images"]
+                    prev_round = ret_data["prev_round"]
+                    for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                        await output_channel.send(txt)
 
-                #Icône de confirmation de fin de commande dans le message d'origine
-                await ctx.message.add_reaction(emojis.check)
+                    if images != None:
+                        for image in images:
+                            with BytesIO() as image_binary:
+                                image.save(image_binary, 'PNG')
+                                image_binary.seek(0)
+                                await output_channel.send(content = "",
+                                    file=File(fp=image_binary, filename='image.png'))
 
-            else:
-                await ctx.send(ret_txt)
-                await ctx.message.add_reaction(emojis.redcross)
+                else:
+                    await ctx.send(ret_txt)
+                    await ctx.message.add_reaction(emojis.redcross)
+                    break
+
+            #Icône de confirmation de fin de commande dans le message d'origine
+            await ctx.message.add_reaction(emojis.check)
+
         except Exception as e:
             goutils.log2("ERR", str(sys.exc_info()[0]))
             goutils.log2("ERR", e)

@@ -363,13 +363,15 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             for tb_status in dict_guild["territoryBattleStatus"]:
                 if tb_status["selected"]:
                     tb_id = tb_status["instanceId"]
-                    tb_channel = tb_status["channelId"]
-                    list_channels.append(tb_channel)
+                    if "channelId" in tb_status:
+                        tb_channel = tb_status["channelId"]
+                        list_channels.append(tb_channel)
 
                     for conflict_zone in tb_status["conflictZoneStatus"]:
                         if conflict_zone["zoneStatus"]["zoneState"] != "ZONELOCKED":
-                            zone_channel = conflict_zone["zoneStatus"]["channelId"]
-                            list_channels.append(zone_channel)
+                            if "channelId" in conflict_zone["zoneStatus"]:
+                                zone_channel = conflict_zone["zoneStatus"]["channelId"]
+                                list_channels.append(zone_channel)
 
         if len(list_channels)>0:
             # RPC REQUEST for TB events
@@ -1333,6 +1335,44 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None):
 
     return 0, "", {"lines_player": lines_player, "round_endTime": dict_phase["round_endTime"], "total": total}
 
+def add_fake_tb_zone(battleStatus, zone_id, score, zoneState):
+    dict_tb = godata.get("tb_definition.json")
+
+    zoneStatus = {"zoneStatus": {
+                    "zoneId": zone_id,
+                    "zoneState": zoneState,
+                    "score": score}
+                 }
+    battleStatus["conflictZoneStatus"].append(zoneStatus)
+
+    #Add strike zones
+    for strike_id in dict_tb[zone_id]["strikes"]: #'strike02'
+        strikeStatus = {"playersParticipated": 0,
+                        "zoneStatus": {
+                            "zoneId": zone_id+"_"+strike_id,
+                            "zoneState": zoneState,
+                            "score": 0}
+                       }
+        battleStatus["strikeZoneStatus"].append(strikeStatus)
+
+    #Add covert zones
+    for covert_id in dict_tb[zone_id]["coverts"]: #'covert02'
+        covertStatus = {"playersParticipated": 0,
+                        "zoneStatus": {
+                            "zoneId": zone_id+"_"+covert_id,
+                            "zoneState": zoneState,
+                            "score": 0}
+                       }
+        battleStatus["covertZoneStatus"].append(covertStatus)
+
+    #Add platoon zone
+    reconStatus = {"zoneStatus": {
+                       "zoneId": zone_id+"_recon01",
+                       "zoneState": zoneState},
+                   "platoon": []
+                  }
+    battleStatus["reconZoneStatus"].append(reconStatus)
+
 ##############################################################
 async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         simulated_tb=None,
@@ -1342,7 +1382,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         targets_platoons=None, allyCode=None,
                         my_tb_round=None, my_list_open_zones=None,
                         dict_guild=None, dict_TBmapstats=None,
-                        dict_all_events=None):
+                        dict_all_events=None,
+                        prev_round=None):
     global prev_dict_guild
     global prev_mapstats
 
@@ -1399,40 +1440,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         #Add conflit zones
         for conflict_id in ['01', '02', '03']:
             zone_id = zone_prefix+"_phase01_conflict"+conflict_id
-            zoneStatus = {"zoneStatus": {
-                            "zoneId": zone_id,
-                            "zoneState": "ZONEOPEN",
-                            "score": 0}
-                         }
-            battleStatus["conflictZoneStatus"].append(zoneStatus)
+            if not zone_id in dict_tb:
+                continue
 
-            #Add strike zones
-            for strike_id in dict_tb[zone_id]["strikes"]: #'strike02'
-                strikeStatus = {"playersParticipated": 0,
-                                "zoneStatus": {
-                                    "zoneId": zone_id+"_"+strike_id,
-                                    "zoneState": "ZONEOPEN",
-                                    "score": 0}
-                               }
-                battleStatus["strikeZoneStatus"].append(strikeStatus)
-
-            #Add covert zones
-            for covert_id in dict_tb[zone_id]["coverts"]: #'covert02'
-                covertStatus = {"playersParticipated": 0,
-                                "zoneStatus": {
-                                    "zoneId": zone_id+"_"+covert_id,
-                                    "zoneState": "ZONEOPEN",
-                                    "score": 0}
-                               }
-                battleStatus["covertZoneStatus"].append(covertStatus)
-
-            #Add platoon zone
-            reconStatus = {"zoneStatus": {
-                               "zoneId": zone_id+"_recon01",
-                               "zoneState": "ZONEOPEN"},
-                           "platoon": []
-                          }
-            battleStatus["reconZoneStatus"].append(reconStatus)
+            add_fake_tb_zone(battleStatus, zone_id, 0, "ZONEOPEN")
 
         #Add fake data to dict_guild
         dict_guild["territoryBattleStatus"]=[battleStatus]
@@ -1440,6 +1451,69 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         #Initialize empty list of events
         dict_events={}
 
+    elif prev_round!=None:
+        #simulated_tb simulates a blank TB from scratch, so it cannot have a previous zones
+        # those 2 objects simulate a TB already started, to get to the next day
+
+        dict_phase = prev_round["phase"]
+        list_open_zones = prev_round["open_zones"]
+        dict_zones = prev_round["zones"]
+        tb_ongoing = True
+        battle_id = dict_phase["id"]
+        tb_startTime = int(battle_id.split(':')[1][1:])
+        tb_type = dict_phase["type"]
+
+        #1- increase round and Initialize fake battleStatus
+        tb_round = dict_phase["round"]+1
+        tb_round_endTime = dict_phase["round_endTime"]+dict_tb[tb_type]["phaseDuration"]
+        battleStatus = {"instanceId": battle_id,
+                        "definitionId": tb_type,
+                        "conflictZoneStatus": [],
+                        "strikeZoneStatus": [],
+                        "covertZoneStatus": [],
+                        "reconZoneStatus": [],
+                        "currentRound": tb_round,
+                        "currentStat": {},
+                        "selected": True}
+
+        #2- transform estimations into reality
+        for zone_id in dict_zones:
+            score = dict_zones[zone_id]["score"]
+            if "remainingPlatoonScore" in dict_zones[zone_id]:
+                remainingPlatoonScore = dict_zones[zone_id]["remainingPlatoonScore"]
+            else:
+                remainingPlatoonScore = 0
+            if "estimatedStrikeScore" in dict_zones[zone_id]:
+                estimatedStrikeScore = dict_zones[zone_id]["estimatedStrikeScore"]
+            else:
+                estimatedStrikeScore = 0
+            if "deployment" in dict_zones[zone_id]:
+                deployment = dict_zones[zone_id]["deployment"]
+            else:
+                deployment = 0
+            end_score = score+remainingPlatoonScore+estimatedStrikeScore+deployment
+
+            if "estimatedStars" in dict_zones[zone_id]:
+                end_stars = dict_zones[zone_id]["estimatedStars"]
+            else:
+                end_stars = dict_zones[zone_id]["completed_stars"]
+
+            if zone_id in list_open_zones:
+                if end_stars>0:
+                    zoneState = "ZONECOMPLETE"
+
+                    for unlocked_zone_id in dict_tb[zone_id]["unlocks"]:
+                        add_fake_tb_zone(battleStatus, unlocked_zone_id, 0, "ZONEOPEN")
+                else:
+                    zoneState = "ZONEOPEN"
+            else:
+                zoneState = "ZONECOMPLETE"
+
+            add_fake_tb_zone(battleStatus, zone_id, end_score, zoneState)
+
+
+        #Initialize empty list of events
+        dict_events={}
 
     elif "territoryBattleStatus" in dict_guild:
         for battleStatus in dict_guild["territoryBattleStatus"]:
@@ -2142,7 +2216,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     if compute_estimated_fights and fight_estimation_type == 1:
         # Get estimated strike count and score from past TBs
-        query = "SELECT zone_id, min(score), min(c) FROM "\
+        query = "SELECT zone_id, AVG(score), AVG(c) FROM "\
                 "( "\
                 "SELECT tb_id, zone_id, round, sum(param0) AS score, count(param0) AS c FROM  "\
                 "( "\
