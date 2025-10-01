@@ -2886,6 +2886,7 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
         return 1, "Plus rien à déployer"
 
     # Launch the actual command
+    """
     process_cmd_list = ["/home/pi/GuionBot/warstats/deploy_tb.sh", txt_allyCode, zone_param]+list_unit_ids
     goutils.log2("DBG", process_cmd_list)
     process = subprocess_run(process_cmd_list)
@@ -2899,6 +2900,37 @@ async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
             return 1, "Erreur en déployant en TB - incohérence des ordres de zone (ouvert / bloqué), essayez avec le territoire ouvert"
         elif process.returncode != 0:
             return 1, "Erreur en déployant en TB - code="+str(process.returncode)
+    """
+
+    # RPC REQUEST for platoonsTB
+    url = "http://localhost:8000/deployTB"
+    params = {"allyCode": txt_allyCode,
+              "tb_id": tb_id,
+              "zone_id": zone_id,
+              "cmd_state": knownCommandState,
+              "unit_ids": list_unit_ids}
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "POST deployTB status="+str(resp.status))
+                if resp.status==200:
+                    #normale case
+                    resp_json = await(resp.json())
+                elif resp.status==201:
+                    return 1, "ERR: rien à déployer"
+                else:
+                    return 1, "Erreur en déployant les unités en BT - code="+str(resp.status)
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+
+    if resp_json!=None and "err_code" in resp_json:
+        return 1, resp_json["err_txt"], None
 
     return 0, "Déploiement OK de "+str(len(list_unit_ids))+" unités en " + zone_id
 

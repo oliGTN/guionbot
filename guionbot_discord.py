@@ -3621,33 +3621,39 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Déploie le warbot en BT",
             help="Déploie des persos en BT")
     async def botdeploytb(self, ctx, zone, characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
 
-        guild_id = bot_infos["guild_id"]
-        txt_allyCode = str(bot_infos["allyCode"])
+            guild_id = bot_infos["guild_id"]
+            txt_allyCode = str(bot_infos["allyCode"])
 
-        # Launch the actual command
-        ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, characters)
-        if ec != 0:
+            # Launch the actual command
+            ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, characters)
+            if ec != 0:
+                await ctx.send(et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
             await ctx.send(et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
+            await ctx.message.add_reaction(emojis.check)
 
-        await ctx.send(et)
-        await ctx.message.add_reaction(emojis.check)
+        except Exception as e:
+            goutils.log2("ERR", str(sys.exc_info()[0]))
+            goutils.log2("ERR", e)
+            goutils.log2("ERR", traceback.format_exc())
 
     @commands.check(officer_command)
     @commands.command(name='tbrappel',

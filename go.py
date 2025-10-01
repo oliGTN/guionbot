@@ -4659,7 +4659,10 @@ async def deploy_tb(guild_id, txt_allyCode, zone_shortname, characters):
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
     dict_tb = godata.get("tb_definition.json")
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1)
+    ec, et, tb_data = await connect_rpc.get_tb_status(
+                                guild_id, "", -1,
+                                dict_all_events=[], #set to prevent long and useless code
+                                dict_TBmapstats=[]) #set to prevent long and useless code
     if ec!=0:
         return 1, et
 
