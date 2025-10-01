@@ -2858,8 +2858,35 @@ class TbCog(commands.GroupCog, name="bt"):
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
+    # Function used to get BT open zones, not forbidden
+    async def list_allowed_tb_open_zones(self, interaction: discord.Interaction, current: str):
+        try:
+            user_id = interaction.channel.id
+
+            query = "SELECT SUBSTRING_INDEX(zone_name, '-', -1) FROM tb_zones "\
+                    "JOIN tb_history ON tb_history.id = tb_zones.tb_id AND tb_history.current_round=tb_zones.round "\
+                    "JOIN players ON players.guildId=tb_history.guild_id "\
+                    "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode " \
+                    "WHERE channel_id="+str(user_id)+" "\
+                    "AND CURRENT_TIMESTAMP < timestampadd(DAY, 6, start_date) "\
+                    "AND cmdCmd<>3 "\
+                    "ORDER BY lower(name)"
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_column(query)
+            if db_data==None:
+                return []
+            else:
+                open_zones = [app_commands.Choice(name=value, value=value) 
+                              for value in db_data if current.lower() in value.lower()]
+                return open_zones
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
     @app_commands.command(name="déploie")
     @app_commands.rename(list_alias_txt="liste-persos")
+    @app_commands.autocomplete(zone=list_allowed_tb_open_zones)
     async def deploy_tb(self, interaction: discord.Interaction,
                         zone: str="",
                         list_alias_txt: str=""):
