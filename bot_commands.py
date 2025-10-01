@@ -999,3 +999,32 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
 
     await command_ok(ctx_interaction, resp_msg, et)
 
+###############################
+async def deploy_tb(ctx_interaction, zone, list_alias_txt):
+    resp_msg = await command_ack(ctx_interaction)
+
+    if type(ctx_interaction) == Interaction:
+        channel_id = ctx_interaction.channel_id
+    else: #Context
+        channel_id = ctx_interaction.message.channel.id
+
+    #get bot or player config from DB
+    ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, channel_id)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot ou une connexion EA pour utiliser cette commande")
+        return
+
+    guild_id = bot_infos["guild_id"]
+    txt_allyCode = str(bot_infos["allyCode"])
+
+    goutils.log2("INFO", "bt.déploie("+txt_allyCode+")")
+
+    #Run the function
+    ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, list_alias_txt)
+
+    if ec != 0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    await command_ok(ctx_interaction, resp_msg, et)
+

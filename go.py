@@ -4646,15 +4646,19 @@ def get_tw_player_def(fevents_name, player_name):
 #
 # This function extracts the unit IDs and sends the list to the RPC function
 ##############################
-async def deploy_tb(guild_id, txt_allyCode, zone_shortname, characters):
+async def deploy_tb(guild_id, txt_allyCode, zone_shortname, list_character_txt):
     dict_unitsList = godata.get("unitsList_dict.json")
 
-    #Manage request for all characters
-    if characters == 'all':
+    #Manage request for all list_character_txt
+    if list_character_txt == 'all':
         list_character_ids=list(dict_unitsList.keys())
     else:
         #specific list of characters for one player
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([characters])
+        list_character_txt = list_character_txt.strip()
+        while '  ' in list_character_txt:
+            list_character_txt.replace('  ', ' ')
+        list_characters = list_character_txt.split(' ')
+        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_characters)
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 

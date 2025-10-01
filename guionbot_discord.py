@@ -2858,6 +2858,17 @@ class TbCog(commands.GroupCog, name="bt"):
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
+    @app_commands.command(name="déploie")
+    @app_commands.rename(list_alias_txt="liste-persos")
+    async def deploy_tb(self, interaction: discord.Interaction,
+                        zone: str="",
+                        list_alias_txt: str=""):
+        try:
+            await bot_commands.deploy_tb(interaction, zone, list_alias_txt)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
 # Class: ModsCog - for Google accounts
@@ -3581,46 +3592,6 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                       brief="Précédente défense GT pour le warbot",
                       help="Affiche les défenses de la dernière fois, pour aider à poser des teams en défense GT pour le warbot")
     async def lastbotdeftw(self, ctx):
-        await ctx.message.add_reaction(emojis.thumb)
-
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-        txt_allyCode = str(bot_infos["allyCode"])
-
-        # Launch the actual command
-        ec, et = await go.get_previous_tw_defense(txt_allyCode, guild_id, "go.bot.deftw {0} {1}")
-        if ec != 0:
-            await ctx.send(et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        txt_lines = et.split('\n')
-        for txt_line in txt_lines:
-            if txt_line.strip() != "":
-                await ctx.send(txt_line)
-        await ctx.message.add_reaction(emojis.check)
-
-    #######################################################
-    # Deploy the toon(s) represented by caracters in the zone in TB
-    # IN: zone (DS, LS, DS or top, mid, bot)
-    # IN: characters ("ugnaught" or "tag:s:all" or "all" or "tag:darkside")
-    #######################################################
-    @commands.command(name='bot.deploytb',
-            brief="Déploie le warbot en BT",
-            help="Déploie des persos en BT")
-    async def botdeploytb(self, ctx, zone, characters):
         try:
             await ctx.message.add_reaction(emojis.thumb)
 
@@ -3641,19 +3612,39 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             txt_allyCode = str(bot_infos["allyCode"])
 
             # Launch the actual command
-            ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, characters)
+            ec, et = await go.get_previous_tw_defense(txt_allyCode, guild_id, "go.bot.deftw {0} {1}")
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            await ctx.send(et)
+            txt_lines = et.split('\n')
+            for txt_line in txt_lines:
+                if txt_line.strip() != "":
+                    await ctx.send(txt_line)
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
+
+    #######################################################
+    # Deploy the toon(s) represented by caracters in the zone in TB
+    # IN: zone (DS, LS, DS or top, mid, bot)
+    # IN: list_alias_txt ("ugnaught JTR" or "tag:s:all" or "all" or "tag:darkside")
+    #######################################################
+    @commands.command(name='bot.deploytb',
+            brief="Déploie le warbot en BT",
+            help="Déploie des persos en BT")
+    async def botdeploytb(self, ctx, zone, list_alias_txt):
+        try:
+            await bot_commands.deploy_tb(ctx, zone, list_alias_txt)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
 
     @commands.check(officer_command)
     @commands.command(name='tbrappel',
@@ -3733,9 +3724,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
 
     #######################################################
     # twrappel: creates a reminder for players not enough active in TW
