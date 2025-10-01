@@ -203,7 +203,7 @@ for x in game_data["category"]:
             and not tag_id.startswith("specialmission_") \
             and not tag_name == "Placeholder":
 
-            print(tag_id, tag_name)
+            #print(tag_id, tag_name)
             if tag_id in dict_tags_by_id:
                 if not tag_name in dict_tags_by_id[tag_id]:
                     dict_tags_by_id[tag_id].append(tag_name)
