@@ -2216,7 +2216,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     if compute_estimated_fights and fight_estimation_type == 1:
         # Get estimated strike count and score from past TBs
-        query = "SELECT zone_id, AVG(score), AVG(c) FROM "\
+        query = "SELECT zone_id, ROUND(AVG(score),0), ROUND(AVG(c),0) FROM "\
                 "( "\
                 "SELECT tb_id, zone_id, round, sum(param0) AS score, count(param0) AS c FROM  "\
                 "( "\
@@ -2284,7 +2284,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
         if compute_estimated_fights:
             dict_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
-            dict_zones[zone_name]["estimatedStrikeScore"] = estimated_strike_score
+            dict_zones[zone_name]["estimatedStrikeScore"] = int(estimated_strike_score)
 
             if fight_estimation_type == 1 and zone_name in dict_zone_estimates:
                 #adapt fight estimations to past TBs, if the zone has been played
