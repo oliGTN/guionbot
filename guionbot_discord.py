@@ -3019,6 +3019,18 @@ class ModsCog(commands.GroupCog, name="mods"):
             while "" in list_alias:
                 list_alias.remove("")
 
+            #Check if conf already exists
+            query = "SELECT id FROM mod_config_list " \
+                    "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
+                    "WHERE channel_id="+str(channel_id)+" "\
+                    "AND name='"+conf_name+"'"
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_column(query)
+            if len(db_data) > 0:
+                user_choice = await bot_commands.confirmationPrompt(interaction, "Voulez-vous écrasez la conf "+conf_name+" ?")
+                if user_choice == False:
+                    await interaction.edit_original_response(content=emojis.redcross+" enregistrement annulé")
+
             #Run the function
             ec, et = await manage_mods.create_mod_config(conf_name, txt_allyCode, list_alias)
 

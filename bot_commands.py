@@ -1,7 +1,9 @@
 # PACKAGE imports
 from discord.ext import tasks, commands
-from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
+from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors, Embed
 from discord import app_commands, Interaction
+from discord import ui as discord_ui
+from discord import ButtonStyle
 from io import BytesIO
 import re
 import difflib
@@ -23,6 +25,8 @@ import data
 import emojis
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 
+######################################
+# basic functions mixinx ctx and interactions
 async def command_ack(ctx_interaction):
     msg = None
     if type(ctx_interaction) == commands.Context:
@@ -127,7 +131,6 @@ async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
         else:
             print("OK "+new_txt)
 
-
 async def send_message(ctx_interaction, output_txt, images=None, files=None):
     attachments = []
 
@@ -150,9 +153,34 @@ async def send_message(ctx_interaction, output_txt, images=None, files=None):
         for attachment in attachments:
             print(attachment)
 
+##############################################################
+# interaction specifics
+class ConfirmationButtons(discord_ui.View):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.confirmed: bool = False
+
+    @discord_ui.button(label = emojis.check, style = ButtonStyle.blurple)
+    async def returnTrue(self, interaction: Interaction, button: discord_ui.Button):
+        self.confirmed = True
+        await interaction.response.defer()
+        self.stop()
+
+    @discord_ui.button(label = emojis.redcross, style = ButtonStyle.blurple)
+    async def returnFalse(self, interaction: Interaction, button: discord_ui.Button):
+        await interaction.response.defer()
+        self.stop()
+
+async def confirmationPrompt(interaction: Interaction, confirmation_prompt: str) -> bool:
+    view = ConfirmationButtons()
+    await interaction.edit_original_response(content=confirmation_prompt, view=view)
+    await view.wait()
+    await interaction.edit_original_response(content="En cours...", view=None)
+    return view.confirmed
 
 
 ##############################################################
+# actual bot commands
 async def gdp(ctx_interaction, allyCode):
     resp_msg = await command_ack(ctx_interaction)
 
