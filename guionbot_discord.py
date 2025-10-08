@@ -1863,6 +1863,9 @@ async def on_message(message):
                                             tbs_round=tb_name+str(eb_phase)
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
 
+    except discord.errors.NotFound as e:
+        # original message deleted, no beed to try answering or reacting
+        pass
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())
         if not bot_test_mode:
@@ -5377,6 +5380,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emojis.redcross)
 
+        except discord.errors.NotFound as e:
+            # original message deleted, no beed to try answering or reacting
+            pass
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
@@ -5427,6 +5433,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.send(ret_cmd)
                 await ctx.message.add_reaction(emojis.redcross)
 
+        except discord.errors.NotFound as e:
+            # original message deleted, no beed to try answering or reacting
+            pass
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             if not bot_test_mode:
