@@ -3011,6 +3011,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             txt_allyCode = str(bot_infos["allyCode"])
+            conf_name = conf_name.strip()
 
             goutils.log2("INFO", "mods.save_conf("+txt_allyCode+", conf_name="+conf_name+", persos="+list_alias_txt+")")
 
@@ -3020,10 +3021,10 @@ class ModsCog(commands.GroupCog, name="mods"):
                 list_alias.remove("")
 
             #Check if conf already exists
-            query = "SELECT id FROM mod_config_list " \
+            query = "SELECT name FROM mod_config_list " \
                     "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
                     "WHERE channel_id="+str(channel_id)+" "\
-                    "AND name='"+conf_name+"'"
+                    "AND lower(name)='"+conf_name.lower()+"'"
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_column(query)
             if len(db_data) > 0:
