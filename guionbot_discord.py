@@ -4046,7 +4046,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
-            guild_ticket_time_txt = datetime.datetime.fromtimestamp(int(guild_ticket_time/1000)).strftime("le %d/%m/%Y à %H:%M")
+            guild_ticket_time_txt = datetime.datetime.fromtimestamp(guild_ticket_time).strftime("le %d/%m/%Y à %H:%M")
             output_txt = "Pensez à faire vos tickets avant "+guild_ticket_time_txt+" svp\n"
 
             if len(list_players) > 0 :
