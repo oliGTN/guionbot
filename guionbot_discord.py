@@ -3979,6 +3979,97 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
+    #######################################################
+    # ticketsrappel: creates a reminder for players without required tickets
+    # IN (optional): channel ID to post the reminder, with discord tags
+    #######################################################
+    @commands.check(officer_command)
+    @commands.command(name='ticketsrappel',
+            brief="Tag les joueurs qui n'ont pas fait leurs tickets",
+            help="go.raidrappel     > tag les joueurs sous 600 par défaut\n" \
+                 "go.raidrappel 450 > tag les joueurs sous 450 tickets")
+    async def ticketsrappel(self, ctx, *args):
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
+
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #Sortie sur un autre channel si donné en paramètre
+            args = list(args)
+            output_channel = ctx.message.channel
+            use_tags = False
+            for arg in args:
+                if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                    use_tags = True
+                    if output_channel == None:
+                        await ctx.send('**ERR**: '+err_msg)
+                        output_channel = ctx.message.channel
+                        use_tags = True
+                    args.remove(arg)
+
+            required_tickets=600
+            if len(args) == 1:
+                required_tickets=int(args[0])
+                if required_tickets<0:
+                    required_tickets=0
+                if required_tickets>600:
+                    required_tickets=600
+            elif len(args) != 0:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help ticketsrappel")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
+
+            # Launch the actual command
+            ec, et, list_players, guild_ticket_time = await go.get_ticket_reminder(
+                                                         guild_id, 
+                                                         required_tickets, 
+                                                         allyCode=connected_allyCode)
+
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
+            guild_ticket_time_txt = datetime.datetime.fromtimestamp(int(guild_ticket_time/1000)).strftime("le %d/%m/%Y à %H:%M")
+            output_txt = "Pensez à faire vos tickets avant "+guild_ticket_time_txt+" svp"
+
+            if len(list_players) > 0 :
+                for p in sorted(list_players, key=lambda x:x["name"].lower()):
+                    if use_tags and p["name"] in dict_players_by_IG:
+                        p_name = dict_players_by_IG[p["name"]][1]
+                    else:
+                        p_name= p["name"]
+
+                    output_txt += p_name+" : "+str(p["tickets"])+"/"+str(required_tickets)+"\n"
+            else:
+                output_txt += "Tout le monde a fait ses tickets\n"
+
+            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                await output_channel.send(txt)
+
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
+
     ####################################################
     # Command tbs
     ####################################################

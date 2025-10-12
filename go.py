@@ -6731,3 +6731,25 @@ async def update_tw_from_guild(dict_guild):
               opp_guild_name, score, opp_score,
               homeGuild, awayGuild)
 
+
+async def get_ticket_reminder(guild_id, required_tickets, allyCode=None):
+    err_code, err_txt, rpc_data = await connect_rpc.get_guild_rpc_data(guild_id, None, 1, allyCode=allyCode)
+    if err_code!=0:
+        return 1, err_txt, None, None
+
+    guild = rpc_data[0]
+
+    list_players = []
+    for member in guild["member"]:
+        name = member["playerName"]
+        tickets = 0
+        for contrib in member["memberContribution"]:
+            if contrib["type"] == "TRIBUTE":
+                tickets = int(contrib["currentValue"])
+
+        if tickets < required_tickets:
+            list_players.append({"name":name, "tickets":tickets})
+
+    guild_ticket_time = int(guild["nextChallengesRefresh"])
+
+    return 0, "", list_players, guild_ticket_time
