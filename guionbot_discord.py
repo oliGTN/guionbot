@@ -4077,9 +4077,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.command(name='tbs',
             brief="Statut de la BT",
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
-                 "go.tbs DS:1/LS:3/MS:2 [-estime] [-pelotons]\n" \
-                 "go.tbs DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0\n" \
-                 "go.tbs -simu=ROTE DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0")
+                 "go.tbs DS:1/LS:3/MS:2 -e -p (combats estimés, pelotons prévus)\n" \
+                 "go.tbs DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0 (combats estimés, 6 pelotons en DS, 4 en MS)\n" \
+                 "go.tbs -simu=ROTE DS:1/LS:3/MS:2 -e=DS:55%/MS:70%/LS:60% -p=DS:6/MS:4/LS:0 (simulation de TB de type ROTE)")
     async def tbs(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -4116,11 +4116,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
                 estimate_fights = False
                 estimate_platoons = False
+                estimate_targets = None
                 platoon_targets = None
                 phase_options = list(phase_args)
                 for arg in phase_args:
                     if arg.startswith("-e"):
                         estimate_fights = True
+                        if "=" in arg:
+                            estimate_targets = arg.split('=')[1]
                         phase_options.remove(arg)
                     elif arg.startswith("-p"):
                         estimate_platoons = True
@@ -4135,6 +4138,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
                 d_phase_options={"estimate_fights": estimate_fights,
                                  "estimate_platoons": estimate_platoons,
+                                 "estimate_targets": estimate_targets,
                                  "platoon_targets": platoon_targets,
                                  "star_targets": star_targets}
 
@@ -4163,6 +4167,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 star_targets = phase_options["star_targets"]
                 estimate_fights = phase_options["estimate_fights"]
                 estimate_platoons = phase_options["estimate_platoons"]
+                estimate_targets = phase_options["estimate_targets"]
                 platoon_targets = phase_options["platoon_targets"]
 
                 # Main call
@@ -4171,6 +4176,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                                 simulated_tb=simulated_tb,
                                                 estimate_fights=estimate_fights,
                                                 estimate_platoons=estimate_platoons,
+                                                targets_fights=estimate_targets,
                                                 targets_platoons=platoon_targets,
                                                 fight_estimation_type=fight_estimation_type,
                                                 prev_round = prev_round,

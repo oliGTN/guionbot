@@ -4238,6 +4238,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
                           estimate_platoons=False,
                           fight_estimation_type=0,
                           targets_platoons=None, 
+                          targets_fights=None, 
                           prev_round=None, 
                           allyCode=None):
     dict_tb = godata.get("tb_definition.json")
@@ -4248,6 +4249,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
                                 compute_estimated_platoons=estimate_platoons,
                                 compute_estimated_fights=estimate_fights,
                                 fight_estimation_type=fight_estimation_type,
+                                targets_fights=targets_fights, 
                                 targets_platoons=targets_platoons, 
                                 prev_round=prev_round, 
                                 allyCode=allyCode)

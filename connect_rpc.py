@@ -1379,7 +1379,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         compute_estimated_platoons=False,
                         compute_estimated_fights=True,
                         fight_estimation_type=0,
-                        targets_platoons=None, allyCode=None,
+                        targets_fights=None,
+                        targets_platoons=None, 
+                        allyCode=None,
                         my_tb_round=None, my_list_open_zones=None,
                         dict_guild=None, dict_TBmapstats=None,
                         dict_all_events=None,
@@ -2214,7 +2216,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     # 2- estimated fights
     #####################################################
 
-    if compute_estimated_fights and fight_estimation_type == 1:
+    if compute_estimated_fights and fight_estimation_type==1 and targets_fights==None:
         # Get estimated strike count and score from past TBs
         query = "SELECT zone_id, ROUND(AVG(score),0), ROUND(AVG(c),0) FROM "\
                 "( "\
@@ -2238,6 +2240,55 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_zone_estimates = {}
         for line in db_data:
             dict_zone_estimates[line[0]] = [line[1], line[2]]
+
+    elif targets_fights != None:
+        dict_zone_estimates = {}
+
+        #Parse targets in % for fights
+        for target_fight in targets_fights.split("/"):
+            if not ":" in target_fight:
+                return 1, target_fight + " --> chaque objectif de score de combat doit être de la forme <zone>:<%> (ex: MS:60%)", None
+
+            # get and check target zone name
+            target_zone_shortname = target_fight.split(":")[0]
+
+            zone_found = False
+            list_zone_names = []
+            for zone_name in list_open_zones:
+                list_zone_names.append(dict_tb[zone_name]["name"])
+                if dict_tb[zone_name]["name"].endswith("-"+target_zone_shortname):
+                    target_zone_name = dict_tb[zone_name]["name"]
+                    zone_found = True
+                    break
+
+            if not zone_found:
+                return 1, target_fight+" --> zone inconnue: " + target_zone_shortname + " " + str(list_zone_names), None
+
+            target_zone_percent_txt = target_fight.split(":")[1]
+            if not target_zone_percent_txt[-1]=='%':
+                return 1, target_fight + " --> chaque objectif de score de combat doit être de la forme <zone>:<%> (ex: MS:60%)", None
+
+            target_zone_percent_value_txt = target_zone_percent_txt[:-1]
+            print(target_zone_percent_value_txt)
+            if not target_zone_percent_value_txt.isnumeric():
+                return 1, target_fight + " --> chaque objectif de score de combat doit être de la forme <zone>:<%> (ex: MS:60%)", None
+
+            target_zone_percent_value = float(target_zone_percent_value_txt)
+            if target_zone_percent_value<0:
+                target_zone_percent_value = 0.0
+            if target_zone_percent_value>100:
+                target_zone_percent_value = 100.0
+
+            #Estimate zone score
+            dict_zone_estimates[zone_name] = [0, 0] #score, count
+            guild_players = len(dict_tb_players)
+            for strike_id in dict_tb[zone_name]["strikes"]:
+                strike = dict_tb[zone_name]["strikes"][strike_id]
+                dict_zone_estimates[zone_name][0] += int(target_zone_percent_value/100*strike[1]*guild_players)
+                dict_zone_estimates[zone_name][1] += int(target_zone_percent_value/100*strike[0]*guild_players)
+
+        print(dict_zone_estimates)
+
 
     #compute zone stats apart for deployments
     for zone_name in list_open_zones:
