@@ -3934,7 +3934,19 @@ def get_gv_graph(txt_allyCodes, farm_list):
             date_days = [(x-epoch).days for x in list_dates_progressing]
 
             #extrapolation to get value from day
-            fit = np.polyfit(date_days, list_values_progressing, 2)
+            if len(date_days) == 1:
+                #Single point, easy extrapolation
+                fit = np.polyfit(date_days, list_values_progressing, 0)
+                #transform into 2-deg polynomial with 0.0 as 1st coef
+                fit = np.insert(fit, 0, 0.0)
+                fit = np.insert(fit, 0, 0.0)
+            elif len(date_days) == 2:
+                #Two points, linear extrapolation only
+                fit = np.polyfit(date_days, list_values_progressing, 1)
+                #transform into 2-deg polynomial with 0.0 as 1st coef
+                fit = np.insert(fit, 0, 0.0)
+            else:
+                fit = np.polyfit(date_days, list_values_progressing, 2)
 
             #extrapolate the date when the value will reach 100
             cur_date = max(list_dates_progressing)
