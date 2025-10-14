@@ -1864,7 +1864,7 @@ async def on_message(message):
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
 
     except discord.errors.NotFound as e:
-        # original message deleted, no beed to try answering or reacting
+        # original message deleted, no need to try answering or reacting
         pass
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())
@@ -5478,7 +5478,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.redcross)
 
         except discord.errors.NotFound as e:
-            # original message deleted, no beed to try answering or reacting
+            # original message deleted, no need to try answering or reacting
             pass
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
@@ -5531,7 +5531,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.redcross)
 
         except discord.errors.NotFound as e:
-            # original message deleted, no beed to try answering or reacting
+            # original message deleted, no need to try answering or reacting
             pass
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
@@ -5829,47 +5829,56 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.ggv me FARM\n"\
                       "Exemple: go.ggv 123456789 JMK")
     async def ggv(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+            allyCode = await manage_me(ctx, allyCode, False)
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        if len(characters) == 0:
-            characters = ["all"]
-
-        if type(allyCode)==str:
-            allyCodes = [allyCode]
-        else:
-            allyCodes = allyCode
-
-        for allyCode in allyCodes:
-            #First run a GVJ to ensure at least one result
-            err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
-            if err_code != 0:
-                await ctx.send(ret_cmd)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
-        
-        #Seoncd, display the graph
-        err_code, err_txt, image = go.get_gv_graph( allyCodes, characters)
-        if err_code != 0:
-            await ctx.send(err_txt)
+
+            if len(characters) == 0:
+                characters = ["all"]
+
+            if type(allyCode)==str:
+                allyCodes = [allyCode]
+            else:
+                allyCodes = allyCode
+
+            for allyCode in allyCodes:
+                #First run a GVJ to ensure at least one result
+                err_code, ret_cmd = await go.print_gvj( characters, allyCode, 1)
+                if err_code != 0:
+                    await ctx.send(ret_cmd)
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+            
+            #Seoncd, display the graph
+            err_code, err_txt, image = go.get_gv_graph( allyCodes, characters)
+            if err_code != 0:
+                await ctx.send(err_txt)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #Display the output image
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(content = "",
+                    file=File(fp=image_binary, filename='image.png'))
+
+            await ctx.message.add_reaction(emojis.check)
+            
+        except discord.errors.NotFound as e:
+            # original message deleted, no need to try answering or reacting
+            pass
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.ggv"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        #Display the output image
-        with BytesIO() as image_binary:
-            image.save(image_binary, 'PNG')
-            image_binary.seek(0)
-            await ctx.send(content = "",
-                file=File(fp=image_binary, filename='image.png'))
-
-        await ctx.message.add_reaction(emojis.check)
-        
 
     ##############################################################
     # Command: graphj
@@ -6077,8 +6086,22 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
                 #get real unit names
                 dict_units = data.get("unitsList_dict.json")
+                dict_stat_names = {
+                        "sd": "degSpe",
+                        "cd": "degCrit",
+                        "pd": "degPhys",
+                        "protec": "protec",
+                        "health": "santé",
+                        "speed": "vitesse",
+                        "tenacity": "ténacité",
+                        "cc": "critChance",
+                        "potency": "pouvoir"}
                 filtered_list = [x for x in list_statq if (list_unit_id==None or x[0] in list_unit_id)]
-                list_with_char_names = [[dict_units[x[0]]["name"]]+list(x[1:]) for x in filtered_list]
+                list_with_char_names = [
+                        [dict_units[x[0]]["name"]]
+                        +[dict_stat_names[x[1]]]
+                        +list(x[2:]) 
+                        for x in filtered_list]
                 if sort_option == "name":
                     list_statq_with_names = sorted(list_with_char_names)
                 else: #score
@@ -6106,6 +6129,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         first_msg=False
                     else:
                         await ctx.send('```' + txt + '```')
+
+                #Create image from table
+                ec, et, image = portraits.get_image_from_texttable(t.draw())
+                with BytesIO() as image_binary:
+                    image.save(image_binary, 'PNG')
+                    image_binary.seek(0)
+                    await ctx.send(file=File(fp=image_binary, filename='image.png'))
 
                 if list_unit_id==None:
                     await ctx.send("StatQ = "+str(round(statq, 2)))
