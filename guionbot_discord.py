@@ -6095,6 +6095,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         "speed": "vitesse",
                         "tenacity": "ténacité",
                         "cc": "critChance",
+                        "armor": "armure",
                         "potency": "pouvoir"}
                 filtered_list = [x for x in list_statq if (list_unit_id==None or x[0] in list_unit_id)]
                 list_with_char_names = [
