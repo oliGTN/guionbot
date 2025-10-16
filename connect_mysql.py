@@ -1728,15 +1728,6 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
 # Update tb_events table from list of events
 # list_events my be actually a dictionary
 async def store_tb_events(guild_id, tb_id, list_events):
-    # Get timestamp for latest registered event in DB
-    query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tb_events"
-    goutils.log2("DBG", query)
-    db_data = get_value(query)
-    if db_data==None:
-        max_ts=0
-    else:
-        max_ts = int(db_data*1000)
-
     # Get the DB tb_id from the game tb_id and the guild_id
     query = "SELECT id FROM tb_history WHERE tb_id='"+tb_id+"' AND guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
@@ -1749,9 +1740,6 @@ async def store_tb_events(guild_id, tb_id, list_events):
             event = list_events[event_id]
 
         event_ts = int(event["timestamp"]) # to prevent values like 1737416568.6330001
-        if event_ts <= max_ts:
-            #goutils.log2("DBG", str(event_ts)+" < "+str(max_ts))
-            continue
 
         author_id = event["authorId"]
         data=event["data"][0]
@@ -1764,7 +1752,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
             param2 = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
             param3 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
 
-            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id, param0, param2, param3) "\
                     "VALUES("+str(tb_db_id)+", "\
                     "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
@@ -1781,7 +1769,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
             zone_data = activity["zoneData"]
             zone_id = zone_data["zoneId"]
 
-            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id) "\
                     "VALUES("+str(tb_db_id)+", "\
                     "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
@@ -1796,7 +1784,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
             zone_id = zone_data["zoneId"]
             param0 = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
 
-            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id, param0) "\
                     "VALUES("+str(tb_db_id)+", "\
                     "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
@@ -1814,7 +1802,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
             param2 = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
             param3 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
 
-            query = "INSERT INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
+            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
                     "author_id, param0, param2, param3) "\
                     "VALUES("+str(tb_db_id)+", "\
                     "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
@@ -2133,17 +2121,6 @@ async def store_tw_events(guild_id, tw_id, list_events):
         # TW not registered yet, wait for next time
         return
 
-    # Get timestamp for latest registered event of this TW id in DB
-    query = "SELECT UNIX_TIMESTAMP(MAX(timestamp)) FROM tw_events "\
-            "WHERE tw_id="+str(tw_db_id)
-    goutils.log2("DBG", query)
-    db_data = get_value(query)
-    if db_data==None:
-        max_ts=0
-    else:
-        max_ts = int(db_data*1000)
-    goutils.log2("DBG", max_ts)
-
     for event in list_events:
         #Manage the case where list_events is a dict
         if type(event)==str:
@@ -2151,9 +2128,6 @@ async def store_tw_events(guild_id, tw_id, list_events):
             event = list_events[event_id]
 
         event_ts = int(event["timestamp"]) # to prevent values like 1737416568.6330001
-        if event_ts <= max_ts:
-            #goutils.log2("DBG", str(event_ts)+" <= "+str(max_ts))
-            continue
 
         author_id = event["authorId"]
         data=event["data"][0]
@@ -2167,7 +2141,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                 leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
                 squad_size = len(activity["warSquad"]["squad"]["cell"])
 
-                query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+                query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id, squad_leader) "\
                         "VALUES("+str(tw_db_id)+", "\
                         "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
@@ -2195,7 +2169,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     if cell["unitState"]["turnPercent"] != "0":
                         remaining_tm=True
 
-                query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+                query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id, squad_player_id, squad_leader, "\
                         "squad_size, squad_dead, squad_tm) "\
                         "VALUES("+str(tw_db_id)+", "\
@@ -2213,7 +2187,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                 simple_execute(query)
 
             else: # no squad, only squad_id
-                query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+                query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id) "\
                         "VALUES("+str(tw_db_id)+", "\
                         "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
@@ -2231,7 +2205,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
             scoreDelta = activity["zoneData"]["scoreDelta"]
             scoreTotal = activity["zoneData"]["scoreTotal"]
 
-            query = "INSERT INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
+            query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                     "author_id, scoreDelta, scoreTotal) "\
                     "VALUES("+str(tw_db_id)+", "\
                     "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
