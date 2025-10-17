@@ -487,7 +487,7 @@ async def send_alert_to_echocommanders(guild_id, message):
         if tbRoleOut != "":
             server = bot.get_guild(server_id)
             if server == None:
-                goutils.log2("WAR", "server "+str(server_id)+" not found > cannot send allert to echocommanders")
+                goutils.log2("WAR", "server "+str(server_id)+" not found > cannot send alert to echocommanders")
             else:
                 for role in server.roles:
                     if role.name == tbRoleOut:
@@ -501,7 +501,7 @@ async def send_alert_to_echocommanders(guild_id, message):
 ##############################################################
 # Function: get_eb_allocation
 # Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
-# Purpose: lit le channel #bateilles de territoire pour retouver
+# Purpose: lit le channel #batailles de territoire pour retouver
 #          l'affectation des pelotons par Echobot
 # Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
 ##############################################################
@@ -682,9 +682,9 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     message_lines = message.content.split("\n")
 
                     first_line = message_lines[0]
-                    # TEMPORARY solution until EB displays the phase again
-                    #eb_phase = first_line[-2]
-                    eb_phase = tbs_round[-1]
+                    # this line is under format
+                    ## "Overview - P5 (4/M4/4)"
+                    eb_phase = first_line.split('(')[0].strip()[0]
 
                     goutils.log2("INFO", "EB Overview line: "+message_lines[0])
 
@@ -3450,7 +3450,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             #get bot config from DB
             ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
-                await ctx.send('ERR: '+et)
+                await ctx.send(et)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
