@@ -685,7 +685,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     first_line = message_lines[0]
                     # this line is under format
                     ## "Overview - P5 (4/M4/4)"
-                    eb_phase = first_line.split('(')[0].strip()[0]
+                    eb_phase = first_line.split('(')[0].strip()[-1]
 
                     goutils.log2("INFO", "EB Overview line: "+message_lines[0])
 
