@@ -13,7 +13,8 @@ import difflib
 import re
 import discord
 from discord.ext import tasks, commands
-from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors
+from discord import Activity, ActivityType, Intents, File, DMChannel, MessageReference
+from discord import errors as discorderrors
 from discord import app_commands
 from io import BytesIO
 import requests
@@ -780,6 +781,93 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
 
     return 0, "", {"phase": eb_phase,
                    "dict_platoons_allocation": dict_platoons_allocation}
+
+async def allocate_platoons_from_eb_DM(message):
+    #Load DATA
+    dict_tb = data.get("tb_definition.json")
+    dict_units = data.get("unitsList_dict.json")
+    ENG_US = data.get("ENG_US.json")
+
+    FRE_char_names = []
+    ENG_char_names = {}
+    for unit_id in dict_units:
+        unit = dict_units[unit_id]
+        FRE_char_names.append(unit["name"])
+        ENG_char_names[ENG_US[unit["nameKey"]]] = unit["name"]
+
+    snapshot = message.message_snapshots[0]
+
+    #detect author and associated allyCode
+    player_name = ''
+    for embed in snapshot.embeds:
+        dict_embed = embed.to_dict()
+        if "description" in dict_embed:
+            player_name = dict_embed["description"][2:-2]
+            break
+
+    msg_author_id = message.author.id
+    query = "SELECT player_discord.allyCode FROM player_discord "\
+            "JOIN players ON players.allyCode=player_discord.allyCode "\
+            "WHERE discord_id="+str(msg_author_id)+" " \
+            "AND name='"+player_name+"'"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_column(query)
+    if db_data==None or len(db_data)!=1:
+        goutils.log2("WAR", "Impossible to one single player for ID "+str(msg_author_id)+" and playerName "+player_name)
+        await message.channel.send("Utilisateur <@"+str(msg_author_id)+"> inconnu pour le joueur "+player_name)
+        return
+
+    txt_allyCode = str(db_data[0])
+
+    dict_allocations = {}
+    territory_name_position = ''
+    for embed in snapshot.embeds:
+        dict_embed = embed.to_dict()
+        #print(dict_embed)
+        if 'fields' in dict_embed:
+            for field in dict_embed["fields"]:
+                if field["value"].startswith('```fix\n'):
+                    #Zone name
+                    ret_re = re.search('```fix\n(.*) \((.*)\)\n```', field["value"])
+                    territory_name = ret_re.group(1) #Kashyyk, Zeffo, Hangar...
+                    if not territory_name in dict_tb["zone_names"]:
+                        goutils.log2("WAR", "Impossible to read EB forwadred DM due to unknown zone '"+territory_name+"'")
+                        await message.channel.send("Zone inconnue "+territory_name)
+                        return
+
+                    territory_name_position = dict_tb["zone_names"][territory_name]
+                    #print(field["value"], territory_name_position)
+
+                elif field["value"].startswith(':arrow_right:'):
+                    #character name(s)
+
+                    #first get the platoon position
+                    platoon_position = field["name"][-1]
+
+                    #Then read the characters
+                    for value_line in field["value"].split('\n'):
+                        ret_re = re.search(':arrow_right: \*(.*)\*', value_line)
+                        char_name = ret_re.group(1)
+                        #print(value_line, char_name)
+
+                        #the name may be in English
+                        if char_name in FRE_char_names:
+                            pass
+                        elif char_name in ENG_char_names:
+                            char_name = ENG_char_names[char_name]
+                        else:
+                            goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
+                            await message.channel.send("Unité inconnue "+char_name)
+                            char_name = ''
+                        if territory_name_position!='' and char_name!='':
+                            await message.channel.send("Allocation de "+char_name+" en "+territory_name_position+"-"+platoon_position+" pour le joueur "+txt_allyCode)
+
+    await message.channel.send("Note : la connexion au bot n'est pas encore implémentée... à suivre")
+
+
+
+
+
 
 ###############
 #OUT: 0 = OK / 1 = detect_previous_BT / 2 = unknown name
@@ -1770,6 +1858,34 @@ async def on_message(message):
     try:
         if isinstance(message.channel, DMChannel):
             channel_name = "DM"
+
+            if message.reference!=None \
+                and type(message.reference==MessageReference) \
+                and message.message_snapshots!=None \
+                and len(message.message_snapshots)==1:
+
+                #This is a forwarded message, by DM, to the bot
+                snapshot = message.message_snapshots[0]
+                #print(snapshot.embeds)
+                if snapshot.embeds!=None and len(snapshot.embeds)>0:
+                    author_url = ''
+                    for embed in snapshot.embeds:
+                        dict_embed = embed.to_dict()
+                        if "author" in dict_embed \
+                            and "url" in dict_embed["author"]:
+
+                            author_url = dict_embed["author"]["url"]
+
+                    if author_url.startswith('https://echobase.app'):
+                        #This is a forward from Echostation
+                        # Read then apply platoon allocations
+
+                        await allocate_platoons_from_eb_DM(message)
+
+                        return
+
+
+
         else:
             channel_name = message.guild.name+"/"+message.channel.name
 
@@ -1999,7 +2115,7 @@ async def store_wookiebot_raid_estimates(message):
         return
 
     cmd_name = cmd_interaction.name
-    print(cmd_name)
+    #print(cmd_name)
     if cmd_name == "raid guild":
         for attachment in message.attachments:
             goutils.log2("DBG", "Reading attachment...")
