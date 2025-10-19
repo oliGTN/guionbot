@@ -6065,21 +6065,47 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
         tb_id = guild["territoryBattleStatus"][0]["instanceId"]
         tb_type = tb_id.split(":")[0]
 
+    #transform into dict
+    d_current_mapstats = {}
+    for ms in current_mapstats:
+        ms_id = ms["mapStatId"]
+        d_current_mapstats[ms_id] = {"mapStatId": ms_id,
+                                     "playerStat": {}}
+        if "playerStat" in ms:
+            for m in ms["playerStat"]:
+                m_id = m["memberId"]
+                d_current_mapstats[ms_id]["playerStat"][m_id] = {"memberId": m_id,
+                                                                 "score": [int(m["score"])]}
+
     # Get previous TB mapstats
     stored_events = os.listdir("EVENTS/")
     filename_begin = guild_id+"_"+tb_type
     stored_guild_mapstats = [x for x in stored_events if x.startswith(filename_begin) 
                                                          and x.endswith("_mapstats.json")
                                                          and not tb_id in x]
-    if len(stored_guild_mapstats)==0:
-        previous_mapstats = {}
-    else:
-        prev_mapstats_file = sorted(stored_guild_mapstats, 
-                                    key=lambda x: x.split(":")[1].split("_")[0])[-1]
-        try:
-            previous_mapstats = json.load(open("EVENTS/"+prev_mapstats_file))
-        except json.decoder.JSONDecodeError as e:
-            previous_mapstats = {}
+    sorted_guild_mapstats = sorted(stored_guild_mapstats, 
+                                key=lambda x: x.split(":")[1].split("_")[0])
+
+    d_previous_mapstats = {}
+    ms_count = min(len(sorted_guild_mapstats), 3)
+
+    d_previous_mapstats = {}
+    for i_ms in range(ms_count):
+        prev_mapstats_file = sorted_guild_mapstats[-i_ms-1]
+        list_prev_mapstats = json.load(open("EVENTS/"+prev_mapstats_file))
+        for ms in list_prev_mapstats:
+            ms_id = ms["mapStatId"]
+            if not ms_id in d_previous_mapstats:
+                d_previous_mapstats[ms_id] = {"mapStatId": ms_id,
+                                              "playerStat": {}}
+            if "playerStat" in ms:
+                for m in ms["playerStat"]:
+                    m_id = m["memberId"]
+                    if not m_id in d_previous_mapstats[ms_id]["playerStat"]:
+                        d_previous_mapstats[ms_id]["playerStat"][m_id] = {"memberId": m_id,
+                                                                          "score": []}
+                    d_previous_mapstats[ms_id]["playerStat"][m_id]["score"].append(int(m["score"]))
+
 
     # Get member list id/name
     dict_members = {}
@@ -6115,20 +6141,23 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
             attempt_id = "strike_attempt_round_"+tb_round
             score_id = "summary_round_"+tb_round
 
-        for [tag, mapstats] in [["current", current_mapstats], ["previous", previous_mapstats]]:
-            for ms in mapstats:
-                if ms["mapStatId"] in [encounter_id, attempt_id, score_id]:
+        for [tag, mapstats] in [["current", d_current_mapstats], 
+                                ["previous", d_previous_mapstats]]:
+            for ms_id in [encounter_id, attempt_id, score_id]:
+                if ms_id in mapstats:
+                    ms = mapstats[ms_id]
                     if not "playerStat" in ms:
                         continue
-                    for p in ms["playerStat"]:
-                        if p["memberId"] in dict_members:
-                            p_name = dict_members[p["memberId"]]['name']
-                            p_gp = dict_members[p["memberId"]]['gp']
+                    for p_id in ms["playerStat"]:
+                        p = ms["playerStat"][p_id]
+                        if p_id in dict_members:
+                            p_name = dict_members[p_id]['name']
+                            p_gp = dict_members[p_id]['gp']
                         else:
                             continue
                         if not p_name in dict_stats:
                             dict_stats[p_name] = {"current": {}, "previous": {}, "gp": p_gp}
-                        dict_stats[p_name][tag][ms["mapStatId"]] = int(p["score"])
+                        dict_stats[p_name][tag][ms["mapStatId"]] = round(sum(p["score"])/len(p["score"]), 1)
 
     list_stats = []
     list_colors = []
@@ -6221,7 +6250,7 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
             ratio_score = round(cur_score/dict_stats[p]["gp"], 1)
             short_score = round(cur_score/1000000, 1)
 
-            if len(previous_mapstats) > 0:
+            if len(d_previous_mapstats) > 0:
                 line_stats = [tb_round, p, str(cur_strikes).rjust(3)+" ("+percent_strikes+")",
                                  str(cur_waves).rjust(3)+" ("+percent_waves+")",
                                  str(short_score).rjust(5)+"M ("+str(ratio_score)+")"]
