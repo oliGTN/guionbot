@@ -68,6 +68,15 @@ def transform_mod_list_to_dict(dict_player):
             mod_slot = mod_list[mod_defId]["slot"]
             dict_player["rosterUnit"][unit_id]["equippedStatMod"][mod_slot] = mod_id
 
+####################################
+# IN: dict_player (from go.load_player)
+# IN (optional): initialdata (from connect_rpc.get_player_initialdata)
+# OUT: dict_player_mods = {mod_id: {"id":
+#                                   "definitionId":
+#                                   "unit_id":
+#                                   "slot":
+#                                   "rarity":
+#                                   ... and other mod attributes
 def get_dict_player_mods(dict_player, initialdata=None):
     #Get game mod data
     mod_list = godata.get("modList_dict.json")
@@ -113,6 +122,7 @@ def get_dict_player_mods(dict_player, initialdata=None):
 # Manage the global list of mods to ensure not be blocked
 #  by max size inventory
 # One command per unit, listing all the mods to add and all the mods to remove
+# IN: mod_allocations = {'MAGMATROOPER': [{'id': 'hjsfkjfsdksf34', "slot": 5}, ...]}
 ##########################
 async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction, initialdata=None):
     await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...")
@@ -1050,3 +1060,90 @@ async def upgrade_roster_mods(dict_player_mods, target_level, allyCode, is_simu=
         return 0, cost_txt
     else:
         return err_code, err_txt
+
+async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
+    mod_list = godata.get("modList_dict.json")
+    dict_units = godata.get("unitsList_dict.json")
+
+    # Get player data
+    e, t, dict_player = await go.load_player(txt_allyCode, 1, False)
+    if e != 0:
+        return 1, "ERR: "+t, {}
+
+    #Get player API initialdata
+    if initialdata==None:
+        ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
+        if ec!=0:
+            return ec, et, {}
+
+    dict_player_mods = get_dict_player_mods(dict_player, initialdata=initialdata)
+
+    unallocated_mods = {2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
+    for mod_id in dict_player_mods:
+        mod = dict_player_mods[mod_id]
+        if mod["unit_id"] == None:
+            mod_slot = mod["slot"]
+            mod_speed = 0
+            if mod["primaryStat"]["stat"]["unitStatId"]==5:
+                mod_speed = int(mod["primaryStat"]["stat"]["statValueDecimal"])/10000
+            elif "secondaryStat" in mod:
+                for sec_stat in mod["secondaryStat"]:
+                    if sec_stat["stat"]["unitStatId"]==5:
+                        mod_speed = int(sec_stat["stat"]["statValueDecimal"])/10000
+            mod["mod_speed"] = mod_speed
+            unallocated_mods[mod_slot].append(mod)
+
+    #Sort mods by amount of revealed secondary stat, then speed
+    #Best mod is at the start of the list
+    for mod_slot in unallocated_mods:
+        list_mods = unallocated_mods[mod_slot]
+        list_mods.sort(key=lambda x: (-len(x["secondaryStat"]), -x["mod_speed"]))
+        unallocated_mods[mod_slot] = list_mods
+
+    mod_allocations = {} #{'MAGMATROOPER': [{'id': 'hjsfkjfsdksf34', "slot": 5}, ...]}
+    for unit_id in dict_player['rosterUnit']:
+        combatType = dict_units[unit_id]["combatType"]
+        if combatType != 1:
+            continue
+
+        unit = dict_player['rosterUnit'][unit_id]
+        unit_gear = unit["currentTier"]
+
+        #Find empty mod slots for this unit
+        empty_slots = [2, 3, 4, 5, 6, 7]
+        if "equippedStatMod" in unit:
+            for mod in unit["equippedStatMod"]:
+                mod_defId = mod["definitionId"]
+                mod_slot = mod_list[mod_defId]["slot"]
+                empty_slots.remove(mod_slot)
+
+        #Now that we have the empty slots, allocate them
+        for empty_slot in empty_slots:
+            if len(unallocated_mods[empty_slot]) > 0:
+                best_mod_pos = 0
+                best_mod = None
+                mod_found = False
+                while not mod_found:
+                    best_mod = unallocated_mods[empty_slot][best_mod_pos]
+                    if best_mod["rarity"]>5 and unit_gear<12:
+                        # not possible to allocate a gold mod on a char with gear<12
+                        if best_mod_pos+1 == len(unallocated_mods[empty_slot]):
+                            # no more mods, cancel
+                            break
+
+                        # Try the next one
+                        best_mod_pos+=1
+                        continue
+
+                    #Mod is suitable
+                    mod_found = True
+
+                if mod_found:
+                    if not unit_id in mod_allocations:
+                        mod_allocations[unit_id] = []
+                    mod_allocations[unit_id].append({"id": best_mod["id"], "slot": empty_slot})
+                    del unallocated_mods[empty_slot][best_mod_pos]
+
+    return 0, "", {"mod_allocations": mod_allocations,
+                   "rpc_data": {"dict_player": dict_player, 
+                                "initialdata": initialdata} }
