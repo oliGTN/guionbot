@@ -42,6 +42,9 @@ def clean_cache():
         cache_guild_basenames = [x for x in cache_files if x.endswith("_loading.tmp")]
 
         for basename in cache_guild_basenames:
-            os.remove("CACHE"+os.path.sep+basename)
+            try:
+                os.remove("CACHE"+os.path.sep+basename)
+            except FileNotFoundError as e:
+                pass
     else:
         os.mkdir("CACHE")
