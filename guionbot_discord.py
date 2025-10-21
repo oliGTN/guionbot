@@ -2239,7 +2239,7 @@ def officer_command(ctx):
                     "JOIN players ON player_discord.allyCode = players.allyCode " \
                     "WHERE guildId='"+guild_id+"' " \
                     "AND player_discord.discord_id<>'' AND guildMemberLevel>=3 "
-            goutils.log2("DBG", query)
+            goutils.log2("INFO", query)
             db_data = connect_mysql.get_column(query)
             if db_data == None:
                 list_did = []
@@ -2249,7 +2249,7 @@ def officer_command(ctx):
             if ctx.author.id in list_did:
                 is_officer = True
         else:
-            goutils.log2("DBG", et)
+            goutils.log2("INFO", et)
 
 
         # Can have the rights if server admin
