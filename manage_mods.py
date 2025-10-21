@@ -122,15 +122,19 @@ def get_dict_player_mods(dict_player, initialdata=None):
 # Manage the global list of mods to ensure not be blocked
 #  by max size inventory
 # One command per unit, listing all the mods to add and all the mods to remove
-# IN: mod_allocations = {'MAGMATROOPER': [{'id': 'hjsfkjfsdksf34', "slot": 5}, ...]}
+# IN: mod_allocations = ['unit_id': 'MAGMATROOPER', 
+#                        'mods': [{'id': 'hjsfkjfsdksf34', "slot": 5}, ...] ]
 ##########################
-async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction, initialdata=None):
+async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction, 
+                                dict_player=None,
+                                initialdata=None):
     await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...")
 
     # Get player data
-    e, t, dict_player = await go.load_player(allyCode, 1, False)
-    if e != 0:
-        return 1, "ERR: "+t, {}
+    if dict_player==None:
+        e, t, dict_player = await go.load_player(allyCode, 1, False)
+        if e != 0:
+            return 1, "ERR: "+t, {}
 
     #Get player API initialdata
     if initialdata==None:
@@ -1100,7 +1104,9 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
         list_mods.sort(key=lambda x: (-len(x["secondaryStat"]), -x["mod_speed"]))
         unallocated_mods[mod_slot] = list_mods
 
-    mod_allocations = {} #{'MAGMATROOPER': [{'id': 'hjsfkjfsdksf34', "slot": 5}, ...]}
+    # ['unit_id': 'MAGMATROOPER', 
+    #  'mods': [{'id': 'hjsfkjfsdksf34', "slot": 5}, ...] ]
+    mod_allocations = []
     for unit_id in dict_player['rosterUnit']:
         combatType = dict_units[unit_id]["combatType"]
         if combatType != 1:
@@ -1118,6 +1124,7 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
                 empty_slots.remove(mod_slot)
 
         #Now that we have the empty slots, allocate them
+        list_mods = []
         for empty_slot in empty_slots:
             if len(unallocated_mods[empty_slot]) > 0:
                 best_mod_pos = 0
@@ -1139,10 +1146,11 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
                     mod_found = True
 
                 if mod_found:
-                    if not unit_id in mod_allocations:
-                        mod_allocations[unit_id] = []
-                    mod_allocations[unit_id].append({"id": best_mod["id"], "slot": empty_slot})
+                    list_mods.append({"id": best_mod["id"], "slot": empty_slot})
                     del unallocated_mods[empty_slot][best_mod_pos]
+
+        if len(list_mods)>0:
+            mod_allocations.append({"unit_id": unit_id, "mods": list_mods})
 
     return 0, "", {"mod_allocations": mod_allocations,
                    "rpc_data": {"dict_player": dict_player, 

@@ -1060,18 +1060,15 @@ async def deploy_tb(ctx_interaction, zone, list_alias_txt):
 async def allocate_random_mods(ctx_interaction):
     resp_msg = await command_ack(ctx_interaction)
 
-    if connected_allyCode == None:
-        channel_id = ctx_interaction.channel_id
+    channel_id = ctx_interaction.channel_id
 
-        #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_google_player_info(channel_id)
-        if ec!=0:
-            await command_error(ctx_interaction, resp_msg, et)
-            return
-    
-        txt_allyCode = str(bot_infos["allyCode"])
-    else:
-        txt_allyCode = connected_allyCode
+    #get bot config from DB
+    ec, et, bot_infos = connect_mysql.get_google_player_info(channel_id)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    txt_allyCode = str(bot_infos["allyCode"])
 
     goutils.log2("INFO", "mods.allocate_random_mods("+txt_allyCode+")")
 
@@ -1087,26 +1084,29 @@ async def allocate_random_mods(ctx_interaction):
         return
 
     #Get mod allocations
-    ec, et, mod_allocations = await manage_mods.alocate_mods_to_empty_slots(
+    ec, et, ret_data = await manage_mods.allocate_mods_to_empty_slots(
                                         txt_allyCode,
                                         initialdata=initialdata)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         return
 
+    mod_allocations = ret_data["mod_allocations"]
+    print(str(mod_allocations)[:1000], flush=True)
+
     #Apply mod allocations
     ec, et, ret_data = await manage_mods.apply_mod_allocations(
                             mod_allocations,
                             txt_allyCode,
-                            True, #Simu=True [TEMPORARY for TESTS]
+                            False,
                             ctx_interaction,
+                            dict_player=dict_player,
                             initialdata=initialdata)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         return
 
-    ret_txt = emojis.check+" "+ret_data["cost"]
-    await command_ok(ctx_interaction, resp_msg, ret_txt)
+    await command_ok(ctx_interaction, resp_msg, ret_data["cost"])
 
     return
 
