@@ -3356,7 +3356,7 @@ class ModsCog(commands.GroupCog, name="mods"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
-    @app_commands.command(name="pose-random")
+    @app_commands.command(name="pose-inventaire")
     async def allocate_random_mods(self, interaction: discord.Interaction):
         try:
             await bot_commands.allocate_random_mods(interaction)
