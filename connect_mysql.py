@@ -1303,10 +1303,10 @@ def get_warbot_info(server_id, channel_id):
                         "twFulldefDetection, "\
                         "guilds.name, gfile_name, echostation_id, "\
                         "tbFightEstimationType "\
-                        "FROM guild_bot_infos "\
-                        "JOIN players ON players.guildId=guild_bot_infos.guild_id "\
-                        "JOIN guilds ON guilds.id=guild_bot_infos.guild_id "\
-                        "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode "\
+                        "FROM user_bot_infos "\
+                        "JOIN players ON user_bot_infos.allyCode=players.allyCode "\
+                        "JOIN guilds ON guilds.id=players.guildId "\
+                        "LEFT JOIN guild_bot_infos ON players.guildId=guild_bot_infos.guild_id "\
                         "WHERE channel_id="+str(channel_id)
                 goutils.log2("DBG", query)
                 db_data = get_line(query)
