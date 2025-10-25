@@ -5175,7 +5175,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     # Purpose: Donner les infos de base d'unee personne
     # Display: Nom IG, Nom discord, Code allié, statut dans la DB
     #          pareil pour sa guild
-    #          et des liens (swgoh.gg ou warstats)
+    #          et des liens (swgoh.gg)
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='qui',
@@ -5258,18 +5258,6 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             except urllib.error.HTTPError as e:
                 swgohgg_url = "introuvable"
 
-            warstats_url = "https://goh.warstats.net/players/view/" + allyCode
-            try:
-                r = requests.get(warstats_url, timeout=10)
-                if r.status_code == 404:
-                    warstats_url = "introuvable"
-            except requests.exceptions.ReadTimeout as e:
-                warstats_url = "*site indisponible pour le moment*"
-            except requests.exceptions.SSLError as e:
-                warstats_url = "*site indisponible pour le moment*"
-            except urllib.error.HTTPError as e:
-                warstats_url = "introuvable"
-
             txt = "Qui est **"+full_alias+"** ?\n"
             txt+= "- code allié : "+str(allyCode)+"\n"
             txt+= "- pseudo IG : "+player_name+"\n"
@@ -5292,8 +5280,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 txt+= "- pseudo Discord : ???\n"
 
             txt+= "- dernier refresh du bot : "+lastUpdated_txt+"\n"
-            txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">\n"
-            txt+= "- lien WARSTATS : <"+warstats_url + ">"
+            txt+= "- lien SWGOH.GG : <"+swgohgg_url + ">"
 
             await ctx.send(txt)
 
