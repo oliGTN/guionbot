@@ -71,7 +71,6 @@ intents = Intents.all()
 intents.members = True
 intents.presences = True
 intents.message_content = True
-#bot = commands.Bot(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 bot = MyClient(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 
 list_tw_opponent_msgIDs = []
@@ -124,9 +123,10 @@ async def bot_loop_60secs(bot):
                 connect_mysql.simple_execute(query)
 
     #######################################################################
-    #UPDATE RPC data
+    # UPDATE RPC data
     #
-    # update when the time since last update is greater than the period and the time is rounded
+    # Update when the time since last update is greater than the period 
+    # and the time is rounded.
     # (15 min bots are updated only at :00, :15, :30...)
     query = "SELECT guild_id "\
             "FROM guild_bots "\
@@ -1422,8 +1422,13 @@ async def update_rpc_data(guild_id, allyCode=None):
             channel_id = ret_data[logType][0]
             list_logs = sorted(ret_data[logType][1], key=lambda x:x[0])
             if channel_id != 0:
-                output_channel = (bot.get_channel(channel_id) or await bot.fetch_channel(channel_id))
-                if output_channel !=None:
+                try:
+                    output_channel = (bot.get_channel(channel_id) \
+                                     or await bot.fetch_channel(channel_id))
+                except Exception as e:
+                    output_channel = None
+
+                if output_channel!=None:
                     output_txt = ""
                     for line in list_logs:
                         ts = line[0]
@@ -1435,9 +1440,9 @@ async def update_rpc_data(guild_id, allyCode=None):
                         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                             await output_channel.send("`"+txt+"`")
                 else:
-                    err_msg="Error while getting channel for id "+str(channel_id)
-                    goutils.log2("ERR", err_msg)
-                    return 1, err_msg
+                    war_msg="Error while getting channel for id "+str(channel_id)
+                    goutils.log2("WAR", war_msg)
+                    return 0, war_msg
 
     return 0, ""
 
@@ -7191,9 +7196,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 # MAIN EXECUTION
 ##############################################################
 async def main():
-    #Init bot
     global bot_test_mode
     global bot_background_tasks
+    global bot
+
+    #Init bot
     goutils.log2("INFO", "Starting...")
     # Use command-line parameters
     if len(sys.argv) > 1:
@@ -7209,7 +7216,6 @@ async def main():
         if cache_file.endswith(".tmp"):
             os.remove("CACHE/"+cache_file)
     parallel_work.clean_cache()
-
 
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
