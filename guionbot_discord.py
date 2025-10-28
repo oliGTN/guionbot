@@ -3371,6 +3371,25 @@ class ModsCog(commands.GroupCog, name="mods"):
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
+# Class: BronziumCog - for Google accounts
+# Description: one command to open bronzium packs
+##############################################################
+class BronziumCog(commands.GroupCog, name="bronzium"):
+    def __init__(self, bot: commands.Bot) -> None:
+        self.bot = bot
+        super().__init__()
+
+    @app_commands.command(name="ouvrir")
+    @app_commands.rename(quantity="quantité")
+    async def bronzium_open(self, interaction: discord.Interaction, quantity: int):
+        try:
+            await bot_commands.bronzium_open(interaction, quantity)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
+##############################################################
 # Class: AuthCog - for connected accounts
 # Description: contains all slash commands for authentication
 ##############################################################
@@ -7226,6 +7245,7 @@ async def main():
     await bot.add_cog(ModsCog(bot)) #, guilds=[ADMIN_GUILD])
     await bot.add_cog(TbCog(bot)) #, guilds=[ADMIN_GUILD])
     await bot.add_cog(TwCog(bot)) #, guilds=[ADMIN_GUILD])
+    await bot.add_cog(BronziumCog(bot))
     await bot.add_cog(AuthCog(bot)) #, guilds=[ADMIN_GUILD])
 
     if bot_background_tasks:

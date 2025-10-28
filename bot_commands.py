@@ -1,4 +1,5 @@
 # PACKAGE imports
+import asyncio
 from discord.ext import tasks, commands
 from discord import Activity, ActivityType, Intents, File, DMChannel, errors as discorderrors, Embed
 from discord import app_commands, Interaction
@@ -10,6 +11,7 @@ import difflib
 import sys
 import traceback
 from texttable import Texttable
+import time
 
 # BOT imports
 import go
@@ -1107,6 +1109,53 @@ async def allocate_random_mods(ctx_interaction):
         return
 
     await command_ok(ctx_interaction, resp_msg, ret_data["cost"])
+
+    return
+
+#######################################"
+async def bronzium_open(ctx_interaction, quantity):
+    resp_msg = await command_ack(ctx_interaction)
+
+    channel_id = ctx_interaction.channel_id
+
+    #get bot config from DB
+    ec, et, bot_infos = connect_mysql.get_google_player_info(channel_id)
+    if ec!=0:
+        await command_error(ctx_interaction, resp_msg, et)
+        return
+
+    txt_allyCode = str(bot_infos["allyCode"])
+
+    goutils.log2("INFO", "bronzium.open("+txt_allyCode+")")
+
+    #check validity of quantity (N x 250)
+    if quantity%250 != 0:
+        await command_error(ctx_interaction, resp_msg, "La quantité doit être un multiple de 250")
+        return
+
+    #Request pack opening
+    open_count = int(quantity/250)
+    prev_display_time = 0
+    for i in range(open_count):
+
+        ec, et = await connect_rpc.bronzium_open(txt_allyCode)
+        if ec != 0:
+            if ec != 0:
+                err_txt = "Une ouverture de pack a échoué: "+str(et)
+                await command_error(ctx_interaction, resp_msg, err_txt)
+
+        if (time.time()-prev_display_time) > 5:
+            progress_msg = f"Exécution des ouverture de packs : **{i+1} / {open_count}** terminés..."
+            try:
+                # Update the user interaction
+                await command_ok(ctx_interaction, resp_msg, progress_msg, intermediate=True)
+            except Exception as e:
+                # Log or handle exceptions if the interaction update fails (e.g., timeout)
+                goutils.log2("WAR", f"Unable to update discord msg: {e}")
+
+            prev_display_time = time.time()
+
+    await command_ok(ctx_interaction, resp_msg, "Ouverture terminée")
 
     return
 

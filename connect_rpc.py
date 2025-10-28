@@ -3534,3 +3534,31 @@ async def set_zoneOrder(guild_id, map_id,
 
     return 0, ""
 
+async def bronzium_open(txt_allyCode):
+    # prepare actual server request
+    url = "http://localhost:8000/bronzium"
+    params = {"allyCode":txt_allyCode}
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "bronzium status="+str(resp.status))
+                if resp.status==200:
+                    #normale case
+                    rpc_response = await(resp.json())
+                else:
+                    return 1, "Erreur en ouvrant le pack bronzium - "+str(resp.status)
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if rpc_response!=None and "err_code" in rpc_response:
+        err_txt = rpc_response["err_txt"]
+        return 1, "Erreur en ouvrant le pack bronzium - "+err_txt
+
+    return 0, ""
+
