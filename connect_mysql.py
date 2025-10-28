@@ -468,11 +468,12 @@ async def update_player(dict_player):
         # SQUAD and FLEET arenas
         p_arena_char_rank = None
         p_arena_ship_rank = None
-        for arena in dict_player['pvpProfile']:
-            if arena["type"] == "SQUADARENA":
-                p_arena_char_rank = arena["rank"]
-            elif arena["type"] == "FLEETARENA":
-                p_arena_ship_rank = arena["rank"]
+        if "pvpProfile" in dict_player:
+            for arena in dict_player['pvpProfile']:
+                if arena["type"] == "SQUADARENA":
+                    p_arena_char_rank = arena["rank"]
+                elif arena["type"] == "FLEETARENA":
+                    p_arena_ship_rank = arena["rank"]
         p_arena_char_rank_txt = ("NULL" if p_arena_char_rank == None else str(p_arena_char_rank))
         p_arena_ship_rank_txt = ("NULL" if p_arena_ship_rank == None else str(p_arena_ship_rank))
 
