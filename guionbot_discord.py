@@ -860,14 +860,23 @@ async def allocate_platoons_from_eb_DM(message):
                             await message.channel.send("Unité inconnue "+char_name)
                             char_name = ''
                         if territory_name_position!='' and char_name!='':
-                            await message.channel.send("Allocation de "+char_name+" en "+territory_name_position+"-"+platoon_position+" pour le joueur "+txt_allyCode)
+                            platoon_name = territory_name_position+"-"+platoon_position
+                            if not platoon_name in dict_allocations:
+                                dict_allocations[platoon_name] = []
+                            dict_allocations[platoon_name].append(char_name)
 
-    await message.channel.send("Note : la connexion au bot n'est pas encore implémentée... à suivre")
+    allocation_txt = ""
+    for platoon_name in dict_allocations:
+        ec, et = await go.deploy_platoons_tb(txt_allyCode, platoon_name, 
+                                             dict_allocations[platoon_name])
+        if ec == 0:
+            #on n'affiche pas le nom du territoire
+            line_txt += ' '.join(et.split()[:-2])+ " en " + platoon_name + "\n"
+            allocation_txt += line_txt
+        else:
+            await message.channel.send(et)
 
-
-
-
-
+    await message.channel.send(allocation_txt)
 
 ###############
 #OUT: 0 = OK / 1 = detect_previous_BT / 2 = unknown name
