@@ -1063,6 +1063,9 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         full_txt += terr_status[1]+"\n"
     full_txt += "---\n"
 
+    list_info_txt = []
+    list_bot_txt = []
+    required_bot_deployments = {} #key=platoon_name / value=[perso1, perso2...]
     for missing_platoon in sorted(list_missing_platoons, key=lambda x: (x["platoon"][:4], 
                                                                         str(x["player_name"]), 
                                                                         x["platoon"])):
@@ -1091,7 +1094,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 
         #write the displayed text
         if (allocated_player in dict_players_by_IG) and display_mentions:
-            txt = '**' + \
+            line_txt = '**' + \
                   dict_players_by_IG[allocated_player][1] + \
                   '** n\'a pas posé ' + perso + \
                   ' en ' + platoon_name
@@ -1099,30 +1102,29 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             # No player allocated
             #joueur non-enregistré ou mentions non autorisées,
             # on l'affiche quand même
-            txt = 'Aucun joueur n\'a posé ' + perso + \
+            line_txt = 'Aucun joueur n\'a posé ' + perso + \
                   ' en ' + platoon_name
 
             if platoon_locked:
-                txt = "~~" + txt + "~~"
+                line_txt = "~~" + line_txt + "~~"
         else:
             #joueur non-enregistré ou mentions non autorisées,
             # on l'affiche quand même
-            txt = '**' + allocated_player + \
+            line_txt = '**' + allocated_player + \
                   '** n\'a pas posé ' + perso + \
                   ' en ' + platoon_name
 
             if platoon_locked:
-                txt = "~~" + txt + "~~"
+                line_txt = "~~" + line_txt + "~~"
 
         #Pose auto du bot
+        bot_line = False
         if deploy_allyCode!=None and not platoon_locked:
             if allocated_player == player_name:
-                ec, et = await go.deploy_platoons_tb(deploy_allyCode, platoon_name, [perso])
-                if ec == 0:
-                    #on n'affiche pas le nom du territoire
-                    txt += " > " + ' '.join(et.split()[:-2])
-                else:
-                    return ec, et
+                if not platoon_name in required_bot_deployments:
+                    required_bot_deployments[platoon_name] = []
+                required_bot_deployments[platoon_name].append(perso)
+                bot_line = True
 
         phase_num = int(platoon_name.split('-')[0][-1])
         if cur_phase != phase_num:
@@ -1143,9 +1145,24 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             if free_platoons:
                 continue
 
-            full_txt += txt + ' -- *et c\'est trop tard*\n'
+            line_txt += ' -- *et c\'est trop tard*\n'
         else:
-            full_txt += txt + '\n'
+            line_txt += '\n'
+
+        if not bot_line:
+            full_txt += line_txt
+
+    # Deploy the bot required units
+    # They are grouped by platoon to be more efficient
+    for platoon_name in required_bot_deployments:
+        ec, et = await go.deploy_platoons_tb(deploy_allyCode, platoon_name, 
+                                             required_bot_deployments[platoon_name])
+        if ec == 0:
+            #on n'affiche pas le nom du territoire
+            line_txt += ' '.join(et.split()[:-2])+ " en " + platoon_name + "\n"
+            full_txt += line_txt
+        else:
+            return ec, et
 
     if len(list_missing_platoons)>0 or len(list_err)>0:
         for err in sorted(set(list_err)):

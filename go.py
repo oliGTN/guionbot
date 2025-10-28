@@ -4743,15 +4743,14 @@ async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters):
 
 ############################################################
 # transforms aliases into defID and platoon_name into zone Id
-async def deploy_platoons_tb(allyCode, platoon_name, characters):
-    dict_unitsList = godata.get("unitsList_dict.json")
+async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
+    dict_tb = godata.get("tb_definition.json")
 
     #specific list of characters for one player
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
     if txt != '':
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
-    dict_tb = godata.get("tb_definition.json")
     tb_name = platoon_name.split('-')[0][:-1]
     tb_phase = platoon_name.split('-')[0][-1]
     platoon_side = platoon_name.split('-')[1]
@@ -4781,7 +4780,7 @@ async def deploy_platoons_tb(allyCode, platoon_name, characters):
     else:
         platoon_id = "hoth-platoon-"+platoon_position
 
-    ec, txt = await connect_rpc.platoon_tb(str(allyCode), zone_name, platoon_id, list_character_ids)
+    ec, txt = await connect_rpc.platoon_tb(txt_allyCode, zone_name, platoon_id, list_character_ids)
 
     return ec, txt
 
