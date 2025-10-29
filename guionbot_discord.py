@@ -4524,9 +4524,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                File(export_path)])
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
             goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
 
     ####################################################
     # Command tbo

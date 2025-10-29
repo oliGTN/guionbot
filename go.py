@@ -6258,7 +6258,6 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
                 line_stats = [tb_round, p, str(cur_strikes).rjust(3),
                                  str(cur_waves).rjust(3),
                                  str(short_score).rjust(5)+"M ("+str(ratio_score)+")"]
-                list_colors.append("black")
 
             list_stats.append(line_stats)
             if cur_strikes==0:
