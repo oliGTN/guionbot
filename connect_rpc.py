@@ -3084,20 +3084,29 @@ async def deploy_tw(guild_id, txt_allyCode, zone_id, requested_defIds):
 
     return 0, player_name+" a posé "+str(requested_defIds)+" en " + zone_id
 
+################################################
+# IN: zone_id = tb3_mixed_phase03_conflict01
+# IN: platoon_id = tb3-platoon-5
+# IN: requested_defIds = ['HERASYNDULLA', 'MACEWINDU']
+# OUT: err_code = 0 > no/partial/all units deployed
+# OUT: err_code = 1 > error
+################################################
 async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     # get player roster
     # use CACHE data as unit IDs do not change often
     err_code, err_txt, dict_player = await get_player_data(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return 1, "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt
+        return 1, "Erreur en se connectant au compte "+txt_allyCode+": "+err_txt, None
     
     player_name = dict_player["name"]
-    dict_roster = {}
+    dict_roster = {} # this dict may be used with defId or uit ID as a key
     for unit in dict_player["rosterUnit"]:
+        unit_id = unit["id"]
         full_defId = unit["definitionId"]
         defId = full_defId.split(":")[0]
         dict_roster[defId] = unit
+        dict_roster[unit_id] = unit
 
     # get guild tb info, including player deployed units
     # use CACHE data to speed up the command, with the risk that another player deploys
@@ -3105,23 +3114,23 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     err_code, err_txt, dict_guild = await get_guild_data_from_ac(txt_allyCode, False)
     if err_code != 0:
         goutils.log2("ERR", err_txt)
-        return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode
+        return 1, "Erreur en récupérant les infos guilde de "+txt_allyCode, None
 
     if not "territoryBattleStatus" in dict_guild:
-        return 1, "Pas de BT en cours"
+        return 1, "Pas de BT en cours", None
 
     for tb in dict_guild["territoryBattleStatus"]:
         if tb["selected"]:
             break
     tb_id = tb["instanceId"]
 
-    # add the squad id to the unit id
+    # 1/ identify all units that may be deployed in this platoon
     # look for the required unitDefId, in the right zone
-    # then take first occurrence not taken, and allocate the squad
-    list_id_squad = []
-    list_unit_id = []
-    deployed_defIds = []
-    remaining_defIds = requested_defIds.copy()
+    # then take first occurrence not taken,
+    # and remember the squad id
+    toDeploy_defIds = [] # this list is used to check if the unit 
+                         # is already deployed by the player
+    dict_defId_squad = {} #key=defId / value = squad_id
     for reconZone in tb["reconZoneStatus"]:
         if reconZone["zoneStatus"]["zoneId"] != zone_id:
             continue
@@ -3135,23 +3144,33 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                         # unit already taken by a player
                         continue
                     unit_defId = unit["unitIdentifier"].split(':')[0]
-                    if unit_defId in remaining_defIds:
-                        unit_id = dict_roster[unit_defId]["id"]
-                        #list_id_squad.append(unit_id+":"+squad_id) #this format for the command-line RPC
-                        list_id_squad.append([unit_id, squad_id]) # this format for the POST RPC
-                        list_unit_id.append(unit_id)
-                        deployed_defIds.append(unit_defId)
-                        remaining_defIds.remove(unit_defId)
+                    if unit_defId in requested_defIds and not unit_defId in toDeploy_defIds:
+                        toDeploy_defIds.append(unit_id)
+                        dict_defId_squad[unit_defId] = squad_id
 
+    # 2/ then remove units already deployed by the player
     if "playerStatus" in tb:
         if "unitStatus" in tb["playerStatus"]:
             for unit in tb["playerStatus"]["unitStatus"]:
-                if unit["unitId"] in list_unit_id:
-                    return 1, "ERR: "+unit["unitId"]+" est déjà déployé par "+txt_allyCode
+                unit_id = unit["unitId"]
+                if unit_id in dict_roster:
+                    unit_defId = dict_roster[unit_id]["definitionId"].split(':')[0]
+                    if unit_defId in toDeploy_defIds:
+                        toDeploy_defIds.remove(unit_defId)
 
-    if len(list_id_squad) == 0:
-        return 1, "ERR: plus rien à déployer"
+    if len(toDeploy_defIds) == 0:
+        return 0, "", requested_defIds
 
+    notDeployed_defIds = []
+    for unit_defId in requested_defIds:
+        if not unit_defId in toDeploy_defIds:
+            notDeployed_defIds.append(unit_defId)
+
+    list_id_squad = []
+    for unit_defId in toDeploy_defIds:
+        unit_id = dict_roster[unit_defId]["id"]
+        squad_id = dict_defId_squad[unit_defId]
+        list_id_squad.append([unit_id, squad_id])
 
     # RPC REQUEST for platoonsTB
     url = "http://localhost:8000/platoonsTB"
@@ -3169,21 +3188,22 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                     #normale case
                     resp_json = await(resp.json())
                 elif resp.status==201:
-                    return 1, "ERR: rien à déployer"
+                    # rien à déployer
+                    return 0, "", requested_defIds
                 else:
-                    return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status)
+                    return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
 
     except asyncio.exceptions.TimeoutError as e:
-        return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ServerDisconnectedError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
     except aiohttp.client_exceptions.ClientConnectorError as e:
-        return 1, "Erreur lors de la requete RPC, merci de ré-essayer"
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
 
     if resp_json!=None and "err_code" in resp_json:
         return 1, resp_json["err_txt"], None
 
-    return 0, player_name+" a posé "+str(deployed_defIds)+" en " + zone_id
+    return 0, "", notDeployed_defIds
 
 async def update_K1_players():
     url = "http://localhost:8000/leaderboard"

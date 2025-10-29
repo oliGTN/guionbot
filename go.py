@@ -4745,11 +4745,12 @@ async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters):
 # transforms aliases into defID and platoon_name into zone Id
 async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
     dict_tb = godata.get("tb_definition.json")
+    dict_units = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
     list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
     if txt != '':
-        return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
+        return 1, 'impossible de reconnaître ce(s) nom(s) >> '+txt, None
 
     tb_name = platoon_name.split('-')[0][:-1]
     tb_phase = platoon_name.split('-')[0][-1]
@@ -4773,16 +4774,29 @@ async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
             break
 
     if not zone_found:
-        return 1, "zone inconnue: " + platoon_name + " " + str(list_zone_names)
+        return 1, "zone inconnue: " + platoon_name + " " + str(list_zone_names), None
 
     if tb_name == "ROTE":
         platoon_id = "tb3-platoon-"+str(7-int(platoon_position))
     else:
         platoon_id = "hoth-platoon-"+platoon_position
 
-    ec, txt = await connect_rpc.platoon_tb(txt_allyCode, zone_name, platoon_id, list_character_ids)
+    ec, txt, notdeployed = await connect_rpc.platoon_tb(txt_allyCode, zone_name, platoon_id, list_character_ids)
 
-    return ec, txt
+    if ec != 0:
+        return ec, txt, None
+
+    deployed_names = []
+    undeployed_names = []
+    for unit_defId in list_character_ids:
+        unit_name = dict_units[unit_defId]["name"]
+        if unit_defId in notdeployed:
+            undeployed_names.append(unit_name)
+        else:
+            deployed_names.append(unit_name)
+
+    return 0, "", [deployed_names, undeployed_names]
+
 
 ##############################################################
 # print_unit_kit

@@ -819,6 +819,8 @@ async def allocate_platoons_from_eb_DM(message):
 
     txt_allyCode = str(db_data[0])
 
+    await message.channel.send("Lecture des pelotons à poser...")
+
     dict_allocations = {}
     territory_name_position = ''
     for embed in snapshot.embeds:
@@ -867,14 +869,26 @@ async def allocate_platoons_from_eb_DM(message):
 
     allocation_txt = ""
     for platoon_name in dict_allocations:
-        ec, et = await go.deploy_platoons_tb(txt_allyCode, platoon_name, 
-                                             dict_allocations[platoon_name])
+        print(platoon_name)
+        ec, et, ret_data = await go.deploy_platoons_tb(
+                                        txt_allyCode, 
+                                        platoon_name, 
+                                        dict_allocations[platoon_name])
+        print(ec, et, ret_data)
         if ec == 0:
-            #on n'affiche pas le nom du territoire
-            line_txt += ' '.join(et.split()[:-2])+ " en " + platoon_name + "\n"
-            allocation_txt += line_txt
+            deployed_names = ret_data[0]
+            undeployed_names = ret_data[1]
+
+            if len(deployed_names)==0:
+                line_txt = "**"+player_name+"** n'a pas déployé "+str(undeployed_names)+" en " + platoon_name
+            else:
+                line_txt = "**"+player_name+"** a déployé "+str(deployed_names)+" en " + platoon_name
+                if len(undeployed_names)>0:
+                    line_txt += ", mais pas "+str(undeployed_names)
+
+            allocation_txt += line_txt+"\n"
         else:
-            await message.channel.send(et)
+            allocation_txt += et+'\n'
 
     await message.channel.send(allocation_txt)
 
@@ -1164,12 +1178,21 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     # Deploy the bot required units
     # They are grouped by platoon to be more efficient
     for platoon_name in required_bot_deployments:
-        ec, et = await go.deploy_platoons_tb(deploy_allyCode, platoon_name, 
-                                             required_bot_deployments[platoon_name])
+        ec, et, ret_data = await go.deploy_platoons_tb(
+                                        deploy_allyCode, 
+                                        platoon_name, 
+                                        required_bot_deployments[platoon_name])
         if ec == 0:
-            #on n'affiche pas le nom du territoire
-            line_txt += ' '.join(et.split()[:-2])+ " en " + platoon_name + "\n"
-            full_txt += line_txt
+            deployed_names = ret_data[0]
+            undeployed_names = ret_data[1]
+
+            if len(deployed_names)==0:
+                line_txt = "**"+player_name+"** n'a pas déployé "+str(undeployed_names)+" en " + platoon_name
+            else:
+                line_txt = "**"+player_name+"** a déployé "+str(deployed_names)+" en " + platoon_name
+                if len(undeployed_names)>0:
+                    line_txt += ", mais pas "+str(undeployed_names)
+                full_txt += line_txt+"\n"
         else:
             return ec, et
 
