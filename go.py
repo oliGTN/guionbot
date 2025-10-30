@@ -4252,6 +4252,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
                           targets_platoons=None, 
                           targets_fights=None, 
                           prev_round=None, 
+                          ignored_allyCodes=[], 
                           allyCode=None):
     dict_tb = godata.get("tb_definition.json")
 
@@ -4264,6 +4265,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
                                 targets_fights=targets_fights, 
                                 targets_platoons=targets_platoons, 
                                 prev_round=prev_round, 
+                                ignored_allyCodes=ignored_allyCodes,
                                 allyCode=allyCode)
     if ec!=0:
         return 1, et, None
@@ -4382,6 +4384,12 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
         ret_print_tb_status += "Unused deployment squads: "+str(round(remaining_char_deploy/1000000, 1))+"M\n"
     if "mix" in list_deployment_types:
         ret_print_tb_status += "Unused deployment mix: "+str(round(remaining_mix_deploy/1000000, 1))+"M\n"
+    if len(ignored_allyCodes)>0:
+        ac_list_txt = str(tuple(ignored_allyCodes)).replace(',)', ')')
+        query = "SELECT name FROM players WHERE allyCode in "+ac_list_txt
+        goutils.log2("DBG", query)
+        data_db = connect_mysql.get_column(query)
+        ret_print_tb_status += "Ignored players: "+str(data_db)+"\n"
     ret_print_tb_status += "----------------------------\n"
 
     return 0, ret_print_tb_status, {"images": list_images, "prev_round": tb_data}

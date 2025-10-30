@@ -4276,6 +4276,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             brief="Statut de la BT",
             help="Statut de la BT avec les estimations en fonctions des zone:étoiles demandés\n" \
                  "go.tbs DS:1/LS:3/MS:2 -e -p (combats estimés, pelotons prévus)\n" \
+                 "go.tbs -ignore=me/chaton75 (joueurs inactifs à ignorer)\n" \
                  "go.tbs DS:1/LS:3/MS:2 -e -p=DS:6/MS:4/LS:0 (combats estimés, 6 pelotons en DS, 4 en MS)\n" \
                  "go.tbs -simu=ROTE DS:1/LS:3/MS:2 -e=DS:55%/MS:70%/LS:60% -p=DS:6/MS:4/LS:0 (simulation de TB de type ROTE)")
     async def tbs(self, ctx, *args):
@@ -4286,6 +4287,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             options = list(args)
             simulated_tb = None
             output_channel = ctx.message.channel
+            ignored_allyCodes = []
             for arg in args:
                 if arg.startswith("-s"):
                     if "=" in arg:
@@ -4298,6 +4300,20 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                         await ctx.send('**ERR**: '+err_msg)
                         output_channel = ctx.message.channel
                         display_mentions=False
+                    options.remove(arg)
+                elif arg.startswith('-i'):
+                    player_alias_txt = arg.split('=')[1]
+                    ret_data = await manage_me(ctx, player_alias_txt, False)
+
+                    if ret_data[0:3] == 'ERR':
+                        await ctx.send(ret_data)
+                        await ctx.message.add_reaction(emojis.redcross)
+                        return
+
+                    if type(ret_data)==str:
+                        ignored_allyCodes = [ret_data]
+                    else:
+                        ignored_allyCodes = ret_data
                     options.remove(arg)
 
             #Then split remaining arguments by "+" as phase separator
@@ -4378,7 +4394,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                                                 targets_platoons=platoon_targets,
                                                 fight_estimation_type=fight_estimation_type,
                                                 prev_round = prev_round,
-                                                allyCode=connected_allyCode)
+                                                allyCode=connected_allyCode,
+                                                ignored_allyCodes=ignored_allyCodes)
 
                 if err_code == 0:
                     images = ret_data["images"]

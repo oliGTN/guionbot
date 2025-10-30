@@ -1385,7 +1385,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         my_tb_round=None, my_list_open_zones=None,
                         dict_guild=None, dict_TBmapstats=None,
                         dict_all_events=None,
-                        prev_round=None):
+                        prev_round=None,
+                        ignored_allyCodes=[]):
     global prev_dict_guild
     global prev_mapstats
 
@@ -1641,10 +1642,10 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     prev_dict_guild[guild_id] = dict_guild
     prev_mapstats[guild_id] = mapstats
 
-    query = "SELECT name, char_gp, ship_gp, playerId, guildMemberlevel "\
+    query = "SELECT name, char_gp, ship_gp, playerId, guildMemberlevel, allyCode "\
             "FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
     goutils.log2("DBG", query)
-    list_playername_gp_id_role = connect_mysql.get_table(query)
+    db_data = connect_mysql.get_table(query)
 
     dict_tb_players = {}
     dict_strike_zones = {}
@@ -1658,16 +1659,21 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                   "type": tb_type, 
                   "name": dict_tb[tb_type]["name"]}
 
-    for playername_gp_id_role in list_playername_gp_id_role:
-        player_name = playername_gp_id_role[0]
-        player_char_gp = playername_gp_id_role[1]
-        player_ship_gp = playername_gp_id_role[2]
-        player_id = playername_gp_id_role[3]
-        player_role = playername_gp_id_role[4]
+    for db_line in db_data:
+        player_name = db_line[0]
+        player_char_gp = db_line[1]
+        player_ship_gp = db_line[2]
+        player_id = db_line[3]
+        player_role = db_line[4]
+        player_ac = str(db_line[5])
 
         #test if player participates to TB - if joined guild after start of TB
         if not player_id in dict_members_by_id:
             #Player already left
+            continue
+
+        #test if player shall be ignored as requested in command
+        if player_ac in ignored_allyCodes:
             continue
 
         guildJoinTime = int(dict_members_by_id[player_id]["guildJoinTime"]) * 1000
