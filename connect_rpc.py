@@ -3149,6 +3149,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                         dict_defId_squad[unit_defId] = squad_id
 
     # 2/ then remove units already deployed by the player
+    playerUsed_defIds = []
     if "playerStatus" in tb:
         if "unitStatus" in tb["playerStatus"]:
             for unit in tb["playerStatus"]["unitStatus"]:
@@ -3156,15 +3157,18 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                 if unit_id in dict_roster:
                     unit_defId = dict_roster[unit_id]["definitionId"].split(':')[0]
                     if unit_defId in toDeploy_defIds:
+                        playerUsed_defIds.append(unit_defId)
                         toDeploy_defIds.remove(unit_defId)
 
     if len(toDeploy_defIds) == 0:
         return 0, "", requested_defIds
 
-    notDeployed_defIds = []
+    noneedToDeploy_defIds = []
     for unit_defId in requested_defIds:
-        if not unit_defId in toDeploy_defIds:
-            notDeployed_defIds.append(unit_defId)
+        if (not unit_defId in toDeploy_defIds) \
+            and (not unit_defId in playerUsed_defIds):
+
+            noneedToDeploy_defIds.append(unit_defId)
 
     list_id_squad = []
     for unit_defId in toDeploy_defIds:
@@ -3203,7 +3207,9 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     if resp_json!=None and "err_code" in resp_json:
         return 1, resp_json["err_txt"], None
 
-    return 0, "", notDeployed_defIds
+    return 0, "", {"noneedToDeploy_defIds": noneedToDeploy_defIds,
+                   "playerUsed_defIds": playerUsed_defIds,
+                   "deployed_defIds": toDeploy_defIds}
 
 async def update_K1_players():
     url = "http://localhost:8000/leaderboard"

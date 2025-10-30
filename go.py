@@ -4781,18 +4781,21 @@ async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
     else:
         platoon_id = "hoth-platoon-"+platoon_position
 
-    ec, txt, notdeployed = await connect_rpc.platoon_tb(txt_allyCode, zone_name, platoon_id, list_character_ids)
+    ec, txt, ret_data = await connect_rpc.platoon_tb(txt_allyCode, zone_name, platoon_id, list_character_ids)
 
     if ec != 0:
         return ec, txt, None
+
+    playerUsed_defIds = ret_data["playerUsed_defIds"]
+    toDeploy_defIds = ret_data["deployed_defIds"]
 
     deployed_names = []
     undeployed_names = []
     for unit_defId in list_character_ids:
         unit_name = dict_units[unit_defId]["name"]
-        if unit_defId in notdeployed:
+        if unit_defId in playerUsed_defIds:
             undeployed_names.append(unit_name)
-        else:
+        elif unit_defId in toDeploy_defIds:
             deployed_names.append(unit_name)
 
     return 0, "", [deployed_names, undeployed_names]

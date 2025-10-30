@@ -880,11 +880,11 @@ async def allocate_platoons_from_eb_DM(message):
             undeployed_names = ret_data[1]
 
             if len(deployed_names)==0:
-                line_txt = "**"+player_name+"** n'a pas déployé "+str(undeployed_names)+" en " + platoon_name
+                line_txt = "**"+player_name+"** n'a pas pu poser "+str(undeployed_names)+" en " + platoon_name
             else:
-                line_txt = "**"+player_name+"** a déployé "+str(deployed_names)+" en " + platoon_name
+                line_txt = "**"+player_name+"** a posé "+str(deployed_names)+" en " + platoon_name
                 if len(undeployed_names)>0:
-                    line_txt += ", mais pas "+str(undeployed_names)
+                    line_txt += ", mais n'a pas pu poser "+str(undeployed_names)
 
             allocation_txt += line_txt+"\n"
         else:
@@ -1187,12 +1187,13 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             undeployed_names = ret_data[1]
 
             if len(deployed_names)==0:
-                line_txt = "**"+player_name+"** n'a pas déployé "+str(undeployed_names)+" en " + platoon_name
+                line_txt = "**"+player_name+"** n'a pas pu poser "+str(undeployed_names)+" en " + platoon_name
             else:
-                line_txt = "**"+player_name+"** a déployé "+str(deployed_names)+" en " + platoon_name
+                line_txt = "**"+player_name+"** a posé "+str(deployed_names)+" en " + platoon_name
                 if len(undeployed_names)>0:
-                    line_txt += ", mais pas "+str(undeployed_names)
-                full_txt += line_txt+"\n"
+                    line_txt += ", mais n'a pas pu poser "+str(undeployed_names)
+
+            full_txt += line_txt+"\n"
         else:
             return ec, et
 
@@ -2999,13 +3000,13 @@ class TbCog(commands.GroupCog, name="bt"):
             else:
                 #filter deployment lines
                 lines = ret_txt.split("\n")
-                lines = [l for l in lines if "a posé" in l]
+                lines = [l for l in lines if "a posé" in l or "n'a pas pu poser" in l]
                 txt = "\n".join(lines)
 
                 if txt=='':
                     txt = emojis.check+" rien à déployer"
                 else:
-                    txt = emojis.check+" succès des déploiements :\n"+txt
+                    txt = emojis.check+" déploiements effectués :\n"+txt
                 await interaction.edit_original_response(content=txt)
 
         except Exception as e:
@@ -3591,7 +3592,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     # Command: vdp
     # Parameters: [optionnel] nom du channel où écrire les résultats (sous forme "#nom_du_channel")
     # Purpose: Vérification du déploiements de Pelotons
-    # Display: Une ligne par erreur détectée "JoueurX n'a pas déployé persoY en pelotonZ"
+    # Display: Une ligne par erreur détectée "JoueurX n'a pas posé persoY en pelotonZ"
     #          avec un groupement par phase puis un tri par joueur
     ##############################################################
     @commands.check(officer_command)
