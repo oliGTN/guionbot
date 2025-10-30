@@ -3145,7 +3145,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                         continue
                     unit_defId = unit["unitIdentifier"].split(':')[0]
                     if unit_defId in requested_defIds and not unit_defId in toDeploy_defIds:
-                        toDeploy_defIds.append(unit_id)
+                        toDeploy_defIds.append(unit_defId)
                         dict_defId_squad[unit_defId] = squad_id
 
     # 2/ then remove units already deployed by the player
