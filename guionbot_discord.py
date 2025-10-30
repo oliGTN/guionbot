@@ -3909,6 +3909,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             output_channel = ctx.message.channel
             display_mentions=False
             tag_officers=True
+            ignored_allyCodes=[]
             for arg in args:
                 if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
@@ -3921,6 +3922,20 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 elif arg == "-off":
                     tag_officers=False
 
+                elif arg.startswith('-i'):
+                    player_alias_txt = arg.split('=')[1]
+                    ret_data = await manage_me(ctx, player_alias_txt, False)
+
+                    if ret_data[0:3] == 'ERR':
+                        await ctx.send(ret_data)
+                        await ctx.message.add_reaction(emojis.redcross)
+                        return
+
+                    if type(ret_data)==str:
+                        ignored_allyCodes = [ret_data]
+                    else:
+                        ignored_allyCodes = ret_data
+
             #get bot config from DB
             ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
@@ -3932,7 +3947,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # Launch the actual command
-            err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(guild_id, 0, allyCode=connected_allyCode)
+            err_code, ret_txt, ret_data = await connect_rpc.tag_tb_undeployed_players(
+                                                     guild_id, 0, 
+                                                     ignored_allyCodes=ignored_allyCodes,
+                                                     allyCode=connected_allyCode)
             if err_code == 0:
                 lines = ret_data["lines_player"]
                 endTime = ret_data["round_endTime"]
