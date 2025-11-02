@@ -3041,6 +3041,7 @@ class TbCog(commands.GroupCog, name="bt"):
                     "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode " \
                     "WHERE channel_id="+str(user_id)+" "\
                     "AND CURRENT_TIMESTAMP < timestampadd(DAY, 6, start_date) "\
+                    "AND score < score_step3 "\
                     "ORDER BY lower(name)"
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_table(query)
