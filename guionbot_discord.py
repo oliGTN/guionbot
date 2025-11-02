@@ -91,7 +91,7 @@ dict_tb_alerts_previously_done = {}
 # Output: none
 ##############################################################
 async def bot_loop_60secs(bot):
-    goutils.log2("DBG", "START loop")
+    goutils.log2("INFO", "START loop")
     t_start = time.time()
 
     ########################
@@ -159,7 +159,8 @@ async def bot_loop_60secs(bot):
             except Exception as e:
                 goutils.log2("ERR", traceback.format_exc())
 
-    goutils.log2("DBG", "END loop")
+    t_end = time.time()
+    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
 ##############################################################
 # Function: bot_loop_5minutes
@@ -333,7 +334,8 @@ async def bot_loop_5minutes(bot):
 
     first_bot_loop_5minutes = False
 
-    goutils.log2("DBG", "END loop")
+    t_end = time.time()
+    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
 ##############################################################
 # Function: bot_loop_60minutes
@@ -345,6 +347,7 @@ async def bot_loop_60minutes(bot):
     global latestLocalizationBundleVersion
     global latestGamedataVersion
 
+    goutils.log2("DBG", "START loop")
     t_start = time.time()
 
     try:
@@ -383,6 +386,9 @@ async def bot_loop_60minutes(bot):
         if not bot_test_mode:
             await send_alert_to_admins(None, "New GamedataVersion")
     latestGamedataVersion = GamedataVersion
+    
+    t_end = time.time()
+    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
 
 ################################################
