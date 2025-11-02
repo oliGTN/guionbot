@@ -3043,7 +3043,7 @@ class TbCog(commands.GroupCog, name="bt"):
                     "AND CURRENT_TIMESTAMP < timestampadd(DAY, 6, start_date) "\
                     "ORDER BY lower(name)"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_column(query)
+            db_data = connect_mysql.get_table(query)
             if db_data==None:
                 return []
             else:
