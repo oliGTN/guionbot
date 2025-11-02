@@ -813,7 +813,7 @@ async def allocate_platoons_from_eb_DM(message):
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_column(query)
     if db_data==None or len(db_data)!=1:
-        goutils.log2("WAR", "Impossible to one single player for ID "+str(msg_author_id)+" and playerName "+player_name)
+        goutils.log2("WAR", "Impossible to identify one single player for ID "+str(msg_author_id)+" and playerName "+player_name)
         await message.channel.send("Utilisateur <@"+str(msg_author_id)+"> inconnu pour le joueur "+player_name)
         return
 
@@ -869,12 +869,10 @@ async def allocate_platoons_from_eb_DM(message):
 
     allocation_txt = ""
     for platoon_name in dict_allocations:
-        print(platoon_name)
         ec, et, ret_data = await go.deploy_platoons_tb(
                                         txt_allyCode, 
                                         platoon_name, 
                                         dict_allocations[platoon_name])
-        print(ec, et, ret_data)
         if ec == 0:
             deployed_names = ret_data[0]
             undeployed_names = ret_data[1]
@@ -3037,21 +3035,27 @@ class TbCog(commands.GroupCog, name="bt"):
         try:
             user_id = interaction.channel.id
 
-            query = "SELECT SUBSTRING_INDEX(zone_name, '-', -1) FROM tb_zones "\
+            query = "SELECT SUBSTRING_INDEX(zone_name, '-', -1), cmdCmd FROM tb_zones "\
                     "JOIN tb_history ON tb_history.id = tb_zones.tb_id AND tb_history.current_round=tb_zones.round "\
                     "JOIN players ON players.guildId=tb_history.guild_id "\
                     "JOIN user_bot_infos ON user_bot_infos.allyCode=players.allyCode " \
                     "WHERE channel_id="+str(user_id)+" "\
                     "AND CURRENT_TIMESTAMP < timestampadd(DAY, 6, start_date) "\
-                    "AND cmdCmd<>3 "\
                     "ORDER BY lower(name)"
             goutils.log2("DBG", query)
             db_data = connect_mysql.get_column(query)
             if db_data==None:
                 return []
             else:
-                open_zones = [app_commands.Choice(name=value, value=value) 
-                              for value in db_data if current.lower() in value.lower()]
+                open_zones = []
+                for value, cmdCmd in db_data:
+                    if current.lower() in value.lower():
+                        if cmdCmd==3:
+                            zone_name = emojis.prohibited+value
+                        else:
+                            zone_name = value
+                        open_zones.append(app_commands.Choice(name=zone_name, value=value))
+
                 return open_zones
 
         except Exception as e:
