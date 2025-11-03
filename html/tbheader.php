@@ -8,7 +8,7 @@ function display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGui
     <div><?php echo "last update on ".$tb['lastUpdated']; ?></div>
 
     <div class="card">
-        <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i>)':''); ?></small>
+        <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i> in a Direct Message to <a href="https://discordapp.com/users/752969647233564703/">the bot</a>)':''); ?></small>
         </p>
 
         <p style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></p>

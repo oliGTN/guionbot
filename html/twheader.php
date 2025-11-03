@@ -91,7 +91,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     <h2>TW for <a href='/g.php?gid=<?php echo $tw['guild_id']; ?>'><?php echo $tw['guild_name']; ?></a> vs <a href='/g.php?gid=<?php echo $tw['away_guild_id']; ?>'><?php echo $tw['away_guild_name']; ?></a></h2>
 
     <div class="card">
-        <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i>)':''); ?></small>
+        <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are '.($isOfficer ? 'an officer ' : '').'in this guild' : ''); ?><small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i> in a Direct Message to <a href="https://discordapp.com/users/752969647233564703/">the bot</a>)':''); ?></small>
         </p>
 
         <p style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></p>
