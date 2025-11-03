@@ -4136,6 +4136,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             args = list(args)
             output_channel = ctx.message.channel
             use_tags = False
+            ignored_allyCodes = []
             for arg in args:
                 if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
                     output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
@@ -4145,15 +4146,34 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                         output_channel = ctx.message.channel
                         use_tags = True
                     args.remove(arg)
+                elif arg.startswith('-i'):
+                    player_alias_txt = arg.split('=')[1]
+                    ret_data = await manage_me(ctx, player_alias_txt, False)
+
+                    if ret_data[0:3] == 'ERR':
+                        await ctx.send(ret_data)
+                        await ctx.message.add_reaction(emojis.redcross)
+                        return
+
+                    if type(ret_data)==str:
+                        ignored_allyCodes = [ret_data]
+                    else:
+                        ignored_allyCodes = ret_data
+                    args.remove(arg)
 
             target_progress=50
             if len(args) == 1:
+                if not args[0].isnumeric():
+                    await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help raidrappel")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
+
                 target_progress=int(args[0])
                 if target_progress<0:
                     target_progress=0
                 if target_progress>100:
                     target_progress=100
-            elif len(args) != 0:
+            elif len(args) > 1:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help raidrappel")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
@@ -4169,7 +4189,16 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             connected_allyCode = bot_infos["allyCode"]
 
             # Launch the actual command
-            raid_id, expire_time, list_inactive_players, guild_score, potential_score = await connect_rpc.get_raid_status(guild_id, target_progress, True, allyCode=connected_allyCode)
+            (raid_id, 
+            expire_time, 
+            list_inactive_players, 
+            guild_score, 
+            potential_score) = await connect_rpc.get_raid_status(
+                                        guild_id, 
+                                        target_progress, 
+                                        True, 
+                                        allyCode=connected_allyCode,
+                                        ignored_allyCodes=ignored_allyCodes)
             if raid_id == None:
                 await ctx.send("Aucun raid en cours")
                 await ctx.message.add_reaction(emojis.redcross)

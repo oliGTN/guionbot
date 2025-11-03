@@ -3319,7 +3319,7 @@ async def get_tw_participation(guild_id, force_update, allyCode=None):
 # OUT: expire_time: 169123456000
 # OUT: list_inactive_players: ["Karcot", "MolEliza", ...]
 ########################################
-async def get_raid_status(guild_id, target_percent, force_update, allyCode=None):
+async def get_raid_status(guild_id, target_percent, force_update, allyCode=None, ignored_allyCodes=[]):
     ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
     if ec!=0:
         return None, None, [], 0, 0
@@ -3339,31 +3339,36 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
     if raid_id == None:
         return None, None, [], 0, 0
 
+    #Build dict for members, by playerId
+    dict_raid_members_by_id={}
+    for member in raidStatus["raidMember"]:
+        dict_raid_members_by_id[member["playerId"]] = member
+
     #Get raid estimates from WookieBot
-    query = "SELECT playerId, score FROM raid_estimates\n"
-    query+= "JOIN players ON raid_estimates.allyCode = players.allyCode\n"
+    query = "SELECT playerId, players.allyCode, score FROM players\n"
+    query+= "LEFT JOIN raid_estimates ON raid_estimates.allyCode = players.allyCode\n"
+    query+= "AND raid_name='"+raid_id+"'"
     query+= "JOIN guilds ON guilds.id = players.guildId\n"
     query+= "WHERE guilds.id='"+guild_id+"'\n"
-    query+= "AND raid_name='"+raid_id+"'"
     goutils.log2("DBG", query)
     db_data = connect_mysql.get_table(query)
     if db_data==None:
         # running without estimates is still possible
         db_data = []
 
-    #prepare estimate scores per player
-    dict_estimates = {}
+    #Enrich dict for members
     for line in db_data:
-        dict_estimates[line[0]] = line[1]
+        player_id = line[0]
+        player_ac = str(line[1])
+        player_score = line[2]
+        dict_members_by_id[player_id]["allyCode"] = player_ac
+        if player_score != None:
+            dict_members_by_id[player_id]["estimatedScore"] = player_score
 
     #Get generic progress about the raid
     expire_time = int(raidStatus["expireTime"])
     raid_join_time = int(raidStatus["joinPeriodEndTimeMs"])
     guild_score = int(raidStatus["guildRewardScore"])
-
-    dict_raid_members_by_id={}
-    for member in raidStatus["raidMember"]:
-        dict_raid_members_by_id[member["playerId"]] = member
 
     list_inactive_players = []
     if target_percent==0:
@@ -3378,6 +3383,10 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
             goutils.log2("DBG", member["playerName"]+" is ignored as joined the guild too late for the raid")
             continue
 
+        if member["allyCode"] in ignored_allyCodes:
+            #player to ignore
+            continue
+
         if member_id in dict_raid_members_by_id:
             score = int(dict_raid_members_by_id[member_id]["memberProgress"])
         else:
@@ -3385,8 +3394,8 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None)
             # consider he has not played
             score = 0
 
-        if member_id in dict_estimates:
-            estimated_score = dict_estimates[member_id]
+        if "estimatedScore" in member:
+            estimated_score = dict_member_by_id[member_id]["estimatedScore"]
             status_txt = str(int(score/100000)/10)+"/"+str(int(estimated_score/100000)/10)+"M"
         else:
             #no estimate, can only check that the player has done something
