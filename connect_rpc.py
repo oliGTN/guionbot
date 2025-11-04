@@ -3361,9 +3361,10 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None,
         player_id = line[0]
         player_ac = str(line[1])
         player_score = line[2]
-        dict_members_by_id[player_id]["allyCode"] = player_ac
-        if player_score != None:
-            dict_members_by_id[player_id]["estimatedScore"] = player_score
+        if player_id in dict_members_by_id:
+            dict_members_by_id[player_id]["allyCode"] = player_ac
+            if player_score != None:
+                dict_members_by_id[player_id]["estimatedScore"] = player_score
 
     #Get generic progress about the raid
     expire_time = int(raidStatus["expireTime"])
