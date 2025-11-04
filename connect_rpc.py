@@ -3395,7 +3395,7 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None,
             score = 0
 
         if "estimatedScore" in member:
-            estimated_score = dict_member_by_id[member_id]["estimatedScore"]
+            estimated_score = dict_members_by_id[member_id]["estimatedScore"]
             status_txt = str(int(score/100000)/10)+"/"+str(int(estimated_score/100000)/10)+"M"
         else:
             #no estimate, can only check that the player has done something
