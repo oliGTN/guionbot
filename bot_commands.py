@@ -14,6 +14,7 @@ from texttable import Texttable
 import time
 
 # BOT imports
+import config
 import go
 import connect_rpc
 import connect_mysql
@@ -752,9 +753,13 @@ async def register(ctx_interaction, args):
             return
 
         #Registration of the allyCode to a discord ID
+        check_user_rights = True
         if len(args) == 1:
             #registering allyCOde to self
             discord_id_txt = str(ctx_interaction.author.id)
+
+            #No need to check rights for self register
+            check_user_rights = False
 
         elif len(args) == 2 and args[1]=="confirm":
             # Specific mode, not used to register an allyCode, but
@@ -763,6 +768,16 @@ async def register(ctx_interaction, args):
             #Ensure command is launched from a DM, not a server
             if ctx_interaction.guild != None:
                 await command_error(ctx_interaction, resp_msg, "Pour des raisons de confidentialité, cette commande doit être envoyée en message privé au bot.")
+                return
+
+            #Check that the user launching the command is alreadu registered to the account
+            query = "SELECT COUNT(*) FROM player_discord "\
+                    "WHERE allyCode="+allyCode+" "\
+                    "AND discord_id="+str(ctx_interaction.author.id)
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_value(query)
+            if db_data==0:
+                await command_error(ctx_interaction, resp_msg, "Vous devez être enregistré sur ce code allié avant de lancer la confirmation : merci de lancer la commande *go.register "+allyCode+"*")
                 return
 
             #Launch or get the challenge
@@ -787,6 +802,11 @@ async def register(ctx_interaction, args):
                 else: # '<@ without the !
                     discord_id_txt = mention[2:-1]
                 goutils.log2("INFO", "command launched with discord @mention "+mention)
+
+            if discord_id_txt != str(ctx_interaction.author.id):
+                check_user_rights = False
+            else:
+                check_user_rights = False
         else:
             await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help register")
 
@@ -797,6 +817,25 @@ async def register(ctx_interaction, args):
             return
 
         player_name = dict_player["name"]
+
+        if check_user_rights:
+            #Need to check that the user is either an admin, or in the same guild
+            # as the target allyCode
+
+            #Get the guild ID of the requestor
+            query = "SELECT guildId from player_discord "\
+                    "JOIN players ON players.allyCode=player_discord.allyCode "\
+                    "WHERE discord_id="+str(ctx_interaction.author.id)
+            goutils.log2("DBG", query)
+            db_data = connect_mysql.get_value(query)
+            if db_data==None:
+                await command_error(ctx_interaction, resp_msg, "Vous devez vous même être enregistré sur un code allié avant d'enregistré un compte différent.")
+                return
+
+            is_owner = str(ctx_interaction.author.id) in config.GO_ADMIN_IDS.split(' ')
+            if db_data != dict_player["guildId"] and not is_owner:
+                await command_error(ctx_interaction, resp_msg, "Vous devez être dans la même guilde pour enregistrer un joueur.")
+                return
 
         #Setup all potential previous accounts as alt
         query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
@@ -825,6 +864,83 @@ async def register(ctx_interaction, args):
 
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())
+        await command_error(ctx_interaction, resp_msg, "erreur inconnue")
+
+async def unregister(ctx_interaction, args):
+    try:
+        resp_msg = await command_ack(ctx_interaction)
+
+        if len(args)==0:
+            await command_error(ctx_interaction, resp_msg, "ERR: merci de renseigner un code allié")
+            return
+
+        ac = args[0]
+
+        if re.match("[0-9]{3}-[0-9]{3}-[0-9]{3}", ac) != None:
+            # 123-456-789 >> allyCode
+            allyCode = ac.replace("-", "")
+
+        elif ac.isnumeric():
+            # number >> allyCode
+            allyCode = ac
+
+        else:
+            await command_error(ctx_interaction, resp_msg, "ERR: merci de renseigner un code allié")
+            return
+
+        #UnRegistration of the allyCode to all discord IDs
+        if len(args) != 1:
+            await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help unregister")
+            return
+
+        #Ensure the allyCode is registered in DB
+        e, t, dict_player = await go.load_player(allyCode, -1, False)
+        if e != 0:
+            await command_error(ctx_interaction, resp_msg, t)
+            return
+
+        player_name = dict_player["name"]
+
+        #Need to check that the user is either an admin, or in the same guild
+        # as the target allyCode
+
+        #Get the guild ID of the requestor
+        query = "SELECT guildId from player_discord "\
+                "JOIN players ON players.allyCode=player_discord.allyCode "\
+                "WHERE discord_id="+str(ctx_interaction.author.id)
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_value(query)
+        if db_data==None:
+            await command_error(ctx_interaction, resp_msg, "Vous devez vous même être enregistré sur un code allié avant d'enregistré un compte différent.")
+            return
+
+        is_owner = str(ctx_interaction.author.id) in config.GO_ADMIN_IDS.split(' ')
+        if db_data != dict_player["guildId"] and not is_owner:
+            await command_error(ctx_interaction, resp_msg, "Vous devez être dans la même guilde pour enregistrer un joueur.")
+            return
+
+        #List allyCode links in DB
+        query = "SELECT discord_id FROM player_discord "\
+                "WHERE allyCode="+allyCode
+        goutils.log2("DBG", query)
+        db_data = connect_mysql.get_column(query)
+
+        if db_data==None or len(db_data)==0:
+            await command_error(ctx_interaction, resp_msg, "Ce code allié n'est lié à aucun utilisateur.")
+            return
+
+        #Remove allyCode links in DB
+        query = "DELETE FROM player_discord "\
+                "WHERE allyCode="+allyCode
+        goutils.log2("DBG", query)
+        connect_mysql.simple_execute(query)
+
+        discord_links = ["<@"+str(x)+">" for x in db_data]
+        await command_ok(ctx_interaction, resp_msg, "Suppression de l'enregistrement de "+allyCode+" réussie ("+str(discord_links)+").")
+
+    except Exception as e:
+        goutils.log2("ERR", traceback.format_exc())
+        await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_txt=None):
     resp_msg = await command_ack(ctx_interaction)

@@ -61,10 +61,6 @@ latestGamedataVersion = ""
 class MyClient(commands.Bot):
     def __init__(self, *, command_prefix: list, intents: discord.Intents):
         super().__init__(command_prefix=command_prefix, intents=intents)
-    #async def setup_hook(self):
-        #self.tree.copy_global_to(guild=ADMIN_GUILD)
-        #await self.tree.sync(guild=ADMIN_GUILD)
-        #await self.tree.sync()
 
 #create bot
 intents = Intents.all()
@@ -5294,6 +5290,14 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def register(self, ctx, *args):
         await bot_commands.register(ctx, args)
 
+    @commands.check(member_command)
+    @commands.command(name='unregister',
+                      brief="Délie un code allié de tout compte discord",
+                      help="Délie un code allié de tout compte discord\n\n"\
+                           "Exemple: go.unregister 123456789")
+    async def unregister(self, ctx, *args):
+        await bot_commands.unregister(ctx, args)
+
     ##############################################################
     # display kit
     # IN: character alias
@@ -7367,11 +7371,11 @@ async def main():
     await bot.add_cog(ServerCog(bot))
     await bot.add_cog(OfficerCog(bot))
     await bot.add_cog(MemberCog(bot))
-    await bot.add_cog(ModsCog(bot)) #, guilds=[ADMIN_GUILD])
-    await bot.add_cog(TbCog(bot)) #, guilds=[ADMIN_GUILD])
-    await bot.add_cog(TwCog(bot)) #, guilds=[ADMIN_GUILD])
+    await bot.add_cog(ModsCog(bot))
+    await bot.add_cog(TbCog(bot))
+    await bot.add_cog(TwCog(bot))
     await bot.add_cog(BronziumCog(bot))
-    await bot.add_cog(AuthCog(bot)) #, guilds=[ADMIN_GUILD])
+    await bot.add_cog(AuthCog(bot))
 
     if bot_background_tasks:
         await bot.add_cog(Loop60secsCog(bot))
