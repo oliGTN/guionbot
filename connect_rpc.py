@@ -3128,13 +3128,13 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     if not "territoryBattleStatus" in dict_guild:
         return 1, "Pas de BT en cours", None
 
-    if dict_guild["territoryBattleStatus"]["currentRound"] == 0:
-        return 1, "La BT n'est pas commencée", None
-
     for tb in dict_guild["territoryBattleStatus"]:
         if tb["selected"]:
             break
     tb_id = tb["instanceId"]
+
+    if tb["currentRound"] == 0:
+        return 1, "La BT n'est pas commencée", None
 
     # 1/ identify all units that may be deployed in this platoon
     # look for the required unitDefId, in the right zone
