@@ -1,50 +1,65 @@
+<!-- source video: https://www.youtube.com/watch?v=w5ZLlnid8g0  -->
 <?php
 require 'websitedb.php';  // Include the database connection for guionbotdb
 require 'guionbotdb.php';  // Include the database connection for guionbotdb
 
 include 'oauth_secret.php'; // defines $client_id and $client_secret
 
-if(!isset($_GET['code'])){
-    error_log("No discord code, redirect to index.php");
-    header("Location: index.php");
-    exit();
+// check if there is an access token in the session 
+// (set from the cookie in init-oauth)
+session_start();
+if(!isset($_GET['code']) && isset($_SESSION['discord_access_token'])) {
+    $access_token = $_SESSION['discord_access_token']->access_token;
+    $refresh_token = $_SESSION['discord_access_token']->refresh_token;
+
+} else {
+    // no cookie, need to use the code from init-ouath
+    if(!isset($_GET['code'])){
+        error_log("No discord code, redirect to index.php");
+        header("Location: index.php");
+        exit();
+    }
+
+    $discord_code = $_GET['code'];
+
+    $payload = [
+        'code'=>$discord_code,
+        'client_id'=>$client_id,
+        'client_secret'=>$client_secret,
+        'grant_type'=>'authorization_code',
+        'redirect_uri'=>'https://guionbot.fr/process-oauth.php',!
+        'scope'=>'identify'
+       ];
+
+    //print_r($payload);
+
+    $payload_string = http_build_query($payload);
+    $discord_token_url = "https://discordapp.com/api/oauth2/token";
+
+    $ch = curl_init();
+
+    curl_setopt($ch, CURLOPT_URL, $discord_token_url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload_string);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $result = curl_exec($ch);
+
+    if(!$result){
+        echo curl_error($ch);
+    }
+
+    // get tokens and store in cookies
+    $result = json_decode($result, true);
+    $access_token = $result['access_token'];
+    $refresh_token = $result['refresh_token'];
+    $expires_in = $result['expires_in'];
+    $expiry = time()+$expires_in;
+    $cookie_data = (object) array( "access_token"=> $access_token, "refresh_token"=> $refresh_token, "expiry"=> $expiry);
+    setcookie('discord_access_token', json_encode( $cookie_data), $expiry, "/");
 }
 
-$discord_code = $_GET['code'];
-
-$payload = [
-    'code'=>$discord_code,
-    'client_id'=>$client_id,
-    'client_secret'=>$client_secret,
-    'grant_type'=>'authorization_code',
-    'redirect_uri'=>'https://guionbot.fr/process-oauth.php',!
-    'scope'=>'identify'
-   ];
-
-//print_r($payload);
-
-$payload_string = http_build_query($payload);
-$discord_token_url = "https://discordapp.com/api/oauth2/token";
-
-$ch = curl_init();
-
-curl_setopt($ch, CURLOPT_URL, $discord_token_url);
-curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, $payload_string);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-//curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-//curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-$result = curl_exec($ch);
-
-if(!$result){
-    echo curl_error($ch);
-}
-
-$result = json_decode($result, true);
-$access_token = $result['access_token'];
-
+// use token to get discord data
 $discord_users_url = "https://discordapp.com/api/users/@me";
 $header = array("Authorization: Bearer $access_token", "Content-Type: application/x-www-form-urlencoded");
 
@@ -58,13 +73,17 @@ $result = curl_exec($ch);
 
 if(!$result){
     echo curl_error($ch);
+
+    // delete the cookie
+    setcookie('discord_access_token', "", time()-3600, "/");
+    unset($_SESSION['discord_access_token']);
+    unset($_COOKIE['discord_access_token']);
 }
 
 $result = json_decode($result, true);
 $user_id = $result['id'];
 $user_name = $result['global_name'];
 
-session_start();
 $_SESSION['user_id'] = $user_id;
 $_SESSION['user_name'] = $user_name;
 //print_r($_SESSION);
