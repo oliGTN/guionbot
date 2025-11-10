@@ -882,7 +882,7 @@ async def allocate_platoons_from_eb_DM(message):
             if len(deployed_names)==0:
                 line_txt = "**"+player_name+"** n'a pas pu poser "+str(undeployed_names)+" en " + platoon_name
             else:
-                line_txt = "**"+player_name+"** a posé "+str(deployed_names)+" en " + platoon_name
+                line_txt = emojis.rightpointingindex+"**"+player_name+"** a posé "+str(deployed_names)+" en " + platoon_name
                 if len(undeployed_names)>0:
                     line_txt += ", mais n'a pas pu poser "+str(undeployed_names)
 
