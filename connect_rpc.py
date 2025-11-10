@@ -3173,7 +3173,9 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                         toDeploy_defIds.remove(unit_defId)
 
     if len(toDeploy_defIds) == 0:
-        return 0, "", requested_defIds
+        return 0, "", {"noneedToDeploy_defIds": [],
+                       "playerUsed_defIds": playerUsed_defIds,
+                       "deployed_defIds": toDeploy_defIds}
 
     noneedToDeploy_defIds = []
     for unit_defId in requested_defIds:
@@ -3205,7 +3207,7 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                     resp_json = await(resp.json())
                 elif resp.status==201:
                     # rien à déployer
-                    return 0, "", requested_defIds
+                    return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
                 else:
                     return 1, "Erreur en posant les pelotons de BT - code="+str(resp.status), None
 
