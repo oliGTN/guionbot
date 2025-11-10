@@ -4432,6 +4432,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             # Loop by phase
             prev_round = None
             for phase_options in list_phase_options:
+                goutils.log2("DBG", phase_options)
+                goutils.log2("DBG", prev_round["phase"])
+
                 star_targets = phase_options["star_targets"]
                 estimate_fights = phase_options["estimate_fights"]
                 estimate_platoons = phase_options["estimate_platoons"]
@@ -4469,6 +4472,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     await ctx.send(ret_txt)
                     await ctx.message.add_reaction(emojis.redcross)
                     break
+
+                #Simulation only useful when prev_round is not set
+                simulated_tb = None
 
             #Icône de confirmation de fin de commande dans le message d'origine
             await ctx.message.add_reaction(emojis.check)

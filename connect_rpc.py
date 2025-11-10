@@ -3128,6 +3128,9 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
     if not "territoryBattleStatus" in dict_guild:
         return 1, "Pas de BT en cours", None
 
+    if dict_guild["territoryBattleStatus"]["currentRound"] == 0:
+        return 1, "La BT n'est pas commencée", None
+
     for tb in dict_guild["territoryBattleStatus"]:
         if tb["selected"]:
             break
