@@ -1,0 +1,209 @@
+.input-wrapper {
+    position: relative;
+    width: fit-content;
+    min-width: 300px;
+    margin-bottom: 20px;
+}
+
+/* --- Token Container (Method 1 & 2) --- */
+.token-input-container, .modal-trigger-container {
+    border: 1px solid #ccc;
+    padding: 5px;
+    min-height: 40px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.token {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e0e0e0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 3px 8px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    user-select: none;
+    font-size: 14px;
+}
+
+.modal-token { background-color: #eeeeee; border-color: #999999; }
+.table-token { background-color: #eeeeee; border-color: #999999; }
+
+.token-delete {
+    cursor: pointer;
+    margin-left: 8px;
+    font-weight: bold;
+    color: #777;
+    padding: 0 2px;
+}
+
+.token-input {
+    border: none;
+    outline: none;
+    padding: 5px 0;
+    flex-grow: 1;
+    min-width: 100px;
+    font-size: 16px;
+}
+
+/* --- Autocomplete Dropdown Styling (Shared) --- */
+.autocomplete-dropdown {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border: 1px solid #ddd;
+    position: absolute;
+    background: white;
+    z-index: 10;
+    width: 300px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.autocomplete-dropdown li {
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.autocomplete-dropdown li:hover {
+    background-color: #f0f0f0;
+}
+
+/* --- Modal Styling (Shared) --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 20;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+}
+
+        .modal-content select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #okButton, #newUserOkButton, #newUserButton {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #cancelButton, #newUserCancelButton {
+            background-color: #f44336;
+            color: white;
+        }
+
+        /* --- Table Styling --- */
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .user-table th, .user-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .user-table th {
+            background-color: #f2f2f2;
+        }
+
+        .guilds-cell {
+            position: relative;
+            min-width: 250px;
+        }
+        
+        .guilds-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            min-height: 20px;
+            padding: 2px 0;
+        }
+
+        .guilds-input {
+            border: none;
+            outline: none;
+            padding: 5px 0;
+            flex-grow: 1;
+            min-width: 50px;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .delete-row-btn {
+            background: none;
+            border: none;
+            color: red;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0 5px;
+            vertical-align: middle;
+        }
+        
+        .table-autocomplete-dropdown {
+            position: absolute; 
+            z-index: 15;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 150px;
+            background: white;
+            border: 1px solid #aaa;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: none;
+            overflow-y: auto;
+        }
+        
+        .table-autocomplete-dropdown li {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        
+        .table-autocomplete-dropdown li:hover {
+            background-color: #e9e9e9;
+        }
