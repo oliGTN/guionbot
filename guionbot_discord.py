@@ -4433,7 +4433,10 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             prev_round = None
             for phase_options in list_phase_options:
                 goutils.log2("DBG", phase_options)
-                goutils.log2("DBG", prev_round["phase"])
+                if prev_round == None:
+                    goutils.log2("DBG", prev_round)
+                else:
+                    goutils.log2("DBG", prev_round["phase"])
 
                 star_targets = phase_options["star_targets"]
                 estimate_fights = phase_options["estimate_fights"]
