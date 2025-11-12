@@ -881,13 +881,13 @@ async def allocate_platoons_from_eb_DM(message):
 
             if len(deployed_names)==0:
                 if len(undeployed_names)>0:
-                    line_txt = "**"+player_name+"** n'a pas pu poser "+str(undeployed_names)+" en " + platoon_name
+                    line_txt = "**"+player_name+"** n'a pas pu poser "+str(undeployed_names)+" en " + platoon_name + " >> il faut trouver un autre joueur !"
                 else:
                     line_txt = "**"+player_name+"** n'a plus rien à poser en " + platoon_name
             else:
                 line_txt = emojis.rightpointingindex+"**"+player_name+"** a posé "+str(deployed_names)+" en " + platoon_name
                 if len(undeployed_names)>0:
-                    line_txt += ", mais n'a pas pu poser "+str(undeployed_names)
+                    line_txt += ", mais n'a pas pu poser "+str(undeployed_names) + " >> il faut trouver un autre joueur !"
 
             allocation_txt += line_txt+"\n"
         else:
@@ -1190,11 +1190,11 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             undeployed_names = ret_data[1]
 
             if len(deployed_names)==0:
-                line_txt = "**"+player_name+"** n'a pas pu poser "+str(undeployed_names)+" en " + platoon_name
+                line_txt = "**"+player_name+"** n'a pas pu poser "+str(undeployed_names)+" en " + platoon_name + " >> il faut trouver un autre joueur !"
             else:
-                line_txt = "**"+player_name+"** a posé "+str(deployed_names)+" en " + platoon_name
+                line_txt = emojis.rightpointingindex+"**"+player_name+"** a posé "+str(deployed_names)+" en " + platoon_name
                 if len(undeployed_names)>0:
-                    line_txt += ", mais n'a pas pu poser "+str(undeployed_names)
+                    line_txt += ", mais n'a pas pu poser "+str(undeployed_names) + " >> il faut trouver un autre joueur !"
 
             full_txt += line_txt+"\n"
         else:
