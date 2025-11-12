@@ -389,7 +389,7 @@ try {
             };
             var err_code=0;
             var err_txt="";
-            fetch("/dashboard_associate_guild.php", {
+            fetch("/dashboard_request.php", {
                 method: "post",
                 headers: {
                     'Accept': 'application/json',
@@ -463,7 +463,7 @@ try {
             console.log(body_json);
             var err_code=0;
             var err_txt="";
-            fetch("/dashboard_associate_guild.php", {
+            fetch("/dashboard_request.php", {
                 method: "post",
                 headers: {
                     'Accept': 'application/json',
