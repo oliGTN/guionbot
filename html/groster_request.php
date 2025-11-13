@@ -23,7 +23,17 @@ if (!isset($_SESSION['user_id'])) {
 $_POST = json_decode(file_get_contents('php://input'), true);
 
 // Handle guild association
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['units_list'])) {
+if ($_SERVER['REQUEST_METHOD'] != 'POST' || !isset($_POST['request_type'])) {
+    $data = array (
+        "err_code" => 1,
+        "err_txt"  => "Malformed request"
+    );
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data);
+    exit();
+}
+
+if ($_POST['request_type'] === 'guild_roster') {
     $guild_id = $_POST['guild_id'];
     $units_list = $_POST['units_list'];
     $unitId_list = array();
@@ -35,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['units_list'])) {
     $unitId_list_txt = str_replace('"', "'", $unitId_list_txt);
 
     $query = "SELECT name, defId, gear, greatest(0, relic_currentTier-2) AS relic";
-    $query .= " FROM roster JOIN players";
+    $query .= " FROM players LEFT JOIN roster";
     $query .= " ON players.allyCode=roster.allyCode";
     $query .= " WHERE guildId = '".$guild_id."'";
     $query .= " AND defId IN ".$unitId_list_txt;
@@ -46,6 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['units_list'])) {
 
     // Fetch all the results as an associative array
     $roster = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $data = array (
+        "err_code" => 1,
+        "err_txt"  => "Unknown request"
+    );
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data);
+    exit();
 }
 
 // return values

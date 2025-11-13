@@ -38,6 +38,57 @@ foreach($full_dict_units as $unit_id => $unit) {
     $dict_units[$unit_name] = [$unit_id, $unit['combatType']];
 }
 
+// Get the Journey Guide from DB
+try {
+    $query = "SELECT substr(guild_teams.name, 1, length(guild_teams.name)-3) AS name,";
+    $query .= " guild_team_roster.unit_id, guild_team_roster.gear_reco AS gear_relic";
+    $query .= " FROM guild_teams";
+    $query .= " JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id";
+    $query .= " JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id";
+    $query .= " WHERE guild_teams.name IN(";
+    $query .= " 	SELECT name FROM";
+    $query .= " 	(";
+    $query .= " 		SELECT guild_teams.name, guild_subteams.minimum, count(*) AS count FROM guild_teams";
+    $query .= " 		JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id";
+    $query .= " 		JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id";
+    $query .= " 		WHERE isnull(guild_id)";
+    $query .= " 		GROUP BY guild_teams.name, guild_subteams.name";
+    $query .= " 	) T";
+    $query .= " 	GROUP BY name";
+    $query .= " 	HAVING sum(minimum) = sum(count)";
+    $query .= " )";
+    //error_log($query);
+    $stmt = $conn_guionbot->prepare($query);
+    $stmt->execute();
+
+    // Fetch all the results as an associative array
+    $db_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $journey_guide = array();
+    foreach ($db_data as $line) {
+        error_log(print_r($line,true));
+        $journey_unit_id = $line['name'];
+        $journey_unit_name = $full_dict_units[$journey_unit_id]['name'];
+        $unit_id = $line['unit_id'];
+        $unit_name = $full_dict_units[$unit_id]['name'];
+        $gear_relic = $line['gear_relic'];
+        if ($gear_relic === '') {
+            $gear_relic='';
+        } else if (substr($gear_relic,0,1) !== 'R') {
+            $gear_relic='G'.$gear_relic;
+        }
+        if (!isset($journey_guide[$journey_unit_name])) {
+            $journey_guide[$journey_unit_name] = array();
+        }
+        array_push($journey_guide[$journey_unit_name], array($unit_name, $gear_relic));
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching journey guide data: " . $e->getMessage());
+    echo "Error fetching journey guide data: " . $e->getMessage();
+    $journey_guide = array();
+}
+
+
 ?>
 
 <!DOCTYPE html>
@@ -68,6 +119,9 @@ foreach($full_dict_units as $unit_id => $unit) {
     <!-- START OF page specific content -->
 
     <!-- input field for characters -->
+    <div class="card">
+        <label for="journeyDropdown">Select Journey Guide:</label><select id="journeyDropdown"></select>
+    </div> <!-- class="card" -->
     <div class="card">
         <h3>List of units</h3>
         <div id="modalTokenContainer" class="modal-trigger-container">
@@ -108,12 +162,16 @@ foreach($full_dict_units as $unit_id => $unit) {
 
     <script>
         // Constants
+        AVAILABLE_GUIDE = <?php echo json_encode($journey_guide);?>;
         AVAILABLE_UNITS = <?php echo json_encode($dict_units);?>;
         AVAILABLE_GEARS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
 
         // Global state
         let modalTokens = new Set();
         
+        // Journey elements
+        const journeyDropdown = document.getElementById('journeyDropdown');
+
         // Modal elements
         const modalTriggerInput = document.getElementById('modalTriggerInput');
         const modalTokenContainer = document.getElementById('modalTokenContainer');
@@ -123,6 +181,27 @@ foreach($full_dict_units as $unit_id => $unit) {
         const okButton = document.getElementById('okButton');
         const cancelButton = document.getElementById('cancelButton');
 
+        // Journey logics
+        function handleJourneySelection(event) {
+            var journey_name = journeyDropdown.value;
+            if (journey_name == 'custom') return;
+
+            deleteAllTokens();
+            var journey_guide = AVAILABLE_GUIDE[journey_name];
+            //console.log(journey_guide);
+
+            // Create tokens except the last one, without refresh of table
+            for (var i=0; i<journey_guide.length-1; i++) {
+                var journey_unit = journey_guide[i];
+                var token_name = journey_unit[0] + ' (' + journey_unit[1] + ')';
+                createTokenFromText(token_name, refreshTable=false);
+            }
+            var journey_unit = journey_guide[i];
+            var token_name = journey_unit[0] + ' (' + journey_unit[1] + ')';
+            createTokenFromText(token_name, refreshTable=true);
+        }
+        
+        
         // Modal logics
         function showDataModal() {
             // Filter guilds that haven't been selected yet with any value
@@ -130,7 +209,7 @@ foreach($full_dict_units as $unit_id => $unit) {
                 return !Array.from(modalTokens).some(token => token.startsWith(unit_name + ' ('));
             }).sort((a, b) => a.localeCompare(b, 'fr', {'sensitivity': 'base'}));
 
-            populateItemDropdown(availableModalItems);
+            populateUnitDropdown(availableModalItems);
 
             if (availableModalItems.length > 0) {
                  dataModal.style.display = 'block';
@@ -139,7 +218,7 @@ foreach($full_dict_units as $unit_id => $unit) {
             }
         }
         
-        function populateItemDropdown(items) {
+        function populateUnitDropdown(items) {
             unitDropdown.innerHTML = ''; // Clear previous options
              items.forEach(item => {
                 const option = document.createElement('option');
@@ -158,11 +237,15 @@ foreach($full_dict_units as $unit_id => $unit) {
                 var relic;
 
                 if (gear_relic.substring(0,1) == 'G') {
-                    gear = parseInt(gear_relic.substring(1,2));
+                    gear = parseInt(gear_relic.substring(1,3));
                     relic = 0;
-                } else {
+                } else if (gear_relic.substring(0,1) == 'R') {
                     gear=13;
-                    relic = parseInt(gear_relic.substring(1,2));
+                    relic = parseInt(gear_relic.substring(1,3));
+                } else {
+                    // empty, for ships
+                    gear=0;
+                    relic = 0;
                 }
                 var unit_name_with_blank = name_gear_split.slice(0, name_gear_split.length-1).join('(');
                 var unit_name = unit_name_with_blank.substring(0, unit_name_with_blank.length-1);
@@ -177,7 +260,7 @@ foreach($full_dict_units as $unit_id => $unit) {
             return units_list;
         }
 
-        function handleModalOk() {
+        function handleModalOk(refreshTable=true) {
             const item = unitDropdown.value;
             const value = gearDropdown.value;
             
@@ -193,27 +276,24 @@ foreach($full_dict_units as $unit_id => $unit) {
                  return;
             }
 
-            // Create and insert the new token
-            const token = createTokenElement(tokenText, 'token modal-token');
-            modalTokenContainer.insertBefore(token, modalTriggerInput);
-            
-            modalTokens.add(tokenText);
+            createTokenFromText(tokenText, refreshTAble=refreshTable);
+            journeyDropdown.value = 'custom';
+
             dataModal.style.display = 'none';
 
-            // Create list of units to search in the guild
-            var units_list = get_unit_list_from_modalTokens();
+        }
 
-            // POST request to get the unit status in the guild
-            get_dict_roster_from_units_list(units_list)
-                .then((dict_roster) => {
-                    // update HTML table
-                    update_roster_table(units_list, dict_roster);
-                });
-
+        function createTokenFromText(tokenText, refreshTable=true) {
+            // Create and insert the new token
+            const token = createTokenElement(tokenText, 'token');
+            modalTokenContainer.insertBefore(token, modalTriggerInput);
+            modalTokens.add(tokenText);
+            if (refreshTable) refreshRosterTable();
         }
 
         function get_dict_roster_from_units_list(units_list) {
             var body_json = {
+                "request_type": 'guild_roster',
                 "guild_id": '<?php echo $guild_id;?>', 
                 "units_list": units_list
             };
@@ -240,7 +320,6 @@ foreach($full_dict_units as $unit_id => $unit) {
                 } else {
                     const dict_roster = {};
                     const guild_roster = data['roster'] || [];
-                    console.log(data);
                     guild_roster.forEach(line => {
                         name = line['name'];
                         defId = line['defId'];
@@ -270,6 +349,7 @@ foreach($full_dict_units as $unit_id => $unit) {
 
             var new_th = document.createElement('th');
             new_th.innerHTML = 'Player';
+            new_th.addEventListener('click', function() {sortTable(0, true);});
             header_row.appendChild(new_th);
 
             // one column by unit
@@ -281,6 +361,7 @@ foreach($full_dict_units as $unit_id => $unit) {
 
             new_th = document.createElement('th');
             new_th.innerHTML = 'Progress %';
+            new_th.addEventListener('click', function() {sortTable(units_list.length+1, false);});
             header_row.appendChild(new_th);
 
             // then the player lines
@@ -290,16 +371,12 @@ foreach($full_dict_units as $unit_id => $unit) {
             roster_table.appendChild(table_body);
 
             // Empty table if no units
-            console.log(units_list);
-            console.log(units_list.length);
             if (units_list.length == 0) {
                 // reinitialize empty table
-                console.log('empty units_list');
                 return;
             }
 
             for (const [player_name, player_roster] of Object.entries(dict_roster)) {
-                console.log(player_name);
                 var new_tr = document.createElement('tr');
                 table_body.appendChild(new_tr);
 
@@ -335,13 +412,15 @@ foreach($full_dict_units as $unit_id => $unit) {
                     } else {
                         target_gear_relic_int = 13+target_relic;
                     }
-                    unit_progress = Math.min(gear_relic_int/target_gear_relic_int, 1);
+                    var unit_progress = Math.min(gear_relic_int/target_gear_relic_int, 1);
                     list_progress.push(unit_progress);
                 
                     if (unit_progress == 1.0) {
                         new_td.style.backgroundColor = "green";
                     } else if (unit_progress >= .8) {
                         new_td.style.backgroundColor = "orange";
+                    } else if (gear_relic == "") {
+                        new_td.style.backgroundColor = "darkred";
                     } else {
                         new_td.style.backgroundColor = "red";
                     }
@@ -367,45 +446,60 @@ foreach($full_dict_units as $unit_id => $unit) {
                 }
             }
 
-
         }
 
 
         // --- Shared Token Functions ---
 
-        function createTokenElement(text, className, deleteHandler = deleteToken) {
+        function createTokenElement(text, className) {
             const token = document.createElement('span');
             token.className = className;
             token.dataset.value = text;
             token.innerHTML = `${text}<span class="token-delete" data-value="${text}">&times;</span>`;
             const deleteCross = token.querySelector('.token-delete');
-            deleteCross.addEventListener('click', deleteHandler);
+            deleteCross.addEventListener('click', deleteToken);
             return token;
         }
 
-        function deleteToken(event) {
-            const valueToDelete = event.target.dataset.value;
+        function deleteAllTokens() {
+            var tokens = modalTokenContainer.getElementsByClassName('token');
+            while (tokens.length > 0) {
+                token = tokens[0];
+                deleteTokenFromElement(token);
+            }
+        }
+
+        function deleteToken(event, refreshTable=true) {
             const tokenElement = event.target.closest('.token');
+            deleteTokenFromElement(tokenElement, refreshTable=refreshTable);
+
+            journeyDropdown.value = 'custom';
+        }
+
+        function deleteTokenFromElement(tokenElement, refreshTable=true) {
+            const valueToDelete = tokenElement.dataset.value;
 
             if (tokenElement) {
                 tokenElement.remove();
-                if (tokenElement.classList.contains('modal-token')) {
-                    modalTokens.delete(valueToDelete);
-                }
+                modalTokens.delete(valueToDelete);
 
-                // Create list of units to search in the guild
-                var units_list = get_unit_list_from_modalTokens();
+                if (refreshTable) refreshRosterTable();
+            }
+        }
 
-                if (units_list.length > 0) {
-                    // POST request to get the unit status in the guild
-                    get_dict_roster_from_units_list(units_list)
-                        .then((dict_roster) => {
-                            // update HTML table
-                            update_roster_table(units_list, dict_roster);
-                        });
-                } else {
-                    update_roster_table([], {});
-                }
+        function refreshRosterTable() {
+            // Create list of units to search in the guild
+            var units_list = get_unit_list_from_modalTokens();
+
+            if (units_list.length > 0) {
+                // POST request to get the unit status in the guild
+                get_dict_roster_from_units_list(units_list)
+                    .then((dict_roster) => {
+                        // update HTML table
+                        update_roster_table(units_list, dict_roster);
+                    });
+            } else {
+                update_roster_table([], {});
             }
         }
 
@@ -416,10 +510,14 @@ foreach($full_dict_units as $unit_id => $unit) {
             modalTriggerInput.addEventListener('click', showDataModal);
             cancelButton.addEventListener('click', () => { dataModal.style.display = 'none'; });
             okButton.addEventListener('click', handleModalOk);
+            journeyDropdown.addEventListener('change', handleJourneySelection);
             
             // Populate Modal dropdowns
             Object.keys(AVAILABLE_UNITS).forEach(item => unitDropdown.add(new Option(item, item)));
             AVAILABLE_GEARS.forEach(value => gearDropdown.add(new Option(value, value)));
+            var list_journeys = Object.keys(AVAILABLE_GUIDE).sort((a, b) => a.localeCompare(b, 'fr', {'sensitivity': 'base'}));
+            journeyDropdown.add(new Option('custom', 'custom'));
+            list_journeys.forEach(value => journeyDropdown.add(new Option(value, value)));
 
             // initialize empty roster table
             update_roster_table([], {});
@@ -434,6 +532,78 @@ foreach($full_dict_units as $unit_id => $unit) {
                 dataModal.style.display = 'none';
             }
         });
+    
+        // Code to sort the table
+        // source: https://www.w3schools.com/howto/howto_js_sort_table.asp
+function sortTable(n, is_text) {
+  var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+  table = document.getElementById("roster-table");
+  switching = true;
+  // Set the sorting direction to ascending:
+  dir = "desc";
+  /* Make a loop that will continue until
+  no switching has been done: */
+  while (switching) {
+    // Start by saying: no switching is done:
+    switching = false;
+    rows = table.rows;
+    if (typeof(rows) == 'undefined') return;
+    /* Loop through all table rows (except the
+    first, which contains table headers): */
+    for (i = 1; i < (rows.length - 1); i++) {
+      // Start by saying there should be no switching:
+      shouldSwitch = false;
+      /* Get the two elements you want to compare,
+      one from current row and one from the next: */
+      x = rows[i].getElementsByTagName("TD")[n];
+      y = rows[i + 1].getElementsByTagName("TD")[n];
+      /* Check if the two rows should switch place,
+      based on the direction, asc or desc: */
+      if (dir == "asc") {
+        if (is_text) {
+            // Text comparison
+            var bool_compare = (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase());
+        } else {
+            // Number comparison
+            var bool_compare = (Number(x.innerHTML) > Number(y.innerHTML));
+        }
+        if (bool_compare) {
+          // If so, mark as a switch and break the loop:
+          shouldSwitch = true;
+          break;
+        }
+      } else if (dir == "desc") {
+        if (is_text) {
+            // Text comparison
+            var bool_compare = (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase());
+        } else {
+            // Number comparison
+            var bool_compare = (Number(x.innerHTML) < Number(y.innerHTML));
+        }
+        if (bool_compare) {
+          // If so, mark as a switch and break the loop:
+          shouldSwitch = true;
+          break;
+        }
+      }
+    }
+    if (shouldSwitch) {
+      /* If a switch has been marked, make the switch
+      and mark that a switch has been done: */
+      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+      switching = true;
+      // Each time a switch is done, increase this count by 1:
+      switchcount ++;
+    } else {
+      /* If no switching has been done AND the direction is "desc",
+      set the direction to "asc" and run the while loop again. */
+      if (switchcount == 0 && dir == "desc") {
+        dir = "asc";
+        switching = true;
+      }
+    }
+  }
+}
 
         // Execute initialization when the window loads
         window.onload = initializePage;
