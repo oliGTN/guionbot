@@ -4556,8 +4556,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
+            await ctx.send("ERR: erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
             goutils.log2("ERR", traceback.format_exc())
 
     ####################################################

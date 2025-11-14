@@ -6637,7 +6637,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                 # Wat
                 tagAlias = godata.get('tagAlias_dict.json')
                 dict_unitsList = godata.get("unitsList_dict.json")
-                list_ids = [x for x in tagAlias["geonosian"] if dict_unitsList[x]['combatType']==1 and x!='GEONOSIANBROODALPHA']
+                list_ids = [x for x in tagAlias["Geonosian"] if dict_unitsList[x]['combatType']==1 and x!='GEONOSIANBROODALPHA']
                 query = "SELECT players.name FROM players "\
                         "JOIN ("\
                         "    SELECT name "\
