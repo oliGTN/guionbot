@@ -41,7 +41,8 @@ foreach($full_dict_units as $unit_id => $unit) {
 // Get the Journey Guide from DB
 try {
     $query = "SELECT substr(guild_teams.name, 1, length(guild_teams.name)-3) AS name,";
-    $query .= " guild_team_roster.unit_id, guild_team_roster.gear_reco AS gear_relic";
+    $query .= " guild_team_roster.unit_id,";
+    $query .= " concat(rarity_reco, '*', gear_reco) AS star_gear_relic";
     $query .= " FROM guild_teams";
     $query .= " JOIN guild_subteams ON guild_subteams.team_id = guild_teams.id";
     $query .= " JOIN guild_team_roster ON guild_team_roster.subteam_id = guild_subteams.id";
@@ -66,21 +67,15 @@ try {
 
     $journey_guide = array();
     foreach ($db_data as $line) {
-        error_log(print_r($line,true));
         $journey_unit_id = $line['name'];
         $journey_unit_name = $full_dict_units[$journey_unit_id]['name'];
         $unit_id = $line['unit_id'];
         $unit_name = $full_dict_units[$unit_id]['name'];
-        $gear_relic = $line['gear_relic'];
-        if ($gear_relic === '') {
-            $gear_relic='';
-        } else if (substr($gear_relic,0,1) !== 'R') {
-            $gear_relic='G'.$gear_relic;
-        }
+        $star_gear_relic = $line['star_gear_relic'];
         if (!isset($journey_guide[$journey_unit_name])) {
             $journey_guide[$journey_unit_name] = array();
         }
-        array_push($journey_guide[$journey_unit_name], array($unit_name, $gear_relic));
+        array_push($journey_guide[$journey_unit_name], array($unit_name, $star_gear_relic));
     }
 } catch (PDOException $e) {
     error_log("Error fetching journey guide data: " . $e->getMessage());
@@ -134,6 +129,7 @@ try {
             <h3>Select unit and gear</h3>
             <label for="unitDropdown">Select Unit:</label><select id="unitDropdown"></select>
             <label for="gearDropdown">Select Gear:</label><select id="gearDropdown"></select>
+            <label for="starDropdown">Select Stars:</label><select id="starDropdown"></select>
             <div class="modal-buttons">
                 <button id="cancelButton">Cancel</button>
                 <button id="okButton">OK</button>
@@ -143,7 +139,7 @@ try {
 
     <br/>
     <div class="card">
-        <table id="roster-table" class="highlight">
+        <table id="roster-table" class="highlight" style="table-layout:fixed; width:100%">
             <thead>
                 <tr/>
             </thead>
@@ -165,6 +161,7 @@ try {
         AVAILABLE_GUIDE = <?php echo json_encode($journey_guide);?>;
         AVAILABLE_UNITS = <?php echo json_encode($dict_units);?>;
         AVAILABLE_GEARS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
+        AVAILABLE_STARS = ['1', '2', '3', '4', '5', '6', '7']
 
         // Global state
         let modalTokens = new Set();
@@ -178,6 +175,7 @@ try {
         const dataModal = document.getElementById('dataModal');
         const unitDropdown = document.getElementById('unitDropdown');
         const gearDropdown = document.getElementById('gearDropdown');
+        const starDropdown = document.getElementById('starDropdown');
         const okButton = document.getElementById('okButton');
         const cancelButton = document.getElementById('cancelButton');
 
@@ -218,41 +216,44 @@ try {
             }
         }
         
-        function populateUnitDropdown(items) {
+        function populateUnitDropdown(units) {
             unitDropdown.innerHTML = ''; // Clear previous options
-             items.forEach(item => {
+             units.forEach(unit => {
                 const option = document.createElement('option');
-                option.value = item;
-                option.textContent = item;
+                option.value = unit;
+                option.textContent = unit;
                 unitDropdown.appendChild(option);
             });
         }
 
         function get_unit_list_from_modalTokens() {
             var units_list = [];
-            modalTokens.forEach(name_gear => {
-                var name_gear_split = name_gear.split('(');
-                var gear_relic = name_gear_split[name_gear_split.length-1].split(')')[0]
+            modalTokens.forEach(unit_def => {
+                var unit_def_split = unit_def.split('(');
+                var star_gear_relic = unit_def_split[unit_def_split.length-1].split(')')[0]
+                var rarity = star_gear_relic.split('*')[0];
+                var gear_relic = star_gear_relic.split('*')[1];
                 var gear;
                 var relic;
 
-                if (gear_relic.substring(0,1) == 'G') {
+                if (gear_relic == '') {
+                    // empty, for ships
+                    gear=null;
+                    relic=null;
+                } else if (gear_relic.substring(0,1) == 'G') {
                     gear = parseInt(gear_relic.substring(1,3));
                     relic = 0;
-                } else if (gear_relic.substring(0,1) == 'R') {
+                } else {
                     gear=13;
                     relic = parseInt(gear_relic.substring(1,3));
-                } else {
-                    // empty, for ships
-                    gear=0;
-                    relic = 0;
                 }
-                var unit_name_with_blank = name_gear_split.slice(0, name_gear_split.length-1).join('(');
+                var unit_name_with_blank = unit_def_split.slice(0, unit_def_split.length-1).join('(');
                 var unit_name = unit_name_with_blank.substring(0, unit_name_with_blank.length-1);
                 var unit_id = AVAILABLE_UNITS[unit_name][0];
                 units_list.push({
                     "unit_id" : unit_id,
                     "unit_name" : unit_name,
+                    "rarity": rarity,
                     "gear": gear,
                     "relic": relic
                 });
@@ -261,18 +262,19 @@ try {
         }
 
         function handleModalOk(refreshTable=true) {
-            const item = unitDropdown.value;
-            const value = gearDropdown.value;
+            const unit = unitDropdown.value;
+            const gear = gearDropdown.value;
+            const rarity = starDropdown.value;
             
-            if (!item || !value) {
-                alert("Please select both an element and a value.");
+            if (!unit || !gear || !rarity) {
+                alert("Please select a unit, a gear and stars.");
                 return;
             }
 
-            const tokenText = `${item} (${value})`;
+            const tokenText = unit+' ('+rarity+'*'+gear+')';
             
             if (modalTokens.has(tokenText)) {
-                 alert("This item/value combination has already been selected.");
+                 alert("This unit/gear/stars combination has already been selected.");
                  return;
             }
 
@@ -323,13 +325,14 @@ try {
                     guild_roster.forEach(line => {
                         name = line['name'];
                         defId = line['defId'];
+                        rarity = line['rarity'];
                         gear = line['gear'];
                         relic = line['relic'];
 
                         if(!(name in dict_roster)) {
                             dict_roster[name] = {};
                         }
-                        dict_roster[name][defId] = [gear, relic];
+                        dict_roster[name][defId] = [rarity, gear, relic];
                     });
 
                     return dict_roster;
@@ -345,22 +348,31 @@ try {
             var header_row = headers.getElementsByTagName('tr')[0];
             header_row.remove()
             header_row = document.createElement('tr');
-            headers.appendChild(header_row);
 
             var new_th = document.createElement('th');
             new_th.innerHTML = 'Player';
+            new_th.style.width = '150px';
             new_th.addEventListener('click', function() {sortTable(0, true);});
             header_row.appendChild(new_th);
 
             // one column by unit
             units_list.forEach(unit => {
                 new_th = document.createElement('th');
-                new_th.innerHTML = unit['unit_name'];
+                new_th.style.textAlign = 'center';
+
+                var new_img = document.createElement('img');
+
+                new_img.src='IMAGES/CHARACTERS/'+unit['unit_id']+'.png';
+                new_img.style.width='100%';
+                new_img.style.maxWidth='100px';
+
+                new_th.appendChild(new_img);
                 header_row.appendChild(new_th);
             });
 
             new_th = document.createElement('th');
             new_th.innerHTML = 'Progress %';
+            new_th.style.width = '100px';
             new_th.addEventListener('click', function() {sortTable(units_list.length+1, false);});
             header_row.appendChild(new_th);
 
@@ -368,11 +380,12 @@ try {
             var table_body = roster_table.getElementsByTagName('tbody')[0];
             table_body.remove();
             table_body = document.createElement('tbody');
-            roster_table.appendChild(table_body);
 
             // Empty table if no units
             if (units_list.length == 0) {
                 // reinitialize empty table
+                headers.appendChild(header_row);
+                roster_table.appendChild(table_body);
                 return;
             }
 
@@ -382,50 +395,75 @@ try {
 
                 var new_td = document.createElement('td');
                 new_td.innerHTML = player_name;
+                new_td.style.overflow = 'hidden';
                 new_tr.appendChild(new_td);
 
                 var list_progress = [];
                 units_list.forEach(unit => {
                     new_td = document.createElement('td');
+                    new_td.style.textAlign = 'center';
+                    new_td.style.overflow = 'hidden';
                     new_tr.appendChild(new_td);
 
                     unit_id = unit['unit_id'];
                     var gear_relic = "";
-                    var gear_relic_int = 0;
+                    var unit_level = 0;
+                    var unit_exists = false;
                     if (unit_id in player_roster) {
-                        var gear = parseInt(player_roster[unit_id][0]);
-                        var relic = parseInt(player_roster[unit_id][1]);
-                        if (relic == 0) {
-                            gear_relic = "G" + gear;
-                            gear_relic_int = parseInt(gear);
+                        var rarity = parseInt(player_roster[unit_id][0]);
+                        var gear = player_roster[unit_id][1];
+                        if (gear == null) {
+                            gear_relic='';
+                            unit_level = parseInt(rarity);
+                            new_td.innerHTML = rarity+String.fromCodePoint(0x2B50)
                         } else {
-                            gear_relic = "R" + relic;
-                            gear_relic_int = 13+parseInt(relic);
+                            gear = parseInt(gear);
+                            var relic = parseInt(player_roster[unit_id][2]);
+                            if (relic == 0) {
+                                gear_relic = "G" + gear;
+                                unit_level = parseInt(gear);
+                            } else {
+                                gear_relic = "R" + relic;
+                                unit_level = 13+parseInt(relic);
+                            }
+                            new_td.innerHTML = gear_relic;
                         }
+                        unit_exists = true;
+                    } else {
+                        new_td.innerHTML = '';
                     }
-                    
-                    var target_gear_relic_int = 0;
+                        
+                    var target_level = 0;
+                    var target_rarity = unit['rarity'];
                     target_gear = unit['gear'];
                     target_relic = unit['relic'];
-                    if (target_relic == 0) {
-                        target_gear_relic_int = target_gear;
+                    if (target_gear == null) {
+                        gear_relic='';
+                        target_level = parseInt(target_rarity);
                     } else {
-                        target_gear_relic_int = 13+target_relic;
+                        if (target_relic == 0) {
+                            target_level = target_gear;
+                        } else {
+                            target_level = 13+target_relic;
+                        }
                     }
-                    var unit_progress = Math.min(gear_relic_int/target_gear_relic_int, 1);
+
+                    var unit_progress = Math.min(unit_level/target_level, 1);
                     list_progress.push(unit_progress);
                 
-                    if (unit_progress == 1.0) {
+                    if (!unit_exists) {
+                        new_td.style.backgroundColor = "darkred";
+                    } else if (unit_progress == 1.0) {
                         new_td.style.backgroundColor = "green";
                     } else if (unit_progress >= .8) {
                         new_td.style.backgroundColor = "orange";
-                    } else if (gear_relic == "") {
+                    } else if (!unit_exists) {
                         new_td.style.backgroundColor = "darkred";
                     } else {
                         new_td.style.backgroundColor = "red";
                     }
 
-                    new_td.innerHTML = gear_relic;
+
 
                 });
 
@@ -444,7 +482,11 @@ try {
                 } else {
                     new_td.style.backgroundColor = "red";
                 }
+                new_td.style.fontWeight = "bold";
             }
+
+            headers.appendChild(header_row);
+            roster_table.appendChild(table_body);
 
         }
 
@@ -463,10 +505,15 @@ try {
 
         function deleteAllTokens() {
             var tokens = modalTokenContainer.getElementsByClassName('token');
-            while (tokens.length > 0) {
+            if (tokens.length == 0) return;
+
+            while (tokens.length > 1) {
                 token = tokens[0];
-                deleteTokenFromElement(token);
+                deleteTokenFromElement(token, refreshTable=false);
             }
+            // Now delete the last one and refresh the table
+            token = tokens[0];
+            deleteTokenFromElement(token, refreshTable=true);
         }
 
         function deleteToken(event, refreshTable=true) {
@@ -513,8 +560,12 @@ try {
             journeyDropdown.addEventListener('change', handleJourneySelection);
             
             // Populate Modal dropdowns
-            Object.keys(AVAILABLE_UNITS).forEach(item => unitDropdown.add(new Option(item, item)));
+            Object.keys(AVAILABLE_UNITS).forEach(unit => unitDropdown.add(new Option(unit, unit)));
             AVAILABLE_GEARS.forEach(value => gearDropdown.add(new Option(value, value)));
+            gearDropdown.value='G13';
+            AVAILABLE_STARS.forEach(value => starDropdown.add(new Option(value+String.fromCodePoint(0x2B50), value)));
+            starDropdown.value=7;
+                    
             var list_journeys = Object.keys(AVAILABLE_GUIDE).sort((a, b) => a.localeCompare(b, 'fr', {'sensitivity': 'base'}));
             journeyDropdown.add(new Option('custom', 'custom'));
             list_journeys.forEach(value => journeyDropdown.add(new Option(value, value)));

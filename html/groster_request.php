@@ -44,7 +44,9 @@ if ($_POST['request_type'] === 'guild_roster') {
     $unitId_list_txt = '('.substr($unitId_list_txt, 1, strlen($unitId_list_txt)-2).')';
     $unitId_list_txt = str_replace('"', "'", $unitId_list_txt);
 
-    $query = "SELECT name, defId, gear, greatest(0, relic_currentTier-2) AS relic";
+    $query = "SELECT name, defId, rarity,";
+    $query .= " CASE WHEN combatType=2 THEN null ELSE gear END AS gear,";
+    $query .= " CASE WHEN combatType=2 THEN null ELSE greatest(0, relic_currentTier-2) END AS relic";
     $query .= " FROM players LEFT JOIN roster";
     $query .= " ON players.allyCode=roster.allyCode";
     $query .= " WHERE guildId = '".$guild_id."'";
