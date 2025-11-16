@@ -21,6 +21,9 @@ if (!isset($_GET['gid'])) {
 
 $guild_id = $_GET['gid'];
 
+//Check if guild page has been visited first, or reload guild data if necessary
+if (!isset($_SESSION['guild']) || $_SESSION['guild']['id']!=$guild_id) include 'gdata.php';
+
 // define $isMyGuild, $isOfficer FROM $guild_id
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
@@ -113,6 +116,13 @@ try {
 
     <!-- START OF page specific content -->
 
+<?php if (!isset($_SESSION['user_id'])) { ?>
+    <div class="card">
+        You need to login to use this page
+    </div> <!-- class="card" -->
+    
+<?php } else { ?> <!-- !isset($_SESSION['user_id']) -->
+
     <!-- input field for characters -->
     <div class="card">
         <label for="journeyDropdown">Select Journey Guide:</label><select id="journeyDropdown"></select>
@@ -146,6 +156,8 @@ try {
             <tbody/>
         </table>
     </div> <!-- class="card" -->
+
+<?php } ?> <!-- !isset($_SESSION['user_id']) -->
 
     <!-- END OF page specific content -->
     </div> <!-- container -->

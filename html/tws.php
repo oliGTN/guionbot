@@ -21,16 +21,13 @@ if (!isset($_GET['gid'])) {
 
 $guild_id = $_GET['gid'];
 
+//Check if guild page has been visited first, or reload guild data if necessary
+if (!isset($_SESSION['guild']) || $_SESSION['guild']['id']!=$guild_id) include 'gdata.php';
+$guild = $_SESSION['guild'];
+
 // define $isMyGuild, $isOfficer FROM $guild_id
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
-// The guild page needs to be visited first
-if (!isset($_SESSION['guild']) || ($_SESSION['guild']['id']!=$guild_id)){
-    error_log("No valid guild data, redirect to g.php?gid=$guild_id");
-    header("Location: g.php?gid=$guild_id");
-    exit();
-}
-$guild = $_SESSION['guild'];
 
 // --------------- GET TB LIST GUILD -----------
 // Prepare the SQL query
