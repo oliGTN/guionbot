@@ -50,7 +50,7 @@ for material in game_data["material"]:
     material_id = material["id"]
     #if not material_id.startswith("unitshard_"):
     #    continue
-    accelerated = (material["sellValue"]["quantity"]==15)
+    accelerated = (int(material["sellValue"]["quantity"])==15)
     dict_eqpt[material_id] = material
     dict_eqpt[material_id]["cost"] = []
     if "lookupMission" in material:

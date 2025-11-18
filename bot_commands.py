@@ -27,6 +27,7 @@ import data
 # CONSTANTS
 import emojis
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
+MAX_RELIC = 10
 
 ######################################
 # basic functions mixinx ctx and interactions
@@ -329,7 +330,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
                     target_gear = 13
                     target_relic = int(tab_alias[1][1:])
 
-                    if target_relic<0 or target_relic>9:
+                    if target_relic<0 or target_relic>MAX_RELIC:
                         return 1, "Syntax incorrecte pour le gear/relic dans "+alias, None
 
                 else:
@@ -436,9 +437,9 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
         #create list of owned equipment
         player_eqpt = {}
         for e in i_player["inventory"]["equipment"]:
-            player_eqpt[e["id"]] = e["quantity"]
+            player_eqpt[e["id"]] = int(e["quantity"])
         for e in i_player["inventory"]["material"]:
-            player_eqpt[e["id"]] = e["quantity"]
+            player_eqpt[e["id"]] = int(e["quantity"])
 
     # Loop from high level eqpt, check if owned
     #  then breakdown into next level, chck if owned
@@ -1009,7 +1010,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
             for g_relic in d_guild[unit]:
                 if g_relic >= relic:
                     guild += d_guild[unit][g_relic]
-            if (guild-req) < 2 and relic<9:
+            if (guild-req) < 2 and relic<MAX_RELIC:
                 #print(unit, dict_ops[unit], d_guild[unit])
                 d_rares[unit+":"+str(relic)]=[req, guild]
 

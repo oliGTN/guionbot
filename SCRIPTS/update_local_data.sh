@@ -1,8 +1,6 @@
 python SCRIPTS/update_localization_dict.py
 
-GAMEDATA_VERSION=$(grep latestGamedataVersion ../warstats/metadata.json |cut -f4 -d\")
-echo $GAMEDATA_VERSION
-GAMEDATA_FILE=../GAMEDATA/GameData_${GAMEDATA_VERSION}.json
+GAMEDATA_FILE=../warstats/GameData.json
 echo "update units..."
 python SCRIPTS/update_unitsList_json.py $GAMEDATA_FILE
 echo "update capabilities..."

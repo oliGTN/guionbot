@@ -47,6 +47,8 @@ emoji_check = "\N{WHITE HEAVY CHECK MARK}"
 emoji_cross = "\N{CROSS MARK}"
 emoji_frowning = "\N{SLIGHTLY FROWNING FACE}"
 
+MAX_RELIC = 10
+
 dict_stat_names={} # unitStatUd, is percentage
 dict_stat_names["santé"] =  [1, False, "Santé"]
 dict_stat_names["health"] = [1, False, "Santé"]
@@ -1991,7 +1993,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                     elif tab_virtual_character[2][0] in "rR":
                         if tab_virtual_character[2][1:].isnumeric():
                             char_relic = int(tab_virtual_character[2][1:])
-                            if (char_relic<0) or (char_relic>9):
+                            if (char_relic<0) or (char_relic>MAX_RELIC):
                                 return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
                             dict_virtual_characters[char_alias] = [char_rarity, 13, char_relic]
                         else:
@@ -2019,7 +2021,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                     elif tab_virtual_character[1][0] in "rR":
                         if tab_virtual_character[1][1:].isnumeric():
                             char_relic = int(tab_virtual_character[1][1:])
-                            if (char_relic<0) or (char_relic>9):
+                            if (char_relic<0) or (char_relic>MAX_RELIC):
                                 return "ERR: la syntaxe "+character+" est incorrecte pour le relic"
                             dict_virtual_characters[char_alias] = [None, 13, char_relic]
                         else:
@@ -2638,7 +2640,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
         if not relic_num[1:].isnumeric():
             return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
         relic = int(relic_num[1:])
-        if relic<0 or relic>9:
+        if relic<0 or relic>MAX_RELIC:
             return 1, "ERR: syntaxe incorrecte pour le filtre relic", None
     else:
         #default filter R0+
@@ -3475,7 +3477,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                     if character_option[1:].isnumeric():
                         char_relic = int(character_option[1:])
                         char_gear = 13
-                        if (char_relic<0) or (char_relic>9):
+                        if (char_relic<0) or (char_relic>MAX_RELIC):
                             return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
                     else:
                         return 1, "ERR: la syntaxe "+character+" est incorrecte pour le relic", None
@@ -4227,7 +4229,7 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
           + "CASE WHEN gear<13 THEN concat('G', gear) " \
           + "ELSE CONCAT('R',relic_currentTier-2) " \
           + "END as 'gear', " \
-          + "(rarity/7*0.5+(gear+relic_currentTier-2)/(13+9)*0.5) as progress " \
+          + "(rarity/7*0.5+(gear+relic_currentTier-2)/(13+MAX_RELIC)*0.5) as progress " \
           + "FROM roster JOIN players " \
           + "ON players.allyCode = roster.allyCode " \
           + "WHERE players.guildName = (SELECT guildName FROM players WHERE allyCode='"+txt_allyCode+"') " \

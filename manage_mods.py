@@ -146,7 +146,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
     player_credits = 0
     for currencyItem in initialdata["inventory"]["currencyItem"]:
         if "currency" in currencyItem and currencyItem["currency"] == "GRIND":
-            player_credits = currencyItem["quantity"]
+            player_credits = int(currencyItem["quantity"])
 
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot

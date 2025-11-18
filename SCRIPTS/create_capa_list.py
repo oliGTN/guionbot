@@ -58,27 +58,27 @@ for unit in game_data["units"]:
         skill = dict_skills[skill_id]
         my_capa = {}
 
-        if skill_id.startswith("basic"):
+        if skill_id.lower().startswith("basic"):
             skill_shortname = "B"
             skill_type = "Basique"
-        elif skill_id.startswith("leader"):
+        elif skill_id.lower().startswith("leader"):
             skill_shortname = "L"
             skill_type = "Leader"
-        elif skill_id.startswith("special"):
+        elif skill_id.lower().startswith("special"):
             special_count+=1
             skill_shortname = "S"+str(special_count)
             skill_type = "Spéciale "+str(special_count)
-        elif skill_id.startswith("uniqueskill_GALACTICLEGEND"):
+        elif skill_id.lower().startswith("uniqueskill_GALACTICLEGEND"):
             skill_shortname = "GL"
             skill_type = "Légende Galactique"
-        elif skill_id.startswith("unique"):
+        elif skill_id.lower().startswith("unique"):
             unique_count+=1
             skill_shortname = "U"+str(unique_count)
             skill_type = "Unique "+str(unique_count)
-        elif skill_id.startswith("hardware"):
+        elif skill_id.lower().startswith("hardware"):
             skill_shortname = "H"
             skill_type = "Hardware"
-        elif skill_id.startswith("contract"):
+        elif skill_id.lower().startswith("contract"):
             skill_shortname = "C"
             skill_type = "Contrat"
         else:

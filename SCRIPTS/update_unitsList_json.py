@@ -100,7 +100,7 @@ for unit in game_data["units"]:
         unitsList_dict[unit_id]['farmingInfo'] = []
     shard_name = 'unitshard_'+unit_id
     if shard_name in materialList_dict:
-        farmingSpeed = 3 - int(materialList_dict[shard_name]['sellValue']['quantity']/15)
+        farmingSpeed = 3 - int(int(materialList_dict[shard_name]['sellValue']['quantity'])/15)
         if 'lookupMission' in materialList_dict[shard_name]:
             for event in materialList_dict[shard_name]['lookupMission']:
                 if not event['missionIdentifier']['campaignMapId'] == 'MARQUEE':
