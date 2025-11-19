@@ -293,7 +293,7 @@ def get_image_from_unit(character, crew_units, game_mode):
                 relic_frame_img = relic_frame_img.crop((0, 108, 54, 162))
             relic_frame_img = relic_frame_img.resize((70,70))
             portrait_image.paste(relic_frame_img, (50, 87), relic_frame_img)
-            portrait_draw.text((78,107), str(relic), (255, 255, 255), font=font24)
+            portrait_draw.text((86-8*len(str(relic)),107), str(relic), (255, 255, 255), font=font24)
         else:
             #LEVEL
             level = character["currentLevel"]
