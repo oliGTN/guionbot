@@ -172,7 +172,7 @@ try {
         // Constants
         AVAILABLE_GUIDE = <?php echo json_encode($journey_guide);?>;
         AVAILABLE_UNITS = <?php echo json_encode($dict_units);?>;
-        AVAILABLE_GEARS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9']
+        AVAILABLE_GEARS = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8', 'G9', 'G10', 'G11', 'G12', 'G13', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10']
         AVAILABLE_STARS = ['1', '2', '3', '4', '5', '6', '7']
 
         // Global state
