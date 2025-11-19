@@ -3250,7 +3250,7 @@ async def update_K1_players():
 
     leaderboard_json = resp_json
     #Loop through plalers and add/update them
-    for player in leaderboard_json["player"]:
+    for player in leaderboard_json["leaderboard"]["player"]:
         await go.load_player(player["id"], 1, False)
 
 
