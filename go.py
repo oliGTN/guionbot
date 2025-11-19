@@ -2164,10 +2164,10 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
         if err_code != 0:
             return "ERR: cannot get guild data from RPC"
                             
-        db_stat_data_char = []
+        #db_stat_data_char = []
         goutils.log2("INFO", "Get guild_data from DB...")
         query = "SELECT players.name, defId, "\
-               +"roster.combatType, rarity, gear, relic_currentTier, "\
+               +"roster.combatType, eraLevel, rarity, gear, relic_currentTier, "\
                +"stat1, "\
                +"stat5, "\
                +"stat6, "\
@@ -2209,7 +2209,8 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             ret_print_character_stats += " (tri par "+sort_option_full_name+")\n"
     
         # Generate dict from DB data
-        dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data)
+        #dict_stats = goutils.create_dict_stats(db_stat_data_char, db_stat_data)
+        dict_stats = goutils.create_dict_stats(db_stat_data)
     else:
         return "ERR: les stats au niveau guilde ne marchent qu'avec un seul perso à la fois"
     
@@ -2230,7 +2231,10 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                 character_rarity = str(dict_player[character_id]["currentRarity"])+"*"
                 character_gear = dict_player[character_id]["currentTier"]
                 if dict_unitsList[character_id]["combatType"] == 1:
-                    if character_gear == 13:
+                    if 'eraLevel' in dict_player[character_id]:
+                        era_level = dict_player[character_id]["eraLevel"]
+                        character_gear = "L"+str(era_level)
+                    elif character_gear == 13:
                         character_relic = dict_player[character_id]["relic"]["currentTier"]
                         character_gear = "R"+str(character_relic-2)
                     else:
@@ -2681,7 +2685,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
     stat_string = "stat"+str(stat_id)
 
     #Get data from DB
-    db_stat_data_char = []
+    #db_stat_data_char = []
     goutils.log2("INFO", "Get player data from DB...")
     query = "SELECT r.allyCode, gear, combatType,"\
            +stat_string+", guildName "\

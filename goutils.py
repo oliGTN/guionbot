@@ -273,10 +273,12 @@ def create_guild_teams(db_data):
     liste_teams = list(dict_teams.keys())
     return liste_teams, dict_teams
     
-def create_dict_stats(db_stat_data_char, db_stat_data):
+#def create_dict_stats(db_stat_data_char, db_stat_data):
+def create_dict_stats(db_stat_data):
     dict_players={}
     dict_unitsList = data.get("unitsList_dict.json")
 
+    """
     #db_stat_data_char is only used when db_stat_data does not
     # contain all characters (due to not using LEFT JOIN, case of 'all')
     cur_name = ''
@@ -294,17 +296,22 @@ def create_dict_stats(db_stat_data_char, db_stat_data):
             else:
                 line_nameKey = line_defId
             line_combatType = line[2]
-            line_rarity = line[3]
-            line_gear = line[4]
-            line_relic_currentTier = line[5]
+            line_eraLevel = line[3]
+            line_rarity = line[4]
+            line_gear = line[5]
+            line_relic_currentTier = line[6]
             dict_players[line_name][line_defId]={ \
                     "defId": line_defId+":STARS",
                     "currentRarity": line_rarity,
                     "currentTier": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {'final':{}}}
+            if line_eraLevel!=None:
+                dict_players[line_name][line_defId]["eraLevel"]=line_eraLevel
+
                 
             cur_defId = line_defId            
+    """
 
     cur_name = ''
     for line in db_stat_data:
@@ -322,24 +329,27 @@ def create_dict_stats(db_stat_data_char, db_stat_data):
             else:
                 line_nameKey = line_defId
             line_combatType = line[2]
-            line_rarity = line[3]
-            line_gear = line[4]
-            line_relic_currentTier = line[5]
-            line_stat1 = line[6]
-            line_stat5 = line[7]
-            line_stat6 = line[8]
-            line_stat7 = line[9]
-            line_stat14 = line[10]
-            line_stat16 = line[11]
-            line_stat17 = line[12]
-            line_stat18 = line[13]
-            line_stat28 = line[14]
+            line_eraLevel = line[3]
+            line_rarity = line[4]
+            line_gear = line[5]
+            line_relic_currentTier = line[6]
+            line_stat1 = line[7]
+            line_stat5 = line[8]
+            line_stat6 = line[9]
+            line_stat7 = line[10]
+            line_stat14 = line[11]
+            line_stat16 = line[12]
+            line_stat17 = line[13]
+            line_stat18 = line[14]
+            line_stat28 = line[15]
             dict_players[line_name][line_defId]={ \
                     "defId": line_defId+":STARS",
                     "currentRarity": line_rarity,
                     "currentTier": line_gear,
                     "relic": {"currentTier": line_relic_currentTier},
                     "stats": {'final':{}}}
+            if line_eraLevel!=None:
+                dict_players[line_name][line_defId]["eraLevel"]=line_eraLevel
 
             dict_players[line_name][line_defId]["stats"]["final"]['1'] = int(line_stat1)
             dict_players[line_name][line_defId]["stats"]["final"]['5'] = int(line_stat5)
@@ -773,13 +783,13 @@ def roster_from_dict_to_list(dict_player_in):
             list_datacrons.append(datacron)
         dict_player['datacrons'] = list_datacrons
 
-    ### eraUnitList
-    if "eraUnitList" in dict_player:
-        if type(dict_player['eraUnitList']) == list:
-            log("DBG", "roster_from_dict_to_list", "no transformation needed for eraUnitList of "+txt_allyCode)
+    ### eraUnitStatus
+    if "eraUnitStatus" in dict_player:
+        if type(dict_player['eraUnitStatus']) == list:
+            log("DBG", "roster_from_dict_to_list", "no transformation needed for eraUnitStatus of "+txt_allyCode)
         else:
-            #Transform the dict of eraUnitList into a list
-            list_eraUnitList = []
+            #Transform the dict of eraUnitStatus into a list
+            list_eraUnitStatus = []
             for eraUnitStatus_id in dict_player['eraUnitStatus']:
                 eraUnitStatus = dict_player['eraUnitStatus'][eraUnitStatus_id]
             list_eraUnitStatus.append(eraUnitStatus)
