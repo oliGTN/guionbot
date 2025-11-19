@@ -47,6 +47,7 @@ bot_uptime=datetime.datetime.now(guild_timezone)
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 bot_test_mode = False
 bot_background_tasks = True
+bot_on_message = True
 
 #Global variables that may change during execution
 first_bot_loop_5minutes = True
@@ -1807,6 +1808,9 @@ async def on_disconnect():
 ##############################################################
 @bot.event
 async def on_raw_reaction_add(payload):
+    if not bot_on_message:
+        return
+
     message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
     emoji = payload.emoji.name
     reaction = discord.utils.get(message.reactions, emoji=emoji)
@@ -1916,7 +1920,23 @@ async def on_message(message):
     try:
         if isinstance(message.channel, DMChannel):
             channel_name = "DM"
+        else:
+            channel_name = message.guild.name+"/"+message.channel.name
 
+        ### basic command management
+        lower_msg = message.content.lower().strip()
+        if lower_msg.startswith("go."):
+            command_name = lower_msg.split(" ")[0].split(".")[1]
+            goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
+
+            await bot.process_commands(message)
+
+        ### after these are reaction to other messages than commands
+        if not bot_on_message:
+            return
+
+        ### forwarded messages to the bot in a DM
+        if isinstance(message.channel, DMChannel):
             if message.reference!=None \
                 and type(message.reference==MessageReference) \
                 and message.message_snapshots!=None \
@@ -1942,17 +1962,6 @@ async def on_message(message):
 
                         return
 
-
-
-        else:
-            channel_name = message.guild.name+"/"+message.channel.name
-
-        lower_msg = message.content.lower().strip()
-        if lower_msg.startswith("go."):
-            command_name = lower_msg.split(" ")[0].split(".")[1]
-            goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
-
-            await bot.process_commands(message)
 
         #Read messages from Juke's bot
         if message.author.id == config.JBOT_DISCORD_ID:
@@ -2048,6 +2057,9 @@ async def on_message(message):
 ##############################################################
 @bot.event
 async def on_message_edit(before, after):
+    if not bot_on_message:
+        return
+
     try:
         if isinstance(before.channel, DMChannel):
             channel_name = "DM"
@@ -2146,6 +2158,9 @@ async def on_message_edit(before, after):
 
 @bot.event
 async def on_message_delete(message):
+    if not bot_on_message:
+        return
+
     #Unable to detect who is deleting a message
     if isinstance(message.channel, DMChannel):
         channel_name = "DM"
@@ -5919,41 +5934,48 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.spj me -v \"Dark Maul\" Bastila\n"\
                       "Exemple: go.spj me -p all")
     async def spj(self, ctx, allyCode, *characters):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        allyCode = await manage_me(ctx, allyCode, False)
+            allyCode = await manage_me(ctx, allyCode, False)
 
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            list_options = []
-            list_characters = []
-            for item in characters:
-                if item[0] == "-":
-                    list_options.append(item)
-                else:
-                    list_characters.append(item)
-            
-            if len(list_characters)  == 0:
-                list_characters=['all']
-
-            if len(list_options) <= 1:
-                ret_cmd = await go.print_character_stats( list_characters,
-                    list_options, allyCode, False, None, None)
-            else:
-                ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
-                
-            if ret_cmd[0:3] == 'ERR':
-                await ctx.send(ret_cmd)
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
             else:
-                #texte classique
-                for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
-                    await ctx.send("```"+txt+"```")
+                list_options = []
+                list_characters = []
+                for item in characters:
+                    if item[0] == "-":
+                        list_options.append(item)
+                    else:
+                        list_characters.append(item)
+                
+                if len(list_characters)  == 0:
+                    list_characters=['all']
+
+                if len(list_options) <= 1:
+                    ret_cmd = await go.print_character_stats( list_characters,
+                        list_options, allyCode, False, None, None)
+                else:
+                    ret_cmd = 'ERR: merci de préciser au maximum une option de tri'
+                    
+                if ret_cmd[0:3] == 'ERR':
+                    await ctx.send(ret_cmd)
+                    await ctx.message.add_reaction(emojis.redcross)
+                else:
+                    #texte classique
+                    for txt in goutils.split_txt(ret_cmd, MAX_MSG_SIZE):
+                        await ctx.send("```"+txt+"```")
 
                 #Icône de confirmation de fin de commande dans le message d'origine
                 await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.spg"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
     
     ##############################################################
     # Command: spg
@@ -7358,6 +7380,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 async def main():
     global bot_test_mode
     global bot_background_tasks
+    global bot_on_message
     global bot
 
     #Init bot
@@ -7366,9 +7389,12 @@ async def main():
     if len(sys.argv) > 1:
         goutils.log2("INFO", "TEST MODE - options="+str(sys.argv[1:]))
         bot_test_mode = True
-        if sys.argv[1] == "noloop":
+        if "noloop" in sys.argv[1:]:
             goutils.log2("INFO", "Disable loops")
             bot_background_tasks = False
+        if "nomsg" in sys.argv[1:]:
+            goutils.log2("INFO", "Disable on_message")
+            bot_on_message = False
 
     #Clean tmp files
     list_cache_files = os.listdir("CACHE")

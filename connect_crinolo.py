@@ -9,9 +9,11 @@ crinolo_url = 'http://localhost:3223/api?flags='
 default_url_options = 'statIDs,unscaled,calcGP,gameStyle'
 base_options = 'statIDs,unscaled,calcGP,withoutModCalc'
 
+# IN: dict_player with "roster" as a list
 def add_stats(dict_player):
     return add_stats_with_options(dict_player, default_url_options)
 
+# IN: dict_player with "roster" as a list
 def add_base_stats(dict_player):
     ec, et, d_stats_base = add_stats_with_options(dict_player, base_options)
     if ec!=0:
@@ -32,6 +34,7 @@ def add_base_stats(dict_player):
     return 0, "", dict_player
 
 
+# IN: dict_player with "roster" as a list
 def add_stats_with_options(dict_player, url_options):
     dict_unitsList = data.get("unitsList_dict.json")
 

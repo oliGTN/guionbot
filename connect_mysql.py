@@ -539,10 +539,17 @@ async def update_player(dict_player):
             if "relic" in character:
                 c_relic_currentTier = character['relic']['currentTier']
 
+            if "eraLevel" in character:
+                #This is an era unit
+                c_eraLevel_txt = str(character['eraLevel'])
+            else:
+                c_eraLevel_txt = 'NULL'
+
             #launch query to update roster element, with stats
             query = "INSERT IGNORE INTO roster(allyCode, defId) "\
                    +"VALUES("+str(p_allyCode)+", '"+c_defId+"')"
-            #goutils.log2("DBG", query)
+            #if character_id.startswith('STORMTROOPER'):
+            #    goutils.log2("DBG", query)
             cursor.execute(query)
 
             query = "UPDATE roster "\
@@ -553,6 +560,7 @@ async def update_player(dict_player):
                    +"    gear = "+str(c_gear)+", "\
                    +"    gp = "+str(c_gp)+", "\
                    +"    level = "+str(c_level)+", "\
+                   +"    eraLevel = "+c_eraLevel_txt+", "\
                    +"    rarity = "+str(c_rarity)+", "\
                    +"    relic_currentTier = "+str(c_relic_currentTier)+" "
 

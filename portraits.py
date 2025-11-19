@@ -244,7 +244,15 @@ def get_image_from_unit(character, crew_units, game_mode):
     combatType = dict_unitsList[character_id]["combatType"]
     forceAlignment = dict_unitsList[character_id]["forceAlignment"]
 
-    if combatType == 1:
+    if "eraLevel" in character:
+        ### ERA CHARACTER - DISPLAY only level
+        level = character["eraLevel"]
+        level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'eralevel-badge.png')
+        #level_frame_img = level_frame_img.resize((40,40))
+        portrait_image.paste(level_frame_img, (65, 105), level_frame_img)
+        portrait_draw.text((87-8*len(str(level)),110), str(level), (255, 255, 255), font=font24)
+    elif combatType == 1:
+        ### NON ERA CHARACTER
         #GEAR
         gear = character["currentTier"]
         if gear < 13:
@@ -321,7 +329,10 @@ def get_image_from_unit(character, crew_units, game_mode):
             omicron_frame_img = omicron_frame_img.resize((60,60))
             portrait_image.paste(omicron_frame_img, (106, 85), omicron_frame_img)
             portrait_draw.text((130,100), str(omicrons), (255, 255, 255), font=font24)
+
     else:
+        ### NON-ERA SHIP
+
         #LEVEL
         level = character["currentLevel"]
         level_frame_img = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'level-badge.png')
@@ -329,6 +340,7 @@ def get_image_from_unit(character, crew_units, game_mode):
         portrait_image.paste(level_frame_img, (4, 107), level_frame_img)
         portrait_draw.text((26-8*len(str(level)),112), str(level), (255, 255, 255), font=font24)
 
+    if combatType == 2:
         #CREW
         for crew_unit in crew_units:
             #for crew image, the game_mode is ignored as it serves to display omicrons

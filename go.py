@@ -272,6 +272,12 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
         if load_roster:
             if not "rosterUnit" in dict_player_list:
                 dict_player_list["rosterUnit"] = []
+
+            dict_eraUnits = {}
+            if "eraUnitStatus" in dict_player_list:
+                for eraUnit in dict_player_list["eraUnitStatus"]:
+                    dict_eraUnits[eraUnit["unitBaseId"]] = eraUnit
+
             for unit in dict_player_list["rosterUnit"]:
                 if not "equipment" in unit:
                     unit["equipment"] = []
@@ -283,6 +289,10 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
                     for mod in unit["equippedStatMod"]:
                         if not "secondaryStat" in mod:
                             mod["secondaryStat"] = []
+
+                unit_id = unit["definitionId"].split(':')[0]
+                if unit_id in dict_eraUnits:
+                    unit["eraLevel"] = dict_eraUnits[unit_id]["eraLevel"]
 
 
             #Add statistics
@@ -334,7 +344,7 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
             if ec == 0:
                 goutils.log2("DBG", "success updating "+dict_player['name']+" in DB")
             else:
-                return 1, 'ERR: update_player '+ac_or_id+' returned an error', None
+                return 1, 'update_player '+ac_or_id+' returned an error', None
                 
     else:
         dict_player = prev_dict_player
