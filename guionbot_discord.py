@@ -4163,8 +4163,15 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
-                await ctx.send('```'+txt+'```')
+            #for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+            #    await ctx.send('```'+txt+'```')
+
+            #Create image from table
+            ec, et, image = portraits.get_image_from_texttable(ret_txt)
+            with BytesIO() as image_binary:
+                image.save(image_binary, 'PNG')
+                image_binary.seek(0)
+                await ctx.send(file=File(fp=image_binary, filename='image.png'))
 
             await ctx.message.add_reaction(emojis.check)
 
