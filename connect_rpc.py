@@ -3253,6 +3253,44 @@ async def update_K1_players():
     for player in leaderboard_json["leaderboard"]["player"]:
         await go.load_player(player["id"], 1, False)
 
+async def get_coliseum_guild_status(guild_id, allyCode=None):
+    if allyCode == None:
+        dict_bot_accounts = get_dict_bot_accounts()
+        if not guild_id in dict_bot_accounts:
+            return 1, "Ce serveur discord n'a pas de warbot", None
+
+        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
+    else:
+        bot_allyCode = allyCode
+
+    goutils.log2("DBG", "connected account for "+str(guild_id)+" is "+str(bot_allyCode))
+
+    url = "http://localhost:8000/leaderboard"
+    params = {"allyCode": bot_allyCode, 
+              "coliseum_type": "guild"}
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "leaderboard status="+str(resp.status))
+                if resp.status==200:
+                    resp_json = await(resp.json())
+                else:
+                    return 1, "Cannot get leaderboard data from RPC", None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if resp_json!=None and "err_code" in resp_json:
+        return 1, resp_json["err_txt"], None
+
+    leaderboard_json = resp_json
+
+    return 0, "", leaderboard_json
 
 ####################################################
 # IN: guild ID

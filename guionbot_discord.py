@@ -4128,6 +4128,52 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.redcross)
 
     #######################################################
+    # coliseum: list coliseum daily scores
+    #######################################################
+    @commands.check(officer_command)
+    @commands.command(name='coliseum',
+            brief="Affiche les scores du jour au Colisée",
+            help="go.coliseum")
+    async def coliseum(self, ctx):
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
+
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send("ERR: "+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+            connected_allyCode = bot_infos["allyCode"]
+
+            # Launch the actual command
+            err_code, ret_txt = await go.print_coliseum_guild(
+                                            guild_id, 
+                                            allyCode=connected_allyCode)
+            if err_code == None:
+                await ctx.send("ERR: "+txt)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
+                await ctx.send('```'+txt+'```')
+
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
+
+    #######################################################
     # raidrappel: creates a reminder for players not enough active in raid
     # IN (optional): channel ID to post the reminder, with discord tags
     #######################################################
@@ -4256,8 +4302,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
     @commands.check(officer_command)
     @commands.command(name='ticketsrappel',
             brief="Tag les joueurs qui n'ont pas fait leurs tickets",
-            help="go.raidrappel     > tag les joueurs sous 600 par défaut\n" \
-                 "go.raidrappel 450 > tag les joueurs sous 450 tickets")
+            help="go.ticketsrappel     > tag les joueurs sous 600 par défaut\n" \
+                 "go.ticketsrappel 450 > tag les joueurs sous 450 tickets")
     async def ticketsrappel(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)

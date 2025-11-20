@@ -6835,3 +6835,81 @@ async def get_ticket_reminder(guild_id, required_tickets, allyCode=None):
     guild_ticket_time = int(guild["nextChallengesRefresh"])
 
     return 0, "", list_players, guild_ticket_time
+
+async def print_coliseum_guild(guild_id, allyCode=None):
+    err_code, err_txt, rpc_data = await connect_rpc.get_coliseum_guild_status(guild_id, allyCode=allyCode)
+    if err_code!=0:
+        return 1, err_txt
+
+    dict_coliseum_scores = {} #key = player_id / value={"name": xxx, "tier": n, "score": nnn, "units":[{"name": "ST Luke", "level": "3*L12}, ...]}
+
+    # get players and score from RPC data
+    for score_card in rpc_data["leaderboard"]["player"]:
+        id = score_card["id"]
+        name = score_card["name"]
+        score = score_card["pvpStatus"]["score"]
+        tier = score_card["pvpStatus"]["tier"]
+        if id in dict_coliseum_scores:
+            #previous day
+            continue
+
+        dict_coliseum_scores[id] = {"name": name,
+                                    "tier": tier+1,
+                                    "score": score,
+                                    "units": {}}
+
+    score_guild_id = score_card["guild"]["id"]
+
+    # get era unit levels from DB
+    query = "SELECT playerId, defId, eraLevel, rarity FROM roster "\
+            "JOIN players ON players.allyCode=roster.allyCode "\
+            "WHERE guildId='"+score_guild_id+"' "\
+            "AND NOT isnull(eraLevel) "
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+    if db_data == None:
+        db_data = []
+
+    dict_unitsList = godata.get("unitsList_dict.json")
+    list_era_units = []
+    for line in db_data:
+        playerId = line[0]
+        defId = line[1]
+        eraLevel = line[2]
+        rarity = line[3]
+        level = str(rarity)+"*L"+str(eraLevel)
+        unitName = dict_unitsList[defId]["name"]
+
+        if playerId in dict_coliseum_scores:
+            dict_coliseum_scores[playerId]["units"][unitName] = level
+        if not unitName in list_era_units:
+            list_era_units.append(unitName)
+
+    ### prepare lines for output
+    list_output_lines = []
+    # player lines
+    for playerId in dict_coliseum_scores:
+        score_card = dict_coliseum_scores[playerId]
+        line = [score_card["name"], score_card["tier"], score_card["score"]]
+
+        for unit_name in list_era_units:
+            if unit_name in score_card["units"]:
+                line.append(score_card["units"][unit_name])
+            else:
+                line.append("--")
+
+        list_output_lines.append(line)
+
+    #sort lines
+    list_output_lines.sort(key=lambda x:(-x[1], -x[2]))
+
+    # title line
+    title_line = ["Joueur", "Niveau", "Score"]
+    for unit_name in list_era_units:
+        title_line.append(unit_name)
+
+    t = Texttable()
+    t.add_rows([title_line]+list_output_lines)
+    t.set_deco(Texttable.BORDER|Texttable.HEADER|Texttable.VLINES)
+
+    return 0, t.draw()
