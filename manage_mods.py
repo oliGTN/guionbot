@@ -1114,6 +1114,9 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
 
         unit = dict_player['rosterUnit'][unit_id]
         unit_gear = unit["currentTier"]
+        unit_level = unit["currentLevel"]
+        if unit_level < 50:
+            continue
 
         #Find empty mod slots for this unit
         empty_slots = [2, 3, 4, 5, 6, 7]
