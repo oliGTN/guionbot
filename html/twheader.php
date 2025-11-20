@@ -69,7 +69,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:'.$border_style.'" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
 
     if ($isMyGuildConfirmed) {
-        echo "<b>".$zone_name."</b><br/>".min($zones[$side][$zone_name]['filled'], ($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories']))."/".$zones[$side][$zone_name]['size'];
+        echo "<b>".$zone_name."</b><br/>".min($zones[$side][$zone_name]['filled'], ($zones[$side][$zone_name]['filled']-$zones[$side][$zone_name]['victories']))."/".$zones[$side][$zone_name]['filled'];
         echo "</td'>\n";
 
     } else {
@@ -78,7 +78,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
             // considered not open
             echo "<b>".$zone_name."</b><br/>?/".$zones[$side][$zone_name]['size'];
         } else {
-            echo "<b>".$zone_name."</b><br/>".($zones[$side][$zone_name]['size']-$zones[$side][$zone_name]['victories'])."/".$zones[$side][$zone_name]['size'];
+            echo "<b>".$zone_name."</b><br/>".($zones[$side][$zone_name]['filled']-$zones[$side][$zone_name]['victories'])."/".$zones[$side][$zone_name]['filled'];
         }
         echo "</td'>\n";
     }
