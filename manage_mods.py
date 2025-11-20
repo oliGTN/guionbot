@@ -1101,7 +1101,7 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
     #Best mod is at the start of the list
     for mod_slot in unallocated_mods:
         list_mods = unallocated_mods[mod_slot]
-        list_mods.sort(key=lambda x: (-len(x["secondaryStat"]), -x["mod_speed"]))
+        list_mods.sort(key=lambda x: (-(len(x["secondaryStat"]) if "secondaryStat" in x else 0), -x["mod_speed"]))
         unallocated_mods[mod_slot] = list_mods
 
     # ['unit_id': 'MAGMATROOPER', 
