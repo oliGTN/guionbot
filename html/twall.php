@@ -130,7 +130,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
             // considered not open
             echo "<b>".$zone_name."</b><br/>?/".$zones[$side][$zone_name]['size'];
         } else {
-            echo "<b>".$zone_name."</b><br/>".($zones[$side][$zone_name]['filled']-$zones[$side][$zone_name]['victories'])."/".$zones[$side][$zone_name]['filled'];
+            echo "<b>".$zone_name."</b><br/>".($zones[$side][$zone_name]['filled']-$zones[$side][$zone_name]['victories'])."/".$zones[$side][$zone_name]['size'];
         }
         echo "</td'>\n";
 }
