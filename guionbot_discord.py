@@ -503,6 +503,56 @@ async def send_alert_to_echocommanders(guild_id, message):
                                 goutils.log2("WAR", "["+guild_name+"] Cannot send DM to "+member.name)
 
 ##############################################################
+# Function: get_wb_allocation
+# Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
+# Purpose: lit le channel #batailles de territoire pour retouver
+#          l'affectation des pelotons par WookieBot
+# Output: dict_platoons_allocation={} #key=platoon_name, value={key=perso, value=[player...]}
+##############################################################
+async def get_wb_allocation(tbChannel_id, tbs_round):
+    dict_tb = data.get("tb_definition.json")
+    dict_units = data.get("unitsList_dict.json")
+    ENG_US = data.get("ENG_US.json")
+
+    FRE_char_names = []
+    ENG_char_names = {}
+    for unit_id in dict_units:
+        unit = dict_units[unit_id]
+        FRE_char_names.append(unit["name"])
+        ENG_char_names[ENG_US[unit["nameKey"]]] = unit["name"]
+
+    # Lecture des affectation ECHOBOT
+    tb_channel = bot.get_channel(tbChannel_id)
+    dict_platoons_allocation = {}  #key=platoon_name, value={key=perso, value=[player...]}
+
+    # Read history of messages
+    try:
+        async for message in tb_channel.history(limit=500):
+            if message.author.id == config.WOOKIEBOT_DISCORD_ID:
+                for attachment in message.attachments:
+                    goutils.log2("DBG", "Reading attachment...")
+                    if not attachment.filename.endswith(".csv"):
+                        continue
+                    tb_shortname = attachment.filename.split("_")[0]
+                    if tb_shortname=="rote":
+                        tb_name = "ROTE"
+                    else:
+                        tb_name = tb_shortname
+
+                    file_content = await attachment.read()
+                    file_txt = file_content.decode('utf-8')
+
+        ### do things
+
+    except discorderrors.Forbidden as e:
+        goutils.log2("WAR", "Cannot read history of messages in "+str(tbChannel_id))
+        return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
+
+    return 0, "", {"phase": eb_phase,
+                   "dict_platoons_allocation": dict_platoons_allocation}
+
+
+##############################################################
 # Function: get_eb_allocation
 # Parameters: tbs_round (string) > nom de phase en TB, sous la forme "GDS2"
 # Purpose: lit le channel #batailles de territoire pour retouver
@@ -1394,9 +1444,10 @@ async def send_tb_summary(guild_name, tb_summary, channel_id):
     goutils.log2("INFO", "["+guild_name+"] tb_summary="+str(tb_summary)[:100]+" on channel "+str(channel_id))
     if channel_id!=0:
         tb_end_channel = bot.get_channel(channel_id)
-        msg_txt = "# BT de "+guild_name+" terminée le "+datetime.datetime.now().strftime("%d/%m")
 
-        (csv, image, txt_results) = tb_summary
+        (csv, image, endTime, txt_results) = tb_summary
+        date_txt = datetime.datetime.fromtimestamp(endTime).strftime("%d/%m")
+        msg_txt = "# BT de "+guild_name+" terminée le "+date_txt
         msg_txt += "\n"+txt_results
 
         #prepare csv file

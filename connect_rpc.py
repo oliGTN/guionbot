@@ -124,11 +124,13 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
     goutils.log2("DBG", "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id)+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
 
+    ### guild
     if dict_guild==None:
         ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
         if ec!=0:
             return ec, et, None
 
+    ### TBmapstats
     if dict_TBmapstats==None:
         if "territoryBattleStatus" in dict_guild:
             ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update, allyCode=allyCode)
@@ -137,6 +139,7 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
         else:
             dict_TBmapstats={}
 
+    ### events
     if dict_events==None:
         if event_types!=None and event_types!=[]:
             ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update, allyCode=allyCode)
@@ -144,6 +147,12 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
                 return ec, et, None
         else:
             dict_events = {}
+
+    ### coliseum
+    ec, et, coliseum_leaderboard = await get_coliseum_guild_status(guild_id, allyCode=allyCode)
+    if ec!=0:
+        return ec, et, None
+    # store coliseum scores
 
     goutils.log2("DBG", "END get_guild_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
@@ -1597,6 +1606,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 if guild_id in prev_dict_guild \
                    and "territoryBattleStatus" in prev_dict_guild[guild_id]:
                     tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
+                    endTime = int(int(tbs["endTime"])/1000)
                     stars = 0
                     bonus = {}
                     for z in tbs["conflictZoneStatus"]:
@@ -1630,12 +1640,13 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                             goutils.log2("DBG", txt_results)
                 else:
                     txt_results=""
+                    endTime = 0
 
                 if err_code != 0:
                     goutils.log2("WAR", csv)
                     tb_summary = None
                 else:
-                    tb_summary=(csv, image, txt_results)
+                    tb_summary=(csv, image, endTime, txt_results)
 
                 manage_events.create_event("tb_end", guild_id, latest_tb_id)
 
