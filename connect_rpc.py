@@ -189,7 +189,7 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
             use_cache_data = ispriority_cache_bot_account(bot_allyCode)
 
     if allyCode==None and use_cache_data==0:
-        # cancel the force_auth is an actual auth is required
+        # cancel the force_auth if an actual auth is required
         query = "UPDATE guild_bots SET force_auth=0 WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
@@ -3264,7 +3264,7 @@ async def update_K1_players():
     for player in gacleaderboard_json["leaderboard"]["player"]:
         await go.load_player(player["id"], 1, False)
 
-async def get_coliseum_guild_status(guild_id, allyCode=None):
+async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
     if allyCode == None:
         dict_bot_accounts = get_dict_bot_accounts()
         if not guild_id in dict_bot_accounts:
@@ -3276,6 +3276,19 @@ async def get_coliseum_guild_status(guild_id, allyCode=None):
 
     goutils.log2("DBG", "connected account for "+str(guild_id)+" is "+str(bot_allyCode))
 
+    #locking bot has priority. Cannot be overriden
+    if islocked_bot_account(bot_allyCode):
+        use_cache_data = True
+        goutils.log2("WAR", "the bot account is being used... using cached data")
+    else:
+        if force_update == 1:
+            use_cache_data = False
+        elif force_update == -1:
+            use_cache_data = True
+        else: #force_update==0
+            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
+
+    #Launch HTTP request
     url = "http://localhost:8000/guildcoliseum"
     params = {"allyCode": bot_allyCode, 
               "coliseum_type": "guild"}
