@@ -3237,17 +3237,17 @@ async def platoon_tb(txt_allyCode, zone_id, platoon_id, requested_defIds):
                    "deployed_defIds": toDeploy_defIds}
 
 async def update_K1_players():
-    url = "http://localhost:8000/leaderboard"
+    url = "http://localhost:8000/gacleaderboard"
     params = {"ga_rank": "KYBER1"}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
-                goutils.log2("DBG", "leaderboard status="+str(resp.status))
+                goutils.log2("DBG", "gacleaderboard status="+str(resp.status))
                 if resp.status==200:
                     resp_json = await(resp.json())
                 else:
-                    return 1, "Cannot get leaderboard data from RPC", None
+                    return 1, "Cannot get gacleaderboard data from RPC", None
 
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
@@ -3259,9 +3259,9 @@ async def update_K1_players():
     if resp_json!=None and "err_code" in resp_json:
         return 1, resp_json["err_txt"], None
 
-    leaderboard_json = resp_json
+    gacleaderboard_json = resp_json
     #Loop through plalers and add/update them
-    for player in leaderboard_json["leaderboard"]["player"]:
+    for player in gacleaderboard_json["leaderboard"]["player"]:
         await go.load_player(player["id"], 1, False)
 
 async def get_coliseum_guild_status(guild_id, allyCode=None):
@@ -3276,18 +3276,18 @@ async def get_coliseum_guild_status(guild_id, allyCode=None):
 
     goutils.log2("DBG", "connected account for "+str(guild_id)+" is "+str(bot_allyCode))
 
-    url = "http://localhost:8000/leaderboard"
+    url = "http://localhost:8000/guildcoliseum"
     params = {"allyCode": bot_allyCode, 
               "coliseum_type": "guild"}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
-                goutils.log2("DBG", "leaderboard status="+str(resp.status))
+                goutils.log2("DBG", "guildcoliseum status="+str(resp.status))
                 if resp.status==200:
                     resp_json = await(resp.json())
                 else:
-                    return 1, "Cannot get leaderboard data from RPC", None
+                    return 1, "Cannot get guildcoliseum data from RPC", None
 
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
@@ -3299,9 +3299,9 @@ async def get_coliseum_guild_status(guild_id, allyCode=None):
     if resp_json!=None and "err_code" in resp_json:
         return 1, resp_json["err_txt"], None
 
-    leaderboard_json = resp_json
+    guildcoliseum_json = resp_json
 
-    return 0, "", leaderboard_json
+    return 0, "", guildcoliseum_json
 
 ####################################################
 # IN: guild ID
