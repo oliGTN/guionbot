@@ -3291,14 +3291,19 @@ async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
     #Launch HTTP request
     url = "http://localhost:8000/guildcoliseum"
     params = {"allyCode": bot_allyCode, 
-              "coliseum_type": "guild"}
+              "use_cache_data": use_cache_data}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=req_data) as resp:
                 goutils.log2("DBG", "guildcoliseum status="+str(resp.status))
                 if resp.status==200:
-                    resp_json = await(resp.json())
+                    if use_cache_data:
+                        cache_json = await(resp.json())
+                        cache_ts = cache_json["timestamp"]
+                        resp_json = cache_json["data"]
+                    else:
+                        resp_json = await(resp.json())
                 else:
                     return 1, "Cannot get guildcoliseum data from RPC", None
 
