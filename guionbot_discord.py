@@ -4523,8 +4523,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
                 if len(phase_options) == 0:
                     star_targets = ""
-                else:
+                elif len(phase_options) == 1:
                     star_targets = phase_options[0]
+                else:
+                    await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tbs")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
                 d_phase_options={"estimate_fights": estimate_fights,
                                  "estimate_platoons": estimate_platoons,
