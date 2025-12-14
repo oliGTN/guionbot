@@ -1887,13 +1887,15 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
                                 query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
                                         "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
                                 goutils.log2("DBG", query)
+                                goutils.log2("INFO", "CHECK for empty playername: "+query)
                                 simple_execute(query)
                 else:
                     if player_name!='':
                         for player_name in dict_platoons_done[platoon_name][unit_name]:
                             query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
                                     "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
-                            goutils.log2("DBG", query)
+                            #goutils.log2("DBG", query)
+                            goutils.log2("INFO", "CHECK for empty playername: "+query)
                             simple_execute(query)
 
         else:
@@ -1903,7 +1905,8 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
                     if player_name!='':
                         query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
                                 "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
-                        goutils.log2("DBG", query)
+                        #goutils.log2("DBG", query)
+                        goutils.log2("INFO", "CHECK for empty playername: "+query)
                         simple_execute(query)
 
     return
