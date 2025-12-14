@@ -1606,7 +1606,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 if guild_id in prev_dict_guild \
                    and "territoryBattleStatus" in prev_dict_guild[guild_id]:
                     tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
-                    endTime = int(int(tbs["endTime"])/1000)
+                    instanceId = tbc["instanceId"]
+                    startTime = int(int(instanceId.split(':')[1:])/1000)
+                    endTime = startTime + 6*24*3600 #adding 6 days
                     stars = 0
                     bonus = {}
                     for z in tbs["conflictZoneStatus"]:
@@ -1640,7 +1642,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                             goutils.log2("DBG", txt_results)
                 else:
                     txt_results=""
-                    endTime = 0
+                    endTime = int(time.time())
 
                 if err_code != 0:
                     goutils.log2("WAR", csv)
