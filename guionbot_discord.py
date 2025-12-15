@@ -5198,139 +5198,140 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                       "Exemple : go.tpg me LV !Jabba -TW ---> ceux qui ont LV et qui n'ont pas attaqué Jabba en GT\n"\
                       "Exemple : go.tpg me JMK / Jabba ceux qui ont JMK, puis ceux qui ont Jabba (commande lancée 2 fois)")
     async def tpg(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Check arguments
-        args = list(args)
-        tw_mode = False
-        tb_mode = False
-        guild_id = None
+            #Check arguments
+            args = list(args)
+            tw_mode = False
+            tb_mode = False
+            guild_id = None
 
-        output_channel = ctx.message.channel
-        with_mentions = False
-        for arg in args:
-            if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
-                if not officer_command(ctx):
-                    await ctx.send("ERR: l'envoi des résultats dans un autre channel est réservé aux officiers")
+            output_channel = ctx.message.channel
+            with_mentions = False
+            for arg in args:
+                if arg.startswith('<#') or arg.startswith('https://discord.com/channels/'):
+                    if not officer_command(ctx):
+                        await ctx.send("ERR: l'envoi des résultats dans un autre channel est réservé aux officiers")
+                        await ctx.message.add_reaction(emojis.redcross)
+                        return
+
+                    output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
+                    with_mentions = True
+                    if output_channel == None:
+                        await ctx.send('**ERR**: '+err_msg)
+                        output_channel = ctx.message.channel
+                        with_mentions = False
+                    args.remove(arg)
+
+            connected_allyCode = None
+            if "-TW" in args:
+                #Ensure command is launched from a server, not a DM
+                if ctx.guild == None:
+                    await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
                     await ctx.message.add_reaction(emojis.redcross)
                     return
 
-                output_channel, err_msg = await get_channel_from_channelname(ctx, arg)
-                with_mentions = True
-                if output_channel == None:
-                    await ctx.send('**ERR**: '+err_msg)
-                    output_channel = ctx.message.channel
-                    with_mentions = False
-                args.remove(arg)
+                tw_mode = True
+                args.remove("-TW")
 
-        connected_allyCode = None
-        if "-TW" in args:
-            #Ensure command is launched from a server, not a DM
-            if ctx.guild == None:
-                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
-                await ctx.message.add_reaction(emojis.redcross)
-                return
+                #get bot config from DB
+                ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+                if ec!=0:
+                    await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-            tw_mode = True
-            args.remove("-TW")
+                guild_id = bot_infos["guild_id"]
+                connected_allyCode = bot_infos["allyCode"]
 
-            #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-            if ec!=0:
-                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-                await ctx.message.add_reaction(emojis.redcross)
-                return
+            if "-TB" in args:
+                if tw_mode:
+                    await ctx.send("ERR: impossible d'utiliser les options -TW et -TB en même temps")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-            guild_id = bot_infos["guild_id"]
-            connected_allyCode = bot_infos["allyCode"]
+                #Ensure command is launched from a server, not a DM
+                if ctx.guild == None:
+                    await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TB")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-        if "-TB" in args:
-            if tw_mode:
-                await ctx.send("ERR: impossible d'utiliser les options -TW et -TB en même temps")
-                await ctx.message.add_reaction(emojis.redcross)
-                return
+                tb_mode = True
+                args.remove("-TB")
 
-            #Ensure command is launched from a server, not a DM
-            if ctx.guild == None:
-                await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TB")
-                await ctx.message.add_reaction(emojis.redcross)
-                return
+                #get bot config from DB
+                ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+                if ec!=0:
+                    await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-            tb_mode = True
-            args.remove("-TB")
+                guild_id = bot_infos["guild_id"]
+                connected_allyCode = bot_infos["allyCode"]
 
-            #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-            if ec!=0:
-                await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
-                await ctx.message.add_reaction(emojis.redcross)
-                return
+            if len(args) >= 2:
+                allyCode = args[0]
 
-            guild_id = bot_infos["guild_id"]
-            connected_allyCode = bot_infos["allyCode"]
+                # Arg management
+                # Either we get several checks for general usage or TW defense, separated by a "/"
+                # Or we have a unique check during TW, with atack checking
+                all_args = " ".join(args[1:])
+                if "/" in all_args and "!" in all_args:
+                    await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
-        if len(args) >= 2:
-            allyCode = args[0]
+                exclude_attacked_leaders = []
+                if "!" in all_args:
+                    if not tw_mode:
+                        await ctx.send("ERR: impossible d'utiliser l'option ! sans option -TW")
+                        await ctx.message.add_reaction(emojis.redcross)
+                        return
 
-            # Arg management
-            # Either we get several checks for general usage or TW defense, separated by a "/"
-            # Or we have a unique check during TW, with atack checking
-            all_args = " ".join(args[1:])
-            if "/" in all_args and "!" in all_args:
+                    for arg in args[1:]:
+                        if arg[0] == "!":
+                            exclude_attacked_leaders.append(arg[1:])
+
+                    for leader in exclude_attacked_leaders:
+                        args.remove("!"+leader)
+
+                character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')] if x!='']
+            else:
                 await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            exclude_attacked_leaders = []
-            if "!" in all_args:
-                if not tw_mode:
-                    await ctx.send("ERR: impossible d'utiliser l'option ! sans option -TW")
-                    await ctx.message.add_reaction(emojis.redcross)
-                    return
-
-                for arg in args[1:]:
-                    if arg[0] == "!":
-                        exclude_attacked_leaders.append(arg[1:])
-
-                for leader in exclude_attacked_leaders:
-                    args.remove("!"+leader)
-
-            character_list = [x.split(' ') for x in [y.strip() for y in " ".join(args[1:]).split('/')] if x!='']
-        else:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help tpg")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        allyCode = await manage_me(ctx, allyCode, False)
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-        else:
-            try:
+            allyCode = await manage_me(ctx, allyCode, False)
+                    
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
+                await ctx.message.add_reaction(emojis.redcross)
+            else:
                 err, errtxt, list_list_ids = \
                     await go.tag_players_with_character(allyCode, character_list,
                                                         guild_id, tw_mode, tb_mode,
                                                         with_mentions, 
                                                         exclude_attacked_leaders=exclude_attacked_leaders,
                                                         connected_allyCode=connected_allyCode)
-            except Exception as e:
-                goutils.log2("ERR", str(sys.exc_info()[0]))
-                goutils.log2("ERR", e)
-                goutils.log2("ERR", traceback.format_exc())
 
-            if err != 0:
-                await ctx.send(errtxt)
-                await ctx.message.add_reaction(emojis.redcross)
-            else:
-                for list_ids in list_list_ids:
-                    intro_txt = list_ids[0]
-                    if len(list_ids) > 1:
-                        await output_channel.send(intro_txt +" :\n" +' / '.join(list_ids[1:])+"\n--> "+str(len(list_ids)-1)+" joueur(s)")
-                    else:
-                        await output_channel.send(intro_txt +" : aucun joueur")
+                if err != 0:
+                    await ctx.send(errtxt)
+                    await ctx.message.add_reaction(emojis.redcross)
+                else:
+                    for list_ids in list_list_ids:
+                        intro_txt = list_ids[0]
+                        if len(list_ids) > 1:
+                            await output_channel.send(intro_txt +" :\n" +' / '.join(list_ids[1:])+"\n--> "+str(len(list_ids)-1)+" joueur(s)")
+                        else:
+                            await output_channel.send(intro_txt +" : aucun joueur")
 
-                await ctx.message.add_reaction(emojis.check)
+                    await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
     # Command: registercheck

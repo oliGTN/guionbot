@@ -15,7 +15,8 @@ def set_guild_loading_status(guildName, status):
     cache_guild_filename = "CACHE"+os.path.sep+guildName+"_loading.tmp"
     if status == None:
         #remove file
-        os.remove(cache_guild_filename)
+        if os.path.isfile(cache_guild_filename):
+            os.remove(cache_guild_filename)
     else:
         f = open(cache_guild_filename, 'w')
         f.write(status)
