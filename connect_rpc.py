@@ -199,9 +199,9 @@ async def get_connection_parameters(guild_id, force_update, allyCode):
 #########################################
 # Get full guild data, using the bot account
 async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
-    err_c, err_t, 
-    bot_allyCode, 
-    use_cache_data, 
+    err_c, err_t, \
+    bot_allyCode, \
+    use_cache_data, \
     retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
@@ -283,9 +283,9 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
     return 0, "", dict_guild
 
 async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
-    err_c, err_t, 
-    bot_allyCode, 
-    use_cache_data, 
+    err_c, err_t, \
+    bot_allyCode, \
+    use_cache_data, \
     retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
@@ -340,9 +340,9 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         +str(event_types)+", " \
                         +str(force_update)+", "+str(allyCode)+")")
 
-    err_c, err_t, 
-    bot_allyCode, 
-    use_cache_data, 
+    err_c, err_t, \
+    bot_allyCode, \
+    use_cache_data, \
     retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
@@ -3263,9 +3263,9 @@ async def update_K1_players():
         await go.load_player(player["id"], 1, False)
 
 async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
-    err_c, err_t, 
-    bot_allyCode, 
-    use_cache_data, 
+    err_c, err_t, \
+    bot_allyCode, \
+    use_cache_data, \
     retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
