@@ -158,8 +158,8 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
 
 #########################################
-# Get full guild data, using the bot account
-async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
+# Get connection data
+async def get_connection_parameters(guild_id, force_update, allyCode):
     if allyCode == None:
         dict_bot_accounts = get_dict_bot_accounts()
         if not guild_id in dict_bot_accounts:
@@ -193,6 +193,19 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
         query = "UPDATE guild_bots SET force_auth=0 WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
         connect_mysql.simple_execute(query)
+
+    return 0, "", bot_allyCode, use_cache_data, retryAuth
+
+#########################################
+# Get full guild data, using the bot account
+async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
+    err_c, err_t, 
+    bot_allyCode, 
+    use_cache_data, 
+    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
+
+    if err_c != 0:
+        return err_c, err_t, None
 
     return await get_guild_data_from_ac(bot_allyCode, use_cache_data, retryAuth=retryAuth)
 
@@ -270,33 +283,20 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
     return 0, "", dict_guild
 
 async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
-    if allyCode == None:
-        dict_bot_accounts = get_dict_bot_accounts()
-        if not guild_id in dict_bot_accounts:
-            return 1, "Ce serveur discord n'a pas de warbot", None
+    err_c, err_t, 
+    bot_allyCode, 
+    use_cache_data, 
+    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
 
-        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
-    else:
-        bot_allyCode = allyCode
-    goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
-
-    #locking bot has priority. Cannot be overriden
-    if islocked_bot_account(bot_allyCode):
-        use_cache_data = True
-        goutils.log2("WAR", "the bot account is being used... using cached data")
-    else:
-        if force_update == 1:
-            use_cache_data = False
-        elif force_update == -1:
-            use_cache_data = True
-        else: #force_update==0
-            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
+    if err_c != 0:
+        return err_c, err_t, None
 
     # RPC REQUEST for TBmapstats
     url = "http://localhost:8000/TBmapstats"
     params = {"allyCode": bot_allyCode, 
               "guild_id": guild_id,
-              "use_cache_data":use_cache_data}
+              "use_cache_data":use_cache_data,
+              "retryAuth":retryAuth}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
@@ -340,27 +340,13 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         +str(event_types)+", " \
                         +str(force_update)+", "+str(allyCode)+")")
 
-    if allyCode == None:
-        dict_bot_accounts = get_dict_bot_accounts()
-        if not guild_id in dict_bot_accounts:
-            return 1, "Ce serveur discord n'a pas de warbot", None
+    err_c, err_t, 
+    bot_allyCode, 
+    use_cache_data, 
+    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
 
-        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
-    else:
-        bot_allyCode = allyCode
-    goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
-
-    #locking bot has priority. Cannot be overriden
-    if islocked_bot_account(bot_allyCode):
-        use_cache_data = True
-        goutils.log2("WAR", "the bot account is being used... using cached data")
-    else:
-        if force_update == 1:
-            use_cache_data = False
-        elif force_update == -1:
-            use_cache_data = True
-        else: #force_update==0
-            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
+    if err_c != 0:
+        return err_c, err_t, None
 
     if event_types!=None and len(event_types) > 0:
         list_rpc_events = []
@@ -389,7 +375,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                       "guild_id": guild_id,
                       "eventType": "TB",
                       "list_channels": list_channels, 
-                      "use_cache_data":use_cache_data}
+                      "use_cache_data": use_cache_data,
+                      "retryAuth": retryAuth}
             req_data = json_dumps(params)
             try:
                 async with aiohttp.ClientSession() as session:
@@ -446,7 +433,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                       "eventType": "TW",
                       "guild_id": guild_id,
                       "list_channels": list_channels, 
-                      "use_cache_data":use_cache_data}
+                      "use_cache_data":use_cache_data,
+                      "retryAuth": retryAuth}
             req_data = json_dumps(params)
             try:
                 async with aiohttp.ClientSession() as session:
@@ -495,7 +483,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                   "eventType": "CHAT",
                   "guild_id": guild_id,
                   "list_channels": list_channels, 
-                  "use_cache_data":use_cache_data}
+                  "use_cache_data":use_cache_data,
+                  "retryAuth": retryAuth}
         req_data = json_dumps(params)
         try:
             async with aiohttp.ClientSession() as session:
@@ -745,7 +734,7 @@ async def get_player_initialdata(ac, use_cache_data=False):
     return 0, "", initialdata_player
 
 async def get_bot_player_data(guild_id, use_cache_data):
-    # Get alllyCode from guild ID
+    # Get allyCode from guild ID
     bot_allyCode = connect_mysql.get_value("SELECT allyCode from guild_bots WHERE guild_id='"+guild_id+"'")
     if bot_allyCode == None:
         return 1, "Ce serveur discord n'a pas de warbot", None
@@ -840,7 +829,9 @@ async def join_tw(guild_id):
 
     return 0, "Le bot a rejoint la GT"
 
+##################################################
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
+##################################################
 async def get_actual_tb_platoons(guild_id, force_update, allyCode=None):
     err_code, err_txt, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
 
@@ -851,7 +842,9 @@ async def get_actual_tb_platoons(guild_id, force_update, allyCode=None):
     err_code, err_txt, ret_data = await get_actual_tb_platoons_from_dict(dict_guild)
     return err_code, err_txt, ret_data
 
+##################################################
 # OUT: dict_platoons = {} #key="GLS1-mid-2", value={key=perso, value=[player, player...]}
+##################################################
 async def get_actual_tb_platoons_from_dict(dict_guild):
     dict_tb = godata.get("tb_definition.json")
 
@@ -943,6 +936,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                    "platoons": dict_platoons,
                    "open_territories": list_open_territories}
 
+##################################################
 async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=None, dict_guild=None, dict_events=None):
 
     query = "SELECT allyCode, chatChan_id, twlogChan_id, tblogChan_id, chatLatest_ts "\
@@ -1249,6 +1243,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
 
     return list_chat_events, list_tw_logs, list_tb_logs
 
+##################################################
 async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None,
                                     ignored_allyCodes=[]):
     dict_tb=godata.get("tb_definition.json")
@@ -1347,6 +1342,7 @@ async def tag_tb_undeployed_players(guild_id, force_update, allyCode=None,
 
     return 0, "", {"lines_player": lines_player, "round_endTime": dict_phase["round_endTime"], "total": total}
 
+##################################################
 def add_fake_tb_zone(battleStatus, zone_id, score, zoneState):
     dict_tb = godata.get("tb_definition.json")
 
@@ -3267,28 +3263,13 @@ async def update_K1_players():
         await go.load_player(player["id"], 1, False)
 
 async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
-    if allyCode == None:
-        dict_bot_accounts = get_dict_bot_accounts()
-        if not guild_id in dict_bot_accounts:
-            return 1, "Ce serveur discord n'a pas de warbot", None
+    err_c, err_t, 
+    bot_allyCode, 
+    use_cache_data, 
+    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
 
-        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
-    else:
-        bot_allyCode = allyCode
-
-    goutils.log2("DBG", "connected account for "+str(guild_id)+" is "+str(bot_allyCode))
-
-    #locking bot has priority. Cannot be overriden
-    if islocked_bot_account(bot_allyCode):
-        use_cache_data = True
-        goutils.log2("WAR", "the bot account is being used... using cached data")
-    else:
-        if force_update == 1:
-            use_cache_data = False
-        elif force_update == -1:
-            use_cache_data = True
-        else: #force_update==0
-            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
+    if err_c != 0:
+        return err_c, err_t, None
 
     #Launch HTTP request
     url = "http://localhost:8000/guildcoliseum"
