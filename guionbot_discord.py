@@ -451,8 +451,8 @@ async def send_alert_to_bot_owner(guild_id, locked_since=None):
     if locked_since==None:
         message = "Le warbot de "+guild_name+" a été arrêté car tu as joué. Tape go.bot.enable pour le relancer"
     else:
-        time_txt = locked_since.strftime("%d/%m %H:%M")
-        message = "Le warbot de "+guild_name+" a été arrêté à "+time_txt+". Tape go.bot.enable pour le relancer"
+        time_txt = locked_since.strftime("%H:%M")
+        message = "Le warbot de "+guild_name+" a été arrêté à "+time_txt+" (CET). Tape go.bot.enable pour le relancer"
     goutils.log2("INFO", message)
     await channel.send(message)
 
