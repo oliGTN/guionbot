@@ -96,10 +96,14 @@ async def bot_loop_60secs(bot):
     # this is done before RPC update because RPC updates takes more than 
     # one minute and then the mod(now, period) is never 0
     query = "SELECT guild_id, allyCode, locked_since, lock_when_played "\
+            "timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP) AS delta_hours "\
             "FROM guild_bots "\
-            "WHERE timestampdiff(MINUTE, locked_since, CURRENT_TIMESTAMP)>=(60-1) "\
+            "LEFT JOIN events ON events.type='bot_locked_reminder' "\
+            "AND events.guild_id=guild_bots.guild_id "\
+            "AND events.event_id=CONCAT('ELAPSED:', timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP)) "\
+            "WHERE NOT isnull(locked_since) AND isnull(event_id) "\
             "AND NOT isnull(allyCode) "
-            #todo a remettre pour les bots joueurs "AND mod(minute(CURRENT_TIMESTAMP), 10)=0 "\
+
     goutils.log2("INFO", query)
     db_data = connect_mysql.get_table(query)
     goutils.log2("INFO", "locked_since > 1 hour db_data: "+str(db_data))
@@ -109,9 +113,14 @@ async def bot_loop_60secs(bot):
             allyCode = guild_bot[1]
             locked_since = guild_bot[2]
             lock_when_played = guild_bot[3]
+            delta_hours = guild_bot[4]
             if lock_when_played:
                 #player account, do not re-activate it, just warn
                 await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
+
+                #and log the reminder event
+                query = "INSERT INTO events(type, guild_id, event_id) "\
+                        "VALUES('bot_locked_reminder', '"+guild_id+"','ELAPSED:"+str(delta_hours)+"') "
             else:
                 #bot account, re-activate it
                 query = "UPDATE guild_bots SET locked_since=null "\
@@ -435,7 +444,7 @@ async def send_alert_to_bot_owner(guild_id, locked_since=None):
         message = "Le warbot de "+guild_name+" a été arrêté car tu as joué. Tape go.bot.enable pour le relancer"
     else:
         message = "Le warbot de "+guild_name+" a été arrêté à "+locked_since+". Tape go.bot.enable pour le relancer"
-    goutils.og2("INFO", message)
+    goutils.log2("INFO", message)
     await channel.send(message)
 
 ##############################################################

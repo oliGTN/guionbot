@@ -84,10 +84,20 @@ async def lock_bot_account(guild_id):
     goutils.log2("DBG", query)
     connect_mysql.simple_execute(query)
 
+    #Reset all reminder events
+    query = "DELETE FROM events WHERE guild_id='"+guild_id+"' AND type='bot_locked_reminder'"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
     return 0, ""
 
 async def unlock_bot_account(guild_id):
     query = "UPDATE guild_bots SET locked_since=NULL, force_auth=1 WHERE guild_id='"+guild_id+"'"
+    goutils.log2("DBG", query)
+    connect_mysql.simple_execute(query)
+
+    #Reset all reminder events
+    query = "DELETE FROM events WHERE guild_id='"+guild_id+"' AND type='bot_locked_reminder'"
     goutils.log2("DBG", query)
     connect_mysql.simple_execute(query)
 
