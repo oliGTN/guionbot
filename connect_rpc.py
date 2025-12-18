@@ -159,11 +159,11 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
 
 #########################################
 # Get connection data
-async def get_connection_parameters(guild_id, force_update, allyCode):
+def get_connection_parameters(guild_id, force_update, allyCode):
     if allyCode == None:
         dict_bot_accounts = get_dict_bot_accounts()
         if not guild_id in dict_bot_accounts:
-            return 1, "Ce serveur discord n'a pas de warbot", None
+            return 1, "Ce serveur discord n'a pas de warbot", None, None, None
 
         bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
 
