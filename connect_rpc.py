@@ -3284,7 +3284,8 @@ async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
     #Launch HTTP request
     url = "http://localhost:8000/guildcoliseum"
     params = {"allyCode": bot_allyCode, 
-              "use_cache_data": use_cache_data}
+              "use_cache_data": use_cache_data,
+              "retryAuth": retryAuth}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
