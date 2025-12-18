@@ -95,7 +95,7 @@ async def bot_loop_60secs(bot):
     # look for inactive bots
     # this is done before RPC update because RPC updates takes more than 
     # one minute and then the mod(now, period) is never 0
-    query = "SELECT guild_id, allyCode, locked_since, lock_when_played "\
+    query = "SELECT guild_bots.guild_id, allyCode, locked_since, lock_when_played, "\
             "timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP) AS delta_hours "\
             "FROM guild_bots "\
             "LEFT JOIN events ON events.type='bot_locked_reminder' "\
@@ -106,7 +106,7 @@ async def bot_loop_60secs(bot):
 
     goutils.log2("INFO", query)
     db_data = connect_mysql.get_table(query)
-    goutils.log2("INFO", "locked_since > 1 hour db_data: "+str(db_data))
+    goutils.log2("INFO", "Required bot_locked_reminder db_data: "+str(db_data))
     if not db_data==None:
         for guild_bot in db_data:
             guild_id = guild_bot[0]
@@ -121,6 +121,9 @@ async def bot_loop_60secs(bot):
                 #and log the reminder event
                 query = "INSERT INTO events(type, guild_id, event_id) "\
                         "VALUES('bot_locked_reminder', '"+guild_id+"','ELAPSED:"+str(delta_hours)+"') "
+                goutils.log2("DBG", query)
+                connect_mysql.simple_execute(query)
+
             else:
                 #bot account, re-activate it
                 query = "UPDATE guild_bots SET locked_since=null "\
