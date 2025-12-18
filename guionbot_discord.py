@@ -95,41 +95,48 @@ async def bot_loop_60secs(bot):
     # look for inactive bots
     # this is done before RPC update because RPC updates takes more than 
     # one minute and then the mod(now, period) is never 0
-    query = "SELECT guild_bots.guild_id, allyCode, locked_since, lock_when_played, "\
-            "timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP) AS delta_hours "\
-            "FROM guild_bots "\
-            "LEFT JOIN events ON events.type='bot_locked_reminder' "\
-            "AND events.guild_id=guild_bots.guild_id "\
-            "AND events.event_id=CONCAT('ELAPSED:', timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP)) "\
-            "WHERE NOT isnull(locked_since) AND isnull(event_id) "\
-            "AND NOT isnull(allyCode) "
+    try:
+        query = "SELECT guild_bots.guild_id, allyCode, locked_since, lock_when_played, "\
+                "timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP) AS delta_hours "\
+                "FROM guild_bots "\
+                "LEFT JOIN events ON events.type='bot_locked_reminder' "\
+                "AND events.guild_id=guild_bots.guild_id "\
+                "AND events.event_id=CONCAT('ELAPSED:', timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP)) "\
+                "WHERE NOT isnull(locked_since) AND isnull(event_id) "\
+                "AND NOT isnull(allyCode) "\
+                "AND timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP)>0 "
 
-    goutils.log2("INFO", query)
-    db_data = connect_mysql.get_table(query)
-    goutils.log2("INFO", "Required bot_locked_reminder db_data: "+str(db_data))
-    if not db_data==None:
-        for guild_bot in db_data:
-            guild_id = guild_bot[0]
-            allyCode = guild_bot[1]
-            locked_since = guild_bot[2]
-            lock_when_played = guild_bot[3]
-            delta_hours = guild_bot[4]
-            if lock_when_played:
-                #player account, do not re-activate it, just warn
-                await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
+        goutils.log2("INFO", query)
+        db_data = connect_mysql.get_table(query)
+        goutils.log2("INFO", "Required bot_locked_reminder db_data: "+str(db_data))
+        if not db_data==None:
+            for guild_bot in db_data:
+                guild_id = guild_bot[0]
+                allyCode = guild_bot[1]
+                locked_since = guild_bot[2]
+                lock_when_played = guild_bot[3]
+                delta_hours = guild_bot[4]
+                if lock_when_played:
+                    #player account, do not re-activate it, just warn
+                    await send_alert_to_bot_owner(guild_id, locked_since=locked_since)
 
-                #and log the reminder event
-                query = "INSERT INTO events(type, guild_id, event_id) "\
-                        "VALUES('bot_locked_reminder', '"+guild_id+"','ELAPSED:"+str(delta_hours)+"') "
-                goutils.log2("DBG", query)
-                connect_mysql.simple_execute(query)
+                    #and log the reminder event
+                    query = "INSERT INTO events(type, guild_id, event_id) "\
+                            "VALUES('bot_locked_reminder', '"+guild_id+"','ELAPSED:"+str(delta_hours)+"') "
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
 
-            else:
-                #bot account, re-activate it
-                query = "UPDATE guild_bots SET locked_since=null "\
-                        "WHERE allyCode="+str(allyCode)
-                goutils.log2("DBG", query)
-                connect_mysql.simple_execute(query)
+                else:
+                    #bot account, re-activate it
+                    query = "UPDATE guild_bots SET locked_since=null "\
+                            "WHERE allyCode="+str(allyCode)
+                    goutils.log2("DBG", query)
+                    connect_mysql.simple_execute(query)
+
+    except Exception as e:
+        goutils.log2("ERR", traceback.format_exc())
+        if not bot_test_mode:
+            await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
     #######################################################################
     # UPDATE RPC data
@@ -367,8 +374,6 @@ async def bot_loop_60minutes(bot):
             await send_alert_to_admins(None, err_txt)
 
     except Exception as e:
-        goutils.log2("ERR", str(sys.exc_info()[0]))
-        goutils.log2("ERR", e)
         goutils.log2("ERR", traceback.format_exc())
         if not bot_test_mode:
             await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
@@ -446,7 +451,8 @@ async def send_alert_to_bot_owner(guild_id, locked_since=None):
     if locked_since==None:
         message = "Le warbot de "+guild_name+" a été arrêté car tu as joué. Tape go.bot.enable pour le relancer"
     else:
-        message = "Le warbot de "+guild_name+" a été arrêté à "+locked_since+". Tape go.bot.enable pour le relancer"
+        time_txt = locked_since.strftime("%d/%m %H:%M")
+        message = "Le warbot de "+guild_name+" a été arrêté à "+time_txt+". Tape go.bot.enable pour le relancer"
     goutils.log2("INFO", message)
     await channel.send(message)
 

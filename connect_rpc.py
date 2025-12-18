@@ -323,6 +323,8 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
                     TBmapstats_json = {}
                 elif resp.status==204:
                     TBmapstats_json = {}
+                elif resp.status==401:
+                    return 401, "authentication failed", None
                 else:
                     return 1, "Cannot get TBmapstats data from RPC", None
 
@@ -399,6 +401,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                                 resp_events = cache_json["data"]
                             else:
                                 resp_events = await(resp.json())
+                        elif resp.status==401:
+                            return 401, "authentication failed", None
                         else:
                             return 1, "Cannot get events data from RPC", None
 
@@ -457,6 +461,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                                 resp_events = cache_json["data"]
                             else:
                                 resp_events = await(resp.json())
+                        elif resp.status==401:
+                            return 401, "authentication failed", None
                         else:
                             return 1, "Cannot get events data from RPC", None
 
@@ -507,6 +513,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                             resp_events = cache_json["data"]
                         else:
                             resp_events = await(resp.json())
+                    elif resp.status==401:
+                        return 401, "authentication failed", None
                     else:
                         return 1, "Cannot get events data from RPC", None
 
@@ -3298,6 +3306,8 @@ async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
                         resp_json = cache_json["data"]
                     else:
                         resp_json = await(resp.json())
+                elif resp.status==401:
+                    return 401, "authentication failed", None
                 else:
                     return 1, "Cannot get guildcoliseum data from RPC", None
 
