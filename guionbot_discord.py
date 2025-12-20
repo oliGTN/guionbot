@@ -147,8 +147,8 @@ async def bot_loop_60secs(bot):
     #
     # THe JOIN players ensures that the bot account is still in the right guild
     query = "SELECT guild_bots.guild_id "\
-            "JOIN players ON guild_bots.allyCode=players.allyCode AND guild_bots.guild_id=players.guildId "\
             "FROM guild_bots "\
+            "JOIN players ON guild_bots.allyCode=players.allyCode AND guild_bots.guild_id=players.guildId "\
             "WHERE timestampdiff(MINUTE, latest_update, CURRENT_TIMESTAMP)>=(period-1) "\
             "AND isnull(locked_since) "\
             "AND mod(minute(CURRENT_TIMESTAMP), period)=0 "\
