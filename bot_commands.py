@@ -23,6 +23,7 @@ import manage_mods
 import goutils
 import portraits
 import data
+import register
 
 # CONSTANTS
 import emojis
@@ -754,13 +755,9 @@ async def register(ctx_interaction, args):
             return
 
         #Registration of the allyCode to a discord ID
-        check_user_rights = True
         if len(args) == 1:
-            #registering allyCOde to self
+            #registering allyCode to self
             discord_id_txt = str(ctx_interaction.author.id)
-
-            #No need to check rights for self register
-            check_user_rights = False
 
         elif len(args) == 2 and args[1]=="confirm":
             # Specific mode, not used to register an allyCode, but
@@ -804,63 +801,14 @@ async def register(ctx_interaction, args):
                     discord_id_txt = mention[2:-1]
                 goutils.log2("INFO", "command launched with discord @mention "+mention)
 
-            if discord_id_txt != str(ctx_interaction.author.id):
-                check_user_rights = False
-            else:
-                check_user_rights = False
         else:
             await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help register")
 
-        #Ensure the allyCode is registered in DB
-        e, t, dict_player = await go.load_player(allyCode, -1, False)
-        if e != 0:
-            await command_error(ctx_interaction, resp_msg, t)
+        ec, et = await register.register_player(allyCode, discord_id_txt, ctx_interaction.author.id)
+        if ec != 0:
+            await command_error(ctx_interaction, resp_msg, et)
             return
-
-        player_name = dict_player["name"]
-
-        if check_user_rights:
-            #Need to check that the user is either an admin, or in the same guild
-            # as the target allyCode
-
-            #Get the guild ID of the requestor
-            query = "SELECT guildId from player_discord "\
-                    "JOIN players ON players.allyCode=player_discord.allyCode "\
-                    "WHERE discord_id="+str(ctx_interaction.author.id)
-            goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
-            if db_data==None:
-                await command_error(ctx_interaction, resp_msg, "Vous devez vous même être enregistré sur un code allié avant d'enregistré un compte différent.")
-                return
-
-            is_owner = str(ctx_interaction.author.id) in config.GO_ADMIN_IDS.split(' ')
-            if db_data != dict_player["guildId"] and not is_owner:
-                await command_error(ctx_interaction, resp_msg, "Vous devez être dans la même guilde pour enregistrer un joueur.")
-                return
-
-        #Setup all potential previous accounts as alt
-        query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
-        goutils.log2("INFO", query)
-        connect_mysql.simple_execute(query)
-
-        #Add discord id in DB
-        query = "INSERT INTO player_discord (allyCode, discord_id)\n"
-        query+= "VALUES("+allyCode+", "+discord_id_txt+") \n"
-        query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
-        goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
-
-        #Ensure that any discord_id has a main account
-        query = "UPDATE player_discord SET main=1 "\
-                "WHERE discord_id IN ( "\
-                "SELECT discord_id "\
-                "FROM player_discord "\
-                "GROUP BY discord_id "\
-                "HAVING max(main)=0 "\
-                ")"
-        goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
-
+        
         await command_ok(ctx_interaction, resp_msg, "Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
 
     except Exception as e:

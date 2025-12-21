@@ -38,6 +38,7 @@ import data
 import manage_mods
 import manage_events
 import emojis
+import register
 
 # Generic configuration
 TOKEN = config.DISCORD_BOT_TOKEN
@@ -966,6 +967,18 @@ async def allocate_platoons_from_eb_DM(message):
             allocation_txt += et+'\n'
 
     await message.channel.send(allocation_txt)
+
+async def register_players_from_wb_guildstatus(message):
+    snapshot = message.message_snapshots[0]
+
+    #detect author and associated allyCode
+    player_name = ''
+    for embed in snapshot.embeds:
+        dict_embed = embed.to_dict()
+        print(dict_embed.keys())
+        if "description" in dict_embed:
+            player_name = dict_embed["description"][2:-2]
+            break
 
 ###############
 #OUT: 0 = OK / 1 = detect_previous_BT / 2 = unknown name
@@ -2026,6 +2039,27 @@ async def on_message(message):
 
                             author_url = dict_embed["author"]["url"]
 
+                        if "title" in dict_embed and dict_embed["title"].startswith("Guild registration status for "):
+                            register_count = 0
+                            for line in dict_embed["description"].split("\n"):
+                                ret_re = re.search('(.*) \(([1-9]{9})\): <@!?(\d*)>.*', line)
+                                if ret_re == None:
+                                    continue
+                                
+                                player_name = ret_re.group(1)
+                                allyCode_txt = ret_re.group(2)
+                                discord_id_txt = ret_re.group(3)
+                                ec, et = await register.register_player(
+                                                    allyCode_txt,
+                                                    discord_id_txt,
+                                                    message.author.id)
+                                if ec != 0:
+                                    await message.channel.send("ERR:  et")
+                                else:
+                                    await message.channel.send("Enregistrement de "+allyCode_txt+" réussi > lié au compte <@"+discord_id_txt+">")
+                                    register_count +=1
+                            await message.channel.send("Enregistrement réussi de "+str(register_count)+" joueurs")
+
                     if author_url.startswith('https://echobase.app'):
                         #This is a forward from Echostation
                         # Read then apply platoon allocations
@@ -2033,7 +2067,6 @@ async def on_message(message):
                         await allocate_platoons_from_eb_DM(message)
 
                         return
-
 
         #Read messages from Juke's bot
         if message.author.id == config.JBOT_DISCORD_ID:
