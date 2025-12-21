@@ -2056,7 +2056,8 @@ async def on_message(message):
                                 if ec != 0:
                                     await message.channel.send("ERR:  et")
                                 else:
-                                    await message.channel.send("Enregistrement de "+allyCode_txt+" réussi > lié au compte <@"+discord_id_txt+">")
+                                    player_name = et
+                                    await message.channel.send("Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
                                     register_count +=1
                             await message.channel.send("Enregistrement réussi de "+str(register_count)+" joueurs")
 
@@ -5478,7 +5479,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                            "Exemple: go.register 123456789 @chatondu75\n"\
                            "Exemple: go.register 123456789 confirm")
     async def register(self, ctx, *args):
-        await bot_commands.register(ctx, args)
+        await bot_commands.register_player(ctx, args)
 
     @commands.check(member_command)
     @commands.command(name='unregister',

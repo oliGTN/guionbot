@@ -56,4 +56,4 @@ async def register_player(allyCode, discord_id_txt, requestor_discord_id):
     goutils.log2("DBG", query)
     connect_mysql.simple_execute(query)
 
-    return 0, ""
+    return 0, player_name

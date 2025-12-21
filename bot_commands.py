@@ -732,7 +732,7 @@ async def get_channel_from_args(ctx_interaction, args):
                    "display_mentions": False}
 
 ###################################################
-async def register(ctx_interaction, args):
+async def register_player(ctx_interaction, args):
     try:
         resp_msg = await command_ack(ctx_interaction)
 
@@ -809,6 +809,7 @@ async def register(ctx_interaction, args):
             await command_error(ctx_interaction, resp_msg, et)
             return
         
+        player_name = et
         await command_ok(ctx_interaction, resp_msg, "Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
 
     except Exception as e:
