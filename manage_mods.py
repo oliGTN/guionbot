@@ -1110,12 +1110,17 @@ async def allocate_mods_to_empty_slots(txt_allyCode, initialdata=None):
     for unit_id in dict_player['rosterUnit']:
         combatType = dict_units[unit_id]["combatType"]
         if combatType != 1:
+            #Cannot allocate mods to ships
             continue
 
         unit = dict_player['rosterUnit'][unit_id]
         unit_gear = unit["currentTier"]
         unit_level = unit["currentLevel"]
         if unit_level < 50:
+            #Cannot alllocate mods to unit if level<50
+            continue
+        if "eraLevel" in unit:
+            #Cannot allocate mods to era unit
             continue
 
         #Find empty mod slots for this unit
