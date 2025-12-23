@@ -1746,6 +1746,9 @@ async def store_tb_events(guild_id, tb_id, list_events):
     goutils.log2("DBG", query)
     tb_db_id = get_value(query)
 
+    if tb_db_id == None:
+        return
+
     for event in list_events:
         #Manage the case where list_events is a dict
         if type(event)==str:
