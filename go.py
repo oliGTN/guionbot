@@ -1506,7 +1506,7 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                                               guild_id, gfile_name, 1, list_active_players,
                                               0, dict_def_toon_player, 1)
     if type(ret_get_team_progress) == str:
-        goutils.log2("ERR", "get_team_progress has returned an error: "+ret_print_vtx)
+        goutils.log2("ERR", "get_team_progress has returned an error: "+ret_get_team_progress)
         return 1, ret_get_team_progress
     else:
         ret_print_vtx = "Vérification des Teams de la Guilde **"+guild_name+"**\n"
