@@ -633,11 +633,13 @@ async def get_modopti_export(txt_allyCode):
     my_profile["previousSettings"] = {}
     my_profile["incrementalOptimizeIndex"] = None
 
-
     #Loop on all roster units. Fill profile characters and GameSettings
     for player_unit in dict_player["rosterUnit"]:
         if "crew" in player_unit["stats"]:
             #ignore ships
+            continue
+        if "eraLevel" in player_unit:
+            #Cannot allocate mods to era unit
             continue
 
         unit_defId = player_unit["definitionId"].split(":")[0]
