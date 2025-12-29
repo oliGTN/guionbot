@@ -1620,7 +1620,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 if guild_id in prev_dict_guild \
                    and "territoryBattleStatus" in prev_dict_guild[guild_id]:
                     tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
-                    instanceId = tbc["instanceId"]
+                    instanceId = tbs["instanceId"]
                     startTime = int(int(instanceId.split(':')[1:])/1000)
                     endTime = startTime + 6*24*3600 #adding 6 days
                     stars = 0
