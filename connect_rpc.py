@@ -1621,7 +1621,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                    and "territoryBattleStatus" in prev_dict_guild[guild_id]:
                     tbs = prev_dict_guild[guild_id]["territoryBattleStatus"][0]
                     instanceId = tbs["instanceId"]
-                    startTime = int(int(instanceId.split(':')[1:])/1000)
+                    startTime = int(int(instanceId.split(':')[1][1:])/1000)
                     endTime = startTime + 6*24*3600 #adding 6 days
                     stars = 0
                     bonus = {}
@@ -2275,7 +2275,16 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             db_data=[]
         dict_zone_estimates = {}
         for line in db_data:
-            dict_zone_estimates[line[0]] = [line[1], line[2]]
+            zone_id = line[0]
+            zone_past_score = line[1]
+            zone_past_strikes = line[2]
+            zone_estim_score = dict_zone_estimates[zone_id][1]
+            zone_estim_strikes = dict_zone_estimates[zone_id][2]
+            zone_type = dict_tb[zone_id]["type"]
+            total_players = len(dict_tb_players)
+
+            dict_zone_estimates[zone_id][0] = round((zone_past_score*(total_players-finished_players[zone_type])+zone_estim_score*finished_players[zone_type])/total_players, 0)
+            dict_zone_estimates[zone_id][1] = round((zone_past_strikes*(total_players-finished_players[zone_type])+zone_estim_strikes*finished_players[zone_type])/total_players, 0)
 
     elif targets_fights != None:
         dict_zone_estimates = {}
@@ -2323,7 +2332,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 dict_zone_estimates[zone_name][0] += int(target_zone_percent_value/100*strike[1]*guild_players)
                 dict_zone_estimates[zone_name][1] += int(target_zone_percent_value/100*strike[0]*guild_players)
 
-        print(dict_zone_estimates)
+        #print(dict_zone_estimates)
 
 
     #compute zone stats apart for deployments
