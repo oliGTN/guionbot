@@ -2914,6 +2914,7 @@ class TwCog(commands.GroupCog, name="gt"):
 
             guild_id = player_infos["guild_id"]
             allyCode = player_infos["allyCode"]
+            goutils.log2("INFO", "START "+allyCode+"@"+guild_id)
 
             err_code, err_txt = await update_rpc_data(guild_id, allyCode=allyCode)
             if err_code != 0:
@@ -2951,6 +2952,7 @@ class TwCog(commands.GroupCog, name="gt"):
 
             guild_id = player_infos["guild_id"]
             allyCode = player_infos["allyCode"]
+            goutils.log2("INFO", "START "+allyCode+"@"+guild_id)
 
             # Run the TW summary
             err_code, ret_txt = await go.print_tw_summary(guild_id, allyCode=allyCode)
@@ -2988,6 +2990,7 @@ class TwCog(commands.GroupCog, name="gt"):
 
         guild_id = player_infos["guild_id"]
         txt_allyCode = str(player_infos["allyCode"])
+        goutils.log2("INFO", "START "+txt_allyCode+"@"+guild_id)
 
         # split units by <space>, preserving quoted strings
         characters = [p.strip('"') for p in re.split("( |\\\".*?\\\"|'.*?')", units) if p.strip()]
@@ -3015,6 +3018,7 @@ class TwCog(commands.GroupCog, name="gt"):
                 return []
 
             guild_id = db_data
+            goutils.log2("INFO", "START "+guild_id)
 
             dict_tw_counters = connect_gsheets.load_tw_counters(guild_id, False)
             list_tw_opponents = list(dict_tw_counters.keys())
@@ -3051,6 +3055,8 @@ class TwCog(commands.GroupCog, name="gt"):
                 return []
 
             guild_id = db_data
+            goutils.log2("INFO", "START "+guild_id)
+
             dict_tw_counters = connect_gsheets.load_tw_counters(guild_id, False)
             list_counters = []
 
@@ -3116,6 +3122,7 @@ class TbCog(commands.GroupCog, name="bt"):
 
             allyCode = bot_infos["allyCode"]
             player_name = bot_infos["player_name"]
+            goutils.log2("INFO", "START "+allyCode+"@"+guild_id)
 
             ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, False)
             if ec != 0:
@@ -3228,6 +3235,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             txt_allyCode = str(bot_infos["allyCode"])
+            goutils.log2("INFO", "START "+txt_allyCode)
 
             goutils.log2("INFO", "mods.modoptimizer("+txt_allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
 
