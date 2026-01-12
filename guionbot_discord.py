@@ -1217,7 +1217,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                   ' en ' + platoon_name
 
             if platoon_locked:
-                line_txt = "~~" + line_txt + "~~"
+                line_txt = "~~" + line_txt + "~~ ("+platoon_name+" est verrouillé)"
         else:
             #joueur non-enregistré ou mentions non autorisées,
             # on l'affiche quand même
@@ -1226,7 +1226,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
                   ' en ' + platoon_name
 
             if platoon_locked:
-                line_txt = "~~" + line_txt + "~~"
+                line_txt = "~~" + line_txt + "~~ ("+platoon_name+" est verrouillé)"
 
         #Pose auto du bot
         bot_line = False
@@ -3131,7 +3131,7 @@ class TbCog(commands.GroupCog, name="bt"):
             else:
                 #filter deployment lines
                 lines = ret_txt.split("\n")
-                lines = [l for l in lines if "a posé" in l or "n'a pas pu poser" in l]
+                lines = [l for l in lines if "a posé" in l or "n'a pas pu poser" in l or "est verrouillé" in l]
                 txt = "\n".join(lines)
 
                 if txt=='':
