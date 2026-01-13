@@ -6541,7 +6541,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     return
                 
                 # Get char IDs from list of alias
-                if not "all" in list_characters:
+                if not "all" in [x.lower() for x in list_characters]:
                     list_unit_id, d_id_name, err_alias_txt = goutils.get_characters_from_alias(list_characters)
                 else:
                     err_alias_txt = ""

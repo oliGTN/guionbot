@@ -861,7 +861,7 @@ def get_characters_from_alias(list_alias):
                 tag_alias = character_alias[4:]
                 combatType = 0
 
-            if tag_alias == "all":
+            if tag_alias.lower() == "all":
                 dict_id_name[character_alias] = []
                 for character_id in dict_unitsList:
                     character_name = dict_unitsList[character_id]["name"]

@@ -1529,7 +1529,7 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                     if score == 999999:
                         #Header of the team
                         ret_print_vtx += txt
-                        if len(list_team_names)==1 and list_team_names[0]!="all":
+                        if len(list_team_names)==1 and list_team_names[0].lower()!="all":
                             ret_print_vtx += "\n"
                     else:
                         line_print_vtx = ""
@@ -1547,7 +1547,7 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                         #if score >= SCORE_RED:
                         line_print_vtx += " " + name + ": " + str(round(score, 1)) + "%\n"
 
-                        if len(list_team_names)==1 and list_team_names[0]!="all":
+                        if len(list_team_names)==1 and list_team_names[0].lower()!="all":
                             ret_print_vtx += line_print_vtx
 
                         connect_mysql.update_gv_history(
@@ -1555,10 +1555,10 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                             score, unlocked, "go.bot")
 
                 if total_not_enough > 0:
-                    if len(list_team_names)==1 and list_team_names[0]!="all":
+                    if len(list_team_names)==1 and list_team_names[0].lower()!="all":
                         ret_print_vtx += "... et " + str(total_not_enough) + " joueurs sous 50%\n"
 
-                if len(list_team_names)==1 and list_team_names[0]!="all":
+                if len(list_team_names)==1 and list_team_names[0].lower()!="all":
                     ret_print_vtx += "\n"
                 ret_print_vtx += "**Total**: " + str(total_green) + " \N{WHITE HEAVY CHECK MARK}" \
                                + " + " + str(total_almost_green) + " \N{WHITE RIGHT POINTING BACKHAND INDEX}" \
@@ -1985,7 +1985,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
 
                 if len(tab_virtual_character) == 3:
                     char_alias = tab_virtual_character[0]
-                    if char_alias == "all":
+                    if char_alias.lower() == "all":
                         return "ERR: impossible de demander un niveau spécifique pour all"
                     
                     if not tab_virtual_character[1] in "1234567":
@@ -2017,7 +2017,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                     
                 elif len(tab_virtual_character) == 2:
                     char_alias = tab_virtual_character[0]
-                    if char_alias == "all":
+                    if char_alias.lower() == "all":
                         return "ERR: impossible de demander un niveau spécifique pour all"
                     
                     if tab_virtual_character[1][0] in "gG":
@@ -2113,7 +2113,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             ret_print_character_stats += " (tri par "+sort_option_full_name+")\n"
 
 
-    elif len(characters) == 1 and characters[0] != "all" and not characters[0].startswith("tag:"):
+    elif len(characters) == 1 and characters[0].lower() != "all" and not characters[0].startswith("tag:"):
         #Compute stats at guild level, only one character
         
         #Get character_id
@@ -2153,7 +2153,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             dict_tw_zone_players = {}
             for team in list_opponent_squads:
                 zone=team["zone_short_name"]
-                if tw_zone=="all" or zone==tw_zone:
+                if tw_zone.lower()=="all" or zone==tw_zone:
                     team_char_ids = [x["unitId"] for x in team["list_defId"]]
                     if character_id in team_char_ids:
                         team_player_name = team["player_name"]
@@ -2195,7 +2195,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
         ret_print_character_stats += "Statistiques pour "+character_name
         if tw_zone!=None:
             ret_print_character_stats += " en GT"
-            if tw_zone!="all":
+            if tw_zone.lower()!="all":
                 ret_print_character_stats += " sur la zone "+tw_zone
 
         if sort_option_id == 0:
@@ -2978,7 +2978,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
 
             player_name = line[1]
             unit_id = line[2]
-            if unit_id != "all":
+            if unit_id.lower() != "all":
                 if unit_id in dict_unitsList:
                     unit_name = dict_unitsList[unit_id]["name"]
                 else:
@@ -3811,7 +3811,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
 
     if "FARM" in farm_list:
         character_ids_txt = "farm perso"
-    elif "all" in farm_list:
+    elif "all" in [x.lower() for x in farm_list]:
         character_ids_txt = "tous les farms"
     else:
         team_ids = []
@@ -3838,7 +3838,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
           + "AND progress<=100 " # to filter out entries from RAF command
     if "FARM" in farm_list:
           query += "AND defId='FARM' "
-    elif not "all" in farm_list:
+    elif not "all" in [x.lower() for x in farm_list]:
           query += "AND defId IN "+character_ids_txt+" "
     query +="ORDER BY date DESC LIMIT 30"
     goutils.log2("DBG", query)
@@ -3851,7 +3851,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
     dict_dates={}
     dict_values={}
 
-    if len(txt_allyCodes)==1 and len(farm_list)==1 and farm_list[0]!="all":
+    if len(txt_allyCodes)==1 and len(farm_list)==1 and farm_list[0].lower()!="all":
         #Only one player, only one unit
         #display the one character progress, use all bots
         for line in ret_db:
@@ -3868,7 +3868,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
 
         graph_title = "Progrès de "+character_ids_txt
 
-    elif len(txt_allyCodes)>1 and len(farm_list)==1 and farm_list[0]!="all":
+    elif len(txt_allyCodes)>1 and len(farm_list)==1 and farm_list[0].lower()!="all":
         #more than one player, one character, use only go.bot
         for line in ret_db:
             if line[3] == "go.bot":
@@ -3885,7 +3885,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
 
         graph_title = "Progrès de "+character_ids_txt
 
-    elif len(txt_allyCodes)==1 and (len(farm_list)>1 or farm_list[0]=="all"):
+    elif len(txt_allyCodes)==1 and (len(farm_list)>1 or farm_list[0].lower()=="all"):
         #one player, more than one character, use only go.bot
         for line in ret_db:
             if line[3] == "go.bot":
