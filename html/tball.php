@@ -357,6 +357,45 @@ function zone_txt($zone_name, $zones, $rowspan, $darklight) {
         <tr style="border:3px solid white" height="33"/>
         </tbody>
     </table>
+<?php } else if ($tb['tb_type'] === 'TB_EVENT_HOTH_EMPIRE') { ?>
+    <table style="display:block">
+        <colgroup>
+            <col span="1" style="width:17%"/>
+            <col span="1" style="width:16%"/>
+            <col span="1" style="width:17%"/>
+            <col span="1" style="width:17%"/>
+            <col span="1" style="width:16%"/>
+            <col span="1" style="width:17%"/>
+        </colgroup>
+        <tbody>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('HDS6-top', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS5-top', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS4-top', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS3-top', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS2-top', $zones, 3, 'dark'); ?>
+            <?php zone_txt('HDS1-top', $zones, 3, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33"/>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('HDS6-mid', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS5-mid', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS4-mid', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS3-mid', $zones, 2, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('HDS2-bot', $zones, 3, 'dark'); ?>
+            <?php zone_txt('HDS1-bot', $zones, 3, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('HDS6-bot', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS5-bot', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS4-bot', $zones, 2, 'dark'); ?>
+            <?php zone_txt('HDS3-bot', $zones, 2, 'dark'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33"/>
+        </tbody>
+    </table>
 <?php } else { ?>
     <br/><b><?php echo $tb['tb_name'];?></b> is not implemented. Please contact the support.
 <?php } ?>

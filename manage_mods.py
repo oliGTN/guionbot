@@ -401,7 +401,7 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
         return 1, "ERR: "+t
 
     #Manage request for all characters
-    if 'all' in list_character_alias:
+    if 'all' in [x.lower() for x in list_character_alias]:
         list_unit_ids=list(dict_player["rosterUnit"].keys())
         list_unit_names = []
     else:
