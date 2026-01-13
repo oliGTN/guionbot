@@ -1656,7 +1656,15 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                             goutils.log2("DBG", txt_results)
                 else:
                     txt_results=""
-                    endTime = int(time.time())
+
+                    # TB has ended, check latest results
+                    endTime=0
+                    for tbr in dict_guild["territoryBattleResult"]:
+                        if int(tbr["endTime"]) > max_endTime:
+                            endTime = int(int(tbr["endTime"])/1000)
+
+                    if endTime==0:
+                        endTime = int(time.time())
 
                 if err_code != 0:
                     goutils.log2("WAR", csv)
