@@ -902,7 +902,7 @@ async def get_actual_tb_platoons_from_dict(dict_guild):
                 zone_name = "_".join(recon_name.split("_")[:-1])
 
                 if zone["zoneStatus"]["zoneState"] == "ZONEOPEN":
-                    ret_re = re.search(".*_phase0(\d)_conflict0(\d)", zone_name)
+                    ret_re = re.search(".*phase0(\d)_conflict0(\d)", zone_name)
                     zone_phase = int(ret_re.group(1))
                     list_open_territories.append( {"phase": zone_phase,
                                                    "zone_name": dict_tb[zone_name]["name"]})
