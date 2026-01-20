@@ -2281,20 +2281,17 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         db_data = connect_mysql.get_table(query)
         if db_data==None:
             db_data=[]
-        dict_zone_estimates = {}
+        dict_zone_past = {}
         for line in db_data:
             zone_id = line[0]
-            zone_past_score = line[1]
-            zone_past_strikes = line[2]
-            zone_estim_score = dict_zone_estimates[zone_id][1]
-            zone_estim_strikes = dict_zone_estimates[zone_id][2]
+            zone_past_score = int(line[1])
+            zone_past_strikes = int(line[2])
             zone_type = dict_tb[zone_id]["type"]
-            total_players = len(dict_tb_players)
 
-            dict_zone_estimates[zone_id][0] = round((zone_past_score*(total_players-finished_players[zone_type])+zone_estim_score*finished_players[zone_type])/total_players, 0)
-            dict_zone_estimates[zone_id][1] = round((zone_past_strikes*(total_players-finished_players[zone_type])+zone_estim_strikes*finished_players[zone_type])/total_players, 0)
+            dict_zone_past[zone_id] = [zone_past_score, zone_past_strikes]
 
     elif targets_fights != None:
+        #Get estimated score from the input of the command
         dict_zone_estimates = {}
 
         #Parse targets in % for fights
@@ -2390,14 +2387,22 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             dict_zones[zone_name]["estimatedStrikeFights"] = estimated_strike_fights
             dict_zones[zone_name]["estimatedStrikeScore"] = int(estimated_strike_score)
 
-            if fight_estimation_type == 1 and zone_name in dict_zone_estimates:
+            if fight_estimation_type == 1 and zone_name in dict_zone_past:
                 #adapt fight estimations to past TBs, if the zone has been played
                 sum_strike_fights = 0
                 for s in cur_strike_fights:
                     sum_strike_fights += cur_strike_fights[s]
 
-                dict_zones[zone_name]["estimatedStrikeFights"] = max(0, dict_zone_estimates[zone_name][1] - sum_strike_fights)
-                dict_zones[zone_name]["estimatedStrikeScore"] = max(0, dict_zone_estimates[zone_name][0] - cur_strike_score)
+                zone_past_score = dict_zone_past[zone_id][0]
+                zone_past_strikes = dict_zone_past[zone_id][1]
+                zone_type = dict_tb[zone_name]["type"]
+                total_players = len(dict_tb_players)
+                finished_players_count = len(finished_players[zone_type])
+                print(zone_past_strikes,total_players,finished_players_count,estimated_strike_fights,total_players, 0)
+                print(type(zone_past_score),type(total_players),type(finished_players_count),type(estimated_strike_score),type(total_players))
+                dict_zones[zone_name]["estimatedStrikeFights"] = round((zone_past_strikes*(total_players-finished_players_count)+estimated_strike_fights*finished_players_count)/total_players, 0)
+                dict_zones[zone_name]["estimatedStrikeScore"] = round((zone_past_score*(total_players-finished_players_count)+int(estimated_strike_score)*finished_players_count)/total_players, 0)
+
         else:
             dict_zones[zone_name]["estimatedStrikeFights"] = 0
             dict_zones[zone_name]["estimatedStrikeScore"] = 0
