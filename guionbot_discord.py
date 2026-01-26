@@ -3130,8 +3130,17 @@ class TbCog(commands.GroupCog, name="bt"):
                 await interaction.edit_original_response(content=txt)
             else:
                 #filter deployment lines
-                lines = ret_txt.split("\n")
-                lines = [l for l in lines if "a posé" in l or "n'a pas pu poser" in l or "est verrouillé" in l]
+                lines = []
+                for l in ret_txt.split("\n"):
+                    if l.startswith(emojis.rightpointingindex+"**"+player_name+"**"):
+                        #chaton75 a posé [xxx] and ROTE2-LS-1
+                        lines.append(l)
+                    elif l.startswith("~~**"+player_name+"**"):
+                        #chaton75 n'a pas posé xxx en ROTE2-LS-1 (verrouillé)
+                        lines.append(l)
+                    elif l.startswith("**"+player_name+"** n'a pas pu poser"):
+                        #chaton75 n'a pas pu poser xxx >> il faut trouver un autre joueur !
+                        lines.append(l)
                 txt = "\n".join(lines)
 
                 if txt=='':
