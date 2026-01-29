@@ -2408,6 +2408,14 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 dict_zones[zone_name]["estimatedStrikeFights"] = round((zone_past_strikes*(total_players-finished_players_count)+estimated_strike_fights*finished_players_count)/total_players, 0)
                 dict_zones[zone_name]["estimatedStrikeScore"] = round((zone_past_score*(total_players-finished_players_count)+int(estimated_strike_score)*finished_players_count)/total_players, 0)
 
+            elif targets_fights != None:
+                if zone_name in dict_zone_estimates:
+                    dict_zones[zone_name]["estimatedStrikeFights"] = dict_zone_estimates[zone_name][0]
+                    dict_zones[zone_name]["estimatedStrikeScore"] = dict_zone_estimates[zone_name][1]
+                else:
+                    dict_zones[zone_name]["estimatedStrikeFights"] = 0
+                    dict_zones[zone_name]["estimatedStrikeScore"] = 0
+
         else:
             dict_zones[zone_name]["estimatedStrikeFights"] = 0
             dict_zones[zone_name]["estimatedStrikeScore"] = 0
