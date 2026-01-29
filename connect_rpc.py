@@ -1083,10 +1083,10 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
                         if "UNIT_ACTIVATED" in activity["key"]:
                             txt_activity = "\N{OPEN LOCK} "+txt_activity
                         if activity["key"].endswith("_JOIN") or "_PROMOTE_TO_" in activity["key"]:
-                            txt_activity = "\N{SLIGHTLY SMILING FACE}"+txt_activity
+                            txt_activity = "\N{SLIGHTLY SMILING FACE} @here "+txt_activity
                         if activity["key"].endswith("_LEFT") or activity["key"].endswith("_REMOVED") \
                            or activity["key"].endswith("_DEMOTE"):
-                            txt_activity = "\N{SLIGHTLY FROWNING FACE}"+txt_activity
+                            txt_activity = "\N{SLIGHTLY FROWNING FACE} @here "+txt_activity
 
                         if event_ts > chatLatest_ts:
                             list_chat_events.append([event_ts, txt_activity])
