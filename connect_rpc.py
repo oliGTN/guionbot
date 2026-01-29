@@ -2299,7 +2299,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     elif targets_fights != None:
         #Get estimated score from the input of the command
         dict_zone_estimates = {}
-        dict_zone_past {}
+        dict_zone_past = {}
 
         #Parse targets in % for fights
         for target_fight in targets_fights.split("/"):
