@@ -1448,6 +1448,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         tb_ongoing = True
         tb_round = 1
         tb_type = dict_tb[simulated_tb]["id"]
+        tb_name = simulated_tb
         tb_instanceDefId = dict_tb[simulated_tb]["instanceDefId"]
         tb_startTime = int(time.time())*1000 #use current time by default
         tb_round_endTime = tb_startTime + tb_round*dict_tb[tb_type]["phaseDuration"]
@@ -1491,6 +1492,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         battle_id = dict_phase["id"]
         tb_startTime = int(battle_id.split(':')[1][1:])
         tb_type = dict_phase["type"]
+        tb_name = dict_tb[tb_type]["shortname"]
 
         #1- increase round and Initialize fake battleStatus
         tb_round = dict_phase["round"]+1
@@ -1550,6 +1552,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 battle_id = battleStatus["instanceId"]
                 tb_ongoing=True
                 tb_type = battleStatus["definitionId"]
+                tb_name = dict_tb[tb_type]["shortname"]
                 goutils.log2("DBG", "Selected TB = "+battle_id+"/"+tb_type)
                 if not tb_type in dict_tb:
                     return 1, "TB inconnue du bot", None
@@ -2154,14 +2157,16 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     # Get platoon remaining scores
     if compute_estimated_platoons:
+        #Get actual platoons
         err_code, err_txt, ret_data = await get_actual_tb_platoons_from_dict(dict_guild)
-        tbs_round = ret_data["round"]
-        dict_platoons_done = ret_data["platoons"]
-
-        tb_name = tbs_round[:-1]
+        if err_code != 0:
+            dict_platoons_done = {}
+        else:
+            dict_platoons_done = ret_data["platoons"]
 
         # check for done platoons, unless they are hard given:
         if targets_platoons==None:
+            #Get allocations
             err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
 
             if ret_dict == None:
@@ -2169,6 +2174,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             else:
                 dict_platoons_allocation = ret_dict["dict_platoons_allocation"]
 
+            #Compare
             for zone_name in list_open_zones:
                 recon_zoneId = zone_name+"_recon01"
                 zone_shortname = dict_tb[zone_name]["name"]

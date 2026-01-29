@@ -4629,7 +4629,9 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             # Loop by phase
             prev_round = None
+            i_loop = 0
             for phase_options in list_phase_options:
+                i_loop += 1
                 goutils.log2("DBG", phase_options)
                 if prev_round == None:
                     goutils.log2("DBG", prev_round)
@@ -4658,6 +4660,11 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 if err_code == 0:
                     images = ret_data["images"]
                     prev_round = ret_data["prev_round"]
+
+                    #add loop info in case of several phases
+                    if len(list_phase_options) > 1:
+                        ret_txt = "Résultat de la phase "+str(i_loop)+" sur "+str(len(list_phase_options)) + " demandées...\n"+ret_txt
+
                     for txt in goutils.split_txt(ret_txt, MAX_MSG_SIZE):
                         await output_channel.send(txt)
 
@@ -4681,8 +4688,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
+            await ctx.send("ERR: erreur inconnue")
+            await ctx.message.add_reaction(emojis.redcross)
             goutils.log2("ERR", traceback.format_exc())
 
     ####################################################
