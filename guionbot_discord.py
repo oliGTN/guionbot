@@ -4832,6 +4832,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                         files=[File(fp=image_binary, filename='image.png'),
                                File(export_path)])
 
+            await ctx.message.add_reaction(emojis.check)
+
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
