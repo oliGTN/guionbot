@@ -6092,18 +6092,30 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
 
     guild = rpc_data[0]
     current_mapstats = rpc_data[1]
-    if not "territoryBattleStatus" in guild:
+    tb_ongoing = False
+    if "territoryBattleStatus" in guild:
+        for tbs in guild["territoryBattleStatus"]:
+            #Just before the TB start, the TB status is already existing
+            # yet without mapstat info
+            # in that case, consider the TB not started and get data
+            # from previous TB
+            if tbs['selected'] and tbs['currentStat']!=[{'mapStatId': 'summary'}]:
+                tb_ongoing = True
+                tb_id = guild["territoryBattleStatus"][0]["instanceId"]
+                tb_type = tb_id.split(":")[0]
+
+    if not tb_ongoing:
         # TB has ended, check latest results
         max_endTime=0
         for tbr in guild["territoryBattleResult"]:
+            print(int(tbr["endTime"]) , max_endTime)
             if int(tbr["endTime"]) > max_endTime:
                 max_endTime = int(tbr["endTime"])
                 tb_id = tbr["instanceId"]
                 tb_type = tb_id.split(":")[0]
                 current_mapstats = tbr["finalStat"]
-    else:
-        tb_id = guild["territoryBattleStatus"][0]["instanceId"]
-        tb_type = tb_id.split(":")[0]
+
+    goutils.log2("DBG", tb_id)
 
     #transform into dict
     d_current_mapstats = {}
