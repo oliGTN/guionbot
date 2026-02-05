@@ -1418,6 +1418,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
     dict_tb = godata.get("tb_definition.json")
 
+    ##################
+    # Get guild current data from RPC
     ec, et, rpc_data = await get_guild_rpc_data(guild_id, ["TB"], 
                                   force_update, allyCode=allyCode,
                                   dict_guild=dict_guild, 
@@ -1445,6 +1447,13 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     # Get TB id, basic infos and TB events
     tb_ongoing=False
     if simulated_tb!=None:
+
+        #######################
+        # Case of simulated TB - from the beginning
+        # In that case the TB is initialized from scratch 
+        # independent from the fact if there is a TB ongoing or not
+        #######################
+
         tb_ongoing = True
         tb_round = 1
         tb_type = dict_tb[simulated_tb]["id"]
@@ -1482,8 +1491,12 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_events={}
 
     elif prev_round!=None:
-        #simulated_tb simulates a blank TB from scratch, so it cannot have a previous zones
-        # those 2 objects simulate a TB already started, to get to the next day
+        #######################
+        # Case of simulated TB - ongoing (2nd or more round)
+        # In that case the TB is initialized from a previous round 
+        # What was estimation is condered a fact
+        # Then the TB moves to the next round, and opens zones if possible
+        #######################
 
         dict_phase = prev_round["phase"]
         list_open_zones = prev_round["open_zones"]
@@ -1547,6 +1560,11 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_events={}
 
     elif "territoryBattleStatus" in dict_guild:
+        #######################
+        # Case of real status of the guild TB
+        # could be ongoing (should be)
+        # or not (robustness)
+        #######################
         for battleStatus in dict_guild["territoryBattleStatus"]:
             if battleStatus["selected"]:
                 battle_id = battleStatus["instanceId"]
@@ -1582,7 +1600,11 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 break
 
     if not tb_ongoing:
+        #########################################
+        # TB has ended
         # Check if previous TB has ended properly, with associated actions
+        #########################################
+
         latest_tb_end_ts = 0
         latest_tb_id = ""
 
@@ -1680,14 +1702,19 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
         return 1, "No TB on-going", {"tb_summary": tb_summary}
 
+    ###########################################
+    #
+    # at that point, we have the TB data, either real or simulated
+    # We may start doing estimations for the ongoing round
+    #
+    ###########################################
+
     prev_dict_guild[guild_id] = dict_guild
     prev_mapstats[guild_id] = mapstats
 
-    query = "SELECT name, char_gp, ship_gp, playerId, guildMemberlevel, allyCode "\
-            "FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
-    goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
-
+    #################
+    # Initialize phase data
+    ###################
     dict_tb_players = {}
     dict_strike_zones = {}
     dict_covert_zones = {}
@@ -1700,6 +1727,14 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                   "type": tb_type, 
                   "name": dict_tb[tb_type]["name"]}
 
+    ######################
+    # Get player data
+    ######################
+    query = "SELECT name, char_gp, ship_gp, playerId, guildMemberlevel, allyCode "\
+            "FROM players WHERE guildName='"+guildName.replace("'", "''")+"'"
+    goutils.log2("DBG", query)
+    db_data = connect_mysql.get_table(query)
+
     for db_line in db_data:
         player_name = db_line[0]
         player_char_gp = db_line[1]
@@ -1708,7 +1743,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         player_role = db_line[4]
         player_ac = str(db_line[5])
 
-        #test if player participates to TB - if joined guild after start of TB
+        #test if player participates to TB - if has left during TB
         if not player_id in dict_members_by_id:
             #Player already left
             continue
@@ -1717,6 +1752,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         if player_ac in ignored_allyCodes:
             continue
 
+        #test if player participates to TB - if joined guild after start of TB
         guildJoinTime = int(dict_members_by_id[player_id]["guildJoinTime"]) * 1000
         if guildJoinTime > tb_startTime:
             #Player joined after start of TB
@@ -1746,6 +1782,17 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             dict_tb_players[player_name]["rounds"][phase]["coverts"] = {} # "conflixtX_covertY": True
             dict_tb_players[player_name]["rounds"][phase]["covert_attempts"] = 0
 
+    ############
+    # At that point we have the list of active players in dict_tb_players
+    # Each player is initialized, ready for the next step of estimations
+    ############
+
+    dict_phase["TotalPlayers"] = len(dict_tb_players)
+
+    #######################
+    # Initialize the dict_zones dictionary
+    # with score, completed stars, command msg and command
+    #######################
     completed_stars = 0 # stars on completed (closed) zones
     for zone in battleStatus["conflictZoneStatus"]:
         zone_stars = 0
@@ -1785,6 +1832,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                                  "cmdMsg": cmdMsg, "cmdCmd": cmdCmd,
                                  "remainingPlatoonScore": 0}
 
+    # store the completed stars in the phase
+    # (as opposed to the planned / estimated stars)
     dict_phase["prev_stars"] = completed_stars
 
     #sort the dict to display zones in the same order as the game
@@ -1798,8 +1847,11 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     if len(list_open_zones)==0:
         return 1, "No TB on-going", None
 
-    total_players_guild = len(dict_tb_players)
-    dict_phase["TotalPlayers"] = total_players_guild
+    total_players_guild = dict_phase["TotalPlayers"]
+
+    #############################
+    # Get the actuals for each strike zone
+    #############################
     for zone in battleStatus["strikeZoneStatus"]:
         strike_name = zone["zoneStatus"]["zoneId"]
         strike_shortname = strike_name.split("_")[-1]
@@ -1822,6 +1874,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_strike_zones[strike_name]["eventStrikes"] = 0
         dict_strike_zones[strike_name]["eventStrikeScore"] = 0
 
+    #############################
+    # Get the actuals for each covert zone (special missions)
+    #############################
     for zone in battleStatus["covertZoneStatus"]:
         if zone["zoneStatus"]["zoneState"] in ("ZONEOPEN", "ZONECOMPLETE"):
             covert_name = zone["zoneStatus"]["zoneId"]
@@ -1835,6 +1890,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
             dict_covert_zones[covert_name]["participation"] = done_coverts
 
+    #############################
+    # Get the actuals for each platoon zone
+    #############################
     for zone in battleStatus["reconZoneStatus"]:
         if zone["zoneStatus"]["zoneState"] in ("ZONEOPEN", "ZONECOMPLETE"):
             recon_name = zone["zoneStatus"]["zoneId"]
@@ -2018,6 +2076,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     if tb_ongoing:
         for playerName in dict_tb_players:
             playerData = dict_tb_players[playerName]
+
+            # Get the remaining PG to deploy for this player
             player_remain_deploy_ships = playerData["ship_gp"] - playerData["rounds"][tb_round-1]["score"]["deployedShips"]
             player_remain_deploy_chars = playerData["char_gp"] - playerData["rounds"][tb_round-1]["score"]["deployedChars"]
             player_remain_deploy_mix   = playerData["mix_gp"]  - playerData["rounds"][tb_round-1]["score"]["deployedMix"]
@@ -2055,6 +2115,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
             # detect if the player has finished playing, by checking if all is deployed
             # If the player has deployed < 99%, he is considered not finished 
             # and count as +1 in the remaining players to fight
+            # LIMITATION: a player who has done all fights but not deployed
+            #             will count as not finished, and his fights will
+            #             count as to be done. (eg: officers)
 
             if "ships" in list_deployment_types:
                 if dict_tb_players[playerName]["ship_gp"] == 0:
@@ -2408,6 +2471,13 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 finished_players_count = len(finished_players[zone_type])
                 dict_zones[zone_name]["estimatedStrikeFights"] = round((zone_past_strikes*(total_players-finished_players_count)+estimated_strike_fights*finished_players_count)/total_players, 0)
                 dict_zones[zone_name]["estimatedStrikeScore"] = round((zone_past_score*(total_players-finished_players_count)+int(estimated_strike_score)*finished_players_count)/total_players, 0)
+                goutils.log2("INFO", "["+zone_name+"] finished_players_count="+str(finished_players_count))
+                goutils.log2("INFO", "["+zone_name+"] zone_past_strikes="+str(zone_past_strikes))
+                goutils.log2("INFO", "["+zone_name+"] estimated_strike_fights="+str(estimated_strike_fights))
+                goutils.log2("INFO", "["+zone_name+"] dict_zones[zone_name]['estimatedStrikeFights']="+str(dict_zones[zone_name]["estimatedStrikeFights"]))
+                goutils.log2("INFO", "["+zone_name+"] zone_past_score="+str(zone_past_score))
+                goutils.log2("INFO", "["+zone_name+"] estimated_strike_score="+str(estimated_strike_score))
+                goutils.log2("INFO", "["+zone_name+"] dict_zones[zone_name]['estimatedStrikeScore']="+str(dict_zones[zone_name]["estimatedStrikeScore"]))
 
             elif targets_fights != None:
                 if zone_name in dict_zone_estimates:
