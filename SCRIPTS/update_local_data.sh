@@ -13,6 +13,8 @@ echo "update TB..."
 python SCRIPTS/create_tb_data.py $GAMEDATA_FILE
 echo "update relic promotion table..."
 python SCRIPTS/create_relic_promo_table.py $GAMEDATA_FILE
+echo "update crinolo data..."
+python SCRIPTS/create_crinolo_gameData.py $GAMEDATA_FILE
 
 echo "clean..."
 rm CACHE/config_units.json
