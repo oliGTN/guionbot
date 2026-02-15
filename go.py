@@ -4120,7 +4120,6 @@ async def get_player_time_graph(list_allyCodes, guild_graph, parameter, is_year)
     max_date = None
 
     #Create series
-    print(list_allyCodes)
     for ac in list_allyCodes:
         d_kpi = []
         v_kpi = []
