@@ -4169,9 +4169,22 @@ async def get_player_time_graph(list_allyCodes, guild_graph, parameter, is_year)
 
     #set min/max on X axis
     if min_date == max_date:
-        ax.set_xlim([min_date-datetime.timedelta(days=1), 
-                     max_date+datetime.timedelta(days=1)])
+        min_date = min_date-datetime.timedelta(days=1) 
+        max_date = max_date+datetime.timedelta(days=1) 
+        ax.set_xlim([min_date, max_date])
 
+    #Draw vertical lines when needed
+    if parameter == "statq":
+        statq_updates = ['2026-02-15',
+                         '2025-11-22']
+
+        for statq_update_txt in statq_updates:
+            statq_update_date = datetime.datetime.strptime(statq_update_txt, '%Y-%m-%d').date()
+            if statq_update_date>=min_date and statq_update_date<=max_date:
+                ylim = ax.get_ylim()
+                ax.vlines(statq_update_date, ylim[0], ylim[1])
+
+    # Draw and pack the image
     fig.canvas.draw()
     fig_size = fig.canvas.get_width_height()
     fig_bytes = fig.canvas.tostring_rgb()
