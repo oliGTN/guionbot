@@ -354,6 +354,9 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
     goutils.log2('DBG', "END")
     return 0, "", dict_player
 
+#####################"
+#OUT: 2 > no guild for this player
+#OUT: 1 > other errors
 async def load_guild(txt_allyCode, load_players, cmd_request, 
                      ctx_interaction=None,
                      load_rosters=True,
@@ -370,7 +373,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request,
         ec, et, dict_guild = await connect_rpc.get_extguild_data_from_ac(txt_allyCode, False)
         if ec != 0:
             goutils.log2("ERR", "Cannot get guild data for "+txt_allyCode)
-            return 1, "ERR Cannot get guild data for "+txt_allyCode, None
+            return 2, "ERR Cannot get guild data for "+txt_allyCode, None
         guild_id = dict_guild["profile"]["id"]
     else:
         guild_id = db_result
@@ -1282,7 +1285,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
         player_shard = shard_info[0]
         err_code, err_txt = await load_shard(player_shard, shard_type, True)
         if err_code != 0:
-            goutils.log2("WAR", "cannot get shard data from SWGOH.HELP API. Using previous data.")
+            goutils.log2("WAR", "cannot get shard data from RPC. Using previous data.")
             return "", err_txt
 
         collection_name = "shard "+shard_type+" de "+txt_allyCode
@@ -2411,8 +2414,10 @@ async def get_gp_distribution(txt_allyCode):
     #Load or update data for the guild
     #use only the guild data from the API
     err_code, err_txt, dict_guild = await load_guild(txt_allyCode, False, True)
-    if err_code != 0:
-        return 1, "ERR: cannot get guild data from SWGOH.HELP API", None
+    if err_code == 2:
+        return 1, "ERR: Ce joueur n'est pas dans une guilde", None
+    elif err_code != 0:
+        return 1, "ERR: cannot get guild data from RPC", None
 
     guild_stats=[] #Serie of all players
     for player in dict_guild["member"]:
@@ -2627,7 +2632,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
 
     e, t, d = await load_player(txt_allyCode, 1, False)
     if e != 0:
-        return 1, "ERR: cannot get player data from SWGOH.HELP API", None
+        return 1, "ERR: cannot get player data from RPC", None
         
     #get the relic filter if any
     if ":" in character_alias:
