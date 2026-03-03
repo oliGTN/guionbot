@@ -1214,7 +1214,7 @@ async def get_player_statq(txt_allyCode):
     query +="     END AS `stat_ratio`, coef \n" \
           + "     FROM roster AS my_roster \n" \
           + "     JOIN statq_table ON my_roster.defId=statq_table.defId AND NOT isnull(statq_table.stat_avg) \n" \
-          + "     WHERE stat_avg>0 AND gear>=12 AND allyCode="+txt_allyCode+" \n" \
+          + "     WHERE stat_avg>0 AND relic_currentTier>=5 AND allyCode="+txt_allyCode+" \n" \
           + ") ratios \n" \
           + "JOIN players ON players.allyCode = ratios.allyCode \n" \
           + "WHERE players.allyCode = "+txt_allyCode
@@ -1251,15 +1251,16 @@ def compute_statq_avg(force_all):
         s_name = stat[0]
         s_id = stat[1]
 
+        #filter relic>=3 and GP>10M PG
         query += "WHEN stat_name='"+s_name+"' THEN ( " \
                  "   select avg(mod"+str(s_id)+"/(stat"+str(s_id)+"-mod"+str(s_id)+")) " \
                  "   from roster " \
                  "   join players on players.allyCode=roster.allyCode " \
                  "   where statq_table.defId=roster.defId " \
-                 "   and gear>=12 " \
+                 "   and relic_currentTier>=5 " \
                  "   and stat"+str(s_id)+" > mod"+str(s_id)+" " \
                  "   and grand_arena_rank='KYBER1' " \
-                 "   and (char_gp+ship_gp)>9000000 " \
+                 "   and (char_gp+ship_gp)>10000000 " \
                  "   and timestampdiff(DAY,lastUpdated,CURRENT_TIMESTAMP)<30 " \
                  ") \n"
 
