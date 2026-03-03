@@ -49,6 +49,7 @@ MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 bot_test_mode = False
 bot_background_tasks = True
 bot_on_message = True
+bot_locked = False
 
 #Global variables that may change during execution
 first_bot_loop_5minutes = True
@@ -272,7 +273,7 @@ async def bot_loop_5minutes(bot):
                     await connect_mysql.update_tb_platoons(guild_id, tb_id, tbs_round, dict_platoons_done)
 
                     goutils.log2("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
-                    goutils.log2("INFO", "["+guild_id+"] End of platoon parsing for TB: round " + tbs_round)
+                    goutils.log2("INFO", "["+guild_id+"] End of parsing for actual platoons for TB: round " + tbs_round)
                     new_allocation_detected = False
                     dict_msg_platoons = {}
                     for territory_platoon in dict_platoons_done:
@@ -2003,6 +2004,8 @@ async def manage_reaction_add(user, message, reaction, emoji):
 @bot.event
 async def on_message(message):
     try:
+        is_owner = (str(message.author.id) in config.GO_ADMIN_IDS.split(' '))
+
         if isinstance(message.channel, DMChannel):
             channel_name = "DM"
         else:
@@ -2014,7 +2017,11 @@ async def on_message(message):
             command_name = lower_msg.split(" ")[0].split(".")[1]
             goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
 
-            await bot.process_commands(message)
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await message.channel.send(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+            else:
+                await bot.process_commands(message)
 
         ### after these are reaction to other messages than commands
         if not bot_on_message:
@@ -2104,7 +2111,7 @@ async def on_message(message):
 
         #Read messages from Echobot
         if message.author.id == config.EB_DISCORD_ID:
-            goutils.log2("INFO", "Detect message from Echobot "+str(message.id))
+            goutils.log2("INFO", "Detect message "+str(message.id)+" from Echobot, with "+str(len(message.embeds))+" embeds")
             for embed in message.embeds:
                 dict_embed = embed.to_dict()
                 if "author" in dict_embed:
@@ -2151,6 +2158,12 @@ async def on_message(message):
                                             goutils.log2("INFO", (tb_currentRound, tb_currentRoundEndTime, time.time(), eb_phase))
                                             tbs_round=tb_name+str(eb_phase)
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
+                        else:
+                            goutils.log2("WAR", "unexpected name "+author_name)
+                    else:
+                        goutils.log2("WAR", "no name in embed_author "+str(embed_author))
+                else:
+                    goutils.log2("WAR", "no author in dict_embed "+str(dict_embed))
 
     except discord.errors.NotFound as e:
         # original message deleted, no need to try answering or reacting
@@ -2687,6 +2700,32 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
 
     ##############################################################
+    # Command: lockbot
+    # Parameters: None
+    # Purpose: locks the bot, prevents user to use commands
+    # Display: None
+    #############################################################
+    @commands.command(name='lockbot', help='Verrouille le bot')
+    @commands.check(admin_command)
+    async def lockbot(self, ctx):
+        global bot_locked
+        await ctx.message.add_reaction(emojis.thumb)
+
+        bot_locked = True
+
+        await ctx.message.add_reaction(emojis.check)
+
+    @commands.command(name='unlockbot', help='Verrouille le bot')
+    @commands.check(admin_command)
+    async def unlockbot(self, ctx):
+        global bot_locked
+        await ctx.message.add_reaction(emojis.thumb)
+
+        bot_locked = False
+
+        await ctx.message.add_reaction(emojis.check)
+
+    ##############################################################
     # Command: servers
     # Parameters: Aucun
     # Purpose: affiche les serveurs discord qui utilisent le bot
@@ -2903,6 +2942,13 @@ class TwCog(commands.GroupCog, name="gt"):
     @app_commands.command(name="statut")
     async def tw_status(self, interaction: discord.Interaction):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # acknowledge command reception
             await interaction.response.defer(thinking=True)
 
             #get player config from DB
@@ -2941,6 +2987,13 @@ class TwCog(commands.GroupCog, name="gt"):
     @app_commands.command(name="stats")
     async def tw_stats(self, interaction: discord.Interaction):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # acknowledge command reception
             await interaction.response.defer(thinking=True)
 
             #get player config from DB
@@ -2979,6 +3032,13 @@ class TwCog(commands.GroupCog, name="gt"):
                          zone: str,
                          units: str):
 
+        # Check if not is locked
+        if bot_locked and not is_owner:
+            goutils.log2("WAR", "bot is locked")
+            await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+            return
+
+        # acknowledge command reception
         await interaction.response.defer(thinking=True)
 
         #get player config from DB
@@ -3040,6 +3100,13 @@ class TwCog(commands.GroupCog, name="gt"):
                          opponent: str):
 
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # acknowledge command reception
             await interaction.response.defer(thinking=True)
 
             # Launch the actual command
@@ -3103,6 +3170,13 @@ class TbCog(commands.GroupCog, name="bt"):
     @app_commands.command(name="pose-pelotons")
     async def deploy_platoons(self, interaction: discord.Interaction):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # acknowledge command reception
             await interaction.response.defer(thinking=True)
 
             #get bot config from DB
@@ -3158,6 +3232,13 @@ class TbCog(commands.GroupCog, name="bt"):
                          liste_zones: str="",
                          joueur: str=""):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # run command
             if liste_zones=='':
                 list_zones=[]
             else:
@@ -3212,6 +3293,13 @@ class TbCog(commands.GroupCog, name="bt"):
                         zone: str="",
                         list_alias_txt: str=""):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # run command
             await bot_commands.deploy_tb(interaction, zone, list_alias_txt)
 
         except Exception as e:
@@ -3232,6 +3320,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                            fichier: discord.Attachment,
                            simulation: bool=False):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # Ackowledge command reception
             await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
@@ -3321,6 +3416,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                            conf_name: str,
                            list_alias_txt: str):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # Ackowledge command reception
             await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
@@ -3395,6 +3497,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                          conf_name: str,
                          simulation: bool=False):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # Ackowledge command reception
             await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
@@ -3462,6 +3571,13 @@ class ModsCog(commands.GroupCog, name="mods"):
     async def delete_conf(self, interaction: discord.Interaction,
                          conf_name: str):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # Ackowledge command reception
             await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
@@ -3503,6 +3619,13 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="exporte-liste")
     async def export_modoptimizer(self, interaction: discord.Interaction):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # Ackowledge command reception
             await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
@@ -3549,6 +3672,13 @@ class ModsCog(commands.GroupCog, name="mods"):
                                       only_speed_sec: bool=False,
                                       with_inventory: bool=False):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # run command
             await bot_commands.upgrade_mod_level(
                         interaction,
                         target_level,
@@ -3562,6 +3692,13 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="pose-inventaire")
     async def allocate_random_mods(self, interaction: discord.Interaction):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # run command
             await bot_commands.allocate_random_mods(interaction)
 
         except Exception as e:
@@ -3581,6 +3718,13 @@ class BronziumCog(commands.GroupCog, name="bronzium"):
     @app_commands.rename(quantity="quantité")
     async def bronzium_open(self, interaction: discord.Interaction, quantity: int):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # run command
             await bot_commands.bronzium_open(interaction, quantity)
 
         except Exception as e:
@@ -3600,6 +3744,13 @@ class AuthCog(commands.GroupCog, name="connect"):
     async def send_otc(self, interaction: discord.Interaction,
                        code: str):
         try:
+            # Check if not is locked
+            if bot_locked and not is_owner:
+                goutils.log2("WAR", "bot is locked")
+                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+                return
+
+            # acknowledge command reception
             await interaction.response.defer(thinking=True)
 
             #check option
@@ -7585,6 +7736,9 @@ async def main():
         if "nomsg" in sys.argv[1:]:
             goutils.log2("INFO", "Disable on_message")
             bot_on_message = False
+        if "lock" in sys.argv[1:]:
+            goutils.log2("INFO", "lock bot commands for users")
+            bot_locked = True
 
     #Clean tmp files
     list_cache_files = os.listdir("CACHE")
