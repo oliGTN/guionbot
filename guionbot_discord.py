@@ -50,6 +50,7 @@ bot_test_mode = False
 bot_background_tasks = True
 bot_on_message = True
 bot_locked = False
+command_queue = []
 
 #Global variables that may change during execution
 first_bot_loop_5minutes = True
@@ -82,6 +83,33 @@ dict_tb_alerts_previously_done = {}
 #                  FONCTIONS                                 #
 #                                                            #
 ##############################################################
+
+######################
+# Queue commands
+######################
+def add_command_to_queue(ctx_interaction):
+    global command_queue
+    command_queue.append(interaction)
+
+def remove_command_from_queue(ctx_interaction):
+    global command_queue
+    while interaction in command_queue:
+        command_queue.remove(interaction)
+
+def display_command_queue():
+    output_txt = ""
+    for ctx_interaction in command_queue:
+        if type(ctx_interaction) == commands.Context:
+            user_id = ctx_interaction.author.id
+            date = ctx_interaction.message.created_at
+        else: # Interaction
+            user_id = ctx_interaction.user.id
+            date = ctx_interaction.created_at
+
+        output_txt += "user_id="+str(user_id)+", date="+str(date)+"\n"
+
+    return len(command_queue), output_txt
+
 
 ##############################################################
 # Function: bot_loop_60secs
@@ -2713,6 +2741,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         bot_locked = True
 
+        c, txt = display_command_queue()
+        if c==0:
+            await ctx.send("No command running")
+        else:
+            await ctx.send("running commands:\n"+output_txt)
+
         await ctx.message.add_reaction(emojis.check)
 
     @commands.command(name='unlockbot', help='Verrouille le bot')
@@ -2949,6 +2983,8 @@ class TwCog(commands.GroupCog, name="gt"):
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
+            add_command_to_queue(interaction)
+
             # acknowledge command reception
             await interaction.response.defer(thinking=True)
 
@@ -2957,6 +2993,7 @@ class TwCog(commands.GroupCog, name="gt"):
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             guild_id = player_infos["guild_id"]
@@ -2967,12 +3004,14 @@ class TwCog(commands.GroupCog, name="gt"):
             if err_code != 0:
                 txt = emojis.redcross+" ERR: "+err_txt
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             err_code, err_txt, statusChan = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id, allyCode=allyCode)
             if err_code != 0:
                 txt = emojis.redcross+" ERR: "+err_txt
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             if statusChan==None:
@@ -2980,10 +3019,12 @@ class TwCog(commands.GroupCog, name="gt"):
             else:
                 txt = emojis.check+" statut GT mis à jour dans <#"+str(statusChan)+">"
             await interaction.edit_original_response(content=txt)
+            remove_command_from_queue(interaction)
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
 
     @app_commands.command(name="stats")
     async def tw_stats(self, interaction: discord.Interaction):
@@ -3432,6 +3473,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             # Ackowledge command reception
+            add_command_to_queue(interaction)
             await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
@@ -3441,6 +3483,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             txt_allyCode = str(bot_infos["allyCode"])
@@ -3464,6 +3507,8 @@ class ModsCog(commands.GroupCog, name="mods"):
                 user_choice = await bot_commands.confirmationPrompt(interaction, "Voulez-vous écrasez la conf "+conf_name+" ?")
                 if user_choice == False:
                     await interaction.edit_original_response(content=emojis.redcross+" enregistrement annulé")
+                    remove_command_from_queue(interaction)
+                    return
 
             #Run the function
             ec, et = await manage_mods.create_mod_config(conf_name, txt_allyCode, list_alias)
@@ -3473,9 +3518,14 @@ class ModsCog(commands.GroupCog, name="mods"):
             else:
                 await interaction.edit_original_response(content=emojis.redcross+" "+et)
 
+            remove_command_from_queue(interaction)
+            return
+
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
+            return
 
     # Function used to get dynamic parameters in applique-conf and delete-conf
     async def list_player_configurations(self, interaction: discord.Interaction, current: str):
@@ -3514,6 +3564,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             # Ackowledge command reception
+            add_command_to_queue(interaction)
             await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
@@ -3523,6 +3574,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             txt_allyCode = str(bot_infos["allyCode"])
@@ -3571,9 +3623,12 @@ class ModsCog(commands.GroupCog, name="mods"):
                         err_txt=err_txt[:1000]+"..."
                 await interaction.edit_original_response(content=err_txt)
 
+            remove_command_from_queue(interaction)
+
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+            remove_command_from_queue(interaction)
 
     @app_commands.command(name="supprime-conf")
     @app_commands.rename(conf_name="nom-conf")
