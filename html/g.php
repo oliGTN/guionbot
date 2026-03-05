@@ -19,7 +19,7 @@ if (!isset($_GET['gid'])) {
     exit();
 }
 
-$guild_id = $_GET['gid'];
+$guild_id = substr($_GET['gid'], 0, 22);
 
 // define $isMyGuild, $isOfficer FROM $guild_id
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
@@ -43,7 +43,7 @@ $next_order = $sort_order === 'ASC' ? 'desc' : 'asc';
 
 //-------------- PREPARE THE QUERY for players
 // Prepare the SQL query to get players with pagination
-$query = "SELECT name, playerId, allyCode, char_gp+ship_gp AS gp, lastUpdated FROM players WHERE guildId='".$_GET['gid']."'";
+$query = "SELECT name, playerId, allyCode, char_gp+ship_gp AS gp, lastUpdated FROM players WHERE guildId='".$guild_id."'";
 $query .= " ORDER BY $sort_column $sort_order";
 
 try {
@@ -92,10 +92,10 @@ try {
         <thead>
             <tr>
                 <th>#</th>
-                <th class="<?php echo ($sort_column === 'name') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=name&order=<?php echo $next_order; ?>">Name</a></th>
+                <th class="<?php echo ($sort_column === 'name') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $guild_id;?>&sort=name&order=<?php echo $next_order; ?>">Name</a></th>
                 <th >allyCode</a></th>
-                <th class="<?php echo ($sort_column === 'gp') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=gp&order=<?php echo $next_order; ?>">GP</a></th>
-                <th class="<?php echo ($sort_column === 'lastUpdated') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $_GET['gid'];?>&sort=lastUpdated&order=<?php echo $next_order; ?>">Last Updated</a></th>
+                <th class="<?php echo ($sort_column === 'gp') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $guild_id;?>&sort=gp&order=<?php echo $next_order; ?>">GP</a></th>
+                <th class="<?php echo ($sort_column === 'lastUpdated') ? 'active-sort' : ''; ?>"><a href="g.php?gid=<?php echo $guild_id;?>&sort=lastUpdated&order=<?php echo $next_order; ?>">Last Updated</a></th>
             </tr>
         </thead>
         <tbody>

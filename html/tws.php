@@ -19,7 +19,7 @@ if (!isset($_GET['gid'])) {
     exit();
 }
 
-$guild_id = $_GET['gid'];
+$guild_id = substr($_GET['gid'], 0, 22);
 
 //Check if guild page has been visited first, or reload guild data if necessary
 if (!isset($_SESSION['guild']) || $_SESSION['guild']['id']!=$guild_id) include 'gdata.php';
@@ -33,7 +33,7 @@ list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_r
 // Prepare the SQL query
 $query = "SELECT tw_history.id, start_date, away_guild_name,";
 $query .= " homeScore, awayScore, lastUpdated FROM tw_history";
-$query .= " WHERE guild_id='".$_GET['gid']."'";
+$query .= " WHERE guild_id='".$guild_id."'";
 $query .= " ORDER BY start_date DESC";
 #error_log("query = ".$query);
 try {

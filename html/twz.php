@@ -19,7 +19,7 @@ if (!isset($_GET['id'])) {
     exit();
 }
 
-$tw_id = $_GET['id'];
+$tw_id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int) $_GET['id'] : 1;
 
 // Get the associated TW data (define $tw)
 include 'twvariables.php';

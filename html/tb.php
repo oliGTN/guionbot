@@ -20,7 +20,7 @@ if (!isset($_GET['id'])) {
     header("Location: index.php");
     exit();
 }
-$tb_id = $_GET['id'];
+$tb_id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int) $_GET['id'] : 1;
 $round = get_round_from_get($tb_id);
 $round_score = get_tb_round_score($tb_id, $round);
 $tb = get_tb_from_id($tb_id);

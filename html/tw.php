@@ -19,7 +19,7 @@ if (!isset($_GET['id'])) {
     exit();
 }
 
-$tw_id = $_GET['id'];
+$tw_id = isset($_GET['id']) && is_numeric($_GET['id']) ? (int) $_GET['id'] : 1;
 
 // Get the associated TW data (define $tw)
 include 'twvariables.php';
@@ -152,13 +152,13 @@ if ($sort_column<>'name') {
         <thead>
             <tr>
                 <th>#</th>
-                <th class="<?php echo ($sort_column === 'name') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $_GET['id'];?>&sort=name&order=<?php echo ($sort_column=='name'?$next_order:'ASC'); ?>">Name</a></th>
-                <th class="<?php echo ($sort_column === 't_fights') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $_GET['id'];?>&sort=t_fights&order=<?php echo ($sort_column=='t_fights'?$next_order:'DESC'); ?>">Total fights</a></th>
-                <th class="<?php echo ($sort_column === 't_wins') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $_GET['id'];?>&sort=t_wins&order=<?php echo ($sort_column=='t_wins'?$next_order:'DESC'); ?>">Total wins</a></th>
-                <th class="hide-on-med-and-down <?php echo ($sort_column === 'c_fights') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $_GET['id'];?>&sort=c_fights&order=<?php echo ($sort_column=='c_fights'?$next_order:'DESC'); ?>">Ground fights</a></th>
-                <th class="hide-on-med-and-down <?php echo ($sort_column === 'c_wins') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $_GET['id'];?>&sort=c_wins&order=<?php echo ($sort_column=='c_wins'?$next_order:'DESC'); ?>">Ground wins</a></th>
-                <th class="hide-on-med-and-down <?php echo ($sort_column === 's_fights') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $_GET['id'];?>&sort=s_fights&order=<?php echo ($sort_column=='s_wins'?$next_order:'DESC'); ?>">Ship fights</a></th>
-                <th class="hide-on-med-and-down <?php echo ($sort_column === 's_wins') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $_GET['id'];?>&sort=s_wins&order=<?php echo ($sort_column=='s_wins'?$next_order:'DESC'); ?>">Ship wins</a></th>
+                <th class="<?php echo ($sort_column === 'name') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $tw_id;?>&sort=name&order=<?php echo ($sort_column=='name'?$next_order:'ASC'); ?>">Name</a></th>
+                <th class="<?php echo ($sort_column === 't_fights') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $tw_id;?>&sort=t_fights&order=<?php echo ($sort_column=='t_fights'?$next_order:'DESC'); ?>">Total fights</a></th>
+                <th class="<?php echo ($sort_column === 't_wins') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $tw_id;?>&sort=t_wins&order=<?php echo ($sort_column=='t_wins'?$next_order:'DESC'); ?>">Total wins</a></th>
+                <th class="hide-on-med-and-down <?php echo ($sort_column === 'c_fights') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $tw_id;?>&sort=c_fights&order=<?php echo ($sort_column=='c_fights'?$next_order:'DESC'); ?>">Ground fights</a></th>
+                <th class="hide-on-med-and-down <?php echo ($sort_column === 'c_wins') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $tw_id;?>&sort=c_wins&order=<?php echo ($sort_column=='c_wins'?$next_order:'DESC'); ?>">Ground wins</a></th>
+                <th class="hide-on-med-and-down <?php echo ($sort_column === 's_fights') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $tw_id;?>&sort=s_fights&order=<?php echo ($sort_column=='s_wins'?$next_order:'DESC'); ?>">Ship fights</a></th>
+                <th class="hide-on-med-and-down <?php echo ($sort_column === 's_wins') ? 'active-sort' : ''; ?>"><a href="tw.php?id=<?php echo $tw_id;?>&sort=s_wins&order=<?php echo ($sort_column=='s_wins'?$next_order:'DESC'); ?>">Ship wins</a></th>
 
             </tr>
         </thead>

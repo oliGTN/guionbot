@@ -31,7 +31,7 @@ function get_round_from_get($tb_id) {
             $round = 1;
         }
     } else {
-        $round = $_GET['round'];
+        $round = isset($_GET['round']) && is_numeric($_GET['round']) ? (int) $_GET['round'] : 1;
     }
     return $round;
 }

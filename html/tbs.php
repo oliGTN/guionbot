@@ -19,7 +19,7 @@ if (!isset($_GET['gid'])) {
     exit();
 }
 
-$guild_id = $_GET['gid'];
+$guild_id = substr($_GET['gid'], 0, 22);
 
 //Check if guild page has been visited first, or reload guild data if necessary
 if (!isset($_SESSION['guild']) || $_SESSION['guild']['id']!=$guild_id) include 'gdata.php';
