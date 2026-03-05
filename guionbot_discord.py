@@ -89,12 +89,12 @@ dict_tb_alerts_previously_done = {}
 ######################
 def add_command_to_queue(ctx_interaction):
     global command_queue
-    command_queue.append(interaction)
+    command_queue.append(ctx_interaction)
 
 def remove_command_from_queue(ctx_interaction):
     global command_queue
-    while interaction in command_queue:
-        command_queue.remove(interaction)
+    while ctx_interaction in command_queue:
+        command_queue.remove(ctx_interaction)
 
 def display_command_queue():
     output_txt = ""
