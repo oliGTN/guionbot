@@ -2140,6 +2140,7 @@ async def on_message(message):
         #Read messages from Echobot
         if message.author.id == config.EB_DISCORD_ID:
             goutils.log2("INFO", "Detect message "+str(message.id)+" from Echobot, with "+str(len(message.embeds))+" embeds")
+            goutils.log2("INFO", "message="+str(message))
             for embed in message.embeds:
                 dict_embed = embed.to_dict()
                 if "author" in dict_embed:
@@ -2328,8 +2329,10 @@ async def store_wookiebot_raid_estimates(message):
             goutils.log2("INFO", previous_msg_id)
             previous_msg = await message.channel.fetch_message(previous_msg_id)
             cmd_interaction = previous_msg.interaction
+            goutils.log2("INFO", "interaction_metadata="+str(previous_msg.interaction_metadata))
     else:
         cmd_interaction = message.interaction
+        goutils.log2("INFO", "interaction_metadata="+str(message.interaction_metadata))
 
     if cmd_interaction == None:
         return
