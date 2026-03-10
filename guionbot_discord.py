@@ -2748,7 +2748,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         if c==0:
             await ctx.send("No command running")
         else:
-            await ctx.send("running commands:\n"+output_txt)
+            await ctx.send("running commands:\n"+txt)
 
         await ctx.message.add_reaction(emojis.check)
 
