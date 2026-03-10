@@ -3940,7 +3940,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 output_txt+=ts_txt+" - "+txt+"\n"
 
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await ctx.send('`'+txt+'`')
+                await ctx.send(txt)
 
             #optional graph
             if display_graph:
