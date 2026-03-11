@@ -222,7 +222,7 @@ async def bot_loop_5minutes(bot):
     global dict_tb_alerts_previously_done
     global first_bot_loop_5minutes
 
-    goutils.log2("DBG", "START loop")
+    goutils.log2("INFO", "START loop")
     t_start = time.time()
 
     guild_bots = connect_rpc.get_dict_bot_accounts()
