@@ -396,7 +396,7 @@ async def bot_loop_60minutes(bot):
     global latestLocalizationBundleVersion
     global latestGamedataVersion
 
-    goutils.log2("DBG", "START loop")
+    goutils.log2("INFO", "START loop")
     t_start = time.time()
 
     try:
