@@ -1671,6 +1671,9 @@ def print_fegv(txt_allyCode, show_all=False):
 
     goutils.log2("DBG", query)
     ret_db = connect_mysql.get_table(query)
+    if ret_db == None:
+        return 0, "Tous les persos sont déjà farmés"
+
     dict_unitsList = godata.get("unitsList_dict.json")
 
     ret_print_fegv = ""
