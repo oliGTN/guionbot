@@ -30,7 +30,7 @@ async def register_player(allyCode, discord_id_txt, requestor_discord_id):
             return 1, "Vous devez vous même être enregistré sur un code allié avant d'enregistrer un compte différent."
 
         is_owner = str(requestor_discord_id) in config.GO_ADMIN_IDS.split(' ')
-        if db_data != dict_player["guildId"] and not is_owner:
+        if (not "guildId" in dict_player or db_data != dict_player["guildId"]) and not is_owner:
             return 1, "Vous devez être dans la même guilde pour enregistrer un joueur."
 
     #Setup all potential previous accounts as alt
