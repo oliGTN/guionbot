@@ -231,7 +231,7 @@ async def bot_loop_5minutes(bot):
         #################################
         # Manage TW alerts and start of TW
         #################################
-        goutils.log2("INFO", "before try TW "+guid_id)
+        goutils.log2("INFO", "before try TW "+guild_id)
         try:
             #CHECK ALERTS FOR TERRITORY WAR
             ec, et, statusChan = await update_tw_status(guild_id)
@@ -244,7 +244,7 @@ async def bot_loop_5minutes(bot):
         #################################
         # Manage TB alerts
         #################################
-        goutils.log2("INFO", "before try TB "+guid_id)
+        goutils.log2("INFO", "before try TB "+guild_id)
         try:
             if not guild_id in dict_tb_alerts_previously_done:
                 dict_tb_alerts_previously_done[guild_id] = []
@@ -280,7 +280,7 @@ async def bot_loop_5minutes(bot):
         #################################
         # Check progress of platoons
         #################################
-        goutils.log2("INFO", "before try platoons "+guid_id)
+        goutils.log2("INFO", "before try platoons "+guild_id)
         try:
             #Check if guild can use RPC
             #get bot config from DB
