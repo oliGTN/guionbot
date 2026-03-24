@@ -1685,8 +1685,9 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                     # TB has ended, check latest results
                     endTime=0
                     for tbr in dict_guild["territoryBattleResult"]:
-                        if int(tbr["endTime"]) > endTime:
-                            endTime = int(int(tbr["endTime"])/1000)
+                        tbr_endTime = int(int(tbr["endTime"])/1000)
+                        if tbr_endTime > endTime:
+                            endTime = tbr_endTime
 
                     if endTime==0:
                         endTime = int(time.time())
