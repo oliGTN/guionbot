@@ -87,9 +87,32 @@ dict_tb_alerts_previously_done = {}
 ######################
 # Queue commands
 ######################
-def add_command_to_queue(ctx_interaction):
+MAX_QUEUE_SIZE = 5
+async def add_command_to_queue(ctx_interaction):
     global command_queue
+
+    #Initial waiting message
+    if type(ctx_interaction) != commands.Context:
+        await ctx_interaction.response.defer(thinking=True)
+
+    # Check if not is locked
+    is_owner = (str(ctx_interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
+    if bot_locked and not is_owner:
+        goutils.log2("WAR", "bot is locked")
+        await ctx_interaction.edit_original_response(content=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+        return 1
+
+    # Add command to queue
     command_queue.append(ctx_interaction)
+
+    #Loop to wait that the queue is ready
+    pos_cmd = command_queue.index(ctx_interaction)
+    while(pos_cmd >= MAX_QUEUE_SIZE):
+        await ctx_interaction.edit_original_response(content="Tu es en position "+str(pos_cmd-MAX_QUEUE_SIZE+1)+" de la file d'attente...")
+        await asyncio.sleep(10)
+        pos_cmd = command_queue.index(ctx_interaction)
+
+    return 0
 
 def remove_command_from_queue(ctx_interaction):
     global command_queue
@@ -102,11 +125,13 @@ def display_command_queue():
         if type(ctx_interaction) == commands.Context:
             user_id = ctx_interaction.author.id
             date = ctx_interaction.message.created_at
+            cmd = ctx_interaction.message
         else: # Interaction
             user_id = ctx_interaction.user.id
             date = ctx_interaction.created_at
+            cmd = ctx_interaction.command.qualified_name
 
-        output_txt += "user_id="+str(user_id)+", date="+str(date)+"\n"
+        output_txt += "user_id="+str(user_id)+", date="+str(date)+", cmd="+str(cmd)+"\n"
 
     return len(command_queue), output_txt
 
@@ -2982,17 +3007,10 @@ class TwCog(commands.GroupCog, name="gt"):
     @app_commands.command(name="statut")
     async def tw_status(self, interaction: discord.Interaction):
         try:
-            # Check if not is locked
-            is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
-            if bot_locked and not is_owner:
-                goutils.log2("WAR", "bot is locked")
-                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+            # Add command to queue, check if bot is locked, check queue size
+            ret_add = await add_command_to_queue(interaction)
+            if ret_add != 0:
                 return
-
-            add_command_to_queue(interaction)
-
-            # acknowledge command reception
-            await interaction.response.defer(thinking=True)
 
             #get player config from DB
             ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
@@ -3374,15 +3392,10 @@ class ModsCog(commands.GroupCog, name="mods"):
                            fichier: discord.Attachment,
                            simulation: bool=False):
         try:
-            # Check if not is locked
-            is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
-            if bot_locked and not is_owner:
-                goutils.log2("WAR", "bot is locked")
-                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+            # Add command to queue, check if bot is locked, check queue size
+            ret_add = await add_command_to_queue(interaction)
+            if ret_add != 0:
                 return
-
-            # Ackowledge command reception
-            await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
 
@@ -3471,16 +3484,10 @@ class ModsCog(commands.GroupCog, name="mods"):
                            conf_name: str,
                            list_alias_txt: str):
         try:
-            # Check if not is locked
-            is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
-            if bot_locked and not is_owner:
-                goutils.log2("WAR", "bot is locked")
-                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+            # Add command to queue, check if bot is locked, check queue size
+            ret_add = await add_command_to_queue(interaction)
+            if ret_add != 0:
                 return
-
-            # Ackowledge command reception
-            add_command_to_queue(interaction)
-            await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
 
@@ -3562,16 +3569,10 @@ class ModsCog(commands.GroupCog, name="mods"):
                          conf_name: str,
                          simulation: bool=False):
         try:
-            # Check if not is locked
-            is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
-            if bot_locked and not is_owner:
-                goutils.log2("WAR", "bot is locked")
-                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+            # Add command to queue, check if bot is locked, check queue size
+            ret_add = await add_command_to_queue(interaction)
+            if ret_add != 0:
                 return
-
-            # Ackowledge command reception
-            add_command_to_queue(interaction)
-            await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
 
@@ -3691,15 +3692,10 @@ class ModsCog(commands.GroupCog, name="mods"):
     @app_commands.command(name="exporte-liste")
     async def export_modoptimizer(self, interaction: discord.Interaction):
         try:
-            # Check if not is locked
-            is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
-            if bot_locked and not is_owner:
-                goutils.log2("WAR", "bot is locked")
-                await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+            # Add command to queue, check if bot is locked, check queue size
+            ret_add = await add_command_to_queue(interaction)
+            if ret_add != 0:
                 return
-
-            # Ackowledge command reception
-            await interaction.response.defer(thinking=True)
 
             channel_id = interaction.channel_id
 
