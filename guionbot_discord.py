@@ -3010,6 +3010,7 @@ class TwCog(commands.GroupCog, name="gt"):
             # Add command to queue, check if bot is locked, check queue size
             ret_add = await add_command_to_queue(interaction)
             if ret_add != 0:
+                remove_command_from_queue(interaction)
                 return
 
             #get player config from DB
@@ -3395,6 +3396,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             # Add command to queue, check if bot is locked, check queue size
             ret_add = await add_command_to_queue(interaction)
             if ret_add != 0:
+                remove_command_from_queue(interaction)
                 return
 
             channel_id = interaction.channel_id
@@ -3404,6 +3406,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             txt_allyCode = str(bot_infos["allyCode"])
@@ -3422,6 +3425,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 json_content = file_content.decode('utf-8')
             except :
                 await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
+                remove_command_from_queue(interaction)
                 return
 
             ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(json_content, txt_allyCode, simulation, interaction)
@@ -3477,6 +3481,9 @@ class ModsCog(commands.GroupCog, name="mods"):
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
+        remove_command_from_queue(interaction)
+        return
+
     @app_commands.command(name="enregistre-conf")
     @app_commands.rename(conf_name="nom-conf")
     @app_commands.rename(list_alias_txt="liste-persos")
@@ -3487,6 +3494,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             # Add command to queue, check if bot is locked, check queue size
             ret_add = await add_command_to_queue(interaction)
             if ret_add != 0:
+                remove_command_from_queue(interaction)
                 return
 
             channel_id = interaction.channel_id
@@ -3572,6 +3580,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             # Add command to queue, check if bot is locked, check queue size
             ret_add = await add_command_to_queue(interaction)
             if ret_add != 0:
+                remove_command_from_queue(interaction)
                 return
 
             channel_id = interaction.channel_id
@@ -3630,12 +3639,12 @@ class ModsCog(commands.GroupCog, name="mods"):
                         err_txt=err_txt[:1000]+"..."
                 await interaction.edit_original_response(content=err_txt)
 
-            remove_command_from_queue(interaction)
-
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
-            remove_command_from_queue(interaction)
+
+        remove_command_from_queue(interaction)
+        return
 
     @app_commands.command(name="supprime-conf")
     @app_commands.rename(conf_name="nom-conf")
@@ -3695,6 +3704,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             # Add command to queue, check if bot is locked, check queue size
             ret_add = await add_command_to_queue(interaction)
             if ret_add != 0:
+                remove_command_from_queue(interaction)
                 return
 
             channel_id = interaction.channel_id
@@ -3704,6 +3714,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
                 return
 
             txt_allyCode = str(bot_infos["allyCode"])
@@ -3728,6 +3739,10 @@ class ModsCog(commands.GroupCog, name="mods"):
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
+        remove_command_from_queue(interaction)
+        return
+
     @app_commands.command(name="level-up")
     @app_commands.rename(only_speed_sec="avec-secondaire-vitesse")
     @app_commands.rename(with_inventory="avec-inventaire")
