@@ -848,9 +848,10 @@ async def get_modopti_export(txt_allyCode):
         modopti_export["gameSettings"].append(my_unit_setting)
 
     #Loop on unequipped mods
-    for mod in initialdata["inventory"]["unequippedMod"]:
-        modopti_mod = mod_to_modopti(mod, None)
-        my_profile["mods"].append(modopti_mod)
+    if "unequippedMod" in initialdata["inventory"]:
+        for mod in initialdata["inventory"]["unequippedMod"]:
+            modopti_mod = mod_to_modopti(mod, None)
+            my_profile["mods"].append(modopti_mod)
 
     modopti_export["profiles"].append(my_profile)
 
