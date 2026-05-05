@@ -17,5 +17,5 @@ echo "update crinolo data..."
 python SCRIPTS/create_crinolo_gameData.py $GAMEDATA_FILE
 
 echo "clean..."
-rm CACHE/config_units.json
+rm -f CACHE/config_units.json
 echo "... OK"
