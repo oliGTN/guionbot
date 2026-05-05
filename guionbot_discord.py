@@ -3953,20 +3953,25 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 ts_txt = datetime.datetime.fromtimestamp(int(ts/1000)).strftime("%d/%m %H:%M")
                 output_txt+=ts_txt+" - "+txt+"\n"
 
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await ctx.send(txt)
+            if output_txt != "":
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send(txt)
 
-            #optional graph
-            if display_graph:
-                list_log_timestamps = [int(x[0]/1000) for x in list_logs]
-                image = go.get_distribution_graph(list_log_timestamps, None, 30, None, None,
-                                                  "Evénements", "Date", "Nombre", "", "", 
-                                                  ts_to_date=True)
-                with BytesIO() as image_binary:
-                    image.save(image_binary, 'PNG')
-                    image_binary.seek(0)
-                    await ctx.send(content = "",
-                        file=File(fp=image_binary, filename='image.png'))
+                #optional graph
+                if display_graph:
+                    list_log_timestamps = [int(x[0]/1000) for x in list_logs]
+                    image = go.get_distribution_graph(list_log_timestamps, None, 30, None, None,
+                                                      "Evénements", "Date", "Nombre", "", "", 
+                                                      ts_to_date=True)
+                    with BytesIO() as image_binary:
+                        image.save(image_binary, 'PNG')
+                        image_binary.seek(0)
+                        await ctx.send(content = "",
+                            file=File(fp=image_binary, filename='image.png'))
+
+            else:
+                #no relevant log found
+                await ctx.send("*aucun log trouvé*")
 
             await ctx.message.add_reaction(emojis.check)
 
