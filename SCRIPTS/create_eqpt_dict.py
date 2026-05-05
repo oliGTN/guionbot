@@ -37,6 +37,7 @@ dict_cost["C01H"]["M05"] = {"NORMALDIFF": "12R"}
 dict_cost["C01H"]["M06"] = {"NORMALDIFF": "12R"}
 dict_cost["C01H"]["M07"] = {"NORMALDIFF": "16R"}
 dict_cost["C01H"]["M08"] = {"NORMALDIFF": "16R"}
+dict_cost["C01H"]["M09"] = {"NORMALDIFF": "20R"}
 
 dict_cost["C01SP"] = {}
 dict_cost["C01SP"]["M01"] = {"NORMALDIFF": "8B", "HARDDIFF": "16B"}
