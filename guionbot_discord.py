@@ -5843,7 +5843,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             #Look for Discord Pseudo if in guild
             db_data = connect_mysql.load_config_players(guild_id=guildId)
-            dict_players_by_IG = db_data[1]
+            dict_players_by_IG = db_data[0]
 
             if player_name in dict_players_by_IG:
                 discord_mention = dict_players_by_IG[player_name][1]
