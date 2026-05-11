@@ -5236,7 +5236,7 @@ def get_unit_farm_energy(dict_player, unit_id, target_gear):
                           "M07":20, "M08":20, "M09":20}
     d_energy["red"] =    {"M01": 8, "M02": 8, "M03":10,
                           "M04":10, "M05":12, "M06":12,
-                          "M07":16, "M08":16}
+                          "M07":16, "M08":16. "M09":20}
     d_energy["blue"] =   {"M01":16, "M02":20, "M03":20,
                           "M04":20, "M05":20}
                           
