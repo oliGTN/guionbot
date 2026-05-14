@@ -59,6 +59,11 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
     <link rel="stylesheet" href="main.1.008.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
+
+<?php if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin): ?>
+<script src="tb_redeploy.js"></script>
+<?php endif; ?>
+
 <body>
 <div class="site-container">
 <div class="site-pusher">
@@ -158,21 +163,31 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
             </div>
         </div>
     </div>
-    <!--
+
+<?php if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin): ?>
+    <!-- redployment buttons -->
     <div class="row">
-        <div class="col s4">
-            <div>
-                <button type="button" id="btn_redeploy" onclick="fct_redeploy">re-deploy</button>
-            </div>
-        </div>
-        <div class="col s4">
+        <div class="col s12" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <small>Custom deployment</small>
+
+            <button id="btn_redeploy"
+                    style="padding:10px 20px;cursor:pointer;font-size:16px;">
+                Manual
+            </button>
+
+            <button id="btn_auto"
+                    style="padding:10px 20px;cursor:pointer;font-size:16px;">
+                Auto
+            </button>
+
             <div>
                 <input type="checkbox" id="with_fights" name="with_fights" checked />
                 <label for="with_fights">With fights</label>
             </div>
         </div>
     </div>
-    -->
+<?php endif; ?>
+
     </div> <!-- card content -->
     </div> <!-- card -->
 </div>
