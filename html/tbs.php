@@ -32,11 +32,13 @@ list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_r
 // --------------- GET TB LIST GUILD -----------
 // Prepare the SQL query
 $query = "SELECT tb_history.id, tb_name, start_date, lastUpdated, MAX(tb_zones.round) AS max_round,";
-$query .= " GREATEST(sum(case";
-$query .= " WHEN score>=score_step3 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 1 ELSE 3 END";
-$query .= " WHEN score>=score_step2 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 2 END";
-$query .= " WHEN score>=score_step1 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 1 END";
-$query .= " ELSE 0 END), stars_final) AS stars";
+$query .= " CASE WHEN isnull(stars_final) THEN";
+$query .= "   sum(case";
+$query .= "   WHEN score>=score_step3 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 1 ELSE 3 END";
+$query .= "   WHEN score>=score_step2 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 2 END";
+$query .= "   WHEN score>=score_step1 then CASE WHEN SUBSTRING(tb_zones.zone_name, -1, 1)='b' THEN 0 ELSE 1 END";
+$query .= "   ELSE 0 END)";
+$query .= " ELSE stars_final END AS stars";
 $query .= " FROM tb_history";
 $query .= " LEFT JOIN tb_zones ON tb_zones.tb_id = tb_history.id";
 $query .= " JOIN (";
