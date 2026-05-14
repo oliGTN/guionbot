@@ -1084,6 +1084,38 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
                             txt_activity = "\N{OPEN LOCK} "+txt_activity
                         if activity["key"].endswith("_JOIN") or "_PROMOTE_TO_" in activity["key"]:
                             txt_activity = "\N{SLIGHTLY SMILING FACE} @here "+txt_activity
+                        if activity["key"].endswith("_JOIN"):
+                            #new player in guild, fetch its info
+                            #First update guild infos
+                            ec, et, dict_guild = await go.load_guild_from_id(guildId, False, False, load_rosters=False, force_update=True)
+                            if ec==0:
+                                #Then look for the latest arrived player
+                                # with the right name
+                                player_name = activity["param"][0]["paramValue"][0]
+                                player_id = None
+                                player_join_ts = 0
+                                for member in dict_guild["member"]:
+                                    if member["playerName"] == player_name:
+                                        if int(member["guildJoinTime"]) > player_join_ts:
+                                            player_id = member["playerId"]
+                                            player_join_ts = int(member["guildJoinTime"])
+
+                                if player_id != None:
+                                    #Load the player
+                                    ec, et, dict_player = await go.load_player(player_id, True, False)
+                                    if ec==0:
+                                        #Display the link to swgoh.gg
+                                        player_ac = dict_player["allyCode"]
+                                        txt_activity = txt_activity + " https://swgoh.gg/p/"+str(player_ac)+"/"
+                                        
+                                    else:
+                                        goutils.log2("WAR", "load_player error: "+et)
+                                else:
+                                    goutils.log2("WAR", "no player found with name = "+player_name+" within "+str(dict_guild["member"]))
+
+                            else:
+                                goutils.log2("WAR", "load_guild error: "+et)
+
                         if activity["key"].endswith("_LEFT") or activity["key"].endswith("_REMOVED") \
                            or activity["key"].endswith("_DEMOTE"):
                             txt_activity = "\N{SLIGHTLY FROWNING FACE} @here "+txt_activity
