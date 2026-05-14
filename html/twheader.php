@@ -32,6 +32,14 @@ foreach($zone_list as $zone) {
 //error_log(print_r($zones, true));
 
 function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
+
+    // during PREPARATION phase, zones may be
+    // - 
+    // -
+    // during ATTACK phase, zones may be
+    // - ZONECOMPLETE: all teams have been beaten
+    // - ZONEOPEN: visible, in progress
+    // - ZONELOCKED: not visible yet, need to finish another zone before
     if ($zones[$side][$zone_name]['zoneState'] == 'ZONECOMPLETE') {
         if ($side == 'home') {
             $zone_color = 'darkblue';
@@ -42,6 +50,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
         $crossed = 'background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px))';
 
     } elseif ($isMyGuildConfirmed & ($zones[$side][$zone_name]['filled'] < $zones[$side][$zone_name]['size']) | ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED')) {
+        //TODO: here during ATTACK when zone is open but was not filled completely during PREPARATION, then the background color is pink > should be red
         // filling status is only shown for guild players
         if ($side == 'home') {
             $zone_color = 'lightblue';
