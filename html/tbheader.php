@@ -150,6 +150,7 @@ Score for this round: <?php echo $round_stars; ?>&#11088;
                                 <?php echo number_format($score, 0, ".", " ");?> /<small><?php echo number_format($next_step_score, 0, ".", " ");?></small>
                             </div>
                             <svg width="100%" height="70">
+                                <rect width="100%" height="30" style="fill:gainsboro;stroke:none;"></rect>
                                 <rect width="<?php echo $x_score;?>%" height="30" style="fill:green;">
                                     <title>Current score: <?php echo number_format($score, 0, ".", " ");?></title>
                                 </rect>

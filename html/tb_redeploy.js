@@ -2,6 +2,11 @@ let redeployMode = false;
 let totalFillable = 0;
 let withFights = true;
 
+function getCharacters(str) {
+  const parts = [...str]
+  return parts
+}
+
 function autoRedeploy() {
     startRedeploy();
 
@@ -42,8 +47,7 @@ function autoRedeploy() {
 
         fillGraph(selected.graph);
 
-        // Continue automatically
-        setTimeout(processNextStep, 300);
+        processNextStep();
     }
 
     processNextStep();
@@ -68,6 +72,7 @@ function initRedeployGraphs() {
 
     deployRects.forEach(rect => {
         const svg = rect.closest('svg');
+        const stars_text = svg.parentNode.querySelector('.stars');
 
         const orangeRect = svg.querySelector('rect[id^="fights-"]');
         const greenRect = svg.querySelector('rect[style*="fill:green"]');
@@ -98,8 +103,9 @@ function initRedeployGraphs() {
         const baseValueWithFights = currentValue + orangeValue;
         const baseValueWithoutFights = currentValue;
 
-        deployGraphs.push({
+        const graph = {
             svg,
+            stars_text,
             deployRect: rect,
             orangeRect,
             greenRect,
@@ -111,7 +117,10 @@ function initRedeployGraphs() {
             currentDeploy: 0,
             originalOrangeWidth: orangeRect.getAttribute('width'),
             originalOrangeX: orangeRect.getAttribute('x')
-        });
+        };
+        deployGraphs.push(graph);
+
+        updateStars(graph);
 
         svg.style.cursor = 'pointer';
     });
@@ -140,6 +149,71 @@ function updateDeployBar(graph) {
 
     const title = graph.deployRect.querySelector('title');
     title.textContent = 'Deployments: ' + formatNumber(graph.currentDeploy);
+}
+
+function updateStars(graph) {
+    const blue_circle = "🔵";
+    const gray_circle = "●";
+    const yellow_star = "⭐";
+    const gray_star = "★";
+
+    const currentStars_txt = graph.stars_text.textContent.trim();
+
+    // Detect if this is a "3 stars" zone or a "2 boxes and 1 star" zone
+    const currentStars_firstChar = getCharacters(currentStars_txt)[0];
+    let star_zone = true;
+    if (currentStars_firstChar==blue_circle || currentStars_firstChar==gray_circle) {
+        // box zone
+        star_zone = false;
+    }
+
+    // Detect amount of final stars, after estimated fights+deployments
+    let newStars_txt = "";
+    if (graph.currentValue >= graph.steps[0]) {
+        if (star_zone) {
+            newStars_txt += yellow_star;
+        } else {
+            newStars_txt += blue_circle;
+        }
+    } else {
+        if (star_zone) {
+            newStars_txt += gray_star;
+        } else {
+            newStars_txt += gray_circle;
+        }
+    }
+
+    if (graph.currentValue >= graph.steps[1]) {
+        if (star_zone) {
+            newStars_txt += yellow_star;
+        } else {
+            newStars_txt += blue_circle;
+        }
+    } else {
+        if (star_zone) {
+            newStars_txt += gray_star;
+        } else {
+            newStars_txt += gray_circle;
+        }
+    }
+
+    if (graph.currentValue >= graph.finalValue) {
+        newStars_txt += yellow_star;
+    } else {
+        newStars_txt += gray_star;
+    }
+
+    // Write star text
+    const originalStars_txt = currentStars_txt.split(">")[0].trim();
+
+    if (originalStars_txt != newStars_txt) {
+        completeStars_txt = originalStars_txt + " > " + newStars_txt;
+        graph.stars_text.textContent = completeStars_txt;
+    } else {
+        graph.stars_text.textContent = originalStars_txt;
+    }
+
+
 }
 
 function getNextTarget(graph) {
@@ -180,6 +254,7 @@ function fillGraph(graph) {
     totalFillable -= fillAmount;
 
     updateDeployBar(graph);
+    updateStars(graph);
     //updateRemainingDisplay();
 }
 
@@ -214,6 +289,8 @@ function applyFightMode() {
 
             graph.currentValue = graph.baseValueWithoutFights;
         }
+
+        updateStars(graph);
     });
 }
 
@@ -238,6 +315,7 @@ function startRedeploy() {
 // Initialize when page is ready
 window.addEventListener('DOMContentLoaded', () => {
     initRedeployGraphs();
+    autoRedeploy();
 
     document.getElementById('btn_redeploy').addEventListener('click', startRedeploy);
     document.getElementById('btn_auto').addEventListener('click', autoRedeploy);
