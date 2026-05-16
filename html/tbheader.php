@@ -77,7 +77,8 @@ function display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGui
 </div>
 
 <div class="card">
-Score for this round: <?php echo $round_stars; ?>&#11088;
+Score for this round:
+<div style="display:inline" id="total-stars"><?php echo $round_stars; ?>&#11088;</div>
 </div>
 
     <!-- Cards for zones -->

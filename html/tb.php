@@ -60,9 +60,7 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </head>
 
-<?php if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin): ?>
 <script src="tb_redeploy.js"></script>
-<?php endif; ?>
 
 <body>
 <div class="site-container">

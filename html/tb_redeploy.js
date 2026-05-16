@@ -120,8 +120,6 @@ function initRedeployGraphs() {
         };
         deployGraphs.push(graph);
 
-        updateStars(graph);
-
         svg.style.cursor = 'pointer';
     });
 }
@@ -151,6 +149,36 @@ function updateDeployBar(graph) {
     title.textContent = 'Deployments: ' + formatNumber(graph.currentDeploy);
 }
 
+function updateTotalStars() {
+    const yellow_star = "⭐";
+
+    let additional_stars = 0;
+    deployGraphs.forEach(graph => {
+        const currentStars_txt = graph.stars_text.textContent.trim();
+        if (currentStars_txt.includes('>')) {
+            const originalStars_txt = currentStars_txt.split(">")[0].trim();
+            const newStars_txt = currentStars_txt.split(">")[1].trim();
+
+            const originalStars_count = (originalStars_txt.length - originalStars_txt.replaceAll(yellow_star, "").length) / yellow_star.length;
+            const newStars_count = (newStars_txt.length - newStars_txt.replaceAll(yellow_star, "").length) / yellow_star.length;
+
+            additional_stars += (newStars_count-originalStars_count);
+        }
+    });
+
+    // Update total star count for the phase
+    total_stars_div = document.getElementById('total-stars');
+    total_stars_txt = total_stars_div.textContent;
+    total_stars_count = parseNumber(total_stars_txt.split(yellow_star)[0]);
+
+    total_stars_div.textContent = total_stars_count.toString()+yellow_star
+    if (additional_stars >0 ) {
+        total_stars_div.textContent += " > "+(total_stars_count+additional_stars).toString()+yellow_star;
+    }
+
+
+}
+
 function updateStars(graph) {
     const blue_circle = "🔵";
     const gray_circle = "●";
@@ -169,9 +197,14 @@ function updateStars(graph) {
 
     // Detect amount of final stars, after estimated fights+deployments
     let newStars_txt = "";
-    if (graph.currentValue >= graph.steps[0]) {
+    let  additional_stars = 0;
+    const currentValue = Math.min(graph.currentValue, graph.finalValue);
+    if (currentValue > graph.steps[0]) {
         if (star_zone) {
             newStars_txt += yellow_star;
+            if (currentValue-graph.currentDeploy <= graph.steps[0]) {
+                additional_stars += 1;
+            }
         } else {
             newStars_txt += blue_circle;
         }
@@ -183,9 +216,12 @@ function updateStars(graph) {
         }
     }
 
-    if (graph.currentValue >= graph.steps[1]) {
+    if (currentValue >= graph.steps[1]) {
         if (star_zone) {
             newStars_txt += yellow_star;
+            if (currentValue-graph.currentDeploy < graph.steps[1]) {
+                additional_stars += 1;
+            }
         } else {
             newStars_txt += blue_circle;
         }
@@ -197,8 +233,11 @@ function updateStars(graph) {
         }
     }
 
-    if (graph.currentValue >= graph.finalValue) {
+    if (currentValue >= graph.finalValue) {
         newStars_txt += yellow_star;
+        if (currentValue-graph.currentDeploy < graph.finalValue) {
+            additional_stars += 1;
+        }
     } else {
         newStars_txt += gray_star;
     }
@@ -213,7 +252,7 @@ function updateStars(graph) {
         graph.stars_text.textContent = originalStars_txt;
     }
 
-
+    updateTotalStars();
 }
 
 function getNextTarget(graph) {
@@ -317,9 +356,12 @@ window.addEventListener('DOMContentLoaded', () => {
     initRedeployGraphs();
     autoRedeploy();
 
-    document.getElementById('btn_redeploy').addEventListener('click', startRedeploy);
-    document.getElementById('btn_auto').addEventListener('click', autoRedeploy);
-    document.getElementById('with_fights').addEventListener('change', function() {
+    const btn_redeploy = document.getElementById('btn_redeploy');
+    if (btn_redeploy) btn_redeploy.addEventListener('click', startRedeploy);
+    const btn_auto = document.getElementById('btn_auto');
+    if (btn_auto) btn_auto.addEventListener('click', autoRedeploy);
+    const with_fights = document.getElementById('with_fights');
+    if (with_fights) with_fights.addEventListener('change', function() {
         withFights = this.checked;
 
         applyFightMode();
