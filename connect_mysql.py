@@ -87,7 +87,8 @@ def update_guild_teams(guild_id, dict_team):
 
     for team_name in dict_team:
         # Note the team as existing, so not to be removed
-        teams_to_remove.remove(team_name)
+        if team_name in teams_to_remove:
+            teams_to_remove.remove(team_name)
 
         # team md5
         team_dict = dict_team[team_name]
@@ -186,11 +187,12 @@ def update_guild_teams(guild_id, dict_team):
                     simple_execute(query)
 
         # delete not existing teams that were existing before
-        query = "DELETE FROM guild_teams "\
-                "WHERE "+guild_id_test+" "\
-                "AND name IN "+ str(tuple(teams_to_remove)).replace(",)", ")")
-        goutils.log2("DBG", query)
-        simple_execute(query)
+        if len(teams_to_remove) > 0:
+            query = "DELETE FROM guild_teams "\
+                    "WHERE "+guild_id_test+" "\
+                    "AND name IN "+ str(tuple(teams_to_remove)).replace(",)", ")")
+            goutils.log2("DBG", query)
+            simple_execute(query)
             
 ########################################
 def text_query(query):
