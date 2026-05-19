@@ -27,11 +27,17 @@ include 'twvariables.php';
 // define $isMyGuild, $isOfficer FROM $guild_id
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
+include 'portrait.php';
+
+// read character dictionary
+$dict_units_string = file_get_contents("../DATA/unitsList_dict.json");
+$dict_units = json_decode($dict_units_string, true);
+
 // --------------- GET ZONE INFO FOR THE SQUADS -----------
 // Prepare the SQL query
 $query = "SELECT tw_squads.id AS squad_id,";
 $query .= " side, zone_name, player_name, defId, cellIndex,";
-$query .= " is_beaten, fights, gp";
+$query .= " is_beaten, fights, gp, tier AS gear, unitRelicTier AS relic";
 $query .= " FROM tw_squads";
 $query .= " JOIN tw_squad_cells ON tw_squad_cells.squad_id=tw_squads.id";
 $query .= " WHERE tw_id=".$tw_id;
@@ -119,6 +125,7 @@ $zone_names['tw_jakku01_phase03_conflict03'] = 'B3';
 $zone_names['tw_jakku01_phase04_conflict01'] = 'F2';
 $zone_names['tw_jakku01_phase04_conflict02'] = 'T4';
 $zone_names['tw_jakku01_phase04_conflict03'] = 'B4';
+
 foreach($event_list as $event_element) {
     $side = ($event_element['guild_id']==$guild_id?'away':'home');
     if (!isset($events[$side])) {
@@ -169,7 +176,19 @@ function event_table($events, $zone_name, $zone_side) {
     }
 }
 
+$rarity_values = [];
+$rarity_values['ONE_STAR'] = 1;
+$rarity_values['TWO_STAR'] = 2;
+$rarity_values['THREE_STAR'] = 3;
+$rarity_values['FOUR_STAR'] = 4;
+$rarity_values['FIVE_STAR'] = 5;
+$rarity_values['SIX_STAR'] = 6;
+$rarity_values['SEVEN_STAR'] = 7;
+
 function squad_table($squads, $zones, $zone_name, $zone_side) {
+    global $rarity_values;
+    global $dict_units;
+
     if (isset($squads[$zone_side][$zone_name])) {
         $zone_squads = $squads[$zone_side][$zone_name];
         echo "<b>".$zone_name.": ".$zones[$zone_side][$zone_name]['commandMsg']."</br>\n";
@@ -179,11 +198,25 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
             $display_player = true;
             foreach($squad["cells"] as $cellIndex => $unit) {
                 if ($display_player) {
-                echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
-                $display_player = false;
+                    echo "<td><b>".$unit['player_name']."</b><br/>".$squad["gp"]." (".$squad["fights"].")</td>";
+                    $display_player = false;
                 }
+
+                // define unit characteristics
                 $unit_short_id = explode(':', $unit['defId'])[0];
-                echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
+                $unit_rarity = $rarity_values[explode(':', $unit['defId'])[1]];
+                $unit_alignment = $dict_units[$unit_short_id]['forceAlignment'];
+                if ($dict_units[$unit_short_id]['combatType'] == 2 ) {
+                    // ship
+                    $unit_gear = 0;
+                } else {
+                    // not ship
+                    $unit_gear = $unit['gear'];
+                }
+                //echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
+                echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'>";
+                display_portrait($unit_short_id, $unit_alignment, $unit_rarity, $unit_gear, $unit['relic'], 0);
+                echo "</td>";
             }
             echo "</tr>\n";
         }
@@ -233,8 +266,9 @@ function openZone(evt, zoneSide, zoneName) {
     <link rel="stylesheet" href="navbar.css">
     <link rel="stylesheet" href="main.1.008.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-
+    <link rel="stylesheet" href="portrait.css">
 <style>
+
 /* Style the tab */
 .tab {
   overflow: hidden;
@@ -325,7 +359,7 @@ function openZone(evt, zoneSide, zoneName) {
             foreach(['B1', 'B2', 'B3', 'B4', 'T1', 'T2', 'T3', 'T4', 'F1', 'F2'] as $zone_name) {
                 echo "<div id='h".$zone_name."' class='hometabcontent'>";
                 echo "<button type='button' class='collapsible'>Home ".$zone_name." teams</button>";
-                echo "<div class='collapsiblecontent'>";
+                echo "<div class='collapsiblecontent' style='overflow-x:auto;white-space:nowrap'>";
                 squad_table($squads, $zones, $zone_name, 'home');
                 echo "</div>"; //collapsibleelement
 

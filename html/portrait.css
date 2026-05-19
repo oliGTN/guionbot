@@ -1,0 +1,95 @@
+/* Container setting up the portrait dimensions */
+.portrait-container {
+    position: relative;
+    width: 80px;
+    height: 100px;
+}
+
+/* Base character portrait with circular mask */
+.character-avatar {
+    width: 100%;
+    height: 80%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+/* Gear frame layered exactly over the avatar */
+.gear-frame {
+    position: absolute;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 88%;
+    overflow: hidden; /* to crop the image */
+    pointer-events: none; /* Allows clicks to pass through if necessary */
+}
+
+.gear-frame-container {
+    position: absolute;
+    top: -10%;
+    left: -20%;
+    width: 140%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 50%;
+}
+
+/* Extracts the center (red) frame from the sprite sheet */
+.gear-frame-sprite-red {
+    width: 100%;
+    /* The image contains 3 stacked frames, so the total height is 300% */
+    height: 300%; 
+    background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    /* Shifts the background position up to display the middle (red) segment */
+    transform: translateY(-33.33%); 
+}
+
+/* Extracts the top (blue) frame from the sprite sheet */
+.gear-frame-sprite-blue {
+    width: 100%;
+    /* The image contains 3 stacked frames, so the total height is 300% */
+    height: 300%; 
+    background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    /* Shifts the background position up to display the middle (red) segment */
+}
+
+/* Extracts the bottom (white) frame from the sprite sheet */
+.gear-frame-sprite-white {
+    width: 100%;
+    /* The image contains 3 stacked frames, so the total height is 300% */
+    height: 300%; 
+    background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    /* Shifts the background position up to display the middle (red) segment */
+    transform: translateY(-66.66%); 
+}
+
+/* Row containing the stars at the bottom */
+.star-rating {
+    position: absolute;
+    bottom: 2%; /* Positioned slightly above the absolute bottom edge for visual balance */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 90%;
+    /* Container height is set to 20% of the main portrait height */
+    height: 20%; 
+}
+
+/* Individual star styling scaling to the container height */
+.star {
+    height: 80%;
+    width: auto;
+    object-fit: contain;
+    /* Negative margin mimics the overlapping curve look from the game */
+    margin: 0 -2px; 
+}
