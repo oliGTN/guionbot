@@ -9,6 +9,7 @@ import asyncio
 import time
 import datetime
 from pytz import timezone
+import locale
 import difflib
 import re
 import discord
@@ -4347,8 +4348,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 lines = ret_data["lines_player"]
                 endTime = ret_data["round_endTime"]
                 dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
-                expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %d/%m/%Y à %H:%M")
-                output_txt="Joueurs n'ayant pas tout déployé en BT (fin du round "+expire_time_txt+"): \n"
+                expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %A %d %B à %H:%M ("+config.GUILD_TIMEZONE+")")
+                output_txt="Joueurs n'ayant pas tout déployé en BT - fin du round "+expire_time_txt+" : \n"
                 if len(lines)>0:
                     for [p, txt] in sorted(lines, key=lambda x: x[0].lower()):
                         if display_mentions and (p in dict_players_by_IG):
@@ -7856,6 +7857,9 @@ async def main():
         await bot.add_cog(Loop60secsCog(bot))
         await bot.add_cog(Loop5minutes(bot))
         await bot.add_cog(Loop60minutes(bot))
+
+    #General settings
+    locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
 
     #Lancement du bot
     goutils.log2("INFO", "Run bot...")
