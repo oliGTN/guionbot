@@ -2232,7 +2232,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             dict_player={}
 
         for character_id in list_character_ids:
-            if character_id in dict_player:
+            if character_id in dict_player and "stats" in dict_player[character_id]:
                 character_name = dict_unitsList[character_id]["name"]
                 character_rarity = str(dict_player[character_id]["currentRarity"])+"*"
                 character_gear = dict_player[character_id]["currentTier"]

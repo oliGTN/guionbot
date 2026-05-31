@@ -15,19 +15,26 @@ def add_stats(dict_player):
 
 # IN: dict_player with "roster" as a list
 def add_base_stats(dict_player):
+    # connect to crinolo stat cmmputer
     ec, et, d_stats_base = add_stats_with_options(dict_player, base_options)
     if ec!=0:
         return ec, et, None
 
+    # Keep only "base" and "gear" from the computed d_stats_base
     d_stats_base_dict = goutils.roster_from_list_to_dict(d_stats_base)
     new_unit_list = []
     for unit in dict_player["rosterUnit"]:
         unit_id = unit["definitionId"].split(":")[0]
-        base_stats = d_stats_base_dict["rosterUnit"][unit_id]["stats"]
-        for stat_type in ["base", "gear"]:
-            if stat_type in base_stats:
-                unit["stats"][stat_type] = base_stats[stat_type]
-        new_unit_list.append(unit)
+
+        if "stats" in d_stats_base_dict["rosterUnit"][unit_id]:
+            base_stats = d_stats_base_dict["rosterUnit"][unit_id]["stats"]
+            for stat_type in ["base", "gear"]:
+                if stat_type in base_stats:
+                    unit["stats"][stat_type] = base_stats[stat_type]
+
+            # units without stats are considered out of player roster
+            # so only units with stats are aadded in the roster
+            new_unit_list.append(unit)
 
     dict_player["rosterUnit"] = new_unit_list
 
