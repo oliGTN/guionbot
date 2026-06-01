@@ -4432,9 +4432,19 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             if err_code == 0:
                 dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
 
-                if type(ret_data) == dict:
-                    d_attacks = ret_data
-                    output_txt="La guilde a besoin de vous pour la GT svp : \n"
+                tw_round = ret_data["tw_round"]
+                tw_roundEndTs = ret_data["tw_roundEndTs"]
+                round_time_txt = datetime.datetime.fromtimestamp(int(tw_roundEndTs/1000)).strftime("le %A %d %B à %H:%M ("+config.GUILD_TIMEZONE+")")
+
+                guid_name = ret_data["rpc"]["dict_guild"]["profile"]["name"]
+                output_txt="La guilde **"+guild_name+"** a besoin de vous pour la **GT** svp :\n"
+
+                if "dict_insufficient_teams" in ret_data:
+                    d_attacks = ret_data["dict_insufficient_teams"]
+                    if tw_round == 0:
+                        output_txt += "phase de défense - fin "+round_time_txt+"\n"
+                    else: # tw_round == 1
+                        output_txt += "phase d'attaque - fin "+round_time_txt+"\n"
                     for [p, values] in sorted(d_attacks.items(), key=lambda x: (x[1][2], x[0])):
                         char_attacks = values[0]
                         ship_attacks = values[1]
@@ -4462,12 +4472,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                             output_txt_player += " >> peut-être full def"
 
                         output_txt += output_txt_player+"\n"
-                else: # type = list
-                    list_inactive_players = ret_data
+                else: # "list_inactive_players" in ret_data
+                    list_inactive_players = ret_data["list_inactive_players"]
                     if len(list_inactive_players)== 0:
-                        output_txt="Tous les joueurs sont inscrits à la GT"
+                        output_txt="Tous les joueurs de la guilde *"+guild_name+"* sont inscrits à la GT"
+                        output_txt += "phase d'inscription - fin "+round_time_txt+"\n"
                     else:
-                        output_txt="N'oubliez pas de vous inscrire pour la GT svp : \n"
+                        output_txt += "phase d'inscription - fin "+round_time_txt+"\n"
                         for p in list_inactive_players:
                             if display_mentions:
                                 if p in dict_players_by_IG:
@@ -4628,27 +4639,32 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             expire_time, 
             list_inactive_players, 
             guild_score, 
-            potential_score) = await connect_rpc.get_raid_status(
-                                        guild_id, 
-                                        target_progress, 
-                                        True, 
-                                        allyCode=connected_allyCode,
-                                        ignored_allyCodes=ignored_allyCodes)
+            potential_score,
+            rpc) = await connect_rpc.get_raid_status(
+                                guild_id, 
+                                target_progress, 
+                                True, 
+                                allyCode=connected_allyCode,
+                                ignored_allyCodes=ignored_allyCodes)
             if raid_id == None:
                 await ctx.send("Aucun raid en cours")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
             dict_players_by_IG = connect_mysql.load_config_players(guild_id=guild_id)[0]
-            expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %d/%m/%Y à %H:%M")
+            expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %A %d %B à %H:%M ("+config.GUILD_TIMEZONE+")")
             score_txt = str(int(guild_score/100000)/10)
-            output_txt = "La guilde a besoin de vous pour le raid "+raid_id+" qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M"
+
+            guild_name = rpc["dict_guild"]["profile"]["name"]
+            output_txt = "La guilde **"+guild_name+"** a besoin de vous pour le raid **"+raid_id+"** qui se termine "+expire_time_txt+" svp (score actuel = "+score_txt+" M"
 
             if potential_score == None:
                 output_txt += ") : \n"
             else:
                 potential_score_txt = str(int(potential_score/100000)/10)
                 output_txt += ", "+potential_score_txt+" M si tout le monde atteint "+str(target_progress)+"% de son max) : \n"
+            output_txt += "*Pour chaque joueur la liste affiche le score réalisé par rapport au score atteignable.*\n"
+
             if len(list_inactive_players) > 0 :
                 for p in sorted(list_inactive_players, key=lambda x:x["name"].lower()):
                     if use_tags and p["name"] in dict_players_by_IG:

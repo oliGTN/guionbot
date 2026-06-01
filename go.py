@@ -5044,13 +5044,18 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None, fulldef_det
         return ec, et, None
     list_active_players = ret_dict["active"]
     tw_round = ret_dict["round"]
+    tw_roundEndTs = ret_dict["roundEndTs"]
 
     if tw_round == None:
         return 1, "ERR: pas de GT en cours", None
     elif tw_round==-1:
         # sign up phase. Only check missing members
         list_inactive_players = ret_dict["inactive"]
-        return 0, "", list_inactive_players
+        return 0, "", {"list_inactive_players": list_inactive_players,
+                       "tw_round": tw_round,
+                       "tw_roundEndTs": tw_roundEndTs,
+                       "rpc": {"dict_guild": dict_guild}
+                      }
 
     if len(args) != 2:
         return 2, "need 2 values in args", None
@@ -5117,7 +5122,11 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None, fulldef_det
         if ship_teams < min_ship_teams:
             dict_insufficient_teams[player][1] = ship_teams
 
-    return 0, "", dict_insufficient_teams
+    return 0, "", {"dict_insufficient_teams": dict_insufficient_teams,
+                   "tw_round": tw_round,
+                   "tw_roundEndTs": tw_roundEndTs,
+                   "rpc": {"dict_guild": dict_guild}
+                  }
 
 
 ##############################

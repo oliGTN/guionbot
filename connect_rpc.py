@@ -3024,7 +3024,7 @@ async def get_tw_active_players(guild_id, force_update, allyCode=None):
         return 1, et, None
 
     if not "territoryWarStatus" in dict_guild:
-        return 0, "", {"active": [], "inactive": [], "round": None,
+        return 0, "", {"active": [], "inactive": [], "round": None, "roundEndTs": None,
                        "rpc": {"guild": dict_guild}}
 
     dict_members={}
@@ -3048,11 +3048,16 @@ async def get_tw_active_players(guild_id, force_update, allyCode=None):
     battleStatus = dict_guild["territoryWarStatus"][0]
     if "awayGuild" in battleStatus:
         tw_round = battleStatus["currentRound"]
+        tw_roundEndTs = int(battleStatus["currentRoundEndTime"])
     else:
         tw_round = -1
 
+        #Registration time is 1 day before attack time
+        attack_start_ts = int(battleStatus["instanceId"].split(":")[1][1:])
+        tw_roundEndTs = attack_start_ts - 24*3600*1000
+
     return 0, "", {"active": list_active_players, "inactive": list_inactive_players,
-                   "round": tw_round, "rpc": {"guild": dict_guild}}
+            "round": tw_round, "roundEndTs": tw_roundEndTs, "rpc": {"guild": dict_guild}}
 
 async def deploy_tb(txt_allyCode, zone_id, requested_defIds):
 
@@ -3533,11 +3538,12 @@ async def get_tw_participation(guild_id, force_update, allyCode=None):
 # OUT: raid_id: None / "kraytdragon"
 # OUT: expire_time: 169123456000
 # OUT: list_inactive_players: ["Karcot", "MolEliza", ...]
+# OUT: rpc: {"dict_guild": dict_guild}
 ########################################
 async def get_raid_status(guild_id, target_percent, force_update, allyCode=None, ignored_allyCodes=[]):
     ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
     if ec!=0:
-        return None, None, [], 0, 0
+        return None, None, [], 0, 0, None
 
     #Get dict to transform player ID into player object
     dict_members_by_id={}
@@ -3552,7 +3558,7 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None,
             cur_raid = raidStatus
 
     if raid_id == None:
-        return None, None, [], 0, 0
+        return None, None, [], 0, 0, None
 
     #Build dict for members, by playerId
     dict_raid_members_by_id={}
@@ -3626,7 +3632,7 @@ async def get_raid_status(guild_id, target_percent, force_update, allyCode=None,
             list_inactive_players.append({"name": member["playerName"], "status": status_txt})
             potential_score += estimated_score*target_percent/100 - score
 
-    return raid_id, expire_time, list_inactive_players, guild_score, potential_score
+    return raid_id, expire_time, list_inactive_players, guild_score, potential_score, {"dict_guild": dict_guild}
 
 async def update_unit_mods(unit_id, equipped_mods, unequipped_mods, txt_allyCode):
     url = "http://localhost:8000/updateMods"
