@@ -4436,7 +4436,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 tw_roundEndTs = ret_data["tw_roundEndTs"]
                 round_time_txt = datetime.datetime.fromtimestamp(int(tw_roundEndTs/1000)).strftime("le %A %d %B à %H:%M ("+config.GUILD_TIMEZONE+")")
 
-                guid_name = ret_data["rpc"]["dict_guild"]["profile"]["name"]
+                guild_name = ret_data["rpc"]["dict_guild"]["profile"]["name"]
                 output_txt="La guilde **"+guild_name+"** a besoin de vous pour la **GT** svp :\n"
 
                 if "dict_insufficient_teams" in ret_data:
