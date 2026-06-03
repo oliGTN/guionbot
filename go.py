@@ -5063,10 +5063,10 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None, fulldef_det
     min_char_teams = int(args[0])
     min_ship_teams = int(args[1])
 
+    dict_guild = ret_dict["rpc"]["guild"]
+    twStatus = dict_guild["territoryWarStatus"][0]
     if tw_round==0:
         # DEFENSE phase
-        dict_guild = ret_dict["rpc"]["guild"]
-        twStatus = dict_guild["territoryWarStatus"][0]
         dict_leaderboard = {} # key=playerName, value=[gnd def, 0, ship def, 0, 0]
         for conflictStatus in twStatus["homeGuild"]["conflictStatus"]:
             is_ship = conflictStatus["zoneStatus"]["zoneId"] in ['tw_jakku01_phase03_conflict01',
