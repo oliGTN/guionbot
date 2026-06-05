@@ -5046,6 +5046,7 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None, fulldef_det
     tw_round = ret_dict["round"]
     tw_roundEndTs = ret_dict["roundEndTs"]
 
+    dict_guild = ret_dict["rpc"]["guild"]
     if tw_round == None:
         return 1, "ERR: pas de GT en cours", None
     elif tw_round==-1:
@@ -5063,7 +5064,6 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None, fulldef_det
     min_char_teams = int(args[0])
     min_ship_teams = int(args[1])
 
-    dict_guild = ret_dict["rpc"]["guild"]
     twStatus = dict_guild["territoryWarStatus"][0]
     if tw_round==0:
         # DEFENSE phase
