@@ -6796,10 +6796,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 elif arg=='-charscore' or arg=='-unitscore':
                     sort_option = "unitscore"
                     options.remove(arg)
+                elif arg=='-zerocount':
+                    sort_option = "zerocount"
+                    options.remove(arg)
                 elif arg=='-nom' or arg=='-name' or arg=='-perso':
                     sort_option = "name"
                     options.remove(arg)
-                elif argstartswith('-'):
+                elif arg.startswith('-'):
                     await ctx.send("ERR: option '"+arg+"' inconnue. Veuillez consulter l'aide avec go.help statqj")
                     await ctx.message.add_reaction(emojis.redcross)
                     return
@@ -6868,6 +6871,16 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 elif sort_option == "statscore":
                     #sort each line of the table, independently of the unit
                     list_statq_with_names = sorted(list_with_char_names, key=lambda x:(-x[4], x[0]))
+                elif sort_option == "zerocount":
+                    #find the total of zero stat by unit, then sort units by this count
+                    d_unit_zerocount = {}
+                    for u_stat in list_with_char_names:
+                        u_name = u_stat[0]
+                        if not u_name in d_unit_zerocount:
+                            d_unit_zerocount[u_name] = 0
+                        if u_stat[4] == 0:
+                            d_unit_zerocount[u_name] += 1
+                    list_statq_with_names = sorted(list_with_char_names, key=lambda x:(d_unit_zerocount[x[0]], x[0]))
                 else: #unitscore
                     #find the total score by unit, then sort units by their total score
                     d_unit_score = {}
