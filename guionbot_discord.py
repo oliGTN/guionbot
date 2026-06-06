@@ -6768,7 +6768,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     ##############################################################
     # Command: statqj
     # Parameters: code allié (string) ou "me"
-    # Purpose: affiche le statqq d'un joueur
+    # Purpose: affiche le statQ d'un joueur
     ##############################################################
     @commands.check(member_command)
     @commands.command(name='statqj',
@@ -6777,7 +6777,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple: go.statqj me\n"
                       "         go.statqj 123456789 gg\n"
                       "         go.statqj 123456789 tag:jedi\n"
-                      "         go.statqj 123456789 -score")
+                      "         go.statqj 123456789 -statscore\n"
+                      "         go.statqj 123456789 -unitscore")
     async def statqj(self, ctx, *args):
         try:
             await ctx.message.add_reaction(emojis.thumb)
@@ -6789,12 +6790,19 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 if arg=='-all':
                     all_characters=True
                     options.remove(arg)
-                elif arg=='-score':
-                    sort_option = "score"
+                elif arg=='-statscore' or arg=='-score':
+                    sort_option = "statscore"
+                    options.remove(arg)
+                elif arg=='-charscore' or arg=='-unitscore':
+                    sort_option = "unitscore"
                     options.remove(arg)
                 elif arg=='-nom' or arg=='-name' or arg=='-perso':
                     sort_option = "name"
                     options.remove(arg)
+                elif argstartswith('-'):
+                    await ctx.send("ERR: option '"+arg+"' inconnue. Veuillez consulter l'aide avec go.help statqj")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
 
             if len(options) == 1:
                 allyCode = options[0]
@@ -6846,6 +6854,9 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         "cc": "critChance",
                         "armor": "armure",
                         "potency": "pouvoir"}
+
+                #Keep all characters if no character in the list
+                # or keep only the characters in the list
                 filtered_list = [x for x in list_statq if (list_unit_id==None or x[0] in list_unit_id)]
                 list_with_char_names = [
                         [dict_units[x[0]]["name"]]
@@ -6854,8 +6865,18 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         for x in filtered_list]
                 if sort_option == "name":
                     list_statq_with_names = sorted(list_with_char_names)
-                else: #score
+                elif sort_option == "statscore":
+                    #sort each line of the table, independently of the unit
                     list_statq_with_names = sorted(list_with_char_names, key=lambda x:(-x[4], x[0]))
+                else: #unitscore
+                    #find the total score by unit, then sort units by their total score
+                    d_unit_score = {}
+                    for u_stat in list_with_char_names:
+                        u_name = u_stat[0]
+                        if not u_name in d_unit_score:
+                            d_unit_score[u_name] = 0
+                        d_unit_score[u_name] += u_stat[4]
+                    list_statq_with_names = sorted(list_with_char_names, key=lambda x:(-d_unit_score[x[0]], x[0]))
 
                 output_table = [['Perso', "Stat", "Valeur (mod)", "Objectif (progrès)", "Score"]] + list_statq_with_names
                 t = Texttable()

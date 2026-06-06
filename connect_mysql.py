@@ -1234,7 +1234,7 @@ async def get_player_statq(txt_allyCode):
         query = "UPDATE players SET statq="+str(statq)+" WHERE allyCode="+txt_allyCode
         simple_execute(query)
 
-        #update daily staq for player
+        #update daily statq for player
         query = "UPDATE gp_history SET statq="+str(statq)+" WHERE allyCode="+txt_allyCode+" AND date=DATE(current_timestamp)"
         simple_execute(query)
 
