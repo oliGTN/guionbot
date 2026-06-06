@@ -2112,9 +2112,9 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 unitRelicTier = cell["relic"]
 
                 if not squad_id in dict_tw_squads:
-                    query = "INSERT INTO tw_squad_cells(squad_id, "\
+                    query = "INSERT INTO tw_squad_cells(tw_id, squad_id, "\
                             "defId, cellIndex, level, tier, unitRelicTier) "\
-                            "VALUES('"+squad_id+"', "\
+                            "VALUES("+str(tw_db_id)+", '"+squad_id+"', "\
                             "'"+defId+"', "\
                             ""+str(cellIndex)+", "\
                             ""+str(level)+", "\
