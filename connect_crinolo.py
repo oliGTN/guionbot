@@ -61,6 +61,11 @@ def add_stats_with_options(dict_player, url_options):
         goutils.log2('ERR', "Cannot connect to Crinolo API")
         goutils.log2('ERR', e)
         return 1, "Cannot connect to crinolo API", dict_player
+
+    except requests.exceptions.ChunkedEncodingError as e:
+        goutils.log2('ERR', "Cannot read response from Crinolo API")
+        goutils.log2('ERR', e)
+        return 1, "Cannot read response from crinolo API", dict_player
     
     dict_player_with_stats = json.loads(r.content.decode('utf-8'))[0]
     
