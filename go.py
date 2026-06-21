@@ -547,7 +547,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                                 +"will start after loading of "+str(list_other_guilds_loading_status))
                     if ctx_interaction!=None:
                         await bot_commands.command_ok(ctx_interaction[0], ctx_interaction[1], "En file d'attente derrière "+str(list_other_guilds_loading_status)+"..." , intermediate=True)
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(10)
                     list_other_guilds_loading_status = parallel_work.get_other_guilds_loading_status(guild_name)
 
                 #Request to load this guild
@@ -2369,7 +2369,7 @@ def get_distribution_graph(values,               #list of values to distribute
     # 1st hist
     counts, bins = np.histogram(values, bins=bins)
     if ts_to_date:
-        from_timestamp = np.vectorize(lambda x: datetime.datetime.utcfromtimestamp(x))
+        from_timestamp = np.vectorize(lambda x: datetime.datetime.fromtimestamp(x))
         ax.stairs(counts, edges=from_timestamp(bins), color='blue', label=legend, fill=True)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%d/%m %H:%M"))
 
