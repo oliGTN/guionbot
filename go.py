@@ -421,7 +421,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
 
     #Get guild data from DB
     query = "SELECT guilds.name, guilds.lastUpdated, MIN(players.lastUpdated) FROM guilds "\
-           +"JOIN players ON players.guildId=guilds.id "\
+           +"LEFT JOIN players ON players.guildId=guilds.id "\
            +"WHERE id = '"+guild_id+"' "\
            +"GROUP BY guilds.name"
     goutils.log2('DBG', query)
