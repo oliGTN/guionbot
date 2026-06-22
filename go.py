@@ -4177,7 +4177,8 @@ async def get_player_time_graph(list_allyCodes, guild_graph, parameter, is_year)
 
     #Draw vertical lines when needed
     if parameter == "statq":
-        statq_updates = ['2026-02-15',
+        statq_updates = ['2026-06-22',
+                         '2026-02-15',
                          '2025-11-22']
 
         for statq_update_txt in statq_updates:
