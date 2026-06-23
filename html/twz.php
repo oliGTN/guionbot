@@ -40,7 +40,7 @@ $query .= " side, zone_name, player_name, defId, cellIndex,";
 $query .= " is_beaten, fights, gp, tier AS gear, unitRelicTier AS relic";
 $query .= " FROM tw_squads";
 $query .= " JOIN tw_squad_cells ON tw_squad_cells.squad_id=tw_squads.id";
-$query .= " WHERE tw_id=".$tw_id;
+$query .= " WHERE tw_squads.tw_id=".$tw_id;
 $query .= " ORDER BY is_beaten, fights DESC, player_name, cellIndex";
 //error_log("query = ".$query);
 if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
