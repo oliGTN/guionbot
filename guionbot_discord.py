@@ -3429,7 +3429,11 @@ class ModsCog(commands.GroupCog, name="mods"):
                 remove_command_from_queue(interaction)
                 return
 
-            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(json_content, txt_allyCode, simulation, interaction)
+            ec, et, ret_data = await manage_mods.apply_modoptimizer_allocations(
+                                        json_content, 
+                                        txt_allyCode, 
+                                        simulation, 
+                                        interaction=interaction)
             # Prepare warning info, to be displayed if error or success
             cost_and_missing = ""
             if "cost" in ret_data:
@@ -3599,7 +3603,11 @@ class ModsCog(commands.GroupCog, name="mods"):
             goutils.log2("INFO", "mods.apply_conf("+txt_allyCode+", conf_name="+conf_name+", simu="+str(simulation)+")")
 
             #Run the function
-            ec, et, ret_data = await manage_mods.apply_config_allocations(conf_name, txt_allyCode, simulation, interaction)
+            ec, et, ret_data = await manage_mods.apply_config_allocations(
+                                        conf_name, 
+                                        txt_allyCode, 
+                                        simulation, 
+                                        interaction=interaction)
 
             # Prepare warning info, to be displayed if error or sucess
             cost_and_missing = ""

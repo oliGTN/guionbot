@@ -125,10 +125,14 @@ def get_dict_player_mods(dict_player, initialdata=None):
 # IN: mod_allocations = ['unit_id': 'MAGMATROOPER', 
 #                        'mods': [{'id': 'hjsfkjfsdksf34', "slot": 5}, ...] ]
 ##########################
-async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction, 
+async def apply_mod_allocations(mod_allocations, allyCode, is_simu, 
+                                interaction=None, 
                                 dict_player=None,
                                 initialdata=None):
-    await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...")
+    if interaction != None:
+        await interaction.edit_original_response(content=emojis.hourglass+" Récupération des infos du joueur...")
+    else:
+        print("Récupération des infos du joueur...")
 
     # Get player data
     if dict_player==None:
@@ -150,7 +154,10 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
     #Create a dict of all mods for the player, by mod ID
     #AND modify the mod list of every unit by a dict, by slot
-    await interaction.edit_original_response(content=emojis.hourglass+" Récupération de la liste des mods...")
+    if interaction != None:
+        await interaction.edit_original_response(content=emojis.hourglass+" Récupération de la liste des mods...")
+    else:
+        print("Récupération de la liste des mods...")
     dict_player_mods = get_dict_player_mods(dict_player, initialdata)
 
     # transform mod list into dict of mod_id by slot
@@ -161,6 +168,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
     mod_inventory_spares = 500 - initial_inventory
 
     max_inventory = initial_inventory
+    goutils.log2("INFO", "Initial inventory: "+str(initial_inventory))
     unit_count = 0
     mod_add_count = 0
     unequip_cost = 0
@@ -352,6 +360,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
 
         #manage max size required in mod inventory
         cur_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
+        goutils.log2("INFO", "Current inventory after "+target_char_defId+": "+str(len(cur_inventory)))
         if len(cur_inventory) > max_inventory:
             max_inventory = len(cur_inventory)
 
@@ -366,7 +375,10 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu, interaction,
         if (time.time() - prev_display_time) > 5:
             new_msg_content = emojis.hourglass+" Reste "+str(len(mod_allocations)-count_no_move+1)+"/"+str(original_unit_count)+"..."
             try:
-                await interaction.edit_original_response(content=new_msg_content)
+                if interaction != None:
+                    await interaction.edit_original_response(content=new_msg_content)
+                else:
+                    print(new_msg_content)
             except Exception as e:
                 goutils.log2("WAR", "Unable to update discord msg to: "+new_msg_content)
             prev_display_time = time.time()
@@ -521,7 +533,7 @@ def get_mod_config(conf_name, txt_allyCode):
     return 0, "", mod_allocations
 
 async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu, 
-                                         interaction, initialdata=None):
+                                         interaction=None, initialdata=None):
     modopti_progress = json.loads(modopti_content)
 
     # a json may contain several profiles
@@ -565,15 +577,15 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
 
     #Apply modifications
     return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu, 
-                                       interaction, initialdata=initialdata)
+                                       interaction=interaction, initialdata=initialdata)
 
-async def apply_config_allocations(config_name, txt_allyCode, is_simu, interaction):
+async def apply_config_allocations(config_name, txt_allyCode, is_simu, interaction=None):
     e, t, mod_allocations = get_mod_config(config_name, txt_allyCode)
     if e!=0:
         return 1, t, {}
 
     return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu,
-                                       interaction)
+                                       interaction=interaction)
 
 ########################################
 async def get_modopti_export(txt_allyCode):

@@ -1160,14 +1160,14 @@ async def allocate_random_mods(ctx_interaction):
         return
 
     mod_allocations = ret_data["mod_allocations"]
-    print(str(mod_allocations)[:1000], flush=True)
+    #print(str(mod_allocations)[:1000], flush=True)
 
     #Apply mod allocations
     ec, et, ret_data = await manage_mods.apply_mod_allocations(
                             mod_allocations,
                             txt_allyCode,
                             False,
-                            ctx_interaction,
+                            interaction=ctx_interaction,
                             dict_player=dict_player,
                             initialdata=initialdata)
     if ec!=0:
