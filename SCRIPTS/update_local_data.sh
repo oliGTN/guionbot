@@ -18,4 +18,5 @@ python SCRIPTS/create_crinolo_gameData.py $GAMEDATA_FILE
 
 echo "clean..."
 rm -f CACHE/config_units.json
+rm -f ../swgoh-stat-calc/swgoh-stats/statCalcData/dataVersion.json
 echo "... OK"

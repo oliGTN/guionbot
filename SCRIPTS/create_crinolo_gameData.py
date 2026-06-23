@@ -19,9 +19,9 @@ collections = [
 ]
 
 for c in collections:
-    gameDataCrinolo[c] = gameData[c]
+    gameDataCrinolo = gameData[c]
 
-gameDataCrinolo_name = gameData_name[:-5]+"Crinolo.json"
-fout = open(gameDataCrinolo_name, 'w')
-fout.write(json.dumps(gameDataCrinolo))
-fout.close()
+    gameDataCrinolo_name = gameData_name[:-5]+"Crinolo_"+c+".json"
+    fout = open(gameDataCrinolo_name, 'w')
+    fout.write(json.dumps(gameDataCrinolo))
+    fout.close()
