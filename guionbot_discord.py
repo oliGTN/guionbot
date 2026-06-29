@@ -4254,7 +4254,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             txt_allyCode = str(bot_infos["allyCode"])
 
             # Launch the actual command
-            ec, et = await go.get_previous_tw_defense(txt_allyCode, guild_id, "go.bot.deftw {0} {1}")
+            ec, et = await go.get_previous_tw_defense(txt_allyCode, guild_id, "go.bot.deftw {0} {1} {2}")
             if ec != 0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emojis.redcross)

@@ -5799,9 +5799,12 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
 
     return 0, "", output_txt
 
-async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
+async def get_previous_tw_defense(txt_allyCode, 
+                                  guild_id, 
+                                  command_schema,
+                                  connected_allyCode=None):
     # get TW status to know if one is ongoing
-    rpc_data = await connect_rpc.get_tw_status(guild_id, -1)
+    rpc_data = await connect_rpc.get_tw_status(guild_id, -1, allyCode=connected_allyCode)
     tw_id = rpc_data["tw_id"]
 
     # Get TW defense orders
@@ -5828,7 +5831,7 @@ async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
 
     # Get list of previous TWs
     event_filenames = os.listdir("EVENTS/")
-    event_tw_filenames = [x for x in event_filenames if x.startswith(guild_id+"_TERRITORY_WAR")]
+    event_tw_filenames = [x for x in event_filenames if x.startswith(guild_id+"_TERRITORY_WAR") and x.endswith("_events.json")]
 
     if tw_id!=None:
         event_prev_tw_filenames = [x for x in event_tw_filenames if not tw_id in x]
@@ -5850,8 +5853,7 @@ async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
             continue
 
         if activity["warSquad"]["playerId"] != player_id:
-            if "eGBR" in event_id:
-                goutils.log2("WAR", "warSquad player != event player for "+event_id)
+            goutils.log2("WAR", "warSquad player != event player for "+event_id)
             continue
 
         zoneId = activity["zoneData"]["zoneId"]
@@ -5862,7 +5864,12 @@ async def get_previous_tw_defense(txt_allyCode, guild_id, command_schema):
             unitDefId = cell["unitDefId"].split(":")[0]
             unit_name = dict_unitsList[unitDefId]["name"].replace('"', '')
             list_units += '"'+unit_name+'" '
-        deftw_cmd += command_schema.format(zone_shortId, list_units)
+        if "datacron" in activity["warSquad"]["squad"]:
+            datacron_id = activity["warSquad"]["squad"]["datacron"]["id"]
+            datacron_cmd_txt = "DTC:"+datacron_id
+        else:
+            datacron_cmd_txt = ""
+        deftw_cmd += command_schema.format(zone_shortId, list_units, datacron_cmd_txt)
         deftw_cmd += "\n"+zone_shortId+": "+dict_orders[zone_shortId]+"\n--------------\n"
 
     return 0, deftw_cmd
