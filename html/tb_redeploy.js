@@ -124,11 +124,11 @@ function initRedeployGraphs() {
     });
 }
 
-function updateRemainingDisplay() {
+function updateUnusedDisplay() {
     const labels = document.querySelectorAll('.stat-detail label');
 
     labels.forEach(label => {
-        if (label.textContent.trim() === 'Remaining deployments') {
+        if (label.textContent.trim() === 'Unused deployments') {
             const valueElement = label.parentElement.querySelector('value');
             valueElement.textContent = formatNumber(totalFillable);
         }
@@ -294,7 +294,7 @@ function fillGraph(graph) {
 
     updateDeployBar(graph);
     updateStars(graph);
-    //updateRemainingDisplay();
+    updateUnusedDisplay();
 }
 
 function applyFightMode() {
@@ -348,7 +348,7 @@ function startRedeploy() {
 
     applyFightMode();
 
-    //updateRemainingDisplay();
+    updateUnusedDisplay();
 }
 
 // Initialize when page is ready

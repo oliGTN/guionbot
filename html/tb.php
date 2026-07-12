@@ -160,6 +160,33 @@ if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin) {
                 </div>
             </div>
         </div>
+        <div class="col s4">
+            <div class="stat-panel">
+                <div class="stat-detail">
+                    <label>Unused deployments</label>
+                    <div class="value xsmall pb-5">
+                        <value>
+<?php 
+
+                            if ($round_score['deploymentType']==0) {
+                                $unused_deployments = $round_score['availableMixDeploy'];
+                                foreach ($zones as $zone) {
+                                    $unused_deployments -= $zone['estimated_deployments'];
+                                }
+                                echo number_format($unused_deployments, 0, ".", " ");
+                            } else if ($round_score['deploymentType']==1) {
+                                //TO-DO adapt to non ROTE TB
+                                echo 'not available';
+                            } else {
+                                //TO-DO adapt to non ROTE TB
+                                echo 'not available';
+                            }
+?>
+                        </value>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 <?php if ($isMyGuildConfirmed|$isBonusGuild|$isAdmin): ?>
