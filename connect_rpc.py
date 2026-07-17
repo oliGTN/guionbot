@@ -20,31 +20,11 @@ import go
 import manage_events
 import connect_gsheets
 import connect_mysql
+from semaphores import acquire_sem, release_sem
 
 #GLOBAL variables for previous statuses
 prev_dict_guild = {} #key=guild_id
 prev_mapstats = {} #key=guild_id
-
-
-dict_sem={}
-async def acquire_sem(id):
-    id=str(id)
-    calling_func = inspect.stack()[2][3]
-    #goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
-    if not id in dict_sem:
-        dict_sem[id] = threading.Semaphore()
-
-    while not dict_sem[id].acquire(blocking=False):
-        await asyncio.sleep(1)
-
-    #goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
-
-async def release_sem(id):
-    id=str(id)
-    calling_func = inspect.stack()[2][3]
-    #goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
-    dict_sem[id].release()
-    #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
 
 def get_dict_bot_accounts():
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, "\
