@@ -26,7 +26,12 @@ async def add_command_to_queue(ctx_interaction):
     resp_msg = await command_ack(ctx_interaction)
 
     # Check if not is locked
-    is_owner = (str(ctx_interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
+    if type(ctx_interaction) == commands.Context:
+        user_id = ctx_interaction.author.id
+    else: # Interaction
+        user_id = ctx_interaction.user.id
+    is_owner = (str(user_id) in config.GO_ADMIN_IDS.split(' '))
+
     if bot_locked and not is_owner:
         goutils.log2("WAR", "bot is locked")
         await ctx_interaction.edit_original_response(content=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
