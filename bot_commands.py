@@ -24,7 +24,7 @@ import goutils
 import portraits
 import data
 import register
-from cmd_q import islocked_bot, add_command_to_queue, remove_command_from_queue
+from cmd_q import islocked_bot, add_command_to_queue, remove_command_from_queue, command_ack
 
 # CONSTANTS
 import emojis
@@ -33,20 +33,6 @@ MAX_RELIC = 10
 
 ######################################
 # basic functions mixinx ctx and interactions
-async def command_ack(ctx_interaction):
-    msg = None
-    if type(ctx_interaction) == commands.Context:
-        ctx = ctx_interaction
-        msg = await ctx.reply(emojis.thumb+" "+ctx.me.name+" réfléchit...")
-
-    elif type(ctx_interaction) == Interaction:
-        interaction = ctx_interaction
-        await interaction.response.defer(thinking=True)
-    else:
-        print("In progress...")
-
-    return msg
-
 async def command_error(ctx_interaction, resp_msg, err_txt):
     if type(ctx_interaction) == commands.Context:
         ctx = ctx_interaction

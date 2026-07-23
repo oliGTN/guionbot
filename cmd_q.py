@@ -75,3 +75,18 @@ def unlock_bot():
 
 def islocked_bot():
     return bot_locked
+
+async def command_ack(ctx_interaction):
+    msg = None
+    if type(ctx_interaction) == commands.Context:
+        ctx = ctx_interaction
+        msg = await ctx.reply(emojis.thumb+" "+ctx.me.name+" réfléchit...")
+
+    elif type(ctx_interaction) == Interaction:
+        interaction = ctx_interaction
+        await interaction.response.defer(thinking=True)
+    else:
+        print("In progress...")
+
+    return msg
+
