@@ -24,6 +24,7 @@ import goutils
 import portraits
 import data
 import register
+from cmd_q import islocked_bot, add_command_to_queue, remove_command_from_queue
 
 # CONSTANTS
 import emojis
