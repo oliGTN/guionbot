@@ -47,7 +47,8 @@ if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_
 // Prepare the SQL query
 $query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName,  ga.name AS awayName, homeScore, awayScore,";
 $query .= " zone_name, side, size, filled, victories, fails,";
-$query .= " zoneState, tw_history.lastUpdated AS lastUpdated";
+$query .= " zoneState, tw_history.lastUpdated AS lastUpdated,";
+$query .= " TIMESTAMPDIFF(HOUR, tw_history.lastUpdated, CURRENT_TIMESTAMP) >=1 AS oldData";
 $query .= " FROM tw_history";
 $query .= " JOIN guilds AS gh ON gh.id=guild_id";
 $query .= " JOIN guilds AS ga ON ga.id=away_guild_id";
@@ -78,6 +79,7 @@ foreach($tw_db_data as $tw_line) {
         $tw_data[$guild_id]['homeScore'] = $tw_line['homeScore'];
         $tw_data[$guild_id]['awayScore'] = $tw_line['awayScore'];
         $tw_data[$guild_id]['lastUpdated'] = $tw_line['lastUpdated'];
+        $tw_data[$guild_id]['oldData'] = $tw_line['oldData'];
         $tw_data[$guild_id]['zones'] = ['home'=>[], 'away'=>[]];
     }
     $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']] = [];
@@ -193,7 +195,7 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
     <div class="row">
     <div class="col s12">
             <p><a href="tw.php?id=<?php echo $tw['id'];?>"><?php echo ($tw['homeScore']>=$tw['awayScore']?'&#9989;':'&#10060;')."<b>".$tw['homeName']." vs ".$tw['awayName']."</b>";?></a></p>
-            <p>(last Update on <?php echo $tw['lastUpdated'];?>)</p>
+            <p>(last Update on <?php echo ($tw['oldData']?"<b style='color:red;'>":"").$tw['lastUpdated'].($tw['oldData']?"</b>":"");?>)</p>
     <div class="card">
     <div class="col s6">
             <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo $tw['homeScore'];?></b>
