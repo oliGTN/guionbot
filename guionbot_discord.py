@@ -2970,7 +2970,7 @@ class TwCog(commands.GroupCog, name="gt"):
     async def tw_status(self, interaction: discord.Interaction):
         try:
             # Add command to queue, check if bot is locked, check queue size
-            ret_add = await add_command_to_queue(interaction)
+            ret_add, resp_msg = await add_command_to_queue(interaction)
             if ret_add != 0:
                 remove_command_from_queue(interaction)
                 return
@@ -3357,7 +3357,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                            simulation: bool=False):
         try:
             # Add command to queue, check if bot is locked, check queue size
-            ret_add = await add_command_to_queue(interaction)
+            ret_add, resp_msg = await add_command_to_queue(interaction)
             if ret_add != 0:
                 remove_command_from_queue(interaction)
                 return
@@ -3471,7 +3471,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                            list_alias_txt: str):
         try:
             # Add command to queue, check if bot is locked, check queue size
-            ret_add = await add_command_to_queue(interaction)
+            ret_add, resp_msg = await add_command_to_queue(interaction)
             if ret_add != 0:
                 remove_command_from_queue(interaction)
                 return
@@ -3557,7 +3557,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                          simulation: bool=False):
         try:
             # Add command to queue, check if bot is locked, check queue size
-            ret_add = await add_command_to_queue(interaction)
+            ret_add, resp_msg = await add_command_to_queue(interaction)
             if ret_add != 0:
                 remove_command_from_queue(interaction)
                 return
@@ -3696,7 +3696,7 @@ class ModsCog(commands.GroupCog, name="mods"):
     async def export_modoptimizer(self, interaction: discord.Interaction):
         try:
             # Add command to queue, check if bot is locked, check queue size
-            ret_add = await add_command_to_queue(interaction)
+            ret_add, resp_msg = await add_command_to_queue(interaction)
             if ret_add != 0:
                 remove_command_from_queue(interaction)
                 return

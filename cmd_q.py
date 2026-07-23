@@ -8,6 +8,8 @@
 
 import config
 from discord.ext import commands
+from discord import app_commands, Interaction
+import goutils
 
 bot_test_mode = False
 bot_background_tasks = True
@@ -20,14 +22,14 @@ async def add_command_to_queue(ctx_interaction):
     global command_queue
 
     #Initial waiting message
-    await command_ack(ctx_interaction)
+    resp_msg = await command_ack(ctx_interaction)
 
     # Check if not is locked
     is_owner = (str(ctx_interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
     if bot_locked and not is_owner:
         goutils.log2("WAR", "bot is locked")
         await ctx_interaction.edit_original_response(content=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
-        return 1
+        return 1, resp_msg
 
     # Add command to queue
     command_queue.append(ctx_interaction)
@@ -39,7 +41,7 @@ async def add_command_to_queue(ctx_interaction):
         await asyncio.sleep(10)
         pos_cmd = command_queue.index(ctx_interaction)
 
-    return 0
+    return 0, resp_msg
 
 def remove_command_from_queue(ctx_interaction):
     global command_queue

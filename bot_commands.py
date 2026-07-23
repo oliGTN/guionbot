@@ -24,6 +24,7 @@ import goutils
 import portraits
 import data
 import register
+from semaphores import acquire_sem, release_sem
 from cmd_q import islocked_bot, add_command_to_queue, remove_command_from_queue, command_ack
 
 # CONSTANTS
@@ -1033,7 +1034,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
 ###############################
 async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_speed_sec, with_inventory, connected_allyCode=None):
     # Add command to queue, check if bot is locked, check queue size
-    ret_add = await add_command_to_queue(ctx_interaction)
+    ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:
         remove_command_from_queue(ctx_interaction)
         return
@@ -1105,7 +1106,7 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
 ###############################
 async def deploy_tb(ctx_interaction, zone, list_alias_txt):
     # Add command to queue, check if bot is locked, check queue size
-    ret_add = await add_command_to_queue(ctx_interaction)
+    ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:
         remove_command_from_queue(ctx_interaction)
         return
@@ -1140,7 +1141,7 @@ async def deploy_tb(ctx_interaction, zone, list_alias_txt):
 #######################################"
 async def allocate_random_mods(ctx_interaction):
     # Add command to queue, check if bot is locked, check queue size
-    ret_add = await add_command_to_queue(ctx_interaction)
+    ret_add, resp_msg = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:
         remove_command_from_queue(ctx_interaction)
         return
