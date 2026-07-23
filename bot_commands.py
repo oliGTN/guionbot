@@ -1049,9 +1049,9 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     resp_msg = await command_ack(ctx_interaction)
 
     # Add command to queue, check if bot is locked, check queue size
-    ret_add = await add_command_to_queue(interaction)
+    ret_add = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     if connected_allyCode == None:
@@ -1061,7 +1061,7 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
         ec, et, bot_infos = connect_mysql.get_google_player_info(channel_id)
         if ec!=0:
             await command_error(ctx_interaction, resp_msg, et)
-            remove_command_from_queue(interaction)
+            remove_command_from_queue(ctx_interaction)
             return
     
         txt_allyCode = str(bot_infos["allyCode"])
@@ -1074,14 +1074,14 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     if with_inventory:
         ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
         if ec!=0:
             await command_error(ctx_interaction, resp_msg, et)
-            remove_command_from_queue(interaction)
+            remove_command_from_queue(ctx_interaction)
             return
     else:
         initialdata = None
@@ -1096,7 +1096,7 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     if ret == 1:
         txt = emojis.redcross+" ERR: ce joueur a déjà une commande bot en cours"
         await command_error(ctx_interaction, resp_msg, txt)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     #Run the function
@@ -1112,11 +1112,11 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
 
     if ec != 0:
         await command_error(ctx_interaction, resp_msg, et)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     await command_ok(ctx_interaction, resp_msg, et)
-    remove_command_from_queue(interaction)
+    remove_command_from_queue(ctx_interaction)
 
 ###############################
 async def deploy_tb(ctx_interaction, zone, list_alias_txt):
@@ -1152,9 +1152,9 @@ async def allocate_random_mods(ctx_interaction):
     resp_msg = await command_ack(ctx_interaction)
 
     # Add command to queue, check if bot is locked, check queue size
-    ret_add = await add_command_to_queue(interaction)
+    ret_add = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     channel_id = ctx_interaction.channel_id
@@ -1163,7 +1163,7 @@ async def allocate_random_mods(ctx_interaction):
     ec, et, bot_infos = connect_mysql.get_google_player_info(channel_id)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     txt_allyCode = str(bot_infos["allyCode"])
@@ -1174,13 +1174,13 @@ async def allocate_random_mods(ctx_interaction):
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     ec, et, initialdata = await connect_rpc.get_player_initialdata(txt_allyCode)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     #Check that this player is not already in progress by the bot
@@ -1188,7 +1188,7 @@ async def allocate_random_mods(ctx_interaction):
     if ret == 1:
         txt = emojis.redcross+" ERR: ce joueur a déjà une commande bot en cours"
         await command_error(ctx_interaction, resp_msg, txt)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     #Run the command: Get mod allocations
@@ -1200,7 +1200,7 @@ async def allocate_random_mods(ctx_interaction):
 
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     mod_allocations = ret_data["mod_allocations"]
@@ -1216,11 +1216,11 @@ async def allocate_random_mods(ctx_interaction):
                             initialdata=initialdata)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
-        remove_command_from_queue(interaction)
+        remove_command_from_queue(ctx_interaction)
         return
 
     await command_ok(ctx_interaction, resp_msg, ret_data["cost"])
-    remove_command_from_queue(interaction)
+    remove_command_from_queue(ctx_interaction)
 
     return
 
