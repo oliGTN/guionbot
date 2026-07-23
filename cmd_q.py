@@ -8,7 +8,6 @@
 
 import config
 from discord.ext import commands
-from bot_commands import command_ack
 
 bot_test_mode = False
 bot_background_tasks = True
