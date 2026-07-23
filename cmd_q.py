@@ -10,6 +10,7 @@ import config
 from discord.ext import commands
 from discord import app_commands, Interaction
 import goutils
+import emojis
 
 bot_test_mode = False
 bot_background_tasks = True
