@@ -1046,8 +1046,6 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
 
 ###############################
 async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_speed_sec, with_inventory, connected_allyCode=None):
-    resp_msg = await command_ack(ctx_interaction)
-
     # Add command to queue, check if bot is locked, check queue size
     ret_add = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:
@@ -1120,7 +1118,11 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
 
 ###############################
 async def deploy_tb(ctx_interaction, zone, list_alias_txt):
-    resp_msg = await command_ack(ctx_interaction)
+    # Add command to queue, check if bot is locked, check queue size
+    ret_add = await add_command_to_queue(ctx_interaction)
+    if ret_add != 0:
+        remove_command_from_queue(ctx_interaction)
+        return
 
     if type(ctx_interaction) == Interaction:
         channel_id = ctx_interaction.channel_id
@@ -1131,6 +1133,7 @@ async def deploy_tb(ctx_interaction, zone, list_alias_txt):
     ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, channel_id)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot ou une connexion EA pour utiliser cette commande")
+        remove_command_from_queue(ctx_interaction)
         return
 
     guild_id = bot_infos["guild_id"]
@@ -1143,14 +1146,13 @@ async def deploy_tb(ctx_interaction, zone, list_alias_txt):
 
     if ec != 0:
         await command_error(ctx_interaction, resp_msg, et)
+        remove_command_from_queue(ctx_interaction)
         return
 
     await command_ok(ctx_interaction, resp_msg, et)
 
 #######################################"
 async def allocate_random_mods(ctx_interaction):
-    resp_msg = await command_ack(ctx_interaction)
-
     # Add command to queue, check if bot is locked, check queue size
     ret_add = await add_command_to_queue(ctx_interaction)
     if ret_add != 0:

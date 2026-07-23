@@ -8,6 +8,7 @@
 
 import config
 from discord.ext import commands
+from bot_commands import command_ack
 
 bot_test_mode = False
 bot_background_tasks = True
@@ -20,8 +21,7 @@ async def add_command_to_queue(ctx_interaction):
     global command_queue
 
     #Initial waiting message
-    if type(ctx_interaction) != commands.Context:
-        await ctx_interaction.response.defer(thinking=True)
+    await command_ack(ctx_interaction)
 
     # Check if not is locked
     is_owner = (str(ctx_interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
