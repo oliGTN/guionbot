@@ -1137,6 +1137,9 @@ async def deploy_tb(ctx_interaction, zone, list_alias_txt):
         return
 
     await command_ok(ctx_interaction, resp_msg, et)
+    remove_command_from_queue(ctx_interaction)
+
+    return
 
 #######################################"
 async def allocate_random_mods(ctx_interaction):
