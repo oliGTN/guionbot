@@ -15,7 +15,8 @@
     </li>
     <?php if (!isset($_SESSION['user_id'])): ?>
         <li>
-            <a href="init-oauth.php">Login</a>
+            <!-- <a href="init-oauth.php">Login</a> -->
+            <a href="init-oauth.php?return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>">Login</a>
         </li>
     <?php else: ?>
     <li class="drop <?php echo (substr($_SERVER['REQUEST_URI'], 0, strlen('/dashboard.php'))=='/dashboard.php')? 'active' : ''; ?>"><?php echo $_SESSION['user_name']; ?>

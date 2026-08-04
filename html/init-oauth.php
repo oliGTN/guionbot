@@ -1,6 +1,11 @@
 <?php
 session_start();
 
+// store the return path for after the oauth
+if (isset($_GET['return'])) {
+    $_SESSION['login_return'] = $_GET['return'];
+}
+
 // check if the access toke is in a cookie
 if(isset($_COOKIE['discord_access_token'])) {
     $cookie_data = json_decode( $_COOKIE['discord_access_token']);

@@ -174,7 +174,18 @@ foreach($user_bonus_guilds as $user_bonus_guild) {
 //print_r($_SESSION);
 
 //Process comes to an end, redirct to dashboard page
-header("Location: dashboard.php");  // Redirect to dashboard after login
+//header("Location: dashboard.php");  // Redirect to dashboard after login
+
+// Redirect the user back to the page they came from
+$return = $_SESSION['login_return'] ?? 'dashboard.php';
+unset($_SESSION['login_return']);
+
+// Prevent open redirects
+if (strpos($return, '/') !== 0) {
+    $return = 'dashboard.php';
+}
+
+header("Location: $return");
 exit();
 
 ?>
