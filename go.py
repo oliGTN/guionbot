@@ -489,6 +489,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
         for id in playerId_in_API:
             if not id in playerId_in_DB:
                 playerId_to_add.append(id)
+                goutils.log2('INFO', "Add player "+playerId+" in guild "+guild_id)
                 query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
                 query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'added')"
                 goutils.log2('DBG', query)
@@ -498,6 +499,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
         for id in playerId_in_DB:
             if not id in playerId_in_API:
                 playerId_to_remove.append(id)
+                goutils.log2('INFO', "Remove player "+playerId+" from guild "+guild_id)
                 query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
                 query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'removed')"
                 goutils.log2('DBG', query)
