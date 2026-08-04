@@ -115,7 +115,7 @@ try {
                     $line_color = ($isMyallyCode?'lightgray':'');
                     echo "\t\t\t<tr style='background-color:".$line_color."'>\n";
                     echo "\t\t\t<td>".$i_player."</td>\n";
-                    echo "\t\t\t<td><a href='https://swgoh.gg/p/".$player['allyCode']."/'>" . htmlspecialchars($player['name']) . "</a></td>\n";
+                    echo "\t\t\t<td><a href='p.php?ac=".$player['allyCode']."/'>" . htmlspecialchars($player['name']) . "</a></td>\n";
                     echo "\t\t\t\t<td>" . $allyCode_display . "</td>\n";
                     echo "\t\t\t\t<td  style='text-align:right' class='hide-on-large-only'>" . round($player['gp']/1000000, 1) . "M</td>\n";
                     echo "\t\t\t\t<td  style='text-align:right' class='hide-on-med-and-down'>" . number_format($player['gp'], 0, '.', ' ') . "</td>\n";
