@@ -91,7 +91,7 @@ dict_tb_alerts_previously_done = {}
 # Purpose: cette fonction est exécutée toutes les 60 secondes
 # Output: none
 ##############################################################
-async def bot_loop_60secs(bot):
+async def check_locked_bots_60secs(bot):
     goutils.log2("INFO", "START loop")
     t_start = time.time()
 
@@ -142,6 +142,13 @@ async def bot_loop_60secs(bot):
         if not bot_test_mode:
             await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
+    t_end = time.time()
+    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
+
+
+async def update_rpc_60secs(bot):
+    goutils.log2("INFO", "START loop")
+    t_start = time.time()
     #######################################################################
     # UPDATE RPC data
     #
@@ -161,6 +168,7 @@ async def bot_loop_60secs(bot):
     db_data = connect_mysql.get_column(query)
     goutils.log2("DBG", "db_data: "+str(db_data))
 
+    """
     if not db_data==None:
         for guild_id in db_data:
             #update RPC data before using different commands (tb alerts, tb_platoons)
@@ -181,6 +189,46 @@ async def bot_loop_60secs(bot):
 
             except Exception as e:
                 goutils.log2("ERR", traceback.format_exc())
+    """
+
+    # New code from chatGPT
+    MAX_CONCURRENT_RPC = 5
+    rpc_semaphore = asyncio.Semaphore(MAX_CONCURRENT_RPC)
+
+    async def process_guild(guild_id):
+        async with rpc_semaphore:
+            try:
+                # Update RPC data
+                ec, et = await update_rpc_data(guild_id)
+
+                if ec == 401:
+                    await connect_rpc.lock_bot_account(guild_id)
+                    await send_alert_to_bot_owner(guild_id)
+
+                elif ec != 0 and not bot_test_mode:
+                    await send_alert_to_admins(None, f"[{guild_id}] {et}")
+
+                # Log update time
+                query = (
+                    "UPDATE guild_bots "
+                    "SET latest_update=FROM_UNIXTIME("
+                    "ROUND(UNIX_TIMESTAMP(NOW())/60/period,0)*60*period"
+                    ") "
+                    f"WHERE guild_id='{guild_id}'"
+                )
+                goutils.log2("DBG", query)
+                connect_mysql.simple_execute(query)
+
+            except Exception:
+                goutils.log2("ERR", traceback.format_exc())
+
+
+    if db_data is not None:
+        tasks = [asyncio.create_task(process_guild(guild_id))
+                 for guild_id in db_data]
+
+        await asyncio.gather(*tasks)
+    #fin code chatGPT
 
     t_end = time.time()
     goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
@@ -2467,13 +2515,21 @@ def officer_command(ctx):
 class Loop60secsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.loop_60secs.start()
+        self._check_locked_bots_60secs.start()
+        self._update_rpc_60secs.start()
 
     @tasks.loop(seconds=60)
-    async def loop_60secs(self):
-        await bot_loop_60secs(self.bot)
-    @loop_60secs.before_loop
-    async def before_loop_60secs(self):
+    async def _check_locked_bots_60secs(self):
+        await check_locked_bots_60secs(self.bot)
+    @_check_locked_bots_60secs.before_loop
+    async def before_checked_locked_bots_60secs(self):
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(seconds=60)
+    async def _update_rpc_60secs(self):
+        await update_rpc_60secs(self.bot)
+    @_update_rpc_60secs.before_loop
+    async def before_update_rpcts_60secs(self):
         await self.bot.wait_until_ready()
 
 class Loop5minutes(commands.Cog):
