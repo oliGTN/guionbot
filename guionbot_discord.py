@@ -235,7 +235,7 @@ async def update_rpc_60secs(bot):
                 "SET latest_update = FROM_UNIXTIME("
                 "ROUND(UNIX_TIMESTAMP(NOW()) / 60 / period, 0) * 60 * period"
                 ") "
-                "WHERE guild_id IN "+str(tuple(successful_guilds))
+                "WHERE guild_id IN "+str(tuple(successful_guilds)).replace(",)", ")")
             )
             goutils.log2("DBG", query)
             await connect_mysql.simple_execute_async(query)
