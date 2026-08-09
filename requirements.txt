@@ -2,7 +2,7 @@ aiohttp==3.8.5
 discord.py==2.5
 gspread==5.7.2
 matplotlib==3.5.2
-mysql-connector-python==8.0.22
+mysql-connector-python==9.4.0
 nextcord==2.5.0
 numpy==1.24.2
 oauth2client==4.1.3

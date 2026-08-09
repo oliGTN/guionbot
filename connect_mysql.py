@@ -3,6 +3,7 @@ import config
 import sys
 from urllib.parse import uses_netloc, urlparse
 from mysql.connector import MySQLConnection, Error, connect as mysql_connect
+from mysql.connector.aio import connect as mysql_async_connect
 import datetime
 import time
 from wcwidth import wcswidth
@@ -18,6 +19,328 @@ import goutils
 import data
 
 mysql_db = None
+
+
+from contextvars import ContextVar
+
+# ---------------------------------------------------------------------------
+# Legacy synchronous connection
+# ---------------------------------------------------------------------------
+mysql_db = None
+
+# ---------------------------------------------------------------------------
+# Async connection pool
+# ---------------------------------------------------------------------------
+# Keep this modest. Your Discord loop can have more tasks than this, but only
+# ASYNC_MYSQL_POOL_SIZE DB operations can hold a MySQL connection at once.
+ASYNC_MYSQL_POOL_SIZE = 5
+
+_async_pool = None
+_async_pool_init_lock = asyncio.Lock()
+_async_current_connection = ContextVar("mysql_async_current_connection", default=None)
+_async_connection_tokens = {}
+
+
+async def init_async_pool(pool_size=ASYNC_MYSQL_POOL_SIZE):
+    """Create the async MySQL connection pool.
+
+    Safe to call more than once. Prefer calling this once during bot startup.
+    """
+    global _async_pool
+
+    if _async_pool is not None:
+        return
+
+    async with _async_pool_init_lock:
+        if _async_pool is not None:
+            return
+
+        uses_netloc.append("mysql")
+        url = urlparse(config.MYSQL_DATABASE_URL)
+
+        connection_kwargs = {
+            "host": url.hostname,
+            "database": url.path[1:],
+            "user": url.username,
+            "password": url.password,
+            # mysql.connector.aio currently requires the pure-Python
+            # implementation.
+            "use_pure": True,
+            "ssl_disabled": True,
+        }
+
+        # urlparse() gives None when the URL has no explicit port.
+        if url.port is not None:
+            connection_kwargs["port"] = url.port
+
+        goutils.log2(
+            "INFO",
+            f"Creating async MySQL pool with {pool_size} connections"
+        )
+
+        connections = await asyncio.gather(
+            *(mysql_async_connect(**connection_kwargs) for _ in range(pool_size))
+        )
+
+        # Queue stores currently available connections.
+        pool = asyncio.Queue(maxsize=pool_size)
+        for connection in connections:
+            await pool.put(connection)
+
+        _async_pool = pool
+
+
+async def adb_connect():
+    """Acquire an async MySQL connection.
+
+    If the current coroutine already owns a connection (for example
+    update_player() calling get_value_async()), the same connection is reused.
+    This preserves transaction visibility and avoids accidentally using a
+    second connection inside an active transaction.
+    """
+    current = _async_current_connection.get()
+    if current is not None:
+        return current
+
+    if _async_pool is None:
+        await init_async_pool()
+
+    connection = await _async_pool.get()
+    token = _async_current_connection.set(connection)
+
+    # Keep the ContextVar token separately. Some connector objects do not
+    # allow arbitrary attributes.
+    _async_connection_tokens[id(connection)] = token
+    return connection
+
+
+async def release_async_connection(connection):
+    """Return a connection acquired by adb_connect() to the pool."""
+    if connection is None or _async_pool is None:
+        return
+
+    token = _async_connection_tokens.pop(id(connection), None)
+
+    try:
+        # Roll back anything accidentally left open.
+        try:
+            if getattr(connection, "in_transaction", False):
+                await connection.rollback()
+        except Exception:
+            pass
+
+        await _async_pool.put(connection)
+    except Exception as error:
+        # If the connection cannot be returned, close it and create a
+        # replacement so the pool does not permanently lose a slot.
+        goutils.log2("ERR", "Error returning MySQL connection to pool: " + str(error))
+        try:
+            await connection.close()
+        except Exception:
+            pass
+
+        try:
+            url = urlparse(config.MYSQL_DATABASE_URL)
+            kwargs = {
+                "host": url.hostname,
+                "database": url.path[1:],
+                "user": url.username,
+                "password": url.password,
+                "use_pure": True,
+            }
+            if url.port is not None:
+                kwargs["port"] = url.port
+            replacement = await mysql_async_connect(**kwargs)
+            await _async_pool.put(replacement)
+        except Exception as replacement_error:
+            goutils.log2(
+                "ERR",
+                "Unable to replace MySQL connection: " + str(replacement_error)
+            )
+
+    if token is not None:
+        try:
+            _async_current_connection.reset(token)
+        except Exception:
+            pass
+
+
+async def close_async_pool():
+    """Close all async MySQL connections.
+
+    Call this once when the bot shuts down.
+    """
+    global _async_pool
+
+    if _async_pool is None:
+        return
+
+    while not _async_pool.empty():
+        connection = await _async_pool.get()
+        try:
+            await connection.close()
+        except Exception:
+            pass
+
+    _async_pool = None
+
+
+async def simple_execute_async(query, params=None):
+    """Execute one INSERT/UPDATE/DELETE/DDL statement asynchronously."""
+    connection = None
+    cursor = None
+    owns_connection = _async_current_connection.get() is None
+
+    try:
+        connection = await adb_connect()
+
+        cursor = await connection.cursor()
+        await cursor.execute(query, params)
+        await connection.commit()
+
+    except Error as error:
+        goutils.log2("ERR", query)
+        goutils.log2("ERR", error)
+        raise
+
+    finally:
+        if cursor is not None:
+            try:
+                await cursor.close()
+            except Exception:
+                pass
+
+        if owns_connection and connection is not None:
+            await release_async_connection(connection)
+
+
+async def _execute_read_async(query, params=None):
+    """Internal read helper returning all rows."""
+    connection = None
+    cursor = None
+    owns_connection = False
+
+    try:
+        current = _async_current_connection.get()
+        if current is None:
+            connection = await adb_connect()
+            owns_connection = True
+        else:
+            connection = current
+
+        cursor = await connection.cursor(buffered=True)
+        await cursor.execute(query, params)
+        return await cursor.fetchall()
+
+    except Error as error:
+        goutils.log2("ERR", query)
+        goutils.log2("ERR", error)
+        raise
+
+    finally:
+        if cursor is not None:
+            try:
+                await cursor.close()
+            except Exception:
+                pass
+
+        if owns_connection and connection is not None:
+            await release_async_connection(connection)
+
+
+async def get_value_async(query, params=None):
+    rows = await _execute_read_async(query, params)
+    if not rows:
+        return None
+    return rows[0][0]
+
+
+async def get_column_async(query, params=None):
+    rows = await _execute_read_async(query, params)
+    return [row[0] for row in rows]
+
+
+async def get_line_async(query, params=None):
+    rows = await _execute_read_async(query, params)
+    return rows[0] if rows else None
+
+
+async def get_table_async(query, params=None):
+    rows = await _execute_read_async(query, params)
+    return rows if rows else None
+
+
+async def text_query_async(query, params=None):
+    """Async replacement for text_query().
+
+    Connector/Python 9.2+ no longer uses execute(..., multi=True). For the
+    normal single-statement SELECTs used by this bot, one result set is enough.
+    """
+    rows = []
+    cursor = None
+    connection = None
+    owns_connection = False
+
+    try:
+        current = _async_current_connection.get()
+        if current is None:
+            connection = await adb_connect()
+            owns_connection = True
+        else:
+            connection = current
+
+        cursor = await connection.cursor(buffered=True)
+        await cursor.execute(query, params)
+
+        if cursor.with_rows:
+            fetch_results = await cursor.fetchall()
+
+            if fetch_results:
+                widths = []
+                columns = []
+                tavnit = "|"
+                separator = "+"
+
+                for index, cd in enumerate(cursor.description):
+                    max_col_length = max(
+                        wcswidth(str(row[index])) for row in fetch_results
+                    )
+                    widths.append(max(max_col_length, wcswidth(cd[0])))
+                    columns.append(cd[0])
+
+                for width in widths:
+                    tavnit += " %-" + "%s.%ss |" % (width, width)
+                    separator += "-" * width + "--+"
+
+                rows.append(separator)
+                rows.append(tavnit % tuple(columns))
+                rows.append(separator)
+
+                for fetch in fetch_results:
+                    row = "|"
+                    for index, value in enumerate(fetch):
+                        row += " " + wc_ljust(str(value), widths[index]) + " |"
+                    rows.append(row)
+
+                rows.append(separator)
+
+        return rows
+
+    except Error as error:
+        goutils.log2("ERR", query)
+        goutils.log2("ERR", error)
+        return [error]
+
+    finally:
+        if cursor is not None:
+            try:
+                await cursor.close()
+            except Exception:
+                pass
+
+        if owns_connection and connection is not None:
+            await release_async_connection(connection)
+
 
 def db_connect():
     global mysql_db
@@ -203,45 +526,39 @@ def text_query(query):
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
         
-        results = cursor.execute(query, multi=True)
-        #print("results: "+str(results))
-        for cur in results:
-            #print("cur: "+str(cur))
-            # rows.append('cursor: '+ str(cur))
-            if cur.with_rows:
-                fetch_results = cur.fetchall()
-            
-                if len(fetch_results) >0:
-                    widths = []
-                    columns = []
-                    tavnit = '|'
-                    separator = '+' 
-                
-                    index = 0
-                    for cd in cur.description:
-                        #print("fetch_results: "+str(fetch_results))
-                        max_col_length = max(list(map(lambda x: wcswidth(str(x[index])), fetch_results)))
-                        widths.append(max(max_col_length, wcswidth(cd[0])))
-                        columns.append(cd[0])
-                        index+=1
+        cursor.execute(query)
+        results = cursor.fetchall()
+        if len(results) >0:
+            widths = []
+            columns = []
+            tavnit = '|'
+            separator = '+' 
+        
+            index = 0
+            for cd in cur.description:
+                #print("results: "+str(results))
+                max_col_length = max(list(map(lambda x: wcswidth(str(x[index])), results)))
+                widths.append(max(max_col_length, wcswidth(cd[0])))
+                columns.append(cd[0])
+                index+=1
 
-                    for w in widths:
-                        tavnit += " %-"+"%s.%ss |" % (w,w)
-                        separator += '-'*w + '--+'
+            for w in widths:
+                tavnit += " %-"+"%s.%ss |" % (w,w)
+                separator += '-'*w + '--+'
 
-                    rows.append(separator)
-                    rows.append(tavnit % tuple(columns))
-                    rows.append(separator)
+            rows.append(separator)
+            rows.append(tavnit % tuple(columns))
+            rows.append(separator)
 
-                    for fetch in fetch_results:
-                        index=0
-                        row = "|"
-                        for value in fetch:
-                            row += " " + wc_ljust(str(value), widths[index]) + " |"
-                            index+=1
-                        rows.append(row)
+            for result in results:
+                index=0
+                row = "|"
+                for value in result:
+                    row += " " + wc_ljust(str(value), widths[index]) + " |"
+                    index+=1
+                rows.append(row)
 
-                    rows.append(separator)
+            rows.append(separator)
         
         mysql_db.commit()
     except Error as error:
@@ -275,7 +592,6 @@ def simple_execute(query):
 
 def simple_callproc(proc_name, args):
     rows = []
-    tuples = []
     cursor = None
     try:
         mysql_db = db_connect()
@@ -294,18 +610,13 @@ def simple_callproc(proc_name, args):
             cursor.close()
 
 def get_value(query):
-    tuples = []
     cursor = None
     try:
         mysql_db = db_connect()
         cursor = mysql_db.cursor(buffered=True)
         
-        results = cursor.execute(query, multi=True)
-        for cur in results:
-            # rows.append('cursor: '+ str(cur))
-            if cur.with_rows:
-                results = cur.fetchall()
-                tuples.append(results)
+        cursor.execute(query)
+        results = cursor.fetchall()
 
     except Error as error:
         goutils.log2("ERR", query)
@@ -315,13 +626,12 @@ def get_value(query):
         if cursor != None:
             cursor.close()
     
-    if len(tuples[0]) > 0:
-        return tuples[0][0][0]
+    if len(results) > 0:
+        return results[0][0]
     else:
         return None
         
 def get_column(query):
-    tuples = []
     cursor = None
     try:
         mysql_db = db_connect()
@@ -329,12 +639,8 @@ def get_column(query):
         cursor = mysql_db.cursor(buffered=True)
         #print("DBG: cursor="+str(cursor))
         
-        results = cursor.execute(query, multi=True)
-        for cur in results:
-            # rows.append('cursor: '+ str(cur))
-            if cur.with_rows:
-                results = cur.fetchall()
-                tuples.append(results)
+        cursor.execute(query)
+        results = cursor.fetchall()
 
     except Error as error:
         goutils.log2("ERR", query)
@@ -343,11 +649,9 @@ def get_column(query):
     finally:
         if cursor != None:
             cursor.close()
-
-    return [x[0] for x in tuples[0]]
+    return [x[0] for x in results]
     
 def get_line(query):
-    tuples = []
     cursor = None
     #print("get_line("+query+")")
     try:
@@ -356,12 +660,8 @@ def get_line(query):
         cursor = mysql_db.cursor(buffered=True)
         #print("DBG: cursor="+str(cursor))
         
-        results = cursor.execute(query, multi=True)
-        for cur in results:
-            # rows.append('cursor: '+ str(cur))
-            if cur.with_rows:
-                results = cur.fetchall()
-                tuples.append(results)
+        cursor.execute(query)
+        results = cursor.fetchall()
 
     except Error as error:
         goutils.log2("ERR", query)
@@ -371,13 +671,12 @@ def get_line(query):
         if cursor != None:
             cursor.close()
     
-    if len(tuples[0]) == 0:
+    if len(results) == 0:
         return None
     else:
-        return tuples[0][0]
+        return results[0]
     
 def get_table(query):
-    tuples = []
     cursor = None
     try:
         #print("DBG: get_table db_connect")
@@ -388,13 +687,8 @@ def get_table(query):
         #print("DBG: cursor="+str(cursor))
 
         # print("DBG: get_table execute "+query)
-        results = cursor.execute(query, multi=True)
-        for cur in results:
-            # rows.append('cursor: '+ str(cur))
-            if cur.with_rows:
-                #print("DBG: get_table fetchall")
-                results = cur.fetchall()
-                tuples.append(results)
+        cursor.execute(query)
+        results = cursor.fetchall()
 
     except Error as error:
         goutils.log2("ERR", query)
@@ -405,10 +699,10 @@ def get_table(query):
             cursor.close()
 
     #print("DBG: get_table return")
-    if len(tuples[0]) == 0:
+    if len(results) == 0:
         return None
     else:
-        return tuples[0]
+        return results
 
 def insert_roster_evo(allyCode, defId, evo_txt):
     cursor = None
@@ -445,10 +739,11 @@ async def update_player(dict_player):
     dict_stats = data.get("dict_stats.json")
     dict_rules = data.get("targetrules_dict.json")
 
+    mysql_db = None
     cursor = None
     try:
-        mysql_db = db_connect()
-        cursor = mysql_db.cursor()
+        mysql_db = await adb_connect()
+        cursor = await mysql_db.cursor()
         
         # Update basic player information
         p_allyCode = dict_player["allyCode"]
@@ -505,7 +800,7 @@ async def update_player(dict_player):
         query = "INSERT IGNORE INTO players(allyCode) "\
                +"VALUES("+str(p_allyCode)+")"
         #goutils.log2("DBG", query)
-        cursor.execute(query)
+        await cursor.execute(query)
 
         query = "UPDATE players "\
                +"SET guildId = '"+p_guildId+"', "\
@@ -524,7 +819,7 @@ async def update_player(dict_player):
                +"    lastUpdated = CURRENT_TIMESTAMP "\
                +"WHERE allyCode = "+str(p_allyCode)
         goutils.log2("DBG", query)
-        cursor.execute(query)
+        await cursor.execute(query)
 
         # Update the roster
         #goutils.log2("DBG", "update "+str(len(dict_player["rosterUnit"]))+" character(s)")
@@ -556,7 +851,7 @@ async def update_player(dict_player):
                    +"VALUES("+str(p_allyCode)+", '"+c_defId+"')"
             #if character_id.startswith('STORMTROOPER'):
             #    goutils.log2("DBG", query)
-            cursor.execute(query)
+            await cursor.execute(query)
 
             query = "UPDATE roster "\
                    +"SET allyCode = "+str(p_allyCode)+", "\
@@ -615,19 +910,19 @@ async def update_player(dict_player):
                    +"AND   defId = '"+c_defId+"'"
 
             #goutils.log2("DBG", query)
-            cursor.execute(query)
-            mysql_db.commit()
+            await cursor.execute(query)
+            await mysql_db.commit()
 
             #Get DB index roster_id for next queries
             query = "SELECT id FROM roster WHERE allyCode = "+str(p_allyCode)+" AND defId = '"+c_defId+"'"
             #goutils.log2("DBG", query)
-            roster_id = get_value(query)
+            roster_id = await get_value_async(query)
             #goutils.log2("DBG", "roster_id="+str(roster_id))
 
             #Get existing mod IDs from DB
             query = "SELECT id FROM mods WHERE roster_id = "+str(roster_id)
             #goutils.log2("DBG", query)
-            previous_mods_ids = get_column(query)
+            previous_mods_ids = await get_column_async(query)
             #goutils.log2("DBG", previous_mods_ids)
 
             ## GET DEFINITION OF MODS ##
@@ -684,7 +979,7 @@ async def update_player(dict_player):
                     query = "INSERT IGNORE INTO mods(id) "\
                            +"VALUES('"+mod_id+"')"
                     #goutils.log2("DBG", query)
-                    cursor.execute(query)
+                    await cursor.execute(query)
         
                     query = "UPDATE mods "\
                            +"SET roster_id = "+str(roster_id)+", "\
@@ -706,14 +1001,14 @@ async def update_player(dict_player):
                            +"sec4_value = "+str(mod_secondaryStat4_value)+" "\
                            +"WHERE id = '"+mod_id+"'"
                     #goutils.log2("DBG", query)
-                    cursor.execute(query)
+                    await cursor.execute(query)
 
             #remove mods not used anymore
             to_be_removed_mods_ids = tuple(set(previous_mods_ids)-set(current_mods_ids))
             if len(to_be_removed_mods_ids) > 0:
                 query = "DELETE FROM mods WHERE id IN "+ str(tuple(to_be_removed_mods_ids)).replace(",)", ")")
                 #goutils.log2("DBG", query)
-                cursor.execute(query)
+                await cursor.execute(query)
 
             ## GET DEFINITION OF CAPACITIES ##
             for capa in character['skill']:
@@ -733,7 +1028,7 @@ async def update_player(dict_player):
                 query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
                        +"VALUES("+str(roster_id)+", '"+capa_shortname+"')"
                 #goutils.log2("DBG", query)
-                cursor.execute(query)
+                await cursor.execute(query)
 
                 query = "UPDATE roster_skills "\
                        +"SET level = "+str(capa_level)+", "\
@@ -741,7 +1036,7 @@ async def update_player(dict_player):
                        +"WHERE roster_id = "+str(roster_id)+" "\
                        +"AND name = '"+capa_shortname+"'"
                 #goutils.log2("DBG", query)
-                cursor.execute(query)
+                await cursor.execute(query)
 
             ## CHECK FOR ULTIMATE
             if "purchaseAbilityId" in character:
@@ -754,7 +1049,7 @@ async def update_player(dict_player):
                     query = "INSERT IGNORE INTO roster_skills(roster_id, name) "\
                            +"VALUES("+str(roster_id)+", 'ULTI')"
                     #goutils.log2("DBG", query)
-                    cursor.execute(query)
+                    await cursor.execute(query)
 
                     query = "UPDATE roster_skills "\
                            +"SET level = 1, "\
@@ -762,7 +1057,7 @@ async def update_player(dict_player):
                            +"WHERE roster_id = "+str(roster_id)+" "\
                            +"AND name = 'ULTI'"
                     #goutils.log2("DBG", query)
-                    cursor.execute(query)
+                    await cursor.execute(query)
 
             #SLEEP at the end of character loop
             await asyncio.sleep(0)
@@ -772,7 +1067,7 @@ async def update_player(dict_player):
             #Get existing datacron IDs from DB
             query = "SELECT id FROM datacrons WHERE allyCode = "+str(p_allyCode)
             goutils.log2("DBG", query)
-            previous_datacrons_ids = get_column(query)
+            previous_datacrons_ids = await get_column_async(query)
             goutils.log2("DBG", previous_datacrons_ids)
 
             current_datacrons_ids = []
@@ -822,7 +1117,7 @@ async def update_player(dict_player):
                 query = "INSERT IGNORE INTO datacrons(id) "\
                        +"VALUES('"+datacron_id+"')"
                 goutils.log2("DBG", query)
-                cursor.execute(query)
+                await cursor.execute(query)
     
                 query = "UPDATE datacrons "\
                        +"SET allyCode = "+str(p_allyCode)+", "\
@@ -839,7 +1134,7 @@ async def update_player(dict_player):
                     query+= ", level_15 = '"+str(datacron_level_15)+"' "
                 query+= "WHERE id = '"+datacron_id+"'"
                 goutils.log2("DBG", query)
-                cursor.execute(query)
+                await cursor.execute(query)
 
             #remove datacrons not used anymore
             # The removal of datacrons is only done if there was at least ONE change
@@ -849,7 +1144,7 @@ async def update_player(dict_player):
             if len(to_be_removed_datacrons_ids) > 0:
                 query = "DELETE FROM datacrons WHERE id IN "+ str(tuple(to_be_removed_datacrons_ids)).replace(",)", ")")
                 goutils.log2("DBG", query)
-                cursor.execute(query)
+                await cursor.execute(query)
 
 
 
@@ -865,7 +1160,7 @@ async def update_player(dict_player):
               + "(sec3_stat=5 AND sec3_value>=15) OR " \
               + "(sec4_stat=5 AND sec4_value>=15)) "
         #goutils.log2("DBG", query)
-        p_modq = get_value(query)
+        p_modq = await get_value_async(query)
         if p_modq==None:
             p_modq = "NULL"
 
@@ -879,7 +1174,7 @@ async def update_player(dict_player):
                +"    statq = GREATEST("+str(p_statq)+", statq) "\
                +"WHERE allyCode = "+str(p_allyCode)
         #goutils.log2("DBG", query)
-        cursor.execute(query)
+        await cursor.execute(query)
 
         #Manage GP history
         # Define delta minutes versus po time
@@ -894,7 +1189,7 @@ async def update_player(dict_player):
         query = "INSERT IGNORE INTO gp_history(date, allyCode) "\
                +"VALUES(CURDATE(), "+str(p_allyCode)+")"
         #goutils.log2("DBG", query)
-        cursor.execute(query)
+        await cursor.execute(query)
 
         query = "UPDATE gp_history "\
                +"SET guildName = '"+p_guildName.replace("'", "''")+"', "\
@@ -911,9 +1206,9 @@ async def update_player(dict_player):
                +"WHERE date = CURDATE() "\
                +"AND allyCode = "+str(p_allyCode)
         #goutils.log2("DBG", query)
-        cursor.execute(query)
+        await cursor.execute(query)
 
-        mysql_db.commit()
+        await mysql_db.commit()
     except Error as error:
         goutils.log2("ERR", query)
         goutils.log2("ERR", error)
@@ -921,7 +1216,9 @@ async def update_player(dict_player):
         
     finally:
         if cursor != None:
-            cursor.close()
+            await cursor.close()
+        if mysql_db is not None:
+            await release_async_connection(mysql_db)
     
     return 0, ""
 
@@ -1159,7 +1456,7 @@ list_statq_stats.append(["protec", 28, False])
 async def get_player_statq(txt_allyCode):
 
     query = "select count(*) from statq_table"
-    statq_count = get_value(query)
+    statq_count = await get_value_async(query)
 
     query = "SELECT \n" \
           + "defId,stat_name,stat_value, stat_target, \n" \
@@ -1222,7 +1519,7 @@ async def get_player_statq(txt_allyCode):
           + "WHERE players.allyCode = "+txt_allyCode
 
     goutils.log2("DBG", query)
-    db_data = get_table(query)
+    db_data = await get_table_async(query)
     if db_data==None:
         db_data=[]
         statq = 0
@@ -1232,11 +1529,11 @@ async def get_player_statq(txt_allyCode):
 
         #update staq for player
         query = "UPDATE players SET statq="+str(statq)+" WHERE allyCode="+txt_allyCode
-        simple_execute(query)
+        await simple_execute_async(query)
 
         #update daily statq for player
         query = "UPDATE gp_history SET statq="+str(statq)+" WHERE allyCode="+txt_allyCode+" AND date=DATE(current_timestamp)"
-        simple_execute(query)
+        await simple_execute_async(query)
 
     return 0, "", statq, db_data
 
@@ -1469,7 +1766,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             "WHERE tb_id='"+tb_id+"' "\
             "AND guild_id='"+guild_id+"' "
     goutils.log2("DBG", query)
-    db_data = get_value(query)
+    db_data = await get_value_async(query)
 
     if db_data==None:
         tb_ts = int(tb_id.split(":")[1][1:-3])
@@ -1480,14 +1777,14 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 "'"+tb_date+"', '"+guild_id+"', "\
                 ""+str(tb_round)+") "
         goutils.log2("DBG", query)
-        simple_execute(query)
+        await simple_execute_async(query)
 
         # Get the id of the new TB
         query = "SELECT id FROM tb_history " \
                 "WHERE tb_id='"+tb_id+"' "\
                 "AND guild_id='"+guild_id+"' "
         goutils.log2("DBG", query)
-        tb_db_id = str(get_value(query))
+        tb_db_id = str(await get_value_async(query))
     else:
         tb_db_id = str(db_data)
         query = "UPDATE tb_history "\
@@ -1495,7 +1792,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 "current_round="+str(tb_round)+" "\
                 "WHERE id="+str(tb_db_id)
         goutils.log2("DBG", query)
-        simple_execute(query)
+        await simple_execute_async(query)
 
     ##################################
     # TB phase / day / round
@@ -1505,7 +1802,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             "WHERE tb_id='"+tb_db_id+"' "\
             "AND round="+str(tb_round)
     goutils.log2("DBG", query)
-    db_data = get_value(query)
+    db_data = await get_value_async(query)
 
     if db_data==None:
         query = "INSERT INTO tb_phases(tb_id, round, prev_stars) " \
@@ -1514,14 +1811,14 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 ""+str(tb_round)+", "\
                 ""+str(dict_phase["prev_stars"])+") "
         goutils.log2("DBG", query)
-        simple_execute(query)
+        await simple_execute_async(query)
 
         # Get the id of the new TB phase
         query = "SELECT id FROM tb_phases " \
                 "WHERE tb_id='"+tb_db_id+"' "\
                 "AND round="+str(tb_round)
         goutils.log2("DBG", query)
-        phase_id = str(get_value(query))
+        phase_id = str(await get_value_async(query))
     else:
         phase_id = str(db_data)
 
@@ -1557,7 +1854,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             "remainingMixPlayers = "+str(remainingMixPlayers)+" "\
             "WHERE id="+str(phase_id)
     goutils.log2("DBG", query)
-    simple_execute(query)
+    await simple_execute_async(query)
 
     ##################################
     # TB zones
@@ -1589,7 +1886,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     "ORDER BY round DESC "\
                     "LIMIT 1 "
         goutils.log2("DBG", query)
-        db_data = get_value(query)
+        db_data = await get_value_async(query)
 
         score_step1 = str(dict_tb[zone_fullname]["scores"][0])
         score_step2 = str(dict_tb[zone_fullname]["scores"][1])
@@ -1605,7 +1902,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     "VALUES("+tb_db_id+", '"+zone_fullname+"', '"+zone_shortname+"', "+zone_round+", "+round+", "\
                     ""+score_step1+", "+score_step2+", "+score_step3+", "+is_bonus+") "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
             # Get the id of the new Zone
             query = "SELECT id FROM tb_zones " \
@@ -1613,7 +1910,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     "AND zone_id='"+zone_fullname+"' "\
                     "AND round="+round+" "
             goutils.log2("DBG", query)
-            zone_db_id = str(get_value(query))
+            zone_db_id = str(await get_value_async(query))
         else:
             zone_db_id = str(db_data)
 
@@ -1663,7 +1960,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 "    recon_cmdCmd="+str(recon_cmdCmd)+" "\
                 "WHERE id="+zone_db_id+" "
         goutils.log2("DBG", query)
-        simple_execute(query)
+        await simple_execute_async(query)
 
         #breathe
         await asyncio.sleep(0)
@@ -1675,7 +1972,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             "FROM tb_player_score "\
             "WHERE tb_id="+str(tb_db_id)
     goutils.log2("DBG", query)
-    db_data = get_table(query)
+    db_data = await get_table_async(query)
     if db_data == None:
         db_data = []
     dict_db_players = {}
@@ -1712,7 +2009,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                         ""+str(score_platoons)+", "+str(score_deployed)+", "\
                         ""+str(strikes)+", "+str(waves)+") "
                 goutils.log2("DBG", query)
-                simple_execute(query)
+                await simple_execute_async(query)
 
             else:
                 # player/round already exists
@@ -1734,7 +2031,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                             "AND player_id='"+id+"' "\
                             "AND round="+str(round)+" "
                     goutils.log2("DBG", query)
-                    simple_execute(query)
+                    await simple_execute_async(query)
 
         #breathe
         await asyncio.sleep(0)
@@ -1747,7 +2044,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
     # Get the DB tb_id from the game tb_id and the guild_id
     query = "SELECT id FROM tb_history WHERE tb_id='"+tb_id+"' AND guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    tb_db_id = get_value(query)
+    tb_db_id = await get_value_async(query)
 
     if tb_db_id == None:
         return
@@ -1782,7 +2079,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
                     ""+str(param2)+", "\
                     ""+str(param3)+") "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
         elif "COVERT_COMPLETE" in activity["zoneData"]["activityLogMessage"]["key"]:
             zone_data = activity["zoneData"]
@@ -1796,7 +2093,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
                     "'"+zone_id+"', "\
                     "'"+author_id+"') "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
         elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
             zone_data = activity["zoneData"]
@@ -1812,7 +2109,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
                     "'"+author_id+"', "\
                     ""+str(param0)+") "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
         elif "RECON_CONTRIBUTION" in activity["zoneData"]["activityLogMessage"]["key"]:
             zone_data = activity["zoneData"]
@@ -1832,7 +2129,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
                     ""+str(param2)+", "\
                     ""+str(param3)+") "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
         #breathe
         await asyncio.sleep(0)
@@ -1849,7 +2146,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
             "WHERE tb_id='"+tb_id+"' "\
             "AND guild_id='"+guild_id+"' "
     goutils.log2("DBG", query)
-    db_data = get_value(query)
+    db_data = await get_value_async(query)
 
     if db_data==None:
         #wait for TB to be created
@@ -1863,7 +2160,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
             "FROM tb_platoons "\
             "WHERE tb_id="+str(tb_db_id)
     goutils.log2("DBG", query)
-    db_data = get_table(query)
+    db_data = await get_table_async(query)
     if db_data==None:
         db_data = []
 
@@ -1894,7 +2191,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
                                         "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
                                 goutils.log2("DBG", query)
                                 goutils.log2("INFO", "CHECK for empty playername: "+query)
-                                simple_execute(query)
+                                await simple_execute_async(query)
                 else:
                     if player_name!='':
                         for player_name in dict_platoons_done[platoon_name][unit_name]:
@@ -1902,7 +2199,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
                                     "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
                             #goutils.log2("DBG", query)
                             goutils.log2("INFO", "CHECK for empty playername: "+query)
-                            simple_execute(query)
+                            await simple_execute_async(query)
 
         else:
             # new platoon
@@ -1913,7 +2210,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
                                 "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
                         #goutils.log2("DBG", query)
                         goutils.log2("INFO", "CHECK for empty playername: "+query)
-                        simple_execute(query)
+                        await simple_execute_async(query)
 
     return
 
@@ -1929,7 +2226,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
             "WHERE tw_id='"+tw_id+"' "\
             "AND guild_id='"+guild_id+"' "
     goutils.log2("DBG", query)
-    db_data = get_value(query)
+    db_data = await get_value_async(query)
 
     if db_data==None:
         # Create TW in tw_history
@@ -1941,14 +2238,14 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 "'"+opp_guild_id+"', '"+opp_guild_name.replace("'", "''")+"', "\
                 ""+str(score)+", "+str(opp_score)+") "
         goutils.log2("DBG", query)
-        simple_execute(query)
+        await simple_execute_async(query)
 
         # Get TB id
         query = "SELECT id FROM tw_history " \
                 "WHERE tw_id='"+tw_id+"' "\
                 "AND guild_id='"+guild_id+"' "
         goutils.log2("DBG", query)
-        tw_db_id = get_value(query)
+        tw_db_id = await get_value_async(query)
     else:
         # Update existing TW
         tw_db_id = str(db_data)
@@ -1958,13 +2255,13 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 "    awayScore="+str(opp_score)+" "\
                 "WHERE id="+str(tw_db_id)
         goutils.log2("DBG", query)
-        simple_execute(query)
+        await simple_execute_async(query)
 
     # Get DB TW zones
     query = "SELECT id, side, zone_name, size, filled, victories, fails FROM tw_zones " \
             "WHERE tw_id="+str(tw_db_id)
     goutils.log2("DBG", query)
-    db_data = get_table(query)
+    db_data = await get_table_async(query)
     if db_data==None:
         db_data=[]
 
@@ -2017,7 +2314,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         ""+status_txt+", "\
                         ""+zoneState_txt+") "
                 goutils.log2("DBG", query)
-                simple_execute(query)
+                await simple_execute_async(query)
 
                 # Get the id of the new Zone
                 query = "SELECT id FROM tw_zones " \
@@ -2025,7 +2322,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         "AND side='"+side+"' "\
                         "AND zone_id='"+zone_id+"' "
                 goutils.log2("DBG", query)
-                zone_db_id = str(get_value(query))
+                zone_db_id = str(await get_value_async(query))
 
             else:
                 zone_db_id = dict_tw_zones[side][zone_name][0]
@@ -2039,7 +2336,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         "    zoneState="+zoneState_txt+" "\
                         "WHERE id="+str(zone_db_id)+" "
                 goutils.log2("DBG", query)
-                simple_execute(query)
+                await simple_execute_async(query)
 
             # breathe
             await asyncio.sleep(0)
@@ -2050,7 +2347,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 "WHERE tw_id="+str(tw_db_id)+" "\
                 "AND side='"+side+"'"
         goutils.log2("DBG", query)
-        db_data = get_table(query)
+        db_data = await get_table_async(query)
         if db_data == None:
             db_data = []
 
@@ -2092,7 +2389,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         ""+str(is_beaten)+", "+str(fights)+", "+str(squad_gp)+", "\
                         ""+datacron_id_txt+")"
                 goutils.log2("DBG", query)
-                simple_execute(query)
+                await simple_execute_async(query)
             else:
                 # update
                 if [is_beaten, fights] != dict_tw_squads[squad_id][2:4]:
@@ -2101,7 +2398,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                             "fights="+str(fights)+" "\
                             "WHERE id='"+squad_id+"' "
                     goutils.log2("DBG", query)
-                    simple_execute(query)
+                    await simple_execute_async(query)
 
             # Check / create squad cells in DB
             cellIndex = 0
@@ -2121,7 +2418,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                             ""+str(tier)+", "\
                             ""+str(unitRelicTier)+") "
                     goutils.log2("DBG", query)
-                    simple_execute(query)
+                    await simple_execute_async(query)
 
                 cellIndex += 1
 
@@ -2137,7 +2434,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
     # Get the DB tw_id from the game tw_id and the guild_id
     query = "SELECT id FROM tw_history WHERE tw_id='"+tw_id+"' AND guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    tw_db_id = get_value(query)
+    tw_db_id = await get_value_async(query)
 
     if tw_db_id==None:
         # TW not registered yet, wait for next time
@@ -2173,7 +2470,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         "'"+squad_id+"', "\
                         "'"+leader_id+"') "
                 goutils.log2("DBG", query)
-                simple_execute(query)
+                await simple_execute_async(query)
 
         elif "warSquad" in activity:
             squad_id = activity["warSquad"]["squadId"]
@@ -2206,7 +2503,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         ""+str(count_dead)+", "\
                         ""+str(int(remaining_tm))+") "
                 goutils.log2("DBG", query)
-                simple_execute(query)
+                await simple_execute_async(query)
 
             else: # no squad, only squad_id
                 query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
@@ -2218,12 +2515,12 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         "'"+author_id+"', "\
                         "'"+squad_id+"') "
                 goutils.log2("DBG", query)
-                simple_execute(query)
+                await simple_execute_async(query)
 
 
         else: # no warSquad > score event
             if not "scoreDelta" in activity["zoneData"]:
-                print("no scoreDelta", event)
+                goutils.log2("WAR", "no scoreDelta in "+str(event))
             scoreDelta = activity["zoneData"]["scoreDelta"]
             scoreTotal = activity["zoneData"]["scoreTotal"]
 
@@ -2237,7 +2534,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     ""+scoreDelta+", "\
                     ""+scoreTotal+") "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
         # breathe
         await asyncio.sleep(0)
@@ -2252,7 +2549,7 @@ async def update_guild(dict_guild):
                     "WHERE guild_id='"+guild_id+"' "\
                     "AND tb_id='"+tb_id+"' "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
 async def update_extguild(dict_guild):
     guild_id = dict_guild["profile"]["id"]
@@ -2273,6 +2570,6 @@ async def update_extguild(dict_guild):
                     "WHERE guild_id='"+guild_id+"' "\
                     "AND tw_id='"+tw_id+"' "
             goutils.log2("DBG", query)
-            simple_execute(query)
+            await simple_execute_async(query)
 
 

@@ -4,6 +4,7 @@
 
 import os
 import sys
+import aiohttp
 import asyncio
 import time
 import datetime
@@ -195,39 +196,54 @@ async def update_rpc_60secs(bot):
     MAX_CONCURRENT_RPC = 5
     rpc_semaphore = asyncio.Semaphore(MAX_CONCURRENT_RPC)
 
-    async def process_guild(guild_id):
-        async with rpc_semaphore:
-            try:
-                # Update RPC data
+
+    async def process_rpc_update(guild_id):
+        try:
+            async with rpc_semaphore:
                 ec, et = await update_rpc_data(guild_id)
 
-                if ec == 401:
-                    await connect_rpc.lock_bot_account(guild_id)
-                    await send_alert_to_bot_owner(guild_id)
+            if ec == 401:
+                await connect_rpc.lock_bot_account(guild_id)
+                await send_alert_to_bot_owner(guild_id)
 
-                elif ec != 0 and not bot_test_mode:
-                    await send_alert_to_admins(None, f"[{guild_id}] {et}")
+            elif ec != 0 and not bot_test_mode:
+                await send_alert_to_admins(None, f"[{guild_id}] {et}")
 
-                # Log update time
-                query = (
-                    "UPDATE guild_bots "
-                    "SET latest_update=FROM_UNIXTIME("
-                    "ROUND(UNIX_TIMESTAMP(NOW())/60/period,0)*60*period"
-                    ") "
-                    f"WHERE guild_id='{guild_id}'"
-                )
-                goutils.log2("DBG", query)
-                connect_mysql.simple_execute(query)
+            return guild_id, ec, et
 
-            except Exception:
-                goutils.log2("ERR", traceback.format_exc())
+        except Exception:
+            goutils.log2(
+                "ERR",
+                f"[{guild_id}] {traceback.format_exc()}"
+            )
+            return guild_id, -1, "exception"
 
+    if db_data:
+        results = await asyncio.gather(
+            *(process_rpc_update(guild_id) for guild_id in db_data)
+        )
 
-    if db_data is not None:
-        tasks = [asyncio.create_task(process_guild(guild_id))
-                 for guild_id in db_data]
+        #Update guilde latestUpdate
+        successful_guilds = [
+            guild_id
+            for guild_id, ec, et in results
+            if ec == 0
+        ]
+        if successful_guilds:
+            placeholders = ",".join(["%s"] * len(successful_guilds))
 
-        await asyncio.gather(*tasks)
+            query = (
+                "UPDATE guild_bots "
+                "SET latest_update = FROM_UNIXTIME("
+                "ROUND(UNIX_TIMESTAMP(NOW()) / 60 / period, 0) * 60 * period"
+                ") "
+                f"WHERE guild_id IN ({placeholders})"
+            )
+
+            await connect_mysql.execute_async(
+                query,
+                tuple(successful_guilds)
+            )
     #fin code chatGPT
 
     t_end = time.time()
@@ -1916,16 +1932,35 @@ async def read_gsheets(guild_id):
 ##############################################################
 @bot.event
 async def on_ready():
-    await bot.change_presence(activity=Activity(type=ActivityType.listening, name="go.help"))
+    await bot.change_presence(
+        activity=Activity(
+            type=ActivityType.listening,
+            name="go.help"
+        )
+    )
 
-    #recover external IP address
-    #ip = requests.get('https://api.ipify.org').text
-    ip = requests.get('https://v4.ident.me').text
-    
-    msg = bot.user.name+" has connected to Discord from ip "+ip
+    try:
+        async with bot.http_session.get(
+            "https://v4.ident.me"
+        ) as response:
+            ip = await response.text()
+
+    except Exception:
+        ip = "unknown"
+        goutils.log2("ERR", traceback.format_exc())
+
+    msg = (
+        bot.user.name
+        + " has connected to Discord from ip "
+        + ip
+    )
+
     goutils.log2("INFO", msg)
+
     if not bot_test_mode:
         await send_alert_to_admins(None, msg)
+
+    goutils.log2("INFO", "on_ready() completed")
 
 @bot.event
 async def on_resumed():
@@ -2515,22 +2550,44 @@ def officer_command(ctx):
 class Loop60secsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        goutils.log2("INFO", "Start check_locked_bots_60secs")
         self._check_locked_bots_60secs.start()
+        goutils.log2("INFO", "Start update_rpc_60secs")
         self._update_rpc_60secs.start()
 
     @tasks.loop(seconds=60)
     async def _check_locked_bots_60secs(self):
+        goutils.log2("INFO", "Loop check_locked_bots_60secs")
         await check_locked_bots_60secs(self.bot)
     @_check_locked_bots_60secs.before_loop
     async def before_checked_locked_bots_60secs(self):
+        goutils.log2("INFO", "Waiting for Discord ready: check_locked_bots_60secs")
         await self.bot.wait_until_ready()
+        goutils.log2("INFO", "Discord ready: check_locked_bots_60secs")
+    @_check_locked_bots_60secs.error
+    async def check_locked_bots_60secs_error(self, error):
+        goutils.log2(
+            "ERR",
+            f"check_locked_bots_60secs stopped: {type(error).__name__}: {error}"
+        )
+        goutils.log2("ERR", traceback.format_exc())
 
     @tasks.loop(seconds=60)
     async def _update_rpc_60secs(self):
+        goutils.log2("INFO", "Loop update_rpc_60secs")
         await update_rpc_60secs(self.bot)
     @_update_rpc_60secs.before_loop
     async def before_update_rpcts_60secs(self):
+        goutils.log2("INFO", "Waiting for Discord ready: update_rpc_60secs")
         await self.bot.wait_until_ready()
+        goutils.log2("INFO", "Discord ready: update_rpc_60secs")
+    @_update_rpc_60secs.error
+    async def update_rpc_60secs_error(self, error):
+        goutils.log2(
+            "ERR",
+            f"update_rpc_60secs stopped: {type(error).__name__}: {error}"
+        )
+        goutils.log2("ERR", traceback.format_exc())
 
 class Loop5minutes(commands.Cog):
     def __init__(self, bot):
@@ -7937,6 +7994,16 @@ async def main():
             os.remove("CACHE/"+cache_file)
     parallel_work.clean_cache()
 
+    # Initialize MySQL async connection pool
+    goutils.log2("INFO", "Initializing MySQL async pool...")
+    await connect_mysql.init_async_pool()
+
+    #Initialize HTTP session
+    goutils.log2("INFO", "Initializing HTTP connection...")
+    bot.http_session = aiohttp.ClientSession(
+        timeout=aiohttp.ClientTimeout(total=10)
+    )
+
     #Ajout des commandes groupées par catégorie
     goutils.log2("INFO", "Create Cogs...")
     await bot.add_cog(AdminCog(bot))
@@ -7950,16 +8017,24 @@ async def main():
     await bot.add_cog(AuthCog(bot))
 
     if bot_background_tasks:
+        goutils.log2("INFO", "Start loops...")
         await bot.add_cog(Loop60secsCog(bot))
         await bot.add_cog(Loop5minutes(bot))
         await bot.add_cog(Loop60minutes(bot))
+    else:
+        goutils.log2("WAR", "Don't start loops...")
 
     #General settings
     locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
 
-    #Lancement du bot
-    goutils.log2("INFO", "Run bot...")
-    await bot.start(TOKEN, reconnect=True)
+    try:
+        #Lancement du bot
+        goutils.log2("INFO", "Run bot...")
+        await bot.start(TOKEN, reconnect=True)
+
+    finally:
+        goutils.log2("INFO", "Closing MySQL async pool...")
+        await connect_mysql.close_async_pool()
 
 if __name__ == "__main__":
     asyncio.run(main())
