@@ -230,20 +230,15 @@ async def update_rpc_60secs(bot):
             if ec == 0
         ]
         if successful_guilds:
-            placeholders = ",".join(["%s"] * len(successful_guilds))
-
             query = (
                 "UPDATE guild_bots "
                 "SET latest_update = FROM_UNIXTIME("
                 "ROUND(UNIX_TIMESTAMP(NOW()) / 60 / period, 0) * 60 * period"
                 ") "
-                f"WHERE guild_id IN ({placeholders})"
+                "WHERE guild_id IN "+str(tuple(successful_guilds))
             )
-
-            await connect_mysql.execute_async(
-                query,
-                tuple(successful_guilds)
-            )
+            goutils.log2("DBG", query)
+            await connect_mysql.simple_execute_async(query)
     #fin code chatGPT
 
     t_end = time.time()
