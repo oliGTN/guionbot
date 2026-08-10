@@ -535,7 +535,7 @@ def text_query(query):
             separator = '+' 
         
             index = 0
-            for cd in cur.description:
+            for cd in cursor.description:
                 #print("results: "+str(results))
                 max_col_length = max(list(map(lambda x: wcswidth(str(x[index])), results)))
                 widths.append(max(max_col_length, wcswidth(cd[0])))
