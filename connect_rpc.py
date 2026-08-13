@@ -86,7 +86,7 @@ async def unlock_bot_account(guild_id):
 async def islocked_bot_account(bot_allyCode):
     query = "SELECT NOT isnull(locked_since) FROM guild_bots WHERE allyCode="+str(bot_allyCode)
     goutils.log2("DBG", query)
-    await db_data = connect_mysql.get_value_async(query)
+    db_data = await connect_mysql.get_value_async(query)
     if db_data == None:
         return 0
     else:
