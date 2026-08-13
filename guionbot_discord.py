@@ -112,7 +112,7 @@ async def check_locked_bots_60secs(bot):
                 "AND timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP)>0 "
 
         goutils.log2("INFO", query)
-        db_data = connect_mysql.get_table(query)
+        db_data = await connect_mysql.get_table_async(query)
         goutils.log2("INFO", "Required bot_locked_reminder db_data: "+str(db_data))
         if not db_data==None:
             for guild_bot in db_data:
@@ -129,7 +129,7 @@ async def check_locked_bots_60secs(bot):
                     query = "INSERT INTO events(type, guild_id, event_id) "\
                             "VALUES('bot_locked_reminder', '"+guild_id+"','ELAPSED:"+str(delta_hours)+"') "
                     goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                    await connect_mysql.simple_execute_async(query)
 
                 else:
                     #bot account, re-activate it
@@ -146,6 +146,9 @@ async def check_locked_bots_60secs(bot):
     t_end = time.time()
     goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
+#Create semaphores at module level
+MAX_CONCURRENT_RPC = 5
+rpc_semaphore_60secs = asyncio.Semaphore(MAX_CONCURRENT_RPC)
 
 async def update_rpc_60secs(bot):
     goutils.log2("INFO", "START loop")
@@ -166,7 +169,7 @@ async def update_rpc_60secs(bot):
             "AND mod(minute(CURRENT_TIMESTAMP), period)=0 "\
             "AND NOT isnull(guild_bots.allyCode) "
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_column(query)
+    db_data = await connect_mysql.get_column_async(query)
     goutils.log2("DBG", "db_data: "+str(db_data))
 
     """
@@ -174,7 +177,8 @@ async def update_rpc_60secs(bot):
         for guild_id in db_data:
             #update RPC data before using different commands (tb alerts, tb_platoons)
             try:
-                ec, et = await update_rpc_data(guild_id)
+                async with rpc_semaphore_60secs:
+                    ec, et = await update_rpc_data(guild_id)
                 if ec==401:
                     await connect_rpc.lock_bot_account(guild_id)
                     await send_alert_to_bot_owner(guild_id)
@@ -193,8 +197,6 @@ async def update_rpc_60secs(bot):
     """
 
     # New code from chatGPT
-    MAX_CONCURRENT_RPC = 5
-    rpc_semaphore = asyncio.Semaphore(MAX_CONCURRENT_RPC)
 
 
     async def process_rpc_update(guild_id):
@@ -8028,6 +8030,10 @@ async def main():
         await bot.start(TOKEN, reconnect=True)
 
     finally:
+        goutils.log2("INFO", "Closing HTTP session...")
+        if bot.http_session is not None:
+            await bot.http_session.close()
+
         goutils.log2("INFO", "Closing MySQL async pool...")
         await connect_mysql.close_async_pool()
 
