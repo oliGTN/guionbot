@@ -147,6 +147,7 @@ async def release_async_connection(connection):
                 "user": url.username,
                 "password": url.password,
                 "use_pure": True,
+                "ssl_disabled": True,
             }
             if url.port is not None:
                 kwargs["port"] = url.port
