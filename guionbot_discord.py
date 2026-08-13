@@ -198,10 +198,13 @@ async def update_rpc_60secs(bot):
     # New code from chatGPT
 
 
-    async def process_rpc_update(guild_id):
+    async def process_rpc_update(guild_id, guild_bots):
         try:
             async with rpc_semaphore_60secs:
-                ec, et = await update_rpc_data(guild_id)
+                ec, et = await update_rpc_data(
+                    guild_id,
+                    guild_bots=guild_bots
+                )
 
             if ec == 401:
                 await connect_rpc.lock_bot_account(guild_id)
@@ -220,9 +223,9 @@ async def update_rpc_60secs(bot):
             return guild_id, -1, "exception"
 
     if db_data:
-        guild_bots = connect_rpc.get_dict_bot_accounts()
+        guild_bots = await connect_rpc.get_dict_bot_accounts()
         results = await asyncio.gather(
-            *(process_rpc_update(guild_id, guild_bots=guild_bots) for guild_id in db_data)
+            *(process_rpc_update(guild_id, guild_bots) for guild_id in db_data)
         )
 
         #Update guilde latestUpdate
@@ -260,7 +263,7 @@ async def bot_loop_5minutes(bot):
     goutils.log2("INFO", "START loop")
     t_start = time.time()
 
-    guild_bots = connect_rpc.get_dict_bot_accounts()
+    guild_bots = await connect_rpc.get_dict_bot_accounts()
 
     for guild_id in guild_bots:
         #################################
@@ -1574,7 +1577,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 
     #Get guild infos from warbot or player
     if guild_bots==None:
-        guild_bots = connect_rpc.get_dict_bot_accounts()
+        guild_bots = await connect_rpc.get_dict_bot_accounts()
     if allyCode==None:
         # this is a guild with warbot
         guildName = guild_bots[guild_id]["guildName"]

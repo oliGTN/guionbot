@@ -26,7 +26,7 @@ from semaphores import acquire_sem, release_sem
 prev_dict_guild = {} #key=guild_id
 prev_mapstats = {} #key=guild_id
 
-def get_dict_bot_accounts():
+async def get_dict_bot_accounts():
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, "\
             "locked_since, guild_bots.priority_cache, lock_when_played, force_auth,"\
             "twChanOut_id, tbChanOut_id, tbChanEnd_id, " \
@@ -36,7 +36,7 @@ def get_dict_bot_accounts():
             "JOIN guilds ON guilds.id=guild_bots.guild_id "\
             "WHERE NOT isnull(guild_bots.allyCode) "
     #goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
 
     ret_dict = {}
     if db_data != None:
@@ -55,38 +55,38 @@ def get_dict_bot_accounts():
     return ret_dict
 
 async def lock_bot_account(guild_id):
-    dict_bot_accounts = get_dict_bot_accounts()
+    dict_bot_accounts = await get_dict_bot_accounts()
     if not guild_id in dict_bot_accounts:
         return 1, "Ce serveur discord n'a pas de warbot"
 
     locked_since_txt = datetime.datetime.fromtimestamp(int(time.time())).strftime("%Y-%m-%d %H:%M:%S")
     query = "UPDATE guild_bots SET locked_since='"+locked_since_txt+"' WHERE guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     #Reset all reminder events
     query = "DELETE FROM events WHERE guild_id='"+guild_id+"' AND type='bot_locked_reminder'"
     goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     return 0, ""
 
 async def unlock_bot_account(guild_id):
     query = "UPDATE guild_bots SET locked_since=NULL, force_auth=1 WHERE guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     #Reset all reminder events
     query = "DELETE FROM events WHERE guild_id='"+guild_id+"' AND type='bot_locked_reminder'"
     goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     return 0, ""
 
-def islocked_bot_account(bot_allyCode):
+async def islocked_bot_account(bot_allyCode):
     query = "SELECT NOT isnull(locked_since) FROM guild_bots WHERE allyCode="+str(bot_allyCode)
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_value(query)
+    await db_data = connect_mysql.get_value_async(query)
     if db_data == None:
         return 0
     else:
@@ -149,9 +149,9 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
 
 #########################################
 # Get connection data
-def get_connection_parameters(guild_id, force_update, allyCode):
+async def get_connection_parameters(guild_id, force_update, allyCode):
     if allyCode == None:
-        dict_bot_accounts = get_dict_bot_accounts()
+        dict_bot_accounts = await get_dict_bot_accounts()
         if not guild_id in dict_bot_accounts:
             return 1, "Ce serveur discord n'a pas de warbot", None, None, None
 
@@ -167,7 +167,7 @@ def get_connection_parameters(guild_id, force_update, allyCode):
     goutils.log2("DBG", "connected account for "+str(guild_id)+" is "+str(bot_allyCode))
 
     #locking bot has priority. Cannot be overriden
-    if islocked_bot_account(bot_allyCode):
+    if await islocked_bot_account(bot_allyCode):
         use_cache_data = True
         goutils.log2("WAR", "the connected account is being used... using cached data")
     else:
@@ -192,7 +192,7 @@ async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
     err_c, err_t, \
     bot_allyCode, \
     use_cache_data, \
-    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
+    retryAuth = await get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
         return err_c, err_t, None
@@ -276,7 +276,7 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
     err_c, err_t, \
     bot_allyCode, \
     use_cache_data, \
-    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
+    retryAuth = await get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
         return err_c, err_t, None
@@ -335,7 +335,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     err_c, err_t, \
     bot_allyCode, \
     use_cache_data, \
-    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
+    retryAuth = await get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
         return err_c, err_t, None
@@ -741,7 +741,7 @@ async def get_bot_player_data(guild_id, use_cache_data):
 
     # Manage cache
     use_cache_data = False
-    if islocked_bot_account(bot_allyCode):
+    if await islocked_bot_account(bot_allyCode):
         use_cache_data = True
         goutils.log2("WAR", "the bot account is being used... using cached data")
 
@@ -780,7 +780,7 @@ async def get_player_data(txt_allyCode, use_cache_data):
     return 0, "", dict_player
 
 async def join_tw(guild_id):
-    dict_bot_accounts = get_dict_bot_accounts()
+    dict_bot_accounts = await get_dict_bot_accounts()
     if not guild_id in dict_bot_accounts:
         return 1, "Ce serveur discord n'a pas de warbot", None
 
@@ -3408,7 +3408,7 @@ async def get_coliseum_guild_status(guild_id, force_update=0, allyCode=None):
     err_c, err_t, \
     bot_allyCode, \
     use_cache_data, \
-    retryAuth = get_connection_parameters(guild_id, force_update, allyCode)
+    retryAuth = await get_connection_parameters(guild_id, force_update, allyCode)
 
     if err_c != 0:
         return err_c, err_t, None
@@ -3734,7 +3734,7 @@ async def set_zoneOrder(guild_id, map_id,
                         zone_id, zone_msg, zone_cmd, zone_instance,
                         allyCode=None):
     if allyCode == None:
-        dict_bot_accounts = get_dict_bot_accounts()
+        dict_bot_accounts = await get_dict_bot_accounts()
         if not guild_id in dict_bot_accounts:
             return 1, "Ce serveur discord n'a pas de warbot"
         
