@@ -38,7 +38,7 @@ def is_officer(ctx_interaction):
     if ctx_interaction.guild != None:
         # Can be an officer only if in a discord server, not in a DM
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, 
+        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx_interaction.guild.id, 
                                                           ctx_interaction.message.channel.id)
         if ec==0:
             guild_id = bot_infos["guild_id"]

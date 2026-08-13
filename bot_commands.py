@@ -501,7 +501,7 @@ async def tpg(ctx_interaction, *args):
             args.remove("-TW")
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
             if ec!=0:
                 await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TW")
                 return
@@ -522,7 +522,7 @@ async def tpg(ctx_interaction, *args):
             args.remove("-TB")
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
             if ec!=0:
                 await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot pour utiliser l'option -TB")
                 return
@@ -597,7 +597,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
             return 1, "ERR: commande non autorisée depuis un DM avec l'option -TW", None
 
         #get bot config from DB
-        ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
+        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
         if ec!=0:
             return ec, et, None
 
@@ -1117,7 +1117,7 @@ async def deploy_tb(ctx_interaction, zone, list_alias_txt):
         channel_id = ctx_interaction.message.channel.id
 
     #get bot or player config from DB
-    ec, et, bot_infos = connect_mysql.get_warbot_info(ctx_interaction.guild.id, channel_id)
+    ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx_interaction.guild.id, channel_id)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, "ERR: vous devez avoir un warbot ou une connexion EA pour utiliser cette commande")
         remove_command_from_queue(ctx_interaction)

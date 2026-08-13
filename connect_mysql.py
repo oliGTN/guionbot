@@ -1576,7 +1576,7 @@ def compute_statq_avg(force_all):
 # Get guild ID, allyCode and player name for the
 #  warbot linked to this discord server
 ########################################
-def get_warbot_info(server_id, channel_id):
+async def get_warbot_info(server_id, channel_id):
     goutils.log2("DBG", "looking for bot_infos from server ID...")
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
             "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
@@ -1589,7 +1589,7 @@ def get_warbot_info(server_id, channel_id):
             "JOIN guilds ON guilds.id=guild_bots.guild_id "\
             "WHERE server_id="+str(server_id)
     goutils.log2("DBG", query)
-    db_data = get_line(query)
+    db_data = await get_line_async(query)
 
     if db_data == None:
         if channel_id != None:
@@ -1607,7 +1607,7 @@ def get_warbot_info(server_id, channel_id):
                     "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bots.guild_id "\
                     "WHERE channel_id="+str(channel_id)
             goutils.log2("DBG", query)
-            db_data = get_line(query)
+            db_data = await get_line_async(query)
 
             if db_data == None:
                 #no warbot found as test channel, try it from connected user
@@ -1623,7 +1623,7 @@ def get_warbot_info(server_id, channel_id):
                         "LEFT JOIN guild_bot_infos ON players.guildId=guild_bot_infos.guild_id "\
                         "WHERE channel_id="+str(channel_id)
                 goutils.log2("DBG", query)
-                db_data = get_line(query)
+                db_data = await get_line_async(query)
 
                 if db_data == None:
                     return 1, "Pas de warbot trouvé, ni pour ce serveur, ni pour ce channel", None
@@ -1642,7 +1642,7 @@ def get_warbot_info(server_id, channel_id):
                    "echostation_id": db_data[9],
                    "tbFightEstimationType": db_data[10]}
 
-def get_warbot_info_from_guild(guild_id):
+async def get_warbot_info_from_guild(guild_id):
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
             "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
             "twFulldefDetection, "\
@@ -1654,7 +1654,7 @@ def get_warbot_info_from_guild(guild_id):
             "LEFT JOIN player_discord ON player_discord.allyCode=guild_bots.allyCode "\
             "WHERE guild_bots.guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    db_data = get_line(query)
+    db_data = await get_line_async(query)
 
     if db_data == None:
         return 1, "Pas de warbot trouvé pour cette guilde", None
