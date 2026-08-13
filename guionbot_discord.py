@@ -2507,7 +2507,7 @@ def member_command(ctx):
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
     return (not bot_test_mode) or is_owner
 
-def officer_command(ctx):
+async def officer_command(ctx):
     is_officer = False
     is_server_admin = False
 
