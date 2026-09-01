@@ -3730,6 +3730,32 @@ async def get_metadata():
     metadata = resp_json
     return 0, "", metadata
 
+async def get_shard(allyCode_txt, shard_type):
+    url = "http://localhost:8000/shardleaderboard"
+    params = {"allyCode": allyCode_txt, "shard_type": shard_type}
+    req_data = json_dumps(params)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=req_data) as resp:
+                goutils.log2("DBG", "get shardleaderboard status="+str(resp.status))
+                if resp.status==200:
+                    resp_json = await(resp.json())
+                else:
+                    return 1, "ERR during RPC metadata - code "+str(resp.status), None
+
+    except asyncio.exceptions.TimeoutError as e:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ServerDisconnectedError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+    except aiohttp.client_exceptions.ClientConnectorError as e:
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
+    if "err_code" in resp_json:
+        return resp_json["err_code"], resp_json["err_txt"]
+
+    shardleaderboard = resp_json
+    return 0, "", shardleaderboard
+
 async def set_zoneOrder(guild_id, map_id,
                         zone_id, zone_msg, zone_cmd, zone_instance,
                         allyCode=None):
