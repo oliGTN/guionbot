@@ -2515,6 +2515,7 @@ async def officer_command(ctx):
         # Can be an officer only if in a discord server, not in a DM
         #get bot config from DB
         ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        list_did = None
         if ec==0:
             guild_id = bot_infos["guild_id"]
 
@@ -2542,7 +2543,7 @@ async def officer_command(ctx):
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
     allow_officer = ((is_officer or is_server_admin) and (not bot_test_mode)) or is_owner
 
-    goutils.log2("INFO", [ctx.author.name, is_owner, is_officer, is_server_admin, allow_officer])
+    goutils.log2("INFO", [ctx.author.name, ctx.author.id, is_owner, is_officer, is_server_admin, allow_officer])
     return allow_officer
 
 ##############################################################
