@@ -148,11 +148,13 @@ async def check_locked_bots_60secs(bot):
 
 #Create semaphores at module level
 MAX_CONCURRENT_RPC = 5
-rpc_semaphore_60secs = asyncio.Semaphore(MAX_CONCURRENT_RPC)
 
 async def update_rpc_60secs(bot):
     goutils.log2("INFO", "START loop")
     t_start = time.time()
+
+    rpc_semaphore_60secs = asyncio.Semaphore(MAX_CONCURRENT_RPC)
+
     #######################################################################
     # UPDATE RPC data
     #
