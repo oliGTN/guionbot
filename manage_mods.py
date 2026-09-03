@@ -538,7 +538,10 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
 
     #basic check of JSON format
     if not "profiles" in modopti_progress:
-        if type(modopti_progress)==list and len(list)>1 and "selectedCharacters" in list[0]:
+        if type(modopti_progress)==list \
+            and len(modopti_progress)>1 \
+            and "selectedCharacters" in modopti_progress[0]:
+
             return 1, "Le fichier n'est pas au bon format, il ressemble à un template alors qu'il faut un fichier issu de *Save My Progress*", {}
         else:
             return 1, "Le fichier n'est pas au bon format, il faut un fichier issu de *Save My Progress*", {}
