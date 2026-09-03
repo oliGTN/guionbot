@@ -92,13 +92,13 @@ async def islocked_bot_account(bot_allyCode):
     else:
         return db_data
 
-def ispriority_cache_bot_account(bot_allyCode):
+async def ispriority_cache_bot_account(bot_allyCode):
     query = "SELECT guild_bots.priority_cache "\
             "FROM guild_bots "\
             "JOIN guild_bot_infos ON guild_bot_infos.guild_id=guild_bots.guild_id "\
             "WHERE allyCode="+str(bot_allyCode)
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_value(query)
+    db_data = await connect_mysql.get_value_async(query)
     if db_data == None:
         return 0
     else:
@@ -107,16 +107,28 @@ def ispriority_cache_bot_account(bot_allyCode):
 ########################################################
 #force_update: -1=always use cache / 0=depends on bot priority_cache option / 1=never use cache
 #event_type: []/None, ["TB"], ["TW", CHAT"], ...
-async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
-                             dict_guild=None, dict_TBmapstats=None, 
-                             dict_events=None):
+async def get_guild_rpc_data(
+        guild_id, 
+        event_types, 
+        force_update, 
+        allyCode=None,
+        dict_guild=None, 
+        dict_TBmapstats=None,
+        dict_events=None, 
+        guild_bots=None):
+
     calling_func = inspect.stack()[1][3]
     goutils.log2("DBG", "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id)+", "+str(event_types) \
                  +", "+str(force_update)+", "+str(allyCode)+")")
 
     ### guild
     if dict_guild==None:
-        ec, et, dict_guild = await get_guild_data_from_id(guild_id, force_update, allyCode=allyCode)
+        ec, et, dict_guild = await get_guild_data_from_id(
+                guild_id, 
+                force_update, 
+                allyCode=allyCode,
+                guild_bots=guild_bots)
+
         if ec!=0:
             return ec, et, None
 
@@ -149,17 +161,24 @@ async def get_guild_rpc_data(guild_id, event_types, force_update, allyCode=None,
 
 #########################################
 # Get connection data
-async def get_connection_parameters(guild_id, force_update, allyCode):
+async def get_connection_parameters(
+        guild_id, 
+        force_update, 
+        allyCode,
+        guild_bots=None):
+
     if allyCode == None:
-        dict_bot_accounts = await get_dict_bot_accounts()
-        if not guild_id in dict_bot_accounts:
+        if guild_bots is None:
+            guild_bots = await get_dict_bot_accounts()
+
+        if not guild_id in guild_bots:
             return 1, "Ce serveur discord n'a pas de warbot", None, None, None
 
-        bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
+        bot_allyCode = guild_bots[guild_id]["allyCode"]
 
         # retry Auth is allowed if the account is a real bot account,
         # or if the played account if trying to re-auth after a pause
-        retryAuth = (not dict_bot_accounts[guild_id]["lock_when_played"]) | dict_bot_accounts[guild_id]["force_auth"]
+        retryAuth = (not guild_bots[guild_id]["lock_when_played"]) | guild_bots[guild_id]["force_auth"]
 
     else:
         bot_allyCode = allyCode
@@ -176,23 +195,32 @@ async def get_connection_parameters(guild_id, force_update, allyCode):
         elif force_update == -1:
             use_cache_data = True
         else: #force_update==0
-            use_cache_data = ispriority_cache_bot_account(bot_allyCode)
+            use_cache_data = await ispriority_cache_bot_account(bot_allyCode)
 
     if allyCode==None and use_cache_data==0:
         # cancel the force_auth if an actual auth is required
         query = "UPDATE guild_bots SET force_auth=0 WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
     return 0, "", bot_allyCode, use_cache_data, retryAuth
 
 #########################################
 # Get full guild data, using the bot account
-async def get_guild_data_from_id(guild_id, force_update, allyCode=None):
+async def get_guild_data_from_id(
+        guild_id, 
+        force_update, 
+        allyCode=None,
+        guild_bots=None):
+
     err_c, err_t, \
     bot_allyCode, \
     use_cache_data, \
-    retryAuth = await get_connection_parameters(guild_id, force_update, allyCode)
+    retryAuth = await get_connection_parameters(
+            guild_id, 
+            force_update, 
+            allyCode,
+            guild_bots=guild_bots)
 
     if err_c != 0:
         return err_c, err_t, None

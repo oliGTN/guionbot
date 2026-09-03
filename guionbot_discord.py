@@ -174,32 +174,6 @@ async def update_rpc_60secs(bot):
     db_data = await connect_mysql.get_column_async(query)
     goutils.log2("DBG", "db_data: "+str(db_data))
 
-    """
-    if not db_data==None:
-        for guild_id in db_data:
-            #update RPC data before using different commands (tb alerts, tb_platoons)
-            try:
-                ec, et = await update_rpc_data(guild_id)
-                if ec==401:
-                    await connect_rpc.lock_bot_account(guild_id)
-                    await send_alert_to_bot_owner(guild_id)
-                elif ec!=0 and not bot_test_mode:
-                    await send_alert_to_admins(None, "["+guild_id+"] "+et)
-
-                #log update time in DB - rounded to fix times
-                # (eg: always 00:05, 00:10 for 5 min period)
-                query = "UPDATE guild_bots SET latest_update=FROM_UNIXTIME(ROUND(UNIX_TIMESTAMP(NOW())/60/period,0)*60*period) "
-                query+= "WHERE guild_id='"+guild_id+"'"
-                goutils.log2("DBG", query)
-                connect_mysql.simple_execute(query)
-
-            except Exception as e:
-                goutils.log2("ERR", traceback.format_exc())
-    """
-
-    # New code from chatGPT
-
-
     async def process_rpc_update(guild_id, guild_bots):
         try:
             async with rpc_semaphore_60secs:
@@ -1604,7 +1578,13 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 
     #This RPC call gets everything once, so that next calls in the 
     # following lines are able to use cache data
-    ec, et, ret_data = await connect_rpc.get_guild_rpc_data( guild_id, ["TW", "TB", "CHAT"], 1, allyCode=allyCode)
+    ec, et, ret_data = await connect_rpc.get_guild_rpc_data( 
+            guild_id, 
+            ["TW", "TB", "CHAT"], 
+            1, 
+            allyCode=allyCode,
+            guild_bots=guild_bots)
+
     if ec!=0:
         goutils.log2("ERR", et)
         return ec, et
