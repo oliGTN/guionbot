@@ -46,3 +46,8 @@ async def release_sem(id):
     #goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
     dict_sem[id].release()
     #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
+
+async def list_semaphores():
+    global dict_sem
+
+    return dict_sem.keys()

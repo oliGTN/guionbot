@@ -41,7 +41,7 @@ import manage_mods
 import manage_events
 import emojis
 import register
-from semaphores import acquire_sem, release_sem
+from semaphores import acquire_sem, release_sem, list_semaphores
 from cmd_q import lock_bot, unlock_bot, islocked_bot, add_command_to_queue, remove_command_from_queue, display_command_queue
 
 # Generic configuration
@@ -3059,7 +3059,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
     ##############################################################
     # Command: releasesem
-    # Parameters: None
+    # Parameters: semaphore ID (string)
     # Purpose: release locked semaphore in case of error
     # Display: None
     #############################################################
@@ -3068,7 +3068,24 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     async def releasesem(self, ctx, str:id):
         await ctx.message.add_reaction(emojis.thumb)
 
-        await release_semaphore(id)
+        await release_sem(id)
+
+        await ctx.message.add_reaction(emojis.check)
+
+    ##############################################################
+    # Command: listsem
+    # Parameters: None
+    # Purpose: release locked semaphore in case of error
+    # Display: None
+    #############################################################
+    @commands.command(name='listsem', help='Liste les sémaphores actifs')
+    @commands.check(admin_command)
+    async def listsem(self, ctx, str:id):
+        await ctx.message.add_reaction(emojis.thumb)
+
+        list_sem = await list_semaphores()
+        output_txt = '\n'.join(list_sem)
+        await ctx.send(output_txt)
 
         await ctx.message.add_reaction(emojis.check)
 
