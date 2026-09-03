@@ -501,37 +501,40 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                     room_channel = room["roomId"]
                     list_channels.append(room_channel)
 
-        # RPC REQUEST for CHAT events
-        url = "http://localhost:8000/events"
-        params = {"allyCode": bot_allyCode, 
-                  "eventType": "CHAT",
-                  "guild_id": guild_id,
-                  "list_channels": list_channels, 
-                  "use_cache_data":use_cache_data,
-                  "retryAuth": retryAuth}
-        req_data = json_dumps(params)
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, data=req_data) as resp:
-                    goutils.log2("DBG", "POST CHAT events status="+str(resp.status))
-                    if resp.status==200:
-                        if use_cache_data:
-                            cache_json = await(resp.json())
-                            cache_ts = cache_json["timestamp"]
-                            resp_events = cache_json["data"]
+        if len(list_channels)>0:
+            # RPC REQUEST for CHAT events
+            url = "http://localhost:8000/events"
+            params = {"allyCode": bot_allyCode, 
+                      "eventType": "CHAT",
+                      "guild_id": guild_id,
+                      "list_channels": list_channels, 
+                      "use_cache_data":use_cache_data,
+                      "retryAuth": retryAuth}
+            req_data = json_dumps(params)
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, data=req_data) as resp:
+                        goutils.log2("DBG", "POST CHAT events status="+str(resp.status))
+                        if resp.status==200:
+                            if use_cache_data:
+                                cache_json = await(resp.json())
+                                cache_ts = cache_json["timestamp"]
+                                resp_events = cache_json["data"]
+                            else:
+                                resp_events = await(resp.json())
+                        elif resp.status==401:
+                            return 401, "authentication failed", None
                         else:
-                            resp_events = await(resp.json())
-                    elif resp.status==401:
-                        return 401, "authentication failed", None
-                    else:
-                        return 1, "Cannot get events data from RPC", None
+                            return 1, "Cannot get events data from RPC", None
 
-        except asyncio.exceptions.TimeoutError as e:
-            return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-        except aiohttp.client_exceptions.ServerDisconnectedError as e:
-            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-        except aiohttp.client_exceptions.ClientConnectorError as e:
-            return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+            except asyncio.exceptions.TimeoutError as e:
+                return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+            except aiohttp.client_exceptions.ServerDisconnectedError as e:
+                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+            except aiohttp.client_exceptions.ClientConnectorError as e:
+                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+        else:
+            resp_events = None
 
         #add received events to the whole list
         if resp_events!=None:
@@ -544,7 +547,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         query+= "FROM guild_bot_infos "
         query+= "WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        eventLatest_ts = connect_mysql.get_value(query)
+        eventLatest_ts = await connect_mysql.get_value_async(query)
 
         goutils.log2("DBG", "start loop list_rpc_events")
         max_event_ts = 0
@@ -601,7 +604,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         query+= "SET eventLatest_ts="+str(max_event_ts)+" "
         query+= "WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
         #if max(dict_event_counts.values()) > 0:
         goutils.log2("INFO", "["+guild_id+"] New events: "+str(dict_event_counts))
@@ -1023,7 +1026,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
         max_ts = list_all_logs[-1][0]
         query = "UPDATE guild_bot_infos SET chatLatest_ts="+str(max_ts)+" WHERE guild_id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
     return 0, "", {"CHAT": [chatChan_id, list_chat_events],
                    "TW":   [twlogChan_id, list_tw_logs],
