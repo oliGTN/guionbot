@@ -23,7 +23,7 @@ import traceback
 from texttable import Texttable
 import zipfile
 from typing import List
-import json
+from json import dumps as json_dumps
 import threading
 import urllib
 
@@ -3848,7 +3848,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             else:
                 export_path="/tmp/modoptiRestoreMyProgress_"+txt_allyCode+".json"
                 export_file = open(export_path, "w")
-                export_txt = json.dumps(dict_export, indent=4)
+                export_txt = json_dumps(dict_export, indent=4)
                 export_file.write(export_txt)
                 export_file.close()
 
@@ -5376,55 +5376,135 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
-    # Command: bot.gettblogs
+    # Command: gettbdata
     # Parameters: none
-    # Purpose: send file of events for latest TB
+    # Purpose: send files for current or latest TB
     ##############################################################
     @commands.check(officer_command)
-    @commands.command(name='bot.gettblogs',
-                 brief="Télécharge le fichier JSON complet des logs de la dernière BT",
-                 help="Télécharge le fichier JSON complet des logs de la dernière BT")
-    async def botgettblogs(self, ctx):
-        await ctx.message.add_reaction(emojis.thumb)
+    @commands.command(name='gettbdata',
+                 brief="Télécharge les données brutes de la dernière BT",
+                 help="Télécharge les données brutes de la dernière BT")
+    async def gettbdata(self, ctx):
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        #Ensure command is launched from a server, not a DM
-        if ctx.guild == None:
-            await ctx.send('ERR: commande non autorisée depuis un DM')
+            #Ensure command is launched from a server, not a DM
+            if ctx.guild == None:
+                await ctx.send('ERR: commande non autorisée depuis un DM')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #get bot config from DB
+            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            if ec!=0:
+                await ctx.send('ERR: '+et)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            guild_id = bot_infos["guild_id"]
+            guild_name = bot_infos["guild_name"]
+            connected_allyCode = bot_infos["allyCode"]
+
+            if guild_id == None:
+                await ctx.send('ERR: Guilde non déclarée dans le bot')
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            #Check if TB is ongoing
+            err_code, err_txt, [dict_guild, dict_TBmapstats, dict_events] = await connect_rpc.get_guild_rpc_data(
+                    guild_id,
+                    ["TB"],
+                    -1,
+                    allyCode = connected_allyCode)
+
+            if err_code != 0:
+                await ctx.send(err_txt)
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            tb_ongoing = False
+            if "territoryBattleStatus" in dict_guild:
+                for tbs in dict_guild["territoryBattleStatus"]:
+                    #Just before the TB start, the TB status is already existing
+                    # yet without mapstat info
+                    # in that case, consider the TB not started and get data
+                    # from previous TB
+                    if tbs['selected'] and tbs['currentStat']!=[{'mapStatId': 'summary'}]:
+                        tb_ongoing = True
+
+            #Prepare tmp directory to have the files and the archive
+            tmpDir_name = '/tmp/'+connected_allyCode+'_TBdata'
+            if not os.path.exists(tmpDir_name): # if the directory does not exist
+                os.makedirs(tmpDir_name) # make the directory
+            else: # the directory exists
+                #removes all files in a folder
+                for the_file in os.listdir(tmpDir_name):
+                    file_path = os.path.join(tmpDir_name, the_file)
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path) # unlink (delete) the file
+
+            if not tb_ongoing:
+                #Get previous TB data
+                #Look for latest TB event file for this guild
+                search_dir = "EVENTS/"
+                files = os.listdir(search_dir)
+                files = [os.path.join(search_dir, f) for f in files] # add path to each file
+                files = list(filter(os.path.isfile, files))
+                files = list(filter(lambda f: guild_id+"_TB_EVENT" in f, files))
+
+                guild_files = list(filter(lambda f: "_guild" in f, files))
+                guild_files.sort(key=lambda x: os.path.getmtime(x))
+                fname_guild = guild_files[-1]
+
+                TBmapstats_files = list(filter(lambda f: "_mapstats" in f, files))
+                TBmapstats_files.sort(key=lambda x: os.path.getmtime(x))
+                fname_TBmapstats = TBmapstats_files[-1]
+
+                events_files = list(filter(lambda f: "_events" in f, files))
+                events_files.sort(key=lambda x: os.path.getmtime(x))
+                fname_events = events_files[-1]
+
+                content_txt = "Données de la dernière BT connue"
+
+            else: # TB ongoing
+                ##Create files from TB data
+                #guild
+                fname_guild = tmpDir_name+'/guild.json'
+                f = open(fname_guild, 'w')
+                f.write(json_dumps(dict_guild, indent=4))
+                f.close()
+
+                #TBmapstats
+                fname_TBmapstats = tmpDir_name+'/TBmapstats.json'
+                f = open(fname_TBmapstats, 'w')
+                f.write(json_dumps(dict_TBmapstats, indent=4))
+                f.close()
+
+                #events
+                fname_events = tmpDir_name+'/events.json'
+                f = open(fname_events, 'w')
+                f.write(json_dumps(dict_events, indent=4))
+                f.close()
+
+                content_txt = "Données de la BT en cours"
+                
+
+            #create zip archive
+            archive_path=tmpDir_name+"/TBlogs_"+guild_name+".zip"
+            with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zipped:
+                zipped.write(fname_guild)
+                zipped.write(fname_TBmapstats)
+                zipped.write(fname_events)
+            file = discord.File(archive_path)
+            await ctx.send(file=file, content=content_txt)
+
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
-            return
 
-        #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
-        if ec!=0:
-            await ctx.send('ERR: '+et)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        guild_id = bot_infos["guild_id"]
-        guild_name = bot_infos["guild_name"]
-
-        if guild_id == None:
-            await ctx.send('ERR: Guilde non déclarée dans le bot')
-            return
-
-        #Look for latest TB event file for this guild
-        search_dir = "EVENTS/"
-        files = os.listdir(search_dir)
-        files = [os.path.join(search_dir, f) for f in files] # add path to each file
-        files = list(filter(os.path.isfile, files))
-        files = list(filter(lambda f: guild_id+"_TB_EVENT" in f, files))
-        files = list(filter(lambda f: "_events" in f, files))
-        files.sort(key=lambda x: os.path.getmtime(x))
-        latest_log = files[-1]
-
-        #create zip archive
-        archive_path="/tmp/TBlogs_"+guild_name+".zip"
-        with zipfile.ZipFile(archive_path, 'w', compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zipped:
-            zipped.write(latest_log)
-        file = discord.File(archive_path)
-        await ctx.send(file=file, content="Dernier fichier trouvé : "+latest_log)
-
-        await ctx.message.add_reaction(emojis.check)
 
     ##############################################################
     # Command: gettwbest
