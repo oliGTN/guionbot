@@ -37,7 +37,8 @@ $dict_units = json_decode($dict_units_string, true);
 // Prepare the SQL query
 $query = "SELECT tw_squads.id AS squad_id,";
 $query .= " side, zone_name, player_name, defId, cellIndex,";
-$query .= " is_beaten, fights, gp, tier AS gear, unitRelicTier AS relic";
+$query .= " is_beaten, fights, gp, tier AS gear, unitRelicTier AS relic,";
+$query .= " zetaCount, omicronCount";
 $query .= " FROM tw_squads";
 $query .= " JOIN tw_squad_cells ON tw_squad_cells.squad_id=tw_squads.id";
 $query .= " WHERE tw_squads.tw_id=".$tw_id;
@@ -215,7 +216,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                 }
                 //echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
                 echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'>";
-                display_portrait($unit_short_id, $unit_alignment, $unit_rarity, $unit_gear, $unit['relic'], 0);
+                display_portrait($unit_short_id, $unit_alignment, $unit_rarity, $unit_gear, $unit['relic'], $unit['zetaCount'], $unit['omicronCount']);
                 echo "</td>";
             }
             echo "</tr>\n";

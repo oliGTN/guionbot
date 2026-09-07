@@ -2914,8 +2914,21 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
                                        "relic": c["unitBattleStat"]["unitRelicTier"],
                                        "turnMeter": c["unitState"]["turnPercent"],
                                        "health": c["unitState"]["healthPercent"]}
+                            zeta_count = 0
+                            omicron_count = 0
                             if "skill" in c["unitBattleStat"]:
-                                my_unit["skill"] = c["unitBattleStat"]["skill"]
+                                for skill in c["unitBattleStat"]["skill"]:
+                                    if not unit_id in capa_list:
+                                        continue
+                                    if not skill["id"] in capa_list[unit_id]:
+                                        continue
+                                    if capa_list[unit_id][skill["id"]]["zetaTier"]-2 <= skill["tier"]:
+                                        zeta_count += 1
+                                    if capa_list[unit_id][skill["id"]]["omicronTier"]-2 <= skill["tier"] and capa_list[unit_id][skill["id"]]["omicronMode"] == "TW":
+                                        omicron_count += 1
+                            my_unit["zetaCount"] = zeta_count
+                            my_unit["omicronCount"] = omicron_count
+
                             if "purchaseAbilityId" in c["unitBattleStat"]:
                                 my_unit["purchaseAbilityId"] = c["unitBattleStat"]["purchaseAbilityId"]
 

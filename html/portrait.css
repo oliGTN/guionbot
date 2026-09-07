@@ -98,7 +98,7 @@
     background-image: url('IMAGES/PORTRAIT_FRAME/relic-badge-atlas.png');
     background-size: 34px 136px;
     background-repeat: no-repeat;
-    background-position: 0 -34px;
+    background-position: 0 0px;
     z-index: 7;
     pointer-events: none;
 }
@@ -119,8 +119,8 @@
 /* Zeta badge, displayed in the lower-left area of the portrait */
 .zeta-badge {
     position: absolute;
-    left: 1px;
-    bottom: 13px;
+    left: -8px;
+    bottom: 23px;
     width: 34px;
     height: 34px;
     z-index: 6;
@@ -135,6 +135,36 @@
 }
 
 .zeta-badge span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px #000;
+}
+
+/* Omicron badge, displayed in the lower-right area of the portrait */
+.omicron-badge {
+    position: absolute;
+    left: 54px;
+    bottom: 23px;
+    width: 34px;
+    height: 34px;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.omicron-badge img {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}
+
+.omicron-badge span {
     position: absolute;
     inset: 0;
     display: flex;

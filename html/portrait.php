@@ -1,6 +1,6 @@
 <?php
 
-function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_count) {
+function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_count, $omicron_count) {
     // unitRelicTier is stored using the SWGOH tier numbering:
     // 2 = no relic, 3 = R1, ..., 11 = R9.
     // Keep support for callers that already pass a 0-9 relic level.
@@ -35,7 +35,15 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
     // Display the gear tier when the character is not reliced.
     // For relic characters the relic badge replaces this badge.
     if ($relic_level > 0) {
-        echo "<div class='relic-badge'>";
+        #adjust background-position to get the right 34x34
+        # image from the atlas
+        if ($alignment == 3) {
+            echo "<div class='relic-badge' style='background-position:0 -34px'>";
+        } else if ($alignment == 2) {
+            echo "<div class='relic-badge' style='background-position:0 0px'>";
+        } else {
+            echo "<div class='relic-badge' style='background-position:0 -68px'>";
+        }
         echo "<span>R".$relic_level."</span>";
         echo "</div>";
     } else if ($gear > 0) {
@@ -47,6 +55,14 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
         echo "<div class='zeta-badge'>";
         echo "<img src='IMAGES/PORTRAIT_FRAME/tex.skill_zeta_glow.png' alt='Zetas'>";
         echo "<span>".(int)$zeta_count."</span>";
+        echo "</div>";
+    }
+
+    // Omicron count, displayed only when at least one omicron is present.
+    if (is_numeric($omicron_count) && (int)$omicron_count > 0) {
+        echo "<div class='omicron-badge'>";
+        echo "<img src='IMAGES/PORTRAIT_FRAME/tex.skill_omicron.png' alt='Omicrons'>";
+        echo "<span>".(int)$omicron_count."</span>";
         echo "</div>";
     }
 

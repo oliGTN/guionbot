@@ -2408,16 +2408,21 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 level = cell["level"]
                 tier = cell["gear"]
                 unitRelicTier = cell["relic"]
+                zetaCount = cell["zetaCount"]
+                omicronCount = cell["omicronCount"]
 
                 if not squad_id in dict_tw_squads:
                     query = "INSERT INTO tw_squad_cells(tw_id, squad_id, "\
-                            "defId, cellIndex, level, tier, unitRelicTier) "\
+                            "defId, cellIndex, level, tier, unitRelicTier, "\
+                            "zetaCount, omicronCount) "\
                             "VALUES("+str(tw_db_id)+", '"+squad_id+"', "\
                             "'"+defId+"', "\
                             ""+str(cellIndex)+", "\
                             ""+str(level)+", "\
                             ""+str(tier)+", "\
-                            ""+str(unitRelicTier)+") "
+                            ""+str(unitRelicTier)+", "\
+                            ""+str(zetaCount)+", "\
+                            ""+str(omicronCount)+") "
                     goutils.log2("DBG", query)
                     await simple_execute_async(query)
 
