@@ -357,6 +357,38 @@ function zone_txt($zone_name, $zones, $rowspan, $darklight) {
         <tr style="border:3px solid white" height="33"/>
         </tbody>
     </table>
+<?php } else if ($tb['tb_type'] === 'TB_EVENT_GEONOSIS_REPUBLIC') { ?>
+    <table style="display:block">
+        <colgroup>
+            <col span="1" style="width:25%"/>
+            <col span="1" style="width:25%"/>
+            <col span="1" style="width:25%"/>
+            <col span="1" style="width:25%"/>
+        </colgroup>
+        <tbody>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('GLS4-top', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS3-top', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS2-top', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS1-top', $zones, 2, 'light'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33"/>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('GLS4-mid', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS3-mid', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS2-mid', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS1-mid', $zones, 2, 'light'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33"/>
+        <tr style="border:3px solid white" height="33">
+            <?php zone_txt('GLS4-bot', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS3-bot', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS2-bot', $zones, 2, 'light'); ?>
+            <?php zone_txt('GLS1-bot', $zones, 2, 'light'); ?>
+        </tr>
+        <tr style="border:3px solid white" height="33"/>
+        </tbody>
+    </table>
 <?php } else if ($tb['tb_type'] === 'TB_EVENT_HOTH_EMPIRE') { ?>
     <table style="display:block">
         <colgroup>
