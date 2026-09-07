@@ -84,19 +84,22 @@
     pointer-events: none;
 }
 
-/* Relic badge: centered horizontally and kept above the rarity stars */
+/* Relic badge sized and positioned like the SWGOH portrait renderer.
+   The source atlas is 54x216 (four 54px frames). At the 80x100 CSS portrait
+   scale, the badge is approximately 34x34 and sits in the lower-middle area,
+   overlapping the star row just like the native portrait. */
 .relic-badge {
     position: absolute;
     left: 50%;
-    bottom: 21px;
+    bottom: 15px;
     transform: translateX(-50%);
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
     background-image: url('IMAGES/PORTRAIT_FRAME/relic-badge-atlas.png');
-    background-size: 42px 168px;
+    background-size: 34px 136px;
     background-repeat: no-repeat;
-    background-position: 0 -42px;
-    z-index: 6;
+    background-position: 0 -34px;
+    z-index: 7;
     pointer-events: none;
 }
 
@@ -107,8 +110,9 @@
     align-items: center;
     justify-content: center;
     color: #ffffff;
-    font-size: 15px;
+    font-size: 12px;
     font-weight: bold;
+    line-height: 1;
     text-shadow: 1px 1px 2px #000;
 }
 
