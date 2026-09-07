@@ -21,8 +21,8 @@
     left: -5%;
     width: 110%;
     height: 88%;
-    overflow: hidden; /* to crop the image */
-    pointer-events: none; /* Allows clicks to pass through if necessary */
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .gear-frame-container {
@@ -36,53 +36,123 @@
     border-radius: 50%;
 }
 
-/* Extracts the center (red) frame from the sprite sheet */
-.gear-frame-sprite-red {
-    width: 100%;
-    /* The image contains 3 stacked frames, so the total height is 300% */
-    height: 300%; 
-    background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    /* Shifts the background position up to display the middle (red) segment */
-    transform: translateY(-33.33%); 
-}
-
-/* Extracts the top (blue) frame from the sprite sheet */
-.gear-frame-sprite-blue {
-    width: 100%;
-    /* The image contains 3 stacked frames, so the total height is 300% */
-    height: 300%; 
-    background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    /* Shifts the background position up to display the middle (red) segment */
-}
-
-/* Extracts the bottom (white) frame from the sprite sheet */
+/* G13 frame atlas: 3 stacked frames */
+.gear-frame-sprite-red,
+.gear-frame-sprite-blue,
 .gear-frame-sprite-white {
     width: 100%;
-    /* The image contains 3 stacked frames, so the total height is 300% */
-    height: 300%; 
+    height: 300%;
     background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    /* Shifts the background position up to display the middle (red) segment */
-    transform: translateY(-66.66%); 
+}
+
+/* Red / dark-side G13 frame */
+.gear-frame-sprite-red {
+    transform: translateY(-33.33%);
+}
+
+/* Blue / light-side G13 frame */
+.gear-frame-sprite-blue {
+    transform: translateY(0);
+}
+
+/* White / neutral G13 frame */
+.gear-frame-sprite-white {
+    transform: translateY(-66.66%);
+}
+
+/* Gear tier badge shown for non-relic characters */
+.gear-level-badge {
+    position: absolute;
+    right: 2px;
+    bottom: 14px;
+    min-width: 26px;
+    height: 20px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 18px;
+    text-align: center;
+    text-shadow: 1px 1px 2px #000;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Relic badge, using the same SWGOH relic atlas as the Python portraits */
+.relic-badge {
+    position: absolute;
+    right: -1px;
+    bottom: 10px;
+    width: 42px;
+    height: 42px;
+    background-image: url('IMAGES/PORTRAIT_FRAME/relic-badge-atlas.png');
+    background-size: 42px 168px;
+    background-repeat: no-repeat;
+    background-position: 0 -42px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.relic-badge span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px #000;
+}
+
+/* Zeta badge, displayed in the lower-left area of the portrait */
+.zeta-badge {
+    position: absolute;
+    left: 1px;
+    bottom: 13px;
+    width: 34px;
+    height: 34px;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.zeta-badge img {
+    position: absolute;
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+}
+
+.zeta-badge span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px #000;
 }
 
 /* Row containing the stars at the bottom */
 .star-rating {
     position: absolute;
-    bottom: 2%; /* Positioned slightly above the absolute bottom edge for visual balance */
+    bottom: 2%;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     justify-content: center;
     align-items: center;
     width: 90%;
-    /* Container height is set to 20% of the main portrait height */
-    height: 20%; 
+    height: 20%;
+    z-index: 4;
 }
 
 /* Individual star styling scaling to the container height */
@@ -90,6 +160,5 @@
     height: 80%;
     width: auto;
     object-fit: contain;
-    /* Negative margin mimics the overlapping curve look from the game */
-    margin: 0 -2px; 
+    margin: 0 -2px;
 }
