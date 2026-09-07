@@ -84,18 +84,19 @@
     pointer-events: none;
 }
 
-/* Relic badge, using the same SWGOH relic atlas as the Python portraits */
+/* Relic badge: centered horizontally and kept above the rarity stars */
 .relic-badge {
     position: absolute;
-    right: -1px;
-    bottom: 10px;
+    left: 50%;
+    bottom: 21px;
+    transform: translateX(-50%);
     width: 42px;
     height: 42px;
     background-image: url('IMAGES/PORTRAIT_FRAME/relic-badge-atlas.png');
     background-size: 42px 168px;
     background-repeat: no-repeat;
     background-position: 0 -42px;
-    z-index: 5;
+    z-index: 6;
     pointer-events: none;
 }
 
