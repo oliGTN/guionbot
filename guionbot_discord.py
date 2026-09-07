@@ -5443,6 +5443,13 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     if os.path.isfile(file_path):
                         os.unlink(file_path) # unlink (delete) the file
 
+            #guild file is always the recent one
+            fname_guild = tmpDir_name+'/guild.json'
+            f = open(fname_guild, 'w')
+            f.write(json_dumps(dict_guild, indent=4))
+            goutils.log2("DBG", fname_guild+ " written on disk")
+            f.close()
+
             if not tb_ongoing:
                 #Get previous TB data
                 #Look for latest TB event file for this guild
@@ -5452,38 +5459,32 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 files = list(filter(os.path.isfile, files))
                 files = list(filter(lambda f: guild_id+"_TB_EVENT" in f, files))
 
-                guild_files = list(filter(lambda f: "_guild" in f, files))
-                guild_files.sort(key=lambda x: os.path.getmtime(x))
-                fname_guild = guild_files[-1]
-
                 TBmapstats_files = list(filter(lambda f: "_mapstats" in f, files))
                 TBmapstats_files.sort(key=lambda x: os.path.getmtime(x))
                 fname_TBmapstats = TBmapstats_files[-1]
+                goutils.log2("DBG", fname_TBmapstats+ " selected")
 
                 events_files = list(filter(lambda f: "_events" in f, files))
                 events_files.sort(key=lambda x: os.path.getmtime(x))
                 fname_events = events_files[-1]
+                goutils.log2("DBG", fname_events+ " selected")
 
                 content_txt = "Données de la dernière BT connue"
 
             else: # TB ongoing
                 ##Create files from TB data
-                #guild
-                fname_guild = tmpDir_name+'/guild.json'
-                f = open(fname_guild, 'w')
-                f.write(json_dumps(dict_guild, indent=4))
-                f.close()
-
                 #TBmapstats
                 fname_TBmapstats = tmpDir_name+'/TBmapstats.json'
                 f = open(fname_TBmapstats, 'w')
                 f.write(json_dumps(dict_TBmapstats, indent=4))
+                goutils.log2("DBG", fname_TBmapstats+ " written on disk")
                 f.close()
 
                 #events
                 fname_events = tmpDir_name+'/events.json'
                 f = open(fname_events, 'w')
                 f.write(json_dumps(dict_events, indent=4))
+                goutils.log2("DBG", fname_events+ " written on disk")
                 f.close()
 
                 content_txt = "Données de la BT en cours"
