@@ -871,10 +871,21 @@ async def unregister(ctx_interaction, args):
         query = "DELETE FROM player_discord "\
                 "WHERE allyCode="+allyCode
         goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
         discord_links = ["<@"+str(x)+">" for x in db_data]
         await command_ok(ctx_interaction, resp_msg, "Suppression de l'enregistrement de "+allyCode+" réussie ("+str(discord_links)+").")
+
+        #ensure that after cleaning, all other links have
+        # at least one main
+        query = "UPDATE player_discord SET main=1 "\
+                "WHERE allyCode IN ( "\
+                "   SELECT allyCode FROM player_discord "\
+                "   GROUP BY allyCode "\
+                "   HAVING sum(main)=0 AND count(*)=1 "\
+                ") "
+        goutils.log2("DBG", query)
+        await connect_mysql.simple_execute_async(query)
 
     except Exception as e:
         goutils.log2("ERR", traceback.format_exc())

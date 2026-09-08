@@ -1683,6 +1683,10 @@ async def manage_me(ctx, alias, allow_tw):
     #Get identity of command user
     dict_players_by_ID = connect_mysql.load_config_players()[1]
     if ctx!=None and ctx.author.id in dict_players_by_ID:
+        if not "main" in dict_players_by_ID[ctx.author.id]:
+            err_msg = "Le compte discord <@"+ctx.author.id+"> est mal enregistré - pas de compte main"
+            await send_alert_to_admins(None, err_msg)
+            return "ERR: problème d'enregistrement du compte, contactez le support"
         cmd_allyCode_txt = str(dict_players_by_ID[ctx.author.id]["main"][0])
         cmd_guild_id = str(dict_players_by_ID[ctx.author.id]["main"][2])
     else:
