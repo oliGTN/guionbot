@@ -1364,7 +1364,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
             "FROM guild_bot_infos "\
             "WHERE guild_id='"+guild_id+"'"
     goutils.log2('DBG', query)
-    channel_id = connect_mysql.get_value(query)
+    channel_id = await connect_mysql.get_value_async(query)
 
     if channel_id == None:
         if backup_channel_id==None:
@@ -1438,7 +1438,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
         query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
         goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
         manage_events.create_event("tw_start", guild_id, tw_id)
 
@@ -1460,6 +1460,20 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     d_home = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if k.startswith("Home:")]}
     d_attack = {key:dict_messages[key] for key in [k for k in dict_messages.keys() if not ":" in k]}
     dict_messages = {**d_placements, **d_home, **d_attack}
+
+    #Get existing messages msg_id for this TW
+    query = "SELECT zone, msg_id FROM tw_messages "
+    query+= "WHERE guild_id='"+guild_id+"' "
+    goutils.log2("DBG", query)
+    db_data = await connect_mysql.get_table_async(query)
+    if db_data != None:
+        existing_messages = {
+            row[0]: row[1]
+            for row in db_data
+        }
+    else:
+        existing_messages = {}
+
     for territory in dict_messages:
         msg_txt = dict_messages[territory]
         goutils.log2("DBG", "["+guild_id+"] TW alert: "+msg_txt)
@@ -1469,9 +1483,8 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         query+= "WHERE guild_id='"+guild_id+"' "
         query+= "AND zone='"+territory+"'"
         goutils.log2("DBG", query)
-        old_msg_id = connect_mysql.get_value(query)
 
-        if old_msg_id == None:
+        if not territory in existing_messages:
             #First time this zone has a message
             goutils.log2("INFO", "first time this zone has this message")
 
@@ -1484,9 +1497,10 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                     query = "INSERT INTO tw_messages(guild_id, tw_ts, zone, msg_id) "
                     query+= "VALUES('"+guild_id+"', "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
                     goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                    await connect_mysql.simple_execute_async(query)
         else:
             #This zone already has a message
+            old_msg_id = existing_messages[territory]
             if tw_bot_channel==None:
                 old_msg = None
                 old_msg_txt = ""
@@ -1754,7 +1768,7 @@ async def manage_me(ctx, alias, allow_tw):
                         "WHERE NOT isnull(name) "\
                         "AND guildId='"+cmd_guild_id+"' "
                 goutils.log2("DBG", query)
-                guild_db_results = connect_mysql.get_table(query)
+                guild_db_results = await connect_mysql.get_table_async(query)
 
                 list_names = [x[0] for x in guild_db_results]
                 closest_guild_names_db=difflib.get_close_matches(alias, list_names, 1)
@@ -3105,12 +3119,14 @@ class TwCog(commands.GroupCog, name="gt"):
             allyCode = player_infos["allyCode"]
             goutils.log2("INFO", "START "+allyCode+"@"+guild_id)
 
-            err_code, err_txt = await update_rpc_data(guild_id, allyCode=allyCode)
-            if err_code != 0:
-                txt = emojis.redcross+" ERR: "+err_txt
-                await interaction.edit_original_response(content=txt)
-                remove_command_from_queue(interaction)
-                return
+            # Remove update_rpc_data as the next update_tw_status (with allyCode) 
+            # refreshes the data
+            #err_code, err_txt = await update_rpc_data(guild_id, allyCode=allyCode)
+            #if err_code != 0:
+            #    txt = emojis.redcross+" ERR: "+err_txt
+            #    await interaction.edit_original_response(content=txt)
+            #    remove_command_from_queue(interaction)
+            #    return
 
             err_code, err_txt, statusChan = await update_tw_status(guild_id, backup_channel_id=interaction.channel.id, allyCode=allyCode)
             if err_code != 0:
