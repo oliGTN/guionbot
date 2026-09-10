@@ -17,6 +17,7 @@ from copy import deepcopy
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 import time
 import emojis
+import goutils
 
 # ---------------------------------------------------------------------------
 # Static data copied from optimizer.js
@@ -895,11 +896,8 @@ def profile_from_my_progress(
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     #Check if the provided allyCode is usable
-    print(str(my_progress)[:200])
     if not "profiles" in my_progress:
         raise KeyError(f"Incorrect file format")
-    print(str(my_progress["profiles"])[:200])
-    print(str(my_progress["profiles"][0])[:200])
 
     list_allyCodes = [p["allyCode"] for p in my_progress["profiles"]]
     if ally_code is None and len(list_allyCodes)==1:
