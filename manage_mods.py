@@ -598,7 +598,7 @@ async def apply_config_allocations(config_name, txt_allyCode, is_simu, interacti
                                        interaction=interaction)
 
 ########################################
-async def get_modopti_export(txt_allyCode):
+async def get_modopti_export(txt_allyCode, prev_modopti_content=None):
     mod_list = godata.get("modList_dict.json")
     dict_unitsList = godata.get("unitsList_dict.json")
 
@@ -644,14 +644,15 @@ async def get_modopti_export(txt_allyCode):
     my_profile["mods"] = []
     my_profile["selectedCharacters"] = []
     my_profile["modAssignments"] = []
-    my_profile["globalSettings"] = {"modChangeThreshold": 0,
-                                    "lockUnselectedCharacters": False,
-                                    "forceCompleteSets": False,
-                                    "omicronBoostsGac": False,
-                                    "omicronBoostsTw": False,
-                                    "omicronBoostsTb": False,
-                                    "omicronBoostsRaids": False,
-                                    "omicronBoostsConquest": False}
+    my_profile["globalSettings"] = {
+            "modChangeThreshold": 0,
+            "lockUnselectedCharacters": False,
+            "forceCompleteSets": True,
+            "omicronBoostsGac": False,
+            "omicronBoostsTw": False,
+            "omicronBoostsTb": False,
+            "omicronBoostsRaids": False,
+            "omicronBoostsConquest": False}
     my_profile["previousSettings"] = {}
     my_profile["incrementalOptimizeIndex"] = None
 
@@ -875,6 +876,21 @@ async def get_modopti_export(txt_allyCode):
             modopti_mod = mod_to_modopti(mod, None)
             my_profile["mods"].append(modopti_mod)
 
+    #Manage information from previous run
+    if not prev_modopti_content is None:
+        if "profiles" in prev_modopti_content:
+            for p in prev_modopti_content["profiles"]:
+                if "allyCode" in p:
+                    if p["allyCode"] == txt_allyCode:
+                        if "selectedCharacters" in p:
+                             my_profile["selectedCharacters"] = p["selectedCharacters"]
+                        if "globalSettings" in p:
+                             my_profile["globalSettings"] = p["globalSettings"]
+
+        if "lastRuns" in prev_modopti_content:
+            modopti_export["lastRuns"] = prev_modopti_content["lastRuns"]
+
+    #copy the profile into the export, then return
     modopti_export["profiles"].append(my_profile)
 
     return 0, "", modopti_export

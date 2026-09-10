@@ -23,7 +23,7 @@ import traceback
 from texttable import Texttable
 import zipfile
 from typing import List
-from json import dumps as json_dumps
+from json import dumps as json_dumps, load as json_load, loads as json_loads
 import threading
 import urllib
 
@@ -43,6 +43,7 @@ import emojis
 import register
 from semaphores import acquire_sem, release_sem, list_semaphores
 from cmd_q import lock_bot, unlock_bot, islocked_bot, add_command_to_queue, remove_command_from_queue, display_command_queue
+from swgoh_mod_optimizer_fast import profile_from_my_progress, optimize_mods_from_profile
 
 # Generic configuration
 TOKEN = config.DISCORD_BOT_TOKEN
@@ -3507,9 +3508,8 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return
 
             txt_allyCode = str(bot_infos["allyCode"])
-            goutils.log2("INFO", "START "+txt_allyCode)
 
-            goutils.log2("INFO", "mods.modoptimizer("+txt_allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
+            goutils.log2("INFO", "START mods.modoptimizer("+txt_allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
 
             #Check that this player is not already in progress by the bot
             ret = await acquire_sem(txt_allyCode, waiting=False)
@@ -3589,6 +3589,83 @@ class ModsCog(commands.GroupCog, name="mods"):
                     # Interaction expired, send a message in the channel
                     output_channel = bot.get_channel(channel_id)
                     await output_channel.send(content=err_txt)
+
+        except Exception as e:
+            goutils.log2("ERR", traceback.format_exc())
+            await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
+
+        remove_command_from_queue(interaction)
+        return
+
+    @app_commands.command(name="auto-remod")
+    async def auto_remod(
+            self, 
+            interaction: discord.Interaction,
+            fichier: discord.Attachment):
+
+        try:
+            # Add command to queue, check if bot is locked, check queue size
+            ret_add, resp_msg = await add_command_to_queue(interaction)
+            if ret_add != 0:
+                remove_command_from_queue(interaction)
+                return
+
+            channel_id = interaction.channel_id
+
+            #get bot config from DB
+            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            if ec!=0:
+                txt = emojis.redcross+" ERR: "+et
+                await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
+                return
+
+            txt_allyCode = str(bot_infos["allyCode"])
+
+            goutils.log2("INFO", "START mods.auto_remod("+txt_allyCode+", fichier="+fichier.filename+")")
+
+            #Check that this player is not already in progress by the bot
+            ret = await acquire_sem(txt_allyCode, waiting=False)
+            if ret == 1:
+                txt = emojis.redcross+" ERR: ce joueur a déjà une commande bot en cours"
+                await interaction.edit_original_response(content=txt)
+                remove_command_from_queue(interaction)
+                return
+
+            #Run the function
+            file_content = await fichier.read()
+            try:
+                my_progress = json_loads(file_content)
+            except :
+                await interaction.edit_original_response(content=emojis.redcross+" ERR impossible de lire le contenu du fichier "+fichier.url)
+                remove_command_from_queue(interaction)
+                return
+
+            profile, previous_run = profile_from_my_progress(
+                    my_progress, 
+                    ally_code=txt_allyCode)
+        
+            saveMyProgress = await optimize_mods_from_profile(
+                    profile, 
+                    previous_run=previous_run,
+                    interaction=interaction)
+
+            await release_sem(txt_allyCode)
+
+
+            # Export file to discord message
+            if ec != 0:
+                await interaction.edit_original_response(content=emojis.redcross+" "+et)
+            else:
+                export_path="/tmp/modoptiSaveMyProgress_"+txt_allyCode+".json"
+                export_file = open(export_path, "w")
+                export_txt = json_dumps(saveMyProgress, indent=4)
+                export_file.write(export_txt)
+                export_file.close()
+
+                await interaction.edit_original_response(
+                        content=emojis.check+" fichier prêt", 
+                        attachments=[discord.File(export_path)])
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
@@ -3857,8 +3934,18 @@ class ModsCog(commands.GroupCog, name="mods"):
                 remove_command_from_queue(interaction)
                 return
 
+            #Check if there is a file from a previous
+            # /mods modoptimizer session
+            prev_modopti_content = None
+            player_path = "PLAYERDATA/"+txt_allyCode
+            file_path = player_path+"/modoptimizer_input.json"
+            if os.path.isfile(file_path):
+                prev_modopti_content = json_load(open(file_path))
+
             #Run the function
-            ec, et, dict_export = await manage_mods.get_modopti_export(txt_allyCode)
+            ec, et, dict_export = await manage_mods.get_modopti_export(
+                    txt_allyCode,
+                    prev_modopti_content=prev_modopti_content)
 
             await release_sem(txt_allyCode)
 
@@ -3872,8 +3959,9 @@ class ModsCog(commands.GroupCog, name="mods"):
                 export_file.write(export_txt)
                 export_file.close()
 
-                await interaction.edit_original_response(content=emojis.check+" fichier prêt", 
-                                                         attachments=[discord.File(export_path)])
+                await interaction.edit_original_response(
+                        content=emojis.check+" fichier prêt", 
+                        attachments=[discord.File(export_path)])
 
         except Exception as e:
             goutils.log2("ERR", traceback.format_exc())
