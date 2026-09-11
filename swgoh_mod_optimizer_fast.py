@@ -18,6 +18,7 @@ from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequ
 import time
 import emojis
 import goutils
+from asyncio import sleep as asyncio_sleep
 
 # ---------------------------------------------------------------------------
 # Static data copied from optimizer.js
@@ -1345,7 +1346,7 @@ class FastOptimizer(BaseOptimizer):
     # ------------------------------------------------------------------
     async def optimize_mods(
         self, available_mods, characters, order, incremental_optimize_index,
-        global_settings, previous_run=None
+        global_settings, previous_run=None, interaction=None
     ):
         # Keep the original top-level semantics. This version only changes the
         # removal of assigned mods from the usable pool.
@@ -1407,18 +1408,20 @@ class FastOptimizer(BaseOptimizer):
         prev_display_time = 0
         for index, item in enumerate(order[:end]):
             cid, target = item["id"], deepcopy(item["target"])
+            print(cid, target)
 
             #Display progress, but not less than 5 seconds
             if (time.time() - prev_display_time) > 5:
                 new_msg_content = emojis.hourglass+" Remod de "+cid+" ("+str(index+1)+"/"+str(end)+")"
-            try:
-                if interaction != None:
-                    await interaction.edit_original_response(content=new_msg_content)
-                else:
-                    print(new_msg_content)
-            except Exception as e:
-                goutils.log2("WAR", "Unable to update discord msg to: "+new_msg_content)
-            prev_display_time = time.time()
+                try:
+                    if interaction != None:
+                        await interaction.edit_original_response(content=new_msg_content)
+                    else:
+                        print(new_msg_content)
+                except Exception as e:
+                    print(interaction)
+                    goutils.log2("WAR", "Unable to update discord msg to: "+new_msg_content)
+                prev_display_time = time.time()
 
             #Run remod
             character = characters[cid]
@@ -1562,6 +1565,9 @@ class FastOptimizer(BaseOptimizer):
                 ),
             })
 
+            #Breathe
+            await asyncio_sleep(0)
+
         self.clear_cache()
         return results
 
@@ -1629,6 +1635,7 @@ async def optimize_mods_from_profile(
         profile.get("incrementalOptimizeIndex"),
         profile.get("globalSettings", {}),
         previous,
+        interaction=interaction
     )
 
 
