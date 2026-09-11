@@ -3645,13 +3645,27 @@ class ModsCog(commands.GroupCog, name="mods"):
                     my_progress, 
                     ally_code=txt_allyCode)
         
-            saveMyProgress = await optimize_mods_from_profile(
+            mod_assignments = await optimize_mods_from_profile(
                     profile, 
                     previous_run=previous_run,
                     interaction=interaction)
 
             await release_sem(txt_allyCode)
 
+            # add results to original content
+            profile["modAssignments"] = mod_assigments
+
+            #Create last_run
+            last_run = {}
+            last_run["allyCode"] = profile["allyCode"]
+            last_run["characters"] = profile["characters"]
+            last_run["mods"] = profile["mods"]
+            last_run["selectedCharacters"] = profile["selectedCharacters"]
+            last_run["globalSettings"] = profile["globalSettings"]
+
+            # ensure to keep only one profile
+            my_progress["profiles"] = [profile]
+            my_progress["lastRuns"] = [last_run]
 
             # Export file to discord message
             if ec != 0:
