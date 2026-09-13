@@ -2,49 +2,40 @@
 function set_session_rights_for_guild($guild_id) {
     global $conn_guionbot;
 
-    if (isset($_SESSION['user_id'])) {
-        // Define if user is member (or allowed) of the guild
-        $isMyGuild = in_array($guild_id,array_keys($_SESSION['user_guilds']),true);
-        $isMyGuildConfirmed = $isMyGuild && $_SESSION['user_guilds'][$guild_id];
-        $isBonusGuild = in_array($guild_id,$_SESSION['user_bonus_guilds'],true);
-        //echo "isMyGuild=".$isMyGuild;
-        //echo "isMyGuildConfirmed=".$isMyGuildConfirmed;
-        //echo "isBonusGuild=".$isBonusGuild;
+    $isMyGuild = false;
+    $isMyGuildConfirmed = false;
+    $isBonusGuild = false;
+    $isOfficer = false;
 
-        // --------------- GET USER RIGHTS FOR THIS GUILD -----------
-        // Prepare the SQL query
-        $query = "SELECT max(guildMemberLevel)>2 AS isOfficer FROM players";
-        $query .= " JOIN player_discord ON (player_discord.allyCode=players.allyCode)";
-        $query .= " WHERE guildId='".$guild_id."'";
-        $query .= " AND discord_id='".$_SESSION['user_id']."'";
-        $query .= " GROUP BY guildId";
-        //error_log("query = ".$query);
-        try {
-            // Prepare the SQL query to fetch the player information
-            $stmt = $conn_guionbot->prepare($query);
-            $stmt->execute();
+    if (!isset($_SESSION['user_id'])) {
+        return [$isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer];
+    }
 
-            // Fetch all the results as an associative array
-            $players = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $user_guilds = $_SESSION['user_guilds'] ?? [];
+    $bonus_guilds = $_SESSION['user_bonus_guilds'] ?? [];
+    $isMyGuild = array_key_exists($guild_id, $user_guilds);
+    $isMyGuildConfirmed = $isMyGuild && !empty($user_guilds[$guild_id]);
+    $isBonusGuild = in_array($guild_id, $bonus_guilds, true);
 
-        } catch (PDOException $e) {
-            echo "Error fetching guild data: " . $e->getMessage();
-        }
-        if (count($players)>0) {
-            $player = array_values($players)[0];
-            $isOfficer = $player['isOfficer'];
-        } else {
-            $isOfficer = false;
-        }
-        //echo "isOfficer=".$isOfficer;
-    } else {
-        $isMyGuild = false;
-        $isMyGuildConfirmed = false;
-        $isBonusGuild = false;
+    try {
+        $stmt = $conn_guionbot->prepare(
+            "SELECT MAX(guildMemberLevel) > 2 AS isOfficer
+             FROM players
+             JOIN player_discord ON player_discord.allyCode = players.allyCode
+             WHERE guildId = :guild_id AND discord_id = :discord_id
+             GROUP BY guildId"
+        );
+        $stmt->execute([
+            ':guild_id' => $guild_id,
+            ':discord_id' => $_SESSION['user_id']
+        ]);
+        $player = $stmt->fetch(PDO::FETCH_ASSOC);
+        $isOfficer = $player ? (bool)$player['isOfficer'] : false;
+    } catch (PDOException $e) {
+        error_log('Error fetching guild rights: '.$e->getMessage());
         $isOfficer = false;
     }
 
-    return array($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer);
+    return [$isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer];
 }
-
 ?>
