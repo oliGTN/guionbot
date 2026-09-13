@@ -1,117 +1,26 @@
 <?php
-// server should keep session data for AT LEAST 1 hour
+require_once 'security.php';
 ini_set('session.gc_maxlifetime', 3600*24*7);
-// each client should remember their session id for EXACTLY 1 hour
-session_set_cookie_params(3600*24*7);
-// Start the session to check if the user is logged in
+session_set_cookie_params(['lifetime'=>3600*24*7,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']);
 session_start();
-
-require 'guionbotdb.php';  // Include the database connection for guionbotdb
+require 'guionbotdb.php';
 include 'gvariables.php';
-
-// Check if the user is logged in and if the user is an admin
-$isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
-
-// Check if a guild is given in URL, otherwise redirect to index
-if (!isset($_GET['gid'])) {
-    error_log("Redirect to index.php");
-    header("Location: index.php");
-    exit();
-}
-
-$guild_id = substr($_GET['gid'], 0, 22);
-
-//Check if guild page has been visited first, or reload guild data if necessary
-if (!isset($_SESSION['guild']) || $_SESSION['guild']['id']!=$guild_id) include 'gdata.php';
+$isAdmin = !empty($_SESSION['admin']);
+if (!isset($_GET['gid'])) { header("Location: index.php"); exit(); }
+$guild_id = get_required_guild_id();
+if (!isset($_SESSION['guild']) || ($_SESSION['guild']['id'] ?? null) !== $guild_id) include 'gdata.php';
 $guild = $_SESSION['guild'];
-
-// define $isMyGuild, $isOfficer FROM $guild_id
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
-
-
-// --------------- GET TB LIST GUILD -----------
-// Prepare the SQL query
-$query = "SELECT tw_history.id, start_date, away_guild_name,";
-$query .= " homeScore, awayScore, lastUpdated FROM tw_history";
-$query .= " WHERE guild_id='".$guild_id."'";
-$query .= " ORDER BY start_date DESC";
-#error_log("query = ".$query);
 try {
-    // Prepare the SQL query to fetch the player information
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
-
-    // Fetch all the results as an associative array
+    $stmt = $conn_guionbot->prepare("SELECT tw_history.id, start_date, away_guild_name, homeScore, awayScore, lastUpdated FROM tw_history WHERE guild_id = :guild_id ORDER BY start_date DESC");
+    $stmt->execute([':guild_id'=>$guild_id]);
     $tws = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 } catch (PDOException $e) {
-    error_log("Error fetching TW history data: " . $e->getMessage());
-    echo "Error fetching TW history data: " . $e->getMessage();
+    error_log('Error fetching TW history data: '.$e->getMessage());
+    $tws = [];
 }
-
 ?>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>GuiOn bot for SWGOH</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="basic.css">
-    <link rel="stylesheet" href="tables.css">
-    <link rel="stylesheet" href="navbar.css">
-    <link rel="stylesheet" href="main.1.008.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-</head>
-<body>
-<div class="site-container">
-<div class="site-pusher">
-
-    <!-- Navigation Bar -->
-    <?php include 'navbar.php' ; ?>
-
-    <div class="site-content">
-    <div class="container">
-
-    <!-- Guild header -->
-    <?php include 'gheader.php' ; ?>
-    
-    <!-- Table of TB history -->
-    <div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th >Start date</th>
-                <th >Opponent</th>
-                <th >Score</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-            echo "\n";
-            // Loop through each tw and display in a table row
-            if (!empty($tws)) {
-                foreach ($tws as $tw) {
-                    $score_color = ($tw['homeScore']>=$tw['awayScore']?'green':'red');
-                    $start_time = $tw['start_date'];
-                    $start_tab = explode(' ', $start_time);
-                    $start_date = $start_tab[0];
-                    echo "\t\t\t<tr><td>" . $start_date . "</td>\n";
-                    echo "\t\t\t\t<td><a href='/tw.php?id=".$tw['id']."'>" . $tw['away_guild_name'] . "</a></td>\n";
-                    echo "\t\t\t\t<td style='color:".$score_color."'><b>".$tw['homeScore']."/".$tw['awayScore']."</b></td></tr>\n";
-                }
-            } else {
-                echo "<tr><td colspan='3'>No TW found.</td></tr>";
-            }
-            ?>
-        </tbody>
-    </table>
-    </div>
-    </div> <!-- container -->
-    </div> <!-- site-content -->
-    <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
-    
-</div>
-</div>
-</body>
-<?php include 'sitefooter.php' ; ?>
-</html>
+<!DOCTYPE html><html><head><title>GuiOn bot for SWGOH</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="basic.css"><link rel="stylesheet" href="tables.css"><link rel="stylesheet" href="navbar.css"><link rel="stylesheet" href="main.1.008.css"></head><body>
+<div class="site-container"><div class="site-pusher"><?php include 'navbar.php'; ?><div class="site-content"><div class="container"><?php include 'gheader.php'; ?><div class="card"><table><thead><tr><th>Start date</th><th>Opponent</th><th>Score</th></tr></thead><tbody>
+<?php if (!empty($tws)) { foreach ($tws as $tw) { $score_color = ($tw['homeScore'] >= $tw['awayScore'] ? 'green' : 'red'); $start_date = explode(' ', (string)$tw['start_date'])[0]; echo '<tr><td>'.h($start_date).'</td><td><a href="/tw.php?id='.rawurlencode((string)$tw['id']).'">'.h($tw['away_guild_name']).'</a></td><td style="color:'.h($score_color).'"><b>'.h($tw['homeScore']).'/'.h($tw['awayScore']).'</b></td></tr>'; }} else { echo '<tr><td colspan="3">No TW found.</td></tr>'; } ?>
+</tbody></table></div></div></div><div class="site-cache" id="site-cache"></div></div></div></body><?php include 'sitefooter.php'; ?></html>
