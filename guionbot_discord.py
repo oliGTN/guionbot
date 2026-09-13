@@ -3673,7 +3673,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             else:
                 export_path="/tmp/modoptiSaveMyProgress_"+txt_allyCode+".json"
                 export_file = open(export_path, "w")
-                export_txt = json_dumps(saveMyProgress, indent=4)
+                export_txt = json_dumps(my_progress, indent=4)
                 export_file.write(export_txt)
                 export_file.close()
 
