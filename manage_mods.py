@@ -361,7 +361,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
         #manage max size required in mod inventory
         cur_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
-        goutils.log2("INFO", "Current inventory after "+target_char_defId+": "+str(len(cur_inventory)))
+        goutils.log2("INFO", "Current inventory ("+allyCode+") after "+target_char_defId+": "+str(len(cur_inventory)))
         if len(cur_inventory) > max_inventory:
             max_inventory = len(cur_inventory)
 
