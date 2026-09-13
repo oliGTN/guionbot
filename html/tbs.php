@@ -20,7 +20,16 @@ try {
     $tbs = [];
 }
 ?>
-<!DOCTYPE html><html><head><title>GuiOn bot for SWGOH</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="basic.css"><link rel="stylesheet" href="tables.css"><link rel="stylesheet" href="navbar.css"><link rel="stylesheet" href="main.1.008.css"></head><body>
+<!DOCTYPE html>
+<html>
+<head>
+<title>GuiOn bot for SWGOH</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="basic.css"><link rel="stylesheet" href="tables.css"><link rel="stylesheet" href="navbar.css"><link rel="stylesheet" href="main.1.008.css">
+</head>
+
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 <div class="site-container"><div class="site-pusher"><?php include 'navbar.php'; ?><div class="site-content"><div class="container"><?php include 'gheader.php'; ?><div class="card"><table><thead><tr><th>Start date</th><th>Type</th><th>Result</th></tr></thead><tbody>
 <?php if (!empty($tbs)) { foreach ($tbs as $tb) { echo '<tr><td>'.h($tb['start_date']).'</td><td><a href="/tb.php?id='.rawurlencode((string)$tb['id']).'&round='.rawurlencode((string)$tb['max_round']).'">'.h($tb['tb_name']).'</a></td><td>'.h($tb['stars']).'&#11088;</td></tr>'; }} else { echo '<tr><td colspan="3">No TB found.</td></tr>'; } ?>
-</tbody></table></div></div></div><div class="site-cache" id="site-cache"></div></div></div></body><?php include 'sitefooter.php'; ?></html>
+</tbody></table></div></div></div><div class="site-cache" id="site-cache"></div></div></div>
+</body>
+<?php include 'sitefooter.php'; ?></html>

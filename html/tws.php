@@ -20,7 +20,15 @@ try {
     $tws = [];
 }
 ?>
-<!DOCTYPE html><html><head><title>GuiOn bot for SWGOH</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="basic.css"><link rel="stylesheet" href="tables.css"><link rel="stylesheet" href="navbar.css"><link rel="stylesheet" href="main.1.008.css"></head><body>
+<!DOCTYPE html>
+<html>
+<head>
+<title>GuiOn bot for SWGOH</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="basic.css"><link rel="stylesheet" href="tables.css"><link rel="stylesheet" href="navbar.css"><link rel="stylesheet" href="main.1.008.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
+<body>
 <div class="site-container"><div class="site-pusher"><?php include 'navbar.php'; ?><div class="site-content"><div class="container"><?php include 'gheader.php'; ?><div class="card"><table><thead><tr><th>Start date</th><th>Opponent</th><th>Score</th></tr></thead><tbody>
 <?php if (!empty($tws)) { foreach ($tws as $tw) { $score_color = ($tw['homeScore'] >= $tw['awayScore'] ? 'green' : 'red'); $start_date = explode(' ', (string)$tw['start_date'])[0]; echo '<tr><td>'.h($start_date).'</td><td><a href="/tw.php?id='.rawurlencode((string)$tw['id']).'">'.h($tw['away_guild_name']).'</a></td><td style="color:'.h($score_color).'"><b>'.h($tw['homeScore']).'/'.h($tw['awayScore']).'</b></td></tr>'; }} else { echo '<tr><td colspan="3">No TW found.</td></tr>'; } ?>
-</tbody></table></div></div></div><div class="site-cache" id="site-cache"></div></div></div></body><?php include 'sitefooter.php'; ?></html>
+</tbody></table></div></div></div><div class="site-cache" id="site-cache"></div></div></div>
+</body>
+<?php include 'sitefooter.php'; ?></html>
