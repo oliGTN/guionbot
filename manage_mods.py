@@ -13,6 +13,7 @@ from html.parser import HTMLParser
 import copy #deepcopy
 import requests
 import time
+from asyncio import sleep as asyncio_sleep
 
 import go
 import goutils
@@ -382,6 +383,9 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             except Exception as e:
                 goutils.log2("WAR", "Unable to update discord msg to: "+new_msg_content)
             prev_display_time = time.time()
+
+        #breathe
+        await asyncio_sleep(0)
 
     goutils.log2("INFO", "Max inventory: "+str(max_inventory))
     needed_inventory = max_inventory-initial_inventory
