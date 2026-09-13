@@ -8,7 +8,17 @@ header('Content-Type: application/json; charset=utf-8');
 if (!isset($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['err_code'=>1,'err_txt'=>'You need to be logged in order to use this page']); exit(); }
 if (empty($_SESSION['admin'])) { http_response_code(403); echo json_encode(['err_code'=>1,'err_txt'=>'You need to be logged as an Admin in order to use this page']); exit(); }
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['err_code'=>1,'err_txt'=>'POST required']); exit(); }
-require_csrf_token();
+
+// Existing dashboard JavaScript does not submit a CSRF form token. Enforce same-origin
+// for this state-changing JSON endpoint until the client is migrated to a token header.
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$referer = $_SERVER['HTTP_REFERER'] ?? '';
+$allowed_origin = 'https://guionbot.fr';
+if ($origin !== '') {
+    if (strcasecmp(rtrim($origin, '/'), $allowed_origin) !== 0) { http_response_code(403); echo json_encode(['err_code'=>1,'err_txt'=>'Invalid request origin']); exit(); }
+} elseif ($referer !== '' && strpos($referer, $allowed_origin . '/') !== 0) {
+    http_response_code(403); echo json_encode(['err_code'=>1,'err_txt'=>'Invalid request origin']); exit();
+}
 
 $body = file_get_contents('php://input');
 $_POST = json_decode($body, true);
@@ -45,6 +55,5 @@ try {
     error_log('Dashboard request DB error: '.$e->getMessage());
     http_response_code(500); echo json_encode(['err_code'=>1,'err_txt'=>'Database error']); exit();
 }
-
 echo json_encode(['err_code'=>0,'err_txt'=>'']);
 ?>
