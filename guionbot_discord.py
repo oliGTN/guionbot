@@ -3653,7 +3653,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             await release_sem(txt_allyCode)
 
             # add results to original content
-            profile["modAssignments"] = mod_assigments
+            profile["modAssignments"] = mod_assignments
 
             #Create last_run
             last_run = {}
