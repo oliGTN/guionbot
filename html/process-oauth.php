@@ -1,192 +1,228 @@
-<!-- source video: https://www.youtube.com/watch?v=w5ZLlnid8g0  -->
 <?php
-require 'websitedb.php';  // Include the database connection for guionbotdb
-require 'guionbotdb.php';  // Include the database connection for guionbotdb
+require_once 'security.php';
+require 'websitedb.php';
+require 'guionbotdb.php';
+include 'oauth_secret.php';
 
-include 'oauth_secret.php'; // defines $client_id and $client_secret
-
-// check if there is an access token in the session 
-// (set from the cookie in init-oauth)
+session_set_cookie_params([
+    'lifetime' => 3600 * 24 * 7,
+    'path' => '/',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
-if(!isset($_GET['code']) && isset($_SESSION['discord_access_token'])) {
-    $access_token = $_SESSION['discord_access_token']->access_token;
-    $refresh_token = $_SESSION['discord_access_token']->refresh_token;
 
+if (isset($_GET['code'])) {
+    $state = $_GET['state'] ?? '';
+
+    if (
+        !is_string($state)
+        || empty($_SESSION['oauth_state'])
+        || !hash_equals($_SESSION['oauth_state'], $state)
+    ) {
+        http_response_code(400);
+        exit('Invalid OAuth state');
+    }
+
+    unset($_SESSION['oauth_state']);
+}
+
+if (!isset($_GET['code']) && isset($_SESSION['discord_access_token'])) {
+    $token_data = $_SESSION['discord_access_token'];
+    $access_token = $token_data->access_token ?? null;
+    $refresh_token = $token_data->refresh_token ?? null;
 } else {
-    // no cookie, need to use the code from init-ouath
-    if(!isset($_GET['code'])){
-        error_log("No discord code, redirect to index.php");
-        header("Location: index.php");
+    if (
+        !isset($_GET['code'])
+        || !is_string($_GET['code'])
+        || $_GET['code'] === ''
+    ) {
+        header('Location: index.php');
         exit();
     }
 
     $discord_code = $_GET['code'];
-
     $payload = [
-        'code'=>$discord_code,
-        'client_id'=>$client_id,
-        'client_secret'=>$client_secret,
-        'grant_type'=>'authorization_code',
-        'redirect_uri'=>'https://guionbot.fr/process-oauth.php',!
-        'scope'=>'identify'
-       ];
+        'code' => $discord_code,
+        'client_id' => $client_id,
+        'client_secret' => $client_secret,
+        'grant_type' => 'authorization_code',
+        'redirect_uri' => 'https://guionbot.fr/process-oauth.php',
+        'scope' => 'identify',
+    ];
 
-    //print_r($payload);
-
-    $payload_string = http_build_query($payload);
-    $discord_token_url = "https://discordapp.com/api/oauth2/token";
-
-    $ch = curl_init();
-
-    curl_setopt($ch, CURLOPT_URL, $discord_token_url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload_string);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $ch = curl_init('https://discord.com/api/oauth2/token');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query($payload),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 10,
+    ]);
 
     $result = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-    if(!$result){
-        echo curl_error($ch);
+    if ($result === false || $http_code < 200 || $http_code >= 300) {
+        error_log(
+            'Discord token request failed: '
+            . curl_error($ch)
+            . ' HTTP '
+            . $http_code
+        );
+        curl_close($ch);
+        http_response_code(502);
+        exit('Authentication service unavailable.');
     }
 
-    // get tokens and store in cookies
-    $result = json_decode($result, true);
-    $access_token = $result['access_token'];
-    $refresh_token = $result['refresh_token'];
-    $expires_in = $result['expires_in'];
-    $expiry = time()+$expires_in;
-    $cookie_data = (object) array( "access_token"=> $access_token, "refresh_token"=> $refresh_token, "expiry"=> $expiry);
-    setcookie('discord_access_token', json_encode( $cookie_data), $expiry, "/");
+    curl_close($ch);
+
+    $data = json_decode($result, true);
+
+    if (
+        !is_array($data)
+        || empty($data['access_token'])
+        || empty($data['refresh_token'])
+        || empty($data['expires_in'])
+    ) {
+        error_log('Invalid Discord token response');
+        http_response_code(502);
+        exit('Authentication service unavailable.');
+    }
+
+    $access_token = $data['access_token'];
+    $refresh_token = $data['refresh_token'];
+    $expiry = time() + (int) $data['expires_in'];
+    $cookie_data = json_encode([
+        'access_token' => $access_token,
+        'refresh_token' => $refresh_token,
+        'expiry' => $expiry,
+    ]);
+
+    setcookie('discord_access_token', $cookie_data, [
+        'expires' => $expiry,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
 
-// use token to get discord data
-$discord_users_url = "https://discordapp.com/api/users/@me";
-$header = array("Authorization: Bearer $access_token", "Content-Type: application/x-www-form-urlencoded");
+if (!$access_token) {
+    http_response_code(401);
+    exit('Authentication failed.');
+}
 
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-curl_setopt($ch, CURLOPT_URL, $discord_users_url);
-curl_setopt($ch, CURLOPT_POST, false);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$ch = curl_init('https://discord.com/api/users/@me');
+curl_setopt_array($ch, [
+    CURLOPT_HTTPHEADER => [
+        'Authorization: Bearer ' . $access_token,
+        'Content-Type: application/x-www-form-urlencoded',
+    ],
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 10,
+]);
 
 $result = curl_exec($ch);
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
 
-if(!$result){
-    echo curl_error($ch);
-
-    // delete the cookie
-    setcookie('discord_access_token', "", time()-3600, "/");
+if ($result === false || $http_code !== 200) {
+    setcookie('discord_access_token', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     unset($_SESSION['discord_access_token']);
-    unset($_COOKIE['discord_access_token']);
+    http_response_code(401);
+    exit('Authentication failed.');
 }
 
-$result = json_decode($result, true);
-$user_id = $result['id'];
-$user_name = $result['global_name'];
+$user = json_decode($result, true);
+
+if (!is_array($user) || empty($user['id']) || !isset($user['global_name'])) {
+    http_response_code(502);
+    exit('Authentication service unavailable.');
+}
+
+session_regenerate_id(true);
+$user_id = (string) $user['id'];
+$user_name = (string) $user['global_name'];
 
 $_SESSION['user_id'] = $user_id;
 $_SESSION['user_name'] = $user_name;
-//print_r($_SESSION);
 
 try {
-    // Prepare SQL to create the user if not already, and store the name
-    $query = "INSERT INTO users(user_id, name)";
-    $query .= " VALUES('".$user_id."', '".$user_name."')";
-    $query .= " ON DUPLICATE KEY UPDATE name='".$user_name."'";
-    //error_log($query);
-    $stmt = $conn->prepare($query);
-    $stmt->execute();
+    $stmt = $conn->prepare(
+        'INSERT INTO users(user_id,name)
+         VALUES(:user_id,:name)
+         ON DUPLICATE KEY UPDATE name=:name_update'
+    );
+    $stmt->execute([
+        ':user_id' => $user_id,
+        ':name' => $user_name,
+        ':name_update' => $user_name,
+    ]);
 
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}    
+    $stmt = $conn->prepare(
+        'SELECT is_admin, sql_select FROM users WHERE user_id=:user_id'
+    );
+    $stmt->execute([':user_id' => $user_id]);
+    $details = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-try {
-    // Prepare SQL to check if user is admin
-    $query = "SELECT is_admin, sql_select FROM users WHERE user_id='".$user_id."'";
-    //error_log($query);
-    $stmt = $conn->prepare($query);
-    $stmt->execute();
-    $user_details = $stmt->fetch(PDO::FETCH_ASSOC);
-    error_log(print_r($user_details, true));
-    if ($user_details) {
-        $_SESSION['admin'] = $user_details['is_admin'];  // Mark the user as an admin if applicable
-        $_SESSION['sql_select'] = $user_details['sql_select'];  // Mark the user with sql SELECT rights
-    }
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}    
+    $_SESSION['admin'] = !empty($details['is_admin']);
+    $_SESSION['sql_select'] = !empty($details['sql_select']);
 
-try {
-    // Prepare SQL to get user allyCodes
-    $query = "SELECT players.allyCode AS allyCode, confirmed";
-    $query .= " FROM players";
-    $query .= " JOIN player_discord ON player_discord.allyCode = players.allyCode";
-    $query .= " WHERE discord_id='".$user_id."'";
-    //error_log($query);
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
+    $stmt = $conn_guionbot->prepare(
+        'SELECT players.allyCode AS allyCode, confirmed
+         FROM players
+         JOIN player_discord ON player_discord.allyCode=players.allyCode
+         WHERE discord_id=:discord_id'
+    );
+    $stmt->execute([':discord_id' => $user_id]);
     $user_allyCodes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    //print_r($user_data);
 
-    // Prepare SQL to get user guilds
-    $query = "SELECT guildId, max(confirmed) AS confirmed";
-    $query .= " FROM players";
-    $query .= " JOIN player_discord ON player_discord.allyCode = players.allyCode";
-    $query .= " WHERE discord_id='".$user_id."'";
-    $query .= " GROUP BY guildId";
-    //error_log($query);
-    $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
+    $stmt = $conn_guionbot->prepare(
+        'SELECT guildId, MAX(confirmed) AS confirmed
+         FROM players
+         JOIN player_discord ON player_discord.allyCode=players.allyCode
+         WHERE discord_id=:discord_id
+         GROUP BY guildId'
+    );
+    $stmt->execute([':discord_id' => $user_id]);
     $user_guilds = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    //print_r($user_data);
 
-    // Prepare SQL to get user bonus guilds
-    $query = "SELECT guild_id";
-    $query .= " FROM user_guilds";
-    $query .= " WHERE user_id='".$user_id."'";
-    //$error_log($query);
-    $stmt = $conn->prepare($query);
-    $stmt->execute();
+    $stmt = $conn->prepare(
+        'SELECT guild_id FROM user_guilds WHERE user_id=:user_id'
+    );
+    $stmt->execute([':user_id' => $user_id]);
     $user_bonus_guilds = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 } catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
+    error_log('OAuth database error: ' . $e->getMessage());
+    http_response_code(500);
+    exit('An internal error occurred.');
 }
 
-// store allyCodes in session data
 $_SESSION['allyCodes'] = [];
-foreach($user_allyCodes as $user_allyCode) {
-    $_SESSION['allyCodes'][$user_allyCode['allyCode']] = $user_allyCode['confirmed'];
-}   
+foreach ($user_allyCodes as $row) {
+    $_SESSION['allyCodes'][$row['allyCode']] = $row['confirmed'];
+}
 
-// store guilds in session data
 $_SESSION['user_guilds'] = [];
-foreach($user_guilds as $user_guild) {
-    $_SESSION['user_guilds'][$user_guild['guildId']] = $user_guild['confirmed'];
+foreach ($user_guilds as $row) {
+    $_SESSION['user_guilds'][$row['guildId']] = $row['confirmed'];
 }
 
-// store bonus guilds in session data
 $_SESSION['user_bonus_guilds'] = [];
-foreach($user_bonus_guilds as $user_bonus_guild) {
-    array_push($_SESSION['user_bonus_guilds'], $user_bonus_guild['guild_id']);
+foreach ($user_bonus_guilds as $row) {
+    $_SESSION['user_bonus_guilds'][] = $row['guild_id'];
 }
-//print_r($_SESSION);
 
-//Process comes to an end, redirct to dashboard page
-//header("Location: dashboard.php");  // Redirect to dashboard after login
-
-// Redirect the user back to the page they came from
-$return = $_SESSION['login_return'] ?? 'dashboard.php';
+$return = safe_return_path($_SESSION['login_return'] ?? 'dashboard.php');
 unset($_SESSION['login_return']);
 
-// Prevent open redirects
-if (strpos($return, '/') !== 0) {
-    $return = 'dashboard.php';
-}
-
-header("Location: $return");
+header('Location: ' . $return);
 exit();
-
 ?>
-
