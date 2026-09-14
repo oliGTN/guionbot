@@ -2508,34 +2508,59 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
 # list_events my be actually a dictionary
 async def store_tw_events(guild_id, tw_id, list_events):
     # Get the DB tw_id from the game tw_id and the guild_id
-    query = "SELECT id FROM tw_history WHERE tw_id='"+tw_id+"' AND guild_id='"+guild_id+"'"
-    goutils.log2("DBG", query)
-    tw_db_id = await get_value_async(query)
+    query = (
+        "SELECT id FROM tw_history "
+        "WHERE tw_id=%s AND guild_id=%s"
+    )
+
+    tw_db_id = await get_value_async(
+        query,
+        (tw_id, guild_id)
+    )
 
     if tw_db_id==None:
         # TW not registered yet, wait for next time
         return
 
+    values = []
+
     for event in list_events:
         #Manage the case where list_events is a dict
-        if type(event)==str:
-            event_id = event
-            event = list_events[event_id]
+        if isinstance(event, str):
+            event = list_events[event]
 
         event_ts = int(event["timestamp"]) # to prevent values like 1737416568.6330001
-
         author_id = event["authorId"]
+
         data=event["data"][0]
         activity=data["activity"]
         zone_data = activity["zoneData"]
+        activity_log = zone_data["activityLogMessage"]
+
+        event_type = activity_log["key"]
         zone_id = zone_data["zoneId"]
-        event_type = activity["zoneData"]["activityLogMessage"]["key"]
+
         if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
             if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
                 squad_id = activity["warSquad"]["squadId"]
                 leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
                 squad_size = len(activity["warSquad"]["squad"]["cell"])
 
+                values.append((
+                    tw_db_id,
+                    event_ts,
+                    "DEPLOY",
+                    zone_id,
+                    author_id,
+                    squad_id,
+                    None,
+                    leader_id,
+                    None,
+                    None,
+                    None
+                ))
+
+                """
                 query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id, squad_leader) "\
                         "VALUES("+str(tw_db_id)+", "\
@@ -2547,6 +2572,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         "'"+leader_id+"') "
                 goutils.log2("DBG", query)
                 await simple_execute_async(query)
+                """
 
         elif "warSquad" in activity:
             squad_id = activity["warSquad"]["squadId"]
@@ -2564,6 +2590,21 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     if cell["unitState"]["turnPercent"] != "0":
                         remaining_tm=True
 
+                values.append((
+                    tw_db_id,
+                    event_ts,
+                    event_type,
+                    zone_id,
+                    author_id,
+                    squad_id,
+                    squad_leader_id,
+                    leader_id,
+                    squad_size,
+                    count_dead,
+                    remaining_tm
+                ))
+
+                """
                 query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id, squad_player_id, squad_leader, "\
                         "squad_size, squad_dead, squad_tm) "\
@@ -2580,8 +2621,24 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         ""+str(int(remaining_tm))+") "
                 goutils.log2("DBG", query)
                 await simple_execute_async(query)
+                """
 
             else: # no squad, only squad_id
+                values.append((
+                    tw_db_id,
+                    event_ts,
+                    event_type,
+                    zone_id,
+                    author_id,
+                    squad_id,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None
+                ))
+
+                """
                 query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                         "author_id, squad_id) "\
                         "VALUES("+str(tw_db_id)+", "\
@@ -2592,6 +2649,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         "'"+squad_id+"') "
                 goutils.log2("DBG", query)
                 await simple_execute_async(query)
+                """
 
 
         else: # no warSquad > score event
@@ -2600,6 +2658,23 @@ async def store_tw_events(guild_id, tw_id, list_events):
             scoreDelta = activity["zoneData"]["scoreDelta"]
             scoreTotal = activity["zoneData"]["scoreTotal"]
 
+            values.append((
+                tw_db_id,
+                event_ts,
+                "SCORE",
+                zone_id,
+                author_id,
+                squad_id,
+                None,
+                None,
+                None,
+                None,
+                None,
+                scoreDelta,
+                scoreTotal
+            ))
+
+            """
             query = "INSERT IGNORE INTO tw_events(tw_id, timestamp, event_type, zone_id, "\
                     "author_id, scoreDelta, scoreTotal) "\
                     "VALUES("+str(tw_db_id)+", "\
@@ -2611,9 +2686,52 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     ""+scoreTotal+") "
             goutils.log2("DBG", query)
             await simple_execute_async(query)
+            """
 
         # breathe
         await asyncio.sleep(0)
+
+    if not values:
+        return
+
+    query = """
+        INSERT IGNORE INTO tw_events
+        (
+            tw_id,
+            timestamp,
+            event_type,
+            zone_id,
+            author_id,
+            squad_id,
+            squad_player_id,
+            squad_leader,
+            squad_size,
+            squad_dead,
+            squad_tm,
+            scoreDelta,
+            scoreTotal
+        )
+        VALUES (
+            %s,
+            FROM_UNIXTIME(%s * 0.001),
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %d,
+            %d,
+            %d,
+            %d,
+            %d
+        )
+    """
+    goutils.log2("INFO", query, identifier=guild_id)
+
+    rowcount = await executemany_async(query, values)
+
+    goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
 async def update_guild(dict_guild):
     guild_id = dict_guild["profile"]["id"]
