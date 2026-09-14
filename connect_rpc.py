@@ -584,6 +584,8 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             else:
                 continue
 
+            # eventLatest_ts = None >> erroneous config, better to not store events
+            # event_ts <= eventLatest_ts >> already known event
             if eventLatest_ts==None or event_ts <= eventLatest_ts:
                 continue
 
@@ -597,17 +599,17 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
 
         goutils.log2("DBG", "end loop list_rpc_events")
 
-        # SET latest ts for events
-        if max_event_ts == 0 and eventLatest_ts!=None:
-            max_event_ts = eventLatest_ts
-        query = "UPDATE guild_bot_infos "
-        query+= "SET eventLatest_ts="+str(max_event_ts)+" "
-        query+= "WHERE guild_id='"+guild_id+"'"
-        goutils.log2("INFO", query)
-        await connect_mysql.simple_execute_async(query)
+        # SET latest ts for events, if at least one new event has been detected
+        # and events were stored before
+        if max_event_ts != 0 and eventLatest_ts!=None:
+            query = "UPDATE guild_bot_infos "
+            query+= "SET eventLatest_ts="+str(max_event_ts)+" "
+            query+= "WHERE guild_id='"+guild_id+"'"
+            goutils.log2("INFO", query, identifier=guild_id)
+            await connect_mysql.simple_execute_async(query)
 
         #if max(dict_event_counts.values()) > 0:
-        goutils.log2("INFO", "["+guild_id+"] New events: "+str(dict_event_counts))
+        goutils.log2("INFO", "New events: "+str(dict_event_counts), identifier=guild_id)
 
         #PREPARE dict_events to return
         goutils.log2("DBG", "start loop dict_new_events")
@@ -629,7 +631,10 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
                         try:
                             file_events=json_load(f)
                         except:
-                            goutils.log2("WAR", "error while reading "+fevents+" ... ignoring")
+                            goutils.log2(
+                                "WAR", 
+                                "error while reading "+fevents+" ... ignoring",
+                                identifier=guild_id)
                             file_events={}
                         f.close()
                     else:

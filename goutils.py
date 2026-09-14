@@ -452,13 +452,19 @@ def log(level, fct, txt):
 ################################################
 # function: log
 ################################################
-def log2(level, txt):
+def log2(level, txt, identifier=None):
     now = datetime.now()
     dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
     module_name = inspect.stack()[1][1].split("/")[-1][:-3]
     fct = module_name+"."+inspect.stack()[1][3]
     code_line = inspect.stack()[1][2]
-    log_string = dt_string+":"+level+":"+fct+"["+str(code_line)+"]:"+str(txt)
+
+    if identifier != None:
+        id_txt = "["+identifier+"]"
+    else:
+        id_txt = ""
+
+    log_string = dt_string+":"+level+":"+fct+"["+str(code_line)+"]:"+id_txt+str(txt)
 
     if level=='DBG':
         if config.LOG_LEVEL=='DBG':
