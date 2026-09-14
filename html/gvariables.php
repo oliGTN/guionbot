@@ -1,5 +1,6 @@
 <?php
-function set_session_rights_for_guild($guild_id) {
+function set_session_rights_for_guild($guild_id)
+{
     global $conn_guionbot;
 
     $isMyGuild = false;
@@ -13,6 +14,7 @@ function set_session_rights_for_guild($guild_id) {
 
     $user_guilds = $_SESSION['user_guilds'] ?? [];
     $bonus_guilds = $_SESSION['user_bonus_guilds'] ?? [];
+
     $isMyGuild = array_key_exists($guild_id, $user_guilds);
     $isMyGuildConfirmed = $isMyGuild && !empty($user_guilds[$guild_id]);
     $isBonusGuild = in_array($guild_id, $bonus_guilds, true);
@@ -27,12 +29,13 @@ function set_session_rights_for_guild($guild_id) {
         );
         $stmt->execute([
             ':guild_id' => $guild_id,
-            ':discord_id' => $_SESSION['user_id']
+            ':discord_id' => $_SESSION['user_id'],
         ]);
+
         $player = $stmt->fetch(PDO::FETCH_ASSOC);
-        $isOfficer = $player ? (bool)$player['isOfficer'] : false;
+        $isOfficer = $player ? (bool) $player['isOfficer'] : false;
     } catch (PDOException $e) {
-        error_log('Error fetching guild rights: '.$e->getMessage());
+        error_log('Error fetching guild rights: ' . $e->getMessage());
         $isOfficer = false;
     }
 
