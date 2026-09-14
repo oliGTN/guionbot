@@ -356,7 +356,7 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
     guild_id = dict_guild["profile"]["id"]
-    goutils.log2("DBG", "START ["+calling_func+"]get_event_data("+guild_id+", "\
+    goutils.log2("INFO", "START ["+calling_func+"]get_event_data("+guild_id+", "\
                         +str(event_types)+", " \
                         +str(force_update)+", "+str(allyCode)+")")
 
@@ -603,7 +603,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
         query = "UPDATE guild_bot_infos "
         query+= "SET eventLatest_ts="+str(max_event_ts)+" "
         query+= "WHERE guild_id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         await connect_mysql.simple_execute_async(query)
 
         #if max(dict_event_counts.values()) > 0:

@@ -1637,6 +1637,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 
                 if output_channel!=None:
                     output_txt = ""
+                    goutils.log2("INFO", "list_logs="+str(list_logs))
                     for line in list_logs:
                         ts = line[0]
                         txt = line[1]
@@ -1646,6 +1647,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
                         output_txt = output_txt[:-1]
                         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                             await output_channel.send(txt)
+                            goutils.log2("INFO", "send '"+txt+"' to channel "+str(channel_id))
                 else:
                     war_msg="Error while getting channel for id "+str(channel_id)
                     goutils.log2("WAR", war_msg)
