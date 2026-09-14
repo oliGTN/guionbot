@@ -2540,11 +2540,12 @@ async def store_tw_events(guild_id, tw_id, list_events):
         event_type = activity_log["key"]
         zone_id = zone_data["zoneId"]
 
-        if "DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
-            if activity["zoneData"]["instanceType"] == "ZONEINSTANCEHOME":
-                squad_id = activity["warSquad"]["squadId"]
-                leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
-                squad_size = len(activity["warSquad"]["squad"]["cell"])
+        if "DEPLOY" in activity_log["key"]:
+            if zone_data["instanceType"] == "ZONEINSTANCEHOME":
+                warSquad = activity["warSquad"]
+                squad_id = warSquad["squadId"]
+                leader_id = warSquad["squad"]["cell"][0]["unitDefId"]
+                squad_size = len(warSquad["squad"]["cell"])
 
                 values.append((
                     tw_db_id,
@@ -2555,6 +2556,8 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     squad_id,
                     None,
                     leader_id,
+                    squad_size,
+                    None,
                     None,
                     None,
                     None
@@ -2575,16 +2578,17 @@ async def store_tw_events(guild_id, tw_id, list_events):
                 """
 
         elif "warSquad" in activity:
-            squad_id = activity["warSquad"]["squadId"]
-            event_type = activity["warSquad"]["squadStatus"]
-            if "squad" in activity["warSquad"]:
-                squad_player_id=activity["warSquad"]["playerId"]
-                leader_id = activity["warSquad"]["squad"]["cell"][0]["unitDefId"]
-                squad_size = len(activity["warSquad"]["squad"]["cell"])
+            warSquad = activity["warSquad"]
+            squad_id = warSquad["squadId"]
+            event_type = warSquad["squadStatus"]
+            if "squad" in warSquad:
+                squad_player_id=warSquad["playerId"]
+                leader_id = warSquad["squad"]["cell"][0]["unitDefId"]
+                squad_size = len(warSquad["squad"]["cell"])
                 
                 count_dead=0
                 remaining_tm=False
-                for cell in activity["warSquad"]["squad"]["cell"]:
+                for cell in warSquad["squad"]["cell"]:
                     if cell["unitState"]["healthPercent"] == "0":
                         count_dead+=1
                     if cell["unitState"]["turnPercent"] != "0":
@@ -2597,11 +2601,13 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     zone_id,
                     author_id,
                     squad_id,
-                    squad_leader_id,
+                    squad_player_id,
                     leader_id,
                     squad_size,
                     count_dead,
-                    remaining_tm
+                    remaining_tm,
+                    None,
+                    None
                 ))
 
                 """
@@ -2635,6 +2641,8 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     None,
                     None,
                     None,
+                    None,
+                    None,
                     None
                 ))
 
@@ -2655,7 +2663,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
         else: # no warSquad > score event
             if not "scoreDelta" in activity["zoneData"]:
                 goutils.log2("WAR", "no scoreDelta in "+str(event))
-            scoreDelta = activity["zoneData"]["scoreDelta"]
+            scoreDelta = 0
             scoreTotal = activity["zoneData"]["scoreTotal"]
 
             values.append((
@@ -2664,7 +2672,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                 "SCORE",
                 zone_id,
                 author_id,
-                squad_id,
+                None,
                 None,
                 None,
                 None,
@@ -2720,11 +2728,11 @@ async def store_tw_events(guild_id, tw_id, list_events):
             %s,
             %s,
             %s,
-            %d,
-            %d,
-            %d,
-            %d,
-            %d
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
         )
     """
     goutils.log2("INFO", query, identifier=guild_id)
