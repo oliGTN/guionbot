@@ -2201,7 +2201,7 @@ async def store_tb_events(guild_id, tb_id, list_events):
     """
     goutils.log2("INFO", query, identifier=guild_id)
 
-    await executemany_async(query, values)
+    rowcount = await executemany_async(query, values)
 
     goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
