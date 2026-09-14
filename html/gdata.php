@@ -11,13 +11,15 @@ try {
     );
     $stmt->execute([':guild_id' => $guild_id]);
     $guilds = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     if (empty($guilds)) {
         echo "<title>ERR: unknown guild</title><h2>ERR: unknown guild</h2>";
         exit();
     }
+
     $guild = $guilds[0];
 } catch (PDOException $e) {
-    error_log('Error fetching guild data: '.$e->getMessage());
+    error_log('Error fetching guild data: ' . $e->getMessage());
     http_response_code(500);
     exit('An internal error occurred.');
 }
@@ -31,17 +33,19 @@ try {
     $stmt->execute([':guild_id' => $guild_id]);
     $guild_history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    error_log('Error fetching guild history: '.$e->getMessage());
+    error_log('Error fetching guild history: ' . $e->getMessage());
     $guild_history = [];
 }
 
 $guild['graph_date'] = [];
 $guild['graph_gp'] = [];
 $guild['graph_players'] = [];
+
 foreach ($guild_history as $line) {
     $guild['graph_date'][] = $line['date'];
     $guild['graph_gp'][] = $line['gp'];
     $guild['graph_players'][] = $line['players'];
 }
+
 $_SESSION['guild'] = $guild;
 ?>
