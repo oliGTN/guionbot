@@ -191,12 +191,14 @@ async def simple_execute_async(query, params=None):
     connection = None
     cursor = None
     owns_connection = _async_current_connection.get() is None
+    row_count = 0
 
     try:
         connection = await adb_connect()
 
         cursor = await connection.cursor()
         await cursor.execute(query, params)
+        row_count = cursor.rowcount
         await connection.commit()
 
     except Error as error:
@@ -213,6 +215,40 @@ async def simple_execute_async(query, params=None):
 
         if owns_connection and connection is not None:
             await release_async_connection(connection)
+
+    return row_count
+
+async def executemany_async(query, params_list):
+    """Execute one INSERT/UPDATE/DELETE statement for many rows asynchronously."""
+    connection = None
+    cursor = None
+    owns_connection = _async_current_connection.get() is None
+    row_count = 0
+
+    try:
+        connection = await adb_connect()
+
+        cursor = await connection.cursor()
+        await cursor.executemany(query, params_list)
+        row_count = cursor.rowcount
+        await connection.commit()
+
+    except Error as error:
+        goutils.log2("ERR", query)
+        goutils.log2("ERR", error)
+        raise
+
+    finally:
+        if cursor is not None:
+            try:
+                await cursor.close()
+            except Exception:
+                pass
+
+        if owns_connection and connection is not None:
+            await release_async_connection(connection)
+
+    return row_count
 
 
 async def _execute_read_async(query, params=None):
@@ -2043,97 +2079,131 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
 # list_events my be actually a dictionary
 async def store_tb_events(guild_id, tb_id, list_events):
     # Get the DB tb_id from the game tb_id and the guild_id
-    query = "SELECT id FROM tb_history WHERE tb_id='"+tb_id+"' AND guild_id='"+guild_id+"'"
-    goutils.log2("DBG", query)
-    tb_db_id = await get_value_async(query)
+    query = (
+        "SELECT id FROM tb_history "
+        "WHERE tb_id=%s AND guild_id=%s"
+    )
 
-    if tb_db_id == None:
+    tb_db_id = await get_value_async(
+        query,
+        (tb_id, guild_id)
+    )
+
+    if tb_db_id is None:
         return
 
+    values = []
+
     for event in list_events:
-        #Manage the case where list_events is a dict
-        if type(event)==str:
-            event_id = event
-            event = list_events[event_id]
+        # Manage the case where list_events is a dict
+        if isinstance(event, str):
+            event = list_events[event]
 
-        event_ts = int(event["timestamp"]) # to prevent values like 1737416568.6330001
-
+        event_ts = int(event["timestamp"])
         author_id = event["authorId"]
-        data=event["data"][0]
-        activity=data["activity"]
-        event_type = activity["zoneData"]["activityLogMessage"]["key"]
-        if "CONFLICT_CONTRIBUTION" in activity["zoneData"]["activityLogMessage"]["key"]:
-            zone_data = activity["zoneData"]
-            zone_id = zone_data["zoneId"]
-            param0 = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
-            param2 = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
-            param3 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
 
-            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
-                    "author_id, param0, param2, param3) "\
-                    "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
-                    "'CONFLICT_CONTRIBUTION', "\
-                    "'"+zone_id+"', "\
-                    "'"+author_id+"', "\
-                    ""+str(param0)+", "\
-                    ""+str(param2)+", "\
-                    ""+str(param3)+") "
-            goutils.log2("DBG", query)
-            await simple_execute_async(query)
+        data = event["data"][0]
+        activity = data["activity"]
+        zone_data = activity["zoneData"]
+        activity_log = zone_data["activityLogMessage"]
 
-        elif "COVERT_COMPLETE" in activity["zoneData"]["activityLogMessage"]["key"]:
-            zone_data = activity["zoneData"]
-            zone_id = zone_data["zoneId"]
+        event_type = activity_log["key"]
+        zone_id = zone_data["zoneId"]
+        params = activity_log.get("param", [])
 
-            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
-                    "author_id) "\
-                    "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
-                    "'COVERT_COMPLETE', "\
-                    "'"+zone_id+"', "\
-                    "'"+author_id+"') "
-            goutils.log2("DBG", query)
-            await simple_execute_async(query)
+        if "CONFLICT_CONTRIBUTION" in event_type:
+            param0 = params[0]["paramValue"][0]
+            param2 = params[2]["paramValue"][0]
+            param3 = params[3]["paramValue"][0]
 
-        elif "CONFLICT_DEPLOY" in activity["zoneData"]["activityLogMessage"]["key"]:
-            zone_data = activity["zoneData"]
-            zone_id = zone_data["zoneId"]
-            param0 = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
+            values.append((
+                tb_db_id,
+                event_ts,
+                "CONFLICT_CONTRIBUTION",
+                zone_id,
+                author_id,
+                param0,
+                param2,
+                param3
+            ))
 
-            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
-                    "author_id, param0) "\
-                    "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
-                    "'CONFLICT_DEPLOY', "\
-                    "'"+zone_id+"', "\
-                    "'"+author_id+"', "\
-                    ""+str(param0)+") "
-            goutils.log2("DBG", query)
-            await simple_execute_async(query)
+        elif "COVERT_COMPLETE" in event_type:
 
-        elif "RECON_CONTRIBUTION" in activity["zoneData"]["activityLogMessage"]["key"]:
-            zone_data = activity["zoneData"]
-            zone_id = zone_data["zoneId"]
-            param0 = zone_data["activityLogMessage"]["param"][0]["paramValue"][0]
-            param2 = zone_data["activityLogMessage"]["param"][2]["paramValue"][0]
-            param3 = zone_data["activityLogMessage"]["param"][3]["paramValue"][0]
+            values.append((
+                tb_db_id,
+                event_ts,
+                "COVERT_COMPLETE",
+                zone_id,
+                author_id,
+                None,
+                None,
+                None
+            ))
 
-            query = "INSERT IGNORE INTO tb_events(tb_id, timestamp, event_type, zone_id, "\
-                    "author_id, param0, param2, param3) "\
-                    "VALUES("+str(tb_db_id)+", "\
-                    "FROM_UNIXTIME("+str(event_ts*0.001)+"), "\
-                    "'RECON_CONTRIBUTION', "\
-                    "'"+zone_id+"', "\
-                    "'"+author_id+"', "\
-                    ""+str(param0)+", "\
-                    ""+str(param2)+", "\
-                    ""+str(param3)+") "
-            goutils.log2("DBG", query)
-            await simple_execute_async(query)
+        elif "CONFLICT_DEPLOY" in event_type:
+            param0 = params[0]["paramValue"][0]
 
-        #breathe
+            values.append((
+                tb_db_id,
+                event_ts,
+                "CONFLICT_DEPLOY",
+                zone_id,
+                author_id,
+                param0,
+                None,
+                None
+            ))
+
+        elif "RECON_CONTRIBUTION" in event_type:
+            param0 = params[0]["paramValue"][0]
+            param2 = params[2]["paramValue"][0]
+            param3 = params[3]["paramValue"][0]
+
+            values.append((
+                tb_db_id,
+                event_ts,
+                "RECON_CONTRIBUTION",
+                zone_id,
+                author_id,
+                param0,
+                param2,
+                param3
+            ))
+
+        # Give other asyncio tasks a chance to run
         await asyncio.sleep(0)
+
+    if not values:
+        return
+
+    query = """
+        INSERT IGNORE INTO tb_events
+        (
+            tb_id,
+            timestamp,
+            event_type,
+            zone_id,
+            author_id,
+            param0,
+            param2,
+            param3
+        )
+        VALUES (
+            %s,
+            FROM_UNIXTIME(%s * 0.001),
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
+        )
+    """
+    goutils.log2("INFO", query, identifier=guild_id)
+
+    await executemany_async(query, values)
+
+    goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
 # store patoon progress
 # this helps checking platoons in case same player has to put
