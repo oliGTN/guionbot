@@ -28,13 +28,18 @@ include 'pdata.php';
 
 try {
     $stmt = $conn_guionbot->prepare(
-        "SELECT timestamp, guild_id, name, description
-         FROM guild_evolutions
-         JOIN guilds ON guilds.id = guild_evolutions.guild_id
-         WHERE playerId = (
-             SELECT playerId FROM players WHERE allyCode = :allycode
-         )
-         ORDER BY timestamp DESC"
+        "SELECT
+            ge.timestamp,
+            ge.guild_id,
+            g.name,
+            ge.description
+        FROM guild_evolutions AS ge
+        JOIN players AS p
+            ON p.playerId = ge.playerId
+        JOIN guilds AS g
+            ON g.id = ge.guild_id
+        WHERE p.allyCode = :allycode
+        ORDER BY ge.timestamp DESC;"
     );
     $stmt->execute([':allycode' => $allycode]);
     $guild_evo = $stmt->fetchAll(PDO::FETCH_ASSOC);
