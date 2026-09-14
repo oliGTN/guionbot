@@ -1030,7 +1030,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
 
         max_ts = list_all_logs[-1][0]
         query = "UPDATE guild_bot_infos SET chatLatest_ts="+str(max_ts)+" WHERE guild_id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        goutils.log2("INFO", query)
         await connect_mysql.simple_execute_async(query)
 
     return 0, "", {"CHAT": [chatChan_id, list_chat_events],
