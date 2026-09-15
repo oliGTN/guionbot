@@ -1044,7 +1044,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
                    "TB":   [tblogChan_id, list_tb_logs],
                    "rpc":  {"guild": dict_guild, "events": dict_events}}
 
-async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
+async def get_logs_from_events(dict_events, guild_id, chatLatest_ts, phases=[]):
     goutils.log2("INFO", "START get_logs_from_events("+guild_id+", "+str(chatLatest_ts)+")")
 
     FRE_FR = godata.get('FRE_FR.json')
@@ -1111,7 +1111,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
                         if activity["key"].endswith("_JOIN"):
                             #new player in guild, fetch its info
                             #First update guild infos
-                            ec, et, dict_guild = await go.load_guild_from_id(guildId, False, False, load_rosters=False, force_update=True)
+                            ec, et, dict_guild = await go.load_guild_from_id(guild_id, False, False, load_rosters=False, force_update=True)
                             if ec==0:
                                 #Then look for the latest arrived player
                                 # with the right name
@@ -1163,7 +1163,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
                         if event_ts > chatLatest_ts:
                             list_tw_logs.append([event_ts, activity_txt])
                 else:
-                    if activity["zoneData"]["guildId"] == guildId:
+                    if activity["zoneData"]["guildId"] == guild_id:
                         if "warSquad" in activity:
                             squad_id = activity["warSquad"]["squadId"]
                             if "squad" in activity["warSquad"]:
@@ -1494,7 +1494,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     if dict_all_events==None:
         dict_all_events=rpc_data[2]
     guildName = dict_guild["profile"]["name"]
-    guildId = dict_guild["profile"]["id"]
+    guild_id = dict_guild["profile"]["id"]
 
     #get guild members
     dict_members_by_id={}

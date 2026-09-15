@@ -5538,7 +5538,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #Check if TB is ongoing
-            err_code, err_txt, [dict_guild, dict_TBmapstats, dict_events] = await connect_rpc.get_guild_rpc_data(
+            err_code, err_txt, ret_data = await connect_rpc.get_guild_rpc_data(
                     guild_id,
                     ["TB"],
                     -1,
@@ -5548,6 +5548,8 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
+
+            [dict_guild, dict_TBmapstats, dict_events] = ret_data
 
             tb_ongoing = False
             if "territoryBattleStatus" in dict_guild:
