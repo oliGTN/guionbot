@@ -128,28 +128,33 @@ async def main():
         }))
         return
 
-    if sys.argv[1] != "TBzoneOrder":
-        print(json_dumps({
-            "err_code": 400,
-            "err_txt": "incorrect request name"
-        }))
+    if sys.argv[1] == "TBzoneOrder":
+        #Check parameter count
+        if len(sys.argv) != 3:
+            print(json_dumps({
+                "err_code": 400,
+                "err_txt": "incorrect parameter count"
+            }))
+            return
+
+        order_txt = b64decode(sys.argv[2])
+        order_dict = json_loads(order_txt)
+        print(order_dict)
+
+        async with aiohttp.ClientSession() as session:
+            ret_json = await process_tbzone_order(order_dict, session)
+
+        print(json_dumps(ret_json))
         return
 
-    if len(sys.argv) != 3:
-        print(json_dumps({
-            "err_code": 400,
-            "err_txt": "incorrect parameter count"
-        }))
-        return
+    # Unknown request
+    print(json_dumps({
+        "err_code": 400,
+        "err_txt": "incorrect request name"
+    }))
+    return
 
-    order_txt = b64decode(sys.argv[2])
-    order_dict = json_loads(order_txt)
-    print(order_dict)
 
-    async with aiohttp.ClientSession() as session:
-        ret_json = await process_tbzone_order(order_dict, session)
-
-    print(json_dumps(ret_json))
 
 
 if __name__ == "__main__":
