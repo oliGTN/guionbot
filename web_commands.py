@@ -39,6 +39,8 @@ async def process_tbzone_order(order_dict, session):
 
         zone_cmd = int(zone_cmd)
 
+        goutils.log2("INFO", order)
+
         ec, et = await set_zoneOrder(
             guild_id,
             map_id,
@@ -52,6 +54,8 @@ async def process_tbzone_order(order_dict, session):
 
         if ec != 0:
             return {"err_code": ec, "err_txt": et}
+
+        goutils.log2("INFO", "RPC OK")
 
         # Update message and command in tb_zones.
         if "recon" in zone_id:
@@ -115,6 +119,8 @@ async def process_tbzone_order(order_dict, session):
         )
         goutils.log2("DBG", query)
         await simple_execute_async(query)
+
+        goutils.log2("INFO", "DB OK")
 
     return {"err_code": ec, "err_txt": et}
 
