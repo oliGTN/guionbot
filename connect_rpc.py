@@ -130,6 +130,7 @@ async def get_guild_rpc_data(
                 guild_bots=guild_bots)
 
         if ec!=0:
+            goutils.log2("WAR", [ec, et])
             return ec, et, None
 
     ### TBmapstats
@@ -137,6 +138,7 @@ async def get_guild_rpc_data(
         if "territoryBattleStatus" in dict_guild:
             ec, et, dict_TBmapstats = await get_TBmapstats_data(guild_id, force_update, allyCode=allyCode)
             if ec!=0:
+                goutils.log2("WAR", [ec, et])
                 return ec, et, None
         else:
             dict_TBmapstats={}
@@ -146,6 +148,7 @@ async def get_guild_rpc_data(
         if event_types!=None and event_types!=[]:
             ec, et, dict_events = await get_event_data(dict_guild, event_types, force_update, allyCode=allyCode)
             if ec!=0:
+                goutils.log2("WAR", [ec, et])
                 return ec, et, None
         else:
             dict_events = {}
@@ -153,8 +156,11 @@ async def get_guild_rpc_data(
     ### coliseum
     ec, et, coliseum_leaderboard = await get_coliseum_guild_status(guild_id, allyCode=allyCode)
     if ec!=0:
+        goutils.log2("WAR", [ec, et])
         return ec, et, None
+
     # store coliseum scores
+    # TO-DO
 
     goutils.log2("DBG", "END get_guild_rpc_data")
     return 0, "", [dict_guild, dict_TBmapstats, dict_events]
