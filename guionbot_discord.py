@@ -5541,7 +5541,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             err_code, err_txt, ret_data = await connect_rpc.get_guild_rpc_data(
                     guild_id,
                     ["TB"],
-                    -1,
+                    1,
                     allyCode = connected_allyCode)
 
             if err_code != 0:

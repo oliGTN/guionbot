@@ -118,8 +118,11 @@ async def get_guild_rpc_data(
         guild_bots=None):
 
     calling_func = inspect.stack()[1][3]
-    goutils.log2("DBG", "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id)+", "+str(event_types) \
-                 +", "+str(force_update)+", "+str(allyCode)+")")
+    goutils.log2(
+            "DBG", 
+            "START ["+str(calling_func)+"]get_guild_rpc_data("+str(guild_id) \
+            +", "+str(event_types) \
+            +", "+str(force_update)+", "+str(allyCode)+")")
 
     ### guild
     if dict_guild==None:
@@ -307,6 +310,13 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
     return 0, "", dict_guild
 
 async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
+    calling_func = inspect.stack()[1][3]
+    goutils.log2(
+            "DBG", 
+            "START ("+str(guild_id) \
+            +", "+str(allyCode)+")" \
+            +" from "+str(calling_func))
+
     err_c, err_t, \
     bot_allyCode, \
     use_cache_data, \
@@ -362,9 +372,13 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
     guild_id = dict_guild["profile"]["id"]
-    goutils.log2("INFO", "START ["+calling_func+"]get_event_data("+guild_id+", "\
-                        +str(event_types)+", " \
-                        +str(force_update)+", "+str(allyCode)+")")
+    goutils.log2(
+            "DBG", 
+            "START ("+str(guild_id) \
+            +", "+str(event_types) \
+            +", "+str(force_update) \
+            +", "+str(allyCode)+")" \
+            +" from "+str(calling_func))
 
     err_c, err_t, \
     bot_allyCode, \
@@ -3814,17 +3828,24 @@ async def get_shard(allyCode_txt, shard_type):
     shardleaderboard = resp_json
     return 0, "", shardleaderboard
 
-async def set_zoneOrder(guild_id, map_id,
-                        zone_id, zone_msg, zone_cmd, zone_instance,
-                        allyCode=None):
+async def set_zoneOrder(
+        guild_id, 
+        map_id,
+        zone_id, 
+        zone_msg, 
+        zone_cmd, 
+        zone_instance,
+        allyCode=None,
+        session=None):
+
     if allyCode == None:
         dict_bot_accounts = await get_dict_bot_accounts()
+
         if not guild_id in dict_bot_accounts:
             return 1, "Ce serveur discord n'a pas de warbot"
         
         islocked = (dict_bot_accounts[guild_id]['locked_since']!=None)
         if islocked:
-            use_cache_data = True
             err_msg = "the connected account is being used... cannot launch request"
             goutils.log2("WAR", err_msg)
             return 1, err_msg
@@ -3832,6 +3853,7 @@ async def set_zoneOrder(guild_id, map_id,
         bot_allyCode = dict_bot_accounts[guild_id]["allyCode"]
     else:
         bot_allyCode = allyCode
+
     goutils.log2("DBG", "connected account for "+guild_id+" is "+bot_allyCode)
 
     url = "http://localhost:8000/zoneOrder"
@@ -3840,17 +3862,19 @@ async def set_zoneOrder(guild_id, map_id,
               "zone_id": zone_id,
               "zone_msg": zone_msg,
               "zone_cmd": zone_cmd}
-    if zone_instance != None:
+
+    if zone_instance is not None:
         params["zone_instance"] = zone_instance
+
     req_data = json_dumps(params)
+
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=req_data) as resp:
-                goutils.log2("DBG", "set zoneOrder status="+str(resp.status))
-                if resp.status==200:
-                    resp_json = await(resp.json())
-                else:
-                    return 1, "ERR during RPC metadata - code "+str(resp.status)
+        async with session.post(url, data=req_data) as resp:
+            goutils.log2("DBG", "set zoneOrder status="+str(resp.status))
+            if resp.status==200:
+                resp_json = await(resp.json())
+            else:
+                return 1, "ERR during RPC metadata - code "+str(resp.status)
 
     except asyncio.exceptions.TimeoutError as e:
         return 1, "Timeout lors de la requete RPC, merci de ré-essayer"
