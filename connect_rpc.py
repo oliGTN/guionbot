@@ -1039,6 +1039,8 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
                    "rpc":  {"guild": dict_guild, "events": dict_events}}
 
 async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
+    goutils.log2("INFO", "START get_logs_from_events("+guild_id+", "+str(chatLatest_ts)+")")
+
     FRE_FR = godata.get('FRE_FR.json')
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_tw = godata.dict_tw
@@ -1138,6 +1140,7 @@ async def get_logs_from_events(dict_events, guildId, chatLatest_ts, phases=[]):
 
                         if event_ts > chatLatest_ts:
                             list_chat_events.append([event_ts, txt_activity])
+                            goutils.log2("INFO", "New log "+str([event_ts, txt_activity, chatLatest_ts]), identifier=guild_id)
 
             elif event_group_id.startswith("TERRITORY_WAR_EVENT"):
                 author = event["authorName"]
