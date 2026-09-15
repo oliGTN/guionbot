@@ -1,0 +1,15 @@
+[Unit]
+Description=guionbot-stats
+After = network.target
+
+[Service]
+Environment=
+WorkingDirectory=/home/pi/GuionBot/swgoh-stat-calc/swgoh-stats
+Type=simple
+User=pi
+ExecStart=/usr/bin/node app.js
+Restart=on-failure
+
+[Install]
+WantedBy= multi-user.target 
+

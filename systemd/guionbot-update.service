@@ -1,0 +1,16 @@
+[Unit]
+Description=guionbot-update
+After = network.target
+Wants=guionbot-stats.service
+
+[Service]
+Environment=
+WorkingDirectory=/home/pi/GuionBot/guionbot-master
+Type=simple
+User=pi
+ExecStart=/usr/bin/python update_cache.py
+Restart=on-failure
+
+[Install]
+WantedBy= multi-user.target 
+

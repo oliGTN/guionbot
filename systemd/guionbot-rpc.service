@@ -1,0 +1,15 @@
+[Unit]
+Description=guionbot-rpc
+After = network.target
+
+[Service]
+Environment=
+WorkingDirectory=/home/pi/GuionBot/warstats
+Type=simple
+User=pi
+ExecStart=/usr/bin/python rpc_server.py
+Restart=on-failure
+
+[Install]
+WantedBy= multi-user.target 
+

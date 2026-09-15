@@ -1,0 +1,16 @@
+[Unit]
+Description=guionbot
+After = network.target
+Wants=guionbot-stats.service
+
+[Service]
+Environment=
+WorkingDirectory=/home/pi/GuionBot/guionbot-master
+Type=simple
+User=pi
+ExecStart=/usr/bin/python guionbot_discord.py
+Restart=on-failure
+
+[Install]
+WantedBy= multi-user.target 
+
