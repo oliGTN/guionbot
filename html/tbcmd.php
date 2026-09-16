@@ -151,9 +151,10 @@ try {
         }
 
         .tb-command-separator {
-            border-top: 1px solid rgba(0, 0, 0, 0.12);
-            margin: 0.15rem 0 0;
+            border-top: 1px solid rgba(0, 0, 0, 0.18);
+            margin: 0.25rem 0 0.25rem;
             grid-column: 1 / -1;
+            height: 0;
         }
 
         .tb-zone-submit {
@@ -240,6 +241,7 @@ function input_order($zone_id, $input_name, $tb_orders) {
                             <div class="tb-command-grid">
                                 <?php input_order($zone_id, 'Deployment', $tb_orders); ?>
                                 <?php input_order($zone_id.'_recon01', 'Platoons', $tb_orders); ?>
+                                <div class="tb-command-separator"></div>
 
 <?php
                 $n_strike = 1;
@@ -247,7 +249,10 @@ function input_order($zone_id, $input_name, $tb_orders) {
                     input_order($zone_id.'_'.$strike_id, 'Strike#'.$n_strike.($strike[2]=='COMBAT_SHIP'?'&#x2708;':'&#x1fa96;'), $tb_orders);
                     $n_strike += 1;
                 }
+?>
+                                <div class="tb-command-separator"></div>
 
+<?php
                 $n_covert = 1;
                 foreach ($dict_tb[$zone_id]['coverts'] as $covert_id => $covert) {
                     input_order($zone_id.'_'.$covert_id, 'Special#'.$n_covert, $tb_orders);
