@@ -2223,68 +2223,78 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
         #wait for TB to be created
         goutils.log2("WAR", "TB "+tb_id+" does not exist for guild "+guild_id)
         return
-    else:
-        tb_db_id = db_data
 
+    tb_db_id = db_data
+
+    ##################################
     # Get stored platoons
+    ##################################
     query = "SELECT platoon_name, unit_name, player_name "\
             "FROM tb_platoons "\
             "WHERE tb_id="+str(tb_db_id)
     goutils.log2("DBG", query)
     db_data = await get_table_async(query)
-    if db_data==None:
+    if db_data is None:
         db_data = []
 
-    dict_db_platoons = {}
-    for line in db_data:
-        platoon_name = line[0]
-        unit_name = line[1]
-        player_name = line[2]
-        if not platoon_name in dict_db_platoons:
-            dict_db_platoons[platoon_name] = {}
-        if not unit_name in dict_db_platoons[platoon_name]:
-            dict_db_platoons[platoon_name][unit_name] = []
-        dict_db_platoons[platoon_name][unit_name].append(player_name)
+    # Store existing combinations so we can quickly detect new ones.
+    existing_platoons = {
+        (line[0], line[1], line[2])
+        for line in db_data
+    }
 
-    # Compare with latest know platoons
-    for platoon_name in dict_platoons_done:
-        if platoon_name in dict_db_platoons:
-            # platoon already known
-            for unit_name in dict_platoons_done[platoon_name]:
-                if unit_name in dict_db_platoons[platoon_name]:
-                    list_db_playernames = list(dict_db_platoons[platoon_name][unit_name])
-                    for player_name in dict_platoons_done[platoon_name][unit_name]:
-                        if player_name!='':
-                            if player_name in list_db_playernames:
-                                list_db_playernames.remove(player_name)
-                            else:
-                                query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
-                                        "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
-                                goutils.log2("DBG", query)
-                                goutils.log2("INFO", "CHECK for empty playername: "+query)
-                                await simple_execute_async(query)
-                else:
-                    if player_name!='':
-                        for player_name in dict_platoons_done[platoon_name][unit_name]:
-                            query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
-                                    "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
-                            #goutils.log2("DBG", query)
-                            goutils.log2("INFO", "CHECK for empty playername: "+query)
-                            await simple_execute_async(query)
+    ##################################
+    # Build rows to insert
+    ##################################
 
-        else:
-            # new platoon
-            for unit_name in dict_platoons_done[platoon_name]:
-                for player_name in dict_platoons_done[platoon_name][unit_name]:
-                    if player_name!='':
-                        query = "INSERT INTO tb_platoons(tb_id, round, platoon_name, unit_name, player_name) "\
-                                "VALUES("+str(tb_db_id)+", "+tb_round[-1]+", '"+platoon_name+"', '"+unit_name.replace("'", "''")+"', '"+player_name.replace("'", "''")+"')"
-                        #goutils.log2("DBG", query)
-                        goutils.log2("INFO", "CHECK for empty playername: "+query)
-                        await simple_execute_async(query)
+    values = []
+
+    for platoon_name, units in dict_platoons_done.items():
+        for unit_name, player_names in units.items():
+            for player_name in player_names:
+
+                # Do not store empty player names.
+                if player_name == "":
+                    continue
+
+                key = (platoon_name, unit_name, player_name)
+
+                if key in existing_platoons:
+                    continue
+
+                values.append((
+                    tb_db_id,
+                    tb_round[-1],
+                    platoon_name,
+                    unit_name,
+                    player_name
+                ))
+
+                # Also add it locally so duplicate entries in
+                # dict_platoons_done cannot generate duplicate INSERTs.
+                existing_platoons.add(key)
+
+    ##################################
+    # Insert all new platoons at once
+    ##################################
+
+    if values:
+        query = """
+            INSERT INTO tb_platoons
+                (tb_id, round, platoon_name, unit_name, player_name)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+
+        goutils.log2(
+            "INFO",
+            "Inserting " + str(len(values)) + " new platoon assignments"
+        )
+
+        rowcount = await executemany_async(query, values)
+
+        goutils.log2("INFO", "rowcount="+str(rowcount))
 
     return
-
 
 #################################
 # update TW in DB
