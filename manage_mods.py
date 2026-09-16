@@ -594,7 +594,7 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
                                        interaction=interaction, initialdata=initialdata)
 
 async def apply_config_allocations(config_name, txt_allyCode, is_simu, interaction=None):
-    e, t, mod_allocations = get_mod_config(config_name, txt_allyCode)
+    e, t, mod_allocations = await get_mod_config(config_name, txt_allyCode)
     if e!=0:
         return 1, t, {}
 
