@@ -1,9 +1,7 @@
 <?php
 // server should keep session data for AT LEAST 1 hour
 ini_set('session.gc_maxlifetime', 3600*24*7);
-// each client should remember their session id for EXACTLY 1 hour
 session_set_cookie_params(3600*24*7);
-// Start the session to check if the user is logged in
 session_start();
 
 require 'guionbotdb.php';
@@ -28,7 +26,6 @@ $zones = get_tb_round_zones($tb_id, $round);
 
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
 
-// Get TB infos
 $query = "SELECT guild_id, tb_id";
 $query .= " FROM tb_history";
 $query .= " WHERE tb_history.id=".$tb_id;
@@ -36,11 +33,9 @@ $query .= " WHERE tb_history.id=".$tb_id;
 try {
     $stmt = $conn_guionbot->prepare($query);
     $stmt->execute();
-
     $db_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $tb_full_id = $db_data[0]['tb_id'];
     $guild_id = $db_data[0]['guild_id'];
-
 } catch (PDOException $e) {
     error_log("Error fetching TB data: " . $e->getMessage());
     echo "Error fetching TB data: " . $e->getMessage();
@@ -48,7 +43,6 @@ try {
     exit();
 }
 
-// Get existing zone commands
 $query = "SELECT zone_id, cmdMsg, cmdCmd";
 $query .= " FROM tb_orders";
 $query .= " WHERE guild_id='".$guild_id."'";
@@ -58,18 +52,14 @@ $tb_orders = array();
 try {
     $stmt = $conn_guionbot->prepare($query);
     $stmt->execute();
-
     $db_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
     foreach($db_orders as $db_order) {
         $tb_orders[$db_order['zone_id']] = $db_order;
     }
-
 } catch (PDOException $e) {
     error_log("Error fetching guild data: " . $e->getMessage());
     echo "Error fetching orders: " . $e->getMessage();
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -83,8 +73,11 @@ try {
     <link rel="stylesheet" href="main.1.008.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
-        /* TB command cards: keep the existing Materialize look, but use the
-           available width more efficiently and group related commands. */
+        .tb-zone-row {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
         .tb-zone-column {
             width: 50%;
             box-sizing: border-box;
@@ -119,12 +112,12 @@ try {
             min-width: 0;
         }
 
-        .tb-command-section--full {
-            grid-column: 1 / -1;
-        }
-
-        .tb-command-section + .tb-command-section {
-            margin-top: 0;
+        .tb-strike-section {
+            border: 1px solid rgba(0, 0, 0, 0.20);
+            border-radius: 4px;
+            padding: 0.75rem;
+            box-sizing: border-box;
+            background: rgba(0, 0, 0, 0.02);
         }
 
         .tb-command-section label:first-child {
@@ -172,11 +165,6 @@ try {
             .tb-command-grid {
                 grid-template-columns: 1fr;
             }
-
-            .tb-command-section--full,
-            .tb-command-separator {
-                grid-column: auto;
-            }
         }
     </style>
 </head>
@@ -184,7 +172,6 @@ try {
 <div class="site-container">
 <div class="site-pusher">
 
-    <!-- Navigation Bar -->
     <?php include 'navbar.php'; ?>
 
     <div class="site-content">
@@ -203,14 +190,14 @@ try {
     <div class="row tb-zone-row">
 
 <?php
-function input_order($zone_id, $input_name, $tb_orders) {
+function input_order($zone_id, $input_name, $tb_orders, $extra_class = '') {
     if (!isset($tb_orders[$zone_id])) {
         $tb_orders[$zone_id] = array();
         $tb_orders[$zone_id]['cmdMsg'] = '';
         $tb_orders[$zone_id]['cmdCmd'] = 1;
     }
 
-    echo '<div id="input-'.$zone_id.'" class="tb-command-section">';
+    echo '<div id="input-'.$zone_id.'" class="tb-command-section '.$extra_class.'">';
     echo '<label for="msg-'.$zone_id.'">'.$input_name.': </label>';
     echo '<input type="text" id="msg-'.$zone_id.'" class="tb-command-input" maxlength="75" value="'.htmlspecialchars($tb_orders[$zone_id]['cmdMsg'], ENT_QUOTES, 'UTF-8').'"/>';
     echo '<div class="tb-command-options">';
@@ -246,7 +233,7 @@ function input_order($zone_id, $input_name, $tb_orders) {
 <?php
                 $n_strike = 1;
                 foreach ($dict_tb[$zone_id]['strikes'] as $strike_id => $strike) {
-                    input_order($zone_id.'_'.$strike_id, 'Strike#'.$n_strike.($strike[2]=='COMBAT_SHIP'?'&#x2708;':'&#x1fa96;'), $tb_orders);
+                    input_order($zone_id.'_'.$strike_id, 'Strike#'.$n_strike.($strike[2]=='COMBAT_SHIP'?'&#x2708;':'&#x1fa96;'), $tb_orders, 'tb-strike-section');
                     $n_strike += 1;
                 }
 ?>
@@ -275,8 +262,8 @@ function input_order($zone_id, $input_name, $tb_orders) {
     </div>
 </div>
 
-    </div> <!-- container -->
-    </div> <!-- site-content -->
+    </div>
+    </div>
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
 </div>
 </div>
@@ -319,7 +306,6 @@ function tbmsg_send(e) {
     }
 
     setTimeout(send_order.bind(null, btn_id, list_orders), 10 * list_orders.length);
-
     return false;
 }
 
