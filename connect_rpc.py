@@ -312,7 +312,7 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
 async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
     goutils.log2(
-            "DBG", 
+            "INFO", 
             "START ("+str(guild_id) \
             +", "+str(allyCode)+")" \
             +" from "+str(calling_func))
@@ -373,7 +373,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
     guild_id = dict_guild["profile"]["id"]
     goutils.log2(
-            "DBG", 
+            "INFO", 
             "START ("+str(guild_id) \
             +", "+str(event_types) \
             +", "+str(force_update) \
@@ -997,8 +997,9 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
             "FROM guild_bot_infos "\
             "LEFT JOIN guild_bots ON guild_bot_infos.guild_id=guild_bots.guild_id "\
             "WHERE guild_bot_infos.guild_id='"+guild_id+"'"
-    goutils.log2("DBG", query)
+    goutils.log2("INFO", query)
     line = await connect_mysql.get_line_async(query)
+
     if line == None:
         return 1, "INFO: no DB data for guild "+guild_id, None
     
@@ -1049,9 +1050,12 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
         list_all_logs = sorted(list_all_logs, key=lambda x:x[0])
 
         max_ts = list_all_logs[-1][0]
+
+        #chatLatest_ts is the date of the latest log, including CHAT, TB, TW
         query = "UPDATE guild_bot_infos SET chatLatest_ts="+str(max_ts)+" WHERE guild_id='"+guild_id+"'"
         goutils.log2("INFO", query)
-        await connect_mysql.simple_execute_async(query)
+        rowcount=await connect_mysql.simple_execute_async(query)
+        goutils.log2("INFO", "rowcount="+str(rowcount))
 
     return 0, "", {"CHAT": [chatChan_id, list_chat_events],
                    "TW":   [twlogChan_id, list_tw_logs],
@@ -1059,7 +1063,12 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
                    "rpc":  {"guild": dict_guild, "events": dict_events}}
 
 async def get_logs_from_events(dict_events, guild_id, chatLatest_ts, phases=[]):
-    goutils.log2("INFO", "START get_logs_from_events("+guild_id+", "+str(chatLatest_ts)+")")
+    calling_func = inspect.stack()[1][3]
+    goutils.log2(
+            "INFO", 
+            "START ("+str(guild_id) \
+            +", "+str(chatLatest_ts)+")" \
+            +" from "+str(calling_func))
 
     FRE_FR = godata.get('FRE_FR.json')
     dict_unitsList = godata.get("unitsList_dict.json")
