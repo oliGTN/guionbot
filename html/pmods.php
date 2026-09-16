@@ -82,7 +82,7 @@ $set_names = [
             position: relative;
             padding: 0.9rem;
             margin: 0;
-            min-height: 260px;
+            min-height: 280px;
         }
 
         .mod-card-title {
@@ -93,12 +93,41 @@ $set_names = [
             text-transform: capitalize;
         }
 
-        .mod-image {
-            display: block;
-            width: 150px;
-            height: 150px;
+        /*
+         * SWGOH mod shape atlas:
+         * 1080 x 450 pixels, 12 columns x 5 rows, 90 x 90 pixel cells.
+         * Columns 0-5 are normal shapes and columns 6-11 are gold shapes.
+         */
+        .mod-art {
+            position: relative;
+            width: 180px;
+            height: 180px;
             margin: 0 auto 0.75rem;
-            object-fit: contain;
+            background-image: url('IMAGES/MODS/mod-shape-atlas.png');
+            background-size: 2160px 900px;
+            background-position:
+                calc(var(--shape-x) * -180px)
+                calc(var(--shape-y) * -180px);
+            background-repeat: no-repeat;
+        }
+
+        /*
+         * SWGOH mod icon atlas:
+         * 256 x 160 pixels, 8 columns x 5 rows, 32 x 32 pixel cells.
+         */
+        .mod-art::after {
+            content: '';
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            left: 58px;
+            top: 58px;
+            background-image: url('IMAGES/MODS/mod-icon-atlas.png');
+            background-size: 512px 320px;
+            background-position:
+                calc(var(--icon-x) * -64px)
+                calc(var(--icon-y) * -64px);
+            background-repeat: no-repeat;
         }
 
         .mod-details {
@@ -115,9 +144,24 @@ $set_names = [
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .mod-image {
-                width: 120px;
-                height: 120px;
+            .mod-art {
+                width: 140px;
+                height: 140px;
+                background-size: 1680px 700px;
+                background-position:
+                    calc(var(--shape-x) * -140px)
+                    calc(var(--shape-y) * -140px);
+            }
+
+            .mod-art::after {
+                width: 50px;
+                height: 50px;
+                left: 45px;
+                top: 45px;
+                background-size: 400px 250px;
+                background-position:
+                    calc(var(--icon-x) * -50px)
+                    calc(var(--icon-y) * -50px);
             }
         }
     </style>
@@ -138,12 +182,23 @@ $set_names = [
 <?php
     $slot = (int) $mod['slot'];
     $mod_set = (int) $mod['mod_set'];
+    $pips = (int) $mod['pips'];
+    $tier = (int) $mod['tier'];
+
     $slot_name = $slot_names[$slot] ?? 'unknown';
     $set_name = $set_names[$mod_set] ?? 'unknown';
 
-    // The mod atlas contains the SWGOH mod artwork. Keep the atlas as a CSS
-    // background so the image remains crisp and transparent like in-game.
-    $atlas = 'IMAGES/MODS/mods.png';
+    // Slots 2-7 map to the six shape columns.
+    $slot_index = max(0, min(5, $slot - 2));
+
+    // The gold shape is the 6-dot variant (columns 6-11).
+    $shape_index = $slot_index + ($pips >= 6 ? 6 : 0);
+
+    // Both atlases use the same five color/tier rows.
+    $tier_index = max(0, min(4, $tier - 1));
+
+    // Mod sets 1-8 map directly to the eight icon columns.
+    $icon_index = max(0, min(7, $mod_set - 1));
 ?>
                     <div class="card mod-card">
                         <div class="mod-card-title">
@@ -151,18 +206,17 @@ $set_names = [
                         </div>
 
                         <div
-                            class="mod-image mod-<?php echo h($slot_name); ?>"
-                            data-slot="<?php echo h($slot); ?>"
-                            data-set="<?php echo h($mod_set); ?>"
-                            style="background-image:url('<?php echo h($atlas); ?>');"
+                            class="mod-art"
+                            style="--shape-x: <?php echo $shape_index; ?>; --shape-y: <?php echo $tier_index; ?>; --icon-x: <?php echo $icon_index; ?>; --icon-y: <?php echo $tier_index; ?>;"
+                            role="img"
                             aria-label="<?php echo h($set_name . ' ' . $slot_name); ?> mod"
                         ></div>
 
                         <div class="mod-details">
                             <span><?php echo h($slot_name); ?></span>
-                            <span><?php echo h($mod['pips']); ?>★</span>
+                            <span><?php echo h($pips); ?>★</span>
                             <span>Lvl <?php echo h($mod['level']); ?></span>
-                            <span>Tier <?php echo h($mod['tier']); ?></span>
+                            <span>Tier <?php echo h($tier); ?></span>
                             <div><?php echo h($mod['defId']); ?></div>
                         </div>
                     </div>
