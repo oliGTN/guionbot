@@ -3114,7 +3114,7 @@ class TwCog(commands.GroupCog, name="gt"):
                 return
 
             #get player config from DB
-            ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, player_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3168,7 +3168,7 @@ class TwCog(commands.GroupCog, name="gt"):
             await interaction.response.defer(thinking=True)
 
             #get player config from DB
-            ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, player_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3214,7 +3214,7 @@ class TwCog(commands.GroupCog, name="gt"):
         await interaction.response.defer(thinking=True)
 
         #get player config from DB
-        ec, et, player_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, player_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
         if ec!=0:
             txt = emojis.redcross+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -3353,7 +3353,7 @@ class TbCog(commands.GroupCog, name="bt"):
             await interaction.response.defer(thinking=True)
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3504,7 +3504,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3617,7 +3617,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3708,7 +3708,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3794,7 +3794,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3888,7 +3888,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3933,7 +3933,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -4081,7 +4081,7 @@ class AuthCog(commands.GroupCog, name="connect"):
 
 
             #get bot config from DB
-            ec, et, bot_infos = connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
