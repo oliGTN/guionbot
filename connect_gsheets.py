@@ -540,8 +540,11 @@ async def get_tb_triggers(guild_id: str, force_load):
             get_gapi_client()
             file = client.open(gfile_name)
             feuille=file.worksheet("BT")
+        except gspread.exceptions.SpreadsheetNotFound as e:
+            goutils.log2("WAR", "File not found: "+gfile_name)
+            return 1, [None, 0]
         except:
-            goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+            goutils.log2("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
             return 1, [None, 0]
         
         #parsing title row
