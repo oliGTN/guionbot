@@ -437,7 +437,7 @@ dict_rarity["FIVE_STAR"] = 5
 dict_rarity["SIX_STAR"] = 6
 dict_rarity["SEVEN_STAR"] = 7
 
-dict_data: dict[str, any] = {}
+dict_data: dict[str, Any] = {}
 def get(filename):
     if filename in dict_data:
         return dict_data[filename]
