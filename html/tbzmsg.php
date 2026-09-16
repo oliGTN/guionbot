@@ -13,7 +13,7 @@ include 'gvariables.php';
 $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
 
 $entityBody = json_decode(file_get_contents('php://input'), true);
-error_log(print_r($entityBody, true));
+#error_log(print_r($entityBody, true));
 
 if (isset($entityBody['guild_id'])) {
     $guild_id = $entityBody['guild_id'];

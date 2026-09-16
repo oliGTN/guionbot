@@ -433,21 +433,21 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     query+= "FROM mod_config_list\n"
     query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
     goutils.log2("DBG", query)
-    config_id = connect_mysql.get_value(query)
+    config_id = await connect_mysql.get_value_async(query)
 
     if config_id == None:
         # New config, create it
         query = "INSERT IGNORE INTO mod_config_list(name, allyCode) \n"
         query+= "VALUES('"+conf_name+"', "+txt_allyCode+")"
         goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
         #Get its ID
         query = "SELECT id\n"
         query+= "FROM mod_config_list\n"
         query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
         goutils.log2("DBG", query)
-        config_id = connect_mysql.get_value(query)
+        config_id = await connect_mysql.get_value_async(query)
 
     else:
         # Existing config,
@@ -455,7 +455,7 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
         query = "DELETE FROM mod_config_content\n"
         query+= "WHERE config_id = "+str(config_id)
         goutils.log2("DBG", query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
     #loop on unit that needs to be saved in the config
     config_mod_count = 0
@@ -479,7 +479,7 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
             query = "INSERT INTO mod_config_content(config_id, unit_id, mod_id, slot, rarity)\n"
             query+= "VALUES("+str(config_id)+", '"+unit_id+"', '"+mod_id+"', "+str(mod_slot)+", "+str(mod_rarity)+")"
             goutils.log2("DBG", query)
-            connect_mysql.simple_execute(query)
+            await connect_mysql.simple_execute_async(query)
             config_mod_count += 1
 
         config_unit_count += 1
@@ -492,13 +492,13 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
 
     return 0, return_txt
 
-def get_mod_config(conf_name, txt_allyCode):
+async def get_mod_config(conf_name, txt_allyCode):
     # Check if the config exists
     query = "SELECT id\n"
     query+= "FROM mod_config_list\n"
     query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
     goutils.log2("DBG", query)
-    config_id = connect_mysql.get_value(query)
+    config_id = await connect_mysql.get_value_async(query)
 
     if config_id == None:
         return 1, "ERR: config "+conf_name+" introuvable pour le joueur "+txt_allyCode, None
@@ -508,7 +508,7 @@ def get_mod_config(conf_name, txt_allyCode):
     query+= "WHERE config_id="+str(config_id)+"\n"
     query+= "ORDER BY unit_id"
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
 
     if db_data == None:
         return 1, "ERR: aucun perso trouvé pour la config "+conf_name+" du joueur "+txt_allyCode, None

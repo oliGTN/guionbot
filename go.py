@@ -113,7 +113,7 @@ async def refresh_cache():
            +"WHERE current_timestamp>timestampadd(HOUR, update_period_hours, lastUpdated) "\
            +"ORDER BY lastUpdated"
     goutils.log2('DBG', query)
-    ret_table = connect_mysql.get_table(query)
+    ret_table = await connect_mysql.get_table_async(query)
     
     if ret_table != None:
         for line in ret_table:
@@ -139,7 +139,7 @@ async def refresh_cache():
            +"WHERE current_timestamp>timestampadd(HOUR, 24, lastUpdated) "\
            +"ORDER BY lastUpdated"
     goutils.log2('DBG', query)
-    ret_table = connect_mysql.get_table(query)
+    ret_table = await connect_mysql.get_table_async(query)
     
     if ret_table != None:
         for line in ret_table:
@@ -160,7 +160,7 @@ async def refresh_cache():
            +"ORDER BY lastUpdated "\
            +"LIMIT 1"
     goutils.log2('DBG', query)
-    ret_db = connect_mysql.get_value(query)
+    ret_db = await connect_mysql.get_value_async(query)
     
     if ret_db != None:
         allyCode = str(ret_db)
@@ -176,7 +176,7 @@ async def refresh_cache():
            +"ORDER BY lastUpdated "\
            +"LIMIT 1"
     goutils.log2('DBG', query)
-    ret_db = connect_mysql.get_value(query)
+    ret_db = await connect_mysql.get_value_async(query)
     
     if ret_db != None:
         guild_id = str(ret_db)
@@ -207,7 +207,7 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
         allyCode = ac_or_id
         query = "SELECT playerId FROM players WHERE allyCode='"+allyCode+"'"
         goutils.log2("DBG", query)
-        playerId = connect_mysql.get_value(query)
+        playerId = await connect_mysql.get_value_async(query)
     else:
         playerId = ac_or_id
 
@@ -221,7 +221,7 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
             query = "SELECT (timestampdiff(MINUTE, players.lastUpdated, CURRENT_TIMESTAMP)<=60) AS recent, "
             query+= "name FROM players WHERE playerId = '"+str(playerId)+"'"
             goutils.log2("DBG", query)
-            query_result = connect_mysql.get_line(query)
+            query_result = await connect_mysql.get_line_async(query)
             if query_result != None:
                 recent_player = query_result[0]
             else:
@@ -366,7 +366,7 @@ async def load_guild(txt_allyCode, load_players, cmd_request,
     query+= "JOIN players ON players.guildName = guilds.name "
     query+= "WHERE allyCode = " + txt_allyCode
     goutils.log2("DBG", 'query: '+query)
-    db_result = connect_mysql.get_value(query)
+    db_result = await connect_mysql.get_value_async(query)
 
     if db_result == None or db_result == "":
         goutils.log2("WAR", 'Guild ID not found for '+txt_allyCode)
@@ -425,7 +425,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
            +"WHERE id = '"+guild_id+"' "\
            +"GROUP BY guilds.name"
     goutils.log2('DBG', query)
-    ret_line = connect_mysql.get_line(query)
+    ret_line = await connect_mysql.get_line_async(query)
     if ret_line != None:
         is_new_guild = False
         db_guild_name = ret_line[0]
@@ -441,24 +441,24 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
         guild_name_txt = guild_name.replace("'", "''")
         query = "INSERT IGNORE INTO guilds(name, id) VALUES('"+guild_name_txt+"', '"+guild_id+"')"
         goutils.log2('DBG', query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
         query = "INSERT INTO guild_evolutions(guild_id, description) "
         query+= "VALUES('"+guild_id+"', 'creation of the guild')"
         goutils.log2('DBG', query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
     if not is_new_guild and (guild_name != db_guild_name):
         #update the name
         query = "UPDATE guilds SET name='"+guild_name.replace("'", "''")+"' "
         query+= "WHERE id='"+guild_id+"'"
         goutils.log2('DBG', query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
         query = "INSERT INTO guild_evolutions(guild_id, description) "
         query+= "VALUES('"+guild_id+"', 'new name for the guild: "+guild_name.replace("'", "''")+"')"
         goutils.log2('DBG', query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
     #Update guild values
     query = "UPDATE guilds "\
@@ -466,13 +466,13 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
            +"gp = "+str(guild_gp)+" "\
            +"WHERE id = '"+guild_id+"'"
     goutils.log2('DBG', query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     #Update guild history of values
     query = "INSERT IGNORE INTO guild_gp_history(date, guild_id, players, gp) "\
            +"VALUES(CURDATE(), '"+guild_id+"', "+str(total_players)+", "+str(guild_gp)+") "
     goutils.log2('DBG', query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     #Update TB TW scores
 
@@ -481,7 +481,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
         query = "SELECT playerId FROM players "\
                +"WHERE guildId = '"+guild_id+"'"
         goutils.log2('DBG', query)
-        playerId_in_DB = connect_mysql.get_column(query)
+        playerId_in_DB = await connect_mysql.get_column_async(query)
         while None in playerId_in_DB:
             playerId_in_DB.remove(None)
 
@@ -493,7 +493,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
                 query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'added')"
                 goutils.log2('DBG', query)
-                connect_mysql.simple_execute(query)
+                await connect_mysql.simple_execute_async(query)
 
         playerId_to_remove = []
         for id in playerId_in_DB:
@@ -503,7 +503,7 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                 query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
                 query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'removed')"
                 goutils.log2('DBG', query)
-                connect_mysql.simple_execute(query)
+                await connect_mysql.simple_execute_async(query)
 
         #Check if player data needs to be loaded from RPC
         if lastPlayerUpdated != None:
@@ -592,13 +592,13 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                    +"SET guildName = '', guildMemberLevel = 2, guildId = '' "\
                    +"WHERE playerId IN "+str(tuple(playerId_to_remove)).replace(",)", ")")
             goutils.log2('DBG', query)
-            connect_mysql.simple_execute(query)
+            await connect_mysql.simple_execute_async(query)
 
         #Manage guild roles (leader, officers)
         query = "SELECT playerId, guildMemberLevel FROM players "\
                +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
         goutils.log2('DBG', query)
-        roles_in_DB = connect_mysql.get_table(query)
+        roles_in_DB = await connect_mysql.get_table_async(query)
         dict_roles = {}
         if roles_in_DB != None:
             for role in roles_in_DB:
@@ -613,14 +613,14 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
                         query = "UPDATE players SET guildMemberLevel = "+str(member["memberLevel"])+" " \
                                +"WHERE playerId = '"+str(id)+"'"
                         goutils.log2('DBG', query)
-                        connect_mysql.simple_execute(query)
+                        await connect_mysql.simple_execute_async(query)
                         
                         #log it in guild_evolutions
                         description = "guildMemberLevel changed from "+str(dict_roles[id])+" to "+str(member["memberLevel"])
                         query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
                         query+= "VALUES('"+guild_id+"', '"+str(id)+"', '"+description+"')"
                         goutils.log2('DBG', query)
-                        connect_mysql.simple_execute(query)
+                        await connect_mysql.simple_execute_async(query)
                     del dict_roles[member["playerId"]]
                 else:
                     goutils.log2('WAR', str(id)+" found in RPC but not found in DB while updating guild")
@@ -634,14 +634,14 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
            +"SET lastUpdated = CURRENT_TIMESTAMP "\
            +"WHERE id = '"+guild_id+"' "
     goutils.log2('DBG', query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     if cmd_request:
         query = "UPDATE guilds "\
                +"SET lastRequested = CURRENT_TIMESTAMP "\
                +"WHERE id = '"+guild_id+"' "
         goutils.log2('DBG', query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
     return 0, "", dict_guild
 
@@ -654,12 +654,12 @@ async def load_shard(shard_id, shard_type, cmd_request):
     query = "SELECT lastUpdated FROM shards "\
            +"WHERE id = "+str(shard_id)
     goutils.log2('DBG', query)
-    lastUpdated = connect_mysql.get_value(query)
+    lastUpdated = await connect_mysql.get_value_async(query)
 
     query = "SELECT allyCode FROM players "
     query+= "WHERE "+shard_type+"Shard_id = " + str(shard_id)
     goutils.log2("DBG", query)
-    allyCodes_in_DB = connect_mysql.get_column(query)
+    allyCodes_in_DB = await connect_mysql.get_column_async(query)
 
     if allyCodes_in_DB == None or len(allyCodes_in_DB) == 0:
         goutils.log2("WAR", 'No player found for shard "+shard_type+" of ID '+str(shard_id))
@@ -721,7 +721,7 @@ async def load_shard(shard_id, shard_type, cmd_request):
                    +"SET lastUpdated = CURRENT_TIMESTAMP "\
                    +"WHERE id = "+str(shard_id)
             goutils.log2('DBG', query)
-            connect_mysql.simple_execute(query)
+            await connect_mysql.simple_execute_async(query)
 
     else:
         lastUpdated_txt = lastUpdated.strftime("%d/%m/%Y %H:%M:%S")
@@ -733,7 +733,7 @@ async def load_shard(shard_id, shard_type, cmd_request):
                +"SET lastRequested = CURRENT_TIMESTAMP "\
                +"WHERE id = "+str(shard_id)
         goutils.log2('DBG', query)
-        connect_mysql.simple_execute(query)
+        await connect_mysql.simple_execute_async(query)
 
     return 0, ""
 
@@ -1287,7 +1287,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
         collection_name = guild["profile"]["name"]
         guild_name = collection_name
     else:
-        shard_info = connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
+        shard_info = await connect_mysql.get_shard_from_player(txt_allyCode, shard_type)
         player_shard = shard_info[0]
         err_code, err_txt = await load_shard(player_shard, shard_type, True)
         if err_code != 0:
@@ -1333,7 +1333,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
             rarity, gear, relic_currentTier, gp \
             ORDER BY players.name, guild_teams.name"
     goutils.log2("DBG", query)
-    player_data = connect_mysql.get_table(query)
+    player_data = await connect_mysql.get_table_async(query)
     #goutils.log2("DBG", player_data)
     
     if gv_mode==0:
@@ -1364,7 +1364,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
         query += "ORDER BY roster.allyCode, guild_teams.name, guild_subteams.id, guild_team_roster.id"
         goutils.log2("DBG", query)
         
-        player_zeta_data = connect_mysql.get_table(query)
+        player_zeta_data = await connect_mysql.get_table_async(query)
         if player_zeta_data == None:
             player_zeta_data = []
 
@@ -1372,7 +1372,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
         query = query.replace("zeta", "omicron")
         goutils.log2("DBG", query)
         
-        player_omicron_data = connect_mysql.get_table(query)
+        player_omicron_data = await connect_mysql.get_table_async(query)
         if player_omicron_data == None:
             player_omicron_data = []
         
@@ -1400,7 +1400,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
         goutils.log2("DBG", query)
         
         #print(query)
-        gv_characters_unlocked = connect_mysql.get_table(query)        
+        gv_characters_unlocked = await connect_mysql.get_table_async(query)        
         goutils.log2("DBG", gv_characters_unlocked)
     else:
         gv_characters_unlocked = []
@@ -1416,7 +1416,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
     else:
         query = "SELECT name FROM players WHERE allyCode = "+txt_allyCode
         goutils.log2("DBG", query)
-        player_name = connect_mysql.get_value(query)
+        player_name = await connect_mysql.get_value_async(query)
         dict_teams = {player_name: [0, {}]}
         goutils.log2("WAR", "no data recovered for allyCode="+txt_allyCode+" and teams="+str(list_team_names))
     
@@ -1559,7 +1559,7 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                         if len(list_team_names)==1 and list_team_names[0].lower()!="all":
                             ret_print_vtx += line_print_vtx
 
-                        connect_mysql.update_gv_history(
+                        await connect_mysql.update_gv_history(
                             "", name, team, True,
                             score, unlocked, "go.bot")
 
@@ -1637,7 +1637,7 @@ async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                         ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
                     ret_print_vtx += " " + team + ": " + str(round(score, 1)) + "%\n"
 
-                    connect_mysql.update_gv_history(txt_allyCode, "", team, True,
+                    await connect_mysql.update_gv_history(txt_allyCode, "", team, True,
                                                     score, unlocked, "go.bot")
             
                     list_char_allycodes = [[list_char, txt_allyCode, ""]]
@@ -1653,7 +1653,7 @@ async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
 
     return 0, ret_print_vtx, images
 
-def print_fegv(txt_allyCode, show_all=False):
+async def print_fegv(txt_allyCode, show_all=False):
     if not show_all:
         #Get all characters from Journey Guide, and current status for the player
         query = "SELECT gt.name, unit_id, rarity_reco, rarity FROM guild_teams as gt " \
@@ -1676,7 +1676,7 @@ def print_fegv(txt_allyCode, show_all=False):
               + "WHERE (isnull(rarity) OR rarity<7) "
 
     goutils.log2("DBG", query)
-    ret_db = connect_mysql.get_table(query)
+    ret_db = await connect_mysql.get_table_async(query)
     if ret_db == None:
         return 0, "Tous les persos sont déjà farmés"
 
@@ -1748,7 +1748,7 @@ async def print_ftj(txt_allyCode, team, guild_id, gfile_name):
         for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
             ret_print_ftj += "Progrès de farm de la team "+team+" pour "+player_name+"\n"
             ret_print_ftj += player_txt + "> Global: "+ str(int(player_score))+"%"
-            connect_mysql.update_gv_history(txt_allyCode, "", team, True,
+            await connect_mysql.update_gv_history(txt_allyCode, "", team, True,
                                             player_score, unlocked, "go.bot")
 
     return 0, ret_print_ftj
@@ -1784,7 +1784,7 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
             if score_type == 1:
                 ret_print_gvj += "%"
 
-            connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+            await connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
                                             player_score, unlocked, "go.bot")
 
     else:
@@ -1806,7 +1806,7 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
                         new_line += "\n"
 
                     list_lines.append([player_score, new_line, player_unlocked])
-                    connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+                    await connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
                                                     player_score, player_unlocked, "go.bot")
                                             
         if score_type == 1:
@@ -1869,7 +1869,7 @@ async def print_gvg(list_team_names, txt_allyCode):
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
                     if not player_unlocked and player_score>80:
-                        connect_mysql.update_gv_history("", player_name, character_id, True,
+                        await connect_mysql.update_gv_history("", player_name, character_id, True,
                                                         player_score, player_unlocked, "go.bot")
 
     if one_valid_team:
@@ -1918,7 +1918,7 @@ async def print_gvs(list_team_names, txt_allyCode):
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
                     if not player_unlocked and player_score>80:
-                        connect_mysql.update_gv_history("", player_name, character_id, True,
+                        await connect_mysql.update_gv_history("", player_name, character_id, True,
                                                         player_score, player_unlocked, "go.bot")
 
     list_lines = sorted(list_lines, key=lambda x: -x[0])
@@ -2156,7 +2156,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             query+= "WHERE name in "+str(tuple_opp_players)+" "
             query+= "GROUP BY guildName ORDER BY count(*) DESC LIMIT 1"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
+            db_data = await connect_mysql.get_value_async(query)
             if db_data == None:
                 return "ERR: la guilde adverse n'a pas été entrée dans le bot"
             txt_allyCode = str(db_data)
@@ -2196,7 +2196,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
                +"ORDER BY players.name, defId"
 
         goutils.log2("DBG", query)
-        db_stat_data = connect_mysql.get_table(query)
+        db_stat_data = await connect_mysql.get_table_async(query)
         if db_stat_data == None:
             return "ERR: aucune donnée trouvée"
 
@@ -2465,7 +2465,7 @@ async def get_gac_distribution(txt_allyCode):
             "else 0 end + 5 - right(grand_arena_rank,1) " \
             "from players where guildId = (select guildId from players where allyCode="+txt_allyCode+") "
     goutils.log2("DBG", query)
-    guild_stats = connect_mysql.get_column(query)
+    guild_stats = await connect_mysql.get_column_async(query)
     guild_name = dict_guild["profile"]["name"]
 
     graph_title = "Classement GAC " + guild_name + " ("+str(len(guild_stats))+" joueurs)"
@@ -2609,7 +2609,7 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     query+= "FROM players "
     query+= "WHERE guildName='"+guildName.replace("'", "''")+"' "
     goutils.log2("DBG", query)
-    results = connect_mysql.get_table(query)
+    results = await connect_mysql.get_table_async(query)
     dict_DB_names = {}
     for line in results:
         dict_DB_names[line[0]] = str(line[1])
@@ -2709,7 +2709,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
            +"AND not "+stat_string+"=0 " \
            +"AND ((gear=13 and relic_currentTier "+relic_filter+str(relic+2)+") or r.allyCode = "+txt_allyCode+" or combatType=2)"
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
 
     if stat_isPercent:
         stat_divider = 1000000
@@ -2863,7 +2863,7 @@ async def print_lox(txt_allyCode, characters, compute_guild=False, all_omicrons=
     query+= "ORDER BY omicrons.type, roster.defId, omicrons.name, players.name"
     goutils.log2("DBG", query)
 
-    db_lines = connect_mysql.text_query(query)
+    db_lines = await connect_mysql.text_query_async(query)
     return 0, war_txt, db_lines
 
 ###############################
@@ -2913,7 +2913,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
               + "ORDER BY timestamp DESC"
 
     goutils.log2("DBG", query)
-    db_data_evo = connect_mysql.get_table(query)
+    db_data_evo = await connect_mysql.get_table_async(query)
 
     #Get all unlocked ships by player
     if not compute_guild:
@@ -2928,7 +2928,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
               + "AND combatType=2"
 
     goutils.log2("DBG", query)
-    db_data_ships = connect_mysql.get_table(query)
+    db_data_ships = await connect_mysql.get_table_async(query)
     dict_ships = {}
     if db_data_ships != None:
         for line in db_data_ships:
@@ -2959,7 +2959,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
               + "        WHERE allyCode="+txt_allyCode+"))"
 
     goutils.log2("DBG", query)
-    db_data_gv = connect_mysql.get_table(query)
+    db_data_gv = await connect_mysql.get_table_async(query)
     dict_gv_done = {}
     for line in db_data_gv:
         player = line[0]
@@ -3665,7 +3665,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
             intro_txt += ", et qui ne l'ont pas posé en peloton"
         query += "GROUP BY guildName, players.name "
         goutils.log2('DBG', query)
-        allyCodes_in_DB = connect_mysql.get_table(query)
+        allyCodes_in_DB = await connect_mysql.get_table_async(query)
         if allyCodes_in_DB == None:
             allyCodes_in_DB = []
             guildName = ""
@@ -3763,7 +3763,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
     query +="GROUP BY defId, rarity, gear, relic_currentTier " \
           + "ORDER BY defId, rarity, gear, relic_currentTier"
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
     if db_data==None:
         db_data=[]
 
@@ -3810,7 +3810,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
 # IN farm_list: list of GV characters OR farm teams
 # OUT: image of the graph
 #######################################################
-def get_gv_graph(txt_allyCodes, farm_list):
+async def get_gv_graph(txt_allyCodes, farm_list):
     sql_allyCodes = str(tuple(txt_allyCodes)).replace(',)', ')')
 
     # get list of farm history
@@ -3818,7 +3818,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
           + "WHERE gv_history.allyCode IN "+sql_allyCodes+" " \
           + "GROUP BY defId"
     goutils.log2("DBG", query)
-    ret_db = connect_mysql.get_column(query)
+    ret_db = await connect_mysql.get_column_async(query)
     if ret_db == None:
         return 1, "WAR: aucun progrès enregistré pour "+sql_allyCodes, None
     player_farm_list = ret_db
@@ -3856,7 +3856,7 @@ def get_gv_graph(txt_allyCodes, farm_list):
           query += "AND defId IN "+character_ids_txt+" "
     query +="ORDER BY date DESC LIMIT 30"
     goutils.log2("DBG", query)
-    ret_db = connect_mysql.get_table(query)
+    ret_db = await connect_mysql.get_table_async(query)
     if ret_db == None:
         return 1, "WAR: aucun progrès connu de "+character_ids_txt+" pour "+sql_allyCodes, None
 
@@ -4075,7 +4075,7 @@ async def get_player_time_graph(list_allyCodes, guild_graph, parameter, is_year)
     db_txt_allyCodes = str(tuple(list_allyCodes)).replace(",)", ")")
     query = "SELECT allyCode, name, guildName FROM players WHERE allyCode IN "+db_txt_allyCodes
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
     if db_data == None or len(db_data)<len(list_allyCodes):
         return 1, "ERR: informations manquantes pour les codes "+db_txt_allyCodes, None
 
@@ -4111,7 +4111,7 @@ async def get_player_time_graph(list_allyCodes, guild_graph, parameter, is_year)
         query = query + "ORDER BY DATE DESC LIMIT 30"
 
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
     if db_data == None:
         return 1, "ERR: aucun "+parameter+" connu pour "+db_txt_allyCodes, None
 
@@ -4258,7 +4258,7 @@ async def get_tw_def_attack(guild_id, force_update, with_attacks=False, allyCode
 # IN: max_gear: maximum gear or relic level ("G8" or "R5")
 # OUT: list [[playerName, rarity, gear/relic], ...]
 #############################################################################
-def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
+async def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
     if max_gear[0] == 'G':
         max_gear_int=int(max_gear[1:])
     elif max_gear[0] == 'R':
@@ -4278,7 +4278,7 @@ def find_best_toons_in_guild(txt_allyCode, character_id, max_gear):
           + "AND (gear+relic_currentTier-2)<"+str(max_gear_int)+" " \
           + "ORDER BY progress desc "
     goutils.log2("DBG", query)
-    ret_db = connect_mysql.get_table(query)
+    ret_db = await connect_mysql.get_table_async(query)
     if ret_db==None:
         ret_db=[]
 
@@ -4431,7 +4431,7 @@ async def print_tb_status(guild_id, targets_zone_stars, force_update,
         ac_list_txt = str(tuple(ignored_allyCodes)).replace(',)', ')')
         query = "SELECT name FROM players WHERE allyCode in "+ac_list_txt
         goutils.log2("DBG", query)
-        data_db = connect_mysql.get_column(query)
+        data_db = await connect_mysql.get_column_async(query)
         ret_print_tb_status += "Ignored players: "+str(data_db)+"\n"
     ret_print_tb_status += "----------------------------\n"
 
@@ -4568,7 +4568,7 @@ async def get_tb_alerts(guild_id, force_update):
     if active_round != "":
         dict_tb = godata.get("tb_definition.json")
         
-        err_code, [daily_targets, margin] = connect_gsheets.get_tb_triggers(guild_id, False)
+        err_code, [daily_targets, margin] = await connect_gsheets.get_tb_triggers(guild_id, False)
         if err_code!=0:
             return 1, "No TB target for "+guild_id, None
 
@@ -4975,7 +4975,7 @@ async def detect_fulldef(guild_id, force_update, allyCode=None):
             "AND ((combatType=1 AND gear>=12) OR (combatType=2 AND defId like 'CAPITAL%')) " \
             "GROUP BY defId "
     goutils.log2("DBG", query)
-    data_db = connect_mysql.get_table(query)
+    data_db = await connect_mysql.get_table_async(query)
 
     # This dict contains the ratio (units in defense) / (units in the guild)
     # If a player puts lots of low-ratio units in defense, he is probably full def
@@ -4991,7 +4991,7 @@ async def detect_fulldef(guild_id, force_update, allyCode=None):
             "AND ((combatType=1 AND gear>=12) OR (combatType=2 AND defId like 'CAPITAL%')) " \
             "GROUP BY players.allyCode "
     goutils.log2("DBG", query)
-    data_db = connect_mysql.get_table(query)
+    data_db = await connect_mysql.get_table_async(query)
     
     dict_units_per_player = {}
     for [name, unit_count] in data_db:
@@ -5446,7 +5446,7 @@ def update_gl_progress_from_wookiebot(gl_name, file_content):
 
     return 0, ""
 
-def store_eb_allocations(guild_id, tb_name, phase, allocations):
+async def store_eb_allocations(guild_id, tb_name, phase, allocations):
     goutils.log2("INFO", (guild_id, tb_name, phase))
     if phase[-1] == "1":
         #1st phase of TB, remove all previous configs for this guild
@@ -5484,7 +5484,7 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
     query+= "AND tb_name='"+tb_name+"'\n"
     query+= "AND phases='"+phase+"'"
     goutils.log2("INFO", query)
-    conf_id = connect_mysql.get_value(query)
+    conf_id = await connect_mysql.get_value_async(query)
 
     #Prepare the dict to transform names into unit ID
     dict_units = godata.get("unitsList_dict.json")
@@ -5497,7 +5497,7 @@ def store_eb_allocations(guild_id, tb_name, phase, allocations):
     #Prepare the dict to transform player names into allyCodes
     query = "SELECT name, allyCode FROM players WHERE guildId='"+guild_id+"'"
     goutils.log2("INFO", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
     dict_players = {}
     for line in db_data:
         dict_players[line[0]] = line[1]
@@ -5596,7 +5596,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                     "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
                     "AND defId IN "+str(tuple(required_opp_units))
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
+            db_data = await connect_mysql.get_value_async(query)
             if db_data == None:
                 return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
 
@@ -5670,7 +5670,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                     "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
                     "AND defId='GENERALKENOBI' "
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
+            db_data = await connect_mysql.get_value_async(query)
             if db_data == None:
                 return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
             gk_speed = int(db_data/100000000)
@@ -5702,7 +5702,7 @@ async def check_tw_counter(txt_allyCode, guild_id, counter_type):
                     "AND guildName='"+opp_guild_name.replace("'", "''")+"' "\
                     "AND defId='"+fifth_unit_id+"' "
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_line(query)
+            db_data = await connect_mysql.get_line_async(query)
             if db_data == None:
                 return 1, "Joueur "+opp_player_name+" inconnu, veuillez charger les infos la guilde adverse avant de lancer cette commande"
 
@@ -5831,7 +5831,7 @@ async def get_previous_tw_defense(txt_allyCode,
     # Get player Id
     query = "SELECT playerId FROM players WHERE allyCode="+txt_allyCode
     goutils.log2("DBG", query)
-    player_id = connect_mysql.get_value(query)
+    player_id = await connect_mysql.get_value_async(query)
     if player_id == None:
         return 1, "Joueur inconnu"
 
@@ -6212,7 +6212,7 @@ async def print_tb_strike_stats(guild_id, list_allyCodes, tb_rounds, allyCode=No
 
     if len(list_allyCodes)>0:
         query = "SELECT allyCode, name FROM players WHERE guildId='"+guild_id+"'"
-        db_data = connect_mysql.get_table(query)
+        db_data = await connect_mysql.get_table_async(query)
 
         filtered_memberNames = []
         for line in db_data:
@@ -6625,7 +6625,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                         ") T "\
                         "WHERE CEREJUNDA>=9 AND (JEDIKNIGHTCAL>=9 OR CALKESTIS>=9) "
                 goutils.log2("DBG", query)
-                ready_players = connect_mysql.get_column(query)
+                ready_players = await connect_mysql.get_column_async(query)
                 if ready_players == None:
                     ready_players = []
 
@@ -6642,7 +6642,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                         ") T "\
                         "WHERE MANDALORBOKATAN>=9 AND THEMANDALORIANBESKARARMOR>=9 "
                 goutils.log2("DBG", query)
-                ready_players = connect_mysql.get_column(query)
+                ready_players = await connect_mysql.get_column_async(query)
                 if ready_players == None:
                     ready_players = []
 
@@ -6665,7 +6665,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                         "                AND relic_currentTier>=9) "\
                         "WHERE guildId='"+guild['profile']['id']+"' "
                 goutils.log2("DBG", query)
-                ready_players = connect_mysql.get_column(query)
+                ready_players = await connect_mysql.get_column_async(query)
                 if ready_players == None:
                     ready_players = []
 
@@ -6681,7 +6681,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                         "GROUP BY players.allyCode "\
                         "HAVING COUNT(defId) >= 5 "
                 goutils.log2("DBG", query)
-                ready_players = connect_mysql.get_column(query)
+                ready_players = await connect_mysql.get_column_async(query)
                 if ready_players == None:
                     ready_players = []
 
@@ -6700,7 +6700,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                         ") T "\
                         "WHERE NUTEGUNRAY=1 AND B1BATTLEDROIDV2=1 AND B2SUPERBATTLEDROID=1 AND DROIDEKA=1 "
                 goutils.log2("DBG", query)
-                ready_players = connect_mysql.get_column(query)
+                ready_players = await connect_mysql.get_column_async(query)
                 if ready_players == None:
                     ready_players = []
 
@@ -6725,7 +6725,7 @@ async def print_tb_special_results_from_rpc(guild, mapstats, zone_shortname, dic
                         "                AND gp>=16500) "\
                         "WHERE guildId='"+guild['profile']['id']+"' "
                 goutils.log2("DBG", query)
-                ready_players = connect_mysql.get_column(query)
+                ready_players = await connect_mysql.get_column_async(query)
                 if ready_players == None:
                     ready_players = []
 
@@ -6788,7 +6788,7 @@ async def register_confirm(txt_allyCode, discord_id):
     query = "SELECT timestampdiff(SECOND, timestamp, CURRENT_TIMESTAMP), defId, mod_slot "\
             "FROM register_confirm WHERE allyCode="+txt_allyCode
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_line(query)
+    db_data = await connect_mysql.get_line_async(query)
 
     if db_data == None:
         # Nothing ongoing, prepare confirmation protocole
@@ -6921,7 +6921,7 @@ async def print_coliseum_guild(guild_id, allyCode=None):
             "WHERE guildId='"+score_guild_id+"' "\
             "AND NOT isnull(eraLevel) "
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
     if db_data == None:
         db_data = []
 

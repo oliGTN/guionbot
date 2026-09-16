@@ -25,7 +25,7 @@ async def register_player(allyCode, discord_id_txt, requestor_discord_id):
                 "JOIN players ON players.allyCode=player_discord.allyCode "\
                 "WHERE discord_id="+str(requestor_discord_id)
         goutils.log2("DBG", query)
-        db_data = connect_mysql.get_value(query)
+        db_data = await connect_mysql.get_value_async(query)
         if db_data==None:
             return 1, "Vous devez vous même être enregistré sur un code allié avant d'enregistrer un compte différent."
 
@@ -36,14 +36,14 @@ async def register_player(allyCode, discord_id_txt, requestor_discord_id):
     #Setup all potential previous accounts as alt
     query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
     goutils.log2("INFO", query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     #Add discord id in DB
     query = "INSERT INTO player_discord (allyCode, discord_id)\n"
     query+= "VALUES("+allyCode+", "+discord_id_txt+") \n"
     query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
     goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     #Ensure that any discord_id has a main account
     query = "UPDATE player_discord SET main=1 "\
@@ -54,6 +54,6 @@ async def register_player(allyCode, discord_id_txt, requestor_discord_id):
             "HAVING max(main)=0 "\
             ")"
     goutils.log2("DBG", query)
-    connect_mysql.simple_execute(query)
+    await connect_mysql.simple_execute_async(query)
 
     return 0, player_name

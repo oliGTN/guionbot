@@ -417,7 +417,7 @@ def db_connect():
             
     return mysql_db
         
-def update_guild_teams(guild_id, dict_team):
+async def update_guild_teams(guild_id, dict_team):
 #         dict_team {
 #             team_name:{
 #                 "rarity": unlocking rarity of GV character
@@ -461,7 +461,7 @@ def update_guild_teams(guild_id, dict_team):
                 "WHERE "+guild_id_test+" "\
                 "AND name='"+team_name+"' "
         goutils.log2("DBG", query)
-        existing_md5 = get_value(query)
+        existing_md5 = await get_value_async(query)
 
         if existing_md5 == team_md5:
             # the team exists and is unchanged
@@ -488,7 +488,7 @@ def update_guild_teams(guild_id, dict_team):
                 "WHERE "+guild_id_test+" "\
                 "AND name='"+team_name+"' "
         goutils.log2("DBG", query)
-        team_id = get_value(query)
+        team_id = await get_value_async(query)
 
         subteam_list = dict_team[team_name]["categories"]
         for sub_team in subteam_list:
@@ -507,7 +507,7 @@ def update_guild_teams(guild_id, dict_team):
                     "WHERE team_id="+str(team_id)+" "\
                     "AND name='"+subteam_name+"' "
             goutils.log2("DBG", query)
-            subteam_id = get_value(query)
+            subteam_id = await get_value_async(query)
 
             for toon_id in subteam_toons:
                 toon = subteam_toons[toon_id]
@@ -530,7 +530,7 @@ def update_guild_teams(guild_id, dict_team):
                         "WHERE subteam_id="+str(subteam_id)+" "\
                         "AND unit_id='"+toon_id+"' "
                 goutils.log2("DBG", query)
-                roster_id = get_value(query)
+                roster_id = await get_value_async(query)
 
                 for zeta in toon[5].split(","):
                     zeta_id = goutils.get_capa_id_from_short(toon_id, zeta)
@@ -1269,7 +1269,7 @@ async def update_player(dict_player):
 #IN: source - name of the bot which has computed the progress
 #OUT: 0 if no error
 #####################################################################
-def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, completed, source):
+async def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, completed, source):
     cursor = None
     try:
         mysql_db = db_connect()
@@ -1299,7 +1299,7 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
                   + "AND complete=1 " \
                   + "AND source='"+source+"'"
             goutils.log2("DBG", query)
-            count_completed = get_value(query)
+            count_completed = await get_value_async(query)
             already_complete = (count_completed >= 1)
         else:
             already_complete = False
@@ -1333,7 +1333,7 @@ def update_gv_history(txt_allyCode, player_name, character, is_ID, progress, com
     
     return 0
 
-def get_shard_from_player(txt_allyCode, shard_type):
+async def get_shard_from_player(txt_allyCode, shard_type):
     # test if the shard already exists
     query = "SELECT "+shard_type+"Shard_id, name, guildName " \
           + "FROM players " \
@@ -1349,7 +1349,7 @@ def get_shard_from_player(txt_allyCode, shard_type):
 
         query = "SELECT MAX(id) FROM shards"
         goutils.log2("DBG", query)
-        new_shard = get_value(query)
+        new_shard = await get_value_async(query)
 
         query = "UPDATE players "\
                +"SET "+shard_type+"Shard_id="+str(new_shard)+" " \
@@ -1361,7 +1361,7 @@ def get_shard_from_player(txt_allyCode, shard_type):
     else:
         return existingShard, name, guildName
 
-def get_shard_list(shard_id, shard_type, txt_mode):
+async def get_shard_list(shard_id, shard_type, txt_mode):
     query = "SELECT allyCode, name, guildName, arena_"+shard_type+"_rank, " \
           + "time('01-01-01 19:00:00' - interval poUTCOffsetMinutes minute) as 'PO_utc' " \
           + "FROM players " \
@@ -1371,7 +1371,7 @@ def get_shard_list(shard_id, shard_type, txt_mode):
     if txt_mode:
         return text_query(query)
     else:
-        return get_table(query)
+        return await get_table_async(query)
 
 def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
     player_existing_shard, name, guildName = get_shard_from_player(txt_allyCode, shard_type)
@@ -1428,7 +1428,7 @@ def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
 #          dict_players_by_ID {key=discord ID, value={"main":[allycode, isOfficer, guild_id]
 #                                                     "alts":[[ac, isOff, guild_id], [ac2, isOff, guild_id]...]}}
 ##############################################################
-def load_config_players(guild_id=None):
+async def load_config_players(guild_id=None):
     query = "SELECT players.allyCode, players.name, player_discord.discord_id, "\
             "player_discord.main, guildMemberLevel, guildId "\
             "FROM players "\
@@ -1437,7 +1437,7 @@ def load_config_players(guild_id=None):
         query+= "WHERE guildId='"+guild_id+"' "
     query+= "ORDER BY player_discord.discord_id, player_discord.main "
     goutils.log2("DBG", query)
-    data_db = get_table(query)
+    data_db = get_table_async(query)
 
     dict_players_by_IG = {}
     dict_players_by_ID = {}
@@ -1711,7 +1711,7 @@ async def get_warbot_info_from_guild(guild_id):
 # Get guild ID, allyCode and player name for the
 #  google account linked to this channel
 ########################################
-def get_google_player_info(channel_id):
+async def get_google_player_info(channel_id):
     query = "SELECT guildId, players.allyCode, players.name, \n"
     query+= "       tbChanRead_id, echostation_id, \n"
     query+= "       twChanOut_id \n"
@@ -1720,7 +1720,7 @@ def get_google_player_info(channel_id):
     query+= "LEFT JOIN guild_bot_infos ON guild_bot_infos.guild_id=players.guildId \n"
     query+= "WHERE channel_id="+str(channel_id)
     goutils.log2("DBG", query)
-    db_data = get_line(query)
+    db_data = await get_line_async(query)
     if db_data == None:
         return 1, "Pas d'utilisateur trouvé pour ce channel", None
     
@@ -1732,7 +1732,7 @@ def get_google_player_info(channel_id):
                    "twChanOut_id": db_data[5]}
 
 # IN: tbs_round > ROTE1 to ROTE6, or ROTE0 to get the latest data
-def get_tb_platoon_allocations(guild_id, tbs_round):
+async def get_tb_platoon_allocations(guild_id, tbs_round):
     dict_unitsList = data.get("unitsList_dict.json")
     dict_tb = data.get("tb_definition.json")
 
@@ -1755,7 +1755,7 @@ def get_tb_platoon_allocations(guild_id, tbs_round):
         query += "AND ABS(timestampdiff(SECOND, timestamp, (select max(timestamp) from platoon_config WHERE guild_id='"+guild_id+"')))<5"
 
     goutils.log2("DBG", query)
-    db_data = get_table(query)
+    db_data = await get_table_async(query)
     if db_data == None:
         return 1, "Aucune allocation de peloton connue", None
 

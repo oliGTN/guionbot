@@ -212,7 +212,7 @@ async def registercheck(ctx_interaction, allyCode):
                 "WHERE guildId=(SELECT guildId FROM players WHERE allyCode = "+str(allyCode)+") " \
                 "ORDER by name "
         goutils.log2("DBG", query)
-        db_data = connect_mysql.get_table(query)
+        db_data = await connect_mysql.get_table_async(query)
 
         guildName = db_data[0][0]
         if guildName == '':
@@ -251,7 +251,7 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
         # Get owned equipment, ONLY for connected users
         check_owned = False
         if ctx_interaction != None:
-            ec, et, player_infos = connect_mysql.get_google_player_info(ctx_interaction.channel.id)
+            ec, et, player_infos = await connect_mysql.get_google_player_info(ctx_interaction.channel.id)
             if ec==0:
                 connected_allyCode = player_infos["allyCode"]
                 if allyCode != connected_allyCode:
@@ -352,7 +352,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
                     "JOIN guild_teams ON guild_subteams.team_id = guild_teams.id " \
                     "WHERE guild_teams.name='"+target_id+"-GV' "
             goutils.log2("DBG", query)
-            results = connect_mysql.get_table(query)
+            results = await connect_mysql.get_table_async(query)
 
             if results == None:
                 target_name = dict_units[target_id]["name"]
@@ -633,7 +633,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
 
     else:
         # Look for the name among known player names
-        results = connect_mysql.get_table("SELECT name, allyCode FROM players WHERE NOT isnull(name)")
+        results = await connect_mysql.get_table_async("SELECT name, allyCode FROM players WHERE NOT isnull(name)")
         list_names = [x[0] for x in results]
         closest_names_db=difflib.get_close_matches(alias, list_names, 1)
         if len(closest_names_db) == 0:
@@ -761,7 +761,7 @@ async def register_player(ctx_interaction, args):
                     "WHERE allyCode="+allyCode+" "\
                     "AND discord_id="+str(ctx_interaction.author.id)
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
+            db_data = await connect_mysql.get_value_async(query)
             if db_data==0:
                 await command_error(ctx_interaction, resp_msg, "Vous devez être enregistré sur ce code allié avant de lancer la confirmation : merci de lancer la commande *go.register "+allyCode+"*")
                 return
@@ -847,7 +847,7 @@ async def unregister(ctx_interaction, args):
                 "JOIN players ON players.allyCode=player_discord.allyCode "\
                 "WHERE discord_id="+str(ctx_interaction.author.id)
         goutils.log2("DBG", query)
-        db_data = connect_mysql.get_value(query)
+        db_data = await connect_mysql.get_value_async(query)
         if db_data==None:
             await command_error(ctx_interaction, resp_msg, "Vous devez vous même être enregistré sur un code allié avant d'enregistré un compte différent.")
             return
@@ -931,7 +931,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
             "AND rarity=7 "\
             "AND defId IN "+str(tuple(dict_ops.keys()))
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
     d_guild = {}
     d_players = {}
     for l in db_data:

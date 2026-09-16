@@ -789,7 +789,7 @@ async def get_player_initialdata(ac, use_cache_data=False):
 
 async def get_bot_player_data(guild_id, use_cache_data):
     # Get allyCode from guild ID
-    bot_allyCode = connect_mysql.get_value("SELECT allyCode from guild_bots WHERE guild_id='"+guild_id+"'")
+    bot_allyCode = await connect_mysql.get_value_async("SELECT allyCode from guild_bots WHERE guild_id='"+guild_id+"'")
     if bot_allyCode == None:
         return 1, "Ce serveur discord n'a pas de warbot", None
     bot_allyCode = str(bot_allyCode)
@@ -998,7 +998,7 @@ async def get_guildLog_messages(guild_id, onlyLatest, force_update, allyCode=Non
             "LEFT JOIN guild_bots ON guild_bot_infos.guild_id=guild_bots.guild_id "\
             "WHERE guild_bot_infos.guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    line = connect_mysql.get_line(query)
+    line = await connect_mysql.get_line_async(query)
     if line == None:
         return 1, "INFO: no DB data for guild "+guild_id, None
     

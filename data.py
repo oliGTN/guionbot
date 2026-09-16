@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 
 dict_raid_tiers = {}
 dict_raid_tiers['Rancor (challenge)']=[41193988, 36425856, 39461352, 37943604]

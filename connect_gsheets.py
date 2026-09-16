@@ -25,10 +25,10 @@ client=None
 
 guild_timezone=timezone(config.GUILD_TIMEZONE)
 
-def get_gfile_name(guild_id: str):
+async def get_gfile_name(guild_id: str):
     query = "SELECT gfile_name FROM guild_bot_infos WHERE guild_id='"+guild_id+"'"
     goutils.log2("DBG", query)
-    return connect_mysql.get_value(query)
+    return await connect_mysql.get_value_async(query)
 
 ##############################################################
 # Function: get_gapi_client
@@ -60,8 +60,8 @@ def get_dict_columns(list_col_names, list_list_sheet):
                 dict_columns[col_name] = i_col
     return dict_columns
 
-def get_sheet_url(guild_id: str, sheet_name):
-    gfile_name = get_gfile_name(guild_id)
+async def get_sheet_url(guild_id: str, sheet_name):
+    gfile_name = await get_gfile_name(guild_id)
     if gfile_name==None or gfile_name=='':
         return None
     try:
@@ -87,17 +87,17 @@ def get_sheet_url(guild_id: str, sheet_name):
 #                          {team_name:
 #                             [phase, normal, super]}]}
 ##############################################################
-def load_config_raids(guild_id: str, force_load):
+async def load_config_raids(guild_id: str, force_load):
     if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
-        gfile_name = get_gfile_name(guild_id)
+        gfile_name = await get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        guild_name = connect_mysql.get_value(query)
+        guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
         goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
@@ -156,18 +156,18 @@ def load_config_raids(guild_id: str, force_load):
 #                           ], ...]
 #                      }
 ##############################################################
-def load_config_teams(guild_id: str, force_load):
+async def load_config_teams(guild_id: str, force_load):
     if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
         cache_name = "GuiOnBot"
     else:
-        gfile_name = get_gfile_name(guild_id)
+        gfile_name = await get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        guild_name = connect_mysql.get_value(query)
+        guild_name = await connect_mysql.get_value_async(query)
         cache_name = guild_id
 
     if gfile_name==None:
@@ -236,7 +236,7 @@ def load_config_teams(guild_id: str, force_load):
                                                                                 character_name]
     
         #Update DB
-        connect_mysql.update_guild_teams(guild_id, dict_teams)
+        await connect_mysql.update_guild_teams(guild_id, dict_teams)
 
         # store json file
         fjson = open(json_file, 'w')
@@ -377,7 +377,7 @@ def load_config_categories(force_load):
 # Purpose: lit l'onglet "statq" du fichier CONFIG
 # Output:  None
 ##############################################################
-def load_config_statq():
+async def load_config_statq():
     err_code = 0
     err_txt = ""
 
@@ -429,7 +429,7 @@ def load_config_statq():
 
     #Get DB table
     query = "SELECT * from statq_table"
-    db_data = connect_mysql.get_table(query)
+    db_data = await connect_mysql.get_table_async(query)
 
     dict_unit_stats_db = {}
     for line in db_data:
@@ -470,7 +470,7 @@ def load_config_statq():
 
                 if query != None:
                     goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                    await connect_mysql.simple_execute_async(query)
 
             #remove stats that are not used anymore
             for stat in unit_db:
@@ -482,7 +482,7 @@ def load_config_statq():
 
                 if query != None:
                     goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                    await connect_mysql.simple_execute_async(query)
 
         else:
             #The unit is not in the DB table, insert it
@@ -490,7 +490,7 @@ def load_config_statq():
                 coef = unit_gs[stat]
                 query = "INSERT INTO statq_table(defId, stat_name, coef) VALUES('"+unit_id+"', '"+stat+"', "+str(coef)+")" 
                 goutils.log2("DBG", query)
-                connect_mysql.simple_execute(query)
+                await connect_mysql.simple_execute_async(query)
 
     #remove units that are not used anymore
     for unit_id in dict_unit_stats_db:
@@ -502,10 +502,10 @@ def load_config_statq():
 
         if query != None:
             goutils.log2("DBG", query)
-            connect_mysql.simple_execute(query)
+            await connect_mysql.simple_execute_async(query)
 
     #update stat average
-    connect_mysql.compute_statq_avg(False)
+    await connect_mysql.compute_statq_avg(False)
 
     return err_code, err_txt
 
@@ -517,17 +517,17 @@ def load_config_statq():
 #         dict of star tagrets by TB and by day
 #         margin of score before reaching the target
 ##############################################################
-def get_tb_triggers(guild_id: str, force_load):
+async def get_tb_triggers(guild_id: str, force_load):
     if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
-        gfile_name = get_gfile_name(guild_id)
+        gfile_name = await get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        guild_name = connect_mysql.get_value(query)
+        guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
         goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
@@ -612,7 +612,7 @@ def get_tb_triggers(guild_id: str, force_load):
             goutils.log2("ERR", 'At least one column among "'+
                     top_column_title+'", "' +\
                     mid_column_title+'", "' +\
-                    bot_column_comment+'" is not found >> BT alerts not sent')
+                    bot_column_title+'" is not found >> BT alerts not sent')
                 
         # store json file
         fjson = open(json_file, 'w')
@@ -624,8 +624,8 @@ def get_tb_triggers(guild_id: str, force_load):
     return 0, [daily_targets, margin]
 
 # IN: list_targets=[["ROTE1-DS", 3], ["ROTE2-MS", 3], ...]
-def set_tb_targets(guild_id: str, list_targets):
-    gfile_name = get_gfile_name(guild_id)
+async def set_tb_targets(guild_id: str, list_targets):
+    gfile_name = await get_gfile_name(guild_id)
     try:
         get_gapi_client()
         file = client.open(gfile_name)
@@ -717,17 +717,17 @@ def set_tb_targets(guild_id: str, list_targets):
     
     return 0, ""
 
-def load_tb_teams(guild_id: str, force_load):
+async def load_tb_teams(guild_id: str, force_load):
     if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
-        gfile_name = get_gfile_name(guild_id)
+        gfile_name = await get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        guild_name = connect_mysql.get_value(query)
+        guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
         goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
@@ -773,17 +773,17 @@ def load_tb_teams(guild_id: str, force_load):
 
     return tb_teams
 
-def load_tw_counters(guild_id: str, force_load):
+async def load_tw_counters(guild_id: str, force_load):
     if guild_id == None:
         gfile_name = "GuiOnBot config"
         guild_name = gfile_name
     else:
-        gfile_name = get_gfile_name(guild_id)
+        gfile_name = await get_gfile_name(guild_id)
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
         goutils.log2("DBG", query)
-        guild_name = connect_mysql.get_value(query)
+        guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
         goutils.log2("WAR", "No gfile for this guild ID "+guild_id)

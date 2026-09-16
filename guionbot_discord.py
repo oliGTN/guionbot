@@ -14,7 +14,7 @@ import difflib
 import re
 import discord
 from discord.ext import tasks, commands
-from discord import Activity, ActivityType, Intents, File, DMChannel, MessageReference
+from discord import User, Activity, ActivityType, Intents, File, DMChannel, MessageReference, Message
 from discord import errors as discorderrors
 from discord import app_commands
 from io import BytesIO
@@ -76,7 +76,7 @@ intents.presences = True
 intents.message_content = True
 bot = MyClient(command_prefix=['go.', 'Go.', 'GO.'], intents=intents)
 
-list_tw_opponent_msgIDs = []
+list_tw_opponent_msgIDs: list[tuple[User, list[tuple[Message, list[int]]]]] = []
 
 dict_platoons_previously_done = {} #Empy set
 dict_tb_alerts_previously_done = {}
@@ -933,7 +933,7 @@ async def allocate_platoons_from_eb_DM(message):
             "WHERE discord_id="+str(msg_author_id)+" " \
             "AND name='"+player_name+"'"
     goutils.log2("DBG", query)
-    db_data = connect_mysql.get_column(query)
+    db_data = await connect_mysql.get_column_async(query)
     if db_data==None or len(db_data)!=1:
         goutils.log2("WAR", "Impossible to identify one single player for ID "+str(msg_author_id)+" and playerName "+player_name)
         await message.channel.send("Utilisateur <@"+str(msg_author_id)+"> inconnu pour le joueur "+player_name)
@@ -1798,7 +1798,7 @@ async def manage_me(ctx, alias, allow_tw):
             query = "SELECT name, allyCode FROM players "\
                     "WHERE NOT isnull(name) "
             goutils.log2("DBG", query)
-            all_db_results = connect_mysql.get_table(query)
+            all_db_results = await connect_mysql.get_table_async(query)
 
             list_names = [x[0] for x in all_db_results]
             closest_names_db=difflib.get_close_matches(alias, list_names, 1)
@@ -2222,7 +2222,7 @@ async def on_message(message):
                             query = "SELECT guild_id, echostation_id FROM guild_bot_infos " \
                                     "WHERE tbChanRead_id="+str(tbChanRead_id)
                             goutils.log2("DBG", query)
-                            db_data = connect_mysql.get_line(query)
+                            db_data = await connect_mysql.get_line_async(query)
 
                             if db_data==None:
                                 #No need to read EchoBot message if the guild is
@@ -2313,7 +2313,7 @@ async def on_message_edit(before, after):
                                         "JOIN players ON players.allyCode=player_discord.allyCode " \
                                         "WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+") "
                                 goutils.log2("INFO", query)
-                                db_data = connect_mysql.get_table(query)
+                                db_data = await connect_mysql.get_table_async(query)
 
                                 dict_ac_did = {}
                                 for line in db_data:
@@ -2357,7 +2357,7 @@ async def on_message_edit(before, after):
                         "   JOIN player_discord ON players.allyCode = player_discord.allyCode " \
                         "   WHERE discord_id="+str(caller_id)+") "
                 goutils.log2("DBG", query)
-                db_data = connect_mysql.get_value(query)
+                db_data = await connect_mysql.get_value_async(query)
                 if db_data != None:
                     allyCode = db_data
 
@@ -2531,7 +2531,7 @@ async def officer_command(ctx):
                     "WHERE guildId='"+guild_id+"' " \
                     "AND player_discord.discord_id<>'' AND guildMemberLevel>=3 "
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_column(query)
+            db_data = await connect_mysql.get_column_async(query)
             if db_data == None:
                 list_did = []
             else:
@@ -2678,8 +2678,8 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  ORDER BY guilds.lastUpdated DESC"
         goutils.log2("DBG", query)
         output_players = connect_mysql.text_query(query)
-        total_guilds = connect_mysql.get_value("SELECT count(*) from guilds")
-        total_players = connect_mysql.get_value("SELECT count(*) from players")
+        total_guilds = await connect_mysql.get_value_async("SELECT count(*) from guilds")
+        total_players = await connect_mysql.get_value_async("SELECT count(*) from players")
 
         await ctx.send("**GuiOn bot is UP** since "+str(bot_uptime)+" (GMT)")
         await ctx.send("Guilde suivies :")
@@ -2787,7 +2787,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
             query = "SELECT CURRENT_TIMESTAMP"
             goutils.log2("DBG", query)
-            timestamp_before = connect_mysql.get_value(query)
+            timestamp_before = await connect_mysql.get_value_async(query)
             e, t, player_before = await go.load_player( allyCode, -1, True)
             if e!=0:
                 await ctx.send(t)
@@ -2873,7 +2873,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             for m in g.members:
                 if m.guild_permissions.administrator and not m.bot:
                     query = "SELECT allyCode FROM player_discord WHERE discord_id="+str(m.id)
-                    db_data = connect_mysql.get_column(query)
+                    db_data = await connect_mysql.get_column_async(query)
                     output_txt += g.name+ " ("+str(g.id)+"), "+m.name+" ("+str(m.id)+"), "+str(m.guild_permissions.administrator)+", "+str(db_data)+"\n"
 
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
@@ -2930,7 +2930,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         query = "select name, discord_id from players join player_discord on players.allyCode=player_discord.allyCode where guildName = (select guildName from players where allyCode="+allyCode+")"
         goutils.log2("DBG", query)
-        db_data = connect_mysql.get_table(query)
+        db_data = await connect_mysql.get_table_async(query)
         for line in db_data:
             if line[1]==None:
                 goutils.log2("INFO", "No discord ID for "+line[0])
@@ -3071,7 +3071,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #############################################################
     @commands.command(name='releasesem', help='Deverrouile un sémaphore')
     @commands.check(admin_command)
-    async def releasesem(self, ctx, str:id):
+    async def releasesem(self, ctx, id: str):
         await ctx.message.add_reaction(emojis.thumb)
 
         await release_sem(id)
@@ -3086,7 +3086,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
     #############################################################
     @commands.command(name='listsem', help='Liste les sémaphores actifs')
     @commands.check(admin_command)
-    async def listsem(self, ctx, str:id):
+    async def listsem(self, ctx, id: str):
         await ctx.message.add_reaction(emojis.thumb)
 
         list_sem = await list_semaphores()
@@ -3181,7 +3181,7 @@ class TwCog(commands.GroupCog, name="gt"):
             # Run the TW summary
             err_code, ret_txt = await go.print_tw_summary(guild_id, allyCode=allyCode)
             if err_code != 0:
-                txt = emojis.redcross+" ERR: "+err_txt
+                txt = emojis.redcross+" ERR: "+ret_txt
                 await interaction.edit_original_response(content=txt)
                 return
 
@@ -3245,14 +3245,14 @@ class TwCog(commands.GroupCog, name="gt"):
                     "WHERE discord_id="+str(user_id)+" " \
                     "AND main=1"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
+            db_data = await connect_mysql.get_value_async(query)
             if db_data==None:
                 return []
 
             guild_id = db_data
             goutils.log2("INFO", "START "+guild_id)
 
-            dict_tw_counters = connect_gsheets.load_tw_counters(guild_id, False)
+            dict_tw_counters = await connect_gsheets.load_tw_counters(guild_id, False)
             list_tw_opponents = list(dict_tw_counters.keys())
             filtered_opponents = [app_commands.Choice(name=value, value=value) 
                                   for value in list_tw_opponents if current.lower() in value.lower()]
@@ -3268,7 +3268,7 @@ class TwCog(commands.GroupCog, name="gt"):
     @app_commands.command(name="contres")
     @app_commands.rename(opponent="adversaire")
     @app_commands.autocomplete(opponent=list_tw_opponents)
-    async def tw_defense(self, interaction: discord.Interaction,
+    async def tw_counters(self, interaction: discord.Interaction,
                          opponent: str):
 
         try:
@@ -3290,15 +3290,14 @@ class TwCog(commands.GroupCog, name="gt"):
                     "WHERE discord_id="+str(user_id)+" " \
                     "AND main=1"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
+            db_data = await connect_mysql.get_value_async(query)
             if db_data==None:
                 return []
 
             guild_id = db_data
             goutils.log2("INFO", "START "+guild_id)
 
-            dict_tw_counters = connect_gsheets.load_tw_counters(guild_id, False)
-            list_counters = []
+            dict_tw_counters = await connect_gsheets.load_tw_counters(guild_id, False)
 
             if len(dict_tw_counters[opponent]) > 0:
                 embedList = []
@@ -3442,7 +3441,7 @@ class TbCog(commands.GroupCog, name="bt"):
                     "AND score < score_step3 "\
                     "ORDER BY lower(name)"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_table(query)
+            db_data = await connect_mysql.get_table_async(query)
             if db_data==None:
                 return []
             else:
@@ -3650,7 +3649,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     my_progress, 
                     ally_code=txt_allyCode)
         
-            mod_assignments = await optimize_mods_from_profile(
+            mod_assignments = optimize_mods_from_profile(
                     profile, 
                     previous_run=previous_run,
                     interaction=interaction)
@@ -3732,7 +3731,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     "WHERE channel_id="+str(channel_id)+" "\
                     "AND lower(name)='"+conf_name.lower()+"'"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_column(query)
+            db_data = await connect_mysql.get_column_async(query)
             if len(db_data) > 0:
                 user_choice = await bot_commands.confirmationPrompt(interaction, "Voulez-vous écrasez la conf "+conf_name+" ?")
                 if user_choice == False:
@@ -3767,7 +3766,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     "WHERE channel_id="+str(user_id)+" "\
                     "ORDER BY lower(name)"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_column(query)
+            db_data = await connect_mysql.get_column_async(query)
             if db_data==None:
                 return []
             else:
@@ -3902,7 +3901,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             #Run the function
             query = "SELECT id FROM mod_config_list WHERE allyCode="+txt_allyCode+" AND name='"+conf_name+"'"
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_value(query)
+            db_data = await connect_mysql.get_value_async(query)
             if db_data==None:
                 await interaction.edit_original_response(content=emojis.redcross+" configuration inconnue")
                 return
@@ -4322,7 +4321,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     "JOIN players ON players.allyCode=player_discord.allyCode "\
                     "WHERE discord_id="+str(ctx.author.id)
             goutils.log2("DBG", query)
-            db_data = connect_mysql.get_column(query)
+            db_data = await connect_mysql.get_column_async(query)
             if db_data == None:
                 await ctx.send('ERR: vous ne contrôlez pas de warbot')
                 await ctx.message.add_reaction(emojis.redcross)
@@ -6152,7 +6151,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             query = "SELECT name, guildName, lastUpdated, "\
                     "char_gp, ship_gp, grand_arena_rank, guildId "\
                     "FROM players WHERE allyCode = " + allyCode
-            result = connect_mysql.get_line(query)
+            result = await connect_mysql.get_line_async(query)
             if result != None:
                 player_name = result[0]
                 guildName = result[1]
@@ -7820,7 +7819,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                   + "ORDER BY bucket"
 
             goutils.log2("DBG", query)
-            bucket_count = connect_mysql.get_table(query)
+            bucket_count = await connect_mysql.get_table_async(query)
 
             target_count = 10 * team_count
             actual_count = 0
