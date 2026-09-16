@@ -1897,15 +1897,18 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
     # TB zones
     ##################################
     i_zone = 0
+    zone_updates = []
     for zone_fullname in dict_zones:
         zone = dict_zones[zone_fullname]
         zone_shortname = dict_tb[zone_fullname]["name"]
+
         if zone_fullname.endswith("_bonus"):
             zone_round = zone_fullname[-18]
             is_bonus = "1"
         else:
             zone_round = zone_fullname[-12]
             is_bonus = "0"
+
         round = str(dict_phase["round"])
 
         # Check / Create the zone in DB
@@ -1922,15 +1925,17 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     "AND zone_id='"+zone_fullname+"' "\
                     "ORDER BY round DESC "\
                     "LIMIT 1 "
+
         goutils.log2("DBG", query)
         db_data = await get_value_async(query)
 
         score_step1 = str(dict_tb[zone_fullname]["scores"][0])
         score_step2 = str(dict_tb[zone_fullname]["scores"][1])
         score_step3 = str(dict_tb[zone_fullname]["scores"][2])
+
         if db_data==None:
             if not zone_fullname in list_open_zones:
-                #past zone not yest recorded, possible for guilds with manual updates
+                #past zone not yet recorded, possible for guilds with manual updates
                 # allow it
                 pass
 
@@ -1960,47 +1965,115 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
 
         #zone scores (for the graph)
         score = min(int(score_step3), zone["score"])
+
         estimatedStrikeScore = 0
         if "estimatedStrikeScore" in zone:
             estimatedStrikeScore=zone["estimatedStrikeScore"]
+
         deployment=0
         if "deployment" in zone:
             deployment=zone["deployment"]
+
         maxStrikeScore=0
         if "maxStrikeScore" in zone:
             maxStrikeScore=zone["maxStrikeScore"]
+
         cmdMsg=zone["cmdMsg"]
         cmdCmd=zone["cmdCmd"]
+
         recon1_filled=zone["platoons"]["filling"][1]
         recon2_filled=zone["platoons"]["filling"][2]
         recon3_filled=zone["platoons"]["filling"][3]
         recon4_filled=zone["platoons"]["filling"][4]
         recon5_filled=zone["platoons"]["filling"][5]
         recon6_filled=zone["platoons"]["filling"][6]
+
         recon_cmdMsg=zone["platoons"]["cmdMsg"]
         recon_cmdCmd=zone["platoons"]["cmdCmd"]
 
-        query = "UPDATE tb_zones "\
-                "SET score="+str(score)+",  "\
-                "    estimated_strikes="+str(estimatedStrikeScore)+", "\
-                "    estimated_deployments="+str(deployment)+", "\
-                "    max_fights="+str(maxStrikeScore)+", "\
-                "    cmdMsg='"+cmdMsg.replace("'", "''")+"', "\
-                "    cmdCmd="+str(cmdCmd)+", "\
-                "    recon1_filled="+str(recon1_filled)+", "\
-                "    recon2_filled="+str(recon2_filled)+", "\
-                "    recon3_filled="+str(recon3_filled)+", "\
-                "    recon4_filled="+str(recon4_filled)+", "\
-                "    recon5_filled="+str(recon5_filled)+", "\
-                "    recon6_filled="+str(recon6_filled)+", "\
-                "    recon_cmdMsg='"+recon_cmdMsg.replace("'", "''").replace("\\", "\\\\")+"', "\
-                "    recon_cmdCmd="+str(recon_cmdCmd)+" "\
-                "WHERE id="+zone_db_id+" "
-        goutils.log2("DBG", query)
-        await simple_execute_async(query)
+        # Store current status of the zone for the batch UPDATE
+        zone_updates.append((
+            int(zone_db_id),
+            score,
+            estimatedStrikeScore,
+            deployment,
+            maxStrikeScore,
+            cmdMsg,
+            cmdCmd,
+            recon1_filled,
+            recon2_filled,
+            recon3_filled,
+            recon4_filled,
+            recon5_filled,
+            recon6_filled,
+            recon_cmdMsg,
+            recon_cmdCmd
+        ))
 
-        #breathe
+        # breathe
         await asyncio.sleep(0)
+
+    # Update all zones in one SQL statement
+    if zone_updates:
+        fields = [
+            "score",
+            "estimated_strikes",
+            "estimated_deployments",
+            "max_fights",
+            "cmdMsg",
+            "cmdCmd",
+            "recon1_filled",
+            "recon2_filled",
+            "recon3_filled",
+            "recon4_filled",
+            "recon5_filled",
+            "recon6_filled",
+            "recon_cmdMsg",
+            "recon_cmdCmd"
+        ]
+
+        cases = []
+
+        for field_index, field in enumerate(fields, start=1):
+            case = "CASE id "
+            for update in zone_updates:
+                zone_id = update[0]
+                value = update[field_index]
+
+                if field in ("cmdMsg", "recon_cmdMsg"):
+                    value = (
+                        str(value)
+                        .replace("\\", "\\\\")
+                        .replace("'", "''")
+                    )
+                    case += (
+                        "WHEN " + str(zone_id) +
+                        " THEN '" + value + "' "
+                    )
+                else:
+                    case += (
+                        "WHEN " + str(zone_id) +
+                        " THEN " + str(value) + " "
+                    )
+
+            case += "END"
+            cases.append(field + "=" + case)
+
+        zone_ids = ",".join(str(update[0]) for update in zone_updates)
+
+        query = (
+            "UPDATE tb_zones SET "
+            + ", ".join(cases)
+            + " WHERE id IN (" + zone_ids + ")"
+        )
+
+        goutils.log2(
+            "DBG",
+            "Batch update of " + str(len(zone_updates)) + " TB zones"
+        )
+        rowcount = await simple_execute_async(query)
+        goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
+
 
     ## players
     # Get DB data
@@ -2292,7 +2365,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
 
         rowcount = await executemany_async(query, values)
 
-        goutils.log2("INFO", "rowcount="+str(rowcount))
+        goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
     return
 
