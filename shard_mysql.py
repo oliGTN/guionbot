@@ -1,17 +1,13 @@
-import os
-import config
-import sys
-from urllib.parse import uses_netloc, urlparse
-import datetime
-import time
-from wcwidth import wcswidth
-import asyncio
-from decimal import Decimal
-from hashlib import md5
-from json import dumps as json_dumps
-
 import goutils
-import data
+
+from connect_mysql import (
+    get_line,
+    simple_execute,
+    get_value_async,
+    get_table_async,
+    text_query,
+)
+
 
 async def get_shard_from_player(txt_allyCode, shard_type):
     # test if the shard already exists
@@ -41,6 +37,7 @@ async def get_shard_from_player(txt_allyCode, shard_type):
     else:
         return existingShard, name, guildName
 
+
 async def get_shard_list(shard_id, shard_type, txt_mode):
     query = "SELECT allyCode, name, guildName, arena_"+shard_type+"_rank, " \
           + "time('01-01-01 19:00:00' - interval poUTCOffsetMinutes minute) as 'PO_utc' " \
@@ -52,6 +49,7 @@ async def get_shard_list(shard_id, shard_type, txt_mode):
         return text_query(query)
     else:
         return await get_table_async(query)
+
 
 async def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
     player_existing_shard, name, guildName = get_shard_from_player(txt_allyCode, shard_type)
@@ -100,4 +98,3 @@ async def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merg
         #target shard and shard from player are both filled with several players
         # need to merge them with confirmation from player
         return 1, "", [target_shard, player_existing_shard]
-
