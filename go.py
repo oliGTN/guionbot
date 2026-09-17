@@ -1235,9 +1235,9 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
     ret_get_team_progress = {}
 
     #Recuperation des dernieres donnees sur gdrive
-    ec, list_team_bot, dict_team_bot = connect_gsheets.load_config_teams(BOT_GFILE, False)
+    ec, list_team_bot, dict_team_bot = await connect_gsheets.load_config_teams(BOT_GFILE, False)
     if gfile_name != BOT_GFILE:
-        ec, list_team_guild, dict_team_guild = connect_gsheets.load_config_teams(guild_id, False)
+        ec, list_team_guild, dict_team_guild = await connect_gsheets.load_config_teams(guild_id, False)
         if ec == 2:
             return "", "ERR: pas de fichier de config pour ce serveur"
         elif ec == 3:
@@ -2870,7 +2870,7 @@ async def print_lox(txt_allyCode, characters, compute_guild=False, all_omicrons=
 async def print_erx(txt_allyCode, days, compute_guild):
     dict_unitsList = godata.get("unitsList_dict.json")
     dict_categoryList = godata.get("categoryList_dict.json")
-    dict_categories = connect_gsheets.load_config_categories(False)
+    dict_categories = await connect_gsheets.load_config_categories(False)
 
     #Update player/guild data
     if not compute_guild:
@@ -2888,7 +2888,7 @@ async def print_erx(txt_allyCode, days, compute_guild):
             goutils.log2('ERR', 'erreur lors de la récupération des données guilde pour le code allié ' + txt_allyCode)
 
     #get latest Journey Guide definition
-    ec, list_teams, dict_teams = connect_gsheets.load_config_teams(BOT_GFILE, False)
+    ec, list_teams, dict_teams = await connect_gsheets.load_config_teams(BOT_GFILE, False)
     if ec == 2:
         return 1, "ERR: pas de fichier de config pour ce serveur"
     elif ec == 3:
