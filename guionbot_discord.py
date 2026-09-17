@@ -33,6 +33,8 @@ import go
 import goutils
 import connect_gsheets
 import connect_mysql
+import get_mysql
+import update_mysql
 import connect_rpc
 import parallel_work
 import portraits
@@ -299,7 +301,7 @@ async def bot_loop_5minutes(bot):
         try:
             #Check if guild can use RPC
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info_from_guild(guild_id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info_from_guild(guild_id)
             if ec==0:
                 guild_id = bot_infos["guild_id"]
 
@@ -316,7 +318,7 @@ async def bot_loop_5minutes(bot):
                     tbs_round = ret_data["round"]
                     dict_platoons_done = ret_data["platoons"]
 
-                    await connect_mysql.update_tb_platoons(guild_id, tb_id, tbs_round, dict_platoons_done)
+                    await update_mysql.update_tb_platoons(guild_id, tb_id, tbs_round, dict_platoons_done)
 
                     goutils.log2("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
                     goutils.log2("INFO", "["+guild_id+"] End of parsing for actual platoons for TB: round " + tbs_round)
@@ -487,7 +489,7 @@ def compute_territory_progress(dict_platoons, territory):
 # Output: None
 ##############################################################
 async def send_alert_to_bot_owner(guild_id, locked_since=None):
-    ec, et, bot_infos = await connect_mysql.get_warbot_info_from_guild(guild_id)
+    ec, et, bot_infos = await get_mysql.get_warbot_info_from_guild(guild_id)
     if ec != 0:
         return
 
@@ -539,7 +541,7 @@ async def send_alert_to_echocommanders(guild_id, message):
     if bot_test_mode:
         await send_alert_to_admins(None, "["+guild_id+"] "+message)
     else:
-        ec, et, warbot_infos = await connect_mysql.get_warbot_info_from_guild(guild_id)
+        ec, et, warbot_infos = await get_mysql.get_warbot_info_from_guild(guild_id)
         if ec != 0:
             await ctx.send('ERR: commande non utilisable Pour cette guilde')
             return
@@ -1135,7 +1137,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         goutils.log2("DBG", "dict_platoons_done["+platoon+"]="+str(dict_platoons_done[platoon]))
 
     #Recuperation de la liste des joueurs
-    dict_players_by_IG = (await connect_mysql.load_config_players(guild_id=guild_id))[0]
+    dict_players_by_IG = (await get_mysql.load_config_players(guild_id=guild_id))[0]
 
     if tbs_round == '':
         return 1, "Aucune BT en cours"
@@ -1156,7 +1158,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
             goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
     
         # Read DB platoon allocations
-        #ec, et, ret = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+        #ec, et, ret = get_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
         #if ec != 0:
         #    return ec, et
 
@@ -1444,7 +1446,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         manage_events.create_event("tw_start", guild_id, tw_id)
 
     # update DB
-    await connect_mysql.update_tw(guild_id, tw_id, opp_guild_id,
+    await update_mysql.update_tw(guild_id, tw_id, opp_guild_id,
                                   opp_guild_name, score, opp_score,
                                   homeGuild, awayGuild)
 
@@ -1701,7 +1703,7 @@ async def manage_me(ctx, alias, allow_tw):
     ret_allyCode = []
 
     #Get identity of command user
-    dict_players_by_ID = (await connect_mysql.load_config_players())[1]
+    dict_players_by_ID = (await get_mysql.load_config_players())[1]
     if ctx!=None and ctx.author.id in dict_players_by_ID:
         if not "main" in dict_players_by_ID[ctx.author.id]:
             err_msg = "Le compte discord <@"+ctx.author.id+"> est mal enregistré - pas de compte main"
@@ -1731,7 +1733,7 @@ async def manage_me(ctx, alias, allow_tw):
                 return "ERR: commande non autorisée depuis un DM avec l'option -TW"
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send('ERR: '+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -2196,7 +2198,7 @@ async def on_message(message):
                             pos_name = line.index("%` for ") + 7
                             character_name = line[pos_name:]
 
-                            connect_mysql.update_gv_history("", player_name, character_name, False,
+                            update_mysql.update_gv_history("", player_name, character_name, False,
                                                             progress, unlocked, "j.bot")
 
         #Read messages from WookieBoot
@@ -2331,14 +2333,14 @@ async def on_message_edit(before, after):
                                 #Setup all potential previous accounts as alt
                                 query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
                                 goutils.log2("INFO", query)
-                                #connect_mysql.simple_execute(query)
+                                #await connect_mysql.simple_execute_async(query)
 
                                 #Add discord id in DB
                                 query = "INSERT INTO player_discord (allyCode, discord_id)\n"
                                 query+= "VALUES("+allyCode_txt+", "+discord_id_txt+") \n"
                                 query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
                                 goutils.log2("DBG", query)
-                                #connect_mysql.simple_execute(query)
+                                #await connect_mysql.simple_execute_async(query)
 
                                 goutils.log2("INFO", "Registering "+allyCode_txt+" for <@"+discord_id_txt+">")
 
@@ -2364,7 +2366,7 @@ async def on_message_edit(before, after):
                     query = "INSERT INTO attendency(allyCode, startDate, endDate) " \
                             "VALUES("+str(allyCode)+", '"+start_date+"', '"+end_date+"') "
                     goutils.log2("DBG", query)
-                    connect_mysql.simple_execute(query)
+                    await connect_mysql.simple_execute_async(query)
 
                     await after.channel.send("Absence enregistrée pour "+player_name+" entre le "+start_date+" et le "+end_date)
 
@@ -2520,7 +2522,7 @@ async def officer_command(ctx):
     if ctx.guild != None:
         # Can be an officer only if in a discord server, not in a DM
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         list_did = None
         if ec==0:
             guild_id = bot_infos["guild_id"]
@@ -2677,7 +2679,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  GROUP BY guilds.id \
                  ORDER BY guilds.lastUpdated DESC"
         goutils.log2("DBG", query)
-        output_players = connect_mysql.text_query(query)
+        output_players = await connect_mysql.text_query_async(query)
         total_guilds = await connect_mysql.get_value_async("SELECT count(*) from guilds")
         total_players = await connect_mysql.get_value_async("SELECT count(*) from players")
 
@@ -2708,7 +2710,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         await ctx.message.add_reaction(emojis.thumb)
 
         arg = " ".join(args)
-        output = connect_mysql.text_query(arg)
+        output = await connect_mysql.text_query_async(arg)
         goutils.log('INFO', 'go.sql', 'SQL: ' + arg)
         if len(output) >0:
             output_txt=''
@@ -2814,7 +2816,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             query+= "ORDER BY timestamp DESC"
             goutils.log2("DBG", query)
 
-            output = connect_mysql.text_query(query)
+            output = await connect_mysql.text_query_async(query)
             if len(output) >0:
                 output_txt=''
                 for row in output:
@@ -2952,7 +2954,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             # get platoon allocations
             ##########
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send('ERR: '+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -3114,7 +3116,7 @@ class TwCog(commands.GroupCog, name="gt"):
                 return
 
             #get player config from DB
-            ec, et, player_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, player_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3168,7 +3170,7 @@ class TwCog(commands.GroupCog, name="gt"):
             await interaction.response.defer(thinking=True)
 
             #get player config from DB
-            ec, et, player_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, player_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3214,7 +3216,7 @@ class TwCog(commands.GroupCog, name="gt"):
         await interaction.response.defer(thinking=True)
 
         #get player config from DB
-        ec, et, player_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+        ec, et, player_infos = await get_mysql.get_google_player_info(interaction.channel.id)
         if ec!=0:
             txt = emojis.redcross+" ERR: "+et
             await interaction.edit_original_response(content=txt)
@@ -3353,7 +3355,7 @@ class TbCog(commands.GroupCog, name="bt"):
             await interaction.response.defer(thinking=True)
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3504,7 +3506,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3617,7 +3619,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3708,7 +3710,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3794,7 +3796,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3888,7 +3890,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -3933,7 +3935,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             channel_id = interaction.channel_id
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -4081,7 +4083,7 @@ class AuthCog(commands.GroupCog, name="connect"):
 
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_google_player_info(interaction.channel.id)
+            ec, et, bot_infos = await get_mysql.get_google_player_info(interaction.channel.id)
             if ec!=0:
                 txt = emojis.redcross+" ERR: "+et
                 await interaction.edit_original_response(content=txt)
@@ -4143,7 +4145,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send('ERR: '+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4269,7 +4271,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send(et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4334,11 +4336,11 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
 
             guild_id = db_data[0]
 
-            ec, et, bot_infos = await connect_mysql.get_warbot_info_from_guild(guild_id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info_from_guild(guild_id)
 
         else:
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -4370,7 +4372,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -4402,7 +4404,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -4433,7 +4435,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -4466,7 +4468,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send('ERR: '+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4560,7 +4562,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                         ignored_allyCodes = ret_data
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4647,7 +4649,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     args.remove(arg)
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4754,7 +4756,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4855,7 +4857,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -4962,7 +4964,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -5108,7 +5110,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -5221,7 +5223,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -5287,7 +5289,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -5362,7 +5364,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: "+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -5422,7 +5424,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         if len(list_characters) > 0:
             if len(list_options) <= 1:
                 #get bot config from DB
-                ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+                ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
                 if ec!=0:
                     await ctx.send("ERR: "+et)
                     await ctx.message.add_reaction(emojis.redcross)
@@ -5469,7 +5471,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -5521,7 +5523,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send('ERR: '+et)
                 await ctx.message.add_reaction(emojis.redcross)
@@ -5655,7 +5657,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             return
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -5810,7 +5812,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
             return
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -5891,7 +5893,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 args.remove("-TW")
 
                 #get bot config from DB
-                ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+                ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
                 if ec!=0:
                     await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
                     await ctx.message.add_reaction(emojis.redcross)
@@ -5916,7 +5918,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 args.remove("-TB")
 
                 #get bot config from DB
-                ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+                ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
                 if ec!=0:
                     await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
                     await ctx.message.add_reaction(emojis.redcross)
@@ -6047,7 +6049,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.redcross)
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: vous devez avoir un warbot pour utiliser cette commande")
                 await ctx.message.add_reaction(emojis.redcross)
@@ -6267,7 +6269,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 return
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
                 await ctx.message.add_reaction(emojis.redcross)
@@ -6351,7 +6353,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.redcross)
 
             #get bot config from DB
-            ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+            ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
             if ec!=0:
                 await ctx.send("ERR: vous devez avoir un fichier de configuration pour utiliser cette commande")
                 await ctx.message.add_reaction(emojis.redcross)
@@ -6464,7 +6466,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.redcross)
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -7393,7 +7395,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+        ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
         if ec!=0:
             await ctx.send('ERR: '+et)
             await ctx.message.add_reaction(emojis.redcross)
@@ -7888,7 +7890,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     return
 
                 #get bot config from DB
-                ec, et, bot_infos = await connect_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
+                ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
                 if ec!=0:
                     await ctx.send('ERR: '+et)
                     await ctx.message.add_reaction(emojis.redcross)
@@ -8109,11 +8111,11 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         # get the DB information
-        player_shard, n, gn = connect_mysql.get_shard_from_player(allyCode, shard_type)
+        player_shard, n, gn = await shard_mysql.get_shard_from_player(allyCode, shard_type)
 
         if len(args) == 2:
             #list the content of the shard
-            output = connect_mysql.get_shard_list(player_shard, shard_type, True)
+            output = await shard_mysql.get_shard_list(player_shard, shard_type, True)
             output_txt = ""
             for row in output:
                 output_txt+=str(row)+'\n'
@@ -8151,13 +8153,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.message.add_reaction(emojis.redcross)
                     return
 
-                ec, et, ret = connect_mysql.add_player_to_shard(shardmate_ac, player_shard, shard_type, force_merge)
+                ec, et, ret = await shard_mysql.add_player_to_shard(shardmate_ac, player_shard, shard_type, force_merge)
                 if ec == 1:
                     await ctx.send("Voulez-vous vraiment fusionner ces 2 shards "+shard_type+ " ?")
-                    target_list = connect_mysql.get_shard_list(ret[0], shard_type, True)
+                    target_list = await shard_mysql.get_shard_list(ret[0], shard_type, True)
                     for row in target_list:
                         output_txt+=str(row)+'\n'
-                    player_list = connect_mysql.get_shard_list(ret[1], shard_type, True)
+                    player_list = await shard_mysql.get_shard_list(ret[1], shard_type, True)
                     output_txt += "et\n"
                     for row in player_list:
                         output_txt+=str(row)+'\n'

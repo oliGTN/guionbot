@@ -16,6 +16,7 @@ import emojis
 import goutils
 import data as godata
 import connect_mysql
+import update_mysql
 import go
 import manage_events
 import connect_gsheets
@@ -305,7 +306,7 @@ async def get_guild_data_from_ac(txt_allyCode, use_cache_data, retryAuth=1):
         return 1, "Aucune info de guilde disponible pour "+txt_allyCode, None
 
     #Push some infos in DB
-    await connect_mysql.update_guild(dict_guild)
+    await update_mysql.update_guild(dict_guild)
 
     return 0, "", dict_guild
 
@@ -450,7 +451,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             list_rpc_events += resp_events['event']
 
             #Store the new events in the DB
-            await connect_mysql.store_tb_events(guild_id, tb_id, resp_events['event'])
+            await update_mysql.store_tb_events(guild_id, tb_id, resp_events['event'])
 
         #---------------
         #TW events
@@ -510,7 +511,7 @@ async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
             list_rpc_events += resp_events['event']
 
             #Store the new events in the DB
-            await connect_mysql.store_tw_events(guild_id, tw_id, resp_events['event'])
+            await update_mysql.store_tw_events(guild_id, tw_id, resp_events['event'])
 
         #---------------
         #CHAT events
@@ -726,7 +727,7 @@ async def get_extguild_data_from_id(guild_id, use_cache_data):
     dict_guild = guild_json["guild"]
 
     #Update data in DB
-    await connect_mysql.update_extguild(dict_guild)
+    await update_mysql.update_extguild(dict_guild)
 
     return 0, "", dict_guild
 
@@ -2312,7 +2313,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         if targets_platoons==None:
             #Get allocations
             tbs_round = tb_name + str(tb_round)
-            err_code, err_txt, ret_dict = connect_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+            err_code, err_txt, ret_dict = get_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
 
             if ret_dict == None:
                 dict_platoons_allocation = {}
@@ -2719,7 +2720,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
     #Update DB
     if simulated_tb==None and compute_estimated_fights and not compute_estimated_platoons:
         #website only displays fight estimates
-        await connect_mysql.update_tb_round(guild_id, 
+        await update_mysql.update_tb_round(guild_id, 
                                             dict_phase["id"], 
                                             dict_phase["round"], 
                                             dict_phase,
