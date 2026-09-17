@@ -253,7 +253,7 @@ async def load_config_teams(guild_id: str, force_load):
 # Purpose: lit l'onglet "units" du fichier Sheets
 # Output:  dict_units {key=alias, value=[name, id]}
 ##############################################################
-def load_config_units(force_load):
+async def load_config_units(force_load):
     dict_unitsList = data.get("unitsList_dict.json")
     json_file = "CACHE"+os.path.sep+"config_units.json"
 
@@ -321,7 +321,7 @@ def load_config_units(force_load):
 # Purpose: lit l'onglet "categories" du fichier Sheets
 # Output:  dict_categories {key=category_name, value=[unit_id1, unit_id2, ...]}
 ##############################################################
-def load_config_categories(force_load):
+async def load_config_categories(force_load):
     json_file = "CACHE"+os.path.sep+"config_categories.json"
 
     if force_load or not os.path.isfile(json_file):
