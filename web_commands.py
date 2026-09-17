@@ -6,7 +6,7 @@ from base64 import b64decode
 
 from connect_rpc import set_zoneOrder, get_dict_bot_accounts
 from connect_mysql import simple_execute_async, get_value_async
-import goutils
+import golog
 
 
 async def process_tbzone_order(order_dict, session):
@@ -39,7 +39,7 @@ async def process_tbzone_order(order_dict, session):
 
         zone_cmd = int(zone_cmd)
 
-        goutils.log2("INFO", order)
+        golog.log("INFO", order)
 
         ec, et = await set_zoneOrder(
             guild_id,
@@ -55,7 +55,7 @@ async def process_tbzone_order(order_dict, session):
         if ec != 0:
             return {"err_code": ec, "err_txt": et}
 
-        goutils.log2("INFO", "RPC OK")
+        golog.log("INFO", "RPC OK")
 
         # Update message and command in tb_zones.
         if "recon" in zone_id:
@@ -77,7 +77,7 @@ async def process_tbzone_order(order_dict, session):
             "AND tb_zones.round=tb_history.current_round "
             "AND tb_zones.zone_id='" + tb_zone_id + "'"
         )
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
         # Store order for next time.
@@ -88,7 +88,7 @@ async def process_tbzone_order(order_dict, session):
             "AND tb_type='" + tb_type + "' "
             "AND zone_id='" + zone_id + "' "
         )
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = await get_value_async(query)
 
         if db_data is None:
@@ -98,7 +98,7 @@ async def process_tbzone_order(order_dict, session):
                 "'" + tb_type + "', "
                 "'" + zone_id + "')"
             )
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
 
             query = (
@@ -107,7 +107,7 @@ async def process_tbzone_order(order_dict, session):
                 "AND tb_type='" + tb_type + "' "
                 "AND zone_id='" + zone_id + "' "
             )
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await get_value_async(query)
 
         order_id = str(db_data)
@@ -117,10 +117,10 @@ async def process_tbzone_order(order_dict, session):
             "cmdCmd=" + str(zone_cmd) + " "
             "WHERE id=" + order_id
         )
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
-        goutils.log2("INFO", "DB OK")
+        golog.log("INFO", "DB OK")
 
     return {"err_code": ec, "err_txt": et}
 

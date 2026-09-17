@@ -17,6 +17,7 @@ import traceback
 import connect_mysql
 import connect_rpc
 import goutils
+import golog
 import data
 
 # client est global pour garder le même en cas d'ouverture de plusieurs fichiers 
@@ -27,7 +28,7 @@ guild_timezone=timezone(config.GUILD_TIMEZONE)
 
 async def get_gfile_name(guild_id: str):
     query = "SELECT gfile_name FROM guild_bot_infos WHERE guild_id='"+guild_id+"'"
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     return await connect_mysql.get_value_async(query)
 
 ##############################################################
@@ -50,7 +51,7 @@ def get_gapi_client():
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
             client = gspread.authorize(creds)
         except KeyError as e:
-            goutils.log2('ERR', 'variable de configuration GAPI_CREDS non définie')
+            golog.log('ERR', 'variable de configuration GAPI_CREDS non définie')
 
 def get_dict_columns(list_col_names, list_list_sheet):
     dict_columns = {}
@@ -69,10 +70,10 @@ async def get_sheet_url(guild_id: str, sheet_name):
         file = client.open(gfile_name)
         worksheet=file.worksheet(sheet_name)
     except Exception as e:
-        goutils.log2("ERR", sys.exc_info()[0])
-        goutils.log2("ERR", e)
-        goutils.log2("ERR", traceback.format_exc())
-        goutils.log2("WAR", "Cannot connect to Google API")
+        golog.log("ERR", sys.exc_info()[0])
+        golog.log("ERR", e)
+        golog.log("ERR", traceback.format_exc())
+        golog.log("WAR", "Cannot connect to Google API")
         return None
 
     worksheet_url = "https://docs.google.com/spreadsheets/d/" + file.id + "/edit#gid=" + str(worksheet.id)
@@ -96,11 +97,11 @@ async def load_config_raids(guild_id: str, force_load):
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
-        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        golog.log("WAR", "No gfile for this guild ID "+guild_id)
         return 2, [], {}
 
     json_file = "CACHE"+os.path.sep+guild_name+"_config_raids.json"
@@ -114,10 +115,10 @@ async def load_config_raids(guild_id: str, force_load):
         except gspread.exceptions.WorksheetNotFound:
             return {}
         except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            goutils.log2("WAR", "Cannot connect to Google API")
+            golog.log("ERR", sys.exc_info()[0])
+            golog.log("ERR", e)
+            golog.log("ERR", traceback.format_exc())
+            golog.log("WAR", "Cannot connect to Google API")
             return None
 
         dict_columns = get_dict_columns(["Alias", "Nom complet", "Phase", "Team", "%", "Normal", "Super"], list_list_sheet)
@@ -166,12 +167,12 @@ async def load_config_teams(guild_id: str, force_load):
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         guild_name = await connect_mysql.get_value_async(query)
         cache_name = guild_id
 
     if gfile_name==None:
-        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        golog.log("WAR", "No gfile for this guild ID "+guild_id)
         return 2, [], {}
 
     json_file = "CACHE/"+cache_name+"_config_teams.json"
@@ -184,20 +185,20 @@ async def load_config_teams(guild_id: str, force_load):
     
             list_dict_sheet=feuille.get_all_records()
         except gspread.exceptions.WorksheetNotFound:
-            goutils.log2("WAR", "teams sheet not found")
+            golog.log("WAR", "teams sheet not found")
             return 3, [], {}
         except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            goutils.log2("WAR", "Cannot connect to Google API")
+            golog.log("ERR", sys.exc_info()[0])
+            golog.log("ERR", e)
+            golog.log("ERR", traceback.format_exc())
+            golog.log("WAR", "Cannot connect to Google API")
             return 1, [], {}
 
         #Extract all aliases and get associated ID+nameKey
         list_alias=[x['Nom'] for x in list_dict_sheet]
         list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_alias)
         if txt != '':
-            goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
+            golog.log('WAR', 'Cannot recognize following alias(es) >> '+txt)
 
         #Get latest definition of teams
         dict_teams={}
@@ -224,7 +225,7 @@ async def load_config_teams(guild_id: str, force_load):
                             index_perso+=1
                             dict_teams[team]["categories"][index_categorie][1] = dict_perso['Min Catégorie']
                             if character_id in dict_teams[team]["categories"][index_categorie][2]:
-                                goutils.log2('WAR', "twice the same character in that team: "+ character_id)
+                                golog.log('WAR', "twice the same character in that team: "+ character_id)
                             
                             dict_teams[team]["categories"][index_categorie][2][character_id]=[index_perso,
                                                                                 dict_perso['* min'],
@@ -267,10 +268,10 @@ async def load_config_units(force_load):
         except gspread.exceptions.WorksheetNotFound:
             return 1, "Worksheet not found: GuiOnNot config", {}
         except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            goutils.log2("ERR", "Cannot connect to Google API")
+            golog.log("ERR", sys.exc_info()[0])
+            golog.log("ERR", e)
+            golog.log("ERR", traceback.format_exc())
+            golog.log("ERR", "Cannot connect to Google API")
             return 1, "Cannot connect to Google API", None
 
         dict_units=data.get("unitsAlias_dict.json") #key=alias, value=[nameKey, id]
@@ -299,10 +300,10 @@ async def load_config_units(force_load):
                     alias = alias.strip().lower()
                     if alias in dict_units:
                         if dict_units[alias][0] != full_name:
-                            goutils.log2("ERR", "alias="+alias)
-                            goutils.log2("ERR", "dict_units[alias]="+str(dict_units[alias]))
-                            goutils.log2("ERR", "full_name="+full_name)
-                            goutils.log2("ERR", "double définition of "+alias+": "+dict_units[alias][0]+" and "+full_name)
+                            golog.log("ERR", "alias="+alias)
+                            golog.log("ERR", "dict_units[alias]="+str(dict_units[alias]))
+                            golog.log("ERR", "full_name="+full_name)
+                            golog.log("ERR", "double définition of "+alias+": "+dict_units[alias][0]+" and "+full_name)
                     else:
                         dict_units[alias]=[full_name, id]
 
@@ -334,10 +335,10 @@ async def load_config_categories(force_load):
         except gspread.exceptions.WorksheetNotFound:
             return {}
         except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            goutils.log2("ERR", "Cannot connect to Google API")
+            golog.log("ERR", sys.exc_info()[0])
+            golog.log("ERR", e)
+            golog.log("ERR", traceback.format_exc())
+            golog.log("ERR", "Cannot connect to Google API")
             return None
 
         dict_categories = {}
@@ -391,10 +392,10 @@ async def load_config_statq():
     except gspread.exceptions.WorksheetNotFound:
         return 0, ""
     except Exception as e:
-        goutils.log2("ERR", sys.exc_info()[0])
-        goutils.log2("ERR", e)
-        goutils.log2("ERR", traceback.format_exc())
-        goutils.log2("ERR", "Cannot connect to Google API")
+        golog.log("ERR", sys.exc_info()[0])
+        golog.log("ERR", e)
+        golog.log("ERR", traceback.format_exc())
+        golog.log("ERR", "Cannot connect to Google API")
         return 1, "Erreur de connexion au gsheet"
 
     dict_unit_stats_gs = {}
@@ -409,13 +410,13 @@ async def load_config_statq():
 
         list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([unit_alias])
         if txt != '':
-            goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
+            golog.log('WAR', 'Cannot recognize following alias(es) >> '+txt)
             err_txt += "Perso inconnu : "+txt+"\n"
             continue
 
         unit_id = list_character_ids[0]
         if unit_id in dict_unit_stats_gs:
-            goutils.log2('WAR', "Unit listed twice: "+unit_id)
+            golog.log('WAR', "Unit listed twice: "+unit_id)
             #err_txt += "Perso configuré 2 fois : "+unit_id+"\n"
             #continue
 
@@ -469,7 +470,7 @@ async def load_config_statq():
                     query = "INSERT INTO statq_table(defId, stat_name, coef) VALUES('"+unit_id+"', '"+stat+"', "+str(coef)+")" 
 
                 if query != None:
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await connect_mysql.simple_execute_async(query)
 
             #remove stats that are not used anymore
@@ -481,7 +482,7 @@ async def load_config_statq():
                     query = None
 
                 if query != None:
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await connect_mysql.simple_execute_async(query)
 
         else:
@@ -489,7 +490,7 @@ async def load_config_statq():
             for stat in unit_gs:
                 coef = unit_gs[stat]
                 query = "INSERT INTO statq_table(defId, stat_name, coef) VALUES('"+unit_id+"', '"+stat+"', "+str(coef)+")" 
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await connect_mysql.simple_execute_async(query)
 
     #remove units that are not used anymore
@@ -501,7 +502,7 @@ async def load_config_statq():
             query=None
 
         if query != None:
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await connect_mysql.simple_execute_async(query)
 
     #update stat average
@@ -526,11 +527,11 @@ async def get_tb_triggers(guild_id: str, force_load):
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
-        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        golog.log("WAR", "No gfile for this guild ID "+guild_id)
         return 2, [None, 0]
 
     json_file = "CACHE"+os.path.sep+guild_name+"_config_tb.json"
@@ -541,10 +542,10 @@ async def get_tb_triggers(guild_id: str, force_load):
             file = client.open(gfile_name)
             feuille=file.worksheet("BT")
         except gspread.exceptions.SpreadsheetNotFound as e:
-            goutils.log2("WAR", "File not found: "+gfile_name)
+            golog.log("WAR", "File not found: "+gfile_name)
             return 1, [None, 0]
         except:
-            goutils.log2("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
+            golog.log("WAR", "Unexpected error: "+str(sys.exc_info()[0]))
             return 1, [None, 0]
         
         #parsing title row
@@ -601,7 +602,7 @@ async def get_tb_triggers(guild_id: str, force_load):
                                 daily_targets[current_tb_name] = [[], [], [], [], [], []]
                         daily_targets[current_tb_name][day_index] = [top_target, mid_target, bot_target]
                 l+=1
-            goutils.log2("DBG", 'daily_targets='+str(daily_targets))
+            golog.log("DBG", 'daily_targets='+str(daily_targets))
 
             margin = feuille.col_values(col_margin)[1]
             margin = margin.replace('\u202f', '')
@@ -609,10 +610,10 @@ async def get_tb_triggers(guild_id: str, force_load):
                 margin = int(margin)
             else:
                 margin = 0
-            goutils.log2("DBG", 'margin='+str(margin))
+            golog.log("DBG", 'margin='+str(margin))
 
         else:
-            goutils.log2("ERR", 'At least one column among "'+
+            golog.log("ERR", 'At least one column among "'+
                     top_column_title+'", "' +\
                     mid_column_title+'", "' +\
                     bot_column_title+'" is not found >> BT alerts not sent')
@@ -634,7 +635,7 @@ async def set_tb_targets(guild_id: str, list_targets):
         file = client.open(gfile_name)
         feuille=file.worksheet("BT")
     except:
-        goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+        golog.log("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
         return 1, "Cannot read BT sheet"
     
     #parsing title row
@@ -684,7 +685,7 @@ async def set_tb_targets(guild_id: str, list_targets):
             side = zone.split('-')[1]
             stars = int(target[1])
         except:
-            goutils.log2("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
+            golog.log("ERR", "Unexpected error: "+str(sys.exc_info()[0]))
             return 1, "Cannot read BT targets"
 
         l = 1
@@ -729,11 +730,11 @@ async def load_tb_teams(guild_id: str, force_load):
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
-        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        golog.log("WAR", "No gfile for this guild ID "+guild_id)
         return 2, [], {}
 
     json_file = "CACHE"+os.path.sep+guild_name+"_config_tb_teams.json"
@@ -748,10 +749,10 @@ async def load_tb_teams(guild_id: str, force_load):
         except gspread.exceptions.WorksheetNotFound:
             return [{}, {}, {}, {}]
         except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            goutils.log2("ERR", "Cannot connect to Google API")
+            golog.log("ERR", sys.exc_info()[0])
+            golog.log("ERR", e)
+            golog.log("ERR", traceback.format_exc())
+            golog.log("ERR", "Cannot connect to Google API")
             return None
 
         tb_teams = [{}, {}, {}, {}]
@@ -785,11 +786,11 @@ async def load_tw_counters(guild_id: str, force_load):
 
         #Get guild name (in case gfile_name is different)
         query = "SELECT name FROM guilds WHERE id='"+guild_id+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         guild_name = await connect_mysql.get_value_async(query)
 
     if gfile_name==None:
-        goutils.log2("WAR", "No gfile for this guild ID "+guild_id)
+        golog.log("WAR", "No gfile for this guild ID "+guild_id)
         return 2, [], {}
 
     json_file = "CACHE"+os.path.sep+guild_name+"_config_tw_counters.json"
@@ -804,10 +805,10 @@ async def load_tw_counters(guild_id: str, force_load):
         except gspread.exceptions.WorksheetNotFound:
             return [{}, {}, {}, {}]
         except Exception as e:
-            goutils.log2("ERR", sys.exc_info()[0])
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
-            goutils.log2("ERR", "Cannot connect to Google API")
+            golog.log("ERR", sys.exc_info()[0])
+            golog.log("ERR", e)
+            golog.log("ERR", traceback.format_exc())
+            golog.log("ERR", "Cannot connect to Google API")
             return None
 
         tw_counters = {}
@@ -841,7 +842,7 @@ def read_rote_operations(list_zones=[]):
 
     # Check list of zones
     list_planets = []
-    goutils.log2("DBG", list_zones)
+    golog.log("DBG", list_zones)
     for z in list_zones:
         if not z.startswith("ROTE"):
             return 1, "Zone ROTE inconnue "+z, None
@@ -861,19 +862,19 @@ def read_rote_operations(list_zones=[]):
 
     rote_sheet_key = '1JqHbujIYTsHAkO9DCyQZFt0G-kKdhiwNBVgcI-VzJcw'
     try:
-        goutils.log2("DBG", "Get client...")
+        golog.log("DBG", "Get client...")
         get_gapi_client()
-        goutils.log2("DBG", "Open file...")
+        golog.log("DBG", "Open file...")
         file = client.open_by_key(rote_sheet_key)
-        goutils.log2("DBG", "Open worksheet...")
+        golog.log("DBG", "Open worksheet...")
         worksheet=file.worksheet('long_format')
-        goutils.log2("DBG", "Read worksheet...")
+        golog.log("DBG", "Read worksheet...")
         list_op_chars=worksheet.get_all_values()
     except Exception as e:
-        goutils.log2("ERR", sys.exc_info()[0])
-        goutils.log2("ERR", e)
-        goutils.log2("ERR", traceback.format_exc())
-        goutils.log2("WAR", "Cannot connect to Google API")
+        golog.log("ERR", sys.exc_info()[0])
+        golog.log("ERR", e)
+        golog.log("ERR", traceback.format_exc())
+        golog.log("WAR", "Cannot connect to Google API")
         return 1, "Impossible d'ouvrir le fichier des pelotons ROTE", None
 
     relic_by_phase = {'1': 5,
@@ -884,7 +885,7 @@ def read_rote_operations(list_zones=[]):
                       '6': 9}
 
     dict_ops_by_relic = {}
-    goutils.log2("DBG", "Parse worksheet...")
+    golog.log("DBG", "Parse worksheet...")
     for char in list_op_chars[1:]:
         char_phase = char[1]
         char_planet = char[2]

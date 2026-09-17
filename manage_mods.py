@@ -17,6 +17,7 @@ from asyncio import sleep as asyncio_sleep
 
 import go
 import goutils
+import golog
 import connect_mysql
 import connect_rpc
 import connect_crinolo
@@ -169,7 +170,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
     mod_inventory_spares = 500 - initial_inventory
 
     max_inventory = initial_inventory
-    goutils.log2("INFO", "Initial inventory: "+str(initial_inventory))
+    golog.log("INFO", "Initial inventory: "+str(initial_inventory))
     unit_count = 0
     mod_add_count = 0
     unequip_cost = 0
@@ -241,8 +242,8 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
             a = mod_allocations[0]
         else:
             a = best_a
-        goutils.log2("DBG", "len(mod_allocations): "+str(len(mod_allocations)))
-        goutils.log2("DBG", "best_a: "+str(best_a))
+        golog.log("DBG", "len(mod_allocations): "+str(len(mod_allocations)))
+        golog.log("DBG", "best_a: "+str(best_a))
 
         #do the job with the allocation a
         new_unit_count = unit_count
@@ -335,7 +336,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 new_mod_add_count += 1
             for id in mods_to_remove:
                 mods_txt += " -"+id
-            goutils.log2("DBG", "updateMods "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
+            golog.log("DBG", "updateMods "+allyCode+" "+target_char_id+mods_txt+" #"+target_char_defId)
             new_unit_count += 1
 
             # If not simulation mode, send the request to RPC
@@ -361,7 +362,7 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
 
         #manage max size required in mod inventory
         cur_inventory = [id for id in dict_player_mods if dict_player_mods[id]["unit_id"]==None]
-        goutils.log2("INFO", "Current inventory ("+allyCode+") after "+target_char_defId+": "+str(len(cur_inventory)))
+        golog.log("INFO", "Current inventory ("+allyCode+") after "+target_char_defId+": "+str(len(cur_inventory)))
         if len(cur_inventory) > max_inventory:
             max_inventory = len(cur_inventory)
 
@@ -381,13 +382,13 @@ async def apply_mod_allocations(mod_allocations, allyCode, is_simu,
                 else:
                     print(new_msg_content)
             except Exception as e:
-                goutils.log2("WAR", "Unable to update discord msg to: "+new_msg_content)
+                golog.log("WAR", "Unable to update discord msg to: "+new_msg_content)
             prev_display_time = time.time()
 
         #breathe
         await asyncio_sleep(0)
 
-    goutils.log2("INFO", "Max inventory: "+str(max_inventory))
+    golog.log("INFO", "Max inventory: "+str(max_inventory))
     needed_inventory = max_inventory-initial_inventory
 
     ret_code = 0
@@ -432,21 +433,21 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
     query = "SELECT id\n"
     query+= "FROM mod_config_list\n"
     query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     config_id = await connect_mysql.get_value_async(query)
 
     if config_id == None:
         # New config, create it
         query = "INSERT IGNORE INTO mod_config_list(name, allyCode) \n"
         query+= "VALUES('"+conf_name+"', "+txt_allyCode+")"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await connect_mysql.simple_execute_async(query)
 
         #Get its ID
         query = "SELECT id\n"
         query+= "FROM mod_config_list\n"
         query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         config_id = await connect_mysql.get_value_async(query)
 
     else:
@@ -454,7 +455,7 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
         # Delete previous definition of this configuration
         query = "DELETE FROM mod_config_content\n"
         query+= "WHERE config_id = "+str(config_id)
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await connect_mysql.simple_execute_async(query)
 
     #loop on unit that needs to be saved in the config
@@ -478,7 +479,7 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
             mod_rarity = mod_list[mod_defId]["rarity"]
             query = "INSERT INTO mod_config_content(config_id, unit_id, mod_id, slot, rarity)\n"
             query+= "VALUES("+str(config_id)+", '"+unit_id+"', '"+mod_id+"', "+str(mod_slot)+", "+str(mod_rarity)+")"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await connect_mysql.simple_execute_async(query)
             config_mod_count += 1
 
@@ -497,7 +498,7 @@ async def get_mod_config(conf_name, txt_allyCode):
     query = "SELECT id\n"
     query+= "FROM mod_config_list\n"
     query+= "WHERE name = '"+conf_name+"' AND allyCode = "+txt_allyCode
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     config_id = await connect_mysql.get_value_async(query)
 
     if config_id == None:
@@ -507,7 +508,7 @@ async def get_mod_config(conf_name, txt_allyCode):
     query = "SELECT unit_id, mod_id, slot, rarity FROM mod_config_content\n"
     query+= "WHERE config_id="+str(config_id)+"\n"
     query+= "ORDER BY unit_id"
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await connect_mysql.get_table_async(query)
 
     if db_data == None:
@@ -608,7 +609,7 @@ async def get_modopti_export(txt_allyCode, prev_modopti_content=None):
 
     # get swgoh.gg character list for images
     #swgohgg_characters_url = 'https://swgoh.gg/api/characters'
-    #goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
+    #golog.log("DBG", "Get data from " + swgohgg_characters_url)
     #r = requests.get(swgohgg_characters_url, allow_redirects=True)
     #list_characters = json.loads(r.content.decode('utf-8'))
     #dict_images = {}

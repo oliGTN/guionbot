@@ -1,4 +1,4 @@
-import goutils
+import golog
 import data
 from connect_mysql import get_line_async, get_table_async
 
@@ -17,7 +17,7 @@ async def load_config_players(guild_id=None):
     if guild_id!=None:
         query+= "WHERE guildId='"+guild_id+"' "
     query+= "ORDER BY player_discord.discord_id, player_discord.main "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     data_db = await get_table_async(query)
 
     dict_players_by_IG = {}
@@ -57,7 +57,7 @@ async def load_config_players(guild_id=None):
 #  warbot linked to this discord server
 ########################################
 async def get_warbot_info(server_id, channel_id):
-    goutils.log2("DBG", "looking for bot_infos from server ID...")
+    golog.log("DBG", "looking for bot_infos from server ID...")
     query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
             "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
             "twFulldefDetection, "\
@@ -68,13 +68,13 @@ async def get_warbot_info(server_id, channel_id):
             "JOIN players ON players.allyCode=guild_bots.allyCode "\
             "JOIN guilds ON guilds.id=guild_bots.guild_id "\
             "WHERE server_id="+str(server_id)
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_line_async(query)
 
     if db_data == None:
         if channel_id != None:
             #no warbot found from server, try it from the channel as test channel
-            goutils.log2("DBG", "looking for bot_infos from guild channel ID...")
+            golog.log("DBG", "looking for bot_infos from guild channel ID...")
             query = "SELECT guild_bots.guild_id, guild_bots.allyCode, players.name, "\
                     "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
                     "twFulldefDetection, "\
@@ -86,12 +86,12 @@ async def get_warbot_info(server_id, channel_id):
                     "JOIN guilds ON guilds.id=guild_bots.guild_id "\
                     "JOIN guild_test_channels ON guild_test_channels.guild_id=guild_bots.guild_id "\
                     "WHERE channel_id="+str(channel_id)
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await get_line_async(query)
 
             if db_data == None:
                 #no warbot found as test channel, try it from connected user
-                goutils.log2("DBG", "looking for bot_infos from user channel ID...")
+                golog.log("DBG", "looking for bot_infos from user channel ID...")
                 query = "SELECT guildId, players.allyCode, players.name, "\
                         "tbChanRead_id, tbChanOut_id, tbRoleOut, "\
                         "twFulldefDetection, "\
@@ -102,7 +102,7 @@ async def get_warbot_info(server_id, channel_id):
                         "JOIN guilds ON guilds.id=players.guildId "\
                         "LEFT JOIN guild_bot_infos ON players.guildId=guild_bot_infos.guild_id "\
                         "WHERE channel_id="+str(channel_id)
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 db_data = await get_line_async(query)
 
                 if db_data == None:
@@ -133,7 +133,7 @@ async def get_warbot_info_from_guild(guild_id):
             "JOIN guilds ON guilds.id=guild_bots.guild_id "\
             "LEFT JOIN player_discord ON player_discord.allyCode=guild_bots.allyCode "\
             "WHERE guild_bots.guild_id='"+guild_id+"'"
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_line_async(query)
 
     if db_data == None:
@@ -163,7 +163,7 @@ async def get_google_player_info(channel_id):
     query+= "JOIN players ON players.allyCode=user_bot_infos.allyCode \n"
     query+= "LEFT JOIN guild_bot_infos ON guild_bot_infos.guild_id=players.guildId \n"
     query+= "WHERE channel_id="+str(channel_id)
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_line_async(query)
     if db_data == None:
         return 1, "Pas d'utilisateur trouvé pour ce channel", None
@@ -198,7 +198,7 @@ async def get_tb_platoon_allocations(guild_id, tbs_round):
         # Get the data for latest stored data of this guild
         query += "AND ABS(timestampdiff(SECOND, timestamp, (select max(timestamp) from platoon_config WHERE guild_id='"+guild_id+"')))<5"
 
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_table_async(query)
     if db_data == None:
         return 1, "Aucune allocation de peloton connue", None

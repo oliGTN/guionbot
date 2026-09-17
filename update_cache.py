@@ -5,7 +5,7 @@ import asyncio
 import traceback
 
 import go
-import goutils
+import golog
 
 ##############################################################
 #                                                            #
@@ -25,7 +25,7 @@ async def main():
             await asyncio.sleep(60) # wait 1 minute before next loop
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
 
 if __name__ == "__main__":
     asyncio.run(main())

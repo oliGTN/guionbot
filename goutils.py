@@ -12,7 +12,7 @@ import connect_mysql
 import update_mysql
 import connect_gsheets
 import data
-from golog import log2
+import golog
 
 
 ##############################################################
@@ -370,10 +370,10 @@ def create_dict_stats(db_stat_data):
 def get_capa_name_from_id(character_id, capa_id):
     dict_capas = data.get('unit_capa_list.json')
     if not character_id in dict_capas:
-        log2("ERR", "unknown character id "+character_id)
+        golog.log("ERR", "unknown character id "+character_id)
         return capa_id
     if not capa_id in dict_capas[character_id]:
-        log2("ERR", "unknown capa id "+capa_id)
+        golog.log("ERR", "unknown capa id "+capa_id)
         return capa_id
 
     return dict_capas[character_id][capa_id]["name"]
@@ -388,7 +388,7 @@ def get_capa_from_shorts(character_id, capa_shorts):
         if capa_id in dict_capas[character_id]:
             req_capa_ids.append([capa_id, dict_capas[character_id][capa_id]["id"]])
         else:
-            log2("WAR", "cannot find capa "+capa+" for "+character_id)
+            golog.log("WAR", "cannot find capa "+capa+" for "+character_id)
     
     return req_capa_ids
 
@@ -447,12 +447,12 @@ async def delta_dict_player(dict1, dict2, compare_rosters=True):
 
     #basic checks
     if dict1 == None:
-        log2("DBG", "dict1 is empty, so dict2 is a full delta")
+        golog.log("DBG", "dict1 is empty, so dict2 is a full delta")
         await update_mysql.insert_roster_evo(allyCode, "all", "adding full roster")
         return dict2
 
     if dict1['allyCode'] != dict2['allyCode']:
-        log2("ERR", "cannot compare 2 dict_players for different players")
+        golog.log("ERR", "cannot compare 2 dict_players for different players")
         return dict2
 
     delta_dict = {}
@@ -467,7 +467,7 @@ async def delta_dict_player(dict1, dict2, compare_rosters=True):
             dict1[info] = None
 
         if dict2[info] != dict1[info]:
-            log2("DBG", info+" has changed for "+str(allyCode))
+            golog.log("DBG", info+" has changed for "+str(allyCode))
         delta_dict[info] = dict2[info]
 
         #manage missing elements
@@ -481,11 +481,11 @@ async def delta_dict_player(dict1, dict2, compare_rosters=True):
             character = dict2['rosterUnit'][character_id]
             if character_id in dict1['rosterUnit']:
                 if character != dict1['rosterUnit'][character_id]:
-                    log2("DBG", "character "+character_id+" has changed for "+str(allyCode))
+                    golog.log("DBG", "character "+character_id+" has changed for "+str(allyCode))
                     await detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
                     delta_dict['rosterUnit'][character_id] = character
             else:
-                log2("DBG", "new character "+character_id+" for "+str(allyCode))
+                golog.log("DBG", "new character "+character_id+" for "+str(allyCode))
                 await update_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
                 await detect_delta_roster_element(allyCode, None, character)
                 delta_dict['rosterUnit'][character_id] = character
@@ -497,11 +497,11 @@ async def delta_dict_player(dict1, dict2, compare_rosters=True):
                 datacron = dict2['datacron'][datacron_id]
                 if "datacron" in dict1 and datacron_id in dict1['datacron']:
                     if datacron != dict1['datacron'][datacron_id]:
-                        log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
+                        golog.log("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
                         await detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
                         change_in_datacrons = True
                 else:
-                    log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
+                    golog.log("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
                     change_in_datacrons = True
 
             # In case of ONE change, all datacrons are removed and re-added
@@ -560,13 +560,13 @@ async def detect_delta_roster_element(allyCode, char1, char2):
         for rarity_step in range(max(char1['currentRarity']+1, 4),
                                  char2['currentRarity']+1):
             evo_txt = "rarity changed to "+str(rarity_step)
-            log2("DBG", defId+": "+evo_txt)
+            golog.log("DBG", defId+": "+evo_txt)
             await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #LEVEL
     if (char1["currentLevel"] != char2["currentLevel"]) and (char2["currentLevel"] == 85):
         evo_txt = "level changed to 85"
-        log2("DBG", defId+": "+evo_txt)
+        golog.log("DBG", defId+": "+evo_txt)
         await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ERA LEVEL
@@ -580,7 +580,7 @@ async def detect_delta_roster_element(allyCode, char1, char2):
         eraLevel2 = None
     if (eraLevel1 != eraLevel2):
         evo_txt = "era level changed to "+str(eraLevel2)
-        log2("DBG", defId+": "+evo_txt)
+        golog.log("DBG", defId+": "+evo_txt)
         await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #GEAR / RELIC
@@ -597,7 +597,7 @@ async def detect_delta_roster_element(allyCode, char1, char2):
     if (gear1 != gear2) and (gear2>=8):
         for gear_step in range(max(gear1+1, 8), gear2+1):
             evo_txt = "gear changed to "+extendedgear_to_txt(gear_step)
-            log2("DBG", defId+": "+evo_txt)
+            golog.log("DBG", defId+": "+evo_txt)
             await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ULTIMATE
@@ -613,7 +613,7 @@ async def detect_delta_roster_element(allyCode, char1, char2):
                 char2_ulti = True
     if (not char1_ulti) and char2_ulti:
         evo_txt = "ultimate unlocked"
-        log2("DBG", defId+": "+evo_txt)
+        golog.log("DBG", defId+": "+evo_txt)
         await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ZETAS
@@ -640,14 +640,14 @@ async def detect_delta_roster_element(allyCode, char1, char2):
 
         if skill2_isZeta and (skill1 == None or not skill1_isZeta):
             evo_txt = "new zeta "+get_capa_name_from_id(defId, skill_id)
-            log2("DBG", defId+": "+evo_txt)
+            golog.log("DBG", defId+": "+evo_txt)
             await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
             if not "omicronMode" in dict_capas[defId][skill_id]:
-                log2("ERR", skill_id+" detected as omicron but no omicronMode")
+                golog.log("ERR", skill_id+" detected as omicron but no omicronMode")
             evo_txt = "new omicron "+get_capa_name_from_id(defId, skill_id)
             evo_txt += " for " + dict_capas[defId][skill_id]["omicronMode"]
-            log2("DBG", defId+": "+evo_txt)
+            golog.log("DBG", defId+": "+evo_txt)
             await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
 #######################
@@ -670,7 +670,7 @@ async def detect_delta_datacron(allyCode, dtc1, dtc2):
         datacron_level_6 = abilityId+":"+target
 
         evo_txt = "new datacron level 6 "+datacron_level_6
-        log2("DBG", evo_txt)
+        golog.log("DBG", evo_txt)
         await update_mysql.insert_roster_evo(allyCode, None, evo_txt)
 
     if len(dtc1['affix'])<9 and len(dtc2['affix'])>=9:
@@ -680,7 +680,7 @@ async def detect_delta_datacron(allyCode, dtc1, dtc2):
         datacron_level_9 = abilityId+":"+target
 
         evo_txt = "new datacron level 9 "+datacron_level_9
-        log2("DBG", evo_txt)
+        golog.log("DBG", evo_txt)
         await update_mysql.insert_roster_evo(allyCode, None, evo_txt)
 
 
@@ -691,7 +691,7 @@ def roster_from_list_to_dict(dict_player):
 
     ### roster
     if type(dict_player['rosterUnit']) == dict:
-        log2("DBG", "no transformation needed for roster of "+txt_allyCode)
+        golog.log("DBG", "no transformation needed for roster of "+txt_allyCode)
     else:
         #Transform the roster list into a dict
         dict_roster = {}
@@ -702,7 +702,7 @@ def roster_from_list_to_dict(dict_player):
     ### datacron
     if "datacron" in dict_player:
         if type(dict_player['datacron']) == dict:
-            log2("DBG", "no transformation needed for datacron of "+txt_allyCode)
+            golog.log("DBG", "no transformation needed for datacron of "+txt_allyCode)
         else:
             #Transform the datacron list into a dict
             dict_datacron = {}
@@ -713,7 +713,7 @@ def roster_from_list_to_dict(dict_player):
     ### eraUnitStatus
     if "eraUnitStatus" in dict_player:
         if type(dict_player['eraUnitStatus']) == dict:
-            log2("DBG", "no transformation needed for eraUnitStatus of "+txt_allyCode)
+            golog.log("DBG", "no transformation needed for eraUnitStatus of "+txt_allyCode)
         else:
             #Transform the eraUnitStatus list into a dict
             dict_eraUnitStatus = {}
@@ -721,7 +721,7 @@ def roster_from_list_to_dict(dict_player):
                 dict_eraUnitStatus[eraUnitStatus['unitBaseId']] = eraUnitStatus
             dict_player['eraUnitStatus'] = dict_eraUnitStatus
 
-    log2("DBG", "transformation complete for "+txt_allyCode)
+    golog.log("DBG", "transformation complete for "+txt_allyCode)
 
     return dict_player
 
@@ -733,7 +733,7 @@ def roster_from_dict_to_list(dict_player_in):
 
     ### roster
     if type(dict_player['rosterUnit']) == list:
-        log("DBG", "roster_from_dict_to_list", "no transformation needed for roster of "+txt_allyCode)
+        golog.log("DBG", "roster_from_dict_to_list", "no transformation needed for roster of "+txt_allyCode)
     else:
         #Transform the dict of units into a list
         list_roster = []
@@ -745,7 +745,7 @@ def roster_from_dict_to_list(dict_player_in):
     ### datacron
     if "datacron" in dict_player:
         if type(dict_player['datacron']) == list:
-            log("DBG", "roster_from_dict_to_list", "no transformation needed for datacrons of "+txt_allyCode)
+            golog.log("DBG", "roster_from_dict_to_list", "no transformation needed for datacrons of "+txt_allyCode)
         else:
             #Transform the dict of datacrons into a list
             list_datacrons = []
@@ -757,7 +757,7 @@ def roster_from_dict_to_list(dict_player_in):
     ### eraUnitStatus
     if "eraUnitStatus" in dict_player:
         if type(dict_player['eraUnitStatus']) == list:
-            log("DBG", "roster_from_dict_to_list", "no transformation needed for eraUnitStatus of "+txt_allyCode)
+            golog.log("DBG", "roster_from_dict_to_list", "no transformation needed for eraUnitStatus of "+txt_allyCode)
         else:
             #Transform the dict of eraUnitStatus into a list
             list_eraUnitStatus = []
@@ -766,7 +766,7 @@ def roster_from_dict_to_list(dict_player_in):
             list_eraUnitStatus.append(eraUnitStatus)
         dict_player['eraUnitStatus'] = list_eraUnitStatus
 
-    log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
+    golog.log("DBG", "roster_from_dict_to_list", "transformation complete for "+txt_allyCode)
 
     return dict_player
 
@@ -853,7 +853,7 @@ async def get_characters_from_alias(list_alias):
                 list_categories = list(dict_tagAlias.keys()) + list(dict_categories.keys())
                 closest_names=difflib.get_close_matches(tag_alias.lower(), list_categories, 3)
                 if len(closest_names)<1:
-                    log2('WAR', "No tag found for "+tag_alias)
+                    golog.log('WAR', "No tag found for "+tag_alias)
                     txt_not_found_characters += character_alias + ' '
                 else:
                     found_name = closest_names[0]
@@ -889,7 +889,7 @@ async def get_characters_from_alias(list_alias):
                 #Normal alias
                 closest_names=difflib.get_close_matches(character_alias.lower(), dict_unitAlias.keys(), 3)
                 if len(closest_names)<1:
-                    log2('WAR', "No character found for "+character_alias)
+                    golog.log('WAR', "No character found for "+character_alias)
                     txt_not_found_characters += character_alias + ' '
                 else:
                     [character_name, character_id]=dict_unitAlias[closest_names[0]]

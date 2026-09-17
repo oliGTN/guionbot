@@ -2,7 +2,6 @@ import sys
 import json
 import connect_mysql
 import connect_crinolo
-import goutils
 
 list_json_files = sys.argv[1:]
 for filename in list_json_files:

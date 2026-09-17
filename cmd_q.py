@@ -9,7 +9,7 @@
 import config
 from discord.ext import commands
 from discord import app_commands, Interaction
-import goutils
+import golog
 import emojis
 
 bot_test_mode = False
@@ -33,7 +33,7 @@ async def add_command_to_queue(ctx_interaction):
     is_owner = (str(user_id) in config.GO_ADMIN_IDS.split(' '))
 
     if bot_locked and not is_owner:
-        goutils.log2("WAR", "bot is locked")
+        golog.log("WAR", "bot is locked")
         await ctx_interaction.edit_original_response(content=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
         return 1, resp_msg
 

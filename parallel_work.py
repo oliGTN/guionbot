@@ -1,5 +1,5 @@
 import os
-import goutils
+import golog
 
 def get_guild_loading_status(guildName):
     cache_guild_filename = "CACHE"+os.path.sep+guildName+"_loading.tmp"

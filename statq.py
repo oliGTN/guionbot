@@ -10,7 +10,7 @@ from decimal import Decimal
 from hashlib import md5
 from json import dumps as json_dumps
 
-import goutils
+import golog
 import data
 from connect_mysql import get_value_async, get_table_async, simple_execute_async
 
@@ -98,7 +98,7 @@ async def get_player_statq(txt_allyCode):
           + "JOIN players ON players.allyCode = ratios.allyCode \n" \
           + "WHERE players.allyCode = "+txt_allyCode
 
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_table_async(query)
     if db_data==None:
         db_data=[]
@@ -148,6 +148,6 @@ def compute_statq_avg(force_all):
     if not force_all:
         query+= "WHERE (isnull(stat_avg) OR stat_avg=0)"
 
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     simple_execute(query)
 

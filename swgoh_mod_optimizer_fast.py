@@ -17,7 +17,7 @@ from copy import deepcopy
 from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
 import time
 import emojis
-import goutils
+import golog
 from asyncio import sleep as asyncio_sleep
 
 # ---------------------------------------------------------------------------
@@ -1420,7 +1420,7 @@ class FastOptimizer(BaseOptimizer):
                         print(new_msg_content)
                 except Exception as e:
                     print(interaction)
-                    goutils.log2("WAR", "Unable to update discord msg to: "+new_msg_content)
+                    golog.log("WAR", "Unable to update discord msg to: "+new_msg_content)
                 prev_display_time = time.time()
 
             #Run remod

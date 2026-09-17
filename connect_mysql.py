@@ -15,7 +15,7 @@ from json import dumps as json_dumps
 def wc_ljust(text, length):
     return text + ' ' * max(0, length - wcswidth(text))
 
-import goutils
+import golog
 import data
 
 mysql_db = None
@@ -73,7 +73,7 @@ async def init_async_pool(pool_size=ASYNC_MYSQL_POOL_SIZE):
         if url.port is not None:
             connection_kwargs["port"] = url.port
 
-        goutils.log2(
+        golog.log(
             "INFO",
             f"Creating async MySQL pool with {pool_size} connections"
         )
@@ -133,7 +133,7 @@ async def release_async_connection(connection):
     except Exception as error:
         # If the connection cannot be returned, close it and create a
         # replacement so the pool does not permanently lose a slot.
-        goutils.log2("ERR", "Error returning MySQL connection to pool: " + str(error))
+        golog.log("ERR", "Error returning MySQL connection to pool: " + str(error))
         try:
             await connection.close()
         except Exception:
@@ -154,7 +154,7 @@ async def release_async_connection(connection):
             replacement = await mysql_async_connect(**kwargs)
             await _async_pool.put(replacement)
         except Exception as replacement_error:
-            goutils.log2(
+            golog.log(
                 "ERR",
                 "Unable to replace MySQL connection: " + str(replacement_error)
             )
@@ -202,8 +202,8 @@ async def simple_execute_async(query, params=None):
         await connection.commit()
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         raise
 
     finally:
@@ -234,8 +234,8 @@ async def executemany_async(query, params_list):
         await connection.commit()
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         raise
 
     finally:
@@ -270,8 +270,8 @@ async def _execute_read_async(query, params=None):
         return await cursor.fetchall()
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         raise
 
     finally:
@@ -364,8 +364,8 @@ async def text_query_async(query, params=None):
         return rows
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         return [error]
 
     finally:
@@ -384,24 +384,24 @@ def db_connect():
     #mysql_db = None
     if mysql_db == None or not mysql_db.is_connected():
         if mysql_db == None:
-            goutils.log2("INFO", "First connection to mysql")
+            golog.log("INFO", "First connection to mysql")
         else:
-            goutils.log2("INFO", "Close connection to mysql")
+            golog.log("INFO", "Close connection to mysql")
             mysql_db.close()
-            goutils.log2("INFO", "New connection to mysql")
+            golog.log("INFO", "New connection to mysql")
             
         # Recover DB information from URL
         uses_netloc.append('mysql')
         try:
             url = urlparse(config.MYSQL_DATABASE_URL)
         except Exception:
-            goutils.log2("ERR", 'Unexpected error in connect:', sys.exc_info())
+            golog.log("ERR", 'Unexpected error in connect:', sys.exc_info())
             return
         
         # Connect to DB
         mysql_db = None
         try:
-            goutils.log2("INFO", 'Connecting to MySQL database...')
+            golog.log("INFO", 'Connecting to MySQL database...')
             mysql_db = mysql_connect(host=url.hostname,
                                      database=url.path[1:],
                                      user=url.username,
@@ -410,10 +410,10 @@ def db_connect():
                 # print('Connected to MySQL database')
                 pass
             else:
-                goutils.log2("ERR", 'Connection failed')
+                golog.log("ERR", 'Connection failed')
 
         except Error as e:
-            goutils.log2("ERR", 'Exception during connect: '+str(e))
+            golog.log("ERR", 'Exception during connect: '+str(e))
             
     return mysql_db
         
@@ -462,8 +462,8 @@ def text_query(query):
         
         mysql_db.commit()
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         rows=[error]
         
     finally:
@@ -483,8 +483,8 @@ def simple_execute(query):
         
         mysql_db.commit()
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         
     finally:
         if cursor != None:
@@ -502,8 +502,8 @@ def simple_callproc(proc_name, args):
         
         mysql_db.commit()
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         
     finally:
         if cursor != None:
@@ -519,8 +519,8 @@ def get_value(query):
         results = cursor.fetchall()
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         
     finally:
         if cursor != None:
@@ -543,8 +543,8 @@ def get_column(query):
         results = cursor.fetchall()
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         
     finally:
         if cursor != None:
@@ -564,8 +564,8 @@ def get_line(query):
         results = cursor.fetchall()
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         
     finally:
         if cursor != None:
@@ -591,8 +591,8 @@ def get_table(query):
         results = cursor.fetchall()
 
     except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
+        golog.log("ERR", query)
+        golog.log("ERR", error)
         
     finally:
         if cursor != None:
@@ -615,6 +615,6 @@ async def insert_roster_evo(allyCode, defId, evo_txt):
     else:
         query = "INSERT INTO roster_evolutions(allyCode, description) "\
                +"VALUES("+str(allyCode)+", '"+evo_txt+"')"
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     await simple_execute_async(query)
 

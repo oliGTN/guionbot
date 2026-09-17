@@ -8,7 +8,7 @@ import inspect
 import threading
 import asyncio
 
-import goutils
+import golog
 
 #GLOBAL variable for the bot
 dict_sem={}
@@ -23,7 +23,7 @@ async def acquire_sem(id, waiting=True):
 
     id=str(id)
     calling_func = inspect.stack()[2][3]
-    #goutils.log2("DBG", "["+calling_func+"]sem to acquire: "+id)
+    #golog.log("DBG", "["+calling_func+"]sem to acquire: "+id)
     if not id in dict_sem:
         dict_sem[id] = threading.Semaphore()
 
@@ -31,10 +31,10 @@ async def acquire_sem(id, waiting=True):
         if waiting:
             await asyncio.sleep(1)
         else:
-            goutils.log2("WAR", "["+calling_func+"]sem is locked: "+id)
+            golog.log("WAR", "["+calling_func+"]sem is locked: "+id)
             return 1
 
-    #goutils.log2("DBG", "["+calling_func+"]sem acquired: "+id)
+    #golog.log("DBG", "["+calling_func+"]sem acquired: "+id)
 
     return 0
 
@@ -43,9 +43,9 @@ async def release_sem(id):
 
     id=str(id)
     calling_func = inspect.stack()[2][3]
-    #goutils.log2("DBG", "["+calling_func+"]sem to release: "+id)
+    #golog.log("DBG", "["+calling_func+"]sem to release: "+id)
     dict_sem[id].release()
-    #goutils.log2("DBG", "["+calling_func+"]sem released: "+id)
+    #golog.log("DBG", "["+calling_func+"]sem released: "+id)
 
 async def list_semaphores():
     global dict_sem

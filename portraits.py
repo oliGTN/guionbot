@@ -5,7 +5,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import json
 import io
 
-import goutils
+import golog
 import data
 
 font8 = ImageFont.truetype("IMAGES"+os.path.sep+"arial.ttf", 8)
@@ -38,13 +38,13 @@ def get_image_from_id(character_id):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
         #swgohgg_characters_url = 'https://swgoh.gg/api/characters'
-        #goutils.log2("DBG", "Get data from " + swgohgg_characters_url)
+        #golog.log("DBG", "Get data from " + swgohgg_characters_url)
         #r = requests.get(swgohgg_characters_url, allow_redirects=True)
         #print(r.content[:200])
         #list_characters = json.loads(r.content.decode('utf-8'))
 
         #swgohgg_ships_url = 'https://swgoh.gg/api/ships'
-        #goutils.log2("DBG", "Get data from " + swgohgg_ships_url)
+        #golog.log("DBG", "Get data from " + swgohgg_ships_url)
         #r = requests.get(swgohgg_ships_url, allow_redirects=True)
         #list_ships = json.loads(r.content.decode('utf-8'))
 
@@ -60,9 +60,9 @@ def get_image_from_id(character_id):
         swgohgg_img_url = swgohgg_img_path+dict_unitsList[character_id]["thumbnailName"]+".png"
 
         if swgohgg_img_url == '':
-            goutils.log2("ERR", "Cannot find image name for "+character_id)
+            golog.log("ERR", "Cannot find image name for "+character_id)
         else:
-            goutils.log2("INFO", "download portrait from hotutils "+swgohgg_img_url)
+            golog.log("INFO", "download portrait from hotutils "+swgohgg_img_url)
             r = requests.get(swgohgg_img_url, allow_redirects=True)
             f = open(character_img_name, 'wb')
             f.write(r.content)
@@ -71,7 +71,7 @@ def get_image_from_id(character_id):
     try:
         char_img = Image.open(character_img_name)
     except OSError as e:
-        goutils.log2("ERR", "cannot open image "+character_img_name)
+        golog.log("ERR", "cannot open image "+character_img_name)
         char_img = Image.new('RGBA', (128, 128), (0,0,0,0))
 
     char_img = char_img.resize((128,128))
@@ -93,7 +93,7 @@ def get_guild_logo(dict_guild, target_size):
     else:
         rgb1 = (255, 255, 255)
         rgb2 = (0, 0, 0)
-        goutils.log2("WAR", "unknown color "+logo_colors)
+        golog.log("WAR", "unknown color "+logo_colors)
     rgb1_dark = tuple([int(x/2) for x in rgb1])
     rgb2_dark = tuple([int(x/2) for x in rgb2])
 
@@ -101,7 +101,7 @@ def get_guild_logo(dict_guild, target_size):
     if not os.path.exists(logo_img_name):
         #url = 'https://swgoh.gg/static/img/assets/tex.' + logo_name + ".png"
         url = 'https://game-assets.swgoh.gg/textures/tex.' + logo_name + ".png"
-        goutils.log("INFO", "get_guild_logo", "download guild logo from swgoh.gg "+url)
+        golog.log("INFO", "download guild logo from swgoh.gg "+url)
         r = requests.get(url, allow_redirects=True)
         f = open(logo_img_name, 'wb')
         f.write(r.content)
@@ -486,7 +486,7 @@ def get_image_from_eqpt_id(eqpt_id):
         else:
             eqpt_mk = ""
         swgohgg_img_url = "https://game-assets.swgoh.gg/textures/" + eqpt_asset_id + ".png"
-        goutils.log2("INFO", "download equipment image from swgoh.gg "+swgohgg_img_url)
+        golog.log("INFO", "download equipment image from swgoh.gg "+swgohgg_img_url)
         r = requests.get(swgohgg_img_url, allow_redirects=True)
         img = Image.open(io.BytesIO(r.content))
         img = img.resize((34,34)) #should not be useful, but safety net
@@ -657,8 +657,8 @@ def get_image_from_texttable(text_table, line_colors=None):
         line_colors = ["black"] * len(text_table)
 
     elif len(text_lines) != len(line_colors):
-        goutils.log2("ERR", "xxx"+text_table+"xxx")
-        goutils.log2("ERR", line_colors)
+        golog.log("ERR", "xxx"+text_table+"xxx")
+        golog.log("ERR", line_colors)
         return 1, "Inconsistent size between text and colors", None
 
     for i_line in range(len(text_lines)):

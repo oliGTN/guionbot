@@ -5,6 +5,7 @@ from aiohttp import web
 
 from connect_mysql import init_async_pool, close_async_pool
 from web_commands import process_tbzone_order
+import golog
 
 
 HOST = "127.0.0.1"
@@ -32,8 +33,7 @@ async def handle_tbzone_order(request):
 
     except Exception as error:
         # Do not expose internal exception details to the web client.
-        import goutils
-        goutils.log2("ERR", "Web command service error: " + str(error))
+        golog.log("ERR", "Web command service error: " + str(error))
         return web.json_response(
             {"err_code": 500, "err_txt": "Internal server error"},
             status=500

@@ -22,6 +22,7 @@ import get_mysql
 import connect_gsheets
 import manage_mods
 import goutils
+import golog
 import portraits
 import data
 import register
@@ -65,7 +66,7 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
         attachments += files
 
     if type(ctx_interaction) == commands.Context:
-        goutils.log2("DBG", "context")
+        golog.log("DBG", "context")
         if intermediate:
             content = emojis.hourglass+" "+output_txt
         else:
@@ -77,7 +78,7 @@ async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=N
             await resp_msg.edit(content=content, attachments=attachments)
 
     elif type(ctx_interaction) == Interaction:
-        goutils.log2("DBG", "interaction")
+        golog.log("DBG", "interaction")
         interaction = ctx_interaction
         if intermediate:
             content = emojis.hourglass+" "+output_txt
@@ -212,7 +213,7 @@ async def registercheck(ctx_interaction, allyCode):
                 "LEFT JOIN player_discord ON players.allyCode=player_discord.allyCode " \
                 "WHERE guildId=(SELECT guildId FROM players WHERE allyCode = "+str(allyCode)+") " \
                 "ORDER by name "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = await connect_mysql.get_table_async(query)
 
         guildName = db_data[0][0]
@@ -236,7 +237,7 @@ async def registercheck(ctx_interaction, allyCode):
         await command_ok(ctx_interaction, resp_msg, output_txt, intermediate=False)
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 ##############################################################
@@ -281,7 +282,7 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
         await command_ok(ctx_interaction, resp_msg, "Liste des équipements nécessaires pour passer "+str(", ".join(list_display_targets)), images=[image])
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
@@ -352,7 +353,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
                     "JOIN guild_subteams ON guild_team_roster.subteam_id = guild_subteams.id " \
                     "JOIN guild_teams ON guild_subteams.team_id = guild_teams.id " \
                     "WHERE guild_teams.name='"+target_id+"-GV' "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             results = await connect_mysql.get_table_async(query)
 
             if results == None:
@@ -568,7 +569,7 @@ async def tpg(ctx_interaction, *args):
         await command_ok(ctx_interaction, resp_msg, "Commande terminée")
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 ##############################################################
@@ -617,7 +618,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
             discord_id = int(alias[3:-1])
         else: # '<@ without the !
             discord_id = int(alias[2:-1])
-        goutils.log2("INFO", "command launched with discord @mention "+alias)
+        golog.log("INFO", "command launched with discord @mention "+alias)
         dict_players_by_ID = connect_mysql.load_config_players()[1]
         if discord_id in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
@@ -668,27 +669,27 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
 
         if select_db_name:
             if closest_name_db_score == 0:
-                goutils.log2("WAR", alias +" not found in DB and in discord")
+                golog.log("WAR", alias +" not found in DB and in discord")
                 ret_allyCode_txt = "ERR: "+alias+" n'a pas été trouvé"
             else:
-                goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
+                golog.log("INFO", alias +" looks like the DB name "+closest_name_db)
                 for r in results:
                     if r[0] == closest_name_db:
                         ret_allyCode_txt = str(r[1])
 
         else:
-            goutils.log2("INFO", alias + " looks like the discord name "+closest_name_discord)
+            golog.log("INFO", alias + " looks like the discord name "+closest_name_discord)
 
             discord_id = [x[0] for x in guild_members_clean if x[1] == closest_name_discord][0]
             dict_players_by_ID = connect_mysql.load_config_players()[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
             else:
-                goutils.log2("ERR", alias + " ne fait pas partie des joueurs enregistrés")
+                golog.log("ERR", alias + " ne fait pas partie des joueurs enregistrés")
                 ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
     
-    goutils.log2("DBG", ret_allyCode_txt)
+    golog.log("DBG", ret_allyCode_txt)
     return 0, "", ret_allyCode_txt
 
 ###########################################################
@@ -761,7 +762,7 @@ async def register_player(ctx_interaction, args):
             query = "SELECT COUNT(*) FROM player_discord "\
                     "WHERE allyCode="+allyCode+" "\
                     "AND discord_id="+str(ctx_interaction.author.id)
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_value_async(query)
             if db_data==0:
                 await command_error(ctx_interaction, resp_msg, "Vous devez être enregistré sur ce code allié avant de lancer la confirmation : merci de lancer la commande *go.register "+allyCode+"*")
@@ -788,7 +789,7 @@ async def register_player(ctx_interaction, args):
                     discord_id_txt = mention[3:-1]
                 else: # '<@ without the !
                     discord_id_txt = mention[2:-1]
-                goutils.log2("INFO", "command launched with discord @mention "+mention)
+                golog.log("INFO", "command launched with discord @mention "+mention)
 
         else:
             await command_error(ctx_interaction, resp_msg, "ERR: commande mal formulée. Veuillez consulter l'aide avec go.help register")
@@ -802,7 +803,7 @@ async def register_player(ctx_interaction, args):
         await command_ok(ctx_interaction, resp_msg, "Enregistrement de "+player_name+" réussi > lié au compte <@"+discord_id_txt+">")
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 async def unregister(ctx_interaction, args):
@@ -847,7 +848,7 @@ async def unregister(ctx_interaction, args):
         query = "SELECT guildId from player_discord "\
                 "JOIN players ON players.allyCode=player_discord.allyCode "\
                 "WHERE discord_id="+str(ctx_interaction.author.id)
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = await connect_mysql.get_value_async(query)
         if db_data==None:
             await command_error(ctx_interaction, resp_msg, "Vous devez vous même être enregistré sur un code allié avant d'enregistré un compte différent.")
@@ -861,7 +862,7 @@ async def unregister(ctx_interaction, args):
         #List allyCode links in DB
         query = "SELECT discord_id FROM player_discord "\
                 "WHERE allyCode="+allyCode
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = connect_mysql.get_column(query)
 
         if db_data==None or len(db_data)==0:
@@ -871,7 +872,7 @@ async def unregister(ctx_interaction, args):
         #Remove allyCode links in DB
         query = "DELETE FROM player_discord "\
                 "WHERE allyCode="+allyCode
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await connect_mysql.simple_execute_async(query)
 
         discord_links = ["<@"+str(x)+">" for x in db_data]
@@ -885,11 +886,11 @@ async def unregister(ctx_interaction, args):
                 "   GROUP BY allyCode "\
                 "   HAVING sum(main)=0 AND count(*)=1 "\
                 ") "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await connect_mysql.simple_execute_async(query)
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         await command_error(ctx_interaction, resp_msg, "erreur inconnue")
 
 async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_txt=None):
@@ -917,7 +918,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
             "FROM players "\
             "WHERE guildId=(SELECT guildId FROM players WHERE allyCode="+guild_ac+") "\
             "AND guildId!='' "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = connect_mysql.get_column(query)
     if db_data==None:
         await command_error(ctx_interaction, resp_msg, guild_ac+" n'est dans aucune guilde")
@@ -931,7 +932,7 @@ async def tb_rare_toons(ctx_interaction, guild_ac, list_zones, filter_player_ac_
             "WHERE guildId=(SELECT guildId FROM players WHERE allyCode="+guild_ac+") "\
             "AND rarity=7 "\
             "AND defId IN "+str(tuple(dict_ops.keys()))
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await connect_mysql.get_table_async(query)
     d_guild = {}
     d_players = {}
@@ -1065,7 +1066,7 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
     else:
         txt_allyCode = connected_allyCode
 
-    goutils.log2("INFO", "mods.upgrade_mod_level_up("+txt_allyCode+")")
+    golog.log("INFO", "mods.upgrade_mod_level_up("+txt_allyCode+")")
 
     #Get player data
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
@@ -1138,7 +1139,7 @@ async def deploy_tb(ctx_interaction, zone, list_alias_txt):
     guild_id = bot_infos["guild_id"]
     txt_allyCode = str(bot_infos["allyCode"])
 
-    goutils.log2("INFO", "bt.déploie("+txt_allyCode+")")
+    golog.log("INFO", "bt.déploie("+txt_allyCode+")")
 
     #Run the function
     ec, et = await go.deploy_tb(guild_id, txt_allyCode, zone, list_alias_txt)
@@ -1172,7 +1173,7 @@ async def allocate_random_mods(ctx_interaction):
 
     txt_allyCode = str(bot_infos["allyCode"])
 
-    goutils.log2("INFO", "mods.allocate_random_mods("+txt_allyCode+")")
+    golog.log("INFO", "mods.allocate_random_mods("+txt_allyCode+")")
 
     #Get player data
     ec, et, dict_player = await go.load_player(txt_allyCode, 1, False)
@@ -1242,7 +1243,7 @@ async def bronzium_open(ctx_interaction, quantity):
 
     txt_allyCode = str(bot_infos["allyCode"])
 
-    goutils.log2("INFO", "bronzium.open("+txt_allyCode+")")
+    golog.log("INFO", "bronzium.open("+txt_allyCode+")")
 
     #check validity of quantity (N x 250)
     if quantity%250 != 0:
@@ -1267,7 +1268,7 @@ async def bronzium_open(ctx_interaction, quantity):
                 await command_ok(ctx_interaction, resp_msg, progress_msg, intermediate=True)
             except Exception as e:
                 # Log or handle exceptions if the interaction update fails (e.g., timeout)
-                goutils.log2("WAR", f"Unable to update discord msg: {e}")
+                golog.log("WAR", f"Unable to update discord msg: {e}")
 
             prev_display_time = time.time()
 

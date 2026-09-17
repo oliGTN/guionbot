@@ -11,6 +11,7 @@ from hashlib import md5
 from json import dumps as json_dumps
 
 import goutils
+import golog
 import data
 
 from mysql.connector import Error
@@ -21,6 +22,7 @@ from connect_mysql import (
     get_table_async,
     get_column_async,
     simple_execute_async,
+    executemany_async,
 )
 from statq import get_player_statq
 
@@ -49,7 +51,7 @@ async def update_guild_teams(guild_id, dict_team):
     # that are not defined anymore
     query = "SELECT name FROM guild_teams "\
             "WHERE "+guild_id_test+" "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     teams_to_remove = await get_column_async(query)
 
     for team_name in dict_team:
@@ -67,7 +69,7 @@ async def update_guild_teams(guild_id, dict_team):
         query = "SELECT md5 FROM guild_teams "\
                 "WHERE "+guild_id_test+" "\
                 "AND name='"+team_name+"' "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         existing_md5 = await get_value_async(query)
 
         if existing_md5 == team_md5:
@@ -78,7 +80,7 @@ async def update_guild_teams(guild_id, dict_team):
             query = "DELETE FROM guild_teams "\
                     "WHERE "+guild_id_test+" "\
                     "AND name='"+team_name+"' "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
 
         # create team
@@ -87,14 +89,14 @@ async def update_guild_teams(guild_id, dict_team):
             team_rarity = 0
         query = "INSERT INTO guild_teams(guild_id, name, GVrarity, md5) "\
                 "VALUES("+guild_id_txt+", '"+team_name+"', "+str(team_rarity)+", '"+team_md5+"') "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
         # get team ID
         query = "SELECT id FROM guild_teams "\
                 "WHERE "+guild_id_test+" "\
                 "AND name='"+team_name+"' "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         team_id = await get_value_async(query)
 
         subteam_list = dict_team[team_name]["categories"]
@@ -106,14 +108,14 @@ async def update_guild_teams(guild_id, dict_team):
             # create team
             query = "INSERT INTO guild_subteams(team_id, name, minimum) "\
                     "VALUES("+str(team_id)+", '"+subteam_name+"', "+str(subteam_min)+") "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
 
             # get subteam ID
             query = "SELECT id FROM guild_subteams "\
                     "WHERE team_id="+str(team_id)+" "\
                     "AND name='"+subteam_name+"' "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             subteam_id = await get_value_async(query)
 
             for toon_id in subteam_toons:
@@ -129,28 +131,28 @@ async def update_guild_teams(guild_id, dict_team):
                         "VALUE("+str(subteam_id)+", '"+toon_id+"', "\
                         ""+str(toon_rarity_min)+", '"+toon_gear_min+"', "\
                         ""+str(toon_rarity_reco)+", '"+toon_gear_reco+"') "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
 
                 # get roster ID
                 query = "SELECT id FROM guild_team_roster "\
                         "WHERE subteam_id="+str(subteam_id)+" "\
                         "AND unit_id='"+toon_id+"' "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 roster_id = await get_value_async(query)
 
                 for zeta in toon[5].split(","):
                     zeta_id = goutils.get_capa_id_from_short(toon_id, zeta)
                     query = "INSERT INTO guild_team_roster_zetas(roster_id, name) "\
                             "VALUES("+str(roster_id)+", '"+zeta_id+"') "
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await simple_execute_async(query)
 
                 for omicron in toon[6].split(","):
                     omicron_id = goutils.get_capa_id_from_short(toon_id, omicron)
                     query = "INSERT INTO guild_team_roster_omicrons(roster_id, name) "\
                             "VALUES("+str(roster_id)+", '"+omicron_id+"') "
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await simple_execute_async(query)
 
         # delete not existing teams that were existing before
@@ -158,7 +160,7 @@ async def update_guild_teams(guild_id, dict_team):
             query = "DELETE FROM guild_teams "\
                     "WHERE "+guild_id_test+" "\
                     "AND name IN "+ str(tuple(teams_to_remove)).replace(",)", ")")
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
             
 
@@ -172,7 +174,7 @@ async def insert_roster_evo(allyCode, defId, evo_txt):
         else:
             query = "INSERT INTO roster_evolutions(allyCode, description) "\
                    +"VALUES("+str(allyCode)+", '"+evo_txt+"')"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
     
@@ -212,7 +214,7 @@ async def update_player(dict_player):
         await mysql_db.commit()
 
     except Error as error:
-        goutils.log2("ERR", error)
+        golog.log("ERR", error)
         return 1, error
 
     finally:
@@ -348,7 +350,7 @@ async def update_player_roster(cursor, dict_player, player_data):
     for character_id, character in dict_player["rosterUnit"].items():
         if "gp" not in character:
             message = "ERR no gp for " + playerId + ":" + character_id
-            goutils.log2("ERR no gp for ", playerId + ":" + character_id)
+            golog.log("ERR no gp for ", playerId + ":" + character_id)
             return 1, message
 
         roster_id = await update_character(
@@ -770,19 +772,19 @@ async def update_gv_history(txt_allyCode, player_name, character, is_ID, progres
 
     if txt_allyCode == '':
         query = "SELECT allyCode FROM players WHERE name = '"+player_name.replace("'", "''")+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         list_players = get_column(query)
         if len(list_players) != 1:
             return -1
         txt_allyCode = str(list_players[0])
-        goutils.log2("DBG", "allyCode="+txt_allyCode)
+        golog.log("DBG", "allyCode="+txt_allyCode)
 
     if is_ID:
         character_id = character
     else:
         list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([character])
         character_id = list_character_ids[0]
-    goutils.log2("DBG", "character_id="+character_id)
+    golog.log("DBG", "character_id="+character_id)
 
     #Look if the GV already has a date for completed
     if completed:
@@ -791,7 +793,7 @@ async def update_gv_history(txt_allyCode, player_name, character, is_ID, progres
               + "AND defId='"+character_id+"' " \
               + "AND complete=1 " \
               + "AND source='"+source+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         count_completed = await get_value_async(query)
         already_complete = (count_completed >= 1)
     else:
@@ -800,7 +802,7 @@ async def update_gv_history(txt_allyCode, player_name, character, is_ID, progres
     if not already_complete and progress>0:
         query = "INSERT IGNORE INTO gv_history(date, allyCode, defId, source) "\
                +"VALUES(CURDATE(), '"+txt_allyCode+"', '"+character_id+"', '"+source+"')"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
         query = "UPDATE gv_history "\
@@ -810,7 +812,7 @@ async def update_gv_history(txt_allyCode, player_name, character, is_ID, progres
                +"AND allyCode = '"+txt_allyCode+"' " \
                +"AND defId = '"+character_id+"' " \
                +"AND source = '"+source+"' "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
 
@@ -828,7 +830,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
     query = "SELECT id FROM tb_history " \
             "WHERE tb_id='"+tb_id+"' "\
             "AND guild_id='"+guild_id+"' "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_value_async(query)
 
     if db_data==None:
@@ -839,14 +841,14 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 "VALUES('"+tb_id+"', '"+dict_phase["name"].replace("'", "''")+"', "\
                 "'"+tb_date+"', '"+guild_id+"', "\
                 ""+str(tb_round)+") "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
         # Get the id of the new TB
         query = "SELECT id FROM tb_history " \
                 "WHERE tb_id='"+tb_id+"' "\
                 "AND guild_id='"+guild_id+"' "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         tb_db_id = str(await get_value_async(query))
     else:
         tb_db_id = str(db_data)
@@ -854,7 +856,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 "SET lastUpdated=CURRENT_TIMESTAMP(), "\
                 "current_round="+str(tb_round)+" "\
                 "WHERE id="+str(tb_db_id)
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
     ##################################
@@ -864,7 +866,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
     query = "SELECT id FROM tb_phases " \
             "WHERE tb_id='"+tb_db_id+"' "\
             "AND round="+str(tb_round)
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_value_async(query)
 
     if db_data==None:
@@ -873,14 +875,14 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                 ""+str(tb_db_id)+", "\
                 ""+str(tb_round)+", "\
                 ""+str(dict_phase["prev_stars"])+") "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
         # Get the id of the new TB phase
         query = "SELECT id FROM tb_phases " \
                 "WHERE tb_id='"+tb_db_id+"' "\
                 "AND round="+str(tb_round)
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         phase_id = str(await get_value_async(query))
     else:
         phase_id = str(db_data)
@@ -916,7 +918,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             "remainingCharPlayers = "+str(remainingCharPlayers)+", "\
             "remainingMixPlayers = "+str(remainingMixPlayers)+" "\
             "WHERE id="+str(phase_id)
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     await simple_execute_async(query)
 
     ##################################
@@ -952,7 +954,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     "ORDER BY round DESC "\
                     "LIMIT 1 "
 
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = await get_value_async(query)
 
         score_step1 = str(dict_tb[zone_fullname]["scores"][0])
@@ -969,7 +971,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     "score_step1, score_step2, score_step3, is_bonus) "\
                     "VALUES("+tb_db_id+", '"+zone_fullname+"', '"+zone_shortname+"', "+zone_round+", "+round+", "\
                     ""+score_step1+", "+score_step2+", "+score_step3+", "+is_bonus+") "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
 
             # Get the id of the new Zone
@@ -977,7 +979,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                     "WHERE tb_id="+tb_db_id+" "\
                     "AND zone_id='"+zone_fullname+"' "\
                     "AND round="+round+" "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             zone_db_id = str(await get_value_async(query))
         else:
             zone_db_id = str(db_data)
@@ -1093,12 +1095,12 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             + " WHERE id IN (" + zone_ids + ")"
         )
 
-        goutils.log2(
+        golog.log(
             "DBG",
             "Batch update of " + str(len(zone_updates)) + " TB zones"
         )
         rowcount = await simple_execute_async(query)
-        goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
+        golog.log("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
 
     ## players
@@ -1107,7 +1109,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
             "score_deployed, strikes, waves "\
             "FROM tb_player_score "\
             "WHERE tb_id="+str(tb_db_id)
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_table_async(query)
     if db_data == None:
         db_data = []
@@ -1144,7 +1146,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                         ""+str(deployed_gp)+", "+str(score_strikes)+", "\
                         ""+str(score_platoons)+", "+str(score_deployed)+", "\
                         ""+str(strikes)+", "+str(waves)+") "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
 
             else:
@@ -1166,7 +1168,7 @@ async def update_tb_round(guild_id, tb_id, tb_round, dict_phase, dict_zones, dic
                             "WHERE tb_id="+str(tb_db_id)+" "\
                             "AND player_id='"+id+"' "\
                             "AND round="+str(round)+" "
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await simple_execute_async(query)
 
         #breathe
@@ -1298,11 +1300,11 @@ async def store_tb_events(guild_id, tb_id, list_events):
             %s
         )
     """
-    goutils.log2("INFO", query, identifier=guild_id)
+    golog.log("INFO", query, identifier=guild_id)
 
     rowcount = await executemany_async(query, values)
 
-    goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
+    golog.log("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
 # store patoon progress
 # this helps checking platoons in case same player has to put
@@ -1315,12 +1317,12 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
     query = "SELECT id FROM tb_history " \
             "WHERE tb_id='"+tb_id+"' "\
             "AND guild_id='"+guild_id+"' "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_value_async(query)
 
     if db_data==None:
         #wait for TB to be created
-        goutils.log2("WAR", "TB "+tb_id+" does not exist for guild "+guild_id)
+        golog.log("WAR", "TB "+tb_id+" does not exist for guild "+guild_id)
         return
 
     tb_db_id = db_data
@@ -1331,7 +1333,7 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
     query = "SELECT platoon_name, unit_name, player_name "\
             "FROM tb_platoons "\
             "WHERE tb_id="+str(tb_db_id)
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_table_async(query)
     if db_data is None:
         db_data = []
@@ -1384,14 +1386,14 @@ async def update_tb_platoons(guild_id, tb_id, tb_round, dict_platoons_done):
             VALUES (%s, %s, %s, %s, %s)
         """
 
-        goutils.log2(
+        golog.log(
             "INFO",
             "Inserting " + str(len(values)) + " new platoon assignments"
         )
 
         rowcount = await executemany_async(query, values)
 
-        goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
+        golog.log("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
     return
 
@@ -1405,7 +1407,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
     query = "SELECT id FROM tw_history " \
             "WHERE tw_id='"+tw_id+"' "\
             "AND guild_id='"+guild_id+"' "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_value_async(query)
 
     if db_data==None:
@@ -1417,14 +1419,14 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 "VALUES('"+tw_id+"', '"+tw_date+"', '"+guild_id+"', " \
                 "'"+opp_guild_id+"', '"+opp_guild_name.replace("'", "''")+"', "\
                 ""+str(score)+", "+str(opp_score)+") "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
         # Get TB id
         query = "SELECT id FROM tw_history " \
                 "WHERE tw_id='"+tw_id+"' "\
                 "AND guild_id='"+guild_id+"' "
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         tw_db_id = await get_value_async(query)
     else:
         # Update existing TW
@@ -1434,13 +1436,13 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 "    homeScore="+str(score)+", "\
                 "    awayScore="+str(opp_score)+" "\
                 "WHERE id="+str(tw_db_id)
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await simple_execute_async(query)
 
     # Get DB TW zones
     query = "SELECT id, side, zone_name, size, filled, victories, fails FROM tw_zones " \
             "WHERE tw_id="+str(tw_db_id)
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await get_table_async(query)
     if db_data==None:
         db_data=[]
@@ -1493,7 +1495,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         ""+cmdMsg_txt+", "\
                         ""+status_txt+", "\
                         ""+zoneState_txt+") "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
 
                 # Get the id of the new Zone
@@ -1501,7 +1503,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         "WHERE tw_id="+str(tw_db_id)+" "\
                         "AND side='"+side+"' "\
                         "AND zone_id='"+zone_id+"' "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 zone_db_id = str(await get_value_async(query))
 
             else:
@@ -1515,7 +1517,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         "    status="+status_txt+", "\
                         "    zoneState="+zoneState_txt+" "\
                         "WHERE id="+str(zone_db_id)+" "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
 
             # breathe
@@ -1526,7 +1528,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                 "FROM tw_squads "\
                 "WHERE tw_id="+str(tw_db_id)+" "\
                 "AND side='"+side+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = await get_table_async(query)
         if db_data == None:
             db_data = []
@@ -1568,7 +1570,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                         "'"+zone_name+"', '"+player_name.replace("'", "''")+"', "\
                         ""+str(is_beaten)+", "+str(fights)+", "+str(squad_gp)+", "\
                         ""+datacron_id_txt+")"
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
             else:
                 # update
@@ -1577,7 +1579,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                             "SET is_beaten="+str(is_beaten)+", "\
                             "fights="+str(fights)+" "\
                             "WHERE id='"+squad_id+"' "
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await simple_execute_async(query)
 
             # Check / create squad cells in DB
@@ -1602,7 +1604,7 @@ async def update_tw(guild_id, tw_id, opp_guild_id, opp_guild_name, score, opp_sc
                             ""+str(unitRelicTier)+", "\
                             ""+str(zetaCount)+", "\
                             ""+str(omicronCount)+") "
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await simple_execute_async(query)
 
                 cellIndex += 1
@@ -1682,7 +1684,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         "'"+author_id+"', "\
                         "'"+squad_id+"', "\
                         "'"+leader_id+"') "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
                 """
 
@@ -1734,7 +1736,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         ""+str(squad_size)+", "\
                         ""+str(count_dead)+", "\
                         ""+str(int(remaining_tm))+") "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
                 """
 
@@ -1764,14 +1766,14 @@ async def store_tw_events(guild_id, tw_id, list_events):
                         "'"+zone_id+"', "\
                         "'"+author_id+"', "\
                         "'"+squad_id+"') "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 await simple_execute_async(query)
                 """
 
 
         else: # no warSquad > score event
             if not "scoreDelta" in activity["zoneData"]:
-                goutils.log2("WAR", "no scoreDelta in "+str(event))
+                golog.log("WAR", "no scoreDelta in "+str(event))
             scoreDelta = 0
             scoreTotal = activity["zoneData"]["scoreTotal"]
 
@@ -1801,7 +1803,7 @@ async def store_tw_events(guild_id, tw_id, list_events):
                     "'"+author_id+"', "\
                     ""+scoreDelta+", "\
                     ""+scoreTotal+") "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
             """
 
@@ -1844,11 +1846,11 @@ async def store_tw_events(guild_id, tw_id, list_events):
             %s
         )
     """
-    goutils.log2("INFO", query, identifier=guild_id)
+    golog.log("INFO", query, identifier=guild_id)
 
     rowcount = await executemany_async(query, values)
 
-    goutils.log2("INFO", "Row count="+str(rowcount), identifier=guild_id)
+    golog.log("INFO", "Row count="+str(rowcount), identifier=guild_id)
 
 async def update_guild(dict_guild):
     guild_id = dict_guild["profile"]["id"]
@@ -1859,7 +1861,7 @@ async def update_guild(dict_guild):
             query = "UPDATE tb_history SET stars_final="+tb_stars+" "\
                     "WHERE guild_id='"+guild_id+"' "\
                     "AND tb_id='"+tb_id+"' "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
 
 async def update_extguild(dict_guild):
@@ -1880,7 +1882,7 @@ async def update_extguild(dict_guild):
                     "awayScore="+tw_oppscore+" "\
                     "WHERE guild_id='"+guild_id+"' "\
                     "AND tw_id='"+tw_id+"' "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await simple_execute_async(query)
 
 

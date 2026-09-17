@@ -31,10 +31,12 @@ import config
 import bot_commands
 import go
 import goutils
+import golog
 import connect_gsheets
 import connect_mysql
 import get_mysql
 import update_mysql
+import statq
 import connect_rpc
 import parallel_work
 import portraits
@@ -96,7 +98,7 @@ dict_tb_alerts_previously_done = {}
 # Output: none
 ##############################################################
 async def check_locked_bots_60secs(bot):
-    goutils.log2("INFO", "START loop")
+    golog.log("INFO", "START loop")
     t_start = time.time()
 
     ########################
@@ -114,9 +116,9 @@ async def check_locked_bots_60secs(bot):
                 "AND NOT isnull(allyCode) "\
                 "AND timestampdiff(HOUR, locked_since, CURRENT_TIMESTAMP)>0 "
 
-        goutils.log2("INFO", query)
+        golog.log("INFO", query)
         db_data = await connect_mysql.get_table_async(query)
-        goutils.log2("INFO", "Required bot_locked_reminder db_data: "+str(db_data))
+        golog.log("INFO", "Required bot_locked_reminder db_data: "+str(db_data))
         if not db_data==None:
             for guild_bot in db_data:
                 guild_id = guild_bot[0]
@@ -131,29 +133,29 @@ async def check_locked_bots_60secs(bot):
                     #and log the reminder event
                     query = "INSERT INTO events(type, guild_id, event_id) "\
                             "VALUES('bot_locked_reminder', '"+guild_id+"','ELAPSED:"+str(delta_hours)+"') "
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await connect_mysql.simple_execute_async(query)
 
                 else:
                     #bot account, re-activate it
                     query = "UPDATE guild_bots SET locked_since=null "\
                             "WHERE allyCode="+str(allyCode)
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await connect_mysql.simple_execute_async(query)
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         if not bot_test_mode:
             await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
     t_end = time.time()
-    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
+    golog.log("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
 #Create semaphores at module level
 MAX_CONCURRENT_RPC = 5
 
 async def update_rpc_60secs(bot):
-    goutils.log2("INFO", "START loop")
+    golog.log("INFO", "START loop")
     t_start = time.time()
 
     rpc_semaphore_60secs = asyncio.Semaphore(MAX_CONCURRENT_RPC)
@@ -173,9 +175,9 @@ async def update_rpc_60secs(bot):
             "AND isnull(locked_since) "\
             "AND mod(minute(CURRENT_TIMESTAMP), period)=0 "\
             "AND NOT isnull(guild_bots.allyCode) "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await connect_mysql.get_column_async(query)
-    goutils.log2("DBG", "db_data: "+str(db_data))
+    golog.log("DBG", "db_data: "+str(db_data))
 
     async def process_rpc_update(guild_id, guild_bots):
         try:
@@ -195,7 +197,7 @@ async def update_rpc_60secs(bot):
             return guild_id, ec, et
 
         except Exception:
-            goutils.log2(
+            golog.log(
                 "ERR",
                 f"[{guild_id}] {traceback.format_exc()}"
             )
@@ -221,12 +223,12 @@ async def update_rpc_60secs(bot):
                 ") "
                 "WHERE guild_id IN "+str(tuple(successful_guilds)).replace(",)", ")")
             )
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             await connect_mysql.simple_execute_async(query)
     #fin code chatGPT
 
     t_end = time.time()
-    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
+    golog.log("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
 ##############################################################
 # Function: bot_loop_5minutes
@@ -239,7 +241,7 @@ async def bot_loop_5minutes(bot):
     global dict_tb_alerts_previously_done
     global first_bot_loop_5minutes
 
-    goutils.log2("INFO", "START loop")
+    golog.log("INFO", "START loop")
     t_start = time.time()
 
     guild_bots = await connect_rpc.get_dict_bot_accounts()
@@ -248,20 +250,20 @@ async def bot_loop_5minutes(bot):
         #################################
         # Manage TW alerts and start of TW
         #################################
-        goutils.log2("INFO", "before try TW "+guild_id)
+        golog.log("INFO", "before try TW "+guild_id)
         try:
             #CHECK ALERTS FOR TERRITORY WAR
             ec, et, statusChan = await update_tw_status(guild_id)
 
         except Exception as e:
-            goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
+            golog.log("ERR", "["+guild_id+"]"+traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
         #################################
         # Manage TB alerts
         #################################
-        goutils.log2("INFO", "before try TB "+guild_id)
+        golog.log("INFO", "before try TB "+guild_id)
         try:
             if not guild_id in dict_tb_alerts_previously_done:
                 dict_tb_alerts_previously_done[guild_id] = []
@@ -274,11 +276,11 @@ async def bot_loop_5minutes(bot):
                     if not tb_alert in dict_tb_alerts_previously_done[guild_id]:
                         if not first_bot_loop_5minutes:
                             await send_alert_to_echocommanders(guild_id, tb_alert)
-                            goutils.log2("INFO", "["+guild_id+"] New TB alert: "+tb_alert)
+                            golog.log("INFO", "["+guild_id+"] New TB alert: "+tb_alert)
                         else:
-                            goutils.log2("DBG", "["+guild_id+"] New TB alert within the first 5 minutes: "+tb_alert)
+                            golog.log("DBG", "["+guild_id+"] New TB alert within the first 5 minutes: "+tb_alert)
                     else:
-                        goutils.log2("DBG", "["+guild_id+"] Already known TB alert: "+tb_alert)
+                        golog.log("DBG", "["+guild_id+"] Already known TB alert: "+tb_alert)
 
                 dict_tb_alerts_previously_done[guild_id] = list_tb_alerts
 
@@ -290,14 +292,14 @@ async def bot_loop_5minutes(bot):
                                       guild_bots[guild_id]["tb_channel_end"])
 
         except Exception as e:
-            goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
+            golog.log("ERR", "["+guild_id+"]"+traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
         #################################
         # Check progress of platoons
         #################################
-        goutils.log2("INFO", "before try platoons "+guild_id)
+        golog.log("INFO", "before try platoons "+guild_id)
         try:
             #Check if guild can use RPC
             #get bot config from DB
@@ -311,7 +313,7 @@ async def bot_loop_5minutes(bot):
                 err_code, err_txt, ret_data = await connect_rpc.get_actual_tb_platoons(guild_id, -1)
 
                 if err_code != 0:
-                    goutils.log2("DBG", "["+guild_id+"] "+str(err_txt))
+                    golog.log("DBG", "["+guild_id+"] "+str(err_txt))
                     dict_platoons_previously_done[guild_id] = {}
                 else:
                     tb_id = ret_data["tb_id"]
@@ -320,19 +322,19 @@ async def bot_loop_5minutes(bot):
 
                     await update_mysql.update_tb_platoons(guild_id, tb_id, tbs_round, dict_platoons_done)
 
-                    goutils.log2("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
-                    goutils.log2("INFO", "["+guild_id+"] End of parsing for actual platoons for TB: round " + tbs_round)
+                    golog.log("DBG", "["+guild_id+"] Current state of platoon filling: "+str(dict_platoons_done))
+                    golog.log("INFO", "["+guild_id+"] End of parsing for actual platoons for TB: round " + tbs_round)
                     new_allocation_detected = False
                     dict_msg_platoons = {}
                     for territory_platoon in dict_platoons_done:
                         current_progress = compute_platoon_progress(dict_platoons_done[territory_platoon])
-                        #goutils.log2("DBG", "["+guild_id+"] Progress of platoon "+territory_platoon+": "+str(current_progress))
+                        #golog.log("DBG", "["+guild_id+"] Progress of platoon "+territory_platoon+": "+str(current_progress))
                         if not territory_platoon in dict_platoons_previously_done[guild_id]:
                             #If the territory was not already detected, then all allocation within that territory are new
                             for character in dict_platoons_done[territory_platoon]:
                                 for player in dict_platoons_done[territory_platoon][character]:
                                     if player != '':
-                                        #goutils.log2("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
+                                        #golog.log("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                         new_allocation_detected = True
 
                             if current_progress == 1:
@@ -349,13 +351,13 @@ async def bot_loop_5minutes(bot):
                                 if not character in dict_platoons_previously_done[guild_id][territory_platoon]:
                                     for player in dict_platoons_done[territory_platoon][character]:
                                         if player != '':
-                                            #goutils.log2("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
+                                            #golog.log("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                             new_allocation_detected = True
                                 else:
                                     for player in dict_platoons_done[territory_platoon][character]:
                                         if not player in dict_platoons_previously_done[guild_id][territory_platoon][character]:
                                             if player != '':
-                                                #goutils.log2("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
+                                                #golog.log("INFO", "["+guild_id+"] New platoon allocation: " + territory_platoon + ":" + character + " by " + player)
                                                 new_allocation_detected = True
 
                             previous_progress = compute_platoon_progress(dict_platoons_previously_done[guild_id][territory_platoon])
@@ -369,7 +371,7 @@ async def bot_loop_5minutes(bot):
                                 dict_msg_platoons[territory_display][1].append(territory_platoon)
 
                     #if not new_allocation_detected:
-                        #goutils.log2("INFO", "["+guild_id+"] No new platoon allocation")
+                        #golog.log("INFO", "["+guild_id+"] No new platoon allocation")
                 
                     for territory_display in dict_msg_platoons:
                         territory_full_count = dict_msg_platoons[territory_display][0]
@@ -391,20 +393,20 @@ async def bot_loop_5minutes(bot):
                             msg += " qui atteignent 100% ("
                         msg += territory_display+": "+str(territory_full_count)+"/6)"
                         if not first_bot_loop_5minutes:
-                            goutils.log2("INFO", "["+guild_id+"]"+msg)
+                            golog.log("INFO", "["+guild_id+"]"+msg)
                             await send_alert_to_echocommanders(guild_id, msg)
 
                     dict_platoons_previously_done[guild_id] = dict_platoons_done.copy()
 
         except Exception as e:
-            goutils.log2("ERR", "["+guild_id+"]"+traceback.format_exc())
+            golog.log("ERR", "["+guild_id+"]"+traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_5minutes:"+str(sys.exc_info()[0]))
 
     first_bot_loop_5minutes = False
 
     t_end = time.time()
-    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
+    golog.log("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
 ##############################################################
 # Function: bot_loop_60minutes
@@ -416,7 +418,7 @@ async def bot_loop_60minutes(bot):
     global latestLocalizationBundleVersion
     global latestGamedataVersion
 
-    goutils.log2("INFO", "START loop")
+    golog.log("INFO", "START loop")
     t_start = time.time()
 
     try:
@@ -427,17 +429,17 @@ async def bot_loop_60minutes(bot):
             await send_alert_to_admins(None, err_txt)
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         if not bot_test_mode:
             await send_alert_to_admins(None, "["+guild_id+"] Exception in bot_loop_60minutes:"+str(sys.exc_info()[0]))
 
     # Check metadata
     ec, et, metadata = await connect_rpc.get_metadata()
     if ec!=0:
-        goutils.log2("ERR", et)
+        golog.log("ERR", et)
 
     LocalizationBundleVersion = metadata["latestLocalizationBundleVersion"]
-    goutils.log2("INFO", "LocalizationBundleVersion="+LocalizationBundleVersion)
+    golog.log("INFO", "LocalizationBundleVersion="+LocalizationBundleVersion)
     if LocalizationBundleVersion != latestLocalizationBundleVersion \
         and latestLocalizationBundleVersion != "":
 
@@ -446,7 +448,7 @@ async def bot_loop_60minutes(bot):
     latestLocalizationBundleVersion = LocalizationBundleVersion
 
     GamedataVersion = metadata["latestGamedataVersion"]
-    goutils.log2("INFO", "GamedataVersion="+GamedataVersion)
+    golog.log("INFO", "GamedataVersion="+GamedataVersion)
     if GamedataVersion != latestGamedataVersion \
         and latestGamedataVersion != "":
 
@@ -455,7 +457,7 @@ async def bot_loop_60minutes(bot):
     latestGamedataVersion = GamedataVersion
     
     t_end = time.time()
-    goutils.log2("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
+    golog.log("INFO", "END loop ("+str(int(t_end-t_start))+" secs)")
 
 
 ################################################
@@ -506,7 +508,7 @@ async def send_alert_to_bot_owner(guild_id, locked_since=None):
     else:
         time_txt = locked_since.strftime("%H:%M")
         message = "Le warbot de "+guild_name+" a été arrêté à "+time_txt+" (CET). Tape `go.bot.enable` pour le relancer"
-    goutils.log2("INFO", message)
+    golog.log("INFO", message)
     await channel.send(message)
 
 ##############################################################
@@ -537,7 +539,7 @@ async def send_alert_to_admins(server, message):
 # Output: None
 ##############################################################
 async def send_alert_to_echocommanders(guild_id, message):
-    goutils.log2("DBG", "guild_id="+guild_id+", message="+message)
+    golog.log("DBG", "guild_id="+guild_id+", message="+message)
     if bot_test_mode:
         await send_alert_to_admins(None, "["+guild_id+"] "+message)
     else:
@@ -546,7 +548,7 @@ async def send_alert_to_echocommanders(guild_id, message):
             await ctx.send('ERR: commande non utilisable Pour cette guilde')
             return
 
-        goutils.log2("INFO", warbot_infos)
+        golog.log("INFO", warbot_infos)
         tbChanOut_id = warbot_infos["tbChanOut_id"]
         tbRoleOut = warbot_infos["tbRoleOut"]
         guild_name = warbot_infos["guild_name"]
@@ -557,12 +559,12 @@ async def send_alert_to_echocommanders(guild_id, message):
             try:
                 await tb_channel.send("["+guild_name+"]"+ message)
             except discorderrors.Forbidden as e:
-                goutils.log2("WAR", "["+guild_name+"] Cannot send message to "+str(tbChanOut_id))
+                golog.log("WAR", "["+guild_name+"] Cannot send message to "+str(tbChanOut_id))
 
         if tbRoleOut != "":
             server = bot.get_guild(server_id)
             if server == None:
-                goutils.log2("WAR", "server "+str(server_id)+" not found > cannot send alert to echocommanders")
+                golog.log("WAR", "server "+str(server_id)+" not found > cannot send alert to echocommanders")
             else:
                 for role in server.roles:
                     if role.name == tbRoleOut:
@@ -571,7 +573,7 @@ async def send_alert_to_echocommanders(guild_id, message):
                             try:
                                 await channel.send("["+guild_name+"]"+ message)
                             except discorderrors.Forbidden as e:
-                                goutils.log2("WAR", "["+guild_name+"] Cannot send DM to "+member.name)
+                                golog.log("WAR", "["+guild_name+"] Cannot send DM to "+member.name)
 
 ##############################################################
 # Function: get_wb_allocation
@@ -601,7 +603,7 @@ async def get_wb_allocation(tbChannel_id, tbs_round):
         async for message in tb_channel.history(limit=500):
             if message.author.id == config.WOOKIEBOT_DISCORD_ID:
                 for attachment in message.attachments:
-                    goutils.log2("DBG", "Reading attachment...")
+                    golog.log("DBG", "Reading attachment...")
                     if not attachment.filename.endswith(".csv"):
                         continue
                     tb_shortname = attachment.filename.split("_")[0]
@@ -616,7 +618,7 @@ async def get_wb_allocation(tbChannel_id, tbs_round):
         ### do things
 
     except discorderrors.Forbidden as e:
-        goutils.log2("WAR", "Cannot read history of messages in "+str(tbChannel_id))
+        golog.log("WAR", "Cannot read history of messages in "+str(tbChannel_id))
         return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
 
     return 0, "", {"phase": eb_phase,
@@ -709,7 +711,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                     elif char_name in ENG_char_names:
                                         char_name = ENG_char_names[char_name]
                                     else:
-                                        goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
+                                        golog.log("WAR", "Unknwon character in EB allocation: "+char_name)
 
                                     if not char_name in dict_platoons_allocation[
                                             platoon_name]:
@@ -749,7 +751,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                             char_name = ENG_char_names[char_name]
                                         else:
                                             war_txt = "["+str(tbChannel_id)+"] Unknown character in EB allocation: "+char_name
-                                            goutils.log2("WAR", war_txt)
+                                            golog.log("WAR", war_txt)
                                             await send_alert_to_admins(None, war_txt)
 
                                         if not char_name in dict_platoons_allocation[
@@ -791,7 +793,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                         elif char_name in ENG_char_names:
                                             char_name = ENG_char_names[char_name]
                                         else:
-                                            goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
+                                            golog.log("WAR", "Unknwon character in EB allocation: "+char_name)
 
                                         if not char_name in dict_platoons_allocation[
                                                 platoon_name]:
@@ -811,7 +813,7 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                     ## "Overview - P5 (4/M4/4)"
                     eb_phase = first_line.split('(')[0].strip()[-1]
 
-                    goutils.log2("INFO", "EB Overview line: "+message_lines[0])
+                    golog.log("INFO", "EB Overview line: "+message_lines[0])
 
                     if not sort_by_location:
                         #if EB is sorted by location, the names of territories is already defined
@@ -883,14 +885,14 @@ async def get_eb_allocation(tbChannel_id, echostation_id, tbs_round):
                                     elif char_name in ENG_char_names:
                                         char_name = ENG_char_names[char_name]
                                     else:
-                                        goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
+                                        golog.log("WAR", "Unknwon character in EB allocation: "+char_name)
 
                                     if not char_name in dict_platoons_allocation[platoon_name]:
                                         dict_platoons_allocation[platoon_name][char_name] = []
                                     dict_platoons_allocation[platoon_name][char_name].append(player_name)
 
     except discorderrors.Forbidden as e:
-        goutils.log2("WAR", "Cannot read history of messages in "+str(tbChannel_id))
+        golog.log("WAR", "Cannot read history of messages in "+str(tbChannel_id))
         return 1, "Impossible de lire <#"+str(tbChannel_id)+"> (#"+tb_channel.name+")", None
 
     if len(current_tb_phase) == 0:
@@ -934,10 +936,10 @@ async def allocate_platoons_from_eb_DM(message):
             "JOIN players ON players.allyCode=player_discord.allyCode "\
             "WHERE discord_id="+str(msg_author_id)+" " \
             "AND name='"+player_name+"'"
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await connect_mysql.get_column_async(query)
     if db_data==None or len(db_data)!=1:
-        goutils.log2("WAR", "Impossible to identify one single player for ID "+str(msg_author_id)+" and playerName "+player_name)
+        golog.log("WAR", "Impossible to identify one single player for ID "+str(msg_author_id)+" and playerName "+player_name)
         await message.channel.send("Utilisateur <@"+str(msg_author_id)+"> inconnu pour le joueur "+player_name)
         return
 
@@ -957,7 +959,7 @@ async def allocate_platoons_from_eb_DM(message):
                     ret_re = re.search('```fix\n(.*) \((.*)\)\n```', field["value"])
                     territory_name = ret_re.group(1) #Kashyyk, Zeffo, Hangar...
                     if not territory_name in dict_tb["zone_names"]:
-                        goutils.log2("WAR", "Impossible to read EB forwadred DM due to unknown zone '"+territory_name+"'")
+                        golog.log("WAR", "Impossible to read EB forwadred DM due to unknown zone '"+territory_name+"'")
                         await message.channel.send("Zone inconnue "+territory_name)
                         return
 
@@ -982,7 +984,7 @@ async def allocate_platoons_from_eb_DM(message):
                         elif char_name in ENG_char_names:
                             char_name = ENG_char_names[char_name]
                         else:
-                            goutils.log2("WAR", "Unknwon character in EB allocation: "+char_name)
+                            golog.log("WAR", "Unknwon character in EB allocation: "+char_name)
                             await message.channel.send("Unité inconnue "+char_name)
                             char_name = ''
                         if territory_name_position!='' and char_name!='':
@@ -1132,9 +1134,9 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     dict_platoons_done = ret_data["platoons"]
     list_open_territories = ret_data["open_territories"]
 
-    goutils.log2("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
+    golog.log("DBG", "Current state of platoon filling: "+str(dict_platoons_done))
     for platoon in dict_platoons_done:
-        goutils.log2("DBG", "dict_platoons_done["+platoon+"]="+str(dict_platoons_done[platoon]))
+        golog.log("DBG", "dict_platoons_done["+platoon+"]="+str(dict_platoons_done[platoon]))
 
     #Recuperation de la liste des joueurs
     dict_players_by_IG = (await get_mysql.load_config_players(guild_id=guild_id))[0]
@@ -1142,7 +1144,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
     if tbs_round == '':
         return 1, "Aucune BT en cours"
     
-    goutils.log2("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
+    golog.log("INFO", 'Lecture terminée du statut BT : round ' + tbs_round)
     tb_name = tbs_round[:-1]
     tb_id = dict_tb[tb_name]["id"]
 
@@ -1155,7 +1157,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         dict_platoons_allocation = ret["dict_platoons_allocation"]
 
         for platoon in dict_platoons_allocation:
-            goutils.log2("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
+            golog.log("DBG", "dict_platoons_allocation["+platoon+"]="+str(dict_platoons_allocation[platoon]))
     
         # Read DB platoon allocations
         #ec, et, ret = get_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
@@ -1165,7 +1167,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         #dict_platoons_allocation_db = ret["dict_platoons_allocation"]
 
         #for platoon in dict_platoons_allocation_db:
-        #    goutils.log2("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
+        #    golog.log("DBG", "dict_platoons_allocation_db["+platoon+"]="+str(dict_platoons_allocation_db[platoon]))
 
     else:
         dict_platoons_allocation = {}
@@ -1350,7 +1352,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
 # Purpose: crée ou met à jour le statut de GT
 ##############################################################
 async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
-    goutils.log2("DBG", (guild_id, backup_channel_id, allyCode))
+    golog.log("DBG", (guild_id, backup_channel_id, allyCode))
     if allyCode==None:
         #using the warbot
         #ec, et, ret_tw_alerts = await go.get_tw_alerts(guild_id, -1)
@@ -1366,7 +1368,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     query = "SELECT twChanOut_id "\
             "FROM guild_bot_infos "\
             "WHERE guild_id='"+guild_id+"'"
-    goutils.log2('DBG', query)
+    golog.log('DBG', query)
     channel_id = await connect_mysql.get_value_async(query)
 
     if channel_id == None:
@@ -1375,7 +1377,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         channel_id = backup_channel_id
         
     tw_bot_channel = bot.get_channel(channel_id)
-    goutils.log2("DBG", "["+guild_id+"] TW channel: "+str(channel_id))
+    golog.log("DBG", "["+guild_id+"] TW channel: "+str(channel_id))
 
     # TW basic info
     tw_id = ret_tw_status["tw_id"]
@@ -1410,7 +1412,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                                                    list_def_squads,
                                                    list_def_territories)
 
-    goutils.log2("DBG", "["+guild_id+"] get_tw_alerts err_code="+str(ec))
+    golog.log("DBG", "["+guild_id+"] get_tw_alerts err_code="+str(ec))
     if ec != 0:
         return ec, et, None
 
@@ -1429,7 +1431,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     # Check event for TW start, and load opponent guild
     swgohgg_opp_url = None
     if not manage_events.exists("tw_start", guild_id, tw_id):
-        goutils.log2("INFO", "["+guild_id+"] loading opponent TW guid...")
+        golog.log("INFO", "["+guild_id+"] loading opponent TW guid...")
 
         #Fire and forget guild loading in the background
         asyncio.create_task(go.load_guild_from_id(opp_guild_id, True, True))
@@ -1440,7 +1442,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         #Delete potential previous tw_messages
         query = "DELETE FROM tw_messages WHERE guild_id='"+guild_id+"' "
         query+= "AND timestampdiff(HOUR, FROM_UNIXTIME(tw_ts/1000), CURRENT_TIMESTAMP)>24"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         await connect_mysql.simple_execute_async(query)
 
         manage_events.create_event("tw_start", guild_id, tw_id)
@@ -1467,7 +1469,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     #Get existing messages msg_id for this TW
     query = "SELECT zone, msg_id FROM tw_messages "
     query+= "WHERE guild_id='"+guild_id+"' "
-    goutils.log2("DBG", query)
+    golog.log("DBG", query)
     db_data = await connect_mysql.get_table_async(query)
     if db_data != None:
         existing_messages = {
@@ -1479,17 +1481,17 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
 
     for territory in dict_messages:
         msg_txt = dict_messages[territory]
-        goutils.log2("DBG", "["+guild_id+"] TW alert: "+msg_txt)
+        golog.log("DBG", "["+guild_id+"] TW alert: "+msg_txt)
 
         #get msg_id for this TW / zone
         query = "SELECT msg_id FROM tw_messages "
         query+= "WHERE guild_id='"+guild_id+"' "
         query+= "AND zone='"+territory+"'"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
 
         if not territory in existing_messages:
             #First time this zone has a message
-            goutils.log2("INFO", "first time this zone has this message")
+            golog.log("INFO", "first time this zone has this message")
 
             #Full message to TW guild channel
             if not bot_test_mode:
@@ -1499,7 +1501,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                     new_msg = await tw_bot_channel.send(msg_txt)
                     query = "INSERT INTO tw_messages(guild_id, tw_ts, zone, msg_id) "
                     query+= "VALUES('"+guild_id+"', "+tw_ts+", '"+territory+"', "+str(new_msg.id)+")"
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await connect_mysql.simple_execute_async(query)
         else:
             #This zone already has a message
@@ -1511,7 +1513,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
                 try:
                     old_msg = await tw_bot_channel.fetch_message(old_msg_id)
                 except discord.errors.NotFound as e:
-                    goutils.log2("ERR", "msg not found id="+str(old_msg_id))
+                    golog.log("ERR", "msg not found id="+str(old_msg_id))
                     raise(e)
 
                 old_msg_txt = old_msg.content
@@ -1538,7 +1540,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
     return 0, "", tw_bot_channel_id
 
 async def send_tb_summary(guild_name, tb_summary, channel_id):
-    goutils.log2("INFO", "["+guild_name+"] tb_summary="+str(tb_summary)[:100]+" on channel "+str(channel_id))
+    golog.log("INFO", "["+guild_name+"] tb_summary="+str(tb_summary)[:100]+" on channel "+str(channel_id))
     if channel_id!=0:
         tb_end_channel = bot.get_channel(channel_id)
 
@@ -1566,7 +1568,7 @@ async def send_tb_summary(guild_name, tb_summary, channel_id):
 # Purpose: crée ou met à jour le statut de GT
 ##############################################################
 async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
-    goutils.log2("DBG", (guild_id, allyCode))
+    golog.log("DBG", (guild_id, allyCode))
 
     #Get guild infos from warbot or player
     if guild_bots==None:
@@ -1582,7 +1584,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
                 "FROM guild_bot_infos " \
                 "JOIN players on players.guildId = guild_bot_infos.guild_id " \
                 "WHERE allyCode = "+str(allyCode)
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = await connect_mysql.get_line_async(query)
         if db_data == None:
             guildName = ""
@@ -1603,7 +1605,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
             guild_bots=guild_bots)
 
     if ec!=0:
-        goutils.log2("ERR", et)
+        golog.log("ERR", et)
         return ec, et
     dict_guild = ret_data[0]
     dict_events = ret_data[2]
@@ -1624,7 +1626,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
                                                                dict_guild=dict_guild,
                                                                dict_events=dict_events)
     if ec!=0:
-        goutils.log2("ERR", et)
+        golog.log("ERR", et)
         return ec, et
     else:
         for logType in ["CHAT", "TW", "TB"]:
@@ -1639,7 +1641,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
 
                 if output_channel!=None:
                     output_txt = ""
-                    goutils.log2("INFO", "list_logs="+str(list_logs), identifier=guild_id)
+                    golog.log("INFO", "list_logs="+str(list_logs), identifier=guild_id)
                     for line in list_logs:
                         ts = line[0]
                         txt = line[1]
@@ -1649,13 +1651,13 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
                         output_txt = output_txt[:-1]
                         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                             await output_channel.send(txt)
-                            goutils.log2(
+                            golog.log(
                                 "INFO", 
                                 "send '"+txt+"' to channel "+str(channel_id),
                                 identifier=guild_id)
                 else:
                     war_msg="Error while getting channel for id "+str(channel_id)
-                    goutils.log2("WAR", war_msg)
+                    golog.log("WAR", war_msg)
                     return 0, war_msg
 
     return 0, ""
@@ -1676,7 +1678,7 @@ async def get_channel_from_channelname(ctx, channel_name):
             id_output_channel_txt = channel_name.split('/')[-1]
         id_output_channel = int(id_output_channel_txt)
     except Exception as e:
-        goutils.log2("ERR", e)
+        golog.log("ERR", e)
         return None, channel_name + ' n\'est pas un channel valide'
 
     output_channel = bot.get_channel(id_output_channel)
@@ -1755,7 +1757,7 @@ async def manage_me(ctx, alias, allow_tw):
                 discord_id = int(alias[3:-1])
             else: # '<@ without the !
                 discord_id = int(alias[2:-1])
-            goutils.log2("INFO", "command launched with discord @mention "+alias)
+            golog.log("INFO", "command launched with discord @mention "+alias)
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
             else:
@@ -1775,7 +1777,7 @@ async def manage_me(ctx, alias, allow_tw):
                 query = "SELECT name, allyCode FROM players "\
                         "WHERE NOT isnull(name) "\
                         "AND guildId='"+cmd_guild_id+"' "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 guild_db_results = await connect_mysql.get_table_async(query)
 
                 list_names = [x[0] for x in guild_db_results]
@@ -1799,7 +1801,7 @@ async def manage_me(ctx, alias, allow_tw):
             # equal match, we'll manage it later)
             query = "SELECT name, allyCode FROM players "\
                     "WHERE NOT isnull(name) "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             all_db_results = await connect_mysql.get_table_async(query)
 
             list_names = [x[0] for x in all_db_results]
@@ -1837,28 +1839,28 @@ async def manage_me(ctx, alias, allow_tw):
                and closest_name_db_score == 0 \
                and closest_name_discord_score == 0:
 
-                goutils.log2("WAR", alias +" not found in DB and in discord")
+                golog.log("WAR", alias +" not found in DB and in discord")
                 ret_allyCode_txt = "ERR: le joueur "+alias+" n'a pas été trouvé"
 
             elif closest_guild_name_db_score >= closest_name_db_score \
                  and closest_guild_name_db_score >= closest_name_discord_score:
 
-                goutils.log2("INFO", alias +" looks like the DB guild name "+closest_guild_name_db)
+                golog.log("INFO", alias +" looks like the DB guild name "+closest_guild_name_db)
                 ret_allyCode_txt = closest_guild_name_db_ac
 
             elif closest_name_db_score >= closest_name_discord_score:
 
-                goutils.log2("INFO", alias +" looks like the DB name "+closest_name_db)
+                golog.log("INFO", alias +" looks like the DB name "+closest_name_db)
                 ret_allyCode_txt = closest_name_db_ac
 
             else:
-                goutils.log2("INFO", alias + " looks like the discord name "+closest_name_discord)
+                golog.log("INFO", alias + " looks like the discord name "+closest_name_discord)
 
                 discord_id = [x[0] for x in guild_members_clean if x[1] == closest_name_discord][0]
                 if discord_id in dict_players_by_ID:
                     ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
                 else:
-                    goutils.log2("ERR", alias + " ne fait pas partie des joueurs enregistrés")
+                    golog.log("ERR", alias + " ne fait pas partie des joueurs enregistrés")
                     ret_allyCode_txt = 'ERR: '+alias+' ne fait pas partie des joueurs enregistrés'
 
         ret_allyCode.append(ret_allyCode_txt)
@@ -1921,7 +1923,7 @@ async def read_gsheets(guild_id):
 
         return err_code, err_txt
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
 
         return 1, "error while loading gsheet data"
 
@@ -1956,7 +1958,7 @@ async def on_ready():
 
     except Exception:
         ip = "unknown"
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
 
     msg = (
         bot.user.name
@@ -1964,22 +1966,22 @@ async def on_ready():
         + ip
     )
 
-    goutils.log2("INFO", msg)
+    golog.log("INFO", msg)
 
     if not bot_test_mode:
         await send_alert_to_admins(None, msg)
 
-    goutils.log2("INFO", "on_ready() completed")
+    golog.log("INFO", "on_ready() completed")
 
 @bot.event
 async def on_resumed():
     msg = "Bot has reconnected to Discord"
-    goutils.log2("INFO", msg)
+    golog.log("INFO", msg)
 
 @bot.event
 async def on_disconnect():
     msg = "Bot has disconnected from Discord"
-    goutils.log2("INFO", msg)
+    golog.log("INFO", msg)
 
 
 ##############################################################
@@ -2017,14 +2019,14 @@ async def manage_reaction_add(user, message, reaction, emoji):
             channel_name = guild_name+"/"+message.channel.name
 
         author = message.author.display_name
-        goutils.log2("DBG", "guild_name: "+guild_name)
-        goutils.log2("DBG", "message: "+str(message.content))
-        goutils.log2("DBG", "author of the message: "+str(author))
+        golog.log("DBG", "guild_name: "+guild_name)
+        golog.log("DBG", "message: "+str(message.content))
+        golog.log("DBG", "author of the message: "+str(author))
         if len(emoji)==1:
-            goutils.log2("DBG", "emoji: "+str(emoji)+" (unicode: "+hex(ord(emoji))+")")
+            golog.log("DBG", "emoji: "+str(emoji)+" (unicode: "+hex(ord(emoji))+")")
         else:
-            goutils.log2("DBG", "emoji: "+str(emoji))
-        goutils.log2("DBG", "user of the reaction: "+str(user))
+            golog.log("DBG", "emoji: "+str(emoji))
+        golog.log("DBG", "user of the reaction: "+str(user))
 
         # Manage cycle arrows to re-launch a command
         if emoji == emojis.cyclearrows:
@@ -2038,12 +2040,12 @@ async def manage_reaction_add(user, message, reaction, emoji):
                 await message.add_reaction(emojis.hourglass)
 
                 command_name = lower_msg.split(" ")[0].split(".")[1]
-                goutils.log2("INFO", "Command "+message.content+" re-launched by "+user.display_name+" in "+channel_name)
+                golog.log("INFO", "Command "+message.content+" re-launched by "+user.display_name+" in "+channel_name)
 
                 try:
                     await bot.process_commands(message)
                 except Exception as e:
-                    goutils.log2("ERR", traceback.format_exc())
+                    golog.log("ERR", traceback.format_exc())
                     if not bot_test_mode:
                         await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.message_reaction_add:"+str(sys.exc_info()[0]))
 
@@ -2058,7 +2060,7 @@ async def manage_reaction_add(user, message, reaction, emoji):
 
             list_alerts_sent_to_admin.remove(message.content)
             await message.add_reaction('\N{WHITE HEAVY CHECK MARK}')
-            goutils.log2("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admin))
+            golog.log("DBG", "remaining messages to admin: "+str(list_alerts_sent_to_admin))
 
         #Manage reactions to PGS messages
         for [rgt_user, list_msg_sizes] in list_tw_opponent_msgIDs:
@@ -2090,7 +2092,7 @@ async def manage_reaction_add(user, message, reaction, emoji):
                                file=File(fp=image_binary, filename='image.png'))
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
 
 ##############################################################
 # Event: on_message
@@ -2112,10 +2114,10 @@ async def on_message(message):
         lower_msg = message.content.lower().strip()
         if lower_msg.startswith("go."):
             command_name = lower_msg.split(" ")[0].split(".")[1]
-            goutils.log2("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
+            golog.log("INFO", "Command "+message.content+" launched by "+message.author.display_name+" in "+channel_name)
 
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await message.channel.send(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
             else:
                 await bot.process_commands(message)
@@ -2203,13 +2205,13 @@ async def on_message(message):
 
         #Read messages from WookieBoot
         if message.author.id == config.WOOKIEBOT_DISCORD_ID:
-            goutils.log2("DBG", "Detecting WookieBot message...")
+            golog.log("DBG", "Detecting WookieBot message...")
             await store_wookiebot_raid_estimates(message)
 
         #Read messages from Echobot
         if message.author.id == config.EB_DISCORD_ID:
-            goutils.log2("INFO", "Detect message "+str(message.id)+" from Echobot, with "+str(len(message.embeds))+" embeds")
-            goutils.log2("INFO", "message="+str(message))
+            golog.log("INFO", "Detect message "+str(message.id)+" from Echobot, with "+str(len(message.embeds))+" embeds")
+            golog.log("INFO", "message="+str(message))
             for embed in message.embeds:
                 dict_embed = embed.to_dict()
                 if "author" in dict_embed:
@@ -2219,11 +2221,11 @@ async def on_message(message):
                         if author_name.startswith("Use one of the buttons below"):
                             #This is the EB message after a list of messages for EB allocation
                             # Time to lauch the reading of allocations
-                            goutils.log2("INFO", "Read platoons from Echobot "+str(message.id))
+                            golog.log("INFO", "Read platoons from Echobot "+str(message.id))
                             tbChanRead_id = message.channel.id
                             query = "SELECT guild_id, echostation_id FROM guild_bot_infos " \
                                     "WHERE tbChanRead_id="+str(tbChanRead_id)
-                            goutils.log2("DBG", query)
+                            golog.log("DBG", query)
                             db_data = await connect_mysql.get_line_async(query)
 
                             if db_data==None:
@@ -2237,11 +2239,11 @@ async def on_message(message):
                                     # Get guild information
                                     ec, et, dict_guild = await connect_rpc.get_guild_data_from_id(guild_id, 1)
                                     if ec != 0:
-                                        goutils.log2('ERR', et)
+                                        golog.log('ERR', et)
                                     else:
                                         #Get TB info
                                         if not "territoryBattleStatus" in dict_guild:
-                                            goutils.log2('WAR', "pas de BT en cours")
+                                            golog.log('WAR', "pas de BT en cours")
                                         else:
                                             tb_defId = dict_guild["territoryBattleStatus"][0]["definitionId"]
                                             dict_tb = data.get("tb_definition.json")
@@ -2253,21 +2255,21 @@ async def on_message(message):
                                                 eb_phase = tb_currentRound+1
                                             else:
                                                 eb_phase = tb_currentRound
-                                            goutils.log2("INFO", (tb_currentRound, tb_currentRoundEndTime, time.time(), eb_phase))
+                                            golog.log("INFO", (tb_currentRound, tb_currentRoundEndTime, time.time(), eb_phase))
                                             tbs_round=tb_name+str(eb_phase)
                                             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChanRead_id, echostation_id)
                         else:
-                            goutils.log2("WAR", "unexpected name "+author_name)
+                            golog.log("WAR", "unexpected name "+author_name)
                     else:
-                        goutils.log2("WAR", "no name in embed_author "+str(embed_author))
+                        golog.log("WAR", "no name in embed_author "+str(embed_author))
                 else:
-                    goutils.log2("WAR", "no author in dict_embed "+str(dict_embed))
+                    golog.log("WAR", "no author in dict_embed "+str(dict_embed))
 
     except discord.errors.NotFound as e:
         # original message deleted, no need to try answering or reacting
         pass
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
         if not bot_test_mode:
             await send_alert_to_admins(message.channel.guild, "Exception in guionbot_discord.on_message:"+str(sys.exc_info()[0]))
 
@@ -2283,13 +2285,13 @@ async def on_message_edit(before, after):
         else:
             channel_name = before.guild.name+"/"+before.channel.name
 
-        goutils.log2("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
+        golog.log("INFO", "Message edited by "+before.author.display_name + " in "+channel_name+"\n" +\
                              "BEFORE:\n" + before.content + "\n" +\
                              "AFTER:\n" + after.content)
 
         #Read messages from WookieBoot
         if after.author.id == config.WOOKIEBOT_DISCORD_ID:
-            goutils.log2("DBG", "Detecting WookieBot message edit...")
+            golog.log("DBG", "Detecting WookieBot message edit...")
             await store_wookiebot_raid_estimates(after)
 
         #Read messages from Echobot
@@ -2307,14 +2309,14 @@ async def on_message_edit(before, after):
                             allyCode = int(allyCode_txt)
                             discord_id_txt = ret_re.group(2)
                             discord_id = int(discord_id_txt)
-                            goutils.log2("INFO", "register "+allyCode_txt+" to "+discord_id_txt)
+                            golog.log("INFO", "register "+allyCode_txt+" to "+discord_id_txt)
 
                             #Get guild list of ac/id from the first ac in the list
                             if dict_ac_did == None:
                                 query = "SELECT players.allyCode, discord_id FROM player_discord " \
                                         "JOIN players ON players.allyCode=player_discord.allyCode " \
                                         "WHERE guildName = (SELECT guildName FROM players WHERE allyCode="+allyCode_txt+") "
-                                goutils.log2("INFO", query)
+                                golog.log("INFO", query)
                                 db_data = await connect_mysql.get_table_async(query)
 
                                 dict_ac_did = {}
@@ -2332,17 +2334,17 @@ async def on_message_edit(before, after):
 
                                 #Setup all potential previous accounts as alt
                                 query = "UPDATE player_discord SET main=0 WHERE discord_id='"+discord_id_txt+"'"
-                                goutils.log2("INFO", query)
+                                golog.log("INFO", query)
                                 #await connect_mysql.simple_execute_async(query)
 
                                 #Add discord id in DB
                                 query = "INSERT INTO player_discord (allyCode, discord_id)\n"
                                 query+= "VALUES("+allyCode_txt+", "+discord_id_txt+") \n"
                                 query+= "ON DUPLICATE KEY UPDATE discord_id="+discord_id_txt+",main=1"
-                                goutils.log2("DBG", query)
+                                golog.log("DBG", query)
                                 #await connect_mysql.simple_execute_async(query)
 
-                                goutils.log2("INFO", "Registering "+allyCode_txt+" for <@"+discord_id_txt+">")
+                                golog.log("INFO", "Registering "+allyCode_txt+" for <@"+discord_id_txt+">")
 
         #Read messages from FFDroid
         if after.author.id == config.FFDROID_DISCORD_ID:
@@ -2358,20 +2360,20 @@ async def on_message_edit(before, after):
                         "   SELECT guildId FROM players " \
                         "   JOIN player_discord ON players.allyCode = player_discord.allyCode " \
                         "   WHERE discord_id="+str(caller_id)+") "
-                goutils.log2("DBG", query)
+                golog.log("DBG", query)
                 db_data = await connect_mysql.get_value_async(query)
                 if db_data != None:
                     allyCode = db_data
 
                     query = "INSERT INTO attendency(allyCode, startDate, endDate) " \
                             "VALUES("+str(allyCode)+", '"+start_date+"', '"+end_date+"') "
-                    goutils.log2("DBG", query)
+                    golog.log("DBG", query)
                     await connect_mysql.simple_execute_async(query)
 
                     await after.channel.send("Absence enregistrée pour "+player_name+" entre le "+start_date+" et le "+end_date)
 
     except Exception as e:
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
 
 @bot.event
 async def on_message_delete(message):
@@ -2384,7 +2386,7 @@ async def on_message_delete(message):
     else:
         channel_name = message.guild.name+"/"+message.channel.name
 
-    goutils.log2("INFO", "Message deleted in "+channel_name+"\n" +\
+    golog.log("INFO", "Message deleted in "+channel_name+"\n" +\
                          "BEFORE:\n" + message.content)
 
 # This function is called in on_message and on_message_edit
@@ -2393,15 +2395,15 @@ async def store_wookiebot_raid_estimates(message):
         if message.reference==None:
             return
         else:
-            goutils.log2("INFO", message.reference)
+            golog.log("INFO", message.reference)
             previous_msg_id = message.reference.message_id
-            goutils.log2("INFO", previous_msg_id)
+            golog.log("INFO", previous_msg_id)
             previous_msg = await message.channel.fetch_message(previous_msg_id)
             cmd_interaction = previous_msg.interaction
-            goutils.log2("INFO", "interaction_metadata="+str(previous_msg.interaction_metadata))
+            golog.log("INFO", "interaction_metadata="+str(previous_msg.interaction_metadata))
     else:
         cmd_interaction = message.interaction
-        goutils.log2("INFO", "interaction_metadata="+str(message.interaction_metadata))
+        golog.log("INFO", "interaction_metadata="+str(message.interaction_metadata))
 
     if cmd_interaction == None:
         return
@@ -2410,7 +2412,7 @@ async def store_wookiebot_raid_estimates(message):
     #print(cmd_name)
     if cmd_name == "raid guild":
         for attachment in message.attachments:
-            goutils.log2("DBG", "Reading attachment...")
+            golog.log("DBG", "Reading attachment...")
             if not attachment.filename.endswith(".csv"):
                 continue
             raid_shortname = attachment.filename.split("_")[0]
@@ -2421,16 +2423,16 @@ async def store_wookiebot_raid_estimates(message):
             else:
                 raid_name = raid_shortname
 
-            goutils.log2("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
+            golog.log("INFO", "Storing raid estimates from WookieBot for raid "+raid_name)
             file_content = await attachment.read()
             file_txt = file_content.decode('utf-8')
             ec, et = go.update_raid_estimates_from_wookiebot(raid_name, file_txt)
             if ec != 0:
-                goutils.log2("ERR", et)
+                golog.log("ERR", et)
 
     elif cmd_name == "guild ready gl":
         for attachment in message.attachments:
-            goutils.log2("DBG", "Reading attachment...")
+            golog.log("DBG", "Reading attachment...")
             if not attachment.filename.endswith(".csv"):
                 continue
             gl_shortname = attachment.filename.split("-")[0]
@@ -2439,12 +2441,12 @@ async def store_wookiebot_raid_estimates(message):
             else:
                 gl_name = gl_shortname
 
-            goutils.log2("INFO", "Storing GV progress from WookieBot for GL "+gl_name)
+            golog.log("INFO", "Storing GV progress from WookieBot for GL "+gl_name)
             file_content = await attachment.read()
             file_txt = file_content.decode('utf-8')
             ec, et = go.update_gl_progress_from_wookiebot(gl_name, file_txt)
             if ec != 0:
-                goutils.log2("ERR", et)
+                golog.log("ERR", et)
 
 ##############################################################
 # Event: on_error_command
@@ -2475,7 +2477,7 @@ async def on_command_error(ctx, error):
     else:
         await ctx.send("ERR: erreur inconnue")
         await ctx.message.add_reaction(emojis.redcross)
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
 
         # discord DM to admins
         await send_alert_to_admins(ctx.guild, "ERR: erreur inconnue "+str(error))
@@ -2484,16 +2486,16 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_member_update(before, after):
     if before.avatar != after.avatar:
-        goutils.log2("INFO", "Avatar change  for "+after.display_name)
+        golog.log("INFO", "Avatar change  for "+after.display_name)
     if before.display_name != after.display_name:
-        goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
+        golog.log("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 @bot.event
 async def on_user_update(before, after):
     if before.avatar != after.avatar:
-        goutils.log2("INFO", "Avatar change  for "+after.display_name)
+        golog.log("INFO", "Avatar change  for "+after.display_name)
     if before.display_name != after.display_name:
-        goutils.log2("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
+        golog.log("INFO", "Nickname change \""+before.display_name + "\" to \""+after.display_name+"\"")
 
 ##############################################################
 #                                                            #
@@ -2532,7 +2534,7 @@ async def officer_command(ctx):
                     "JOIN players ON player_discord.allyCode = players.allyCode " \
                     "WHERE guildId='"+guild_id+"' " \
                     "AND player_discord.discord_id<>'' AND guildMemberLevel>=3 "
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_column_async(query)
             if db_data == None:
                 list_did = []
@@ -2542,7 +2544,7 @@ async def officer_command(ctx):
             if ctx.author.id in list_did:
                 is_officer = True
         else:
-            goutils.log2("DBG", et)
+            golog.log("DBG", et)
 
 
         # Can have the rights if server admin
@@ -2551,7 +2553,7 @@ async def officer_command(ctx):
     is_owner = (str(ctx.author.id) in config.GO_ADMIN_IDS.split(' '))
     allow_officer = ((is_officer or is_server_admin) and (not bot_test_mode)) or is_owner
 
-    goutils.log2("INFO", [ctx.author.name, ctx.author.id, is_owner, is_officer, is_server_admin, allow_officer])
+    golog.log("INFO", [ctx.author.name, ctx.author.id, is_owner, is_officer, is_server_admin, allow_officer])
     return allow_officer
 
 ##############################################################
@@ -2560,44 +2562,44 @@ async def officer_command(ctx):
 class Loop60secsCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        goutils.log2("INFO", "Start check_locked_bots_60secs")
+        golog.log("INFO", "Start check_locked_bots_60secs")
         self._check_locked_bots_60secs.start()
-        goutils.log2("INFO", "Start update_rpc_60secs")
+        golog.log("INFO", "Start update_rpc_60secs")
         self._update_rpc_60secs.start()
 
     @tasks.loop(seconds=60)
     async def _check_locked_bots_60secs(self):
-        goutils.log2("INFO", "Loop check_locked_bots_60secs")
+        golog.log("INFO", "Loop check_locked_bots_60secs")
         await check_locked_bots_60secs(self.bot)
     @_check_locked_bots_60secs.before_loop
     async def before_checked_locked_bots_60secs(self):
-        goutils.log2("INFO", "Waiting for Discord ready: check_locked_bots_60secs")
+        golog.log("INFO", "Waiting for Discord ready: check_locked_bots_60secs")
         await self.bot.wait_until_ready()
-        goutils.log2("INFO", "Discord ready: check_locked_bots_60secs")
+        golog.log("INFO", "Discord ready: check_locked_bots_60secs")
     @_check_locked_bots_60secs.error
     async def check_locked_bots_60secs_error(self, error):
-        goutils.log2(
+        golog.log(
             "ERR",
             f"check_locked_bots_60secs stopped: {type(error).__name__}: {error}"
         )
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
 
     @tasks.loop(seconds=60)
     async def _update_rpc_60secs(self):
-        goutils.log2("INFO", "Loop update_rpc_60secs")
+        golog.log("INFO", "Loop update_rpc_60secs")
         await update_rpc_60secs(self.bot)
     @_update_rpc_60secs.before_loop
     async def before_update_rpcts_60secs(self):
-        goutils.log2("INFO", "Waiting for Discord ready: update_rpc_60secs")
+        golog.log("INFO", "Waiting for Discord ready: update_rpc_60secs")
         await self.bot.wait_until_ready()
-        goutils.log2("INFO", "Discord ready: update_rpc_60secs")
+        golog.log("INFO", "Discord ready: update_rpc_60secs")
     @_update_rpc_60secs.error
     async def update_rpc_60secs_error(self, error):
-        goutils.log2(
+        golog.log(
             "ERR",
             f"update_rpc_60secs stopped: {type(error).__name__}: {error}"
         )
-        goutils.log2("ERR", traceback.format_exc())
+        golog.log("ERR", traceback.format_exc())
 
 class Loop5minutes(commands.Cog):
     def __init__(self, bot):
@@ -2650,8 +2652,8 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
         arg = " ".join(args)
         stream = os.popen(arg)
         output = stream.read()
-        goutils.log("INFO", "go.cmd", 'CMD: ' + arg)
-        goutils.log("INFO", "go.cmd", 'output: ' + output)
+        golog.log("INFO", 'CMD: ' + arg)
+        golog.log("INFO", 'output: ' + output)
         for txt in goutils.split_txt(output, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
         await ctx.message.add_reaction(emojis.check)
@@ -2678,7 +2680,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                  WHERE update_period_hours>0 \
                  GROUP BY guilds.id \
                  ORDER BY guilds.lastUpdated DESC"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         output_players = await connect_mysql.text_query_async(query)
         total_guilds = await connect_mysql.get_value_async("SELECT count(*) from guilds")
         total_players = await connect_mysql.get_value_async("SELECT count(*) from players")
@@ -2711,12 +2713,12 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
 
         arg = " ".join(args)
         output = await connect_mysql.text_query_async(arg)
-        goutils.log('INFO', 'go.sql', 'SQL: ' + arg)
+        golog.log('INFO', 'SQL: ' + arg)
         if len(output) >0:
             output_txt=''
             for row in output:
                 output_txt+=str(row)+'\n'
-            goutils.log('INFO', 'go.sql', output_txt)
+            golog.log('INFO', output_txt)
             for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                 await ctx.send('`' + txt + '`')
         else:
@@ -2753,7 +2755,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
@@ -2788,7 +2790,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 return
 
             query = "SELECT CURRENT_TIMESTAMP"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             timestamp_before = await connect_mysql.get_value_async(query)
             e, t, player_before = await go.load_player( allyCode, -1, True)
             if e!=0:
@@ -2814,14 +2816,14 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             query+= "WHERE allyCode="+allyCode+"\n"
             query+= "AND timestamp >= '"+str(timestamp_before)+"'\n"
             query+= "ORDER BY timestamp DESC"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
 
             output = await connect_mysql.text_query_async(query)
             if len(output) >0:
                 output_txt=''
                 for row in output:
                     output_txt+=str(row)+'\n'
-                goutils.log('INFO', 'go.sql', output_txt)
+                golog.log('INFO', output_txt)
                 for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
                     await ctx.send('`' + txt + '`')
             else:
@@ -2911,14 +2913,14 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             msg = await channel.fetch_message(msg_id)
             guild = channel.guild
         except discord.errors.NotFound as e:
-            goutils.log2("ERR", "msg not found id="+str(msg_id))
+            golog.log("ERR", "msg not found id="+str(msg_id))
             raise(e)
             await ctx.message.add_reaction(emojis.redcross)
             return
         except Exception as e:
-            goutils.log2("ERR", str(sys.exc_info()[0]))
-            goutils.log2("ERR", e)
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", str(sys.exc_info()[0]))
+            golog.log("ERR", e)
+            golog.log("ERR", traceback.format_exc())
             await ctx.message.add_reaction(emojis.redcross)
             return
 
@@ -2928,16 +2930,16 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 list_reactive_user_id.append(user.id)
                 guild_member = guild.get_member(user.id)
                 if guild_member==None:
-                    goutils.log2("INFO", f'{user} (NOT IN THE SERVER) has reacted with {reaction.emoji}')
+                    golog.log("INFO", f'{user} (NOT IN THE SERVER) has reacted with {reaction.emoji}')
 
         query = "select name, discord_id from players join player_discord on players.allyCode=player_discord.allyCode where guildName = (select guildName from players where allyCode="+allyCode+")"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         db_data = await connect_mysql.get_table_async(query)
         for line in db_data:
             if line[1]==None:
-                goutils.log2("INFO", "No discord ID for "+line[0])
+                golog.log("INFO", "No discord ID for "+line[0])
             elif not line[1] in list_reactive_user_id:
-                goutils.log2("INFO", line[0]+" has not reacted to the message")
+                golog.log("INFO", line[0]+" has not reacted to the message")
 
         await ctx.message.add_reaction(emojis.check)
 
@@ -2989,7 +2991,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 eb_phase = tb_currentRound+1
             else:
                 eb_phase = tb_currentRound
-            goutils.log2("INFO", (tb_currentRound, tb_currentRoundEndTime, time.time(), eb_phase))
+            golog.log("INFO", (tb_currentRound, tb_currentRoundEndTime, time.time(), eb_phase))
             tbs_round=tb_name+str(eb_phase)
 
             ec, ret_txt = await get_platoons(guild_id, tbs_round, tbChannel_id, echostation_id)
@@ -3001,7 +3003,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
 
     @commands.check(admin_command)
     @commands.command(name='sync', brief="Synchronise les commands slash")
@@ -3063,7 +3065,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                         print(g.name, c.name)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
 
     ##############################################################
     # Command: releasesem
@@ -3125,7 +3127,7 @@ class TwCog(commands.GroupCog, name="gt"):
 
             guild_id = player_infos["guild_id"]
             allyCode = player_infos["allyCode"]
-            goutils.log2("INFO", "START "+allyCode+"@"+guild_id)
+            golog.log("INFO", "START "+allyCode+"@"+guild_id)
 
             # Remove update_rpc_data as the next update_tw_status (with allyCode) 
             # refreshes the data
@@ -3152,7 +3154,7 @@ class TwCog(commands.GroupCog, name="gt"):
             remove_command_from_queue(interaction)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
             remove_command_from_queue(interaction)
 
@@ -3162,7 +3164,7 @@ class TwCog(commands.GroupCog, name="gt"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -3178,7 +3180,7 @@ class TwCog(commands.GroupCog, name="gt"):
 
             guild_id = player_infos["guild_id"]
             allyCode = player_infos["allyCode"]
-            goutils.log2("INFO", "START "+allyCode+"@"+guild_id)
+            golog.log("INFO", "START "+allyCode+"@"+guild_id)
 
             # Run the TW summary
             err_code, ret_txt = await go.print_tw_summary(guild_id, allyCode=allyCode)
@@ -3196,7 +3198,7 @@ class TwCog(commands.GroupCog, name="gt"):
             await interaction.edit_original_response(content=txt)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="défense")
@@ -3208,7 +3210,7 @@ class TwCog(commands.GroupCog, name="gt"):
         # Check if not is locked
         is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
         if islocked_bot() and not is_owner:
-            goutils.log2("WAR", "bot is locked")
+            golog.log("WAR", "bot is locked")
             await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
             return
 
@@ -3224,7 +3226,7 @@ class TwCog(commands.GroupCog, name="gt"):
 
         guild_id = player_infos["guild_id"]
         txt_allyCode = str(player_infos["allyCode"])
-        goutils.log2("INFO", "START "+txt_allyCode+"@"+guild_id)
+        golog.log("INFO", "START "+txt_allyCode+"@"+guild_id)
 
         # split units by <space>, preserving quoted strings
         characters = [p.strip('"') for p in re.split("( |\\\".*?\\\"|'.*?')", units) if p.strip()]
@@ -3246,13 +3248,13 @@ class TwCog(commands.GroupCog, name="gt"):
                     "JOIN player_discord ON player_discord.allyCode=players.allyCode " \
                     "WHERE discord_id="+str(user_id)+" " \
                     "AND main=1"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_value_async(query)
             if db_data==None:
                 return []
 
             guild_id = db_data
-            goutils.log2("INFO", "START "+guild_id)
+            golog.log("INFO", "START "+guild_id)
 
             dict_tw_counters = await connect_gsheets.load_tw_counters(guild_id, False)
             list_tw_opponents = list(dict_tw_counters.keys())
@@ -3264,7 +3266,7 @@ class TwCog(commands.GroupCog, name="gt"):
             return filtered_opponents
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="contres")
@@ -3277,7 +3279,7 @@ class TwCog(commands.GroupCog, name="gt"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -3291,13 +3293,13 @@ class TwCog(commands.GroupCog, name="gt"):
                     "JOIN player_discord ON player_discord.allyCode=players.allyCode " \
                     "WHERE discord_id="+str(user_id)+" " \
                     "AND main=1"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_value_async(query)
             if db_data==None:
                 return []
 
             guild_id = db_data
-            goutils.log2("INFO", "START "+guild_id)
+            golog.log("INFO", "START "+guild_id)
 
             dict_tw_counters = await connect_gsheets.load_tw_counters(guild_id, False)
 
@@ -3329,7 +3331,7 @@ class TwCog(commands.GroupCog, name="gt"):
                 await interaction.edit_original_response(content=emojis.redcross+" aucun contre connu")
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
@@ -3347,7 +3349,7 @@ class TbCog(commands.GroupCog, name="bt"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -3371,7 +3373,7 @@ class TbCog(commands.GroupCog, name="bt"):
 
             allyCode = bot_infos["allyCode"]
             player_name = bot_infos["player_name"]
-            goutils.log2("INFO", "START "+allyCode+"@"+guild_id)
+            golog.log("INFO", "START "+allyCode+"@"+guild_id)
 
             ec, ret_txt = await check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id, allyCode, player_name, False)
             if ec != 0:
@@ -3399,7 +3401,7 @@ class TbCog(commands.GroupCog, name="bt"):
                 await interaction.edit_original_response(content=txt)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
     @app_commands.command(name="rare-toons")
     async def rare_toons(self, interaction: discord.Interaction,
@@ -3410,7 +3412,7 @@ class TbCog(commands.GroupCog, name="bt"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -3426,7 +3428,7 @@ class TbCog(commands.GroupCog, name="bt"):
             await bot_commands.tb_rare_toons(interaction, guilde, list_zones, filter_player)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     # Function used to get BT open zones, not forbidden
@@ -3442,7 +3444,7 @@ class TbCog(commands.GroupCog, name="bt"):
                     "AND CURRENT_TIMESTAMP < timestampadd(DAY, 6, start_date) "\
                     "AND score < score_step3 "\
                     "ORDER BY lower(name)"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_table_async(query)
             if db_data==None:
                 return []
@@ -3459,7 +3461,7 @@ class TbCog(commands.GroupCog, name="bt"):
                 return open_zones
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="déploie")
@@ -3472,7 +3474,7 @@ class TbCog(commands.GroupCog, name="bt"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -3480,7 +3482,7 @@ class TbCog(commands.GroupCog, name="bt"):
             await bot_commands.deploy_tb(interaction, zone, list_alias_txt)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
@@ -3515,7 +3517,7 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             txt_allyCode = str(bot_infos["allyCode"])
 
-            goutils.log2("INFO", "START mods.modoptimizer("+txt_allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
+            golog.log("INFO", "START mods.modoptimizer("+txt_allyCode+", fichier="+fichier.filename+", simu="+str(simulation)+")")
 
             #Check that this player is not already in progress by the bot
             ret = await acquire_sem(txt_allyCode, waiting=False)
@@ -3597,7 +3599,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     await output_channel.send(content=err_txt)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
         remove_command_from_queue(interaction)
@@ -3628,7 +3630,7 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             txt_allyCode = str(bot_infos["allyCode"])
 
-            goutils.log2("INFO", "START mods.auto_remod("+txt_allyCode+", fichier="+fichier.filename+")")
+            golog.log("INFO", "START mods.auto_remod("+txt_allyCode+", fichier="+fichier.filename+")")
 
             #Check that this player is not already in progress by the bot
             ret = await acquire_sem(txt_allyCode, waiting=False)
@@ -3688,7 +3690,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                         attachments=[discord.File(export_path)])
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
         remove_command_from_queue(interaction)
@@ -3720,7 +3722,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             txt_allyCode = str(bot_infos["allyCode"])
             conf_name = conf_name.strip()
 
-            goutils.log2("INFO", "mods.save_conf("+txt_allyCode+", conf_name="+conf_name+", persos="+list_alias_txt+")")
+            golog.log("INFO", "mods.save_conf("+txt_allyCode+", conf_name="+conf_name+", persos="+list_alias_txt+")")
 
             #transform list_alias parameter into list
             list_alias = list_alias_txt.split(" ")
@@ -3732,7 +3734,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
                     "WHERE channel_id="+str(channel_id)+" "\
                     "AND lower(name)='"+conf_name.lower()+"'"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_column_async(query)
             if len(db_data) > 0:
                 user_choice = await bot_commands.confirmationPrompt(interaction, "Voulez-vous écrasez la conf "+conf_name+" ?")
@@ -3753,7 +3755,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             return
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
             remove_command_from_queue(interaction)
             return
@@ -3767,7 +3769,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                     "JOIN user_bot_infos ON user_bot_infos.allyCode=mod_config_list.allyCode " \
                     "WHERE channel_id="+str(user_id)+" "\
                     "ORDER BY lower(name)"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_column_async(query)
             if db_data==None:
                 return []
@@ -3777,7 +3779,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 return filtered_confs
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="applique-conf")
@@ -3805,7 +3807,7 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             txt_allyCode = str(bot_infos["allyCode"])
 
-            goutils.log2("INFO", "mods.apply_conf("+txt_allyCode+", conf_name="+conf_name+", simu="+str(simulation)+")")
+            golog.log("INFO", "mods.apply_conf("+txt_allyCode+", conf_name="+conf_name+", simu="+str(simulation)+")")
 
             #Check that this player is not already in progress by the bot
             ret = await acquire_sem(txt_allyCode, waiting=False)
@@ -3865,7 +3867,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                 await interaction.edit_original_response(content=err_txt)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
         remove_command_from_queue(interaction)
@@ -3880,7 +3882,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -3898,11 +3900,11 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             txt_allyCode = str(bot_infos["allyCode"])
 
-            goutils.log2("INFO", "mods.delete_conf("+txt_allyCode+", conf_name="+conf_name+")")
+            golog.log("INFO", "mods.delete_conf("+txt_allyCode+", conf_name="+conf_name+")")
 
             #Run the function
             query = "SELECT id FROM mod_config_list WHERE allyCode="+txt_allyCode+" AND name='"+conf_name+"'"
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_value_async(query)
             if db_data==None:
                 await interaction.edit_original_response(content=emojis.redcross+" configuration inconnue")
@@ -3910,17 +3912,17 @@ class ModsCog(commands.GroupCog, name="mods"):
             config_id = db_data
 
             query = "DELETE FROM mod_config_content WHERE config_id="+str(config_id)
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = connect_mysql.simple_execute(query)
 
             query = "DELETE FROM mod_config_list WHERE id="+str(config_id)
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = connect_mysql.simple_execute(query)
 
             await interaction.edit_original_response(content=emojis.check+" configuration effacée")
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
     @app_commands.command(name="exporte-liste")
@@ -3944,7 +3946,7 @@ class ModsCog(commands.GroupCog, name="mods"):
 
             txt_allyCode = str(bot_infos["allyCode"])
 
-            goutils.log2("INFO", "mods.export_modoptimizer("+txt_allyCode+")")
+            golog.log("INFO", "mods.export_modoptimizer("+txt_allyCode+")")
 
             #Check that this player is not already in progress by the bot
             ret = await acquire_sem(txt_allyCode, waiting=False)
@@ -3984,7 +3986,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                         attachments=[discord.File(export_path)])
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
         remove_command_from_queue(interaction)
@@ -4012,7 +4014,7 @@ class ModsCog(commands.GroupCog, name="mods"):
                         with_inventory)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
     @app_commands.command(name="pose-inventaire")
     async def allocate_random_mods(self, interaction: discord.Interaction):
@@ -4021,7 +4023,7 @@ class ModsCog(commands.GroupCog, name="mods"):
             await bot_commands.allocate_random_mods(interaction)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
@@ -4040,7 +4042,7 @@ class BronziumCog(commands.GroupCog, name="bronzium"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -4048,7 +4050,7 @@ class BronziumCog(commands.GroupCog, name="bronzium"):
             await bot_commands.bronzium_open(interaction, quantity)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await interaction.edit_original_response(content=emojis.redcross+" erreur inconnue")
 
 ##############################################################
@@ -4067,7 +4069,7 @@ class AuthCog(commands.GroupCog, name="connect"):
             # Check if not is locked
             is_owner = (str(interaction.user.id) in config.GO_ADMIN_IDS.split(' '))
             if islocked_bot() and not is_owner:
-                goutils.log2("WAR", "bot is locked")
+                golog.log("WAR", "bot is locked")
                 await interaction.response.send_message(emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
                 return
 
@@ -4100,7 +4102,7 @@ class AuthCog(commands.GroupCog, name="connect"):
                 await interaction.edit_original_response(content="Code accepté, vous pouvez utiliser le bot")
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
 
 ##############################################################
 # Class: ServerCog
@@ -4209,7 +4211,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -4305,7 +4307,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
         
@@ -4322,7 +4324,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                     "JOIN guild_bots ON guild_bots.allyCode=player_discord.allyCode "\
                     "JOIN players ON players.allyCode=player_discord.allyCode "\
                     "WHERE discord_id="+str(ctx.author.id)
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             db_data = await connect_mysql.get_column_async(query)
             if db_data == None:
                 await ctx.send('ERR: vous ne contrôlez pas de warbot')
@@ -4491,7 +4493,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -4508,7 +4510,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await bot_commands.deploy_tb(ctx, zone, list_alias_txt)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -4608,7 +4610,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -4734,7 +4736,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -4787,7 +4789,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -4914,7 +4916,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -5005,7 +5007,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -5125,11 +5127,11 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             i_loop = 0
             for phase_options in list_phase_options:
                 i_loop += 1
-                goutils.log2("DBG", phase_options)
+                golog.log("DBG", phase_options)
                 if prev_round == None:
-                    goutils.log2("DBG", prev_round)
+                    golog.log("DBG", prev_round)
                 else:
-                    goutils.log2("DBG", prev_round["phase"])
+                    golog.log("DBG", prev_round["phase"])
 
                 star_targets = phase_options["star_targets"]
                 estimate_fights = phase_options["estimate_fights"]
@@ -5183,7 +5185,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         except Exception as e:
             await ctx.send("ERR: erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
 
     ####################################################
     # Command spe
@@ -5253,7 +5255,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
         except Exception as e:
             await ctx.send("ERR: erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
 
     ####################################################
     # Command tbstats
@@ -5328,7 +5330,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -5382,7 +5384,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -5577,7 +5579,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             fname_guild = tmpDir_name+'/guild.json'
             f = open(fname_guild, 'w')
             f.write(json_dumps(dict_guild, indent=4))
-            goutils.log2("DBG", fname_guild+ " written on disk")
+            golog.log("DBG", fname_guild+ " written on disk")
             f.close()
 
             if not tb_ongoing:
@@ -5592,12 +5594,12 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 TBmapstats_files = list(filter(lambda f: "_mapstats" in f, files))
                 TBmapstats_files.sort(key=lambda x: os.path.getmtime(x))
                 fname_TBmapstats = TBmapstats_files[-1]
-                goutils.log2("DBG", fname_TBmapstats+ " selected")
+                golog.log("DBG", fname_TBmapstats+ " selected")
 
                 events_files = list(filter(lambda f: "_events" in f, files))
                 events_files.sort(key=lambda x: os.path.getmtime(x))
                 fname_events = events_files[-1]
-                goutils.log2("DBG", fname_events+ " selected")
+                golog.log("DBG", fname_events+ " selected")
 
                 content_txt = "Données de la dernière BT connue"
 
@@ -5607,14 +5609,14 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 fname_TBmapstats = tmpDir_name+'/TBmapstats.json'
                 f = open(fname_TBmapstats, 'w')
                 f.write(json_dumps(dict_TBmapstats, indent=4))
-                goutils.log2("DBG", fname_TBmapstats+ " written on disk")
+                golog.log("DBG", fname_TBmapstats+ " written on disk")
                 f.close()
 
                 #events
                 fname_events = tmpDir_name+'/events.json'
                 f = open(fname_events, 'w')
                 f.write(json_dumps(dict_events, indent=4))
-                goutils.log2("DBG", fname_events+ " written on disk")
+                golog.log("DBG", fname_events+ " written on disk")
                 f.close()
 
                 content_txt = "Données de la BT en cours"
@@ -5632,7 +5634,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -5986,7 +5988,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.send("Erreur inconnue")
             await ctx.message.add_reaction(emojis.redcross)
 
@@ -6067,7 +6069,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.graphj"+str(sys.exc_info()[0]))
             await ctx.send("Erreur inconnue")
@@ -6233,7 +6235,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             await ctx.message.add_reaction(emojis.redcross)
 
     ##############################################################
@@ -6316,7 +6318,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -6407,7 +6409,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.vtj"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -6538,7 +6540,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             # original message deleted, no need to try answering or reacting
             pass
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.gvj"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -6591,7 +6593,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             # original message deleted, no need to try answering or reacting
             pass
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.raf"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -6642,7 +6644,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.redcross)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.raf"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -6738,7 +6740,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.spg"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -6796,7 +6798,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.spg"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -6939,7 +6941,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             # original message deleted, no need to try answering or reacting
             pass
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.ggv"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -7009,7 +7011,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.graphj"+str(sys.exc_info()[0]))
             await ctx.send("Erreur inconnue")
@@ -7074,7 +7076,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.graphj"+str(sys.exc_info()[0]))
             await ctx.send("Erreur inconnue")
@@ -7153,7 +7155,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     list_unit_id = None
 
                 # Get statq data
-                ec, et, statq, list_statq = await connect_mysql.get_player_statq(allyCode)
+                ec, et, statq_val, list_statq = await statq.get_player_statq(allyCode)
                 if ec!=0:
                     await ctx.send(et)
                     await ctx.message.add_reaction(emojis.redcross)
@@ -7237,12 +7239,12 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.send(file=File(fp=image_binary, filename='image.png'))
 
                 if list_unit_id==None:
-                    await ctx.send("StatQ = "+str(round(statq, 2)))
+                    await ctx.send("StatQ = "+str(round(statq_val, 2)))
 
                 await ctx.message.add_reaction(emojis.check)
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.statqj"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -7273,13 +7275,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         query = "SELECT name, statq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY statq DESC, name"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         output = connect_mysql.text_query(query)
 
         output_txt=''
         for row in output:
             output_txt+=str(row)+'\n'
-        goutils.log2('INFO', output_txt)
+        golog.log('INFO', output_txt)
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
 
@@ -7305,13 +7307,13 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             return
 
         query = "SELECT name, modq FROM players WHERE guildName=(SELECT guildName from players WHERE allyCode="+allyCode+") ORDER BY modq DESC, name"
-        goutils.log2("DBG", query)
+        golog.log("DBG", query)
         output = connect_mysql.text_query(query)
 
         output_txt=''
         for row in output:
             output_txt+=str(row)+'\n'
-        goutils.log2('INFO', output_txt)
+        golog.log('INFO', output_txt)
         for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
             await ctx.send('`' + txt + '`')
 
@@ -7365,7 +7367,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     await ctx.message.add_reaction(emojis.redcross)                
 
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.ppj"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -7820,7 +7822,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             query+= "GROUP BY bucket " \
                   + "ORDER BY bucket"
 
-            goutils.log2("DBG", query)
+            golog.log("DBG", query)
             bucket_count = await connect_mysql.get_table_async(query)
 
             target_count = 10 * team_count
@@ -7828,8 +7830,8 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
             multiplier = 1.0
             total_players = sum([x[1] for x in bucket_count])
             total_pg = sum([(x[0]+0.5)*x[1] for x in bucket_count])
-            goutils.log2("DBG", "total_players="+str(total_players))
-            goutils.log2("DBG", "total_pg="+str(total_pg))
+            golog.log("DBG", "total_players="+str(total_players))
+            golog.log("DBG", "total_pg="+str(total_pg))
             while actual_count < target_count:
                 pg_teams = ""
                 actual_count = 0
@@ -7850,7 +7852,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                         pg_teams += str(teams)+" teams\n"
 
                 multiplier += 0.01
-                goutils.log2("DBG", "actual_count="+str(actual_count))
+                golog.log("DBG", "actual_count="+str(actual_count))
 
             pg_teams = "**Nombre de teams recommandé à poser en défense pour la GT**\n" + pg_teams
             await ctx.send(pg_teams)
@@ -8070,7 +8072,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
 
             await ctx.message.add_reaction(emojis.check)
         except Exception as e:
-            goutils.log2("ERR", traceback.format_exc())
+            golog.log("ERR", traceback.format_exc())
             if not bot_test_mode:
                 await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.cpg"+str(sys.exc_info()[0]))
             await ctx.message.add_reaction(emojis.redcross)
@@ -8184,19 +8186,19 @@ async def main():
     global bot
 
     #Init bot
-    goutils.log2("INFO", "Starting...")
+    golog.log("INFO", "Starting...")
     # Use command-line parameters
     if len(sys.argv) > 1:
-        goutils.log2("INFO", "TEST MODE - options="+str(sys.argv[1:]))
+        golog.log("INFO", "TEST MODE - options="+str(sys.argv[1:]))
         bot_test_mode = True
         if "noloop" in sys.argv[1:]:
-            goutils.log2("INFO", "Disable loops")
+            golog.log("INFO", "Disable loops")
             bot_background_tasks = False
         if "nomsg" in sys.argv[1:]:
-            goutils.log2("INFO", "Disable on_message")
+            golog.log("INFO", "Disable on_message")
             bot_on_message = False
         if "lock" in sys.argv[1:]:
-            goutils.log2("INFO", "lock bot commands for users")
+            golog.log("INFO", "lock bot commands for users")
             lock_bot()
 
     #Clean tmp files
@@ -8207,17 +8209,17 @@ async def main():
     parallel_work.clean_cache()
 
     # Initialize MySQL async connection pool
-    goutils.log2("INFO", "Initializing MySQL async pool...")
+    golog.log("INFO", "Initializing MySQL async pool...")
     await connect_mysql.init_async_pool()
 
     #Initialize HTTP session
-    goutils.log2("INFO", "Initializing HTTP connection...")
+    golog.log("INFO", "Initializing HTTP connection...")
     bot.http_session = aiohttp.ClientSession(
         timeout=aiohttp.ClientTimeout(total=10)
     )
 
     #Ajout des commandes groupées par catégorie
-    goutils.log2("INFO", "Create Cogs...")
+    golog.log("INFO", "Create Cogs...")
     await bot.add_cog(AdminCog(bot))
     await bot.add_cog(ServerCog(bot))
     await bot.add_cog(OfficerCog(bot))
@@ -8229,27 +8231,27 @@ async def main():
     await bot.add_cog(AuthCog(bot))
 
     if bot_background_tasks:
-        goutils.log2("INFO", "Start loops...")
+        golog.log("INFO", "Start loops...")
         await bot.add_cog(Loop60secsCog(bot))
         await bot.add_cog(Loop5minutes(bot))
         await bot.add_cog(Loop60minutes(bot))
     else:
-        goutils.log2("WAR", "Don't start loops...")
+        golog.log("WAR", "Don't start loops...")
 
     #General settings
     locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
 
     try:
         #Lancement du bot
-        goutils.log2("INFO", "Run bot...")
+        golog.log("INFO", "Run bot...")
         await bot.start(TOKEN, reconnect=True)
 
     finally:
-        goutils.log2("INFO", "Closing HTTP session...")
+        golog.log("INFO", "Closing HTTP session...")
         if bot.http_session is not None:
             await bot.http_session.close()
 
-        goutils.log2("INFO", "Closing MySQL async pool...")
+        golog.log("INFO", "Closing MySQL async pool...")
         await connect_mysql.close_async_pool()
 
 if __name__ == "__main__":

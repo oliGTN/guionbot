@@ -7,21 +7,7 @@ import config
 ################################################
 # function: log
 ################################################
-def log(level, fct, txt):
-    now = datetime.now()
-    dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
-    log_string = dt_string+":"+level+":"+fct+":"+str(txt)
-
-    if level=='DBG':
-        if config.LOG_LEVEL=='DBG':
-            print(log_string, flush=True)
-    else:
-        print(log_string, flush=True)
-
-################################################
-# function: log
-################################################
-def log2(level, txt, identifier=None):
+def log(level, txt, identifier=None):
     now = datetime.now()
     dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
     module_name = inspect.stack()[1][1].split("/")[-1][:-3]

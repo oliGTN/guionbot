@@ -1,6 +1,7 @@
 import requests
 import json
 import goutils
+import golog
 import os
 
 import data
@@ -47,24 +48,24 @@ def add_stats_with_options(dict_player, url_options):
 
     try:
         r=requests.post(crinolo_url+url_options, json=[dict_player])
-        goutils.log2('DBG', "crinolo_url: "+crinolo_url+url_options)
-        goutils.log2('DBG', "r.status_code: "+str(r.status_code))
+        golog.log('DBG', "crinolo_url: "+crinolo_url+url_options)
+        golog.log('DBG', "r.status_code: "+str(r.status_code))
         if r.status_code != 200:
-            goutils.log2('ERR', "Cannot connect to crinolo API")
-            goutils.log2('ERR', "status_code: " +str(r.status_code))
-            goutils.log2('ERR', "content: " + r.content.decode('utf-8').replace('\n', ' '))
-            goutils.log2('ERR', "headers: " + str(r.headers))
+            golog.log('ERR', "Cannot connect to crinolo API")
+            golog.log('ERR', "status_code: " +str(r.status_code))
+            golog.log('ERR', "content: " + r.content.decode('utf-8').replace('\n', ' '))
+            golog.log('ERR', "headers: " + str(r.headers))
 
             return 1, "Cannot connect to crinolo API", dict_player
             
     except requests.exceptions.ConnectionError as e:
-        goutils.log2('ERR', "Cannot connect to Crinolo API")
-        goutils.log2('ERR', e)
+        golog.log('ERR', "Cannot connect to Crinolo API")
+        golog.log('ERR', e)
         return 1, "Cannot connect to crinolo API", dict_player
 
     except requests.exceptions.ChunkedEncodingError as e:
-        goutils.log2('ERR', "Cannot read response from Crinolo API")
-        goutils.log2('ERR', e)
+        golog.log('ERR', "Cannot read response from Crinolo API")
+        golog.log('ERR', e)
         return 1, "Cannot read response from crinolo API", dict_player
     
     dict_player_with_stats = json.loads(r.content.decode('utf-8'))[0]
