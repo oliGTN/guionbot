@@ -337,7 +337,7 @@ async def get_farmeqpt_from_player(allyCode, list_alias_gear, check_owned=False,
 
 
     #Get unit IDs from aliases
-    list_unit_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_unit_names)
+    list_unit_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_unit_names)
     if txt != '':
         return 1, 'Impossible de reconnaître ce(s) nom(s) >> '+txt, None
 

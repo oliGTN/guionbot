@@ -1252,7 +1252,7 @@ async def get_team_progress(list_team_names, txt_allyCode, guild_id, gfile_name,
     
     if not ('all' in list_team_names) and gv_mode==1:
         #Need to transform the name of the team into a character
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_team_names)
+        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_team_names)
         if txt != "":
             return "", "ERR: impossible de reconnaître ce(s) nom(s) >> "+txt
         list_team_names = [x+"-GV" for x in list_character_ids]
@@ -2081,7 +2081,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
             
         else:
             #specific list of characters for one player
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+            list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(characters)
             if txt != '':
                 return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
@@ -2130,7 +2130,7 @@ async def print_character_stats(characters, options, txt_allyCode, compute_guild
         
         #Get character_id
         character_alias = characters[0]
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
+        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([character_alias])
         if txt != '':
             return 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
         character_id = list_character_ids[0]
@@ -2510,7 +2510,7 @@ async def get_character_image(list_characters_allyCode, is_ID, refresh_player, g
     #transform aliases into IDs
     if not is_ID:
         list_alias = [j for i in [x[0] for x in list_characters_allyCode] for j in i]
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
+        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_alias)
         if txt != '':
             err_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
@@ -2583,12 +2583,12 @@ async def get_tw_battle_image(list_char_attack, allyCode_attack, \
     guildName = rpc_data["opp_guildName"]
 
     #Get full character names for attack
-    list_id_attack, dict_id_name, txt = goutils.get_characters_from_alias(list_char_attack)
+    list_id_attack, dict_id_name, txt = await goutils.get_characters_from_alias(list_char_attack)
     if txt != '':
         war_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
 
     #Get full character name for defense
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_defense])
+    list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([character_defense])
     if txt != '':
         war_txt += 'WAR: impossible de reconnaître ce(s) nom(s) >> '+txt+"\n"
     char_def_id = list_character_ids[0]
@@ -2677,7 +2677,7 @@ async def get_stat_graph(txt_allyCode, character_alias, stat_name):
         relic = 0
 
     #Get character_id
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character_alias])
+    list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([character_alias])
     if txt != '':
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
             
@@ -2791,7 +2791,7 @@ async def print_lox(txt_allyCode, characters, compute_guild=False, all_omicrons=
                 non_mode_characters.append(unit)
                 
         #specific list of characters for one player
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(non_mode_characters)
+        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(non_mode_characters)
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
         for unit_id in list_character_ids:
@@ -3440,7 +3440,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
     #get exclude attacked toon IDs
     if len(exclude_attacked_leaders)>0:
-        exclude_attacked_leader_ids, dict_id_name, txt = goutils.get_characters_from_alias(exclude_attacked_leaders)
+        exclude_attacked_leader_ids, dict_id_name, txt = await goutils.get_characters_from_alias(exclude_attacked_leaders)
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
     else:
@@ -3480,7 +3480,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
                 char_alias = tab_virtual_character[0]
 
             #Get character_id
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([char_alias])
+            list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([char_alias])
             if txt != '':
                 return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
             character_id = list_character_ids[0]
@@ -3737,7 +3737,7 @@ async def count_players_with_character(txt_allyCode, list_characters, guild_id, 
         list_active_players = ret_dict["active"]
 
     #get units from alias
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_characters)
+    list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_characters)
     if txt != '':
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
 
@@ -3839,7 +3839,7 @@ async def get_gv_graph(txt_allyCodes, farm_list):
 
         # then look for GV characters
         if len(remaining_farm_list) > 0:
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(remaining_farm_list)
+            list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(remaining_farm_list)
             if txt != '':
                 return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt, None
             team_ids += list_character_ids
@@ -4723,7 +4723,7 @@ async def deploy_tb(guild_id, txt_allyCode, zone_shortname, list_character_txt):
         while '  ' in list_character_txt:
             list_character_txt.replace('  ', ' ')
         list_characters = list_character_txt.split(' ')
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_characters)
+        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_characters)
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
@@ -4777,7 +4777,7 @@ async def deploy_def_tw(guild_id, txt_allyCode, zone_shortname, characters):
     dict_unitsList = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+    list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(characters)
     if txt != '':
         return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
@@ -4799,7 +4799,7 @@ async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
     dict_units = godata.get("unitsList_dict.json")
 
     #specific list of characters for one player
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(characters)
+    list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(characters)
     if txt != '':
         return 1, 'impossible de reconnaître ce(s) nom(s) >> '+txt, None
 
@@ -4856,8 +4856,8 @@ async def deploy_platoons_tb(txt_allyCode, platoon_name, characters):
 # print_unit_kit
 # IN: character alias
 ##############################################################
-def print_unit_kit(alias):
-    list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([alias])
+async def print_unit_kit(alias):
+    list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([alias])
     if len(list_character_ids) == 0:
         return 1, "ERR: personnage inconnu"
     if len(list_character_ids) > 1:

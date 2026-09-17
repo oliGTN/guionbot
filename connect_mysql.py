@@ -1287,7 +1287,7 @@ async def update_gv_history(txt_allyCode, player_name, character, is_ID, progres
         if is_ID:
             character_id = character
         else:
-            list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([character])
+            list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([character])
             character_id = list_character_ids[0]
         goutils.log2("DBG", "character_id="+character_id)
 

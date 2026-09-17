@@ -195,7 +195,7 @@ async def load_config_teams(guild_id: str, force_load):
 
         #Extract all aliases and get associated ID+nameKey
         list_alias=[x['Nom'] for x in list_dict_sheet]
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_alias)
+        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_alias)
         if txt != '':
             goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
 
@@ -353,7 +353,7 @@ async def load_config_categories(force_load):
                         break
                     if row_cell.startswith("tag:"):
                         list_ids, dict_id_name, txt_not_found_characters = \
-                            goutils.get_characters_from_alias([row_cell])
+                            await goutils.get_characters_from_alias([row_cell])
                         for id in list_ids:
                             dict_categories[cell].append(id)
                     else:
@@ -407,7 +407,7 @@ async def load_config_statq():
         stat1=line[1]
         stat2=line[2]
 
-        list_character_ids, dict_id_name, txt = goutils.get_characters_from_alias([unit_alias])
+        list_character_ids, dict_id_name, txt = await goutils.get_characters_from_alias([unit_alias])
         if txt != '':
             goutils.log2('WAR', 'Cannot recognize following alias(es) >> '+txt)
             err_txt += "Perso inconnu : "+txt+"\n"

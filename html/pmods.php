@@ -164,8 +164,8 @@ sort($character_ids, SORT_NATURAL | SORT_FLAG_CASE);
         .mod-character {
             position: absolute;
             z-index: 3;
-            left: 5px;
-            bottom: 5px;
+            left: -5px;
+            bottom: -5px;
             width: 48px;
             height: 48px;
             border-radius: 50%;
@@ -210,14 +210,14 @@ sort($character_ids, SORT_NATURAL | SORT_FLAG_CASE);
          * Columns 0-5 are normal shapes and columns 6-11 are gold shapes.
          */
         .mod-art {
-            width: 180px;
-            height: 180px;
+            width: 90px;
+            height: 90px;
             margin: 0 auto 0.75rem;
             background-image: url('IMAGES/MODS/mod-shape-atlas.png');
-            background-size: 2160px 900px;
+            background-size: 1080px 450px;
             background-position:
-                calc(var(--shape-x) * -180px)
-                calc(var(--shape-y) * -180px);
+                calc(var(--shape-x) * -90px)
+                calc(var(--shape-y) * -90px);
             background-repeat: no-repeat;
         }
 
@@ -228,16 +228,57 @@ sort($character_ids, SORT_NATURAL | SORT_FLAG_CASE);
         .mod-art::after {
             content: '';
             position: absolute;
-            width: 64px;
-            height: 64px;
-            left: 58px;
-            top: 58px;
+            width: 32px;
+            height: 32px;
+
+            /* Default: centered */
+            left: 29px;
+            top: 29px;
+
             background-image: url('IMAGES/MODS/mod-icon-atlas.png');
-            background-size: 512px 320px;
+            background-size: 256px 160px;
             background-position:
-                calc(var(--icon-x) * -64px)
-                calc(var(--icon-y) * -64px);
+                calc(var(--icon-x) * -32px)
+                calc(var(--icon-y) * -32px);
             background-repeat: no-repeat;
+        }
+
+        /* Position the set icon in the black area of each mod shape */
+
+        /* Square */
+        .mod-card[data-slot="2"] .mod-art::after {
+            left: 36px;
+            top: 23px;
+        }
+
+        /* Arrow */
+        .mod-card[data-slot="3"] .mod-art::after {
+            left: 39px;
+            top: 20px;
+        }
+
+        /* Diamond */
+        .mod-card[data-slot="4"] .mod-art::after {
+            left: 29px;
+            top: 29px;
+        }
+
+        /* Triangle */
+        .mod-card[data-slot="5"] .mod-art::after {
+            left: 29px;
+            top: 34px;
+        }
+
+        /* Circle */
+        .mod-card[data-slot="6"] .mod-art::after {
+            left: 29px;
+            top: 29px;
+        }
+
+        /* Cross */
+        .mod-card[data-slot="7"] .mod-art::after {
+            left: 29px;
+            top: 29px;
         }
 
         .mod-details {
@@ -274,30 +315,61 @@ sort($character_ids, SORT_NATURAL | SORT_FLAG_CASE);
             }
 
             .mod-art {
-                width: 140px;
-                height: 140px;
-                background-size: 1680px 700px;
+                width: 70px;
+                height: 70px;
+                background-size: 840px 350px;
                 background-position:
-                    calc(var(--shape-x) * -140px)
-                    calc(var(--shape-y) * -140px);
+                    calc(var(--shape-x) * -70px)
+                    calc(var(--shape-y) * -70px);
             }
 
             .mod-art::after {
-                width: 50px;
-                height: 50px;
-                left: 45px;
-                top: 45px;
-                background-size: 400px 250px;
+                width: 25px;
+                height: 25px;
+                left: 22px;
+                top: 22px;
+                background-size: 200px 125px;
                 background-position:
-                    calc(var(--icon-x) * -50px)
-                    calc(var(--icon-y) * -50px);
+                    calc(var(--icon-x) * -25px)
+                    calc(var(--icon-y) * -25px);
+            }
+
+            /* Position the set icon in the black area of each mod shape */
+            .mod-card[data-slot="2"] .mod-art::after {
+                left: 28px;
+                top: 18px;
+            }
+
+            .mod-card[data-slot="3"] .mod-art::after {
+                left: 30px;
+                top: 16px;
+            }
+
+            .mod-card[data-slot="4"] .mod-art::after {
+                left: 22px;
+                top: 22px;
+            }
+
+            .mod-card[data-slot="5"] .mod-art::after {
+                left: 22px;
+                top: 26px;
+            }
+
+            .mod-card[data-slot="6"] .mod-art::after {
+                left: 22px;
+                top: 22px;
+            }
+
+            .mod-card[data-slot="7"] .mod-art::after {
+                left: 22px;
+                top: 22px;
             }
 
             .mod-character {
                 width: 40px;
                 height: 40px;
-                left: 3px;
-                bottom: 3px;
+                left: -3px;
+                bottom: -3px;
             }
         }
     </style>
@@ -368,7 +440,10 @@ sort($character_ids, SORT_NATURAL | SORT_FLAG_CASE);
                         data-defid="<?php echo h($def_id); ?>"
                     >
                         <div class="mod-card-title">
-                            <?php echo h($set_name); ?>
+                        </div>
+                        <div class="mod-details">
+                            <span><?php echo str_repeat('★', $pips);?></span>
+                            <span>Lvl <?php echo h($level); ?></span>
                         </div>
 
                         <div
@@ -389,13 +464,6 @@ sort($character_ids, SORT_NATURAL | SORT_FLAG_CASE);
 <?php endif; ?>
                         </div>
 
-                        <div class="mod-details">
-                            <span><?php echo h($slot_name); ?></span>
-                            <span><?php echo h($pips); ?>★</span>
-                            <span>Lvl <?php echo h($level); ?></span>
-                            <span>Tier <?php echo h($tier); ?></span>
-                            <div><?php echo h($def_id); ?></div>
-                        </div>
                     </div>
 <?php endforeach; ?>
                 </div>

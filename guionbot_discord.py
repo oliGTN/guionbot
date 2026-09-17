@@ -6101,7 +6101,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
     async def kit(self, ctx, alias):
         await ctx.message.add_reaction(emojis.thumb)
 
-        ec, et = go.print_unit_kit(alias)
+        ec, et = await go.print_unit_kit(alias)
 
         if ec != 0:
             await ctx.send(et)
@@ -7145,7 +7145,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 
                 # Get char IDs from list of alias
                 if not "all" in [x.lower() for x in list_characters]:
-                    list_unit_id, d_id_name, err_alias_txt = goutils.get_characters_from_alias(list_characters)
+                    list_unit_id, d_id_name, err_alias_txt = await goutils.get_characters_from_alias(list_characters)
                 else:
                     err_alias_txt = ""
                     list_unit_id = None

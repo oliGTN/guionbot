@@ -422,7 +422,7 @@ async def create_mod_config(conf_name, txt_allyCode, list_character_alias):
         list_unit_names = []
     else:
         #specific list of characters for one player
-        list_unit_ids, dict_id_name, txt = goutils.get_characters_from_alias(list_character_alias)
+        list_unit_ids, dict_id_name, txt = await goutils.get_characters_from_alias(list_character_alias)
         if txt != '':
             return 1, 'ERR: impossible de reconnaître ce(s) nom(s) >> '+txt
 
