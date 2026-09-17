@@ -1135,7 +1135,7 @@ async def check_and_deploy_platoons(guild_id, tbChannel_id, echostation_id,
         goutils.log2("DBG", "dict_platoons_done["+platoon+"]="+str(dict_platoons_done[platoon]))
 
     #Recuperation de la liste des joueurs
-    dict_players_by_IG = await connect_mysql.load_config_players(guild_id=guild_id)[0]
+    dict_players_by_IG = (await connect_mysql.load_config_players(guild_id=guild_id))[0]
 
     if tbs_round == '':
         return 1, "Aucune BT en cours"
@@ -1701,7 +1701,7 @@ async def manage_me(ctx, alias, allow_tw):
     ret_allyCode = []
 
     #Get identity of command user
-    dict_players_by_ID = await connect_mysql.load_config_players()[1]
+    dict_players_by_ID = (await connect_mysql.load_config_players())[1]
     if ctx!=None and ctx.author.id in dict_players_by_ID:
         if not "main" in dict_players_by_ID[ctx.author.id]:
             err_msg = "Le compte discord <@"+ctx.author.id+"> est mal enregistré - pas de compte main"
@@ -4577,7 +4577,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             if err_code == 0:
                 lines = ret_data["lines_player"]
                 endTime = ret_data["round_endTime"]
-                dict_players_by_IG = await connect_mysql.load_config_players(guild_id=guild_id)[0]
+                dict_players_by_IG = (await connect_mysql.load_config_players(guild_id=guild_id))[0]
                 expire_time_txt = datetime.datetime.fromtimestamp(int(endTime/1000)).strftime("le %A %d %B à %H:%M ("+config.GUILD_TIMEZONE+")")
                 output_txt="Joueurs n'ayant pas tout déployé en BT - fin du round "+expire_time_txt+" : \n"
                 if len(lines)>0:
@@ -4660,7 +4660,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
             # Launch the actual command
             err_code, err_txt, ret_data = await go.get_tw_insufficient_attacks(guild_id, args, allyCode=connected_allyCode, fulldef_detection=fulldef_detection)
             if err_code == 0:
-                dict_players_by_IG = await connect_mysql.load_config_players(guild_id=guild_id)[0]
+                dict_players_by_IG = (await connect_mysql.load_config_players(guild_id=guild_id))[0]
 
                 tw_round = ret_data["tw_round"]
                 tw_roundEndTs = ret_data["tw_roundEndTs"]
@@ -4881,7 +4881,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            dict_players_by_IG = await connect_mysql.load_config_players(guild_id=guild_id)[0]
+            dict_players_by_IG = (await connect_mysql.load_config_players(guild_id=guild_id))[0]
             expire_time_txt = datetime.datetime.fromtimestamp(int(expire_time/1000)).strftime("le %A %d %B à %H:%M ("+config.GUILD_TIMEZONE+")")
             score_txt = str(int(guild_score/100000)/10)
 
@@ -4982,7 +4982,7 @@ class ServerCog(commands.Cog, name="Commandes liées au serveur discord et à so
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            dict_players_by_IG = await connect_mysql.load_config_players(guild_id=guild_id)[0]
+            dict_players_by_IG = (await connect_mysql.load_config_players(guild_id=guild_id))[0]
             guild_ticket_time_txt = datetime.datetime.fromtimestamp(guild_ticket_time).strftime("le %d/%m/%Y à %H:%M")
             output_txt = "Pensez à faire vos tickets avant "+guild_ticket_time_txt+" svp\n"
 
