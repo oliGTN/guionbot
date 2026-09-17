@@ -2808,7 +2808,7 @@ class AdminCog(commands.Cog, name="Commandes pour les admins"):
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            delta_player = goutils.delta_dict_player(player_before, player_now)
+            delta_player = await goutils.delta_dict_player(player_before, player_now)
 
             query = "SELECT * FROM roster_evolutions\n"
             query+= "WHERE allyCode="+allyCode+"\n"

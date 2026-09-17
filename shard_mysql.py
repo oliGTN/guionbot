@@ -52,14 +52,14 @@ async def get_shard_list(shard_id, shard_type, txt_mode):
 
 
 async def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merge):
-    player_existing_shard, name, guildName = get_shard_from_player(txt_allyCode, shard_type)
+    player_existing_shard, name, guildName = await get_shard_from_player(txt_allyCode, shard_type)
 
     if player_existing_shard == target_shard:
         #Already in the good shard
         return 0, "Joueur "+txt_allyCode+" ("+name+" @ "+guildName+") déjà dans le shard", None
     else:
         #player already in another shard
-        player_shard_size = len(get_shard_list(player_existing_shard, shard_type, False))
+        player_shard_size = len(await get_shard_list(player_existing_shard, shard_type, False))
         if player_shard_size == 1:
             #The player is alone in its own shard
             # set the shard for this player
@@ -77,7 +77,7 @@ async def add_player_to_shard(txt_allyCode, target_shard, shard_type, force_merg
 
             return 0, "Joueur "+txt_allyCode+" ("+name+" @ "+guildName+") ajouté au shard", None
 
-        target_shard_size = len(get_shard_list(target_shard, shard_type, False))
+        target_shard_size = len(await get_shard_list(target_shard, shard_type, False))
         if target_shard_size == 1 or force_merge:
             #If the requesting player (me) is alone in its shard
             # replace the target shard by the shard of the player

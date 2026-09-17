@@ -9,8 +9,10 @@ import inspect
 
 import config
 import connect_mysql
+import update_mysql
 import connect_gsheets
 import data
+from golog import log2
 
 
 ##############################################################
@@ -436,54 +438,17 @@ def get_capa_id_from_short(character_id, capa_short):
     return capa_id
 
 ################################################
-# function: log
-################################################
-def log(level, fct, txt):
-    now = datetime.now()
-    dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
-    log_string = dt_string+":"+level+":"+fct+":"+str(txt)
-
-    if level=='DBG':
-        if config.LOG_LEVEL=='DBG':
-            print(log_string, flush=True)
-    else:
-        print(log_string, flush=True)
-
-################################################
-# function: log
-################################################
-def log2(level, txt, identifier=None):
-    now = datetime.now()
-    dt_string = now.strftime("%Y/%m/%d %H:%M:%S")
-    module_name = inspect.stack()[1][1].split("/")[-1][:-3]
-    fct = module_name+"."+inspect.stack()[1][3]
-    code_line = inspect.stack()[1][2]
-
-    if identifier != None:
-        id_txt = "["+identifier+"]"
-    else:
-        id_txt = ""
-
-    log_string = dt_string+":"+level+":"+fct+"["+str(code_line)+"]:"+id_txt+str(txt)
-
-    if level=='DBG':
-        if config.LOG_LEVEL=='DBG':
-            print(log_string, flush=True)
-    else:
-        print(log_string, flush=True)
-
-################################################
 # function: delta_dict_player
 # input: 2 dict_players (from API)
 # output: differences of dict2 over dict1
 ################################################
-def delta_dict_player(dict1, dict2, compare_rosters=True):
+async def delta_dict_player(dict1, dict2, compare_rosters=True):
     allyCode = dict2['allyCode']
 
     #basic checks
     if dict1 == None:
         log2("DBG", "dict1 is empty, so dict2 is a full delta")
-        connect_mysql.insert_roster_evo(allyCode, "all", "adding full roster")
+        await update_mysql.insert_roster_evo(allyCode, "all", "adding full roster")
         return dict2
 
     if dict1['allyCode'] != dict2['allyCode']:
@@ -517,12 +482,12 @@ def delta_dict_player(dict1, dict2, compare_rosters=True):
             if character_id in dict1['rosterUnit']:
                 if character != dict1['rosterUnit'][character_id]:
                     log2("DBG", "character "+character_id+" has changed for "+str(allyCode))
-                    detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
+                    await detect_delta_roster_element(allyCode, dict1['rosterUnit'][character_id], character)
                     delta_dict['rosterUnit'][character_id] = character
             else:
                 log2("DBG", "new character "+character_id+" for "+str(allyCode))
-                connect_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
-                detect_delta_roster_element(allyCode, None, character)
+                await update_mysql.insert_roster_evo(allyCode, character_id, "unlocked")
+                await detect_delta_roster_element(allyCode, None, character)
                 delta_dict['rosterUnit'][character_id] = character
 
         #compare datacrons
@@ -533,7 +498,7 @@ def delta_dict_player(dict1, dict2, compare_rosters=True):
                 if "datacron" in dict1 and datacron_id in dict1['datacron']:
                     if datacron != dict1['datacron'][datacron_id]:
                         log2("DBG", "datacron "+datacron_id+" has changed for "+str(allyCode))
-                        detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
+                        await detect_delta_datacron(allyCode, dict1['datacron'][datacron_id], datacron)
                         change_in_datacrons = True
                 else:
                     log2("DBG", "new datacron "+datacron_id+" for "+str(allyCode))
@@ -577,7 +542,7 @@ def gear_to_txt(gear, relic_dict):
 #######################
 # This function fills roster_evolutions
 #######################
-def detect_delta_roster_element(allyCode, char1, char2):
+async def detect_delta_roster_element(allyCode, char1, char2):
     dict_capas = data.get('unit_capa_list.json')
     defId = char2['definitionId'].split(":")[0]
 
@@ -596,13 +561,13 @@ def detect_delta_roster_element(allyCode, char1, char2):
                                  char2['currentRarity']+1):
             evo_txt = "rarity changed to "+str(rarity_step)
             log2("DBG", defId+": "+evo_txt)
-            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+            await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #LEVEL
     if (char1["currentLevel"] != char2["currentLevel"]) and (char2["currentLevel"] == 85):
         evo_txt = "level changed to 85"
         log2("DBG", defId+": "+evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+        await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ERA LEVEL
     if "eraLevel" in char1:
@@ -616,7 +581,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
     if (eraLevel1 != eraLevel2):
         evo_txt = "era level changed to "+str(eraLevel2)
         log2("DBG", defId+": "+evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+        await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #GEAR / RELIC
     if "relic" in char1:
@@ -633,7 +598,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
         for gear_step in range(max(gear1+1, 8), gear2+1):
             evo_txt = "gear changed to "+extendedgear_to_txt(gear_step)
             log2("DBG", defId+": "+evo_txt)
-            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+            await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ULTIMATE
     char1_ulti = False
@@ -649,7 +614,7 @@ def detect_delta_roster_element(allyCode, char1, char2):
     if (not char1_ulti) and char2_ulti:
         evo_txt = "ultimate unlocked"
         log2("DBG", defId+": "+evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+        await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
     #ZETAS
     for skill2 in char2['skill']:
@@ -676,19 +641,19 @@ def detect_delta_roster_element(allyCode, char1, char2):
         if skill2_isZeta and (skill1 == None or not skill1_isZeta):
             evo_txt = "new zeta "+get_capa_name_from_id(defId, skill_id)
             log2("DBG", defId+": "+evo_txt)
-            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+            await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
         if skill2_isOmicron and (skill1 == None or not skill1_isOmicron):
             if not "omicronMode" in dict_capas[defId][skill_id]:
                 log2("ERR", skill_id+" detected as omicron but no omicronMode")
             evo_txt = "new omicron "+get_capa_name_from_id(defId, skill_id)
             evo_txt += " for " + dict_capas[defId][skill_id]["omicronMode"]
             log2("DBG", defId+": "+evo_txt)
-            connect_mysql.insert_roster_evo(allyCode, defId, evo_txt)
+            await update_mysql.insert_roster_evo(allyCode, defId, evo_txt)
 
 #######################
 # This function fills roster_evolutions
 #######################
-def detect_delta_datacron(allyCode, dtc1, dtc2):
+async def detect_delta_datacron(allyCode, dtc1, dtc2):
     dict_rules = data.get("targetrules_dict.json")
 
     #robustness to basic datacrons
@@ -706,7 +671,7 @@ def detect_delta_datacron(allyCode, dtc1, dtc2):
 
         evo_txt = "new datacron level 6 "+datacron_level_6
         log2("DBG", evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, None, evo_txt)
+        await update_mysql.insert_roster_evo(allyCode, None, evo_txt)
 
     if len(dtc1['affix'])<9 and len(dtc2['affix'])>=9:
         abilityId = dtc2["affix"][8]["abilityId"]
@@ -716,7 +681,7 @@ def detect_delta_datacron(allyCode, dtc1, dtc2):
 
         evo_txt = "new datacron level 9 "+datacron_level_9
         log2("DBG", evo_txt)
-        connect_mysql.insert_roster_evo(allyCode, None, evo_txt)
+        await update_mysql.insert_roster_evo(allyCode, None, evo_txt)
 
 
 ##############################################################################

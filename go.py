@@ -25,6 +25,8 @@ import time
 import config
 import connect_gsheets
 import connect_mysql
+import update_mysql
+import get_mysql
 import connect_crinolo
 import connect_rpc
 import goutils
@@ -321,7 +323,7 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
         
         if not no_db:
             # compute differences
-            delta_dict_player = goutils.delta_dict_player(prev_dict_player, dict_player,
+            delta_dict_player = await goutils.delta_dict_player(prev_dict_player, dict_player,
                                                           compare_rosters=load_roster)
         
             ###############
@@ -340,7 +342,7 @@ async def load_player(ac_or_id, force_update, no_db, load_roster=True):
             fjson.close()
 
             # update DB
-            ec, et = await connect_mysql.update_player(delta_dict_player)
+            ec, et = await update_mysql.update_player(delta_dict_player)
             if ec == 0:
                 goutils.log2("DBG", "success updating "+dict_player['name']+" in DB")
             else:
@@ -1559,7 +1561,7 @@ async def print_vtg(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                         if len(list_team_names)==1 and list_team_names[0].lower()!="all":
                             ret_print_vtx += line_print_vtx
 
-                        await connect_mysql.update_gv_history(
+                        await update_mysql.update_gv_history(
                             "", name, team, True,
                             score, unlocked, "go.bot")
 
@@ -1637,7 +1639,7 @@ async def print_vtj(list_team_names, txt_allyCode, guild_id, gfile_name, tw_mode
                         ret_print_vtx += "\N{UP-POINTING RED TRIANGLE}"
                     ret_print_vtx += " " + team + ": " + str(round(score, 1)) + "%\n"
 
-                    await connect_mysql.update_gv_history(txt_allyCode, "", team, True,
+                    await update_mysql.update_gv_history(txt_allyCode, "", team, True,
                                                     score, unlocked, "go.bot")
             
                     list_char_allycodes = [[list_char, txt_allyCode, ""]]
@@ -1748,7 +1750,7 @@ async def print_ftj(txt_allyCode, team, guild_id, gfile_name):
         for [player_score, unlocked, player_txt, player_nogo, player_name, list_char] in ret_team[0]:
             ret_print_ftj += "Progrès de farm de la team "+team+" pour "+player_name+"\n"
             ret_print_ftj += player_txt + "> Global: "+ str(int(player_score))+"%"
-            await connect_mysql.update_gv_history(txt_allyCode, "", team, True,
+            await update_mysql.update_gv_history(txt_allyCode, "", team, True,
                                             player_score, unlocked, "go.bot")
 
     return 0, ret_print_ftj
@@ -1784,7 +1786,7 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
             if score_type == 1:
                 ret_print_gvj += "%"
 
-            await connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+            await update_mysql.update_gv_history(txt_allyCode, "", character_id, True,
                                             player_score, unlocked, "go.bot")
 
     else:
@@ -1806,7 +1808,7 @@ async def print_gvj(list_team_names, txt_allyCode, score_type):
                         new_line += "\n"
 
                     list_lines.append([player_score, new_line, player_unlocked])
-                    await connect_mysql.update_gv_history(txt_allyCode, "", character_id, True,
+                    await update_mysql.update_gv_history(txt_allyCode, "", character_id, True,
                                                     player_score, player_unlocked, "go.bot")
                                             
         if score_type == 1:
@@ -1869,7 +1871,7 @@ async def print_gvg(list_team_names, txt_allyCode):
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
                     if not player_unlocked and player_score>80:
-                        await connect_mysql.update_gv_history("", player_name, character_id, True,
+                        await update_mysql.update_gv_history("", player_name, character_id, True,
                                                         player_score, player_unlocked, "go.bot")
 
     if one_valid_team:
@@ -1918,7 +1920,7 @@ async def print_gvs(list_team_names, txt_allyCode):
                                     str(int(player_score)) + "%\n"
                     list_lines.append([player_score, new_line, player_unlocked])
                     if not player_unlocked and player_score>80:
-                        await connect_mysql.update_gv_history("", player_name, character_id, True,
+                        await update_mysql.update_gv_history("", player_name, character_id, True,
                                                         player_score, player_unlocked, "go.bot")
 
     list_lines = sorted(list_lines, key=lambda x: -x[0])
@@ -3387,7 +3389,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
     if with_mentions:
         #get list of allyCodes and player tags
-        dict_players = connect_mysql.load_config_players()[0]
+        dict_players = await (get_mysql.load_config_players())[0]
     else:
         # if this dict is empty, there will be no discord mention
         dict_players = {}
@@ -5105,7 +5107,7 @@ async def get_tw_insufficient_attacks(guild_id, args, allyCode=None, fulldef_det
             for player in list_active_players:
                 dict_fulldef[player] = -1
 
-    dict_players = connect_mysql.load_config_players()[0]
+    dict_players = (await get_mysql.load_config_players())[0]
 
     dict_insufficient_teams = {}
     for player in list_active_players:
@@ -5442,7 +5444,7 @@ def update_gl_progress_from_wookiebot(gl_name, file_content):
         allyCode_txt = fields[1][1:-1] #removing the " at both ends
         progress = float(fields[2])
         completed = (fields[3] != '"-"')
-        connect_mysql.update_gv_history(allyCode_txt, None, gl_name, True, progress, completed, "wookiebot")
+        update_mysql.update_gv_history(allyCode_txt, None, gl_name, True, progress, completed, "wookiebot")
 
     return 0, ""
 
@@ -5733,7 +5735,7 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
 
     if with_mentions:
         #get list of allyCodes and player tags
-        dict_players = connect_mysql.load_config_players()[0]
+        dict_players = await (get_mysql.load_config_players())[0]
     else:
         # if this dict is empty, there will be no discord mention
         dict_players = {}
@@ -6864,7 +6866,7 @@ async def update_tw_from_guild(dict_guild):
     homeGuild = ret_dict["homeGuild"]
     awayGuild = ret_dict["awayGuild"]
 
-    await connect_mysql.update_tw(guild_id, tw_id, opp_guild_id,
+    await update_mysql.update_tw(guild_id, tw_id, opp_guild_id,
               opp_guild_name, score, opp_score,
               homeGuild, awayGuild)
 

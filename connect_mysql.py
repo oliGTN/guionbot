@@ -604,31 +604,17 @@ def get_table(query):
     else:
         return results
 
-def insert_roster_evo(allyCode, defId, evo_txt):
-    cursor = None
-    try:
-        mysql_db = db_connect()
-        cursor = mysql_db.cursor(buffered=True)
+async def insert_roster_evo(allyCode, defId, evo_txt):
 
-        #adapt syntax ty MYSQL
-        evo_txt = evo_txt.replace("'","''")
+    #adapt syntax ty MYSQL
+    evo_txt = evo_txt.replace("'","''")
 
-        if defId!=None:
-            query = "INSERT INTO roster_evolutions(allyCode, defId, description) "\
-                   +"VALUES("+str(allyCode)+", '"+str(defId)+"', '"+evo_txt+"')"
-        else:
-            query = "INSERT INTO roster_evolutions(allyCode, description) "\
-                   +"VALUES("+str(allyCode)+", '"+evo_txt+"')"
-        goutils.log2("DBG", query)
-        cursor.execute(query)
+    if defId!=None:
+        query = "INSERT INTO roster_evolutions(allyCode, defId, description) "\
+               +"VALUES("+str(allyCode)+", '"+str(defId)+"', '"+evo_txt+"')"
+    else:
+        query = "INSERT INTO roster_evolutions(allyCode, description) "\
+               +"VALUES("+str(allyCode)+", '"+evo_txt+"')"
+    goutils.log2("DBG", query)
+    await simple_execute_async(query)
 
-        mysql_db.commit()
-    except Error as error:
-        goutils.log2("ERR", query)
-        goutils.log2("ERR", error)
-        return -1
-        
-    finally:
-        if cursor != None:
-            cursor.close()
-    

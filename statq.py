@@ -12,6 +12,7 @@ from json import dumps as json_dumps
 
 import goutils
 import data
+from connect_mysql import get_value_async, get_table_async, simple_execute_async
 
 ##############################################################
 # this global var is used in several functions
