@@ -70,7 +70,7 @@ async def process_tbzone_order(order_dict, session):
         query = (
             "UPDATE tb_zones "
             "JOIN tb_history ON tb_history.id=tb_zones.tb_id "
-            "SET " + db_cmdMsg + "='" + zone_msg + "', "
+            "SET " + db_cmdMsg + "='" + zone_msg.replace("'", "''") + "', "
             + db_cmdCmd + "=" + str(zone_cmd) + " "
             "WHERE tb_history.tb_id='" + map_id + "' "
             "AND tb_history.guild_id='" + guild_id + "' "
@@ -113,7 +113,7 @@ async def process_tbzone_order(order_dict, session):
         order_id = str(db_data)
         query = (
             "UPDATE tb_orders "
-            "SET cmdMsg='" + zone_msg + "', "
+            "SET cmdMsg='" + zone_msg.replace("'", "''") + "', "
             "cmdCmd=" + str(zone_cmd) + " "
             "WHERE id=" + order_id
         )
