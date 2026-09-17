@@ -1,18 +1,6 @@
-import os
-import config
-import sys
-from urllib.parse import uses_netloc, urlparse
-import datetime
-import time
-from wcwidth import wcswidth
-import asyncio
-from decimal import Decimal
-from hashlib import md5
-from json import dumps as json_dumps
-
 import goutils
 import data
-from connect_mysql import get_value_async, get_line_async, get_column_async, get_table_async, simple_execute_async
+from connect_mysql import get_line_async, get_table_async
 
 ##############################################################
 # Function: load_config_players
@@ -243,6 +231,3 @@ async def get_tb_platoon_allocations(guild_id, tbs_round):
             dict_platoons_allocation[platoon_name][unit_name].append(player_name)
 
     return 0, "", {"dict_platoons_allocation": dict_platoons_allocation}
-
-
-
