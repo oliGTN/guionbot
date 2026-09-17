@@ -1437,7 +1437,7 @@ async def load_config_players(guild_id=None):
         query+= "WHERE guildId='"+guild_id+"' "
     query+= "ORDER BY player_discord.discord_id, player_discord.main "
     goutils.log2("DBG", query)
-    data_db = get_table_async(query)
+    data_db = await get_table_async(query)
 
     dict_players_by_IG = {}
     dict_players_by_ID = {}
