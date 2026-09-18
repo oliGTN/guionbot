@@ -183,6 +183,18 @@ async def insert_roster_evo(allyCode, defId, evo_txt):
 #####################################################################
 PLAYER_STATS = ['1', '5', '6', '7', '8', '14', '15', '16', '17', '18', '28']
 
+#MYSQL helpers to support the shared cursor
+async def cursor_get_value(cursor, query):
+    await cursor.execute(query)
+    row = await cursor.fetchone()
+    return row[0] if row else None
+
+
+async def cursor_get_column(cursor, query):
+    await cursor.execute(query)
+    rows = await cursor.fetchall()
+    return [row[0] for row in rows]
+
 
 async def update_player(dict_player):
     """Update a complete player using one shared DB connection."""
@@ -335,6 +347,18 @@ async def update_player_general(cursor, dict_player):
         "poUTCOffsetMinutes": poUTCOffsetMinutes,
     }
 
+async def get_roster_ids(cursor, allyCode: int):
+    query = "SELECT id, defId FROM roster " \
+            "WHERE allyCode="+str(allyCode)
+    golog.log("DBG", query)
+
+    await cursor.execute(query)
+    roster_rows = await cursor.fetchall()
+
+    return {
+        row[1]: row[0]
+        for row in roster_rows
+    }
 
 async def update_player_roster(cursor, dict_player, player_data):
     """Update all characters, mods and abilities."""
@@ -347,24 +371,85 @@ async def update_player_roster(cursor, dict_player, player_data):
     allyCode = player_data["allyCode"]
     playerId = player_data["playerId"]
 
+    # Loop on characters in the roster
     for character_id, character in dict_player["rosterUnit"].items():
         if "gp" not in character:
             message = "ERR no gp for " + playerId + ":" + character_id
             golog.log("ERR no gp for ", playerId + ":" + character_id)
             return 1, message
 
-        roster_id = await update_character(
+        await update_character(
             cursor, allyCode, character_id, character, dict_unitsList
         )
 
-        await update_character_mods(
-            cursor, roster_id, character, dict_modList, dict_stats
+        await asyncio.sleep(0)
+
+    # Get all existing roster IDs for this player in one query.
+    roster_ids = await get_roster_ids(cursor, allyCode)
+
+    # Get all existing mods
+    query = (
+        "SELECT id, roster_id "
+        "FROM mods "
+        "WHERE roster_id IN (" +
+        ",".join(str(roster_id) for roster_id in roster_ids.values()) +
+        ")"
+    )
+
+    golog.log("DBG", query)
+
+    await cursor.execute(query)
+    mod_rows = await cursor.fetchall()
+
+    previous_mods_by_roster = {}
+
+    for mod_id, mod_roster_id in mod_rows:
+        previous_mods_by_roster.setdefault(
+            mod_roster_id, []
+        ).append(mod_id)
+
+    # 2nd Loop on characters, fors mods and skills
+    #  once the character IDs are created/frozen
+    for character_id, character in dict_player["rosterUnit"].items():
+        #Get the roster ID for this character
+        roster_id = roster_ids.get(character_id)
+
+        if roster_id is None:
+            message = (
+                "ERR roster ID not found for "
+                + str(allyCode) + ":" + character_id
+            )
+            golog.log("ERR", message)
+            return 1, message
+
+        # update mods
+        if roster_id is None:
+            message = (
+                "ERR roster ID not found for "
+                + str(allyCode) + ":" + character_id
+            )
+            golog.log("ERR", message)
+            return 1, message
+
+        previous_mods_ids = previous_mods_by_roster.get(
+            roster_id, []
         )
 
+        await update_character_mods(
+            cursor,
+            roster_id,
+            character,
+            dict_modList,
+            dict_stats,
+            previous_mods_ids
+        )
+
+        # update skills
         await update_character_skills(
             cursor, roster_id, character_id, character, dict_capas
         )
 
+        #breathe
         await asyncio.sleep(0)
 
     return 0, ""
@@ -435,20 +520,16 @@ async def update_character(
     )
     await cursor.execute(query)
 
-    query = (
-        "SELECT id FROM roster WHERE allyCode = " + str(allyCode) +
-        " AND defId = '" + character_id + "'"
-    )
-    return await get_value_async(query)
-
 
 async def update_character_mods(
-    cursor, roster_id, character, dict_modList, dict_stats
+    cursor,
+    roster_id,
+    character,
+    dict_modList,
+    dict_stats,
+    previous_mods_ids
 ):
     """Update equipped mods and remove mods no longer equipped."""
-
-    query = "SELECT id FROM mods WHERE roster_id = " + str(roster_id)
-    previous_mods_ids = await get_column_async(query)
 
     current_mods_ids = []
 
@@ -604,7 +685,7 @@ async def update_player_datacrons(cursor, dict_player):
     query = (
         "SELECT id FROM datacrons WHERE allyCode = " + str(allyCode)
     )
-    previous_ids = await get_column_async(query)
+    previous_ids = await cursor_get_column(cursor, query)
 
     current_ids = []
 
@@ -677,7 +758,7 @@ async def update_player_quality(cursor, player_data):
         "(sec3_stat=5 AND sec3_value>=15) OR "
         "(sec4_stat=5 AND sec4_value>=15))"
     )
-    p_modq = await get_value_async(query)
+    p_modq = await cursor_get_value(cursor, query)
 
     if p_modq is None:
         p_modq = "NULL"
