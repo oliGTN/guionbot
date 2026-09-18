@@ -854,7 +854,7 @@ async def update_gv_history(txt_allyCode, player_name, character, is_ID, progres
     if txt_allyCode == '':
         query = "SELECT allyCode FROM players WHERE name = '"+player_name.replace("'", "''")+"'"
         golog.log("DBG", query)
-        list_players = get_column(query)
+        list_players = await get_column_async(query)
         if len(list_players) != 1:
             return -1
         txt_allyCode = str(list_players[0])
