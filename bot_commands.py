@@ -1165,7 +1165,7 @@ async def allocate_random_mods(ctx_interaction):
     channel_id = ctx_interaction.channel_id
 
     #get bot config from DB
-    ec, et, bot_infos = await connect_mysql.get_google_player_info(channel_id)
+    ec, et, bot_infos = await get_mysql.get_google_player_info(channel_id)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         remove_command_from_queue(ctx_interaction)

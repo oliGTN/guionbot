@@ -6,6 +6,7 @@
 # Queue and lock commands
 ######################
 
+import asyncio
 import config
 from discord.ext import commands
 from discord import app_commands, Interaction
