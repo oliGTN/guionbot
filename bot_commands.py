@@ -27,126 +27,24 @@ import portraits
 import data
 import register
 from semaphores import acquire_sem, release_sem
-from cmd_q import islocked_bot, add_command_to_queue, remove_command_from_queue, command_ack
+from cmd_q import (
+    islocked_bot, 
+    add_command_to_queue, 
+    remove_command_from_queue,
+)
+from discord_interactions import (
+    command_error, 
+    command_ok, 
+    command_intermediate_to_ok, 
+    send_message, 
+    confirmationPrompt,
+    command_ack,
+)
 
 # CONSTANTS
 import emojis
 MAX_MSG_SIZE = 1900 #keep some margin for extra formating characters
 MAX_RELIC = 10
-
-######################################
-# basic functions mixinx ctx and interactions
-async def command_error(ctx_interaction, resp_msg, err_txt):
-    if type(ctx_interaction) == commands.Context:
-        ctx = ctx_interaction
-        content = emojis.redcross+" "+err_txt
-
-        await resp_msg.edit(content=content)
-
-    elif type(ctx_interaction) == Interaction:
-        interaction = ctx_interaction
-        content = emojis.redcross+" "+err_txt
-
-        await interaction.edit_original_response(content=content)
-
-    else:
-        print("ERROR "+err_txt)
-
-async def command_ok(ctx_interaction, resp_msg, output_txt, images=None, files=None, intermediate=False):
-    attachments = []
-
-    if images != None:
-        for image in images:
-            with BytesIO() as image_binary:
-                image.save(image_binary, 'PNG')
-                image_binary.seek(0)
-                attachments.append(File(fp=image_binary, filename='image.png'))
-
-    if files != None:
-        attachments += files
-
-    if type(ctx_interaction) == commands.Context:
-        golog.log("DBG", "context")
-        if intermediate:
-            content = emojis.hourglass+" "+output_txt
-        else:
-            content = emojis.check+" "+output_txt
-
-        if attachments==[]:
-            await resp_msg.edit(content=content)
-        else:
-            await resp_msg.edit(content=content, attachments=attachments)
-
-    elif type(ctx_interaction) == Interaction:
-        golog.log("DBG", "interaction")
-        interaction = ctx_interaction
-        if intermediate:
-            content = emojis.hourglass+" "+output_txt
-        else:
-            content = emojis.check+" "+output_txt
-
-        if attachments==[]:
-            await interaction.edit_original_response(content=content)
-        else:
-            await interaction.edit_original_response(content=content, attachments=attachments)
-
-    else:
-        if intermediate==False:
-            content = "OK "+output_txt
-        else:
-            content = "In Progress... "+output_txt
-
-        print(content)
-
-        for attachment in attachments:
-            print(attachment)
-
-async def command_intermediate_to_ok(ctx_interaction, resp_msg, new_txt=None):
-    if type(ctx_interaction) == commands.Context:
-        ctx = ctx_interaction
-
-        if new_txt == None:
-            content = resp_msg.content.replace(emojis.hourglass, emojis.check)
-        else:
-            content = emojis.check+" "+new_txt
-
-        await resp_msg.edit(content=content)
-
-    elif type(ctx_interaction) == Interaction:
-        interaction = ctx_interaction
-        if new_txt == None:
-            content = interaction.message.content.replace(emojis.hourglass, emojis.check)
-        else:
-            content = emojis.check+" "+new_txt
-        await interaction.edit_original_response(content=content)
-
-    else:
-        if new_txt == None:
-            print("OK")
-        else:
-            print("OK "+new_txt)
-
-async def send_message(ctx_interaction, output_txt, images=None, files=None):
-    attachments = []
-
-    if images != None:
-        for image in images:
-            with BytesIO() as image_binary:
-                image.save(image_binary, 'PNG')
-                image_binary.seek(0)
-                attachments.append(File(fp=image_binary, filename='image.png'))
-
-    if files != None:
-        attachments += files
-
-    if ctx_interaction != None:
-        await ctx_interaction.channel.send(content=content, attachments=attachments)
-
-    else:
-        print(content)
-
-        for attachment in attachments:
-            print(attachment)
 
 ##############################################################
 # interaction specifics

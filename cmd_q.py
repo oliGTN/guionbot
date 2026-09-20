@@ -13,6 +13,13 @@ from discord import app_commands, Interaction
 import golog
 import emojis
 
+from discord_interactions import (
+    command_ack,
+    command_error,
+    command_ok,
+    send_message,
+)
+
 bot_test_mode = False
 bot_background_tasks = True
 bot_on_message = True
@@ -35,7 +42,7 @@ async def add_command_to_queue(ctx_interaction):
 
     if bot_locked and not is_owner:
         golog.log("WAR", "bot is locked")
-        await ctx_interaction.edit_original_response(content=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
+        await command_error(ctx_interaction, resp_msg, content=emojis.prohibited+" Impossible de lancer la commande car le bot est verrouillé pour maintenance. Veuillez ré-essayer dans quelques minutes.")
         return 1, resp_msg
 
     # Add command to queue
@@ -44,8 +51,8 @@ async def add_command_to_queue(ctx_interaction):
     #Loop to wait that the queue is ready
     pos_cmd = command_queue.index(ctx_interaction)
     while(pos_cmd >= MAX_QUEUE_SIZE):
-        await ctx_interaction.edit_original_response(content="Tu es en position "+str(pos_cmd-MAX_QUEUE_SIZE+1)+" de la file d'attente...")
-        await asyncio.sleep(10)
+        await command_ok(ctx_interaction, resp_msg, content="Tu es en position "+str(pos_cmd-MAX_QUEUE_SIZE+1)+" de la file d'attente (nouvel essai dans 5 secondes)...", intermediate=True)
+        await asyncio.sleep(5)
         pos_cmd = command_queue.index(ctx_interaction)
 
     return 0, resp_msg
@@ -84,17 +91,4 @@ def unlock_bot():
 def islocked_bot():
     return bot_locked
 
-async def command_ack(ctx_interaction):
-    msg = None
-    if type(ctx_interaction) == commands.Context:
-        ctx = ctx_interaction
-        msg = await ctx.reply(emojis.thumb+" "+ctx.me.name+" réfléchit...")
-
-    elif type(ctx_interaction) == Interaction:
-        interaction = ctx_interaction
-        await interaction.response.defer(thinking=True)
-    else:
-        print("In progress...")
-
-    return msg
 
