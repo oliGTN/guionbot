@@ -2314,7 +2314,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         if targets_platoons==None:
             #Get allocations
             tbs_round = tb_name + str(tb_round)
-            err_code, err_txt, ret_dict = get_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
+            err_code, err_txt, ret_dict = await get_mysql.get_tb_platoon_allocations(guild_id, tbs_round)
 
             if ret_dict == None:
                 dict_platoons_allocation = {}
