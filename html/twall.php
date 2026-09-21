@@ -142,15 +142,16 @@ foreach($tw_db_data as $tw_line) {
     </script>
 
 
-    <?php include 'twheader.php'; ?>
+    <?php
+    // Reuse the common TW map renderer, but keep twall.php public:
+    // no confidential zone data and no zone links.
+    $twheader_use_existing_zones = true;
+    include 'twheader.php';
+    ?>
 
-    <?php foreach($tw_data as $guild_id => $tw) {
+    <?php foreach ($tw_data as $guild_id => $tw) {
         $zones = $tw['zones'];
-        $tw_id = $tw['id'];
 
-        // twheader.php expects the complete TW record. Build the fields it needs
-        // from the public data already loaded above. Access remains public:
-        // twall.php intentionally calls the map with zone details hidden.
         $tw_header_data = [
             'guild_id' => $guild_id,
             'away_guild_id' => null,
@@ -160,13 +161,20 @@ foreach($tw_db_data as $tw_line) {
             'awayScore' => $tw['awayScore'],
             'lastUpdated' => $tw['lastUpdated'],
         ];
-
-        $tw = $tw_header_data;
-        $twheader_use_existing_zones = true;
-        $twheader_map_only = true;
-        render_tw_map($tw, $zones, false, true);
     ?>
+        <h2>
+            <a href="/g.php?gid=<?php echo (int) $guild_id; ?>">
+                <?php echo htmlspecialchars($tw['homeName'], ENT_QUOTES, 'UTF-8'); ?>
+            </a>
+            vs
+            <?php echo htmlspecialchars($tw['awayName'], ENT_QUOTES, 'UTF-8'); ?>
+        </h2>
 
+        <div><br/>
+            <?php echo '(last update on ' . htmlspecialchars($tw['lastUpdated'], ENT_QUOTES, 'UTF-8') . ')'; ?>
+        </div>
+
+        <?php render_tw_map($tw_header_data, $zones, false, false); ?>
     <?php } ?>
 
     </div> <!-- container -->
