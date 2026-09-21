@@ -21,7 +21,7 @@ foreach ($zone_list as $zone) {
 }
 
 if (!function_exists('zone_txt')) {
-    function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed, $with_links = true) {
+    function zone_txt($zone_name, $side, $zones, $rowspan, $can_show_zone_data, $with_links = true) {
         $zone = $zones[$side][$zone_name] ?? null;
 
         if (!$zone) {
@@ -33,7 +33,7 @@ if (!function_exists('zone_txt')) {
             $crossed = 'background-image: linear-gradient(to bottom right, transparent calc(50% - 1px), black, transparent calc(50% + 1px));';
             $border_style = '3px solid white';
         } elseif (
-            ($isMyGuildConfirmed && $zone['filled'] < $zone['size'])
+            ($can_show_zone_data && $zone['filled'] < $zone['size'])
             || $zone['zoneState'] === 'ZONELOCKED'
         ) {
             $zone_color = $side === 'home' ? 'lightblue' : 'pink';
@@ -64,7 +64,7 @@ if (!function_exists('zone_txt')) {
 
         if (!$zone) {
             echo '0/0';
-        } elseif ($isMyGuildConfirmed) {
+        } elseif ($can_show_zone_data) {
             echo (int) $zone['filled'] - (int) $zone['victories'];
             echo '/' . (int) $zone['size'];
         } elseif ($zone['zoneState'] === 'ZONELOCKED') {
@@ -79,8 +79,7 @@ if (!function_exists('zone_txt')) {
 }
 
 if (!function_exists('render_tw_map')) {
-    function render_tw_map($tw, $zones, $isMyGuildConfirmed, $isBonusGuild = false, $isAdmin = false, $with_links = true) {
-        $can_show_zone_data = $isMyGuildConfirmed || $isBonusGuild || $isAdmin;
+    function render_tw_map($tw, $zones, $can_show_zone_data, $with_links = true) {
         ?>
         <!-- Overview of zones -->
         <div class="row">
@@ -168,9 +167,7 @@ if (empty($twheader_map_only)) {
 render_tw_map(
     $tw,
     $zones,
-    $isMyGuildConfirmed ?? false,
-    $isBonusGuild ?? false,
-    $isAdmin ?? false,
+    ($isMyGuildConfirmed ?? false) || ($isBonusGuild ?? false) || ($isAdmin ?? false) || ($isGuildMateConfirmed ?? false),
     empty($twheader_map_only)
 );
 

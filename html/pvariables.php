@@ -3,9 +3,16 @@ function set_session_rights_for_allycode($allycode)
 {
     global $conn_guionbot;
 
+    $isMyAllycode = false;
+    $isMyAllycodeConfirmed = false;
+    $isGuildMate = false;
+    $isGuildMateConfirmed = false;
+
     if (!isset($_SESSION['user_id'])) {
-        return [false, false];
+        return [$isMyAllycode, $isMyAllycodeConfirmed, $isGuildMate, $isGuildMateConfirmed];
     }
+
+    $user_guildmates = $_SESSION['user_guildmates'] ?? [];
 
     $allyCodes = $_SESSION['allyCodes'] ?? [];
     $key = (int) $allycode;
@@ -15,30 +22,11 @@ function set_session_rights_for_allycode($allycode)
     $confirmed = array_key_exists($key, $allyCodes)
         ? $allyCodes[$key]
         : ($allyCodes[$allycode] ?? false);
+    $isMyAllycodeConfirmed = $isMyAllycode && !empty($confirmed);
 
-    $isGuildMate = false;
-    try {
-        $stmt = $conn_guionbot->prepare(
-            "SELECT COUNT(*) FROM players
-             WHERE guildId IN (
-	            SELECT guildId
-	            FROM players
-	            JOIN player_discord ON player_discord.allyCode = players.allyCode
-	            WHERE discord_id = :discord_id
-             ) AND allyCode = :allycode"
-        );
-        $stmt->execute([
-            ':allycode' => $allycode,
-            ':discord_id' => $_SESSION['user_id'],
-        ]);
+    $isGuildMate = array_key_exists($allycode, $user_guildmates);
+    $isGuildMateConfirmed = $isGuildMate && !empty($user_guildmates[$allycode]);
 
-        $ac_count = $stmt->fetch(PDO::FETCH_ASSOC);
-        $isGuildMate = $ac_count ? (bool) $ac_count : false;
-    } catch (PDOException $e) {
-        error_log('Error fetching guild rights: ' . $e->getMessage());
-        $isGuildMate = false;
-    }
-
-    return [$isMyAllycode, $isMyAllycode && !empty($confirmed), $isGuildMate];
+    return [$isMyAllycode, $isMyAllycodeConfirmed, $isGuildMate, $isGuildMateConfirmed];
 }
 ?>

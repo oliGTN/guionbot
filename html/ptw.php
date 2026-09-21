@@ -49,10 +49,6 @@ $tw = null;
 if ($tw_id !== false && $tw_id !== null) {
     $tw_id = (int) $tw_id;
     include 'twvariables.php';
-
-    // Use the same guild-rights variables as twheader.php.
-    [$isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer]
-        = set_session_rights_for_guild($guild_id);
 }
 
 // Get the player's squads for this TW.
@@ -256,9 +252,10 @@ foreach (array_slice($squad['cells'], 0, 5) as $unit) {
     $unit_short_id = $def_parts[0];
     $unit_rarity = $rarity_values[$def_parts[1] ?? ''] ?? 7;
     $unit_alignment = $dict_units[$unit_short_id]['forceAlignment'] ?? 0;
+    $unit_isShip = (int) ($dict_units[$unit_short_id]['combatType'] ?? 1) === 2;
 
     $unit_gear = !empty($dict_units[$unit_short_id])
-        && (int) ($dict_units[$unit_short_id]['combatType'] ?? 1) === 2
+        && $unit_isShip
         ? 0
         : (int) $unit['tier'];
 
@@ -269,7 +266,8 @@ foreach (array_slice($squad['cells'], 0, 5) as $unit) {
         $unit_gear,
         $unit['unitRelicTier'],
         $unit['zetaCount'],
-        $unit['omicronCount']
+        $unit['omicronCount'],
+        $unit_isShip
     );
 }
 ?>
@@ -285,7 +283,7 @@ foreach (array_slice($squad['cells'], 0, 5) as $unit) {
             </div>
 <?php else: ?>
         You are not allowed to see TW data for this guild
-<?php endif; //($isMyGuildConfirmed||$isBonusGuild) ?>
+<?php endif; //($isGuildMate||$isAdmin) ?>
         </div>
 
         <div class="site-cache" id="site-cache"></div>

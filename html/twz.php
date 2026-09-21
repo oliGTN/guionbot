@@ -207,6 +207,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                 $unit_short_id = explode(':', $unit['defId'])[0];
                 $unit_rarity = $rarity_values[explode(':', $unit['defId'])[1]];
                 $unit_alignment = $dict_units[$unit_short_id]['forceAlignment'];
+                $unit_isShip = (int) ($dict_units[$unit_short_id]['combatType'] ?? 1) === 2;
                 if ($dict_units[$unit_short_id]['combatType'] == 2 ) {
                     // ship
                     $unit_gear = 0;
@@ -216,7 +217,16 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                 }
                 //echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
                 echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'>";
-                display_portrait($unit_short_id, $unit_alignment, $unit_rarity, $unit_gear, $unit['relic'], $unit['zetaCount'], $unit['omicronCount']);
+                display_portrait(
+                    $unit_short_id, 
+                    $unit_alignment, 
+                    $unit_rarity, 
+                    $unit_gear, 
+                    $unit['relic'], 
+                    $unit['zetaCount'], 
+                    $unit['omicronCount'],
+                    $unit_isShip
+                );
                 echo "</td>";
             }
             echo "</tr>\n";

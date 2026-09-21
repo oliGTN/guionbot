@@ -22,7 +22,7 @@ if (!isset($_GET['ac'])) {
 }
 
 $allycode = get_required_ally_code();
-[$isMyAllycode, $isMyAllycodeConfirmed, $isGuildMate] = set_session_rights_for_allycode($allycode);
+[$isMyAllycode, $isMyAllycodeConfirmed, $isGuildMate, $isGuildMateConfirmed] = set_session_rights_for_allycode($allycode);
 
 include 'pdata.php';
 

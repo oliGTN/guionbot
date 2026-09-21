@@ -194,6 +194,19 @@ try {
     $stmt->execute([':discord_id' => $user_id]);
     $user_guilds = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $stmt = $conn_guionbot->prepare(
+        'SELECT allyCode, confirmed FROM players
+         JOIN (
+             SELECT guildId, MAX(confirmed) AS confirmed
+             FROM players
+             JOIN player_discord ON player_discord.allyCode=players.allyCode
+             WHERE discord_id=:discord_id
+             GROUP BY guildId) T
+         ON players.guildId = T.guildId'
+    );
+    $stmt->execute([':discord_id' => $user_id]);
+    $user_guildmates = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
     $stmt = $conn->prepare(
         'SELECT guild_id FROM user_guilds WHERE user_id=:user_id'
     );
@@ -213,6 +226,11 @@ foreach ($user_allyCodes as $row) {
 $_SESSION['user_guilds'] = [];
 foreach ($user_guilds as $row) {
     $_SESSION['user_guilds'][$row['guildId']] = $row['confirmed'];
+}
+
+$_SESSION['user_guildmates'] = [];
+foreach ($user_guildmates as $row) {
+    $_SESSION['user_guildmates'][$row['allyCode']] = $row['confirmed'];
 }
 
 $_SESSION['user_bonus_guilds'] = [];
