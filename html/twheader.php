@@ -82,6 +82,16 @@ if (!function_exists('zone_txt')) {
 
 if (!function_exists('render_tw_map')) {
     function render_tw_map($tw, $zones, $can_show_zone_data, $with_links = true) {
+        // Accept either raw zone rows or the already-organized
+        // ['home' => ..., 'away' => ...] structure used by twall.php.
+        if (isset($zones['home']) || isset($zones['away'])) {
+            $render_zones = $zones;
+        } else {
+            $render_zones = [];
+            foreach ($zones as $zone) {
+                $render_zones[$zone['side']][$zone['zone_name']] = $zone;
+            }
+        }
         ?>
         <style>
             .tw-map {
@@ -123,23 +133,23 @@ if (!function_exists('render_tw_map')) {
                         <h3><?php echo htmlspecialchars($tw['homeScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['homePotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['homePotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?></h3>
                         <div class="tw-map"><table style="background-color:dodgerblue;color:white">
                             <tr height="33">
-                                <?php zone_txt('F2', 'home', $zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('F1', 'home', $zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T2', 'home', $zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T1', 'home', $zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('F2', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('F1', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T2', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T1', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33"></tr>
                             <tr height="33">
-                                <?php zone_txt('T4', 'home', $zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T3', 'home', $zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T4', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T3', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33">
-                                <?php zone_txt('B2', 'home', $zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B1', 'home', $zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B2', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B1', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33">
-                                <?php zone_txt('B4', 'home', $zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B3', 'home', $zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B4', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B3', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33"></tr>
                         </table></div>
@@ -151,23 +161,23 @@ if (!function_exists('render_tw_map')) {
                         <h3><?php echo htmlspecialchars($tw['awayScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['awayPotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['awayPotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?></h3>
                         <div class="tw-map"><table style="background-color:red;color:white">
                             <tr height="33">
-                                <?php zone_txt('T1', 'away', $zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T2', 'away', $zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('F1', 'away', $zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('F2', 'away', $zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T1', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T2', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('F1', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('F2', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33"></tr>
                             <tr height="33">
-                                <?php zone_txt('T3', 'away', $zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T4', 'away', $zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T3', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('T4', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33">
-                                <?php zone_txt('B1', 'away', $zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B2', 'away', $zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B1', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B2', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33">
-                                <?php zone_txt('B3', 'away', $zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B4', 'away', $zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B3', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
+                                <?php zone_txt('B4', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33"></tr>
                         </table></div>
