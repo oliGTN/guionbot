@@ -90,53 +90,7 @@ foreach($tw_db_data as $tw_line) {
     $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['zoneState'] = $tw_line['zoneState'];
 }
 
-function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
-    // this is a public page, we don't show filling status
-    if ($zones[$side][$zone_name]['zoneState'] == 'ZONECOMPLETE') {
-        if ($side == 'home') {
-            $zone_color = 'darkblue';
-        } else {
-            $zone_color = 'darkred';
-        }
 
-        $crossed = 'background-image: linear-gradient(to bottom right,  transparent calc(50% - 1px), black, transparent calc(50% + 1px))';
-    } elseif ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED') {
-        if ($side == 'home') {
-            $zone_color = 'lightblue';
-        } else {
-            $zone_color = 'pink';
-        }
-
-        $crossed = '';
-    } else {
-        if ($side == 'home') {
-            $zone_color = 'dodgerblue';
-        } else {
-            $zone_color = 'red';
-        }
-
-        $crossed = '';
-    }
-
-    if ($zones[$side][$zone_name]['zoneState'] == 'ZONEOPEN') {
-        $border_style = "5px solid yellow";
-    } else {
-        $border_style = "3px solid white";
-    }
-
-    $side_zone_name = substr($side, 0, 1).$zone_name;
-    echo '<td width="25" rowspan="'.$rowspan.'" style="background-color:'.$zone_color.';'.$crossed.';border:'.$border_style.'" onclick="openZone(event, \''.$side.'\', \''.$side_zone_name.'\')">';
-
-        // do not share sensitive information
-        if ($zones[$side][$zone_name]['zoneState'] == 'ZONELOCKED') {
-            // considered not open
-            echo "<b>".$zone_name."</b><br/>?/".$zones[$side][$zone_name]['size'];
-        } else {
-            echo "<b>".$zone_name."</b><br/>".($zones[$side][$zone_name]['filled']-$zones[$side][$zone_name]['victories'])."/".$zones[$side][$zone_name]['size'];
-        }
-        echo "</td'>\n";
-}
-?>
 
 
 <!DOCTYPE html>
@@ -189,73 +143,26 @@ function zone_txt($zone_name, $side, $zones, $rowspan, $isMyGuildConfirmed) {
 
     <?php foreach($tw_data as $guild_id => $tw) {
         $zones = $tw['zones'];
+        $tw_id = $tw['id'];
+
+        // twheader.php expects the complete TW record. Build the fields it needs
+        // from the public data already loaded above. Access remains public:
+        // twall.php intentionally calls the map with zone details hidden.
+        $tw_header_data = [
+            'guild_id' => $guild_id,
+            'away_guild_id' => null,
+            'guild_name' => $tw['homeName'],
+            'away_guild_name' => $tw['awayName'],
+            'homeScore' => $tw['homeScore'],
+            'awayScore' => $tw['awayScore'],
+            'lastUpdated' => $tw['lastUpdated'],
+        ];
+
+        $tw = $tw_header_data;
+        $twheader_use_existing_zones = true;
+        $twheader_map_only = true;
+        render_tw_map($tw, $zones, false, true);
     ?>
-    <!-- Overview of zones -->
-    <div class="card">
-    <div class="row">
-    <div class="col s12">
-            <p><a href="tw.php?id=<?php echo $tw['id'];?>"><?php echo ($tw['homeScore']>=$tw['awayScore']?'&#9989;':'&#10060;')."<b>".$tw['homeName']." vs ".$tw['awayName']."</b>";?></a></p>
-            <p>(last Update on <?php echo ($tw['oldData']?"<b style='color:red;'>":"").$tw['lastUpdated'].($tw['oldData']?"</b>":"");?>)</p>
-    <div class="card">
-    <div class="col s6">
-            <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo $tw['homeScore'];?></b>
-            <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:dodgerblue;color:white">
-                <tr height="33">
-                    <?php zone_txt('F2', 'home', $zones, 2, false); ?>
-                    <?php zone_txt('F1', 'home', $zones, 2, false); ?>
-                    <?php zone_txt('T2', 'home', $zones, 3, false); ?>
-                    <?php zone_txt('T1', 'home', $zones, 3, false); ?>
-                </tr>
-                <tr height="33"/>
-                <tr height="33">
-                    <?php zone_txt('T4', 'home', $zones, 2, false); ?>
-                    <?php zone_txt('T3', 'home', $zones, 2, false); ?>
-                </tr>
-                <tr height="33">
-                    <?php zone_txt('B2', 'home', $zones, 3, false); ?>
-                    <?php zone_txt('B1', 'home', $zones, 3, false); ?>
-                </tr>
-                <tr height="33">
-                    <?php zone_txt('B4', 'home', $zones, 3, false); ?>
-                    <?php zone_txt('B3', 'home', $zones, 3, false); ?>
-                </tr>
-                <tr height="33"/>
-            </table>
-    </div> <!-- col s6 -->
-    </div> <!-- card -->
-
-    <div class="card">
-    <div class="col s6">
-            <b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<?php echo $tw['awayScore'];?></b>
-            <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:red;color:white">
-                <tr height="33">
-                    <?php zone_txt('T1', 'away', $zones, 3, false); ?>
-                    <?php zone_txt('T2', 'away', $zones, 3, false); ?>
-                    <?php zone_txt('F1', 'away', $zones, 2, false); ?>
-                    <?php zone_txt('F2', 'away', $zones, 2, false); ?>
-                </tr>
-                <tr height="33"/>
-                <tr height="33">
-                    <?php zone_txt('T3', 'away', $zones, 2, false); ?>
-                    <?php zone_txt('T4', 'away', $zones, 2, false); ?>
-                </tr>
-                <tr height="33">
-                    <?php zone_txt('B1', 'away', $zones, 3, false); ?>
-                    <?php zone_txt('B2', 'away', $zones, 3, false); ?>
-                </tr>
-                <tr height="33">
-                    <?php zone_txt('B3', 'away', $zones, 2, false); ?>
-                    <?php zone_txt('B4', 'away', $zones, 2, false); ?>
-                </tr>
-                <tr height="33"/>
-            </table>
-    </div> <!-- col s6 -->
-    </div> <!-- card -->
-    </div> <!-- col s12 -->
-    </div> <!-- row -->
-    </div> <!-- card -->
-
-    <?php } ?>
 
     </div> <!-- container -->
     </div> <!-- site-content -->

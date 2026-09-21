@@ -1,6 +1,7 @@
 <?php
 // --------------- GET ZONE INFO FOR THE TW -----------
 
+if (empty($twheader_use_existing_zones)) {
 $query = "SELECT side, zone_name, size, filled, victories, fails, zoneState, commandMsg
           FROM tw_zones
           WHERE tw_id = :tw_id";
@@ -12,6 +13,7 @@ try {
 } catch (PDOException $e) {
     error_log("Error fetching zone data: " . $e->getMessage());
     $zone_list = [];
+}
 }
 
 // Reorganize by side then zone.
@@ -84,7 +86,7 @@ if (!function_exists('render_tw_map')) {
         <style>
             .tw-map {
                 width: 100%;
-                max-width: 430px;
+                max-width: 323px;
                 aspect-ratio: 1 / 1;
                 margin: 0 auto;
                 border-radius: 50%;
@@ -100,17 +102,17 @@ if (!function_exists('render_tw_map')) {
                 overflow: hidden;
                 text-align: center;
                 vertical-align: middle;
-                padding: 1px;
+                padding: 3px;
                 box-sizing: border-box;
                 word-break: break-word;
                 overflow-wrap: anywhere;
                 line-height: 1.05;
-                font-size: clamp(8px, 2vw, 13px);
+                font-size: clamp(9px, 2vw, 12px);
             }
             .tw-map td b {
                 display: inline-block;
                 max-width: 100%;
-                font-size: clamp(9px, 2.2vw, 14px);
+                font-size: clamp(10px, 2.3vw, 13px);
             }
         </style>
         <!-- Overview of zones -->
@@ -118,7 +120,7 @@ if (!function_exists('render_tw_map')) {
             <div class="col s12">
                 <div class="col s6">
                     <div class="card">
-                        <h3><?php echo htmlspecialchars($tw['homeScore'], ENT_QUOTES, 'UTF-8'); ?>/<small><?php echo htmlspecialchars($tw['homePotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small></h3>
+                        <h3><?php echo htmlspecialchars($tw['homeScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['homePotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['homePotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?></h3>
                         <div class="tw-map"><table style="background-color:dodgerblue;color:white">
                             <tr height="33">
                                 <?php zone_txt('F2', 'home', $zones, 2, $can_show_zone_data, $with_links); ?>
@@ -146,7 +148,7 @@ if (!function_exists('render_tw_map')) {
 
                 <div class="col s6">
                     <div class="card">
-                        <h3><?php echo htmlspecialchars($tw['awayScore'], ENT_QUOTES, 'UTF-8'); ?>/<small><?php echo htmlspecialchars($tw['awayPotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small></h3>
+                        <h3><?php echo htmlspecialchars($tw['awayScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['awayPotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['awayPotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?></h3>
                         <div class="tw-map"><table style="background-color:red;color:white">
                             <tr height="33">
                                 <?php zone_txt('T1', 'away', $zones, 3, $can_show_zone_data, $with_links); ?>
