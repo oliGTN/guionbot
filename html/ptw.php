@@ -190,7 +190,7 @@ $rarity_values = [
         .tw-team-portraits {
             display: flex;
             align-items: flex-start;
-            gap: 0.25rem;
+            gap: 0.5rem;
             min-height: 90px;
             white-space: nowrap;
         }
