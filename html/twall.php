@@ -67,7 +67,7 @@ $query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName, ga.name AS 
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
+    $stmt->execute($params);
 
     // Fetch all the results as an associative array
     $tw_db_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -76,6 +76,7 @@ try {
     error_log("Error fetching TW data: " . $e->getMessage());
     echo "Error fetching TW data: " . $e->getMessage();
 }
+$tw_db_data = $tw_db_data ?? [];
 $tw_data = [];
 foreach($tw_db_data as $tw_line) {
     $guild_id = $tw_line['guild_id'];
