@@ -49,6 +49,10 @@ $tw = null;
 if ($tw_id !== false && $tw_id !== null) {
     $tw_id = (int) $tw_id;
     include 'twvariables.php';
+
+    // Use the same guild-rights variables as twheader.php.
+    [$isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer]
+        = set_session_rights_for_guild($guild_id);
 }
 
 // Get the player's squads for this TW.
@@ -231,7 +235,7 @@ $rarity_values = [
 <?php foreach ($ordered_squads_by_zone as $zone_name => $zone_squads): ?>
                     <div class="card tw-zone">
                         <?php
-                        $command_msg = $zones[$tw['guild_id']][$zone_name]['commandMsg'] ?? '';
+                        $command_msg = $zones['home'][$zone_name]['commandMsg'] ?? '';
                         ?>
                         <div class="tw-zone-header">
                             <h4><?php echo htmlspecialchars($zone_name, ENT_QUOTES, 'UTF-8'); ?></h4>
