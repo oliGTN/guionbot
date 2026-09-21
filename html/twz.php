@@ -142,7 +142,7 @@ foreach($event_list as $event_element) {
 function event_table($events, $zone_name, $zone_side) {
     if (isset($events[$zone_side][$zone_name])) {
         $zone_events = $events[$zone_side][$zone_name];
-        echo "<table>\n";
+        echo "<table class='tw-team-table'>\n";
         foreach($zone_events as $event) {
             echo "<tr>";
             $ts_hour = explode(' ', $event['timestamp'])[1];
