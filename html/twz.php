@@ -225,7 +225,8 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                     $unit['relic'], 
                     $unit['zetaCount'], 
                     $unit['omicronCount'],
-                    $unit_isShip
+                    $unit_isShip,
+                    $unit_isShip && (int) $cellIndex >= 4
                 );
                 echo "</td>";
             }
