@@ -69,6 +69,33 @@ try {
     echo "Error fetching TW data: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
 }
 
+
+$tw_data = [];
+foreach ($tw_db_data as $tw_line) {
+    $guild_id = $tw_line['guild_id'];
+
+    if (!isset($tw_data[$guild_id])) {
+        $tw_data[$guild_id] = [
+            'id' => $tw_line['id'],
+            'homeName' => $tw_line['homeName'],
+            'awayName' => $tw_line['awayName'],
+            'homeScore' => $tw_line['homeScore'],
+            'awayScore' => $tw_line['awayScore'],
+            'lastUpdated' => $tw_line['lastUpdated'],
+            'oldData' => $tw_line['oldData'],
+            'zones' => ['home' => [], 'away' => []],
+        ];
+    }
+
+    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']] = [
+        'size' => $tw_line['size'],
+        'filled' => $tw_line['filled'],
+        'victories' => $tw_line['victories'],
+        'fails' => $tw_line['fails'],
+        'zoneState' => $tw_line['zoneState'],
+    ];
+}
+
 ?>
 
 
