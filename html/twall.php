@@ -141,6 +141,8 @@ foreach($tw_db_data as $tw_line) {
     </script>
 
 
+    <?php include 'twheader.php'; ?>
+
     <?php foreach($tw_data as $guild_id => $tw) {
         $zones = $tw['zones'];
         $tw_id = $tw['id'];
