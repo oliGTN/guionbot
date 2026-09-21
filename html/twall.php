@@ -143,16 +143,20 @@ foreach($tw_db_data as $tw_line) {
 
 
     <?php
-    // Reuse the common TW map renderer, but keep twall.php public:
-    // no confidential zone data and no zone links.
+    // Reuse twheader.php for every TW. twall.php is public, so no
+    // confidential data is shown and the TW navigation bar is disabled.
     $twheader_use_existing_zones = true;
-    include 'twheader.php';
-    ?>
+    $twheader_no_navbar = true;
+    $isMyGuild = false;
+    $isMyGuildConfirmed = false;
+    $isBonusGuild = false;
+    $isOfficer = false;
+    $isAdmin = false;
 
-    <?php foreach ($tw_data as $guild_id => $tw) {
+    foreach ($tw_data as $guild_id => $tw) {
         $zones = $tw['zones'];
 
-        $tw_header_data = [
+        $tw_header = [
             'guild_id' => $guild_id,
             'away_guild_id' => null,
             'guild_name' => $tw['homeName'],
@@ -161,22 +165,13 @@ foreach($tw_db_data as $tw_line) {
             'awayScore' => $tw['awayScore'],
             'lastUpdated' => $tw['lastUpdated'],
         ];
-    ?>
-        <h2>
-            <a href="/g.php?gid=<?php echo (int) $guild_id; ?>">
-                <?php echo htmlspecialchars($tw['homeName'], ENT_QUOTES, 'UTF-8'); ?>
-            </a>
-            vs
-            <?php echo htmlspecialchars($tw['awayName'], ENT_QUOTES, 'UTF-8'); ?>
-        </h2>
 
-        <div><br/>
-            <?php echo '(last update on ' . htmlspecialchars($tw['lastUpdated'], ENT_QUOTES, 'UTF-8') . ')'; ?>
-        </div>
-
-        <?php render_tw_map($tw_header_data, $zones, false, false); ?>
-    <?php } ?>
-
+        // twheader.php renders the title, timestamp and map. Access to
+        // zone details is explicitly disabled for this public page.
+        $tw = $tw_header;
+        include 'twheader.php';
+    }
+?>
     </div> <!-- container -->
     </div> <!-- site-content -->
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
