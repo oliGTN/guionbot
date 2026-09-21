@@ -1,6 +1,6 @@
 <?php
 
-function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_count, $omicron_count, $is_ship) {
+function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_count, $omicron_count, $is_ship, $small = false) {
     // unitRelicTier is stored using the SWGOH tier numbering:
     // 2 = no relic, 3 = R1, ..., 11 = R9.
     // Keep support for callers that already pass a 0-9 relic level.
@@ -14,7 +14,9 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
         }
     }
 
-    echo "<div class='portrait-container'>";
+    $small_class = $small ? ' portrait-small' : '';
+
+    echo "<div class='portrait-container".$small_class."'>";
     echo "<img class='character-avatar' src='IMAGES/CHARACTERS/".$char_id.".png' alt='".$char_id."'>";
 
     // Gear frame
@@ -36,8 +38,6 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
     // For relic characters the relic badge replaces this badge.
     if (!$is_ship) {
         if ($relic_level > 0) {
-            #adjust background-position to get the right 34x34
-            # image from the atlas
             if ($alignment == 3) {
                 echo "<div class='relic-badge' style='background-position:0 -34px'>";
             } else if ($alignment == 2) {
@@ -52,7 +52,6 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
         }
     }
 
-    // Zeta count, displayed only when at least one zeta is present.
     if (is_numeric($zeta_count) && (int)$zeta_count > 0) {
         echo "<div class='zeta-badge'>";
         echo "<img src='IMAGES/PORTRAIT_FRAME/tex.skill_zeta_glow.png' alt='Zetas'>";
@@ -60,7 +59,6 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
         echo "</div>";
     }
 
-    // Omicron count, displayed only when at least one omicron is present.
     if (is_numeric($omicron_count) && (int)$omicron_count > 0) {
         echo "<div class='omicron-badge'>";
         echo "<img src='IMAGES/PORTRAIT_FRAME/tex.skill_omicron.png' alt='Omicrons'>";
@@ -68,7 +66,6 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
         echo "</div>";
     }
 
-    // Star rating
     echo "<div class='star-rating'>";
     foreach (range(1, $rarity) as $value) {
         echo "<img class='star' src='IMAGES/PORTRAIT_FRAME/star.png' alt='Active Star'>";
