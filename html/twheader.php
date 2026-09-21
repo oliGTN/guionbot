@@ -147,8 +147,8 @@ if (!function_exists('render_tw_map')) {
 
 if (empty($twheader_map_only)) {
 ?>
-    <h2>TW for <a href="/g.php?gid=<?php echo (int) $tw['guild_id']; ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
-        vs <a href="/g.php?gid=<?php echo (int) $tw['away_guild_id']; ?>"><?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
+    <h2>TW for <a href="/g.php?gid=<?php echo htmlspecialchars($tw['guild_id']); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
+        vs <a href="/g.php?gid=<?php echo htmlspecialchars($tw['away_guild_id']); ?>"><?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
     </h2>
 
     <div class="card">

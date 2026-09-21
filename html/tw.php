@@ -176,7 +176,7 @@ if ($sort_column<>'name') {
                     $line_color = ($isMyallyCode?'lightgray':'');
                     echo "\t\t\t<tr style='background-color:".$line_color."'>\n";
                     echo "\t\t\t<td>".$i_player."</td>\n";
-                    echo "\t\t\t<td>".htmlspecialchars($player['name'])."</td>\n";
+                    echo "\t\t\t<td><a href='ptw.php?ac=".intval($player['allyCode'])."'>".htmlspecialchars($player['name'])."</a></td>\n";
                     echo "\t\t\t\t<td>".$player['t_fights']."</td>\n";
                     echo "\t\t\t\t<td>".$player['t_wins']."</td>\n";
                     echo "\t\t\t\t<td class='hide-on-med-and-down'>".$player['c_fights']."</td>\n";
