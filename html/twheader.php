@@ -16,10 +16,12 @@ try {
 }
 }
 
-// Reorganize by side then zone.
-$zones = [];
-foreach ($zone_list as $zone) {
-    $zones[$zone['side']][$zone['zone_name']] = $zone;
+// Reorganize by side then zone when twheader fetched the data itself.
+if (empty($twheader_use_existing_zones)) {
+    $zones = [];
+    foreach ($zone_list as $zone) {
+        $zones[$zone['side']][$zone['zone_name']] = $zone;
+    }
 }
 
 if (!function_exists('zone_txt')) {
@@ -215,7 +217,7 @@ render_tw_map(
     empty($twheader_map_only)
 );
 
-if (empty($twheader_map_only)) {
+if (empty($twheader_no_navbar)) {
     include 'twnavbar.php';
 ?>
 <script>
