@@ -81,13 +81,45 @@ if (!function_exists('zone_txt')) {
 if (!function_exists('render_tw_map')) {
     function render_tw_map($tw, $zones, $can_show_zone_data, $with_links = true) {
         ?>
+        <style>
+            .tw-map {
+                width: 100%;
+                max-width: 430px;
+                aspect-ratio: 1 / 1;
+                margin: 0 auto;
+                border-radius: 50%;
+                overflow: hidden;
+            }
+            .tw-map table {
+                width: 100% !important;
+                height: 100% !important;
+                table-layout: fixed;
+                border-collapse: collapse;
+            }
+            .tw-map td {
+                overflow: hidden;
+                text-align: center;
+                vertical-align: middle;
+                padding: 1px;
+                box-sizing: border-box;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+                line-height: 1.05;
+                font-size: clamp(8px, 2vw, 13px);
+            }
+            .tw-map td b {
+                display: inline-block;
+                max-width: 100%;
+                font-size: clamp(9px, 2.2vw, 14px);
+            }
+        </style>
         <!-- Overview of zones -->
         <div class="row">
             <div class="col s12">
                 <div class="col s6">
                     <div class="card">
                         <h3><?php echo htmlspecialchars($tw['homeScore'], ENT_QUOTES, 'UTF-8'); ?>/<small><?php echo htmlspecialchars($tw['homePotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small></h3>
-                        <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:dodgerblue;color:white">
+                        <div class="tw-map"><table style="background-color:dodgerblue;color:white">
                             <tr height="33">
                                 <?php zone_txt('F2', 'home', $zones, 2, $can_show_zone_data, $with_links); ?>
                                 <?php zone_txt('F1', 'home', $zones, 2, $can_show_zone_data, $with_links); ?>
@@ -108,14 +140,14 @@ if (!function_exists('render_tw_map')) {
                                 <?php zone_txt('B3', 'home', $zones, 3, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33"></tr>
-                        </table>
+                        </table></div>
                     </div>
                 </div>
 
                 <div class="col s6">
                     <div class="card">
                         <h3><?php echo htmlspecialchars($tw['awayScore'], ENT_QUOTES, 'UTF-8'); ?>/<small><?php echo htmlspecialchars($tw['awayPotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small></h3>
-                        <table height="200" width="200" style="table-layout:fixed;width:200px;height:200px;background-color:red;color:white">
+                        <div class="tw-map"><table style="background-color:red;color:white">
                             <tr height="33">
                                 <?php zone_txt('T1', 'away', $zones, 3, $can_show_zone_data, $with_links); ?>
                                 <?php zone_txt('T2', 'away', $zones, 3, $can_show_zone_data, $with_links); ?>
@@ -136,7 +168,7 @@ if (!function_exists('render_tw_map')) {
                                 <?php zone_txt('B4', 'away', $zones, 2, $can_show_zone_data, $with_links); ?>
                             </tr>
                             <tr height="33"></tr>
-                        </table>
+                        </table></div>
                     </div>
                 </div>
             </div>
