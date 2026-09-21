@@ -190,7 +190,7 @@ $rarity_values = [
         .tw-team-portraits {
             display: flex;
             align-items: flex-start;
-            gap: 0.5rem;
+            gap: 2rem;
             min-height: 90px;
             white-space: nowrap;
         }
@@ -247,7 +247,7 @@ $rarity_values = [
                         <div class="tw-team">
                             <div class="tw-team-portraits">
 <?php
-foreach (array_slice($squad['cells'], 0, 5) as $unit) {
+foreach ($squad['cells'] as $unit) {
     $def_parts = explode(':', (string) $unit['defId']);
     $unit_short_id = $def_parts[0];
     $unit_rarity = $rarity_values[$def_parts[1] ?? ''] ?? 7;
@@ -267,7 +267,8 @@ foreach (array_slice($squad['cells'], 0, 5) as $unit) {
         $unit['unitRelicTier'],
         $unit['zetaCount'],
         $unit['omicronCount'],
-        $unit_isShip
+        $unit_isShip,
+        $unit_isShip && (int) $unit['cellIndex'] >= 4
     );
 }
 ?>
