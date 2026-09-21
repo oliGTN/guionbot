@@ -22,7 +22,7 @@ if (!isset($_GET['ac'])) {
 }
 
 $allycode = get_required_ally_code();
-[$isMyAllycode, $isMyAllycodeConfirmed] = set_session_rights_for_allycode($allycode);
+[$isMyAllycode, $isMyAllycodeConfirmed, $isGuildMate] = set_session_rights_for_allycode($allycode);
 
 include 'pdata.php';
 include 'portrait.php';
@@ -272,6 +272,7 @@ function player_tw_zone_cell($zone_name, $side, $zones, $rowspan) {
             <div class="container">
                 <?php include 'pheader.php'; ?>
 
+<?php if ($isGuildMate||$isAdmin): ?>
 <?php if (!$tw): ?>
                 <div class="card">
                     No Territory War found for this player's current guild.
@@ -392,7 +393,11 @@ foreach (array_slice($squad['cells'], 0, 5) as $unit) {
 <?php endif; ?>
                 </div>
 <?php endif; ?>
+
             </div>
+<?php else: ?>
+        You are not allowed to see TW data for this guild
+<?php endif; //($isMyGuildConfirmed||$isBonusGuild) ?>
         </div>
 
         <div class="site-cache" id="site-cache"></div>
