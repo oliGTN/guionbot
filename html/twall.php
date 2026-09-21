@@ -17,7 +17,7 @@ $query .= " ORDER BY start_date DESC";
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute($params);
+    $stmt->execute();
 
     // Fetch all the results as an associative array
     $tw_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
