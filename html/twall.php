@@ -164,6 +164,8 @@ foreach($tw_db_data as $tw_line) {
         render_tw_map($tw, $zones, false, true);
     ?>
 
+    <?php } ?>
+
     </div> <!-- container -->
     </div> <!-- site-content -->
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
