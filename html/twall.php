@@ -17,7 +17,7 @@ $query .= " ORDER BY start_date DESC";
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
-    $stmt->execute();
+    $stmt->execute($params);
 
     // Fetch all the results as an associative array
     $tw_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -43,18 +43,26 @@ if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_
 }
 
 
-// Get the associated TW data
-// Prepare the SQL query
-$query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName,  ga.name AS awayName, homeScore, awayScore,";
-$query .= " zone_name, side, size, filled, victories, fails,";
-$query .= " zoneState, tw_history.lastUpdated AS lastUpdated,";
-$query .= " TIMESTAMPDIFF(HOUR, tw_history.lastUpdated, CURRENT_TIMESTAMP) >=1 AS oldData";
-$query .= " FROM tw_history";
-$query .= " JOIN guilds AS gh ON gh.id=guild_id";
-$query .= " JOIN guilds AS ga ON ga.id=away_guild_id";
-$query .= " JOIN tw_zones ON tw_zones.tw_id=tw_history.id";
-$query .= " WHERE tw_history.tw_id='".$tw_id."'";
-$query .= " ORDER BY gh.name";
+// Get the associated TW data for every TW in the history.
+$tw_ids = array_column($tw_list, 'tw_id');
+$placeholders = [];
+$params = [];
+foreach ($tw_ids as $index => $history_tw_id) {
+    $placeholder = ':tw_id_' . $index;
+    $placeholders[] = $placeholder;
+    $params[$placeholder] = $history_tw_id;
+}
+
+$query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName, ga.name AS awayName,
+                 homeScore, awayScore, zone_name, side, size, filled, victories, fails,
+                 zoneState, tw_history.lastUpdated AS lastUpdated,
+                 TIMESTAMPDIFF(HOUR, tw_history.lastUpdated, CURRENT_TIMESTAMP) >= 1 AS oldData
+          FROM tw_history
+          JOIN guilds AS gh ON gh.id = guild_id
+          JOIN guilds AS ga ON ga.id = away_guild_id
+          JOIN tw_zones ON tw_zones.tw_id = tw_history.id
+          WHERE tw_history.tw_id IN (" . implode(',', $placeholders) . ")
+          ORDER BY tw_history.tw_id DESC, gh.name";
 //error_log("query = ".$query);
 try {
     // Prepare the SQL query
