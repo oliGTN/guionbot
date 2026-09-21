@@ -279,6 +279,11 @@ function openZone(evt, zoneSide, zoneName) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="portrait.css">
 <style>
+.tw-team-table td {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
 
 /* Style the tab */
 .tab {
