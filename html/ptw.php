@@ -28,57 +28,27 @@ include 'pdata.php';
 include 'portrait.php';
 
 // Find the most recent TW recorded for the player's current guild.
-$tw = null;
+$tw_id = null;
 try {
     $stmt = $conn_guionbot->prepare(
-        "SELECT
-            tw_history.id,
-            tw_history.tw_id,
-            tw_history.guild_id,
-            guilds.name AS guild_name,
-            tw_history.away_guild_id,
-            tw_history.away_guild_name,
-            tw_history.homeScore,
-            tw_history.awayScore,
-            tw_history.lastUpdated
+        "SELECT id
          FROM tw_history
-         JOIN guilds ON guilds.id = tw_history.guild_id
-         WHERE tw_history.guild_id = :guild_id
-         ORDER BY tw_history.start_date DESC
+         WHERE guild_id = :guild_id
+         ORDER BY start_date DESC
          LIMIT 1"
     );
     $stmt->execute([':guild_id' => $player['guild_id']]);
-    $tw = $stmt->fetch(PDO::FETCH_ASSOC);
+    $tw_id = $stmt->fetchColumn();
 } catch (PDOException $e) {
     error_log('Error fetching player TW: ' . $e->getMessage());
 }
 
-// Get the zone information for the selected TW.
-$zones = [];
-if ($tw) {
-    try {
-        $stmt = $conn_guionbot->prepare(
-            "SELECT
-                side,
-                zone_name,
-                size,
-                filled,
-                victories,
-                fails,
-                zoneState,
-                commandMsg
-             FROM tw_zones
-             WHERE tw_id = :tw_id"
-        );
-        $stmt->execute([':tw_id' => $tw['id']]);
-        $zone_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($zone_list as $zone) {
-            $zones[$zone['side']][$zone['zone_name']] = $zone;
-        }
-    } catch (PDOException $e) {
-        error_log('Error fetching player TW zones: ' . $e->getMessage());
-    }
+// twvariables.php provides the complete TW information, including scores
+// and potential scores, and twheader.php renders the common TW map.
+$tw = null;
+if ($tw_id !== false && $tw_id !== null) {
+    $tw_id = (int) $tw_id;
+    include 'twvariables.php';
 }
 
 // Get the player's squads for this TW.
@@ -102,10 +72,18 @@ if ($tw) {
                  ON tw_squads.id = tw_squad_cells.squad_id
              WHERE tw_squads.tw_id = :tw_id
                AND tw_squads.player_name = :player_name
-             ORDER BY tw_squads.zone_name, tw_squad_cells.squad_id, tw_squad_cells.cellIndex"
+             ORDER BY
+                FIELD(
+                    tw_squads.zone_name,
+                    'B1', 'T1', 'B2', 'T2',
+                    'B3', 'T3', 'B4', 'T4',
+                    'F1', 'F2'
+                ),
+                tw_squad_cells.squad_id,
+                tw_squad_cells.cellIndex"
         );
         $stmt->execute([
-            ':tw_id' => $tw['id'],
+            ':tw_id' => $tw_id,
             ':player_name' => $player['name'],
         ]);
         $squad_list = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -114,23 +92,46 @@ if ($tw) {
     }
 }
 
-// Group cells into teams.
-$squads = [];
+// Group cells into teams, then teams by zone.
+$squads_by_zone = [];
 foreach ($squad_list as $cell) {
     $squad_id = (string) $cell['squad_id'];
 
-    if (!isset($squads[$squad_id])) {
-        $squads[$squad_id] = [
+    if (!isset($squads_by_zone[$cell['zone_name']])) {
+        $squads_by_zone[$cell['zone_name']] = [];
+    }
+
+    if (!isset($squads_by_zone[$cell['zone_name']][$squad_id])) {
+        $squads_by_zone[$cell['zone_name']][$squad_id] = [
             'zone_name' => $cell['zone_name'],
             'player_name' => $cell['player_name'],
             'cells' => [],
         ];
     }
 
-    $squads[$squad_id]['cells'][] = $cell;
+    $squads_by_zone[$cell['zone_name']][$squad_id]['cells'][] = $cell;
 }
 
-// SWGOH rarity is encoded in the defId after the colon.
+// Keep the same logical order as the TW map.
+$zone_order = [
+    'B1', 'T1', 'B2', 'T2',
+    'B3', 'T3', 'B4', 'T4',
+    'F1', 'F2',
+];
+
+$ordered_squads_by_zone = [];
+foreach ($zone_order as $zone_name) {
+    if (isset($squads_by_zone[$zone_name])) {
+        $ordered_squads_by_zone[$zone_name] = $squads_by_zone[$zone_name];
+    }
+}
+
+$dict_units = [];
+$dict_units_file = '../DATA/unitsList_dict.json';
+if (is_readable($dict_units_file)) {
+    $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
+}
+
 $rarity_values = [
     'ONE_STAR' => 1,
     'TWO_STAR' => 2,
@@ -140,52 +141,6 @@ $rarity_values = [
     'SIX_STAR' => 6,
     'SEVEN_STAR' => 7,
 ];
-
-$dict_units = [];
-$dict_units_file = '../DATA/unitsList_dict.json';
-if (is_readable($dict_units_file)) {
-    $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
-}
-
-function player_tw_zone_color($zone, $side) {
-    if (!$zone) {
-        return $side === 'home' ? 'dodgerblue' : 'red';
-    }
-
-    if ($zone['zoneState'] === 'ZONECOMPLETE') {
-        return $side === 'home' ? 'darkblue' : 'darkred';
-    }
-
-    if ((int) $zone['filled'] < (int) $zone['size'] || $zone['zoneState'] === 'ZONELOCKED') {
-        return $side === 'home' ? 'lightblue' : 'pink';
-    }
-
-    return $side === 'home' ? 'dodgerblue' : 'red';
-}
-
-function player_tw_zone_cell($zone_name, $side, $zones, $rowspan) {
-    $zone = $zones[$side][$zone_name] ?? null;
-    $zone_color = player_tw_zone_color($zone, $side);
-    $crossed = $zone && $zone['zoneState'] === 'ZONECOMPLETE'
-        ? 'background-image: linear-gradient(to bottom right, transparent calc(50% - 1px), black, transparent calc(50% + 1px));'
-        : '';
-    $border = $zone && $zone['zoneState'] === 'ZONEOPEN'
-        ? '5px solid yellow'
-        : '3px solid white';
-
-    echo '<td width="25" rowspan="' . (int) $rowspan . '" '
-        . 'style="background-color:' . h($zone_color) . ';' . $crossed . 'border:' . $border . ';">';
-    echo '<b>' . h($zone_name) . '</b><br/>';
-
-    if (!$zone) {
-        echo '0/0';
-    } else {
-        echo h((int) $zone['filled'] - (int) $zone['victories'])
-            . '/' . h((int) $zone['size']);
-    }
-
-    echo '</td>';
-}
 ?>
 <!DOCTYPE html>
 <html>
@@ -199,48 +154,37 @@ function player_tw_zone_cell($zone_name, $side, $zones, $rowspan) {
     <link rel="stylesheet" href="portrait.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
-        .player-tw-map {
-            display: flex;
-            flex-wrap: wrap;
-        }
-
-        .player-tw-map .tw-side {
-            width: 50%;
-            box-sizing: border-box;
-            padding: 0 0.75rem;
-        }
-
-        .player-tw-map table {
-            table-layout: fixed;
-            width: 200px;
-            height: 200px;
-            color: white;
-            margin: 0 auto;
-        }
-
-        .player-tw-map .tw-home-map {
-            background-color: dodgerblue;
-        }
-
-        .player-tw-map .tw-away-map {
-            background-color: red;
-        }
-
-        .tw-teams {
+        .tw-zone-teams {
             display: grid;
-            gap: 1rem;
+            gap: 1.25rem;
         }
 
-        .tw-team {
+        .tw-zone {
             overflow-x: auto;
         }
 
-        .tw-team-header {
-            margin-bottom: 0.5rem;
+        .tw-zone-header {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
         }
 
-        .tw-team-header strong {
-            margin-right: 1rem;
+        .tw-zone-header h4 {
+            margin: 0;
+        }
+
+        .tw-zone-command {
+            font-size: 0.95rem;
+            font-weight: normal;
+        }
+
+        .tw-team {
+            margin-bottom: 1rem;
+        }
+
+        .tw-team:last-child {
+            margin-bottom: 0;
         }
 
         .tw-team-portraits {
@@ -253,13 +197,6 @@ function player_tw_zone_cell($zone_name, $side, $zones, $rowspan) {
 
         .tw-team-portraits > div {
             flex: 0 0 auto;
-        }
-
-        @media only screen and (max-width: 700px) {
-            .player-tw-map .tw-side {
-                width: 100%;
-                margin-bottom: 1rem;
-            }
         }
     </style>
 </head>
@@ -277,91 +214,37 @@ function player_tw_zone_cell($zone_name, $side, $zones, $rowspan) {
                     No Territory War found for this player's current guild.
                 </div>
 <?php else: ?>
-                <h3>My Territory War</h3>
-                <div class="card">
-                    <p>
-                        <strong>TW:</strong>
-                        <?php echo h($tw['guild_name']); ?>
-                        vs
-                        <?php echo h($tw['away_guild_name']); ?>
-                    </p>
-                    <p>
-                        <small>Last update: <?php echo h($tw['lastUpdated']); ?></small>
-                    </p>
-
-                    <div class="player-tw-map">
-                        <div class="tw-side">
-                            <h4>
-                                <?php echo h($tw['homeScore']); ?>
-                            </h4>
-                            <table class="tw-home-map">
-                                <tr>
-                                    <?php player_tw_zone_cell('F2', 'home', $zones, 2); ?>
-                                    <?php player_tw_zone_cell('F1', 'home', $zones, 2); ?>
-                                    <?php player_tw_zone_cell('T2', 'home', $zones, 3); ?>
-                                    <?php player_tw_zone_cell('T1', 'home', $zones, 3); ?>
-                                </tr>
-                                <tr height="33"></tr>
-                                <tr>
-                                    <?php player_tw_zone_cell('T4', 'home', $zones, 2); ?>
-                                    <?php player_tw_zone_cell('T3', 'home', $zones, 2); ?>
-                                </tr>
-                                <tr>
-                                    <?php player_tw_zone_cell('B2', 'home', $zones, 3); ?>
-                                    <?php player_tw_zone_cell('B1', 'home', $zones, 3); ?>
-                                </tr>
-                                <tr>
-                                    <?php player_tw_zone_cell('B4', 'home', $zones, 3); ?>
-                                    <?php player_tw_zone_cell('B3', 'home', $zones, 3); ?>
-                                </tr>
-                                <tr height="33"></tr>
-                            </table>
-                        </div>
-
-                        <div class="tw-side">
-                            <h4>
-                                <?php echo h($tw['awayScore']); ?>
-                            </h4>
-                            <table class="tw-away-map">
-                                <tr>
-                                    <?php player_tw_zone_cell('T1', 'away', $zones, 3); ?>
-                                    <?php player_tw_zone_cell('T2', 'away', $zones, 3); ?>
-                                    <?php player_tw_zone_cell('F1', 'away', $zones, 2); ?>
-                                    <?php player_tw_zone_cell('F2', 'away', $zones, 2); ?>
-                                </tr>
-                                <tr height="33"></tr>
-                                <tr>
-                                    <?php player_tw_zone_cell('T3', 'away', $zones, 2); ?>
-                                    <?php player_tw_zone_cell('T4', 'away', $zones, 2); ?>
-                                </tr>
-                                <tr>
-                                    <?php player_tw_zone_cell('B1', 'away', $zones, 3); ?>
-                                    <?php player_tw_zone_cell('B2', 'away', $zones, 3); ?>
-                                </tr>
-                                <tr>
-                                    <?php player_tw_zone_cell('B3', 'away', $zones, 2); ?>
-                                    <?php player_tw_zone_cell('B4', 'away', $zones, 2); ?>
-                                </tr>
-                                <tr height="33"></tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                <?php
+                // Render the exact same TW map and scores as tw.php/twz.php.
+                $twheader_map_only = true;
+                include 'twheader.php';
+                ?>
 
                 <h3>My TW teams</h3>
-                <div class="tw-teams">
-<?php if (empty($squads)): ?>
+
+                <div class="tw-zone-teams">
+<?php if (empty($ordered_squads_by_zone)): ?>
                     <div class="card">
                         No teams found for this Territory War.
                     </div>
 <?php else: ?>
-<?php foreach ($squads as $squad): ?>
-                    <div class="card tw-team">
-                        <div class="tw-team-header">
-                            <strong><?php echo h($squad['zone_name']); ?></strong>
+<?php foreach ($ordered_squads_by_zone as $zone_name => $zone_squads): ?>
+                    <div class="card tw-zone">
+                        <?php
+                        $command_msg = $zones[$tw['guild_id']][$zone_name]['commandMsg'] ?? '';
+                        ?>
+                        <div class="tw-zone-header">
+                            <h4><?php echo htmlspecialchars($zone_name, ENT_QUOTES, 'UTF-8'); ?></h4>
+                            <?php if ($command_msg !== ''): ?>
+                                <span class="tw-zone-command">
+                                    <?php echo htmlspecialchars($command_msg, ENT_QUOTES, 'UTF-8'); ?>
+                                </span>
+                            <?php endif; ?>
                         </div>
 
-                        <div class="tw-team-portraits">
+<?php foreach ($zone_squads as $squad): ?>
+                        <div class="tw-team">
+                            <div class="tw-team-portraits">
 <?php
 foreach (array_slice($squad['cells'], 0, 5) as $unit) {
     $def_parts = explode(':', (string) $unit['defId']);
@@ -369,7 +252,6 @@ foreach (array_slice($squad['cells'], 0, 5) as $unit) {
     $unit_rarity = $rarity_values[$def_parts[1] ?? ''] ?? 7;
     $unit_alignment = $dict_units[$unit_short_id]['forceAlignment'] ?? 0;
 
-    // Ships do not use gear frames/badges.
     $unit_gear = !empty($dict_units[$unit_short_id])
         && (int) ($dict_units[$unit_short_id]['combatType'] ?? 1) === 2
         ? 0
@@ -386,7 +268,9 @@ foreach (array_slice($squad['cells'], 0, 5) as $unit) {
     );
 }
 ?>
+                            </div>
                         </div>
+<?php endforeach; ?>
                     </div>
 <?php endforeach; ?>
 <?php endif; ?>
