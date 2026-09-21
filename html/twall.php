@@ -90,6 +90,7 @@ foreach($tw_db_data as $tw_line) {
     $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['zoneState'] = $tw_line['zoneState'];
 }
 
+?>
 
 
 
