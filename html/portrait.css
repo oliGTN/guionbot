@@ -5,6 +5,11 @@
     height: 100px;
 }
 
+.portrait-container.portrait-small {
+    width: 60px;
+    height: 75px;
+}
+
 /* Base character portrait with circular mask */
 .character-avatar {
     width: 100%;
@@ -12,6 +17,11 @@
     object-fit: cover;
     border-radius: 50%;
     display: block;
+}
+
+.portrait-small .character-avatar {
+    width: 100%;
+    height: 80%;
 }
 
 /* Gear frame layered exactly over the avatar */
@@ -36,7 +46,6 @@
     border-radius: 50%;
 }
 
-/* G13 frame atlas: 3 stacked frames */
 .gear-frame-sprite-red,
 .gear-frame-sprite-blue,
 .gear-frame-sprite-white {
@@ -47,22 +56,10 @@
     background-repeat: no-repeat;
 }
 
-/* Red / dark-side G13 frame */
-.gear-frame-sprite-red {
-    transform: translateY(-33.33%);
-}
+.gear-frame-sprite-red { transform: translateY(-33.33%); }
+.gear-frame-sprite-blue { transform: translateY(0); }
+.gear-frame-sprite-white { transform: translateY(-66.66%); }
 
-/* Blue / light-side G13 frame */
-.gear-frame-sprite-blue {
-    transform: translateY(0);
-}
-
-/* White / neutral G13 frame */
-.gear-frame-sprite-white {
-    transform: translateY(-66.66%);
-}
-
-/* Gear tier badge shown for non-relic characters */
 .gear-level-badge {
     position: absolute;
     right: 2px;
@@ -84,10 +81,6 @@
     pointer-events: none;
 }
 
-/* Relic badge sized and positioned like the SWGOH portrait renderer.
-   The source atlas is 54x216 (four 54px frames). At the 80x100 CSS portrait
-   scale, the badge is approximately 34x34 and sits in the lower-middle area,
-   overlapping the star row just like the native portrait. */
 .relic-badge {
     position: absolute;
     left: 50%;
@@ -116,7 +109,6 @@
     text-shadow: 1px 1px 2px #000;
 }
 
-/* Zeta badge, displayed in the lower-left area of the portrait */
 .zeta-badge {
     position: absolute;
     left: -8px;
@@ -127,36 +119,7 @@
     pointer-events: none;
 }
 
-.zeta-badge img {
-    position: absolute;
-    width: 34px;
-    height: 34px;
-    object-fit: contain;
-}
-
-.zeta-badge span {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px #000;
-}
-
-/* Omicron badge, displayed in the lower-right area of the portrait */
-.omicron-badge {
-    position: absolute;
-    left: 54px;
-    bottom: 23px;
-    width: 34px;
-    height: 34px;
-    z-index: 6;
-    pointer-events: none;
-}
-
+.zeta-badge img,
 .omicron-badge img {
     position: absolute;
     width: 34px;
@@ -164,6 +127,7 @@
     object-fit: contain;
 }
 
+.zeta-badge span,
 .omicron-badge span {
     position: absolute;
     inset: 0;
@@ -176,7 +140,16 @@
     text-shadow: 1px 1px 2px #000;
 }
 
-/* Row containing the stars at the bottom */
+.omicron-badge {
+    position: absolute;
+    left: 54px;
+    bottom: 23px;
+    width: 34px;
+    height: 34px;
+    z-index: 6;
+    pointer-events: none;
+}
+
 .star-rating {
     position: absolute;
     bottom: 2%;
@@ -190,10 +163,69 @@
     z-index: 4;
 }
 
-/* Individual star styling scaling to the container height */
 .star {
     height: 80%;
     width: auto;
     object-fit: contain;
     margin: 0 -2px;
+}
+
+/* Scale all portrait overlays together when the portrait is reduced. */
+.portrait-small .gear-frame {
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 88%;
+}
+
+.portrait-small .gear-frame-container {
+    top: -10%;
+    left: -20%;
+    width: 140%;
+    height: 100%;
+}
+
+.portrait-small .gear-level-badge {
+    bottom: 11px;
+    min-width: 20px;
+    height: 15px;
+    font-size: 9px;
+    line-height: 13px;
+}
+
+.portrait-small .relic-badge {
+    width: 26px;
+    height: 26px;
+    bottom: 11px;
+    background-size: 26px 104px;
+}
+
+.portrait-small .relic-badge span {
+    font-size: 9px;
+}
+
+.portrait-small .zeta-badge,
+.portrait-small .omicron-badge {
+    width: 26px;
+    height: 26px;
+    bottom: 17px;
+}
+
+.portrait-small .zeta-badge {
+    left: -6px;
+}
+
+.portrait-small .omicron-badge {
+    left: 41px;
+}
+
+.portrait-small .zeta-badge img,
+.portrait-small .omicron-badge img {
+    width: 26px;
+    height: 26px;
+}
+
+.portrait-small .zeta-badge span,
+.portrait-small .omicron-badge span {
+    font-size: 10px;
 }
