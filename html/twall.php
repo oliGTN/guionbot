@@ -43,15 +43,12 @@ if (isset($_GET['ts']) && substr($_GET['ts'], 0, 1)=='O' && is_numeric(substr($_
 }
 
 
-// Get the associated TW data for every TW in the history.
-$tw_ids = array_column($tw_list, 'tw_id');
-$placeholders = [];
-$params = [];
-foreach ($tw_ids as $index => $history_tw_id) {
-    $placeholder = ':tw_id_' . $index;
-    $placeholders[] = $placeholder;
-    $params[$placeholder] = $history_tw_id;
-}
+// Get the TW data for the TW selected in the dropdown.
+// The dropdown remains the filter; only the selected TW is displayed.
+$tw_db_data = [];
+$tw_ids = [$tw_id];
+$placeholders = [':tw_id_0'];
+$params = [':tw_id_0' => $tw_id];
 
 $query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName, ga.name AS awayName,
                  homeScore, awayScore, zone_name, side, size, filled, victories, fails,
@@ -61,42 +58,15 @@ $query = "SELECT tw_history.id AS id, guild_id, gh.name AS homeName, ga.name AS 
           JOIN guilds AS gh ON gh.id = guild_id
           JOIN guilds AS ga ON ga.id = away_guild_id
           JOIN tw_zones ON tw_zones.tw_id = tw_history.id
-          WHERE tw_history.tw_id IN (" . implode(',', $placeholders) . ")
-          ORDER BY tw_history.tw_id DESC, gh.name";
-//error_log("query = ".$query);
+          WHERE tw_history.tw_id = :tw_id_0
+          ORDER BY gh.name";
 try {
-    // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
     $stmt->execute($params);
-
-    // Fetch all the results as an associative array
     $tw_db_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 } catch (PDOException $e) {
     error_log("Error fetching TW data: " . $e->getMessage());
-    echo "Error fetching TW data: " . $e->getMessage();
-}
-$tw_db_data = $tw_db_data ?? [];
-$tw_data = [];
-foreach($tw_db_data as $tw_line) {
-    $guild_id = $tw_line['guild_id'];
-    if (!isset($tw_data[$guild_id])) {
-        $tw_data[$guild_id] = [];
-        $tw_data[$guild_id]['id'] = $tw_line['id'];
-        $tw_data[$guild_id]['homeName'] = $tw_line['homeName'];
-        $tw_data[$guild_id]['awayName'] = $tw_line['awayName'];
-        $tw_data[$guild_id]['homeScore'] = $tw_line['homeScore'];
-        $tw_data[$guild_id]['awayScore'] = $tw_line['awayScore'];
-        $tw_data[$guild_id]['lastUpdated'] = $tw_line['lastUpdated'];
-        $tw_data[$guild_id]['oldData'] = $tw_line['oldData'];
-        $tw_data[$guild_id]['zones'] = ['home'=>[], 'away'=>[]];
-    }
-    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']] = [];
-    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['size'] = $tw_line['size'];
-    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['filled'] = $tw_line['filled'];
-    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['victories'] = $tw_line['victories'];
-    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['fails'] = $tw_line['fails'];
-    $tw_data[$guild_id]['zones'][$tw_line['side']][$tw_line['zone_name']]['zoneState'] = $tw_line['zoneState'];
+    echo "Error fetching TW data: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
 }
 
 ?>
@@ -152,8 +122,8 @@ foreach($tw_db_data as $tw_line) {
 
 
     <?php
-    // Reuse twheader.php for every TW. twall.php is public, so no
-    // confidential data is shown and the TW navigation bar is disabled.
+    // Reuse twheader.php for the selected TW. twall.php is public:
+    // no confidential data is shown and the TW navigation bar is disabled.
     $twheader_use_existing_zones = true;
     $twheader_no_navbar = true;
     $isMyGuild = false;
