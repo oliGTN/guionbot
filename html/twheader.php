@@ -72,7 +72,7 @@ if (!function_exists('tw_zone_svg')) {
 
         if ($with_links) {
             $side_zone_name = substr($side, 0, 1) . $zone_name;
-            $onclick = ' onclick="openZone(event, \'' . htmlspecialchars($side, ENT_QUOTES, 'UTF-8') . '\\', \'' . htmlspecialchars($side_zone_name, ENT_QUOTES, 'UTF-8') . '\\')"';
+            $onclick = ' onclick="openZone(event, \''. htmlspecialchars($side, ENT_QUOTES, 'UTF-8') . '\', \''. htmlspecialchars($side_zone_name, ENT_QUOTES, 'UTF-8') . '\')"';
             $cursor = 'pointer';
         }
 
