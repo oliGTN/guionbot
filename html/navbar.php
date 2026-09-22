@@ -1,6 +1,9 @@
 <?php
 if (!isset($_SESSION['user_id']) && isset($_COOKIE['discord_access_token'])) {
-    $return_path = safe_return_path($_SERVER['REQUEST_URI'] ?? '/');
+    $return_path = $_SERVER['REQUEST_URI'] ?? '/';
+    if (!is_string($return_path) || $return_path === '' || $return_path[0] !== '/' || substr($return_path, 0, 2) === '//' || strpos($return_path, '\\') !== false || preg_match('/[\\x00-\\x1F\\x7F]/', $return_path)) {
+        $return_path = '/';
+    }
     header(
         'Location: init-oauth.php?return=' . rawurlencode($return_path)
     );
