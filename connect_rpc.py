@@ -1700,7 +1700,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
         tb_summary = None
         if latest_tb_end_ts > 0:
-            if not manage_events.exists("tb_end", guild_id, latest_tb_id):
+            if not await manage_events.exists("tb_end", guild_id, latest_tb_id):
                 # the closure is not done yet
                 golog.log("INFO", "Close TB "+latest_tb_id+" for guild "+guild_id)
 
@@ -1780,7 +1780,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 else:
                     tb_summary=(csv, image, endTime, txt_results)
 
-                manage_events.create_event("tb_end", guild_id, latest_tb_id)
+                await manage_events.create_event("tb_end", guild_id, latest_tb_id)
 
 
         return 1, "No TB on-going", {"tb_summary": tb_summary}
@@ -2890,7 +2890,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
     if tw_round == 2 and manage_tw_end:
         # Check if previous TW has ended properly, with associated actions
 
-        if not manage_events.exists("tw_end", guild_id, tw_id):
+        if not await manage_events.exists("tw_end", guild_id, tw_id):
             # the closure is not done yet
             golog.log("INFO", "Close TW "+tw_id+" for guild "+guild_id)
 
@@ -2914,7 +2914,7 @@ async def get_tw_status(guild_id, force_update, with_attacks=False, allyCode=Non
             # Display best teams in GT channel
             # TODO
 
-            manage_events.create_event("tw_end", guild_id, tw_id)
+            await manage_events.create_event("tw_end", guild_id, tw_id)
 
     prev_dict_guild[guild_id] = dict_guild
 

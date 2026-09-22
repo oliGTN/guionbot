@@ -1430,8 +1430,8 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
 
     # Check event for TW start, and load opponent guild
     swgohgg_opp_url = None
-    if not manage_events.exists("tw_start", guild_id, tw_id):
-        golog.log("INFO", "["+guild_id+"] loading opponent TW guid...")
+    if not await manage_events.exists("tw_start", guild_id, tw_id):
+        golog.log("INFO", "["+guild_id+"] loading opponent TW guild...")
 
         #Fire and forget guild loading in the background
         asyncio.create_task(go.load_guild_from_id(opp_guild_id, True, True))
