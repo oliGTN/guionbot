@@ -1445,7 +1445,7 @@ async def update_tw_status(guild_id, backup_channel_id=None, allyCode=None):
         golog.log("DBG", query)
         await connect_mysql.simple_execute_async(query)
 
-        manage_events.create_event("tw_start", guild_id, tw_id)
+        await manage_events.create_event("tw_start", guild_id, tw_id)
 
     # update DB
     await update_mysql.update_tw(guild_id, tw_id, opp_guild_id,
