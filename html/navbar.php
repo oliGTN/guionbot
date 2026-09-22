@@ -1,3 +1,13 @@
+<?php
+if (!isset($_SESSION['user_id']) && isset($_COOKIE['discord_access_token'])) {
+    $return_path = safe_return_path($_SERVER['REQUEST_URI'] ?? '/');
+    header(
+        'Location: init-oauth.php?return=' . rawurlencode($return_path)
+    );
+    exit();
+}
+?>
+
 <!-- Navigation Bar -->
 <header class="main">
 <div class="container">
