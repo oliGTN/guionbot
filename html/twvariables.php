@@ -8,7 +8,7 @@ $query .= " away_guild_id, away_guild_name, homeScore, awayScore,";
 $query .= " tw_history.lastUpdated AS lastUpdated FROM tw_history";
 $query .= " JOIN guilds ON guilds.id = guild_id";
 $query .= " WHERE tw_history.id=".$tw_id;
-error_log("query = ".$query);
+//error_log("query = ".$query);
 try {
     // Prepare the SQL query
     $stmt = $conn_guionbot->prepare($query);
