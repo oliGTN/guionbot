@@ -197,6 +197,7 @@ if (empty($twheader_map_only)) {
         vs <a href="/g.php?gid=<?php echo htmlspecialchars($tw['away_guild_id']); ?>"><?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
     </h2>
 
+<?php if (empty($twheader_use_existing_zones)) : ?>
     <div class="card">
         <p style="color:green;display:inline"><?php echo ($isMyGuild ? 'You are ' . ($isOfficer ? 'an officer ' : '') . 'in this guild' : ''); ?>
             <small><?php echo ($isMyGuild && !$isMyGuildConfirmed ? ' (to confirm your identity and access restricted guild data, please run <i>go.register &lt;allyCode&gt; confirm</i> in a Direct Message to <a href="https://discordapp.com/users/752969647233564703/">the bot</a>)' : ''); ?></small>
@@ -205,8 +206,10 @@ if (empty($twheader_map_only)) {
         <p style="color:green;display:inline"><?php echo ($isBonusGuild ? 'You are a guest in this guild' : ''); ?></p>
         <p style="color:red;display:inline"><br/><?php echo ($isAdmin ? 'You are logged as an administrator' : ''); ?></p>
     </div>
+<?php endif ; ?> <!-- empty($twheader_use_existing_zones -->
 
-    <div><br/><?php echo '(last update on ' . htmlspecialchars($tw['lastUpdated'], ENT_QUOTES, 'UTF-8') . ')'; ?></div>
+
+    <div><?php echo '(last update on ' . htmlspecialchars($tw['lastUpdated'], ENT_QUOTES, 'UTF-8') . ')'; ?></div>
 <?php
 }
 
