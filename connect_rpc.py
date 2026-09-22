@@ -1712,7 +1712,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         fjson.write(json_dumps(prev_dict_guild[guild_id], indent=4))
                         fjson.close()
 
-                    mapstats_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_mapstats.json"
+                    mapstats_filename = "EVENTS/"+guild_id+"_"+latest_tb_id+"_mapstats.json"
                     if guild_id in prev_mapstats:
                         fjson = open(mapstats_filename, 'w')
                         fjson.write(json_dumps(prev_mapstats[guild_id], indent=4))
