@@ -1706,7 +1706,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
                 #Save guild file
                 if guild_id in prev_dict_guild:
-                    guild_filename = "EVENTS/"+guildId+"_"+latest_tb_id+"_guild.json"
+                    guild_filename = "EVENTS/"+guild_id+"_"+latest_tb_id+"_guild.json"
                     if guild_id in prev_dict_guild:
                         fjson = open(guild_filename, 'w')
                         fjson.write(json_dumps(prev_dict_guild[guild_id], indent=4))
