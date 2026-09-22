@@ -3390,7 +3390,7 @@ async def tag_players_with_character(txt_allyCode, list_list_characters, guild_i
 
     if with_mentions:
         #get list of allyCodes and player tags
-        dict_players = await (get_mysql.load_config_players())[0]
+        dict_players = (await get_mysql.load_config_players())[0]
     else:
         # if this dict is empty, there will be no discord mention
         dict_players = {}
@@ -5736,7 +5736,7 @@ async def print_guild_dtc(txt_allyCode, filter_txt, with_mentions=False):
 
     if with_mentions:
         #get list of allyCodes and player tags
-        dict_players = await (get_mysql.load_config_players())[0]
+        dict_players = (await get_mysql.load_config_players())[0]
     else:
         # if this dict is empty, there will be no discord mention
         dict_players = {}
