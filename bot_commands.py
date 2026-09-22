@@ -478,7 +478,7 @@ async def tpg(ctx_interaction, *args):
 async def manage_me(ctx_interaction, alias, allow_tw=True):
     #Special case of 'me' as allyCode
     if alias == 'me':
-        dict_players_by_ID = connect_mysql.load_config_players()[1]
+        dict_players_by_ID = (await get_mysql.load_config_players())[1]
         if type(ctx_interaction) == commands.Context:
             user_id = ctx_interaction.author.id
         else: # Interaction
@@ -517,7 +517,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
         else: # '<@ without the !
             discord_id = int(alias[2:-1])
         golog.log("INFO", "command launched with discord @mention "+alias)
-        dict_players_by_ID = connect_mysql.load_config_players()[1]
+        dict_players_by_ID = (await get_mysql.load_config_players())[1]
         if discord_id in dict_players_by_ID:
             ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
         else:
@@ -579,7 +579,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
             golog.log("INFO", alias + " looks like the discord name "+closest_name_discord)
 
             discord_id = [x[0] for x in guild_members_clean if x[1] == closest_name_discord][0]
-            dict_players_by_ID = connect_mysql.load_config_players()[1]
+            dict_players_by_ID = (await get_mysql.load_config_players())[1]
             if discord_id in dict_players_by_ID:
                 ret_allyCode_txt = str(dict_players_by_ID[discord_id]["main"][0])
             else:
