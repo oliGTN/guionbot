@@ -151,7 +151,7 @@ async def farmeqpt(ctx_interaction, allyCode, list_alias_gear):
         # Get owned equipment, ONLY for connected users
         check_owned = False
         if ctx_interaction != None:
-            ec, et, player_infos = await connect_mysql.get_google_player_info(ctx_interaction.channel.id)
+            ec, et, player_infos = await get_mysql.get_google_player_info(ctx_interaction.channel.id)
             if ec==0:
                 connected_allyCode = player_infos["allyCode"]
                 if allyCode != connected_allyCode:
@@ -954,7 +954,7 @@ async def upgrade_mod_level(ctx_interaction, target_level, simulation, only_spee
         channel_id = ctx_interaction.channel_id
 
         #get bot config from DB
-        ec, et, bot_infos = await connect_mysql.get_google_player_info(channel_id)
+        ec, et, bot_infos = await get_mysql.get_google_player_info(channel_id)
         if ec!=0:
             await command_error(ctx_interaction, resp_msg, et)
             remove_command_from_queue(ctx_interaction)
@@ -1134,7 +1134,7 @@ async def bronzium_open(ctx_interaction, quantity):
     channel_id = ctx_interaction.channel_id
 
     #get bot config from DB
-    ec, et, bot_infos = await connect_mysql.get_google_player_info(channel_id)
+    ec, et, bot_infos = await get_mysql.get_google_player_info(channel_id)
     if ec!=0:
         await command_error(ctx_interaction, resp_msg, et)
         return
