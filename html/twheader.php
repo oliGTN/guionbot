@@ -24,68 +24,89 @@ if (empty($twheader_use_existing_zones)) {
     }
 }
 
-if (!function_exists('zone_txt')) {
-    function zone_txt($zone_name, $side, $zones, $rowspan, $can_show_zone_data, $with_links = true) {
-        $zone = $zones[$side][$zone_name] ?? null;
-
+if (!function_exists('tw_zone_style')) {
+    function tw_zone_style($zone, $side, $can_show_zone_data) {
         if (!$zone) {
-            $zone_color = $side === 'home' ? 'dodgerblue' : 'red';
-            $crossed = '';
-            $border_style = '3px solid white';
-        } elseif ($zone['zoneState'] === 'ZONECOMPLETE') {
-            $zone_color = $side === 'home' ? 'darkblue' : 'darkred';
-            $crossed = 'background-image: linear-gradient(to bottom right, transparent calc(50% - 1px), black, transparent calc(50% + 1px));';
-            $border_style = '3px solid white';
-        } elseif (
+            return $side === 'home' ? 'dodgerblue' : 'red';
+        }
+
+        if ($zone['zoneState'] === 'ZONECOMPLETE') {
+            return $side === 'home' ? 'darkblue' : 'darkred';
+        }
+
+        if (
             ($can_show_zone_data && $zone['filled'] < $zone['size'])
             || $zone['zoneState'] === 'ZONELOCKED'
         ) {
-            $zone_color = $side === 'home' ? 'lightblue' : 'pink';
-            $crossed = '';
-            $border_style = '3px solid white';
-        } else {
-            $zone_color = $side === 'home' ? 'dodgerblue' : 'red';
-            $crossed = '';
-            $border_style = '3px solid white';
+            return $side === 'home' ? 'lightblue' : 'pink';
         }
 
-        if ($zone && $zone['zoneState'] === 'ZONEOPEN') {
-            $border_style = '5px solid yellow';
-        }
+        return $side === 'home' ? 'dodgerblue' : 'red';
+    }
+}
 
-        $onclick = '';
-        if ($with_links) {
-            $side_zone_name = substr($side, 0, 1) . $zone_name;
-            $onclick = ' onclick="openZone(event, \'' . $side . '\', \'' . $side_zone_name . '\')"';
-        }
-
-        echo '<td width="25" rowspan="' . (int) $rowspan . '"'
-            . $onclick
-            . ' style="background-color:' . htmlspecialchars($zone_color, ENT_QUOTES, 'UTF-8')
-            . ';' . $crossed . 'border:' . $border_style . '">';
-
-        echo '<b>' . htmlspecialchars($zone_name, ENT_QUOTES, 'UTF-8') . '</b><br/>';
+if (!function_exists('tw_zone_label')) {
+    function tw_zone_label($zone_name, $side, $zones, $can_show_zone_data) {
+        $zone = $zones[$side][$zone_name] ?? null;
 
         if (!$zone) {
-            echo '0/0';
-        } elseif ($can_show_zone_data) {
-            echo (int) $zone['filled'] - (int) $zone['victories'];
-            echo '/' . (int) $zone['size'];
-        } elseif ($zone['zoneState'] === 'ZONELOCKED') {
-            echo '?/' . (int) $zone['size'];
-        } else {
-            echo (int) $zone['filled'] - (int) $zone['victories'];
-            echo '/' . (int) $zone['size'];
+            return '0/0';
         }
 
-        echo '</td>';
+        if ($can_show_zone_data || $zone['zoneState'] !== 'ZONELOCKED') {
+            return ((int) $zone['filled'] - (int) $zone['victories']) . '/' . (int) $zone['size'];
+        }
+
+        return '?/' . (int) $zone['size'];
+    }
+}
+
+if (!function_exists('tw_zone_svg')) {
+    function tw_zone_svg($zone_name, $side, $zones, $can_show_zone_data, $x, $y, $width, $height, $with_links) {
+        $zone = $zones[$side][$zone_name] ?? null;
+        $fill = tw_zone_style($zone, $side, $can_show_zone_data);
+        $score = tw_zone_label($zone_name, $side, $zones, $can_show_zone_data);
+
+        $onclick = '';
+        $cursor = 'default';
+
+        if ($with_links) {
+            $side_zone_name = substr($side, 0, 1) . $zone_name;
+            $onclick = ' onclick="openZone(event, \'' . htmlspecialchars($side, ENT_QUOTES, 'UTF-8') . '\\', \'' . htmlspecialchars($side_zone_name, ENT_QUOTES, 'UTF-8') . '\\')"';
+            $cursor = 'pointer';
+        }
+
+        $command = '';
+        if ($zone && !empty($zone['commandMsg'])) {
+            $command = ' · ' . $zone['commandMsg'];
+        }
+
+        $label = $zone_name . $command;
+        $font_size = 16;
+
+        echo '<g' . $onclick . ' style="cursor:' . $cursor . '">';
+        echo '<rect x="' . $x . '" y="' . $y . '" width="' . $width . '" height="' . $height
+            . '" fill="' . htmlspecialchars($fill, ENT_QUOTES, 'UTF-8') . '" stroke="white" stroke-width="3"/>';
+
+        if ($zone && $zone['zoneState'] === 'ZONECOMPLETE') {
+            echo '<line x1="' . $x . '" y1="' . $y . '" x2="' . ($x + $width) . '" y2="' . ($y + $height)
+                . '" stroke="black" stroke-width="2"/>';
+        }
+
+        echo '<text x="' . ($x + $width / 2) . '" y="' . ($y + $height / 2 - 5)
+            . '" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="' . $font_size
+            . '" font-weight="bold">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</text>';
+
+        echo '<text x="' . ($x + $width / 2) . '" y="' . ($y + $height / 2 + 18)
+            . '" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="15">'
+            . htmlspecialchars($score, ENT_QUOTES, 'UTF-8') . '</text>';
+
+        echo '</g>';
     }
 }
 
 if (!function_exists('render_tw_map')) {
     function render_tw_map($tw, $zones, $can_show_zone_data, $with_links = true) {
-        // Accept either raw zone rows or the already-organized
-        // ['home' => ..., 'away' => ...] structure used by twall.php.
         if (isset($zones['home']) || isset($zones['away'])) {
             $render_zones = $zones;
         } else {
@@ -94,95 +115,96 @@ if (!function_exists('render_tw_map')) {
                 $render_zones[$zone['side']][$zone['zone_name']] = $zone;
             }
         }
+
         ?>
         <style>
-            .tw-map {
+            .tw-map-pair {
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .tw-map-card {
+                flex: 0 1 323px;
+                min-width: 260px;
+                text-align: center;
+            }
+
+            .tw-map-svg {
+                display: block;
                 width: 100%;
                 max-width: 323px;
-                aspect-ratio: 1 / 1;
+                height: auto;
                 margin: 0 auto;
-                border-radius: 50%;
-                overflow: hidden;
             }
-            .tw-map table {
-                width: 100% !important;
-                height: 100% !important;
-                table-layout: fixed;
-                border-collapse: collapse;
+
+            .tw-map-svg text {
+                font-family: Arial, sans-serif;
+                pointer-events: none;
             }
-            .tw-map td {
-                overflow: hidden;
-                text-align: center;
-                vertical-align: middle;
-                padding: 3px;
-                box-sizing: border-box;
-                word-break: break-word;
-                overflow-wrap: anywhere;
-                line-height: 1.05;
-                font-size: clamp(9px, 2vw, 12px);
-            }
-            .tw-map td b {
-                display: inline-block;
-                max-width: 100%;
-                font-size: clamp(10px, 2.3vw, 13px);
+
+            @media (max-width: 700px) {
+                .tw-map-card {
+                    flex-basis: min(323px, 90vw);
+                }
             }
         </style>
-        <!-- Overview of zones -->
+
         <div class="row">
             <div class="col s12">
-                <div class="col s6">
-                    <div class="card">
-                        <h3><?php echo htmlspecialchars($tw['homeScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['homePotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['homePotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?></h3>
-                        <div class="tw-map"><table style="background-color:dodgerblue;color:white">
-                            <tr height="33">
-                                <?php zone_txt('F2', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('F1', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T2', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T1', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33"></tr>
-                            <tr height="33">
-                                <?php zone_txt('T4', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T3', 'home', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33">
-                                <?php zone_txt('B2', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B1', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33">
-                                <?php zone_txt('B4', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B3', 'home', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33"></tr>
-                        </table></div>
+                <div class="tw-map-pair">
+                    <div class="tw-map-card">
+                        <h3><?php echo htmlspecialchars($tw['homeScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['homePotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['homePotentialScore'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></small></h3>
+                        <svg class="tw-map-svg" viewBox="0 0 400 400" role="img" aria-label="Home Territory War map">
+                            <defs>
+                                <clipPath id="tw-home-circle-<?php echo (int) $tw['guild_id']; ?>">
+                                    <circle cx="200" cy="200" r="198"/>
+                                </clipPath>
+                            </defs>
+                            <g clip-path="url(#tw-home-circle-<?php echo (int) $tw['guild_id']; ?>)">
+                                <?php
+                                tw_zone_svg('F2', 'home', $render_zones, $can_show_zone_data, 0, 0, 100, 133.333, $with_links);
+                                tw_zone_svg('F1', 'home', $render_zones, $can_show_zone_data, 100, 0, 100, 133.333, $with_links);
+                                tw_zone_svg('T2', 'home', $render_zones, $can_show_zone_data, 200, 0, 100, 200, $with_links);
+                                tw_zone_svg('T1', 'home', $render_zones, $can_show_zone_data, 300, 0, 100, 200, $with_links);
+                                tw_zone_svg('T4', 'home', $render_zones, $can_show_zone_data, 0, 133.333, 100, 133.334, $with_links);
+                                tw_zone_svg('T3', 'home', $render_zones, $can_show_zone_data, 100, 133.333, 100, 133.334, $with_links);
+                                tw_zone_svg('B4', 'home', $render_zones, $can_show_zone_data, 200, 200, 100, 200, $with_links);
+                                tw_zone_svg('B3', 'home', $render_zones, $can_show_zone_data, 300, 200, 100, 200, $with_links);
+                                tw_zone_svg('B2', 'home', $render_zones, $can_show_zone_data, 0, 266.667, 100, 133.333, $with_links);
+                                tw_zone_svg('B1', 'home', $render_zones, $can_show_zone_data, 100, 266.667, 100, 133.333, $with_links);
+                                ?>
+                            </g>
+                            <circle cx="200" cy="200" r="198" fill="none" stroke="white" stroke-width="4"/>
+                        </svg>
                     </div>
-                </div>
 
-                <div class="col s6">
-                    <div class="card">
-                        <h3><?php echo htmlspecialchars($tw['awayScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['awayPotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['awayPotentialScore'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?></h3>
-                        <div class="tw-map"><table style="background-color:red;color:white">
-                            <tr height="33">
-                                <?php zone_txt('T1', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T2', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('F1', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('F2', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33"></tr>
-                            <tr height="33">
-                                <?php zone_txt('T3', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('T4', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33">
-                                <?php zone_txt('B1', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B2', 'away', $render_zones, 3, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33">
-                                <?php zone_txt('B3', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                                <?php zone_txt('B4', 'away', $render_zones, 2, $can_show_zone_data, $with_links); ?>
-                            </tr>
-                            <tr height="33"></tr>
-                        </table></div>
+                    <div class="tw-map-card">
+                        <h3><?php echo htmlspecialchars($tw['awayScore'], ENT_QUOTES, 'UTF-8'); ?><?php if (isset($tw['awayPotentialScore'])): ?>/<small><?php echo htmlspecialchars($tw['awayPotentialScore'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></small></h3>
+                        <svg class="tw-map-svg" viewBox="0 0 400 400" role="img" aria-label="Away Territory War map">
+                            <defs>
+                                <clipPath id="tw-away-circle-<?php echo (int) $tw['guild_id']; ?>">
+                                    <circle cx="200" cy="200" r="198"/>
+                                </clipPath>
+                            </defs>
+                            <g clip-path="url(#tw-away-circle-<?php echo (int) $tw['guild_id']; ?>)">
+                                <?php
+                                tw_zone_svg('T1', 'away', $render_zones, $can_show_zone_data, 0, 0, 100, 200, $with_links);
+                                tw_zone_svg('T2', 'away', $render_zones, $can_show_zone_data, 100, 0, 100, 200, $with_links);
+                                tw_zone_svg('F1', 'away', $render_zones, $can_show_zone_data, 200, 0, 100, 133.333, $with_links);
+                                tw_zone_svg('F2', 'away', $render_zones, $can_show_zone_data, 300, 0, 100, 133.333, $with_links);
+                                tw_zone_svg('T3', 'away', $render_zones, $can_show_zone_data, 0, 200, 100, 200, $with_links);
+                                tw_zone_svg('T4', 'away', $render_zones, $can_show_zone_data, 100, 200, 100, 200, $with_links);
+                                tw_zone_svg('B1', 'away', $render_zones, $can_show_zone_data, 200, 133.333, 100, 133.334, $with_links);
+                                tw_zone_svg('B2', 'away', $render_zones, $can_show_zone_data, 300, 133.333, 100, 133.334, $with_links);
+                                tw_zone_svg('B3', 'away', $render_zones, $can_show_zone_data, 200, 266.667, 100, 133.333, $with_links);
+                                tw_zone_svg('B4', 'away', $render_zones, $can_show_zone_data, 300, 266.667, 100, 133.333, $with_links);
+                                ?>
+                            </g>
+                            <circle cx="200" cy="200" r="198" fill="none" stroke="white" stroke-width="4"/>
+                        </svg>
                     </div>
                 </div>
             </div>
