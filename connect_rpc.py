@@ -1776,11 +1776,29 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                     bonus = {}
                     for s in latest_tbr["finalStat"]:
                         mid = s["mapStatId"]
-                        if mid.startswith("power_zone") and mid.endswith("_bonus"):
-                            z_id = mid[11:-6]
-                            z_name = dict_tb[z_id]["fullname"]
+                        if mid.startswith("summary_zone") and mid.endswith("_bonus") \
+                        or mid.startswith("power_zone") and mid.endswith("_bonus"):
+
+                            z_id = '_'.join(mid.split('_')[2:])
+                            if not z_id in bonus:
+                                bonus[z_id] = {"score": 0}
+
                             z_score = sum([ int(ps["score"]) for ps in s["playerStat"]])
+                            bonus[z_id]["score"] += z_score
+                            golog.log("DBG", (z_id, z_score, bonus))
+
+
+                    if endTime==0:
+                        endTime = int(time.time())
+
+                    txt_results = str(stars)+emojis.star
+                    golog.log("DBG", txt_results)
+                    for z_id in bonus:
+                        if bonus[z_id]["score"]>0:
+                            z_name = dict_tb[z_id]["fullname"]
                             z_steps = dict_tb[z_id]["scores"]
+                            z_score = bonus[z_id]["score"]
+
                             my_stars = 0
                             if z_score >= z_steps[0]:
                                 my_stars+=1
@@ -1790,19 +1808,13 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                                 my_stars+=1
 
                             golog.log("DBG", z_id)
-                            if z_id.endswith("bonus"):
-                                #bonus planet
-                                bonus[z_name] = min(my_stars, 2)
-                                golog.log("DBG", bonus)
+                            golog.log("DBG", (z_score, z_steps, my_stars))
 
-                    if endTime==0:
-                        endTime = int(time.time())
+                            z_crates = min(my_stars, 2)
+                            bonus[z_id]["crates"] = z_crates
+                            golog.log("DBG", bonus)
 
-                    txt_results = str(stars)+emojis.star
-                    golog.log("DBG", txt_results)
-                    for zb in bonus:
-                        if bonus[zb]>0:
-                            txt_results += " / "+zb+bonus[zb]*emojis.bluecircle
+                            txt_results += " / "+z_name+z_crates*emojis.bluecircle
                             golog.log("DBG", txt_results)
 
                 if err_code != 0:
@@ -2504,7 +2516,7 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                 return 1, target_fight + " --> chaque objectif de score de combat doit être de la forme <zone>:<%> (ex: MS:60%)", None
 
             target_zone_percent_value_txt = target_zone_percent_txt[:-1]
-            print(target_zone_percent_value_txt)
+            #print(target_zone_percent_value_txt)
             if not target_zone_percent_value_txt.isnumeric():
                 return 1, target_fight + " --> chaque objectif de score de combat doit être de la forme <zone>:<%> (ex: MS:60%)", None
 
