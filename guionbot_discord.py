@@ -36,6 +36,7 @@ import connect_gsheets
 import connect_mysql
 import get_mysql
 import update_mysql
+import shard_mysql
 import statq
 import connect_rpc
 import parallel_work
@@ -8091,90 +8092,96 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                       "Exemple : go.shard me ship -123456789 > retire le joueur 123456789 de la liste des joueurs  de l'arène de vaisseaux\n"\
                       "Exemple : go.shard me char > affiche la liste des joueurs connus de l'arène de persos")
     async def shard(self, ctx, *args):
-        await ctx.message.add_reaction(emojis.thumb)
+        try:
+            await ctx.message.add_reaction(emojis.thumb)
 
-        if len(args) != 3 and len(args) != 2:
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        allyCode = args[0]
-        allyCode = await manage_me(ctx, allyCode, False)
-                
-        if allyCode[0:3] == 'ERR':
-            await ctx.send(allyCode)
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        shard_type = args[1]
-        if shard_type != "char" and shard_type != "ship":
-            await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
-            await ctx.message.add_reaction(emojis.redcross)
-            return
-
-        # get the DB information
-        player_shard, n, gn = await shard_mysql.get_shard_from_player(allyCode, shard_type)
-
-        if len(args) == 2:
-            #list the content of the shard
-            output = await shard_mysql.get_shard_list(player_shard, shard_type, True)
-            output_txt = ""
-            for row in output:
-                output_txt+=str(row)+'\n'
-            for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                await ctx.send('`' + txt + '`')
-        else:
-            # add or remove player from shard
-            shardmate_ac = args[2]
-            remove_player = False
-            force_merge = False
-
-            if shardmate_ac[0] == "-":
-                remove_player = True
-                shardmate_ac = shardmate_ac[1:]
-            elif shardmate_ac[0] == "+":
-                force_merge = True
-                shardmate_ac = shardmate_ac[1:]
-
-            shardmate_ac = await manage_me(ctx, shardmate_ac, False)
-
-            if shardmate_ac[0:3] == 'ERR':
-                await ctx.send(shardmate_ac)
+            if len(args) != 3 and len(args) != 2:
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
                 await ctx.message.add_reaction(emojis.redcross)
                 return
 
-            if remove_player:
-                await ctx.send("Suppression du shard pas encore implémentée, demander à l'admin")
+            allyCode = args[0]
+            allyCode = await manage_me(ctx, allyCode, False)
+                    
+            if allyCode[0:3] == 'ERR':
+                await ctx.send(allyCode)
                 await ctx.message.add_reaction(emojis.redcross)
                 return
+
+            shard_type = args[1]
+            if shard_type != "char" and shard_type != "ship":
+                await ctx.send("ERR: commande mal formulée. Veuillez consulter l'aide avec go.help shard")
+                await ctx.message.add_reaction(emojis.redcross)
+                return
+
+            # get the DB information
+            player_shard, n, gn = await shard_mysql.get_shard_from_player(allyCode, shard_type)
+
+            if len(args) == 2:
+                #list the content of the shard
+                output = await shard_mysql.get_shard_list(player_shard, shard_type, True)
+                output_txt = ""
+                for row in output:
+                    output_txt+=str(row)+'\n'
+                for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                    await ctx.send('`' + txt + '`')
             else:
-                #First ensure that the player exists in DB
-                e, t, player_now = await go.load_player(shardmate_ac, -1, False)
-                if e!=0:
-                    await ctx.send(t)
+                # add or remove player from shard
+                shardmate_ac = args[2]
+                remove_player = False
+                force_merge = False
+
+                if shardmate_ac[0] == "-":
+                    remove_player = True
+                    shardmate_ac = shardmate_ac[1:]
+                elif shardmate_ac[0] == "+":
+                    force_merge = True
+                    shardmate_ac = shardmate_ac[1:]
+
+                shardmate_ac = await manage_me(ctx, shardmate_ac, False)
+
+                if shardmate_ac[0:3] == 'ERR':
+                    await ctx.send(shardmate_ac)
                     await ctx.message.add_reaction(emojis.redcross)
                     return
 
-                ec, et, ret = await shard_mysql.add_player_to_shard(shardmate_ac, player_shard, shard_type, force_merge)
-                if ec == 1:
-                    await ctx.send("Voulez-vous vraiment fusionner ces 2 shards "+shard_type+ " ?")
-                    target_list = await shard_mysql.get_shard_list(ret[0], shard_type, True)
-                    for row in target_list:
-                        output_txt+=str(row)+'\n'
-                    player_list = await shard_mysql.get_shard_list(ret[1], shard_type, True)
-                    output_txt += "et\n"
-                    for row in player_list:
-                        output_txt+=str(row)+'\n'
-                    output_txt += ">> pour cela lancez la commande go.shard "+allyCode+" "+shard_type+ " +"+shardmate_ac
-
-                    for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
-                        await ctx.send('`' + txt + '`')
+                if remove_player:
+                    await ctx.send("Suppression du shard pas encore implémentée, demander à l'admin")
+                    await ctx.message.add_reaction(emojis.redcross)
+                    return
                 else:
-                    output_txt = et
-                    await ctx.send(et)
+                    #First ensure that the player exists in DB
+                    e, t, player_now = await go.load_player(shardmate_ac, -1, False)
+                    if e!=0:
+                        await ctx.send(t)
+                        await ctx.message.add_reaction(emojis.redcross)
+                        return
 
-        await ctx.message.add_reaction(emojis.check)
+                    ec, et, ret = await shard_mysql.add_player_to_shard(shardmate_ac, player_shard, shard_type, force_merge)
+                    if ec == 1:
+                        await ctx.send("Voulez-vous vraiment fusionner ces 2 shards "+shard_type+ " ?")
+                        target_list = await shard_mysql.get_shard_list(ret[0], shard_type, True)
+                        for row in target_list:
+                            output_txt+=str(row)+'\n'
+                        player_list = await shard_mysql.get_shard_list(ret[1], shard_type, True)
+                        output_txt += "et\n"
+                        for row in player_list:
+                            output_txt+=str(row)+'\n'
+                        output_txt += ">> pour cela lancez la commande go.shard "+allyCode+" "+shard_type+ " +"+shardmate_ac
 
+                        for txt in goutils.split_txt(output_txt, MAX_MSG_SIZE):
+                            await ctx.send('`' + txt + '`')
+                    else:
+                        output_txt = et
+                        await ctx.send(et)
+
+            await ctx.message.add_reaction(emojis.check)
+
+        except Exception as e:
+            golog.log("ERR", traceback.format_exc())
+            if not bot_test_mode:
+                await send_alert_to_admins(ctx.message.channel.guild, "Exception in go.cpg"+str(sys.exc_info()[0]))
+            await ctx.message.add_reaction(emojis.redcross)
 
 ##############################################################
 # MAIN EXECUTION
