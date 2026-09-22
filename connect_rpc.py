@@ -1762,17 +1762,48 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                             txt_results += " / "+zb+bonus[zb]*emojis.bluecircle
                             golog.log("DBG", txt_results)
                 else:
-                    txt_results=""
-
                     # TB has ended, check latest results
                     endTime=0
+                    latest_tbr = None
                     for tbr in dict_guild["territoryBattleResult"]:
                         tbr_endTime = int(int(tbr["endTime"])/1000)
                         if tbr_endTime > endTime:
                             endTime = tbr_endTime
+                            latest_tbr = tbr
+
+                    stars = int(latest_tbr["totalStars"])
+
+                    bonus = {}
+                    for s in latest_tbr["finalStat"]:
+                        mid = s["mapStatId"]
+                        if mid.startswith("power_zone") and mid.endswith("_bonus"):
+                            z_id = mid[11:-6]
+                            z_name = dict_tb[z_id]["fullname"]
+                            z_score = sum([ int(ps["score"]) for ps in s["playerStat"]])
+                            z_steps = dict_tb[z_id]["scores"]
+                            my_stars = 0
+                            if z_score >= z_steps[0]:
+                                my_stars+=1
+                            if z_score >= z_steps[1]:
+                                my_stars+=1
+                            if z_score >= z_steps[2]:
+                                my_stars+=1
+
+                            golog.log("DBG", z_id)
+                            if z_id.endswith("bonus"):
+                                #bonus planet
+                                bonus[z_name] = min(my_stars, 2)
+                                golog.log("DBG", bonus)
 
                     if endTime==0:
                         endTime = int(time.time())
+
+                    txt_results = str(stars)+emojis.star
+                    golog.log("DBG", txt_results)
+                    for zb in bonus:
+                        if bonus[zb]>0:
+                            txt_results += " / "+zb+bonus[zb]*emojis.bluecircle
+                            golog.log("DBG", txt_results)
 
                 if err_code != 0:
                     golog.log("WAR", csv)
