@@ -213,7 +213,7 @@ if (!function_exists('render_tw_map')) {
 <?php if (empty($twheader_use_guild_links)) : ?>
     <div class="card">
 
-    <h3>TW for <a href="/tw.php?id=<?php echo htmlspecialchars($tw['tw_id']); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?>
+    <h3>TW for <a href="/tw.php?id=<?php echo htmlspecialchars((string) ($tw_id ?? $tw['tw_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?>
         vs <?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
     </h3>
 <?php else : ?> <!-- empty($twheader_use_existing_zones -->
