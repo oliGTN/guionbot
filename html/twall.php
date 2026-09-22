@@ -163,6 +163,7 @@ foreach ($tw_db_data as $tw_line) {
         $zones = $tw['zones'];
 
         $tw_header = [
+            'tw_id' => $tw['id'],
             'guild_id' => $guild_id,
             'away_guild_id' => null,
             'guild_name' => $tw['homeName'],

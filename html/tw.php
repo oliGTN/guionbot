@@ -143,7 +143,10 @@ if ($sort_column<>'name') {
     <div class="site-content">
     <div class="container">
 
-    <?php include 'twheader.php' ; ?>
+<?php 
+    $twheader_use_guild_links = true;
+    include 'twheader.php' ; 
+?>
 
     <?php if ($isMyGuildConfirmed||$isBonusGuild||$isAdmin): ?>
     <h3> Player stats</h3>

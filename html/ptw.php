@@ -217,7 +217,7 @@ $rarity_values = [
 <?php else: ?>
                 <?php
                 // Render the exact same TW map and scores as tw.php/twz.php.
-                $twheader_map_only = true;
+                $twheader_no_navbar = true;
                 include 'twheader.php';
                 ?>
 
