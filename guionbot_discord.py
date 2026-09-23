@@ -1912,7 +1912,7 @@ async def read_gsheets(guild_id):
             err_txt += "ERR: erreur en mettant à jour les objectifs de BT\n"
             err_code = 1
 
-        l = connect_gsheets.load_tw_counters(guild_id, True)
+        l = await connect_gsheets.load_tw_counters(guild_id, True)
         if l == None:
             err_txt += "ERR: erreur en mettant à jour les contres GT\n"
             err_code = 1

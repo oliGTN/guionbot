@@ -122,7 +122,7 @@ async def get_player_statq(txt_allyCode):
 # IN: force_all (True: reset all stats / False: compute only null stats)
 # OUT: none
 ##############################################################
-def compute_statq_avg(force_all):
+async def compute_statq_avg(force_all):
     #Compute stat_avg for statq_table, from KYBER1 players
     query = "UPDATE statq_table SET stat_avg = CASE \n"
 
@@ -149,5 +149,5 @@ def compute_statq_avg(force_all):
         query+= "WHERE (isnull(stat_avg) OR stat_avg=0)"
 
     golog.log("DBG", query)
-    simple_execute(query)
+    await simple_execute_async(query)
 
