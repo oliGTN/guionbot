@@ -15,6 +15,7 @@ import inspect
 import traceback
 
 import connect_mysql
+import update_mysql
 import connect_rpc
 import goutils
 import golog
