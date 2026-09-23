@@ -16,6 +16,7 @@ import traceback
 
 import connect_mysql
 import update_mysql
+import statq
 import connect_rpc
 import goutils
 import golog
@@ -507,7 +508,7 @@ async def load_config_statq():
             await connect_mysql.simple_execute_async(query)
 
     #update stat average
-    await connect_mysql.compute_statq_avg(False)
+    await statq.compute_statq_avg(False)
 
     return err_code, err_txt
 
