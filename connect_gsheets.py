@@ -237,7 +237,7 @@ async def load_config_teams(guild_id: str, force_load):
                                                                                 character_name]
     
         #Update DB
-        await connect_mysql.update_guild_teams(guild_id, dict_teams)
+        await update_mysql.update_guild_teams(guild_id, dict_teams)
 
         # store json file
         fjson = open(json_file, 'w')
