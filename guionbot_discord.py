@@ -6923,7 +6923,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     return
             
             #Seoncd, display the graph
-            err_code, err_txt, image = go.get_gv_graph( allyCodes, characters)
+            err_code, err_txt, image = await go.get_gv_graph( allyCodes, characters)
             if err_code != 0:
                 await ctx.send(err_txt)
                 await ctx.message.add_reaction(emojis.redcross)
