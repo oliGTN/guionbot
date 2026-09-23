@@ -717,7 +717,7 @@ async def set_tb_targets(guild_id: str, list_targets):
     feuille.update_cells(cells)
 
     # recreate CACHE file (return value is not useful)
-    ret = get_tb_triggers(guild_id, True)
+    ret = await get_tb_triggers(guild_id, True)
     data.reset_data()
     
     return 0, ""
