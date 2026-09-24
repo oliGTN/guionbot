@@ -1,6 +1,9 @@
 import sys
 import json
 import os
+import requests
+from portraits import download_texture
+import golog
 
 def remove_format_from_desc(desc):
     while "[" in desc and "]" in desc:
@@ -9,10 +12,12 @@ def remove_format_from_desc(desc):
         pos_close = desc.find("]")
         desc = desc[:pos_open] + desc[pos_close+1:]
         if desc == origin_desc:
-            print("!!! infinite loop in remove_format")
+            golog.log("ERR", "!!! infinite loop in remove_format")
             sys.exit(1)
 
     return desc.replace("\\n", "\n")
+
+
 
 #####################################
 # This script adapts the official file from SWGOH.HELP API
@@ -72,7 +77,7 @@ for unit in game_data["units"]:
     if unit['nameKey'] in FRE_FR:
         unit['name'] = FRE_FR[unit['nameKey']]
     else:
-        print("WAR: "+unit['nameKey']+" not found in FRE_FR")
+        golog.log("WAR",  unit['nameKey']+" not found in FRE_FR")
         unit['name'] = unit['nameKey']
 
     unit_name = unit['name']
@@ -83,6 +88,15 @@ for unit in game_data["units"]:
         unitsList_dict[unit_id] = unit
         if unit['combatType'] != 2:
             unitsList_dict[unit_id]['ships'] = []
+
+    #download icon if not already done
+    if "thumbnailName" in unit:
+        download_texture(
+            unit["thumbnailName"], 
+            "IMAGES/CHARACTERS", 
+            localname=unit_id)
+    else:
+        golog.log("WAR", "no thumbnailName in "+unit_id)
 
     #attach ships to crew
     if unit['combatType'] == 2 and 'crew' in unit:
@@ -165,7 +179,7 @@ for unit in game_data["units"]:
                             elif prio in unitsAlias_dict[name][1]:
                                 prio_found = True
                         if not prio_found:
-                            print('WAR: double definition of '+name)
+                            golog.log("WAR", 'double definition of '+name)
                             print(unitsAlias_dict[name][1] + " is kept")
                             print(unit['baseId'] + " is ignored")
                 else:
@@ -233,12 +247,11 @@ fnew.close()
 
 categoryList_dict = {}
 for category in game_data["category"]:
-    if not "uiFilter" in category:
-        continue
     if category['id'] in categoryList_dict:
         print('WAR: double definition of '+category['id'])
-    if category["descKey"] in FRE_FR:
-        category["descKey"] = remove_format_from_desc(FRE_FR[category["descKey"]])
+    if "descKey" in category:
+        if category["descKey"] in FRE_FR:
+            category["descKey"] = remove_format_from_desc(FRE_FR[category["descKey"]])
     categoryList_dict[category['id']] = category
 
 fnew = open('DATA'+os.path.sep+'categoryList_dict.json', 'w')

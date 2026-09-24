@@ -25,6 +25,7 @@ from connect_mysql import (
     executemany_async,
 )
 from statq import get_player_statq
+from portraits import download_texture
 
 async def update_guild_teams(guild_id, dict_team):
 #         dict_team {
@@ -398,7 +399,8 @@ async def update_player_roster(cursor, dict_player, player_data):
 
     golog.log("DBG", query)
 
-    await cursor.execute(query)
+    rowcount = await cursor.execute(query)
+    golog.log("DBG", "rowcount="+str(rowcount))
     mod_rows = await cursor.fetchall()
 
     previous_mods_by_roster = {}
@@ -717,6 +719,20 @@ async def update_datacron(
             affix = datacron["affix"][index]
             target = dict_rules[affix["targetRule"]][0]
             levels[level] = affix["abilityId"] + ":" + target
+
+            #ensure textures from this datacron are downloaded
+            if "scopeIcon" in affix:
+                download_texture(affix["scopeIcon"], "IMAGES/DATACRONS")
+
+            #Store association between target_rule and texture
+            query = (
+                "INSERT INTO datacron_icons(targetRule, scopeIcon) " +
+                "VALUES('"+affix["targetRule"]+"', '"+affix["scopeIcon"]+"') " +
+                "ON DUPLICATE KEY UPDATE scopeIcon='"+affix["scopeIcon"]+"'"
+            )
+            golog.log("DBG", query)
+            rowcount = await cursor.execute(query)
+            golog.log("DBG", "rowcount="+str(rowcount))
 
     query = (
         "INSERT IGNORE INTO datacrons(id) VALUES('" +
