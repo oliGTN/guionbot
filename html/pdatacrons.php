@@ -46,7 +46,6 @@ try {
     $datacrons = [];
     $icons = [];
 }
-error_log(print_r($icons, true));
 ?>
 <!DOCTYPE html>
 <html>
@@ -91,7 +90,7 @@ foreach ([15,12,9,6,3] as $level) {
     if ($value !== '') {
         $parts = explode(':', $value, 2);
         $target_rule = trim($parts[1] ?? '');
-        error_log($parts[1].', '.$target_rule);
+
         break;
     }
 }
@@ -99,14 +98,13 @@ $remainder = ((int)$datacron['setId']) % 4;
 $suffix = [1=>'a',2=>'b',3=>'c',0=>'d'][$remainder];
 $background = 'IMAGES/DATACRONS/tex.datacron_'.$suffix.'.png';
 $icon = null;
-if ($icon_key !== '') {
-    $icon_value = $icons[strtolower($icon_key)] ?? null;
-    error_log($target_rule.', '.$icon_key.', '.$icon_value);
+if ($target_rule !== '') {
+    $icon_value = $icons[strtolower($target_rule)] ?? null;
     if ($icon_value !== null && $icon_value !== '') {
-        $icon = preg_match('#^https?://#i', $icon_value.'.png')
+        $icon = preg_match('#^https?://#i', $icon_value)
             ? $icon_value
             : (
-                str_starts_with($icon_value, 'IMAGES/')
+                strpos($icon_value, 'IMAGES/') === 0
                     ? $icon_value
                     : 'IMAGES/DATACRONS/' . ltrim($icon_value, '/')
             );
