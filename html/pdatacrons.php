@@ -22,7 +22,10 @@ try {
             $value = trim((string)($datacron['level_'.$level] ?? ''));
             if ($value === '') continue;
             $parts = explode(':', $value, 2);
-            if (!empty($parts[1])) $icon_keys[$parts[1]] = true;
+            $icon_key = trim($parts[1] ?? '');
+            if ($icon_key !== '') {
+                $icon_keys[$icon_key] = true;
+            }
             break;
         }
     }
@@ -36,12 +39,17 @@ try {
             $placeholders[] = $name;
             $params[$name] = $key;
         }
+        $conditions = [];
+        foreach ($placeholders as $placeholder) {
+            $conditions[] = "LOWER(TRIM(targetRule)) = LOWER(TRIM(" . $placeholder . "))";
+        }
+
         $icon_stmt = $conn_guionbot->prepare(
-            "SELECT targetRule, scopeIcon FROM datacron_icons WHERE targetRule IN (" . implode(', ', $placeholders) . ")"
+            "SELECT targetRule, scopeIcon FROM datacron_icons WHERE " . implode(' OR ', $conditions)
         );
         $icon_stmt->execute($params);
         foreach ($icon_stmt->fetchAll(PDO::FETCH_ASSOC) as $icon) {
-            $icons[$icon['targetRule']] = $icon['scopeIcon'];
+            $icons[strtolower(trim($icon['targetRule']))] = trim((string)$icon['scopeIcon']);
         }
     }
 } catch (PDOException $e) {
@@ -89,12 +97,28 @@ try {
 $icon_key = null;
 foreach ([15,12,9,6,3] as $level) {
     $value = trim((string)($datacron['level_'.$level] ?? ''));
-    if ($value !== '') { $parts = explode(':', $value, 2); $icon_key = $parts[1] ?? null; break; }
+    if ($value !== '') {
+        $parts = explode(':', $value, 2);
+        $icon_key = trim($parts[1] ?? '');
+        break;
+    }
 }
 $remainder = ((int)$datacron['setId']) % 4;
 $suffix = [1=>'a',2=>'b',3=>'c',0=>'d'][$remainder];
 $background = 'IMAGES/DATACRONS/tex.datacron_'.$suffix.'.png';
-$icon = isset($icon_key, $icons[$icon_key]) ? 'IMAGES/DATACRONS/'.$icons[$icon_key] : null;
+$icon = null;
+if ($icon_key !== '') {
+    $icon_value = $icons[strtolower($icon_key)] ?? null;
+    if ($icon_value !== null && $icon_value !== '') {
+        $icon = preg_match('#^https?://#i', $icon_value)
+            ? $icon_value
+            : (
+                str_starts_with($icon_value, 'IMAGES/')
+                    ? $icon_value
+                    : 'IMAGES/DATACRONS/' . ltrim($icon_value, '/')
+            );
+    }
+}
 $dot_count = 0;
 foreach ([3,6,9,12,15] as $level) if (trim((string)($datacron['level_'.$level] ?? '')) !== '') $dot_count++;
 ?>
