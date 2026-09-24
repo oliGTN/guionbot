@@ -61,13 +61,18 @@ try {
         .datacrons-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:1rem; }
         .datacron-card { text-align:center; padding:1rem; }
         .datacron-art { position:relative; width:160px; height:160px; margin:0 auto; }
-        .datacron-art .datacron-background,.datacron-art .datacron-icon { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
-        .datacron-art .datacron-icon { z-index:2; padding:25%; box-sizing:border-box; }
+        .datacron-art .datacron-background { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+        .datacron-level-icon { position:absolute; z-index:4; top:4%; left:37.5%; width:25%; height:25%; box-sizing:border-box; }
+        .datacron-level-icon.character { border-radius:50%; overflow:hidden; }
+        .datacron-level-icon.character img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+        .datacron-level-icon.datacron { display:flex; align-items:center; justify-content:center; border-radius:50%; background:#000; overflow:hidden; }
+        .datacron-level-icon.datacron img { width:78%; height:78%; object-fit:contain; }
         .datacron-dots { position:absolute; z-index:3; bottom:8px; left:50%; transform:translateX(-50%); display:flex; gap:6px; }
         .datacron-dot { width:10px; height:10px; border-radius:50%; background:white; border:1px solid #555; box-shadow:0 1px 3px rgba(0,0,0,.7); }
         @media only screen and (max-width:600px) {
             .datacrons-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
             .datacron-art { width:130px; height:130px; }
+            .datacron-level-icon { top:3%; }
         }
     </style>
 </head>
@@ -98,9 +103,11 @@ $remainder = ((int)$datacron['setId']) % 4;
 $suffix = [1=>'a',2=>'b',3=>'c',0=>'d'][$remainder];
 $background = 'IMAGES/DATACRONS/tex.datacron_'.$suffix.'.png';
 $icon = null;
+$icon_type = null;
 if ($target_rule !== '') {
     $icon_value = $icons[strtolower($target_rule)] ?? null;
     if ($icon_value !== null && $icon_value !== '') {
+        $icon_type = stripos($icon_value, 'IMAGES/CHARACTERS/') !== false ? 'character' : 'datacron';
         $icon = preg_match('#^https?://#i', $icon_value)
             ? $icon_value
             : (
@@ -115,7 +122,11 @@ foreach ([3,6,9,12,15] as $level) if (trim((string)($datacron['level_'.$level] ?
 ?>
 <div class="card datacron-card"><div class="datacron-art">
 <img class="datacron-background" src="<?php echo h($background); ?>" alt="">
-<?php if ($icon !== null): ?><img class="datacron-icon" src="<?php echo h($icon); ?>" alt=""><?php endif; ?>
+<?php if ($icon !== null): ?>
+<div class="datacron-level-icon <?php echo h($icon_type); ?>">
+    <img src="<?php echo h($icon); ?>" alt="">
+</div>
+<?php endif; ?>
 <div class="datacron-dots"><?php for ($i=0;$i<$dot_count;$i++): ?><span class="datacron-dot"></span><?php endfor; ?></div>
 </div></div>
 <?php endforeach; ?>
