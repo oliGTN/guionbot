@@ -115,7 +115,7 @@ foreach ([3,6,9,12,15] as $level) if (trim((string)($datacron['level_'.$level] ?
 ?>
 <div class="card datacron-card"><div class="datacron-art">
 <img class="datacron-background" src="<?php echo h($background); ?>" alt="">
-<?php if ($icon !== null): ?><img class="datacron-icon" src="<?php echo h($icon); ?>" alt=""><?php endif; ?>
+<?php if ($icon !== null): ?><img class="datacron-icon" src="<?php echo h($icon).'.png'; ?>" alt=""><?php endif; ?>
 <div class="datacron-dots"><?php for ($i=0;$i<$dot_count;$i++): ?><span class="datacron-dot"></span><?php endfor; ?></div>
 </div></div>
 <?php endforeach; ?>
