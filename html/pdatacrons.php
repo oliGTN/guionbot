@@ -31,23 +31,12 @@ try {
     }
 
     $icons = [];
+    //error_log(print_r($icon_keys, true));
     if ($icon_keys) {
-        $placeholders = [];
-        $params = [];
-        foreach (array_keys($icon_keys) as $index => $key) {
-            $name = ':icon_'.$index;
-            $placeholders[] = $name;
-            $params[$name] = $key;
-        }
-        $conditions = [];
-        foreach ($placeholders as $placeholder) {
-            $conditions[] = "LOWER(TRIM(targetRule)) = LOWER(TRIM(" . $placeholder . "))";
-        }
-
         $icon_stmt = $conn_guionbot->prepare(
-            "SELECT targetRule, scopeIcon FROM datacron_icons WHERE " . implode(' OR ', $conditions)
+            "SELECT targetRule, scopeIcon FROM datacron_icons"
         );
-        $icon_stmt->execute($params);
+        $icon_stmt->execute();
         foreach ($icon_stmt->fetchAll(PDO::FETCH_ASSOC) as $icon) {
             $icons[strtolower(trim($icon['targetRule']))] = trim((string)$icon['scopeIcon']);
         }
@@ -57,6 +46,7 @@ try {
     $datacrons = [];
     $icons = [];
 }
+error_log(print_r($icons, true));
 ?>
 <!DOCTYPE html>
 <html>
@@ -92,14 +82,16 @@ try {
 <div class="card">No datacrons found.</div>
 <?php else: ?>
 <div class="datacrons-grid">
+
 <?php foreach ($datacrons as $datacron): ?>
 <?php
-$icon_key = null;
+$target_rule = null;
 foreach ([15,12,9,6,3] as $level) {
     $value = trim((string)($datacron['level_'.$level] ?? ''));
     if ($value !== '') {
         $parts = explode(':', $value, 2);
-        $icon_key = trim($parts[1] ?? '');
+        $target_rule = trim($parts[1] ?? '');
+        error_log($parts[1].', '.$target_rule);
         break;
     }
 }
@@ -109,8 +101,9 @@ $background = 'IMAGES/DATACRONS/tex.datacron_'.$suffix.'.png';
 $icon = null;
 if ($icon_key !== '') {
     $icon_value = $icons[strtolower($icon_key)] ?? null;
+    error_log($target_rule.', '.$icon_key.', '.$icon_value);
     if ($icon_value !== null && $icon_value !== '') {
-        $icon = preg_match('#^https?://#i', $icon_value)
+        $icon = preg_match('#^https?://#i', $icon_value.'.png')
             ? $icon_value
             : (
                 str_starts_with($icon_value, 'IMAGES/')
