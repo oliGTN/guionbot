@@ -727,7 +727,7 @@ async def update_datacron(
             #Store association between target_rule and texture
             query = (
                 "INSERT INTO datacron_icons(targetRule, scopeIcon) " +
-                "VALUES('"+affix["targetRule"]+"', '"+affix["scopeIcon"]+"') " +
+                "VALUES('"+target+"', '"+affix["scopeIcon"]+"') " +
                 "ON DUPLICATE KEY UPDATE scopeIcon='"+affix["scopeIcon"]+"'"
             )
             golog.log("DBG", query)
