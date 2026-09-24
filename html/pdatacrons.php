@@ -37,11 +37,11 @@ try {
             $params[$name] = $key;
         }
         $icon_stmt = $conn_guionbot->prepare(
-            "SELECT scopeIcon, iconKey FROM datacron_icons WHERE iconKey IN (" . implode(', ', $placeholders) . ")"
+            "SELECT targetRule, scopeIcon FROM datacron_icons WHERE targetRule IN (" . implode(', ', $placeholders) . ")"
         );
         $icon_stmt->execute($params);
         foreach ($icon_stmt->fetchAll(PDO::FETCH_ASSOC) as $icon) {
-            $icons[$icon['iconKey']] = $icon['scopeIcon'];
+            $icons[$icon['targetRule']] = $icon['scopeIcon'];
         }
     }
 } catch (PDOException $e) {
