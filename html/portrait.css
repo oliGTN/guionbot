@@ -234,8 +234,8 @@
 /* Datacron display shared by player and TW pages. */
 .datacron-display {
     position: relative;
-    width: 80px;
-    height: 100px;
+    width: 160px;
+    height: 160px;
     display: inline-block;
 }
 
@@ -308,18 +308,4 @@
     background: #fff;
     border: 1px solid #555;
     box-shadow: 0 1px 3px rgba(0, 0, 0, .7);
-}
-
-.datacron-display-small {
-    width: 80px;
-    height: 100px;
-}
-
-.datacron-display-small .datacron-dots {
-    gap: 3px;
-}
-
-.datacron-display-small .datacron-dot {
-    width: 6px;
-    height: 6px;
 }
