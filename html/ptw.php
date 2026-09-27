@@ -295,7 +295,7 @@ foreach ($squad['cells'] as $unit) {
 }
 ?>
 <?php if (!empty($squad['datacron'])): ?>
-                                <?php display_datacron($squad['datacron'], $datacron_icons); ?>
+                                <?php display_datacron($squad['datacron'], $datacron_icons, true); ?>
 <?php endif; ?>
                             </div>
                         </div>
