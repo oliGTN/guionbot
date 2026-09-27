@@ -234,8 +234,8 @@
 /* Datacron display shared by player and TW pages. */
 .datacron-display {
     position: relative;
-    width: 160px;
-    height: 160px;
+    width: 80px;
+    height: 100px;
     display: inline-block;
 }
 
