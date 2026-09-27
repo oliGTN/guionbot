@@ -235,7 +235,6 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                     // not ship
                     $unit_gear = $unit['gear'];
                 }
-                //echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'><img width='50px' src='IMAGES/CHARACTERS/".$unit_short_id.".png' alt='".$unit_short_id."'></td>";
                 echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'>";
                 display_portrait(
                     $unit_short_id, 
