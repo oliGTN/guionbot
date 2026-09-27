@@ -32,6 +32,7 @@ include 'portrait.php';
 // read character dictionary
 $dict_units_string = file_get_contents("../DATA/unitsList_dict.json");
 $dict_units = json_decode($dict_units_string, true);
+$datacron_icons = load_datacron_icons($conn_guionbot);
 
 // --------------- GET ZONE INFO FOR THE SQUADS -----------
 // Prepare the SQL query
