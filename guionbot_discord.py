@@ -3580,7 +3580,9 @@ class ModsCog(commands.GroupCog, name="mods"):
                 try:
                     await interaction.edit_original_response(content=txt)
                 except discord.errors.HTTPException as e:
-                    await interaction.message.channel.send(content=txt)
+                    # Interaction expired, send a message in the channel
+                    output_channel = bot.get_channel(channel_id)
+                    await output_channel.send(content=err_txt)
             else:
                 err_txt = emojis.redcross+" "+et
 
