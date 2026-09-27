@@ -58,7 +58,6 @@ try {
 <div class="datacrons-grid">
 
 <?php foreach ($datacrons as $datacron): ?>
-<?php
 <div class="card datacron-card">
 <?php display_datacron($datacron, $icons); ?>
 </div>
