@@ -66,10 +66,20 @@ if ($tw) {
                 tw_squad_cells.tier,
                 tw_squad_cells.unitRelicTier,
                 tw_squad_cells.zetaCount,
-                tw_squad_cells.omicronCount
+                tw_squad_cells.omicronCount,
+                datacrons.id AS datacron_id,
+                datacrons.setId AS datacron_setId,
+                datacrons.focused AS datacron_focused,
+                datacrons.level_3 AS datacron_level_3,
+                datacrons.level_6 AS datacron_level_6,
+                datacrons.level_9 AS datacron_level_9,
+                datacrons.level_12 AS datacron_level_12,
+                datacrons.level_15 AS datacron_level_15
              FROM tw_squad_cells
              JOIN tw_squads
                  ON tw_squads.id = tw_squad_cells.squad_id
+             LEFT JOIN datacrons
+                 ON datacrons.id = tw_squads.datacron_id
              WHERE tw_squads.tw_id = :tw_id
                AND tw_squads.player_name = :player_name
              ORDER BY
@@ -105,6 +115,16 @@ foreach ($squad_list as $cell) {
         $squads_by_zone[$cell['zone_name']][$squad_id] = [
             'zone_name' => $cell['zone_name'],
             'player_name' => $cell['player_name'],
+            'datacron' => !empty($cell['datacron_id']) ? [
+                'id' => $cell['datacron_id'],
+                'setId' => $cell['datacron_setId'],
+                'focused' => $cell['datacron_focused'],
+                'level_3' => $cell['datacron_level_3'],
+                'level_6' => $cell['datacron_level_6'],
+                'level_9' => $cell['datacron_level_9'],
+                'level_12' => $cell['datacron_level_12'],
+                'level_15' => $cell['datacron_level_15'],
+            ] : null,
             'cells' => [],
         ];
     }
@@ -131,6 +151,8 @@ $dict_units_file = '../DATA/unitsList_dict.json';
 if (is_readable($dict_units_file)) {
     $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
 }
+
+$datacron_icons = load_datacron_icons($conn_guionbot);
 
 $rarity_values = [
     'ONE_STAR' => 1,
@@ -272,6 +294,9 @@ foreach ($squad['cells'] as $unit) {
     );
 }
 ?>
+<?php if (!empty($squad['datacron'])): ?>
+                                <?php display_datacron($squad['datacron'], $datacron_icons); ?>
+<?php endif; ?>
                             </div>
                         </div>
 <?php endforeach; ?>
