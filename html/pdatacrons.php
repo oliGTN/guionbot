@@ -33,6 +33,7 @@ try {
     <link rel="stylesheet" href="tables.css">
     <link rel="stylesheet" href="navbar.css">
     <link rel="stylesheet" href="main.1.008.css">
+    <link rel="stylesheet" href="portrait.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <style>
         .datacrons-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:1rem; }
