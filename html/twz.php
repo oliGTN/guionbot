@@ -208,6 +208,7 @@ $rarity_values['SEVEN_STAR'] = 7;
 function squad_table($squads, $zones, $zone_name, $zone_side) {
     global $rarity_values;
     global $dict_units;
+    global $datacron_icons;
 
     if (isset($squads[$zone_side][$zone_name])) {
         $zone_squads = $squads[$zone_side][$zone_name];
