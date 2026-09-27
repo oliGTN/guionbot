@@ -314,8 +314,11 @@
     height: 60px;
 }
 
+.datacron-display-small .datacron-dots {
+    gap: 3px;
+}
+
 .datacron-display-small .datacron-dot {
     width: 6px;
     height: 6px;
-    gap: 3px;
 }
