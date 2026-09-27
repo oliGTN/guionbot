@@ -105,6 +105,9 @@ function load_datacron_icons($conn) {
 }
 
 function display_datacron($datacron, $icons, $small = false) {
+    $escape = function ($value) {
+        return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    };
     if (empty($datacron) || empty($datacron['setId'])) {
         return;
     }
@@ -161,11 +164,11 @@ function display_datacron($datacron, $icons, $small = false) {
 
     echo "<div class='datacron-display" . $size_class . "'>";
     echo "<div class='datacron-art'>";
-    echo "<img class='datacron-background' src='" . h($background) . "' alt=''>";
+    echo "<img class='datacron-background' src='" . $escape($background) . "' alt=''>";
 
     if ($icon !== null) {
-        echo "<div class='datacron-level-icon " . h($icon_type) . "'>";
-        echo "<img src='" . h($icon) . "' alt=''>";
+        echo "<div class='datacron-level-icon " . $escape($icon_type) . "'>";
+        echo "<img src='" . $escape($icon) . "' alt=''>";
         echo "</div>";
     }
 
