@@ -39,9 +39,15 @@ $datacron_icons = load_datacron_icons($conn_guionbot);
 $query = "SELECT tw_squads.id AS squad_id,";
 $query .= " side, zone_name, player_name, defId, cellIndex,";
 $query .= " is_beaten, fights, gp, tier AS gear, unitRelicTier AS relic,";
-$query .= " zetaCount, omicronCount";
+$query .= " zetaCount, omicronCount,";
+$query .= " datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,";
+$query .= " datacrons.focused AS datacron_focused,";
+$query .= " datacrons.level_3 AS datacron_level_3, datacrons.level_6 AS datacron_level_6,";
+$query .= " datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacron_level_12,";
+$query .= " datacrons.level_15 AS datacron_level_15";
 $query .= " FROM tw_squads";
 $query .= " JOIN tw_squad_cells ON tw_squad_cells.squad_id=tw_squads.id";
+$query .= " LEFT JOIN datacrons ON datacrons.id=tw_squads.datacron_id";
 $query .= " WHERE tw_squads.tw_id=".$tw_id;
 $query .= " ORDER BY is_beaten, fights DESC, player_name, cellIndex";
 //error_log("query = ".$query);
@@ -229,6 +235,11 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                     $unit_isShip,
                     $unit_isShip && (int) $cellIndex >= 4
                 );
+                echo "</td>";
+            }
+            if (!empty($squad["datacron"])) {
+                echo "<td style='font-size:12" . ($squad['is_beaten'] ? ";opacity:0.5" : "") . "'>";
+                display_datacron($squad["datacron"], $datacron_icons, true);
                 echo "</td>";
             }
             echo "</tr>\n";
