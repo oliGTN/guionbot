@@ -38,7 +38,13 @@ try {
     <style>
         .datacrons-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:1rem; }
         .datacron-card { text-align:center; padding:1rem; }
-        .datacron-art { position:relative; width:160px; height:160px; margin:0 auto; }
+.datacron-card .datacron-display {
+            width:160px;
+            height:160px;
+            margin:0 auto;
+        }
+
+                .datacron-art { position:relative; width:160px; height:160px; margin:0 auto; }
         .datacron-dots { position:absolute; z-index:3; bottom:8px; left:50%; transform:translateX(-50%); display:flex; gap:6px; }
         .datacron-dot { width:10px; height:10px; border-radius:50%; background:white; border:1px solid #555; box-shadow:0 1px 3px rgba(0,0,0,.7); }
         @media only screen and (max-width:600px) {
