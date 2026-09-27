@@ -252,7 +252,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
             }
             if (!empty($squad["datacron"])) {
                 echo "<td style='font-size:12" . ($squad['is_beaten'] ? ";opacity:0.5" : "") . "'>";
-                display_datacron($squad["datacron"], $datacron_icons, true);
+                display_datacron($squad["datacron"], $datacron_icons);
                 echo "</td>";
             }
             echo "</tr>\n";
