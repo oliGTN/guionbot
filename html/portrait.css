@@ -259,7 +259,8 @@
     top: 4%;
     left: 37.5%;
     width: 25%;
-    height: 25%;
+    height: auto;
+    aspect-ratio: 1 / 1;
     box-sizing: border-box;
 }
 
@@ -310,8 +311,8 @@
 }
 
 .datacron-display-small {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 100px;
 }
 
 .datacron-display-small .datacron-dots {
