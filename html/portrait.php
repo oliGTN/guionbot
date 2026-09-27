@@ -79,4 +79,105 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
     echo "</div>";
 }
 
+
+function load_datacron_icons($conn) {
+    $icons = [];
+
+    try {
+        $stmt = $conn->prepare(
+            "SELECT targetRule, scopeIcon FROM datacron_icons"
+        );
+        $stmt->execute();
+
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $icon) {
+            $target_rule = strtolower(trim((string) $icon['targetRule']));
+            $scope_icon = trim((string) $icon['scopeIcon']);
+
+            if ($target_rule !== '' && $scope_icon !== '') {
+                $icons[$target_rule] = $scope_icon;
+            }
+        }
+    } catch (PDOException $e) {
+        error_log("Error loading datacron icons: " . $e->getMessage());
+    }
+
+    return $icons;
+}
+
+function display_datacron($datacron, $icons, $small = false) {
+    if (empty($datacron) || empty($datacron['setId'])) {
+        return;
+    }
+
+    $target_rule = '';
+    foreach ([15, 12, 9, 6, 3] as $level) {
+        $value = trim((string) ($datacron['level_' . $level] ?? ''));
+
+        if ($value !== '') {
+            $parts = explode(':', $value, 2);
+            $target_rule = trim($parts[1] ?? '');
+            break;
+        }
+    }
+
+    $remainder = ((int) $datacron['setId']) % 4;
+    $suffix = [1 => 'a', 2 => 'b', 3 => 'c', 0 => 'd'][$remainder];
+    $background = 'IMAGES/DATACRONS/tex.datacron_' . $suffix . '.png';
+
+    $icon = null;
+    $icon_type = null;
+
+    if ($target_rule !== '') {
+        $icon_value = $icons[strtolower($target_rule)] ?? null;
+
+        if ($icon_value !== null && $icon_value !== '') {
+            $icon_type = stripos($icon_value, 'IMAGES/CHARACTERS/') !== false
+                ? 'character'
+                : 'datacron';
+
+            $icon = preg_match('#^https?://#i', $icon_value)
+                ? $icon_value
+                : (
+                    strpos($icon_value, 'IMAGES/') === 0
+                        ? $icon_value
+                        : 'IMAGES/DATACRONS/' . ltrim($icon_value, '/')
+                );
+
+            if (!preg_match('#^https?://#i', $icon) &&
+                !preg_match('/\\.[a-z0-9]+$/i', $icon)) {
+                $icon .= '.png';
+            }
+        }
+    }
+
+    $dot_count = 0;
+    foreach ([3, 6, 9, 12, 15] as $level) {
+        if (trim((string) ($datacron['level_' . $level] ?? '')) !== '') {
+            $dot_count++;
+        }
+    }
+
+    $size_class = $small ? ' datacron-display-small' : '';
+
+    echo "<div class='datacron-display" . $size_class . "'>";
+    echo "<div class='datacron-art'>";
+    echo "<img class='datacron-background' src='" . h($background) . "' alt=''>";
+
+    if ($icon !== null) {
+        echo "<div class='datacron-level-icon " . h($icon_type) . "'>";
+        echo "<img src='" . h($icon) . "' alt=''>";
+        echo "</div>";
+    }
+
+    echo "<div class='datacron-dots'>";
+
+    for ($i = 0; $i < $dot_count; $i++) {
+        echo "<span class='datacron-dot'></span>";
+    }
+
+    echo "</div>";
+    echo "</div>";
+    echo "</div>";
+}
+
 ?>

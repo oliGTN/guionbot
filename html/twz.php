@@ -32,15 +32,22 @@ include 'portrait.php';
 // read character dictionary
 $dict_units_string = file_get_contents("../DATA/unitsList_dict.json");
 $dict_units = json_decode($dict_units_string, true);
+$datacron_icons = load_datacron_icons($conn_guionbot);
 
 // --------------- GET ZONE INFO FOR THE SQUADS -----------
 // Prepare the SQL query
 $query = "SELECT tw_squads.id AS squad_id,";
 $query .= " side, zone_name, player_name, defId, cellIndex,";
 $query .= " is_beaten, fights, gp, tier AS gear, unitRelicTier AS relic,";
-$query .= " zetaCount, omicronCount";
+$query .= " zetaCount, omicronCount,";
+$query .= " datacrons.id AS datacron_id, datacrons.setId AS datacron_setId,";
+$query .= " datacrons.focused AS datacron_focused,";
+$query .= " datacrons.level_3 AS datacron_level_3, datacrons.level_6 AS datacron_level_6,";
+$query .= " datacrons.level_9 AS datacron_level_9, datacrons.level_12 AS datacron_level_12,";
+$query .= " datacrons.level_15 AS datacron_level_15";
 $query .= " FROM tw_squads";
 $query .= " JOIN tw_squad_cells ON tw_squad_cells.squad_id=tw_squads.id";
+$query .= " LEFT JOIN datacrons ON datacrons.id=tw_squads.datacron_id";
 $query .= " WHERE tw_squads.tw_id=".$tw_id;
 $query .= " ORDER BY is_beaten, fights DESC, player_name, cellIndex";
 //error_log("query = ".$query);
@@ -74,10 +81,22 @@ foreach($squad_list as $squad_element) {
     }
     $squad_id = $squad_element['squad_id'];
     if (!isset($squads[$side][$zone_name][$squad_id])) {
-        $squads[$side][$zone_name][$squad_id] = ["is_beaten" => $squad_element['is_beaten'],
-                                                 "fights" => $squad_element['fights'],
-                                                 "gp" => $squad_element['gp'],
-                                                 "cells" => []];
+        $squads[$side][$zone_name][$squad_id] = [
+            "is_beaten" => $squad_element['is_beaten'],
+            "fights" => $squad_element['fights'],
+            "gp" => $squad_element['gp'],
+            "datacron" => !empty($squad_element['datacron_id']) ? [
+                "id" => $squad_element['datacron_id'],
+                "setId" => $squad_element['datacron_setId'],
+                "focused" => $squad_element['datacron_focused'],
+                "level_3" => $squad_element['datacron_level_3'],
+                "level_6" => $squad_element['datacron_level_6'],
+                "level_9" => $squad_element['datacron_level_9'],
+                "level_12" => $squad_element['datacron_level_12'],
+                "level_15" => $squad_element['datacron_level_15']
+            ] : null,
+            "cells" => []
+        ];
     }
     $cellIndex = $squad_element['cellIndex'];
     $squads[$side][$zone_name][$squad_id]["cells"][$cellIndex] = $squad_element;
@@ -228,6 +247,11 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                     $unit_isShip,
                     $unit_isShip && (int) $cellIndex >= 4
                 );
+                echo "</td>";
+            }
+            if (!empty($squad["datacron"])) {
+                echo "<td style='font-size:12" . ($squad['is_beaten'] ? ";opacity:0.5" : "") . "'>";
+                display_datacron($squad["datacron"], $datacron_icons, true);
                 echo "</td>";
             }
             echo "</tr>\n";
