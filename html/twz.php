@@ -81,10 +81,22 @@ foreach($squad_list as $squad_element) {
     }
     $squad_id = $squad_element['squad_id'];
     if (!isset($squads[$side][$zone_name][$squad_id])) {
-        $squads[$side][$zone_name][$squad_id] = ["is_beaten" => $squad_element['is_beaten'],
-                                                 "fights" => $squad_element['fights'],
-                                                 "gp" => $squad_element['gp'],
-                                                 "cells" => []];
+        $squads[$side][$zone_name][$squad_id] = [
+            "is_beaten" => $squad_element['is_beaten'],
+            "fights" => $squad_element['fights'],
+            "gp" => $squad_element['gp'],
+            "datacron" => !empty($squad_element['datacron_id']) ? [
+                "id" => $squad_element['datacron_id'],
+                "setId" => $squad_element['datacron_setId'],
+                "focused" => $squad_element['datacron_focused'],
+                "level_3" => $squad_element['datacron_level_3'],
+                "level_6" => $squad_element['datacron_level_6'],
+                "level_9" => $squad_element['datacron_level_9'],
+                "level_12" => $squad_element['datacron_level_12'],
+                "level_15" => $squad_element['datacron_level_15']
+            ] : null,
+            "cells" => []
+        ];
     }
     $cellIndex = $squad_element['cellIndex'];
     $squads[$side][$zone_name][$squad_id]["cells"][$cellIndex] = $squad_element;
