@@ -477,37 +477,35 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
     golog.log('DBG', query)
     await connect_mysql.simple_execute_async(query)
 
-    #Update TB TW scores
+    #Get the list of players to detect which to add or remove
+    query = "SELECT playerId FROM players "\
+           +"WHERE guildId = '"+guild_id+"'"
+    golog.log('DBG', query)
+    playerId_in_DB = await connect_mysql.get_column_async(query)
+    while None in playerId_in_DB:
+        playerId_in_DB.remove(None)
+
+    playerId_to_add = []
+    for id in playerId_in_API:
+        if not id in playerId_in_DB:
+            playerId_to_add.append(id)
+            golog.log('INFO', "Add player "+id+" in guild "+guild_id)
+            query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+            query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'added')"
+            golog.log('DBG', query)
+            await connect_mysql.simple_execute_async(query)
+
+    playerId_to_remove = []
+    for id in playerId_in_DB:
+        if not id in playerId_in_API:
+            playerId_to_remove.append(id)
+            golog.log('INFO', "Remove player "+id+" from guild "+guild_id)
+            query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+            query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'removed')"
+            golog.log('DBG', query)
+            await connect_mysql.simple_execute_async(query)
 
     if load_players:
-        #Get the list of players to detect which to add or remove
-        query = "SELECT playerId FROM players "\
-               +"WHERE guildId = '"+guild_id+"'"
-        golog.log('DBG', query)
-        playerId_in_DB = await connect_mysql.get_column_async(query)
-        while None in playerId_in_DB:
-            playerId_in_DB.remove(None)
-
-        playerId_to_add = []
-        for id in playerId_in_API:
-            if not id in playerId_in_DB:
-                playerId_to_add.append(id)
-                golog.log('INFO', "Add player "+id+" in guild "+guild_id)
-                query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-                query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'added')"
-                golog.log('DBG', query)
-                await connect_mysql.simple_execute_async(query)
-
-        playerId_to_remove = []
-        for id in playerId_in_DB:
-            if not id in playerId_in_API:
-                playerId_to_remove.append(id)
-                golog.log('INFO', "Remove player "+id+" from guild "+guild_id)
-                query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-                query+= "VALUES('"+guild_id+"', '"+str(id)+"', 'removed')"
-                golog.log('DBG', query)
-                await connect_mysql.simple_execute_async(query)
-
         #Check if player data needs to be loaded from RPC
         if lastPlayerUpdated != None:
             delta_lastUpdated = datetime.datetime.now() - lastPlayerUpdated
@@ -589,48 +587,56 @@ async def load_guild_from_id(guild_id, load_players, cmd_request,
             lastPlayerUpdated_txt = lastPlayerUpdated.strftime("%d/%m/%Y %H:%M:%S")
             golog.log('INFO', "Guild "+guild_name+" last update of players is "+lastPlayerUpdated_txt)
 
-        #Erase guildName and guildId for alyCodes not detected from API
-        if len(playerId_to_remove) > 0:
-            query = "UPDATE players "\
-                   +"SET guildName = '', guildMemberLevel = 2, guildId = '' "\
-                   +"WHERE playerId IN "+str(tuple(playerId_to_remove)).replace(",)", ")")
-            golog.log('DBG', query)
-            await connect_mysql.simple_execute_async(query)
-
-        #Manage guild roles (leader, officers)
-        query = "SELECT playerId, guildMemberLevel FROM players "\
-               +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
+    #Erase guildName and guildId for allyCodes in DB but not in RPC
+    if len(playerId_to_remove) > 0:
+        query = "UPDATE players "\
+               +"SET guildName = '', guildMemberLevel = 2, guildId = '' "\
+               +"WHERE playerId IN "+str(tuple(playerId_to_remove)).replace(",)", ")")
         golog.log('DBG', query)
-        roles_in_DB = await connect_mysql.get_table_async(query)
-        dict_roles = {}
-        if roles_in_DB != None:
-            for role in roles_in_DB:
-                dict_roles[role[0]] = role[1]
+        await connect_mysql.simple_execute_async(query)
 
-        if "member" in dict_guild:
-            for member in dict_guild["member"]:
-                id = member["playerId"]
-                if id in dict_roles:
-                    if member["memberLevel"] != dict_roles[id]:
-                        #change the role
-                        query = "UPDATE players SET guildMemberLevel = "+str(member["memberLevel"])+" " \
-                               +"WHERE playerId = '"+str(id)+"'"
-                        golog.log('DBG', query)
-                        await connect_mysql.simple_execute_async(query)
-                        
-                        #log it in guild_evolutions
-                        description = "guildMemberLevel changed from "+str(dict_roles[id])+" to "+str(member["memberLevel"])
-                        query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
-                        query+= "VALUES('"+guild_id+"', '"+str(id)+"', '"+description+"')"
-                        golog.log('DBG', query)
-                        await connect_mysql.simple_execute_async(query)
-                    del dict_roles[member["playerId"]]
-                else:
-                    golog.log('WAR', str(id)+" found in RPC but not found in DB while updating guild")
+    #Update guildName and guildId for allyCodes in RPC but not in DB
+    if len(playerId_to_add) > 0:
+        query = "UPDATE players "\
+               +"SET guildName = '"+guild_name.replace("'", "''")+"', guildMemberLevel = 2, guildId = '"+guild_id+"' "\
+               +"WHERE playerId IN "+str(tuple(playerId_to_add)).replace(",)", ")")
+        golog.log('DBG', query)
+        await connect_mysql.simple_execute_async(query)
 
-        #manage  remaining players
-        for id in dict_roles:
-            golog.log('WAR', str(id)+" found in DB but not found in RPC while updating guild")
+    #Manage guild roles (leader, officers)
+    query = "SELECT playerId, guildMemberLevel FROM players "\
+           +"WHERE guildName = '"+guild_name.replace("'", "''")+"'"
+    golog.log('DBG', query)
+    roles_in_DB = await connect_mysql.get_table_async(query)
+    dict_roles = {}
+    if roles_in_DB != None:
+        for role in roles_in_DB:
+            dict_roles[role[0]] = role[1]
+
+    if "member" in dict_guild:
+        for member in dict_guild["member"]:
+            id = member["playerId"]
+            if id in dict_roles:
+                if member["memberLevel"] != dict_roles[id]:
+                    #change the role
+                    query = "UPDATE players SET guildMemberLevel = "+str(member["memberLevel"])+" " \
+                           +"WHERE playerId = '"+str(id)+"'"
+                    golog.log('DBG', query)
+                    await connect_mysql.simple_execute_async(query)
+                    
+                    #log it in guild_evolutions
+                    description = "guildMemberLevel changed from "+str(dict_roles[id])+" to "+str(member["memberLevel"])
+                    query = "INSERT INTO guild_evolutions(guild_id, playerId, description) "
+                    query+= "VALUES('"+guild_id+"', '"+str(id)+"', '"+description+"')"
+                    golog.log('DBG', query)
+                    await connect_mysql.simple_execute_async(query)
+                del dict_roles[member["playerId"]]
+            else:
+                golog.log('WAR', str(id)+" found in RPC but not found in DB while updating guild")
+
+    #manage  remaining players
+    for id in dict_roles:
+        golog.log('WAR', str(id)+" found in DB but not found in RPC while updating guild")
 
     #Update dates in DB
     query = "UPDATE guilds "\
