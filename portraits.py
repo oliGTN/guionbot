@@ -51,10 +51,12 @@ def download_texture(texture, path, localname=None):
         f.write(r.content)
         f.close()
 
-def get_image_from_id(character_id):
+def get_image_from_id(character_id, dict_unitsList=None):
     character_img_name = 'IMAGES'+os.path.sep+'CHARACTERS'+os.path.sep+character_id+'.png'
     if not os.path.exists(character_img_name):
-        dict_unitsList = data.get("unitsList_dict.json")
+        if dict_unitsList is None:
+            dict_unitsList = data.get("unitsList_dict.json")
+        golog.log("WAR", "cannot find image "+character_img_name)
         texture = dict_unitsList[character_id]["thumbnailName"]
 
         download_texture(texture, "IMAGES/CHARACTERS", character_id)
@@ -200,8 +202,10 @@ def get_image_from_defId(character_id, dict_player, game_mode):
 # IN: crew_units: table of units as an element of rosterUnit, only for ships
 # IN: game_mode: string used to display omicrons (CQ, GA, GA3, GA5, RD, TB, TW)
 ########################################
-def get_image_from_unit(character, crew_units, game_mode):
-    dict_unitsList = data.get("unitsList_dict.json")
+def get_image_from_unit(character, crew_units, game_mode, dict_unitsList=None):
+    if dict_unitsList is None:
+        dict_unitsList = data.get("unitsList_dict.json")
+
     dict_capas = data.get("unit_capa_list.json")
 
     portrait_image = Image.new('RGBA', (PORTRAIT_SIZE, PORTRAIT_SIZE), (0,0,0))
@@ -209,7 +213,7 @@ def get_image_from_unit(character, crew_units, game_mode):
     
     #Get basic image of character
     character_id = character["definitionId"].split(':')[0]
-    character_image = get_image_from_id(character_id)
+    character_image = get_image_from_id(character_id, dict_unitsList=dict_unitsList)
     character_mask_image = Image.open('IMAGES'+os.path.sep+'PORTRAIT_FRAME'+os.path.sep+'mask-circle-128.png')
     portrait_image.paste(character_image, (20, 10), character_mask_image)
     
@@ -383,6 +387,7 @@ def get_image_from_defIds(list_character_ids, dict_player, tw_territory, omicron
 
 def get_image_from_units(list_characters, player_name, tw_territory="", omicron_mode="", team_gp=None):
     list_portrait_images = []
+    dict_unitsList = data.get("unitsList_dict.json")
 
     total_gp = 0
     for unit_crew in list_characters:
@@ -394,7 +399,12 @@ def get_image_from_units(list_characters, player_name, tw_territory="", omicron_
         elif "gp" in character:
             total_gp += character["gp"]
 
-        character_img = get_image_from_unit(character, crew, omicron_mode)
+        character_img = get_image_from_unit(
+                character, 
+                crew, 
+                omicron_mode,
+                dict_unitsList=dict_unitsList)
+
         list_portrait_images.append(character_img)
 
     if team_gp != None:
