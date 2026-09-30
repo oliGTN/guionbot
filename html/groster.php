@@ -71,7 +71,7 @@ try {
     $journey_guide = array();
     foreach ($db_data as $line) {
         $journey_unit_id = $line['name'];
-        $journey_unit_name = $full_dict_units[$journey_unit_id]['name'];
+        $journey_unit_name = $full_dict_units[$journey_unit_id]['name']?:$journey_unit_id;
         $unit_id = $line['unit_id'];
         $unit_name = $full_dict_units[$unit_id]['name'];
         $star_gear_relic = $line['star_gear_relic'];
@@ -469,8 +469,6 @@ try {
                         new_td.style.backgroundColor = "green";
                     } else if (unit_progress >= .8) {
                         new_td.style.backgroundColor = "orange";
-                    } else if (!unit_exists) {
-                        new_td.style.backgroundColor = "darkred";
                     } else {
                         new_td.style.backgroundColor = "red";
                     }
