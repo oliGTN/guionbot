@@ -66,13 +66,8 @@ foreach ($units_list as $unit) {
     if (
         !is_array($unit)
         || !isset($unit['unit_id'])
-        || (
-            !is_int($unit['unit_id'])
-            && !(
-                is_string($unit['unit_id'])
-                && preg_match('/^\d+$/', $unit['unit_id'])
-            )
-        )
+        || !is_string($unit['unit_id'])
+        || !preg_match('/^[A-Za-z0-9_-]{1,64}$/', $unit['unit_id'])
     ) {
         http_response_code(400);
         echo json_encode([
@@ -82,18 +77,7 @@ foreach ($units_list as $unit) {
         exit();
     }
 
-    $unit_id = (int) $unit['unit_id'];
-
-    if ($unit_id < 1 || $unit_id > 100000000) {
-        http_response_code(400);
-        echo json_encode([
-            'err_code' => 1,
-            'err_txt' => 'Invalid unit list',
-        ]);
-        exit();
-    }
-
-    $unit_ids[] = $unit_id;
+    $unit_ids[] = $unit['unit_id'];
 }
 
 $unit_ids = array_values(array_unique($unit_ids));
