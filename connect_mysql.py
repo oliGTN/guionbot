@@ -41,6 +41,28 @@ _async_current_connection = ContextVar("mysql_async_current_connection", default
 _async_connection_tokens = {}
 
 
+async def create_async_connection():
+    """Create one async MySQL connection using the configured database URL."""
+    uses_netloc.append("mysql")
+    url = urlparse(config.MYSQL_DATABASE_URL)
+
+    connection_kwargs = {
+        "host": url.hostname,
+        "database": url.path[1:],
+        "user": url.username,
+        "password": url.password,
+        # mysql.connector.aio currently requires the pure-Python
+        # implementation.
+        "use_pure": True,
+        "ssl_disabled": True,
+    }
+
+    if url.port is not None:
+        connection_kwargs["port"] = url.port
+
+    return await mysql_async_connect(**connection_kwargs)
+
+
 async def init_async_pool(pool_size=ASYNC_MYSQL_POOL_SIZE):
     """Create the async MySQL connection pool.
 
@@ -55,31 +77,13 @@ async def init_async_pool(pool_size=ASYNC_MYSQL_POOL_SIZE):
         if _async_pool is not None:
             return
 
-        uses_netloc.append("mysql")
-        url = urlparse(config.MYSQL_DATABASE_URL)
-
-        connection_kwargs = {
-            "host": url.hostname,
-            "database": url.path[1:],
-            "user": url.username,
-            "password": url.password,
-            # mysql.connector.aio currently requires the pure-Python
-            # implementation.
-            "use_pure": True,
-            "ssl_disabled": True,
-        }
-
-        # urlparse() gives None when the URL has no explicit port.
-        if url.port is not None:
-            connection_kwargs["port"] = url.port
-
         golog.log(
             "INFO",
             f"Creating async MySQL pool with {pool_size} connections"
         )
 
         connections = await asyncio.gather(
-            *(mysql_async_connect(**connection_kwargs) for _ in range(pool_size))
+            *(create_async_connection() for _ in range(pool_size))
         )
 
         # Queue stores currently available connections.
@@ -125,19 +129,7 @@ async def adb_connect():
             pass
 
         try:
-            url = urlparse(config.MYSQL_DATABASE_URL)
-            kwargs = {
-                "host": url.hostname,
-                "database": url.path[1:],
-                "user": url.username,
-                "password": url.password,
-                "use_pure": True,
-                "ssl_disabled": True,
-            }
-            if url.port is not None:
-                kwargs["port"] = url.port
-
-            connection = await mysql_async_connect(**kwargs)
+            connection = await create_async_connection()
         except Exception as replacement_error:
             golog.log(
                 "ERR",
@@ -180,18 +172,7 @@ async def release_async_connection(connection):
             pass
 
         try:
-            url = urlparse(config.MYSQL_DATABASE_URL)
-            kwargs = {
-                "host": url.hostname,
-                "database": url.path[1:],
-                "user": url.username,
-                "password": url.password,
-                "use_pure": True,
-                "ssl_disabled": True,
-            }
-            if url.port is not None:
-                kwargs["port"] = url.port
-            replacement = await mysql_async_connect(**kwargs)
+            replacement = await create_async_connection()
             await _async_pool.put(replacement)
         except Exception as replacement_error:
             golog.log(
