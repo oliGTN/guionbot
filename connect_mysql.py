@@ -106,6 +106,46 @@ async def adb_connect():
         await init_async_pool()
 
     connection = await _async_pool.get()
+
+    # A pooled connection can have been closed by MariaDB while it was idle
+    # (for example after wait_timeout). Validate it before handing it to a
+    # caller. reconnect=True lets Connector/Python repair a stale TCP
+    # connection without forcing every DB operation to handle 2055/2006.
+    try:
+        await connection.ping(reconnect=True, attempts=1)
+    except Exception as error:
+        golog.log(
+            "ERR",
+            "Stale MySQL connection detected; replacing it: " + str(error)
+        )
+
+        try:
+            await connection.close()
+        except Exception:
+            pass
+
+        try:
+            url = urlparse(config.MYSQL_DATABASE_URL)
+            kwargs = {
+                "host": url.hostname,
+                "database": url.path[1:],
+                "user": url.username,
+                "password": url.password,
+                "use_pure": True,
+                "ssl_disabled": True,
+            }
+            if url.port is not None:
+                kwargs["port"] = url.port
+
+            connection = await mysql_async_connect(**kwargs)
+        except Exception as replacement_error:
+            golog.log(
+                "ERR",
+                "Unable to replace stale MySQL connection: "
+                + str(replacement_error)
+            )
+            raise
+
     token = _async_current_connection.set(connection)
 
     # Keep the ContextVar token separately. Some connector objects do not
