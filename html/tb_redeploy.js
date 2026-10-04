@@ -408,8 +408,14 @@ window.addEventListener('DOMContentLoaded', () => {
         cell.dataset.originalText = cell.textContent;
         cell.dataset.originalColor = cell.style.backgroundColor;
         cell.dataset.forced = 'false';
-        cell.style.cursor = 'pointer';
-        cell.addEventListener('click', () => handlePlatoonCellClick(cell));
+
+        // Cells that are already green (15/15) are completed platoons
+        // and must not be made forceable.
+        const isInitialGreen = cell.dataset.originalText.trim() === '15';
+        if (!isInitialGreen) {
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', () => handlePlatoonCellClick(cell));
+        }
     });
 
     // Add click handlers to graphs
