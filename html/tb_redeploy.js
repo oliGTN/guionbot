@@ -372,11 +372,13 @@ function handlePlatoonCellClick(cell) {
         cell.dataset.forced = 'false';
         cell.textContent = cell.dataset.originalText;
         cell.style.backgroundColor = cell.dataset.originalColor;
+        cell.style.fontWeight = '';
         graph.forcedPlatoons = Math.max(0, graph.forcedPlatoons - platoonScore);
     } else {
         cell.dataset.forced = 'true';
         cell.textContent = '15/15 (forced)';
         cell.style.backgroundColor = 'lightgreen';
+        cell.style.fontWeight = 'bold';
         graph.forcedPlatoons += platoonScore;
     }
 
