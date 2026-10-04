@@ -31,6 +31,12 @@ function display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGui
 <!-- style for clickable rounds -->
 <style type="text/css">
     /* Keep the zone cards aligned even when a zone title wraps. */
+    .platoon-cell {
+        width: 50%;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
     .zone-heading {
         min-height: 4.5em;
         display: flex;
@@ -204,7 +210,7 @@ Score for this round:
                             <div class="col s12"><small>
                                 <b>Platoons</b>
                                 <p class="from-game-status"><?php echo $zone['recon_cmdMsg']; ?></p>
-                                <table>
+                                <table style="table-layout:fixed;width:100%;">
                                     <tr>
                                         <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon1_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon1_filled'];?></td>
                                         <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon4_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon4_filled'];?></td>
