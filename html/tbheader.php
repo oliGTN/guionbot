@@ -34,7 +34,7 @@ function display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGui
     .zone-heading {
         min-height: 4.5em;
         display: flex;
-        align-items: flex-end;
+        align-items: flex-start;
     }
 
     .zone-heading h4 {
