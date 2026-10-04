@@ -177,17 +177,17 @@ Score for this round:
                                 </rect>
 
                                 <!-- light green platons -->
-                                <rect id="platoons-<?php echo $zone['zone_name'];?>" x="<?php echo $x_score;?>%" width="<?php echo $x_strikes-$x_platoons;?>%" height="30" style="fill:lightgreen;">
+                                <rect id="platoons-<?php echo $zone['zone_name'];?>" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" x="<?php echo $x_score;?>%" width="<?php echo $x_platoons-$x_score;?>%" height="30" style="fill:lightgreen;">
                                     <title>Estimated platoons: <?php echo number_format($estimated_platoons, 0, ".", " ");?></title>
                                 </rect>
 
                                 <!-- orange strikes -->
-                                <rect id="fights-<?php echo $zone['zone_name'];?>" x="<?php echo $x_platoons;?>%" width="<?php echo $x_strikes-$x_platoons;?>%" height="30" style="fill:orange;">
+                                <rect id="fights-<?php echo $zone['zone_name'];?>" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" x="<?php echo $x_platoons;?>%" width="<?php echo $x_strikes-$x_platoons;?>%" height="30" style="fill:orange;">
                                     <title>Estimated strikes: <?php echo number_format($estimated_strikes, 0, ".", " ");?></title>
                                 </rect>
 
                                 <!-- yellow deployments -->
-                                <rect id="deploy-<?php echo $zone['zone_name'];?>" x="<?php echo $x_strikes;?>%" width="<?php echo $x_deployments-$x_strikes;?>%" height="30" style="fill:yellow;">
+                                <rect id="deploy-<?php echo $zone['zone_name'];?>" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" x="<?php echo $x_strikes;?>%" width="<?php echo $x_deployments-$x_strikes;?>%" height="30" style="fill:yellow;">
                                     <title>Deployments: <?php echo number_format($estimated_strikes, 0, ".", " ");?></title>
                                 </rect>
                                 <rect width="100%" height="30" style="fill:none;stroke:black;"></rect>
