@@ -359,7 +359,12 @@ function handlePlatoonCellClick(cell) {
     const platoonScore = parseInt(cell.dataset.platoonScore, 10) || 0;
     const graph = deployGraphs.find(item => String(item.zoneId) === String(zoneId));
 
-    if (!graph || platoonScore <= 0) {
+    if (!graph) {
+        console.error('Unable to find deployment graph for platoon cell', zoneId);
+        return;
+    }
+    if (platoonScore <= 0) {
+        console.error('Missing platoonScore for zone', zoneId, cell);
         return;
     }
 
@@ -401,10 +406,8 @@ window.addEventListener('DOMContentLoaded', () => {
         cell.dataset.originalText = cell.textContent;
         cell.dataset.originalColor = cell.style.backgroundColor;
         cell.dataset.forced = 'false';
-        if (cell.dataset.originalColor === 'orange' || cell.dataset.originalColor === 'rgb(255, 165, 0)') {
-            cell.style.cursor = 'pointer';
-            cell.addEventListener('click', () => handlePlatoonCellClick(cell));
-        }
+        cell.style.cursor = 'pointer';
+        cell.addEventListener('click', () => handlePlatoonCellClick(cell));
     });
 
     // Add click handlers to graphs
