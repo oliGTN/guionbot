@@ -206,16 +206,16 @@ Score for this round:
                                 <p class="from-game-status"><?php echo $zone['recon_cmdMsg']; ?></p>
                                 <table>
                                     <tr>
-                                        <td style="text-align:center;background-color:<?php echo ($zone['recon1_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon1_filled'];?></td>
-                                        <td style="text-align:center;background-color:<?php echo ($zone['recon4_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon4_filled'];?></td>
+                                        <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon1_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon1_filled'];?></td>
+                                        <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon4_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon4_filled'];?></td>
                                     </tr>
                                     <tr>
-                                        <td style="text-align:center;background-color:<?php echo ($zone['recon2_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon2_filled'];?></td>
-                                        <td style="text-align:center;background-color:<?php echo ($zone['recon5_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon5_filled'];?></td>
+                                        <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon2_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon2_filled'];?></td>
+                                        <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon5_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon5_filled'];?></td>
                                     </tr>
                                     <tr>
-                                        <td style="text-align:center;background-color:<?php echo ($zone['recon3_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon3_filled'];?></td>
-                                        <td style="text-align:center;background-color:<?php echo ($zone['recon6_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon6_filled'];?></td>
+                                        <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon3_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon3_filled'];?></td>
+                                        <td class="platoon-cell" data-zone-id="<?php echo htmlspecialchars((string)$zone_id, ENT_QUOTES, 'UTF-8'); ?>" data-platoon-score="<?php echo (int)($dict_tb[$zone_id]['platoonScore'] ?? 0); ?>" style="text-align:center;background-color:<?php echo ($zone['recon6_filled']==15?'lightgreen':'orange');?>"><?php echo $zone['recon6_filled'];?></td>
                                     </tr>
                                 </table></small>
                             </div>
