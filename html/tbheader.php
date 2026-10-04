@@ -30,6 +30,23 @@ function display_tb_header($guild_id, $guild_name, $tb, $round, $zones, $isMyGui
 </div>
 <!-- style for clickable rounds -->
 <style type="text/css">
+    /* Keep the zone cards aligned even when a zone title wraps. */
+    .zone-heading {
+        min-height: 4.5em;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .zone-heading h4 {
+        margin: 0.5rem 0;
+    }
+
+    @media only screen and (max-width: 600px) {
+        .zone-heading {
+            min-height: 0;
+        }
+    }
+
     .phases {
         font-size: 18px;
         margin: 20px 0 20px;
@@ -139,8 +156,8 @@ Score for this round:
                 ?>
 
                 <div class="col s12 m12 l4">
-                    <div class="valign-wrapper full-line">
-                    <h4><?php echo $zone['zone_name'].' - <small>'.$dict_tb[$zone_id]['fullname']?></small></h4>
+                    <div class="zone-heading">
+                        <h4><?php echo $zone['zone_name'].' - <small>'.$dict_tb[$zone_id]['fullname']?></small></h4>
                     </div>
                     <div class="card zone">
                         <div class="card-content">
