@@ -151,9 +151,10 @@ function updateDeployBar(graph) {
 
     const yellowPercent = (graph.currentDeploy / totalBarValue) * 100;
     const orangePercent = parseFloat(graph.orangeRect.getAttribute('width'));
+    const platoonPercent = parseFloat(graph.platoonRect.getAttribute('width'));
     const greenPercent = parseFloat(graph.greenRect.getAttribute('width'));
 
-    graph.deployRect.setAttribute('x', (greenPercent + orangePercent) + '%');
+    graph.deployRect.setAttribute('x', (greenPercent + platoonPercent + orangePercent) + '%');
     graph.deployRect.setAttribute('width', yellowPercent + '%');
 
     const title = graph.deployRect.querySelector('title');
@@ -323,8 +324,10 @@ function applyFightMode() {
 
         graph.platoonRect.setAttribute('x', greenPercent + '%');
         graph.platoonRect.setAttribute('width', platoonPercent + '%');
+        graph.platoonRect.querySelector('title').textContent = 'Estimated platoons: ' + formatNumber(platoons);
         graph.orangeRect.setAttribute('x', (greenPercent + platoonPercent) + '%');
         graph.orangeRect.setAttribute('width', orangePercent + '%');
+        graph.orangeRect.querySelector('title').textContent = 'Estimated strikes: ' + formatNumber(fights);
         graph.deployRect.setAttribute('x', (greenPercent + platoonPercent + orangePercent) + '%');
 
         graph.currentValue = graph.baseScore + platoons + fights;
