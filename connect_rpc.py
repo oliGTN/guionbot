@@ -371,318 +371,529 @@ async def get_TBmapstats_data(guild_id, force_update, allyCode=None):
 
     return 0, "", dict_TBmapstats
 
+# This function is a helper for get_event_data
+async def _get_event_events(session, event_type, guild_id, bot_allyCode,
+                            list_channels, use_cache_data, retryAuth):
+    url = "http://localhost:8000/events"
+
+    params = {
+        "allyCode": bot_allyCode,
+        "eventType": event_type,
+        "guild_id": guild_id,
+        "list_channels": list_channels,
+        "use_cache_data": use_cache_data,
+        "retryAuth": retryAuth
+    }
+
+    req_data = json_dumps(params)
+
+    try:
+        async with session.post(url, data=req_data) as resp:
+            golog.log(
+                "DBG",
+                "POST " + event_type + " events status=" + str(resp.status)
+            )
+
+            if resp.status == 200:
+                if use_cache_data:
+                    cache_json = await resp.json()
+                    return 0, "", cache_json["data"]
+
+                return 0, "", await resp.json()
+
+            if resp.status == 401:
+                return 401, "authentication failed", None
+
+            return 1, "Cannot get events data from RPC", None
+
+    except asyncio.exceptions.TimeoutError:
+        return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
+
+    except (
+        aiohttp.client_exceptions.ServerDisconnectedError,
+        aiohttp.client_exceptions.ClientConnectorError
+    ):
+        return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
+
 async def get_event_data(dict_guild, event_types, force_update, allyCode=None):
     calling_func = inspect.stack()[1][3]
     guild_id = dict_guild["profile"]["id"]
+
     golog.log(
-            "INFO", 
-            "START ("+str(guild_id) \
-            +", "+str(event_types) \
-            +", "+str(force_update) \
-            +", "+str(allyCode)+")" \
-            +" from "+str(calling_func))
+        "INFO",
+        "START (" + str(guild_id)
+        + ", " + str(event_types)
+        + ", " + str(force_update)
+        + ", " + str(allyCode) + ")"
+        + " from " + str(calling_func)
+    )
 
     err_c, err_t, \
     bot_allyCode, \
     use_cache_data, \
-    retryAuth = await get_connection_parameters(guild_id, force_update, allyCode)
+    retryAuth = await get_connection_parameters(
+        guild_id,
+        force_update,
+        allyCode
+    )
 
     if err_c != 0:
         return err_c, err_t, None
 
-    if event_types!=None and len(event_types) > 0:
-        list_rpc_events = []
+    if event_types is None or len(event_types) == 0:
+        return 0, "", {}
 
-        #---------------
-        #TB events
-        list_channels=[]
-        if ("territoryBattleStatus" in dict_guild) and ("TB" in event_types):
-            for tb_status in dict_guild["territoryBattleStatus"]:
-                if tb_status["selected"]:
-                    tb_id = tb_status["instanceId"]
-                    if "channelId" in tb_status:
-                        tb_channel = tb_status["channelId"]
-                        list_channels.append(tb_channel)
+    # ------------------------------------------------------------
+    # Prepare channels for TB / TW / CHAT
+    # ------------------------------------------------------------
 
-                    for conflict_zone in tb_status["conflictZoneStatus"]:
-                        if conflict_zone["zoneStatus"]["zoneState"] != "ZONELOCKED":
-                            if "channelId" in conflict_zone["zoneStatus"]:
-                                zone_channel = conflict_zone["zoneStatus"]["channelId"]
-                                list_channels.append(zone_channel)
+    tb_channels = []
+    tb_id = None
 
-        if len(list_channels)>0:
-            # RPC REQUEST for TB events
-            url = "http://localhost:8000/events"
-            params = {"allyCode": bot_allyCode, 
-                      "guild_id": guild_id,
-                      "eventType": "TB",
-                      "list_channels": list_channels, 
-                      "use_cache_data": use_cache_data,
-                      "retryAuth": retryAuth}
-            req_data = json_dumps(params)
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, data=req_data) as resp:
-                        golog.log("DBG", "POST TB events status="+str(resp.status))
-                        if resp.status==200:
-                            if use_cache_data:
-                                cache_json = await(resp.json())
-                                cache_ts = cache_json["timestamp"]
-                                resp_events = cache_json["data"]
-                            else:
-                                resp_events = await(resp.json())
-                        elif resp.status==401:
-                            return 401, "authentication failed", None
-                        else:
-                            return 1, "Cannot get events data from RPC", None
-
-            except asyncio.exceptions.TimeoutError as e:
-                return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-            except aiohttp.client_exceptions.ServerDisconnectedError as e:
-                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-            except aiohttp.client_exceptions.ClientConnectorError as e:
-                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-        else:
-            resp_events = None
-
-        #add received events to the whole list
-        if resp_events!=None:
-            if "err_code" in resp_events:
-                return 1, resp_events["err_txt"], None
-            list_rpc_events += resp_events['event']
-
-            #Store the new events in the DB
-            await update_mysql.store_tb_events(guild_id, tb_id, resp_events['event'])
-
-        #---------------
-        #TW events
-        list_channels=[]
-        if ("territoryWarStatus" in dict_guild) and ("TW" in event_types):
-            for tw_status in dict_guild["territoryWarStatus"]:
-                tw_id = tw_status["instanceId"]
-                tw_guilds = []
-                for guild_type in ["homeGuild", "awayGuild"]:
-                    if guild_type in tw_status:
-                        tw_guilds.append(tw_status[guild_type])
-
-                for guild_status in tw_guilds:
-                    for conflict_zone in guild_status["conflictStatus"]:
-                        zone_channel = conflict_zone["zoneStatus"]["channelId"]
-                        list_channels.append(zone_channel)
-
-        if len(list_channels)>0:
-            # RPC REQUEST for TW events
-            url = "http://localhost:8000/events"
-            params = {"allyCode": bot_allyCode, 
-                      "eventType": "TW",
-                      "guild_id": guild_id,
-                      "list_channels": list_channels, 
-                      "use_cache_data":use_cache_data,
-                      "retryAuth": retryAuth}
-            req_data = json_dumps(params)
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, data=req_data) as resp:
-                        golog.log("DBG", "POST TW events status="+str(resp.status))
-                        if resp.status==200:
-                            if use_cache_data:
-                                cache_json = await(resp.json())
-                                cache_ts = cache_json["timestamp"]
-                                resp_events = cache_json["data"]
-                            else:
-                                resp_events = await(resp.json())
-                        elif resp.status==401:
-                            return 401, "authentication failed", None
-                        else:
-                            return 1, "Cannot get events data from RPC", None
-
-            except asyncio.exceptions.TimeoutError as e:
-                return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-            except aiohttp.client_exceptions.ServerDisconnectedError as e:
-                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-            except aiohttp.client_exceptions.ClientConnectorError as e:
-                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-        else:
-            resp_events = None
-
-        #add received events to the whole list
-        if resp_events!=None:
-            if "err_code" in resp_events:
-                return 1, resp_events["err_txt"], None
-            list_rpc_events += resp_events['event']
-
-            #Store the new events in the DB
-            await update_mysql.store_tw_events(guild_id, tw_id, resp_events['event'])
-
-        #---------------
-        #CHAT events
-        list_channels=[]
-        if ("roomAvailable" in dict_guild) and ("CHAT" in event_types):
-            for room in dict_guild["roomAvailable"]:
-                if room["type"] == "GUILDDEFAULT":
-                    room_channel = room["roomId"]
-                    list_channels.append(room_channel)
-
-        if len(list_channels)>0:
-            # RPC REQUEST for CHAT events
-            url = "http://localhost:8000/events"
-            params = {"allyCode": bot_allyCode, 
-                      "eventType": "CHAT",
-                      "guild_id": guild_id,
-                      "list_channels": list_channels, 
-                      "use_cache_data":use_cache_data,
-                      "retryAuth": retryAuth}
-            req_data = json_dumps(params)
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, data=req_data) as resp:
-                        golog.log("DBG", "POST CHAT events status="+str(resp.status))
-                        if resp.status==200:
-                            if use_cache_data:
-                                cache_json = await(resp.json())
-                                cache_ts = cache_json["timestamp"]
-                                resp_events = cache_json["data"]
-                            else:
-                                resp_events = await(resp.json())
-                        elif resp.status==401:
-                            return 401, "authentication failed", None
-                        else:
-                            return 1, "Cannot get events data from RPC", None
-
-            except asyncio.exceptions.TimeoutError as e:
-                return 1, "Timeout lors de la requete RPC, merci de ré-essayer", None
-            except aiohttp.client_exceptions.ServerDisconnectedError as e:
-                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-            except aiohttp.client_exceptions.ClientConnectorError as e:
-                return 1, "Erreur lors de la requete RPC, merci de ré-essayer", None
-        else:
-            resp_events = None
-
-        #add received events to the whole list
-        if resp_events!=None:
-            if "err_code" in resp_events:
-                return 1, resp_events["err_txt"], None
-            list_rpc_events += resp_events['event']
-
-        # GET latest ts for events
-        query = "SELECT eventLatest_ts "
-        query+= "FROM guild_bot_infos "
-        query+= "WHERE guild_id='"+guild_id+"'"
-        golog.log("DBG", query)
-        eventLatest_ts = await connect_mysql.get_value_async(query)
-
-        golog.log("DBG", "start loop list_rpc_events")
-        max_event_ts = 0
-        dict_new_events = {}
-        dict_event_counts = {"chat":0, "tb":0, "tw":0}
-        chat_file_ids = []
-        tb_file_ids = []
-        tw_file_ids = []
-        for event in list_rpc_events:
-            channel_id = event["channelId"]
-            event_ts = int(event["timestamp"])
-
-            if channel_id.startswith("guild-{"):
-                event_day_ts = int(event_ts/1000/86400)*86400*1000
-                event_file_id = "GUILD_CHAT:"+str(event_day_ts)
-                if not event_file_id in chat_file_ids:
-                    chat_file_ids.append(event_file_id)
-                event_type = "chat"
-
-            elif "TB_EVENT" in channel_id:
-                ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
-                event_file_id = ret_re.group(1)
-                if not event_file_id in tb_file_ids:
-                    tb_file_ids.append(event_file_id)
-                event_type = "tb"
-
-            elif "TERRITORY_WAR" in channel_id:
-                ret_re = re.search(".*\-\{.*\}\-(.*)\-.*", channel_id)
-                event_file_id = ret_re.group(1)
-                if not event_file_id in tw_file_ids:
-                    tw_file_ids.append(event_file_id)
-                event_type = "tw"
-
-            else:
+    if (
+        "territoryBattleStatus" in dict_guild
+        and "TB" in event_types
+    ):
+        for tb_status in dict_guild["territoryBattleStatus"]:
+            if not tb_status["selected"]:
                 continue
 
-            # eventLatest_ts = None >> erroneous config, better to not store events
-            # event_ts <= eventLatest_ts >> already known event
-            if eventLatest_ts==None or event_ts <= eventLatest_ts:
+            tb_id = tb_status["instanceId"]
+
+            if "channelId" in tb_status:
+                tb_channels.append(tb_status["channelId"])
+
+            for conflict_zone in tb_status["conflictZoneStatus"]:
+                zone_status = conflict_zone["zoneStatus"]
+
+                if zone_status["zoneState"] != "ZONELOCKED":
+                    if "channelId" in zone_status:
+                        tb_channels.append(
+                            zone_status["channelId"]
+                        )
+
+    tw_channels = []
+    tw_id = None
+
+    if (
+        "territoryWarStatus" in dict_guild
+        and "TW" in event_types
+    ):
+        for tw_status in dict_guild["territoryWarStatus"]:
+            tw_id = tw_status["instanceId"]
+
+            for guild_type in ["homeGuild", "awayGuild"]:
+                if guild_type not in tw_status:
+                    continue
+
+                guild_status = tw_status[guild_type]
+
+                for conflict_zone in guild_status["conflictStatus"]:
+                    zone_status = conflict_zone["zoneStatus"]
+
+                    if "channelId" in zone_status:
+                        tw_channels.append(
+                            zone_status["channelId"]
+                        )
+
+    chat_channels = []
+
+    if (
+        "roomAvailable" in dict_guild
+        and "CHAT" in event_types
+    ):
+        for room in dict_guild["roomAvailable"]:
+            if room["type"] == "GUILDDEFAULT":
+                chat_channels.append(room["roomId"])
+
+    # ------------------------------------------------------------
+    # Start eventLatest_ts query now.
+    #
+    # This can run while the RPC requests are being processed.
+    # ------------------------------------------------------------
+
+    query = (
+        "SELECT eventLatest_ts "
+        "FROM guild_bot_infos "
+        "WHERE guild_id='" + guild_id + "'"
+    )
+
+    golog.log("DBG", query)
+
+    event_latest_task = asyncio.create_task(
+        connect_mysql.get_value_async(query)
+    )
+
+    # ------------------------------------------------------------
+    # RPC requests
+    #
+    # TB / TW / CHAT are independent, so execute them concurrently.
+    # ------------------------------------------------------------
+
+    async with aiohttp.ClientSession() as session:
+
+        tasks = []
+
+        if len(tb_channels) > 0:
+            tasks.append(
+                (
+                    "TB",
+                    _get_event_events(
+                        session,
+                        "TB",
+                        guild_id,
+                        bot_allyCode,
+                        tb_channels,
+                        use_cache_data,
+                        retryAuth
+                    )
+                )
+            )
+
+        if len(tw_channels) > 0:
+            tasks.append(
+                (
+                    "TW",
+                    _get_event_events(
+                        session,
+                        "TW",
+                        guild_id,
+                        bot_allyCode,
+                        tw_channels,
+                        use_cache_data,
+                        retryAuth
+                    )
+                )
+            )
+
+        if len(chat_channels) > 0:
+            tasks.append(
+                (
+                    "CHAT",
+                    _get_event_events(
+                        session,
+                        "CHAT",
+                        guild_id,
+                        bot_allyCode,
+                        chat_channels,
+                        use_cache_data,
+                        retryAuth
+                    )
+                )
+            )
+
+        if len(tasks) > 0:
+            results = await asyncio.gather(
+                *(task[1] for task in tasks)
+            )
+        else:
+            results = []
+
+    # ------------------------------------------------------------
+    # Process RPC responses
+    # ------------------------------------------------------------
+
+    resp_events_by_type = {}
+
+    for index, (event_type, _) in enumerate(tasks):
+        err_c, err_t, resp_events = results[index]
+
+        if err_c != 0:
+            return err_c, err_t, None
+
+        if resp_events is not None:
+            if "err_code" in resp_events:
+                return 1, resp_events["err_txt"], None
+
+            resp_events_by_type[event_type] = resp_events
+
+    # ------------------------------------------------------------
+    # Build complete event list and store TB/TW events
+    # ------------------------------------------------------------
+
+    list_rpc_events = []
+
+    resp_events = resp_events_by_type.get("TB")
+
+    if resp_events is not None:
+        events = resp_events["event"]
+
+        list_rpc_events.extend(events)
+
+        await update_mysql.store_tb_events(
+            guild_id,
+            tb_id,
+            events
+        )
+
+    resp_events = resp_events_by_type.get("TW")
+
+    if resp_events is not None:
+        events = resp_events["event"]
+
+        list_rpc_events.extend(events)
+
+        await update_mysql.store_tw_events(
+            guild_id,
+            tw_id,
+            events
+        )
+
+    resp_events = resp_events_by_type.get("CHAT")
+
+    if resp_events is not None:
+        list_rpc_events.extend(resp_events["event"])
+
+    # ------------------------------------------------------------
+    # Get eventLatest_ts
+    #
+    # Usually the query has already completed while the RPC calls
+    # were running.
+    # ------------------------------------------------------------
+
+    eventLatest_ts = await event_latest_task
+
+    # ------------------------------------------------------------
+    # Process events
+    # ------------------------------------------------------------
+
+    golog.log("DBG", "start loop list_rpc_events")
+
+    max_event_ts = 0
+
+    dict_new_events = {}
+
+    dict_event_counts = {
+        "chat": 0,
+        "tb": 0,
+        "tw": 0
+    }
+
+    # Sets are considerably faster than repeatedly searching lists.
+    chat_file_ids = set()
+    tb_file_ids = set()
+    tw_file_ids = set()
+
+    for event in list_rpc_events:
+        channel_id = event["channelId"]
+        event_ts = int(event["timestamp"])
+
+        # --------------------------------------------------------
+        # CHAT
+        # --------------------------------------------------------
+
+        if channel_id.startswith("guild-{"):
+            event_day_ts = (
+                int(event_ts / 1000 / 86400)
+                * 86400
+                * 1000
+            )
+
+            event_file_id = "GUILD_CHAT:" + str(event_day_ts)
+
+            chat_file_ids.add(event_file_id)
+
+            event_type = "chat"
+
+        # --------------------------------------------------------
+        # TB
+        # --------------------------------------------------------
+
+        elif "TB_EVENT" in channel_id:
+            ret_re = re.search(
+                ".*\\-\\{.*\\}\\-(.*)\\-.*",
+                channel_id
+            )
+
+            if ret_re is None:
                 continue
 
-            if event_ts > max_event_ts:
-                max_event_ts = event_ts
+            event_file_id = ret_re.group(1)
 
-            dict_event_counts[event_type]+=1
-            if not event_file_id in dict_new_events:
-                dict_new_events[event_file_id] = []
-            dict_new_events[event_file_id].append(event)
+            tb_file_ids.add(event_file_id)
 
-        golog.log("DBG", "end loop list_rpc_events")
+            event_type = "tb"
 
-        # SET latest ts for events, if at least one new event has been detected
-        # and events were stored before
-        if max_event_ts != 0 and eventLatest_ts!=None:
-            query = "UPDATE guild_bot_infos "
-            query+= "SET eventLatest_ts="+str(max_event_ts)+" "
-            query+= "WHERE guild_id='"+guild_id+"'"
-            golog.log("INFO", query, identifier=guild_id)
-            await connect_mysql.simple_execute_async(query)
+        # --------------------------------------------------------
+        # TW
+        # --------------------------------------------------------
 
-        #if max(dict_event_counts.values()) > 0:
-        golog.log("INFO", "New events: "+str(dict_event_counts), identifier=guild_id)
+        elif "TERRITORY_WAR" in channel_id:
+            ret_re = re.search(
+                ".*\\-\\{.*\\}\\-(.*)\\-.*",
+                channel_id
+            )
 
-        #PREPARE dict_events to return
-        golog.log("DBG", "start loop dict_new_events")
-        dict_events = {}
+            if ret_re is None:
+                continue
 
-        #CHAT events
-        for [event_type, file_ids] in [["CHAT", chat_file_ids],
-                                       ["TB", tb_file_ids],
-                                       ["TW", tw_file_ids]]:
-            if event_type in event_types:
-                for event_file_id in file_ids:
-                    fevents = "EVENTS/"+guild_id+"_"+event_file_id+"_events.json"
-                    await acquire_sem(fevents)
+            event_file_id = ret_re.group(1)
 
-                    #Get previous events
-                    if os.path.exists(fevents):
-                        golog.log("DBG", "get previous events from "+fevents)
-                        f = open(fevents, "r")
-                        try:
-                            file_events=json_load(f)
-                        except:
-                            golog.log(
-                                "WAR", 
-                                "error while reading "+fevents+" ... ignoring",
-                                identifier=guild_id)
-                            file_events={}
-                        f.close()
-                    else:
-                        file_events={}
+            tw_file_ids.add(event_file_id)
 
-                    #Add new events
-                    if event_file_id in dict_new_events:
-                        for event in dict_new_events[event_file_id]:
-                            event_id = event["id"]
-                            file_events[event_id] = event
+            event_type = "tw"
 
-                        #And write file
-                        f = open(fevents, "w")
-                        f.write(json_dumps(file_events, indent=4))
-                        f.close()
-                    await release_sem(fevents)
+        else:
+            continue
 
-                    #Add all events to dict_events
-                    dict_events[event_file_id] = file_events
+        # --------------------------------------------------------
+        # eventLatest_ts == None means erroneous configuration.
+        #
+        # In that case, don't store events.
+        # --------------------------------------------------------
 
-            await asyncio.sleep(0)
+        if eventLatest_ts is None or event_ts <= eventLatest_ts:
+            continue
 
-        golog.log("DBG", "end loop dict_new_events")
+        if event_ts > max_event_ts:
+            max_event_ts = event_ts
 
-    else:
-        dict_events = {}
+        dict_event_counts[event_type] += 1
+
+        dict_new_events.setdefault(
+            event_file_id,
+            []
+        ).append(event)
+
+    golog.log("DBG", "end loop list_rpc_events")
+
+    # ------------------------------------------------------------
+    # Update latest timestamp
+    # ------------------------------------------------------------
+
+    if max_event_ts != 0 and eventLatest_ts is not None:
+        query = (
+            "UPDATE guild_bot_infos "
+            "SET eventLatest_ts=" + str(max_event_ts) + " "
+            "WHERE guild_id='" + guild_id + "'"
+        )
+
+        golog.log(
+            "INFO",
+            query,
+            identifier=guild_id
+        )
+
+        await connect_mysql.simple_execute_async(query)
+
+    golog.log(
+        "INFO",
+        "New events: " + str(dict_event_counts),
+        identifier=guild_id
+    )
+
+    # ------------------------------------------------------------
+    # Prepare dict_events
+    # ------------------------------------------------------------
+
+    golog.log("DBG", "start loop dict_new_events")
+
+    dict_events = {}
+
+    # ------------------------------------------------------------
+    # Helper functions for file I/O
+    #
+    # They run in a worker thread so that JSON/file operations do
+    # not block the asyncio event loop.
+    # ------------------------------------------------------------
+
+    def read_events_file(filename):
+        if not os.path.exists(filename):
+            return {}
+
+        try:
+            with open(filename, "r") as f:
+                return json_load(f)
+
+        except Exception:
+            return None
+
+    def write_events_file(filename, events):
+        with open(filename, "w") as f:
+            f.write(
+                json_dumps(
+                    events,
+                    indent=4
+                )
+            )
+
+    # ------------------------------------------------------------
+    # Read/write event files
+    # ------------------------------------------------------------
+
+    for event_type, file_ids in [
+        ("CHAT", chat_file_ids),
+        ("TB", tb_file_ids),
+        ("TW", tw_file_ids)
+    ]:
+
+        if event_type not in event_types:
+            continue
+
+        for event_file_id in file_ids:
+
+            fevents = (
+                "EVENTS/"
+                + guild_id
+                + "_"
+                + event_file_id
+                + "_events.json"
+            )
+
+            await acquire_sem(fevents)
+
+            try:
+                # ------------------------------------------------
+                # Read previous events without blocking the
+                # asyncio event loop.
+                # ------------------------------------------------
+
+                file_events = await asyncio.to_thread(
+                    read_events_file,
+                    fevents
+                )
+
+                if file_events is None:
+                    golog.log(
+                        "WAR",
+                        "error while reading "
+                        + fevents
+                        + " ... ignoring",
+                        identifier=guild_id
+                    )
+
+                    file_events = {}
+
+                # ------------------------------------------------
+                # Add new events
+                # ------------------------------------------------
+
+                if event_file_id in dict_new_events:
+
+                    for event in dict_new_events[event_file_id]:
+                        event_id = event["id"]
+                        file_events[event_id] = event
+
+                    # --------------------------------------------
+                    # Write without blocking the event loop.
+                    # --------------------------------------------
+
+                    await asyncio.to_thread(
+                        write_events_file,
+                        fevents,
+                        file_events
+                    )
+
+                # ------------------------------------------------
+                # Add all events to returned dictionary
+                # ------------------------------------------------
+
+                dict_events[event_file_id] = file_events
+
+            finally:
+                await release_sem(fevents)
+
+    golog.log("DBG", "end loop dict_new_events")
 
     return 0, "", dict_events
 
@@ -1494,7 +1705,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
                         dict_guild=None, dict_TBmapstats=None,
                         dict_all_events=None,
                         prev_round=None,
-                        ignored_allyCodes=[]):
+                        ignored_allyCodes=[],
+                        update_db=False):
     global prev_dict_guild
     global prev_mapstats
 
@@ -2762,8 +2974,8 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
         dict_zones[zone_name]["estimatedStars"] = star_for_score
 
     #Update DB
-    if simulated_tb==None and compute_estimated_fights and not compute_estimated_platoons:
-        #website only displays fight estimates
+    if simulated_tb==None and update_db:
+        #website only updated from periodic computations, not from commands
         await update_mysql.update_tb_round(guild_id, 
                                             dict_phase["id"], 
                                             dict_phase["round"], 

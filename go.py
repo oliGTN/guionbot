@@ -4554,7 +4554,10 @@ def draw_tb_previsions(zone_name, zone_scores, current_score, estimated_platoons
     return zone_img
 
 async def get_tb_alerts(guild_id, force_update):
-    ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", force_update)
+    ec, et, tb_data = await connect_rpc.get_tb_status(
+            guild_id, 
+            "", 
+            force_update)
     if ec!=0:
         golog.log("INFO", "["+guild_id+"] tb_data="+str(tb_data)[:100])
         if tb_data!=None and "tb_summary" in tb_data and tb_data["tb_summary"]!=None:
