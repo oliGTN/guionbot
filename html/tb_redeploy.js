@@ -359,17 +359,23 @@ function handlePlatoonCellClick(cell) {
     const platoonScore = parseInt(cell.dataset.platoonScore, 10) || 0;
     const graph = deployGraphs.find(item => String(item.zoneId) === String(zoneId));
 
-    if (!graph || cell.dataset.forced === 'true' || platoonScore <= 0) {
+    if (!graph || platoonScore <= 0) {
         return;
     }
 
-    cell.dataset.forced = 'true';
-    cell.textContent = '15/15 (forced)';
-    cell.style.backgroundColor = 'lightgreen';
-    cell.style.cursor = 'default';
-    graph.forcedPlatoons += platoonScore;
+    if (cell.dataset.forced === 'true') {
+        cell.dataset.forced = 'false';
+        cell.textContent = cell.dataset.originalText;
+        cell.style.backgroundColor = cell.dataset.originalColor;
+        graph.forcedPlatoons = Math.max(0, graph.forcedPlatoons - platoonScore);
+    } else {
+        cell.dataset.forced = 'true';
+        cell.textContent = '15/15 (forced)';
+        cell.style.backgroundColor = 'lightgreen';
+        graph.forcedPlatoons += platoonScore;
+    }
 
-    // Forced platoons invalidate the current yellow deployment plan.
+    // Clear the previous yellow allocation after any forced-platoon change.
     redeployMode = false;
     totalFillable = 0;
     applyFightMode();
@@ -392,7 +398,10 @@ window.addEventListener('DOMContentLoaded', () => {
         applyFightMode();
     });
     document.querySelectorAll('.platoon-cell').forEach(cell => {
-        if (cell.style.backgroundColor === 'orange' || cell.style.backgroundColor === 'rgb(255, 165, 0)') {
+        cell.dataset.originalText = cell.textContent;
+        cell.dataset.originalColor = cell.style.backgroundColor;
+        cell.dataset.forced = 'false';
+        if (cell.dataset.originalColor === 'orange' || cell.dataset.originalColor === 'rgb(255, 165, 0)') {
             cell.style.cursor = 'pointer';
             cell.addEventListener('click', () => handlePlatoonCellClick(cell));
         }
