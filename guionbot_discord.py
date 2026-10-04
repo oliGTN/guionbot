@@ -1614,6 +1614,7 @@ async def update_rpc_data(guild_id, allyCode=None, guild_bots=None):
     #Update DB and website during TB
     ec, et, tb_data = await connect_rpc.get_tb_status(guild_id, "", -1, 
                                 fight_estimation_type=fight_estimation_type,
+                                compute_estimated_platoons=True,
                                 allyCode=allyCode)
     if ec != 0:
         # No TB ongoing - close TB
