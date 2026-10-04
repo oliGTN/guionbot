@@ -376,7 +376,7 @@ function handlePlatoonCellClick(cell) {
         graph.forcedPlatoons = Math.max(0, graph.forcedPlatoons - platoonScore);
     } else {
         cell.dataset.forced = 'true';
-        cell.textContent = '15/15 (forced)';
+        cell.textContent = '15 (forced)';
         cell.style.backgroundColor = 'lightgreen';
         cell.style.fontWeight = 'bold';
         graph.forcedPlatoons += platoonScore;
