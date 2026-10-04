@@ -99,8 +99,11 @@ function initRedeployGraphs() {
 
         const orangeTitle = orangeRect.querySelector('title').textContent;
         const orangeValue = parseNumber(orangeTitle);
+        const platoonRect = svg.querySelector('rect[id^="platoons-"]');
+        const platoonValue = parseNumber(platoonRect.querySelector('title').textContent);
+        const zoneId = rect.dataset.zoneId;
 
-        const baseValueWithFights = currentValue + orangeValue;
+        const baseValueWithFights = currentValue + platoonValue + orangeValue;
         const baseValueWithoutFights = currentValue;
 
         const graph = {
@@ -109,6 +112,12 @@ function initRedeployGraphs() {
             deployRect: rect,
             orangeRect,
             greenRect,
+            platoonRect,
+            zoneId,
+            baseScore: currentValue,
+            basePlatoons: platoonValue,
+            baseFights: orangeValue,
+            forcedPlatoons: 0,
             steps,
             finalValue,
             baseValueWithFights,
@@ -116,7 +125,9 @@ function initRedeployGraphs() {
             currentValue: baseValueWithFights,
             currentDeploy: 0,
             originalOrangeWidth: orangeRect.getAttribute('width'),
-            originalOrangeX: orangeRect.getAttribute('x')
+            originalOrangeX: orangeRect.getAttribute('x'),
+            originalPlatoonWidth: platoonRect.getAttribute('width'),
+            originalPlatoonX: platoonRect.getAttribute('x')
         };
         deployGraphs.push(graph);
 
@@ -299,36 +310,24 @@ function fillGraph(graph) {
 
 function applyFightMode() {
     deployGraphs.forEach(graph => {
-        // Reset yellow
         graph.currentDeploy = 0;
         graph.deployRect.setAttribute('width', '0%');
+        graph.deployRect.querySelector('title').textContent = 'Deployments: 0';
 
-        const deployTitle = graph.deployRect.querySelector('title');
-        deployTitle.textContent = 'Deployments: 0';
+        const platoons = graph.basePlatoons + graph.forcedPlatoons;
+        const availableForFights = Math.max(0, graph.finalValue - graph.baseScore - platoons);
+        const fights = withFights ? Math.min(graph.baseFights, availableForFights) : 0;
+        const greenPercent = graph.baseScore / graph.finalValue * 100;
+        const platoonPercent = platoons / graph.finalValue * 100;
+        const orangePercent = fights / graph.finalValue * 100;
 
-        if (withFights) {
-            // Restore orange
-            graph.orangeRect.setAttribute('width', graph.originalOrangeWidth);
-            graph.orangeRect.setAttribute('x', graph.originalOrangeX);
+        graph.platoonRect.setAttribute('x', greenPercent + '%');
+        graph.platoonRect.setAttribute('width', platoonPercent + '%');
+        graph.orangeRect.setAttribute('x', (greenPercent + platoonPercent) + '%');
+        graph.orangeRect.setAttribute('width', orangePercent + '%');
+        graph.deployRect.setAttribute('x', (greenPercent + platoonPercent + orangePercent) + '%');
 
-            graph.currentValue = graph.baseValueWithFights;
-
-            const greenPercent = parseFloat(graph.greenRect.getAttribute('width'));
-            const orangePercent = parseFloat(graph.originalOrangeWidth);
-
-            graph.deployRect.setAttribute('x', (greenPercent + orangePercent) + '%');
-        }
-        else {
-            // Remove orange
-            graph.orangeRect.setAttribute('width', '0%');
-
-            const greenPercent = parseFloat(graph.greenRect.getAttribute('width'));
-
-            graph.deployRect.setAttribute('x', greenPercent + '%');
-
-            graph.currentValue = graph.baseValueWithoutFights;
-        }
-
+        graph.currentValue = graph.baseScore + platoons + fights;
         updateStars(graph);
     });
 }
@@ -351,6 +350,29 @@ function startRedeploy() {
     updateUnusedDisplay();
 }
 
+
+function handlePlatoonCellClick(cell) {
+    const zoneId = cell.dataset.zoneId;
+    const platoonScore = parseInt(cell.dataset.platoonScore, 10) || 0;
+    const graph = deployGraphs.find(item => String(item.zoneId) === String(zoneId));
+
+    if (!graph || cell.dataset.forced === 'true' || platoonScore <= 0) {
+        return;
+    }
+
+    cell.dataset.forced = 'true';
+    cell.textContent = '15/15 (forced)';
+    cell.style.backgroundColor = 'lightgreen';
+    cell.style.cursor = 'default';
+    graph.forcedPlatoons += platoonScore;
+
+    // Forced platoons invalidate the current yellow deployment plan.
+    redeployMode = false;
+    totalFillable = 0;
+    applyFightMode();
+    updateUnusedDisplay();
+}
+
 // Initialize when page is ready
 window.addEventListener('DOMContentLoaded', () => {
     initRedeployGraphs();
@@ -366,6 +388,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
         applyFightMode();
     });
+    document.querySelectorAll('.platoon-cell').forEach(cell => {
+        if (cell.style.backgroundColor === 'orange' || cell.style.backgroundColor === 'rgb(255, 165, 0)') {
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', () => handlePlatoonCellClick(cell));
+        }
+    });
+
     // Add click handlers to graphs
     deployGraphs.forEach(graph => {
         graph.svg.addEventListener('click', () => {
