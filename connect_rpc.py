@@ -1987,10 +1987,12 @@ async def get_tb_status(guild_id, list_target_zone_steps, force_update,
 
                     bonus = {}
                     for s in latest_tbr["finalStat"]:
+                        if not "playerStat" in s:
+                            continue
+
                         mid = s["mapStatId"]
                         if mid.startswith("summary_zone") and mid.endswith("_bonus") \
                         or mid.startswith("power_zone") and mid.endswith("_bonus"):
-
                             z_id = '_'.join(mid.split('_')[2:])
                             if not z_id in bonus:
                                 bonus[z_id] = {"score": 0}
