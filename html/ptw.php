@@ -371,8 +371,14 @@ $rarity_values = [
             display: flex;
             flex-direction: column;
             align-items: center;
-            max-width: 100px;
+            max-width: 120px;
             text-align: center;
+        }
+
+        .tw-selected-unit img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
         }
 
         .tw-selected-unit button {
@@ -409,7 +415,61 @@ $rarity_values = [
             border: 1px solid #ccc;
             background: #fff;
             border-radius: 4px;
-            padding: 0.4rem 0.6rem;
+            padding: 0.25rem;
+            width: 80px;
+            height: 80px;
+        }
+
+        .tw-unit-result img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+        }
+
+        .tw-datacron-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            max-height: 260px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .tw-datacron-card {
+            cursor: pointer;
+            width: 90px;
+            min-height: 90px;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            background: none;
+            padding: 2px;
+            text-align: center;
+        }
+
+        .tw-datacron-card.selected {
+            border-color: #333;
+        }
+
+        .tw-datacron-card img {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+        }
+
+        .tw-datacron-card span {
+            display: block;
+            font-size: 0.75rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tw-zone-command-creator {
+            padding: 0.75rem;
+            border-left: 4px solid #888;
+            background: #f5f5f5;
         }
 
         .tw-creator-error {
@@ -520,6 +580,8 @@ foreach ($squad['cells'] as $unit) {
 <?php endforeach; ?>
                         </select>
 
+                        <div id="tw-zone-command-creator" class="tw-zone-command-creator"></div>
+
                         <div class="tw-unit-picker">
                             <div>
                                 <b>Selected units</b>
@@ -585,7 +647,19 @@ const unitResults = document.getElementById('tw-unit-results');
 const selectedUnitsContainer = document.getElementById('tw-selected-units');
 const selectedUnitsInput = document.getElementById('tw-selected-units-input');
 const datacronSelector = document.getElementById('tw-datacron-selector');
+const datacronFilter = document.getElementById('tw-datacron-filter');
+const datacronIdInput = document.getElementById('tw-datacron-id');
+const datacronList = document.getElementById('tw-datacron-list');
+const zoneCommandCreator = document.getElementById('tw-zone-command-creator');
 const creatorLimit = document.getElementById('tw-creator-limit');
+
+const twZoneCommands = <?php
+$creator_zone_commands = [];
+foreach ($tw_zones as $zone) {
+    $creator_zone_commands[$zone] = $zones['home'][$zone]['commandMsg'] ?? '';
+}
+echo json_encode($creator_zone_commands, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>;
 
 if (zoneSelect) {
     let selectedUnits = [];
@@ -605,8 +679,8 @@ if (zoneSelect) {
 
             const portrait = document.createElement('img');
             portrait.src = 'IMAGES/CHARACTERS/' + encodeURIComponent(unit.id) + '.png';
-            portrait.width = 70;
-            portrait.height = 70;
+            portrait.width = 100;
+            portrait.height = 100;
             portrait.alt = unit.name;
             portrait.title = unit.name;
             wrapper.appendChild(portrait);
@@ -648,7 +722,11 @@ if (zoneSelect) {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'tw-unit-result';
-                button.textContent = unit.name;
+                const portrait = document.createElement('img');
+                portrait.src = 'IMAGES/CHARACTERS/' + encodeURIComponent(unit.id) + '.png';
+                portrait.alt = unit.name;
+                portrait.title = unit.name;
+                button.appendChild(portrait);
                 button.title = unit.name;
                 button.addEventListener('click', () => {
                     if (selectedUnits.length >= max) return;
@@ -663,9 +741,27 @@ if (zoneSelect) {
             });
     }
 
+    function updateDatacrons() {
+        const selectedSet = datacronFilter.value;
+        datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
+            card.style.display = !selectedSet || card.dataset.setId === selectedSet ? '' : 'none';
+        });
+    }
+
+    datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
+        card.addEventListener('click', () => {
+            datacronList.querySelectorAll('.tw-datacron-card').forEach((item) => item.classList.remove('selected'));
+            card.classList.add('selected');
+            datacronIdInput.value = card.dataset.datacronId;
+        });
+    });
+
+    datacronFilter.addEventListener('change', updateDatacrons);
+
     function updateCreator() {
         const fleet = fleetZone();
         datacronSelector.style.display = fleet ? 'none' : 'block';
+        zoneCommandCreator.textContent = twZoneCommands[zoneSelect.value] || '';
         creatorLimit.textContent = fleet
             ? 'Fleet: select 1 capital ship, up to 3 line-up ships, then up to 4 reinforcements.'
             : 'Non-fleet: select up to 5 characters.';
@@ -678,10 +774,12 @@ if (zoneSelect) {
         }
         renderSelected();
         renderResults();
+        updateDatacrons();
     }
 
     zoneSelect.addEventListener('change', updateCreator);
     unitSearch.addEventListener('input', renderResults);
     updateCreator();
+    updateDatacrons();
 }
 </script>
