@@ -224,7 +224,16 @@ if ($tw) {
             "SELECT id, setId, focused, level_3, level_6, level_9, level_12, level_15
              FROM datacrons
              WHERE allyCode = :allycode
-             ORDER BY setId DESC, id"
+             ORDER BY 
+                setId,
+                CASE
+                WHEN NOT isnull(level_15) THEN 15
+                WHEN NOT isnull(level_12) THEN 12
+                WHEN NOT isnull(level_9) THEN 9
+                WHEN NOT isnull(level_6) THEN 6
+                WHEN NOT isnull(level_3) THEN 3
+                ELSE 0 END DESC;
+            "
         );
         $stmt->execute([':allycode' => $allycode]);
         $player_datacrons = $stmt->fetchAll(PDO::FETCH_ASSOC);
