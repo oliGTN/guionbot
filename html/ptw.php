@@ -146,6 +146,8 @@ foreach ($zone_order as $zone_name) {
     }
 }
 
+$tw_zones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
+
 $zone_team_counts = [];
 foreach ($tw_zones as $zone_name) {
     $zone_team_counts[$zone_name] = isset($squads_by_zone[$zone_name])
@@ -161,7 +163,6 @@ if (is_readable($dict_units_file)) {
 
 $datacron_icons = load_datacron_icons($conn_guionbot);
 
-$tw_zones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
 $used_unit_ids = [];
 $used_datacron_ids = [];
 
