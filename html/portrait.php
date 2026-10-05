@@ -1,6 +1,26 @@
 <?php
 
 function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_count, $omicron_count, $is_ship, $small = false) {
+    static $unit_names = null;
+
+    if ($unit_names === null) {
+        $unit_names = [];
+        $dict_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
+        if (is_readable($dict_units_file)) {
+            $dict_units_data = json_decode(file_get_contents($dict_units_file), true);
+            if (is_array($dict_units_data)) {
+                foreach ($dict_units_data as $unit_id => $unit_data) {
+                    if (isset($unit_data['name'])) {
+                        $unit_names[$unit_id] = $unit_data['name'];
+                    }
+                }
+            }
+        }
+    }
+
+    $unit_name = $unit_names[$char_id] ?? $char_id;
+    $unit_name = htmlspecialchars($unit_name, ENT_QUOTES, 'UTF-8');
+
     // unitRelicTier is stored using the SWGOH tier numbering:
     // 2 = no relic, 3 = R1, ..., 11 = R9.
     // Keep support for callers that already pass a 0-9 relic level.
@@ -16,7 +36,7 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
 
     $small_class = $small ? ' portrait-small' : '';
 
-    echo "<div class='portrait-container".$small_class."'>";
+    echo "<div class='portrait-container".$small_class."' title='".$unit_name."'>";
     echo "<img class='character-avatar' src='IMAGES/CHARACTERS/".$char_id.".png' alt='".$char_id."'>";
 
     // Gear frame
