@@ -604,15 +604,41 @@ foreach ($squad['cells'] as $unit) {
                         </div>
 
                         <div id="tw-datacron-selector">
-                            <label for="tw-datacron-select"><b>Datacron</b></label>
-                            <select id="tw-datacron-select" name="datacron_id">
-                                <option value="">No datacron</option>
-<?php foreach ($player_datacrons as $datacron): ?>
-                                <option value="<?php echo htmlspecialchars($datacron['id'], ENT_QUOTES, 'UTF-8'); ?>">
-                                    Set <?php echo htmlspecialchars($datacron['setId'], ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($datacron['focused']) ? ' (focused)' : ''; ?>
-                                </option>
+                            <label for="tw-datacron-set"><b>Datacron set</b></label>
+                            <select id="tw-datacron-set">
+                                <option value="">All sets</option>
+<?php
+$player_datacron_sets = [];
+foreach ($player_datacrons as $datacron) {
+    $player_datacron_sets[(string) $datacron['setId']] = true;
+}
+ksort($player_datacron_sets, SORT_NUMERIC);
+foreach (array_keys($player_datacron_sets) as $set_id):
+?>
+                                <option value="<?php echo htmlspecialchars($set_id, ENT_QUOTES, 'UTF-8'); ?>">Set <?php echo htmlspecialchars($set_id, ENT_QUOTES, 'UTF-8'); ?></option>
 <?php endforeach; ?>
                             </select>
+
+                            <div id="tw-datacron-list" class="tw-datacron-list">
+<?php foreach ($player_datacrons as $datacron): ?>
+                                <button type="button"
+                                        class="tw-datacron-card"
+                                        data-set-id="<?php echo htmlspecialchars((string) $datacron['setId'], ENT_QUOTES, 'UTF-8'); ?>"
+                                        data-datacron-id="<?php echo htmlspecialchars((string) $datacron['id'], ENT_QUOTES, 'UTF-8'); ?>"
+                                        title="Set <?php echo htmlspecialchars((string) $datacron['setId'], ENT_QUOTES, 'UTF-8'); ?>">
+<?php
+    $datacron_set = (string) $datacron['setId'];
+    $datacron_image = 'IMAGES/DATACRONS/' . $datacron_set . '.png';
+    if (!is_file(__DIR__ . '/' . $datacron_image)) {
+        $datacron_image = 'IMAGES/DATACRONS/' . strtolower($datacron_set) . '.png';
+    }
+?>
+                                    <img src="<?php echo htmlspecialchars($datacron_image, ENT_QUOTES, 'UTF-8'); ?>"
+                                         alt="Set <?php echo htmlspecialchars($datacron_set, ENT_QUOTES, 'UTF-8'); ?>">
+                                </button>
+<?php endforeach; ?>
+                            </div>
+                            <input type="hidden" id="tw-datacron-id" name="datacron_id" value="">
                         </div>
 
                         <div id="tw-creator-limit"></div>
@@ -647,7 +673,7 @@ const unitResults = document.getElementById('tw-unit-results');
 const selectedUnitsContainer = document.getElementById('tw-selected-units');
 const selectedUnitsInput = document.getElementById('tw-selected-units-input');
 const datacronSelector = document.getElementById('tw-datacron-selector');
-const datacronFilter = document.getElementById('tw-datacron-filter');
+const datacronFilter = document.getElementById('tw-datacron-set');
 const datacronIdInput = document.getElementById('tw-datacron-id');
 const datacronList = document.getElementById('tw-datacron-list');
 const zoneCommandCreator = document.getElementById('tw-zone-command-creator');
