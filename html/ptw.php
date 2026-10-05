@@ -155,6 +155,13 @@ if (is_readable($dict_units_file)) {
 $datacron_icons = load_datacron_icons($conn_guionbot);
 
 $tw_zones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
+$roster_units=[];
+try {
+ $stmt=$conn_guionbot->prepare("SELECT r.defId,r.combatType,r.forceAlignment,r.gear,r.level,r.rarity,r.relic_currentTier,r.zeta_count,COALESCE(SUM(CASE WHEN rs.omicron_type <> '' AND rs.level > 0 THEN 1 ELSE 0 END),0) AS omicron_count FROM roster r LEFT JOIN roster_skills rs ON rs.roster_id=r.id WHERE r.allyCode=:allycode GROUP BY r.id,r.defId,r.combatType,r.forceAlignment,r.gear,r.level,r.rarity,r.relic_currentTier,r.zeta_count ORDER BY r.combatType,r.defId");
+ $stmt->execute([':allycode'=>$allycode]);
+ foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $ru){ $id=(string)$ru['defId']; if(!isset($dict_units[$id])) continue; ob_start(); display_portrait($id,(int)$ru['forceAlignment'],max(1,min(7,(int)$ru['rarity'])),(int)$ru['gear'],(int)$ru['relic_currentTier'],(int)$ru['zeta_count'],(int)$ru['omicron_count'],(int)$ru['combatType']===2); $html=ob_get_clean(); $roster_units[]=['id'=>$id,'name'=>$dict_units[$id]['name']??$id,'isShip'=>(int)$ru['combatType']===2,'isCapital'=>strpos($id,'CAPITAL')===0,'portrait'=>$html]; }
+} catch(PDOException $e){ error_log('Error fetching player roster for TW team creator: '.$e->getMessage()); }
+
 $player_datacrons = [];
 if ($tw) {
     try {
@@ -420,10 +427,9 @@ $rarity_values = [
             height: 80px;
         }
 
-        .tw-unit-result img {
-            width: 70px;
-            height: 70px;
-            object-fit: contain;
+        .tw-unit-result .portrait-container {
+            transform: scale(0.65);
+            transform-origin: top left;
         }
 
         .tw-datacron-list {
@@ -622,20 +628,7 @@ foreach ($squad['cells'] as $unit) {
     </div>
 </div>
 <script>
-const twUnits = <?php
-$creator_units = [];
-foreach ($dict_units as $unit_id => $unit) {
-    if (isset($unit['name'])) {
-        $creator_units[] = [
-            'id' => $unit_id,
-            'name' => $unit['name'],
-            'isShip' => (int) ($unit['combatType'] ?? 1) === 2,
-            'isCapital' => strpos($unit_id, 'CAPITAL') === 0,
-        ];
-    }
-}
-echo json_encode($creator_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-?>;
+const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
 const twZoneCommands = <?php
 $creator_zone_commands = [];
@@ -674,8 +667,7 @@ if (zoneSelect) {
             wrapper.className = 'tw-selected-unit';
 
             const portrait = document.createElement('img');
-            portrait.src = 'IMAGES/CHARACTERS/' + encodeURIComponent(unit.id) + '.png';
-            portrait.alt = unit.name;
+            portrait.innerHTML = unit.portrait;
             portrait.title = unit.name;
             wrapper.appendChild(portrait);
 
@@ -712,8 +704,7 @@ if (zoneSelect) {
                 button.className = 'tw-unit-result';
 
                 const portrait = document.createElement('img');
-                portrait.src = 'IMAGES/CHARACTERS/' + encodeURIComponent(unit.id) + '.png';
-                portrait.alt = unit.name;
+                portrait.innerHTML = unit.portrait;
                 portrait.title = unit.name;
                 button.appendChild(portrait);
                 button.title = unit.name;
