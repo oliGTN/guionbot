@@ -146,6 +146,13 @@ foreach ($zone_order as $zone_name) {
     }
 }
 
+$zone_team_counts = [];
+foreach ($tw_zones as $zone_name) {
+    $zone_team_counts[$zone_name] = isset($squads_by_zone[$zone_name])
+        ? count($squads_by_zone[$zone_name])
+        : 0;
+}
+
 $dict_units = [];
 $dict_units_file = __DIR__ . '/../DATA/unitsList_dict.json';
 if (is_readable($dict_units_file)) {
@@ -495,12 +502,27 @@ $rarity_values = [
             display: block;
         }
 
+        .tw-selected-team {
+            display: flex;
+            align-items: flex-start;
+            flex-wrap: nowrap;
+            width: 100%;
+        }
+
+        .tw-selected-units {
+            display: flex;
+            align-items: flex-start;
+            flex-wrap: nowrap;
+            gap: 0.25rem;
+        }
+
         .tw-selected-datacron {
             flex: 0 0 95px;
             width: 95px;
             height: 95px;
             position: relative;
-            margin-left: 0.25rem;
+            margin-left: 0.5rem;
+        }
         }
 
         .tw-selected-datacron .datacron-display {
@@ -724,7 +746,7 @@ foreach ($squad['cells'] as $unit) {
                         <label for="tw-zone-select"><b>Zone</b></label>
                         <select id="tw-zone-select" name="zone_name">
 <?php foreach ($tw_zones as $zone): ?>
-                            <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?> (<?php echo $zone_team_counts[$zone]; ?>)</option>
 <?php endforeach; ?>
                         </select>
 
@@ -733,8 +755,10 @@ foreach ($squad['cells'] as $unit) {
                         <div class="tw-unit-picker">
                             <div>
                                 <b>Selected units</b>
-                                <div id="tw-selected-units" class="tw-selected-units"></div>
-                                <div id="tw-selected-datacron" class="tw-selected-datacron"></div>
+                                <div id="tw-selected-team" class="tw-selected-team">
+                                    <div id="tw-selected-units" class="tw-selected-units"></div>
+                                    <div id="tw-selected-datacron" class="tw-selected-datacron"></div>
+                                </div>
                             </div>
                             <div>
                                 <label for="tw-unit-search"><b>Find a character or ship</b></label>
