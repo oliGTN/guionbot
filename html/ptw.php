@@ -178,6 +178,13 @@ if ($tw) {
     }
 }
 
+$player_datacron_html = [];
+foreach ($player_datacrons as $datacron) {
+    ob_start();
+    display_datacron($datacron, $datacron_icons, true);
+    $player_datacron_html[(string) $datacron['id']] = ob_get_clean();
+}
+
 $team_creation_error = null;
 $team_created = isset($_GET['created']) && $_GET['created'] === '1';
 
@@ -626,15 +633,7 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                                         data-set-id="<?php echo htmlspecialchars((string) $datacron['setId'], ENT_QUOTES, 'UTF-8'); ?>"
                                         data-datacron-id="<?php echo htmlspecialchars((string) $datacron['id'], ENT_QUOTES, 'UTF-8'); ?>"
                                         title="Set <?php echo htmlspecialchars((string) $datacron['setId'], ENT_QUOTES, 'UTF-8'); ?>">
-<?php
-    $datacron_set = (string) $datacron['setId'];
-    $datacron_image = 'IMAGES/DATACRONS/' . $datacron_set . '.png';
-    if (!is_file(__DIR__ . '/' . $datacron_image)) {
-        $datacron_image = 'IMAGES/DATACRONS/' . strtolower($datacron_set) . '.png';
-    }
-?>
-                                    <img src="<?php echo htmlspecialchars($datacron_image, ENT_QUOTES, 'UTF-8'); ?>"
-                                         alt="Set <?php echo htmlspecialchars($datacron_set, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php echo $player_datacron_html[(string) $datacron['id']] ?? ''; ?>
                                 </button>
 <?php endforeach; ?>
                             </div>
