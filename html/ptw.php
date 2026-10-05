@@ -551,23 +551,27 @@ $rarity_values = [
 
         .tw-datacron-card {
             cursor: pointer;
-            width: 90px;
-            min-height: 90px;
+            width: 95px;
+            height: 95px;
+            flex: 0 0 95px;
             border: 2px solid transparent;
             border-radius: 6px;
             background: none;
-            padding: 2px;
+            padding: 0;
             text-align: center;
+        }
+
+        .tw-datacron-card .datacron-display {
+            width: 95px;
+            height: 95px;
         }
 
         .tw-datacron-card.selected {
             border-color: #333;
         }
 
-        .tw-datacron-card img {
-            width: 70px;
-            height: 70px;
-            object-fit: contain;
+        .tw-datacron-card.tw-datacron-new-set {
+            margin-left: 1.5rem;
         }
 
         .tw-datacron-card span {
@@ -849,8 +853,21 @@ if (zoneSelect) {
     function updateDatacrons() {
         const selectedSet = datacronFilter ? datacronFilter.value : '';
         if (!datacronList) return;
+
+        let previousSet = null;
         datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
-            card.style.display = !selectedSet || card.dataset.setId === selectedSet ? '' : 'none';
+            const visible = !selectedSet || card.dataset.setId === selectedSet;
+            card.style.display = visible ? 'block' : 'none';
+
+            if (visible && !selectedSet && previousSet !== null && previousSet !== card.dataset.setId) {
+                card.classList.add('tw-datacron-new-set');
+            } else {
+                card.classList.remove('tw-datacron-new-set');
+            }
+
+            if (visible) {
+                previousSet = card.dataset.setId;
+            }
         });
     }
 
