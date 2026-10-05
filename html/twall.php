@@ -152,6 +152,7 @@ foreach ($tw_db_data as $tw_line) {
     // Reuse twheader.php for the selected TW. twall.php is public:
     // no confidential data is shown and the TW navigation bar is disabled.
     $twheader_use_existing_zones = true;
+    $twheader_use_guild_links = false;
     $twheader_no_navbar = true;
     $isMyGuild = false;
     $isMyGuildConfirmed = false;
@@ -175,8 +176,13 @@ foreach ($tw_db_data as $tw_line) {
 
         // twheader.php renders the title, timestamp and map. Access to
         // zone details is explicitly disabled for this public page.
+        // It also builds the TW link from $tw_id, which must be the numeric
+        // tw_history.id here rather than twall.php's composite TW identifier.
         $tw = $tw_header;
+        $tw_id_for_header = $tw_id;
+        $tw_id = $tw['tw_id'];
         include 'twheader.php';
+        $tw_id = $tw_id_for_header;
     }
 ?>
     </div> <!-- container -->
