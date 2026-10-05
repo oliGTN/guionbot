@@ -641,7 +641,7 @@ if (zoneSelect) {
             .filter((unit) => fleet ? unit.isShip : !unit.isShip)
             .filter((unit) => unit.name.toLowerCase().includes(search))
             .filter((unit) => !selectedUnits.includes(unit.id))
-            .filter((unit) => !fleet || selectedUnits.length === 0 ? unit.isCapital : !unit.isCapital)
+            .filter((unit) => !fleet || (selectedUnits.length === 0 ? unit.isCapital : !unit.isCapital))
             .slice(0, 100)
             .forEach((unit) => {
                 const button = document.createElement('button');
