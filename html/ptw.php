@@ -666,7 +666,7 @@ if (zoneSelect) {
             const wrapper = document.createElement('div');
             wrapper.className = 'tw-selected-unit';
 
-            const portrait = document.createElement('img');
+            const portrait = document.createElement('div');
             portrait.innerHTML = unit.portrait;
             portrait.title = unit.name;
             wrapper.appendChild(portrait);
@@ -703,7 +703,7 @@ if (zoneSelect) {
                 button.type = 'button';
                 button.className = 'tw-unit-result';
 
-                const portrait = document.createElement('img');
+                const portrait = document.createElement('div');
                 portrait.innerHTML = unit.portrait;
                 portrait.title = unit.name;
                 button.appendChild(portrait);
