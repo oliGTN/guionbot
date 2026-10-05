@@ -159,7 +159,8 @@ $used_unit_ids = [];
 $used_datacron_ids = [];
 
 foreach ($squad_list as $cell) {
-    $used_unit_ids[(string) $cell['defId']] = true;
+    $def_parts = explode(':', (string) $cell['defId']);
+    $used_unit_ids[(string) $def_parts[0]] = true;
     if (!empty($cell['datacron_id'])) {
         $used_datacron_ids[(string) $cell['datacron_id']] = true;
     }
@@ -494,6 +495,37 @@ $rarity_values = [
             display: block;
         }
 
+        .tw-selected-datacron {
+            flex: 0 0 95px;
+            width: 95px;
+            height: 95px;
+            position: relative;
+            margin-left: 0.25rem;
+        }
+
+        .tw-selected-datacron .datacron-display {
+            width: 95px;
+            height: 95px;
+        }
+
+        .tw-selected-datacron-item {
+            position: relative;
+            width: 95px;
+            height: 95px;
+        }
+
+        .tw-selected-datacron-item > button {
+            position: absolute;
+            top: -0.4rem;
+            right: -0.4rem;
+            border: 0;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
         .tw-selected-unit button {
             position: absolute;
             top: -0.4rem;
@@ -702,6 +734,7 @@ foreach ($squad['cells'] as $unit) {
                             <div>
                                 <b>Selected units</b>
                                 <div id="tw-selected-units" class="tw-selected-units"></div>
+                                <div id="tw-selected-datacron" class="tw-selected-datacron"></div>
                             </div>
                             <div>
                                 <label for="tw-unit-search"><b>Find a character or ship</b></label>
@@ -758,6 +791,7 @@ foreach (array_keys($player_datacron_sets) as $set_id):
 <script>
 const twUnits = <?php echo json_encode($roster_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 
+const twDatacrons = <?php echo json_encode($player_datacron_html, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 const twZoneCommands = <?php
 $creator_zone_commands = [];
 foreach ($tw_zones as $zone) {
@@ -769,6 +803,8 @@ echo json_encode($creator_zone_commands, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_
 const zoneSelect = document.getElementById('tw-zone-select');
 const unitSearch = document.getElementById('tw-unit-search');
 const unitResults = document.getElementById('tw-unit-results');
+    const selectedDatacronContainer = document.getElementById('tw-selected-datacron');
+    const datacronIdInput = document.getElementById('tw-datacron-id');
 const selectedUnitsContainer = document.getElementById('tw-selected-units');
 const selectedUnitsInput = document.getElementById('tw-selected-units-input');
 const datacronSelector = document.getElementById('tw-datacron-selector');
@@ -811,6 +847,28 @@ if (zoneSelect) {
             wrapper.appendChild(remove);
             selectedUnitsContainer.appendChild(wrapper);
         });
+        if (selectedDatacronContainer) {
+            selectedDatacronContainer.innerHTML = '';
+            const datacronId = datacronIdInput ? datacronIdInput.value : '';
+            if (datacronId && twDatacrons[datacronId]) {
+                const datacron = document.createElement('div');
+                datacron.className = 'tw-selected-datacron-item';
+                datacron.innerHTML = twDatacrons[datacronId];
+
+                const removeDatacron = document.createElement('button');
+                removeDatacron.type = 'button';
+                removeDatacron.textContent = '×';
+                removeDatacron.title = 'Remove datacron';
+                removeDatacron.addEventListener('click', () => {
+                    datacronIdInput.value = '';
+                    datacronList.querySelectorAll('.tw-datacron-card').forEach((item) => item.classList.remove('selected'));
+                    renderSelected();
+                });
+                datacron.appendChild(removeDatacron);
+                selectedDatacronContainer.appendChild(datacron);
+            }
+        }
+
         selectedUnitsInput.value = JSON.stringify(selectedUnits);
     }
 
@@ -877,6 +935,7 @@ if (zoneSelect) {
                 datacronList.querySelectorAll('.tw-datacron-card').forEach((item) => item.classList.remove('selected'));
                 card.classList.add('selected');
                 datacronIdInput.value = card.dataset.datacronId;
+                renderSelected();
             });
         });
     }
