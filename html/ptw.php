@@ -290,119 +290,6 @@ foreach ($player_datacrons as $datacron) {
     $player_datacron_html[(string) $datacron['id']] = ob_get_clean();
 }
 
-$team_creation_error = null;
-$team_created = isset($_GET['created']) && $_GET['created'] === '1';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tw && ($isGuildMate || $isAdmin)) {
-    require_csrf_token();
-
-    $zone_name = $_POST['zone_name'] ?? '';
-    $units = json_decode($_POST['units'] ?? '[]', true);
-    $datacron_id = $_POST['datacron_id'] ?? '';
-    $is_fleet = in_array($zone_name, ['F1', 'F2'], true);
-    $max_units = $is_fleet ? 8 : 5;
-
-    if (!is_array($units)) {
-        $units = [];
-    }
-
-    $validated_units = [];
-    foreach ($units as $unit_id) {
-        if (is_string($unit_id) && isset($dict_units[$unit_id])
-            && !in_array($unit_id, $validated_units, true)) {
-            $validated_units[] = $unit_id;
-        }
-    }
-
-    $valid_team = in_array($zone_name, $tw_zones, true)
-        && count($validated_units) > 0
-        && count($validated_units) <= $max_units;
-
-    if ($valid_team && !$is_fleet) {
-        foreach ($validated_units as $unit_id) {
-            if ((int) ($dict_units[$unit_id]['combatType'] ?? 1) === 2) {
-                $valid_team = false;
-                break;
-            }
-        }
-    }
-
-    if ($valid_team && $is_fleet) {
-        $valid_team = (int) ($dict_units[$validated_units[0]]['combatType'] ?? 1) === 2
-            && strpos($validated_units[0], 'CAPITAL') === 0;
-        foreach (array_slice($validated_units, 1) as $unit_id) {
-            if ((int) ($dict_units[$unit_id]['combatType'] ?? 1) !== 2
-                || strpos($unit_id, 'CAPITAL') === 0) {
-                $valid_team = false;
-                break;
-            }
-        }
-    }
-
-    if ($valid_team && !$is_fleet && $datacron_id !== '') {
-        $valid_datacron = false;
-        foreach ($player_datacrons as $datacron) {
-            if ((string) $datacron['id'] === $datacron_id) {
-                $valid_datacron = true;
-                break;
-            }
-        }
-        if (!$valid_datacron) {
-            $team_creation_error = 'Invalid datacron selection.';
-        }
-    }
-
-    if (!$valid_team && $team_creation_error === null) {
-        $team_creation_error = 'Invalid team composition for the selected zone.';
-    }
-
-    if ($team_creation_error === null) {
-        try {
-            $new_squad_id = bin2hex(random_bytes(16));
-            $conn_guionbot->beginTransaction();
-
-            $stmt = $conn_guionbot->prepare(
-                "INSERT INTO tw_squads
-                    (id, tw_id, side, zone_name, player_name, is_beaten, fights, gp, datacron_id)
-                 VALUES
-                    (:id, :tw_id, 'home', :zone_name, :player_name, 0, 0, 0, :datacron_id)"
-            );
-            $stmt->execute([
-                ':id' => $new_squad_id,
-                ':tw_id' => $tw_id,
-                ':zone_name' => $zone_name,
-                ':player_name' => $player['name'],
-                ':datacron_id' => (!$is_fleet && $datacron_id !== '') ? $datacron_id : null,
-            ]);
-
-            $stmt = $conn_guionbot->prepare(
-                "INSERT INTO tw_squad_cells
-                    (tw_id, squad_id, defId, cellIndex, level, tier, unitRelicTier, zetaCount, omicronCount)
-                 VALUES
-                    (:tw_id, :squad_id, :def_id, :cell_index, 0, 0, 2, 0, 0)"
-            );
-            foreach ($validated_units as $cell_index => $unit_id) {
-                $stmt->execute([
-                    ':tw_id' => $tw_id,
-                    ':squad_id' => $new_squad_id,
-                    ':def_id' => $unit_id . ':SEVEN_STAR',
-                    ':cell_index' => $cell_index,
-                ]);
-            }
-
-            $conn_guionbot->commit();
-            header('Location: ptw.php?ac=' . rawurlencode($allycode) . '&created=1');
-            exit();
-        } catch (PDOException $e) {
-            if ($conn_guionbot->inTransaction()) {
-                $conn_guionbot->rollBack();
-            }
-            error_log('Error creating player TW team: ' . $e->getMessage());
-            $team_creation_error = 'Unable to create the team.';
-        }
-    }
-}
-
 $rarity_values = [
     'ONE_STAR' => 1,
     'TWO_STAR' => 2,
@@ -456,6 +343,35 @@ $rarity_values = [
 
         .tw-team:last-child {
             margin-bottom: 0;
+        }
+
+        .tw-team.proposed {
+            background: #fff1d6;
+            border: 2px solid #f28c28;
+            border-radius: 6px;
+            padding: 0.5rem;
+        }
+
+        .tw-team-proposed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            color: #b35a00;
+            font-weight: bold;
+        }
+
+        .tw-team-delete {
+            border: 0;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0.25rem 0.6rem;
+        }
+
+        .tw-push-proposed {
+            margin-top: 1rem;
+            display: none;
         }
 
         .tw-team-portraits {
@@ -523,7 +439,6 @@ $rarity_values = [
             height: 95px;
             position: relative;
             margin-left: 0.5rem;
-        }
         }
 
         .tw-selected-datacron .datacron-display {
@@ -672,9 +587,9 @@ $rarity_values = [
 
                 <h3>My TW teams</h3>
 
-                <div class="tw-zone-teams">
+                <div class="tw-zone-teams" id="tw-zone-teams">
 <?php if (empty($ordered_squads_by_zone)): ?>
-                    <div class="card">
+                    <div class="card" id="tw-no-teams">
                         No teams found for this Territory War.
                     </div>
 <?php else: ?>
@@ -732,20 +647,14 @@ foreach ($squad['cells'] as $unit) {
 <?php endif; ?>
                 </div>
 
+                <button type="button" class="tw-push-proposed" id="tw-push-proposed">Push proposed teams to game</button>
+
                 <div class="card tw-team-creator" id="create-team">
                     <h3>Create a new TW team</h3>
-<?php if ($team_created): ?>
-                    <div><b>Team created successfully.</b></div>
-<?php endif; ?>
-<?php if ($team_creation_error !== null): ?>
-                    <div class="tw-creator-error"><?php echo htmlspecialchars($team_creation_error, ENT_QUOTES, 'UTF-8'); ?></div>
-<?php endif; ?>
-                    <form method="post" id="tw-team-form">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
-                        <input type="hidden" name="units" id="tw-selected-units-input" value="[]">
+                    <div id="tw-team-form">
 
                         <label for="tw-zone-select"><b>Zone</b></label>
-                        <select id="tw-zone-select" name="zone_name">
+                        <select id="tw-zone-select">
 <?php foreach ($tw_zones as $zone): ?>
                             <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?> (<?php echo $zone_team_counts[$zone]; ?>)</option>
 <?php endforeach; ?>
@@ -795,12 +704,12 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                                 </button>
 <?php endforeach; ?>
                             </div>
-                            <input type="hidden" id="tw-datacron-id" name="datacron_id" value="">
+                            <input type="hidden" id="tw-datacron-id" value="">
                         </div>
 
                         <div id="tw-creator-limit"></div>
-                        <button type="submit">Create team</button>
-                    </form>
+                        <button type="button" id="tw-create-team">Create team</button>
+                    </div>
                 </div>
 
             </div>
@@ -825,12 +734,16 @@ foreach ($tw_zones as $zone) {
 echo json_encode($creator_zone_commands, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?>;
 
+const zoneTeamsContainer = document.getElementById('tw-zone-teams');
+const pushProposedButton = document.getElementById('tw-push-proposed');
+const createTeamButton = document.getElementById('tw-create-team');
+const noTeamsMessage = document.getElementById('tw-no-teams');
+
 const zoneSelect = document.getElementById('tw-zone-select');
 const unitSearch = document.getElementById('tw-unit-search');
 const unitResults = document.getElementById('tw-unit-results');
-    const selectedDatacronContainer = document.getElementById('tw-selected-datacron');
+const selectedDatacronContainer = document.getElementById('tw-selected-datacron');
 const selectedUnitsContainer = document.getElementById('tw-selected-units');
-const selectedUnitsInput = document.getElementById('tw-selected-units-input');
 const datacronSelector = document.getElementById('tw-datacron-selector');
 const datacronFilter = document.getElementById('tw-datacron-set');
 const datacronIdInput = document.getElementById('tw-datacron-id');
@@ -840,6 +753,7 @@ const creatorLimit = document.getElementById('tw-creator-limit');
 
 if (zoneSelect) {
     let selectedUnits = [];
+    let proposedTeams = [];
 
     function fleetZone() {
         return zoneSelect.value === 'F1' || zoneSelect.value === 'F2';
@@ -893,7 +807,6 @@ if (zoneSelect) {
             }
         }
 
-        selectedUnitsInput.value = JSON.stringify(selectedUnits);
     }
 
     function renderResults() {
@@ -906,6 +819,7 @@ if (zoneSelect) {
             .filter((unit) => fleet ? unit.isShip : !unit.isShip)
             .filter((unit) => unit.name.toLowerCase().includes(search))
             .filter((unit) => !selectedUnits.includes(unit.id))
+            .filter((unit) => !proposedTeams.some((team) => team.units.includes(unit.id)))
             .filter((unit) => !fleet || (selectedUnits.length === 0 ? unit.isCapital : !unit.isCapital))
             .slice(0, 100)
             .forEach((unit) => {
@@ -938,7 +852,8 @@ if (zoneSelect) {
 
         let previousSet = null;
         datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
-            const visible = !selectedSet || card.dataset.setId === selectedSet;
+            const visible = (!selectedSet || card.dataset.setId === selectedSet)
+                && !proposedTeams.some((team) => team.datacronId === card.dataset.datacronId);
             card.style.display = visible ? 'block' : 'none';
 
             if (visible && !selectedSet && previousSet !== null && previousSet !== card.dataset.setId) {
@@ -968,6 +883,152 @@ if (zoneSelect) {
         datacronFilter.addEventListener('change', updateDatacrons);
     }
 
+    function updateZoneCounts() {
+        const baseCounts = <?php echo json_encode($zone_team_counts); ?>;
+
+        zoneSelect.querySelectorAll('option').forEach((option) => {
+            const zone = option.value;
+            const proposedCount = proposedTeams.filter((team) => team.zone === zone).length;
+            option.textContent = zone + ' (' + ((baseCounts[zone] || 0) + proposedCount) + ')';
+        });
+    }
+
+    function getZoneCard(zone) {
+        let card = zoneTeamsContainer.querySelector('[data-tw-zone="' + zone + '"]');
+        if (card) return card;
+
+        card = document.createElement('div');
+        card.className = 'card tw-zone';
+        card.dataset.twZone = zone;
+
+        const header = document.createElement('div');
+        header.className = 'tw-zone-header';
+
+        const title = document.createElement('h4');
+        title.textContent = zone;
+        header.appendChild(title);
+
+        const command = document.createElement('span');
+        command.className = 'tw-zone-command';
+        command.textContent = twZoneCommands[zone] || '';
+        if (command.textContent) header.appendChild(command);
+
+        card.appendChild(header);
+        zoneTeamsContainer.appendChild(card);
+        return card;
+    }
+
+    function renderProposedTeams() {
+        proposedTeams.forEach((team) => {
+            if (team.element && team.element.isConnected) return;
+
+            const zoneCard = getZoneCard(team.zone);
+            const teamElement = document.createElement('div');
+            teamElement.className = 'tw-team proposed';
+            teamElement.dataset.proposedId = team.id;
+
+            const header = document.createElement('div');
+            header.className = 'tw-team-proposed-header';
+
+            const label = document.createElement('span');
+            label.textContent = 'Proposed team';
+            header.appendChild(label);
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'tw-team-delete';
+            remove.textContent = 'Delete';
+            remove.title = 'Delete proposed team';
+            remove.addEventListener('click', () => deleteProposedTeam(team.id));
+            header.appendChild(remove);
+
+            teamElement.appendChild(header);
+
+            const portraits = document.createElement('div');
+            portraits.className = 'tw-team-portraits';
+
+            team.units.forEach((unitId) => {
+                const unit = twUnits.find((entry) => entry.id === unitId);
+                if (!unit) return;
+
+                const portrait = document.createElement('div');
+                portrait.innerHTML = unit.portrait;
+                portrait.title = unit.name;
+                portraits.appendChild(portrait);
+            });
+
+            if (team.datacronId && twDatacrons[team.datacronId]) {
+                const datacron = document.createElement('div');
+                datacron.innerHTML = twDatacrons[team.datacronId];
+                portraits.appendChild(datacron);
+            }
+
+            teamElement.appendChild(portraits);
+            zoneCard.appendChild(teamElement);
+            team.element = teamElement;
+        });
+
+        if (noTeamsMessage) {
+            noTeamsMessage.style.display = zoneTeamsContainer.querySelector('.tw-team')
+                ? 'none'
+                : 'block';
+        }
+
+        pushProposedButton.style.display = proposedTeams.length > 0 ? 'block' : 'none';
+        updateZoneCounts();
+    }
+
+    function deleteProposedTeam(teamId) {
+        const index = proposedTeams.findIndex((team) => team.id === teamId);
+        if (index < 0) return;
+
+        const team = proposedTeams[index];
+        if (team.element) team.element.remove();
+        proposedTeams.splice(index, 1);
+
+        renderProposedTeams();
+        renderResults();
+        updateDatacrons();
+    }
+
+    function createProposedTeam() {
+        const fleet = fleetZone();
+        const max = fleet ? 8 : 5;
+
+        if (selectedUnits.length === 0 || selectedUnits.length > max) return;
+
+        const team = {
+            id: (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : String(Date.now()) + '-' + Math.random(),
+            zone: zoneSelect.value,
+            units: [...selectedUnits],
+            datacronId: fleet ? '' : (datacronIdInput.value || ''),
+            element: null
+        };
+
+        proposedTeams.push(team);
+
+        selectedUnits = [];
+        datacronIdInput.value = '';
+
+        if (datacronList) {
+            datacronList.querySelectorAll('.tw-datacron-card')
+                .forEach((item) => item.classList.remove('selected'));
+        }
+
+        renderSelected();
+        renderResults();
+        updateDatacrons();
+        renderProposedTeams();
+    }
+
+    function pushProposedTeams() {
+        if (proposedTeams.length === 0) return;
+
+        alert('Pushing proposed teams to the game is not implemented yet.');
+    }
+
     function updateCreator() {
         const fleet = fleetZone();
         datacronSelector.style.display = fleet ? 'none' : 'block';
@@ -987,9 +1048,14 @@ if (zoneSelect) {
         updateDatacrons();
     }
 
+    createTeamButton.addEventListener('click', createProposedTeam);
+    pushProposedButton.addEventListener('click', pushProposedTeams);
+
     zoneSelect.addEventListener('change', updateCreator);
     unitSearch.addEventListener('input', renderResults);
     updateCreator();
+    updateZoneCounts();
+    renderProposedTeams();
 }
 </script>
 </body>
