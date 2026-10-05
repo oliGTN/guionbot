@@ -621,6 +621,162 @@ foreach ($squad['cells'] as $unit) {
         <div class="site-cache" id="site-cache"></div>
     </div>
 </div>
+<script>
+const twUnits = <?php
+$creator_units = [];
+foreach ($dict_units as $unit_id => $unit) {
+    if (isset($unit['name'])) {
+        $creator_units[] = [
+            'id' => $unit_id,
+            'name' => $unit['name'],
+            'isShip' => (int) ($unit['combatType'] ?? 1) === 2,
+            'isCapital' => strpos($unit_id, 'CAPITAL') === 0,
+        ];
+    }
+}
+echo json_encode($creator_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>;
+
+const twZoneCommands = <?php
+$creator_zone_commands = [];
+foreach ($tw_zones as $zone) {
+    $creator_zone_commands[$zone] = $zones['home'][$zone]['commandMsg'] ?? '';
+}
+echo json_encode($creator_zone_commands, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>;
+
+const zoneSelect = document.getElementById('tw-zone-select');
+const unitSearch = document.getElementById('tw-unit-search');
+const unitResults = document.getElementById('tw-unit-results');
+const selectedUnitsContainer = document.getElementById('tw-selected-units');
+const selectedUnitsInput = document.getElementById('tw-selected-units-input');
+const datacronSelector = document.getElementById('tw-datacron-selector');
+const datacronFilter = document.getElementById('tw-datacron-filter');
+const datacronIdInput = document.getElementById('tw-datacron-id');
+const datacronList = document.getElementById('tw-datacron-list');
+const zoneCommandCreator = document.getElementById('tw-zone-command-creator');
+const creatorLimit = document.getElementById('tw-creator-limit');
+
+if (zoneSelect) {
+    let selectedUnits = [];
+
+    function fleetZone() {
+        return zoneSelect.value === 'F1' || zoneSelect.value === 'F2';
+    }
+
+    function renderSelected() {
+        selectedUnitsContainer.innerHTML = '';
+        selectedUnits.forEach((unitId, index) => {
+            const unit = twUnits.find((entry) => entry.id === unitId);
+            if (!unit) return;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tw-selected-unit';
+
+            const portrait = document.createElement('img');
+            portrait.src = 'IMAGES/CHARACTERS/' + encodeURIComponent(unit.id) + '.png';
+            portrait.alt = unit.name;
+            portrait.title = unit.name;
+            wrapper.appendChild(portrait);
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.textContent = '×';
+            remove.title = 'Remove ' + unit.name;
+            remove.addEventListener('click', () => {
+                selectedUnits.splice(index, 1);
+                renderSelected();
+                renderResults();
+            });
+            wrapper.appendChild(remove);
+            selectedUnitsContainer.appendChild(wrapper);
+        });
+        selectedUnitsInput.value = JSON.stringify(selectedUnits);
+    }
+
+    function renderResults() {
+        const fleet = fleetZone();
+        const max = fleet ? 8 : 5;
+        const search = unitSearch.value.trim().toLowerCase();
+        unitResults.innerHTML = '';
+
+        twUnits
+            .filter((unit) => fleet ? unit.isShip : !unit.isShip)
+            .filter((unit) => unit.name.toLowerCase().includes(search))
+            .filter((unit) => !selectedUnits.includes(unit.id))
+            .filter((unit) => !fleet || (selectedUnits.length === 0 ? unit.isCapital : !unit.isCapital))
+            .slice(0, 100)
+            .forEach((unit) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'tw-unit-result';
+
+                const portrait = document.createElement('img');
+                portrait.src = 'IMAGES/CHARACTERS/' + encodeURIComponent(unit.id) + '.png';
+                portrait.alt = unit.name;
+                portrait.title = unit.name;
+                button.appendChild(portrait);
+                button.title = unit.name;
+
+                button.addEventListener('click', () => {
+                    if (selectedUnits.length >= max) return;
+                    if (fleet && selectedUnits.length === 0 && !unit.isCapital) return;
+                    if (fleet && selectedUnits.length > 0 && unit.isCapital) return;
+                    selectedUnits.push(unit.id);
+                    renderSelected();
+                    renderResults();
+                    unitSearch.focus();
+                });
+                unitResults.appendChild(button);
+            });
+    }
+
+    function updateDatacrons() {
+        const selectedSet = datacronFilter ? datacronFilter.value : '';
+        if (!datacronList) return;
+        datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
+            card.style.display = !selectedSet || card.dataset.setId === selectedSet ? '' : 'none';
+        });
+    }
+
+    if (datacronList) {
+        datacronList.querySelectorAll('.tw-datacron-card').forEach((card) => {
+            card.addEventListener('click', () => {
+                datacronList.querySelectorAll('.tw-datacron-card').forEach((item) => item.classList.remove('selected'));
+                card.classList.add('selected');
+                datacronIdInput.value = card.dataset.datacronId;
+            });
+        });
+    }
+
+    if (datacronFilter) {
+        datacronFilter.addEventListener('change', updateDatacrons);
+    }
+
+    function updateCreator() {
+        const fleet = fleetZone();
+        datacronSelector.style.display = fleet ? 'none' : 'block';
+        zoneCommandCreator.textContent = twZoneCommands[zoneSelect.value] || '';
+        creatorLimit.textContent = fleet
+            ? 'Fleet: select 1 capital ship, up to 3 line-up ships, then up to 4 reinforcements.'
+            : 'Non-fleet: select up to 5 characters.';
+        selectedUnits = selectedUnits.filter((unitId) => {
+            const unit = twUnits.find((entry) => entry.id === unitId);
+            return unit && (fleet ? unit.isShip : !unit.isShip);
+        });
+        if (selectedUnits.length > (fleet ? 8 : 5)) {
+            selectedUnits.length = fleet ? 8 : 5;
+        }
+        renderSelected();
+        renderResults();
+        updateDatacrons();
+    }
+
+    zoneSelect.addEventListener('change', updateCreator);
+    unitSearch.addEventListener('input', renderResults);
+    updateCreator();
+}
+</script>
 </body>
 <?php include 'sitefooter.php'; ?>
 </html>
