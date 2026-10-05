@@ -154,6 +154,136 @@ if (is_readable($dict_units_file)) {
 
 $datacron_icons = load_datacron_icons($conn_guionbot);
 
+$tw_zones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
+$player_datacrons = [];
+if ($tw) {
+    try {
+        $stmt = $conn_guionbot->prepare(
+            "SELECT id, setId, focused, level_3, level_6, level_9, level_12, level_15
+             FROM datacrons
+             WHERE allyCode = :allycode
+             ORDER BY setId DESC, id"
+        );
+        $stmt->execute([':allycode' => $allycode]);
+        $player_datacrons = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Error fetching player datacrons: ' . $e->getMessage());
+    }
+}
+
+$team_creation_error = null;
+$team_created = isset($_GET['created']) && $_GET['created'] === '1';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tw && ($isGuildMate || $isAdmin)) {
+    require_csrf_token();
+
+    $zone_name = $_POST['zone_name'] ?? '';
+    $units = json_decode($_POST['units'] ?? '[]', true);
+    $datacron_id = $_POST['datacron_id'] ?? '';
+    $is_fleet = in_array($zone_name, ['F1', 'F2'], true);
+    $max_units = $is_fleet ? 8 : 5;
+
+    if (!is_array($units)) {
+        $units = [];
+    }
+
+    $validated_units = [];
+    foreach ($units as $unit_id) {
+        if (is_string($unit_id) && isset($dict_units[$unit_id])
+            && !in_array($unit_id, $validated_units, true)) {
+            $validated_units[] = $unit_id;
+        }
+    }
+
+    $valid_team = in_array($zone_name, $tw_zones, true)
+        && count($validated_units) > 0
+        && count($validated_units) <= $max_units;
+
+    if ($valid_team && !$is_fleet) {
+        foreach ($validated_units as $unit_id) {
+            if ((int) ($dict_units[$unit_id]['combatType'] ?? 1) === 2) {
+                $valid_team = false;
+                break;
+            }
+        }
+    }
+
+    if ($valid_team && $is_fleet) {
+        $valid_team = (int) ($dict_units[$validated_units[0]]['combatType'] ?? 1) === 2
+            && strpos($validated_units[0], 'CAPITAL') === 0;
+        foreach (array_slice($validated_units, 1) as $unit_id) {
+            if ((int) ($dict_units[$unit_id]['combatType'] ?? 1) !== 2
+                || strpos($unit_id, 'CAPITAL') === 0) {
+                $valid_team = false;
+                break;
+            }
+        }
+    }
+
+    if ($valid_team && !$is_fleet && $datacron_id !== '') {
+        $valid_datacron = false;
+        foreach ($player_datacrons as $datacron) {
+            if ((string) $datacron['id'] === $datacron_id) {
+                $valid_datacron = true;
+                break;
+            }
+        }
+        if (!$valid_datacron) {
+            $team_creation_error = 'Invalid datacron selection.';
+        }
+    }
+
+    if (!$valid_team && $team_creation_error === null) {
+        $team_creation_error = 'Invalid team composition for the selected zone.';
+    }
+
+    if ($team_creation_error === null) {
+        try {
+            $new_squad_id = bin2hex(random_bytes(16));
+            $conn_guionbot->beginTransaction();
+
+            $stmt = $conn_guionbot->prepare(
+                "INSERT INTO tw_squads
+                    (id, tw_id, side, zone_name, player_name, is_beaten, fights, gp, datacron_id)
+                 VALUES
+                    (:id, :tw_id, 'home', :zone_name, :player_name, 0, 0, 0, :datacron_id)"
+            );
+            $stmt->execute([
+                ':id' => $new_squad_id,
+                ':tw_id' => $tw_id,
+                ':zone_name' => $zone_name,
+                ':player_name' => $player['name'],
+                ':datacron_id' => (!$is_fleet && $datacron_id !== '') ? $datacron_id : null,
+            ]);
+
+            $stmt = $conn_guionbot->prepare(
+                "INSERT INTO tw_squad_cells
+                    (tw_id, squad_id, defId, cellIndex, level, tier, unitRelicTier, zetaCount, omicronCount)
+                 VALUES
+                    (:tw_id, :squad_id, :def_id, :cell_index, 0, 0, 2, 0, 0)"
+            );
+            foreach ($validated_units as $cell_index => $unit_id) {
+                $stmt->execute([
+                    ':tw_id' => $tw_id,
+                    ':squad_id' => $new_squad_id,
+                    ':def_id' => $unit_id . ':SEVEN_STAR',
+                    ':cell_index' => $cell_index,
+                ]);
+            }
+
+            $conn_guionbot->commit();
+            header('Location: ptw.php?ac=' . rawurlencode($allycode) . '&created=1');
+            exit();
+        } catch (PDOException $e) {
+            if ($conn_guionbot->inTransaction()) {
+                $conn_guionbot->rollBack();
+            }
+            error_log('Error creating player TW team: ' . $e->getMessage());
+            $team_creation_error = 'Unable to create the team.';
+        }
+    }
+}
+
 $rarity_values = [
     'ONE_STAR' => 1,
     'TWO_STAR' => 2,
@@ -219,6 +349,72 @@ $rarity_values = [
 
         .tw-team-portraits > div {
             flex: 0 0 auto;
+        }
+
+        .tw-team-creator {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .tw-selected-units {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            min-height: 100px;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .tw-selected-unit {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 100px;
+            text-align: center;
+        }
+
+        .tw-selected-unit button {
+            position: absolute;
+            top: -0.4rem;
+            right: -0.4rem;
+            border: 0;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .tw-unit-search {
+            width: 100%;
+            max-width: 420px;
+            box-sizing: border-box;
+            padding: 0.6rem;
+        }
+
+        .tw-unit-results {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .tw-unit-result {
+            cursor: pointer;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            padding: 0.4rem 0.6rem;
+        }
+
+        .tw-creator-error {
+            color: #b00020;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -304,7 +500,54 @@ foreach ($squad['cells'] as $unit) {
 <?php endforeach; ?>
 <?php endif; ?>
                 </div>
+
+                <div class="card tw-team-creator" id="create-team">
+                    <h3>Create a new TW team</h3>
+<?php if ($team_created): ?>
+                    <div><b>Team created successfully.</b></div>
 <?php endif; ?>
+<?php if ($team_creation_error !== null): ?>
+                    <div class="tw-creator-error"><?php echo htmlspecialchars($team_creation_error, ENT_QUOTES, 'UTF-8'); ?></div>
+<?php endif; ?>
+                    <form method="post" id="tw-team-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="units" id="tw-selected-units-input" value="[]">
+
+                        <label for="tw-zone-select"><b>Zone</b></label>
+                        <select id="tw-zone-select" name="zone_name">
+<?php foreach ($tw_zones as $zone): ?>
+                            <option value="<?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($zone, ENT_QUOTES, 'UTF-8'); ?></option>
+<?php endforeach; ?>
+                        </select>
+
+                        <div class="tw-unit-picker">
+                            <div>
+                                <b>Selected units</b>
+                                <div id="tw-selected-units" class="tw-selected-units"></div>
+                            </div>
+                            <div>
+                                <label for="tw-unit-search"><b>Find a character or ship</b></label>
+                                <input type="search" id="tw-unit-search" class="tw-unit-search" placeholder="Type a unit name..." autocomplete="off">
+                                <div id="tw-unit-results" class="tw-unit-results"></div>
+                            </div>
+                        </div>
+
+                        <div id="tw-datacron-selector">
+                            <label for="tw-datacron-select"><b>Datacron</b></label>
+                            <select id="tw-datacron-select" name="datacron_id">
+                                <option value="">No datacron</option>
+<?php foreach ($player_datacrons as $datacron): ?>
+                                <option value="<?php echo htmlspecialchars($datacron['id'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    Set <?php echo htmlspecialchars($datacron['setId'], ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($datacron['focused']) ? ' (focused)' : ''; ?>
+                                </option>
+<?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div id="tw-creator-limit"></div>
+                        <button type="submit">Create team</button>
+                    </form>
+                </div>
 
             </div>
 <?php else: ?>
@@ -318,3 +561,126 @@ foreach ($squad['cells'] as $unit) {
 </body>
 <?php include 'sitefooter.php'; ?>
 </html>
+
+<script>
+const twUnits = <?php
+$creator_units = [];
+foreach ($dict_units as $unit_id => $unit) {
+    if (isset($unit['name'])) {
+        $creator_units[] = [
+            'id' => $unit_id,
+            'name' => $unit['name'],
+            'isShip' => (int) ($unit['combatType'] ?? 1) === 2,
+            'isCapital' => strpos($unit_id, 'CAPITAL') === 0,
+        ];
+    }
+}
+echo json_encode($creator_units, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>;
+
+const zoneSelect = document.getElementById('tw-zone-select');
+const unitSearch = document.getElementById('tw-unit-search');
+const unitResults = document.getElementById('tw-unit-results');
+const selectedUnitsContainer = document.getElementById('tw-selected-units');
+const selectedUnitsInput = document.getElementById('tw-selected-units-input');
+const datacronSelector = document.getElementById('tw-datacron-selector');
+const creatorLimit = document.getElementById('tw-creator-limit');
+
+if (zoneSelect) {
+    let selectedUnits = [];
+
+    function fleetZone() {
+        return zoneSelect.value === 'F1' || zoneSelect.value === 'F2';
+    }
+
+    function renderSelected() {
+        selectedUnitsContainer.innerHTML = '';
+        selectedUnits.forEach((unitId, index) => {
+            const unit = twUnits.find((entry) => entry.id === unitId);
+            if (!unit) return;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tw-selected-unit';
+
+            const portrait = document.createElement('img');
+            portrait.src = 'IMAGES/CHARACTERS/' + encodeURIComponent(unit.id) + '.png';
+            portrait.width = 70;
+            portrait.height = 70;
+            portrait.alt = unit.name;
+            portrait.title = unit.name;
+            wrapper.appendChild(portrait);
+
+            const label = document.createElement('span');
+            label.textContent = fleetZone()
+                ? (index === 0 ? 'Capital: ' : index <= 3 ? 'Line-up: ' : 'Reinforcement: ') + unit.name
+                : unit.name;
+            wrapper.appendChild(label);
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.textContent = '×';
+            remove.title = 'Remove ' + unit.name;
+            remove.addEventListener('click', () => {
+                selectedUnits.splice(index, 1);
+                renderSelected();
+                renderResults();
+            });
+            wrapper.appendChild(remove);
+            selectedUnitsContainer.appendChild(wrapper);
+        });
+        selectedUnitsInput.value = JSON.stringify(selectedUnits);
+    }
+
+    function renderResults() {
+        const fleet = fleetZone();
+        const max = fleet ? 8 : 5;
+        const search = unitSearch.value.trim().toLowerCase();
+        unitResults.innerHTML = '';
+
+        twUnits
+            .filter((unit) => fleet ? unit.isShip : !unit.isShip)
+            .filter((unit) => unit.name.toLowerCase().includes(search))
+            .filter((unit) => !selectedUnits.includes(unit.id))
+            .filter((unit) => !fleet || selectedUnits.length === 0 ? unit.isCapital : !unit.isCapital)
+            .slice(0, 100)
+            .forEach((unit) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'tw-unit-result';
+                button.textContent = unit.name;
+                button.title = unit.name;
+                button.addEventListener('click', () => {
+                    if (selectedUnits.length >= max) return;
+                    if (fleet && selectedUnits.length === 0 && !unit.isCapital) return;
+                    if (fleet && selectedUnits.length > 0 && unit.isCapital) return;
+                    selectedUnits.push(unit.id);
+                    renderSelected();
+                    renderResults();
+                    unitSearch.focus();
+                });
+                unitResults.appendChild(button);
+            });
+    }
+
+    function updateCreator() {
+        const fleet = fleetZone();
+        datacronSelector.style.display = fleet ? 'none' : 'block';
+        creatorLimit.textContent = fleet
+            ? 'Fleet: select 1 capital ship, up to 3 line-up ships, then up to 4 reinforcements.'
+            : 'Non-fleet: select up to 5 characters.';
+        selectedUnits = selectedUnits.filter((unitId) => {
+            const unit = twUnits.find((entry) => entry.id === unitId);
+            return unit && (fleet ? unit.isShip : !unit.isShip);
+        });
+        if (selectedUnits.length > (fleet ? 8 : 5)) {
+            selectedUnits.length = fleet ? 8 : 5;
+        }
+        renderSelected();
+        renderResults();
+    }
+
+    zoneSelect.addEventListener('change', updateCreator);
+    unitSearch.addEventListener('input', renderResults);
+    updateCreator();
+}
+</script>
