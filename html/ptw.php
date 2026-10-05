@@ -375,17 +375,20 @@ $rarity_values = [
 
         .tw-selected-unit {
             position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            max-width: 120px;
+            flex: 0 0 auto;
+            width: 120px;
+            height: 150px;
             text-align: center;
         }
 
-        .tw-selected-unit img {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
+        .tw-selected-unit > .portrait-container {
+            width: 120px;
+            transform: scale(1);
+            transform-origin: top left;
+        }
+
+        .tw-selected-unit .portrait-container img {
+            display: block;
         }
 
         .tw-selected-unit button {
