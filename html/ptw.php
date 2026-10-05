@@ -804,7 +804,6 @@ const zoneSelect = document.getElementById('tw-zone-select');
 const unitSearch = document.getElementById('tw-unit-search');
 const unitResults = document.getElementById('tw-unit-results');
     const selectedDatacronContainer = document.getElementById('tw-selected-datacron');
-    const datacronIdInput = document.getElementById('tw-datacron-id');
 const selectedUnitsContainer = document.getElementById('tw-selected-units');
 const selectedUnitsInput = document.getElementById('tw-selected-units-input');
 const datacronSelector = document.getElementById('tw-datacron-selector');
