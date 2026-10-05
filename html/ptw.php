@@ -157,10 +157,65 @@ $datacron_icons = load_datacron_icons($conn_guionbot);
 $tw_zones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
 $roster_units=[];
 try {
- $stmt=$conn_guionbot->prepare("SELECT r.defId,r.combatType,r.forceAlignment,r.gear,r.level,r.rarity,r.relic_currentTier,r.zeta_count,COALESCE(SUM(CASE WHEN rs.omicron_type <> '' AND rs.level > 0 THEN 1 ELSE 0 END),0) AS omicron_count FROM roster r LEFT JOIN roster_skills rs ON rs.roster_id=r.id WHERE r.allyCode=:allycode GROUP BY r.id,r.defId,r.combatType,r.forceAlignment,r.gear,r.level,r.rarity,r.relic_currentTier,r.zeta_count ORDER BY r.combatType,r.defId");
- $stmt->execute([':allycode'=>$allycode]);
- foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $ru){ $id=(string)$ru['defId']; if(!isset($dict_units[$id])) continue; ob_start(); display_portrait($id,(int)$ru['forceAlignment'],max(1,min(7,(int)$ru['rarity'])),(int)$ru['gear'],(int)$ru['relic_currentTier'],(int)$ru['zeta_count'],(int)$ru['omicron_count'],(int)$ru['combatType']===2); $html=ob_get_clean(); $roster_units[]=['id'=>$id,'name'=>$dict_units[$id]['name']??$id,'isShip'=>(int)$ru['combatType']===2,'isCapital'=>strpos($id,'CAPITAL')===0,'portrait'=>$html]; }
-} catch(PDOException $e){ error_log('Error fetching player roster for TW team creator: '.$e->getMessage()); }
+    $stmt=$conn_guionbot->prepare(
+        "SELECT 
+            r.defId,
+            r.combatType,
+            r.forceAlignment,
+            r.gear,
+            r.level,
+            r.rarity,
+            r.relic_currentTier,
+            r.zeta_count,
+            COALESCE(
+                SUM(
+                    CASE WHEN rs.omicron_type <> '' AND rs.level > 0 
+                    THEN 1 ELSE 0 END
+                )
+            ,0) AS omicron_count 
+        FROM roster r 
+        LEFT JOIN roster_skills rs ON rs.roster_id=r.id 
+        WHERE r.allyCode=:allycode AND isnull(eraLevel)
+        GROUP BY 
+            r.id,
+            r.defId,
+            r.combatType,
+            r.forceAlignment,
+            r.gear,
+            r.level,
+            r.rarity,
+            r.relic_currentTier,r.zeta_count 
+        ORDER BY r.combatType,r.gp DESC"
+    );
+    $stmt->execute([':allycode'=>$allycode]);
+
+    foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $ru){
+        $id=(string)$ru['defId']; 
+        if(!isset($dict_units[$id])) continue; 
+        ob_start(); 
+        display_portrait(
+            $id,
+            (int)$ru['forceAlignment'],
+            max(1,min(7,(int)$ru['rarity'])),
+            (int)$ru['gear'],
+            (int)$ru['relic_currentTier'],
+            (int)$ru['zeta_count'],
+            (int)$ru['omicron_count'],
+            (int)$ru['combatType']===2
+        ); 
+        $html=ob_get_clean(); 
+        $roster_units[]=[
+            'id'=>$id,
+            'name'=>$dict_units[$id]['name']??$id,
+            'isShip'=>(int)$ru['combatType']===2,
+            'isCapital'=>strpos($id,'CAPITAL')===0,
+            'portrait'=>$html
+        ]; 
+    }
+} 
+catch(PDOException $e){ 
+    error_log('Error fetching player roster for TW team creator: '.$e->getMessage()); 
+}
 
 $player_datacrons = [];
 if ($tw) {
