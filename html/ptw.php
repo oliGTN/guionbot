@@ -155,10 +155,20 @@ if (is_readable($dict_units_file)) {
 $datacron_icons = load_datacron_icons($conn_guionbot);
 
 $tw_zones = ['B1', 'T1', 'B2', 'T2', 'B3', 'T3', 'B4', 'T4', 'F1', 'F2'];
-$roster_units=[];
+$used_unit_ids = [];
+$used_datacron_ids = [];
+
+foreach ($squad_list as $cell) {
+    $used_unit_ids[(string) $cell['defId']] = true;
+    if (!empty($cell['datacron_id'])) {
+        $used_datacron_ids[(string) $cell['datacron_id']] = true;
+    }
+}
+
+$roster_units = [];
 try {
-    $stmt=$conn_guionbot->prepare(
-        "SELECT 
+    $stmt = $conn_guionbot->prepare(
+        "SELECT
             r.defId,
             r.combatType,
             r.forceAlignment,
@@ -169,14 +179,18 @@ try {
             r.zeta_count,
             COALESCE(
                 SUM(
-                    CASE WHEN rs.omicron_type <> '' AND rs.level > 0 
-                    THEN 1 ELSE 0 END
-                )
-            ,0) AS omicron_count 
-        FROM roster r 
-        LEFT JOIN roster_skills rs ON rs.roster_id=r.id 
-        WHERE r.allyCode=:allycode AND isnull(eraLevel)
-        GROUP BY 
+                    CASE
+                        WHEN rs.omicron_type <> '' AND rs.level > 0 THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS omicron_count
+         FROM roster r
+         LEFT JOIN roster_skills rs ON rs.roster_id = r.id
+         WHERE r.allyCode = :allycode
+           AND ISNULL(r.eraLevel)
+         GROUP BY
             r.id,
             r.defId,
             r.combatType,
@@ -184,37 +198,44 @@ try {
             r.gear,
             r.level,
             r.rarity,
-            r.relic_currentTier,r.zeta_count 
-        ORDER BY r.combatType,r.gp DESC"
+            r.relic_currentTier,
+            r.zeta_count
+         ORDER BY r.combatType, r.gp DESC"
     );
-    $stmt->execute([':allycode'=>$allycode]);
+    $stmt->execute([':allycode' => $allycode]);
 
-    foreach($stmt->fetchAll(PDO::FETCH_ASSOC) as $ru){
-        $id=(string)$ru['defId']; 
-        if(!isset($dict_units[$id])) continue; 
-        ob_start(); 
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $roster_unit) {
+        $def_id = (string) $roster_unit['defId'];
+
+        if (!isset($dict_units[$def_id]) || isset($used_unit_ids[$def_id])) {
+            continue;
+        }
+
+        ob_start();
         display_portrait(
-            $id,
-            (int)$ru['forceAlignment'],
-            max(1,min(7,(int)$ru['rarity'])),
-            (int)$ru['gear'],
-            (int)$ru['relic_currentTier'],
-            (int)$ru['zeta_count'],
-            (int)$ru['omicron_count'],
-            (int)$ru['combatType']===2
-        ); 
-        $html=ob_get_clean(); 
-        $roster_units[]=[
-            'id'=>$id,
-            'name'=>$dict_units[$id]['name']??$id,
-            'isShip'=>(int)$ru['combatType']===2,
-            'isCapital'=>strpos($id,'CAPITAL')===0,
-            'portrait'=>$html
-        ]; 
+            $def_id,
+            (int) $roster_unit['forceAlignment'],
+            max(1, min(7, (int) $roster_unit['rarity'])),
+            (int) $roster_unit['gear'],
+            (int) $roster_unit['relic_currentTier'],
+            (int) $roster_unit['zeta_count'],
+            (int) $roster_unit['omicron_count'],
+            (int) $roster_unit['combatType'] === 2
+        );
+        $portrait_html = ob_get_clean();
+
+        $roster_units[] = [
+            'id' => $def_id,
+            'name' => $dict_units[$def_id]['name'] ?? $def_id,
+            'isShip' => (int) $roster_unit['combatType'] === 2,
+            'isCapital' => strpos($def_id, 'CAPITAL') === 0,
+            'portrait' => $portrait_html,
+        ];
     }
-} 
-catch(PDOException $e){ 
-    error_log('Error fetching player roster for TW team creator: '.$e->getMessage()); 
+}
+
+catch (PDOException $e) {
+    error_log('Error fetching player roster for TW team creator: ' . $e->getMessage());
 }
 
 $player_datacrons = [];
@@ -224,6 +245,13 @@ if ($tw) {
             "SELECT id, setId, focused, level_3, level_6, level_9, level_12, level_15
              FROM datacrons
              WHERE allyCode = :allycode
+               AND id NOT IN (
+                   SELECT datacron_id
+                   FROM tw_squads
+                   WHERE tw_id = :tw_id
+                     AND player_name = :player_name
+                     AND datacron_id IS NOT NULL
+               )
              ORDER BY 
                 setId,
                 CASE
@@ -235,7 +263,11 @@ if ($tw) {
                 ELSE 0 END DESC;
             "
         );
-        $stmt->execute([':allycode' => $allycode]);
+        $stmt->execute([
+            ':allycode' => $allycode,
+            ':tw_id' => $tw_id,
+            ':player_name' => $player['name'],
+        ]);
         $player_datacrons = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log('Error fetching player datacrons: ' . $e->getMessage());
