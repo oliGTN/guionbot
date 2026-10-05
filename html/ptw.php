@@ -550,6 +550,7 @@ foreach ($squad['cells'] as $unit) {
                 </div>
 
             </div>
+<?php endif; ?>
 <?php else: ?>
         You are not allowed to see TW data for this guild
 <?php endif; //($isGuildMate||$isAdmin) ?>
