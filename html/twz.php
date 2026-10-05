@@ -235,7 +235,9 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                     // not ship
                     $unit_gear = $unit['gear'];
                 }
-                echo "<td style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'>";
+                $unit_name = $dict_units[$unit_short_id]['name'] ?? $unit_short_id;
+                $unit_name = htmlspecialchars($unit_name, ENT_QUOTES, 'UTF-8');
+                echo "<td title='".$unit_name."' style='font-size:12".($squad['is_beaten']?";opacity:0.5":"")."'>";
                 display_portrait(
                     $unit_short_id, 
                     $unit_alignment, 
