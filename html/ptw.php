@@ -416,14 +416,23 @@ $rarity_values = [
         }
 
         .tw-portrait-slot {
-            width: 80px;
+            width: 120px;
             height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex: 0 0 120px;
+        }
+
+        .tw-portrait-slot > .portrait-container {
             flex: 0 0 80px;
         }
 
         .tw-selected-unit {
             position: relative;
-            flex: 0 0 auto;
+            width: 120px;
+            height: 100px;
+            flex: 0 0 120px;
         }
 
         .tw-selected-unit[draggable="true"] {
@@ -507,9 +516,6 @@ $rarity_values = [
         }
 
         .tw-unit-result {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
             cursor: pointer;
             border: 1px solid #ccc;
             background: #fff;
@@ -521,6 +527,11 @@ $rarity_values = [
             position: relative;
             overflow: visible;
             text-align: center;
+        }
+
+        .tw-unit-result .zeta-badge img,
+        .tw-unit-result .omicron-badge img {
+            transform: translateX(-17px);
         }
 
         .tw-datacron-list {
