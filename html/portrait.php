@@ -99,6 +99,7 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
     }
     echo "</div>";
     echo "</div>";
+    echo "<div class='portrait-name'>".$unit_name."</div>";
     echo "</div>";
 }
 
