@@ -538,9 +538,13 @@ $rarity_values = [
             text-align: center;
         }
 
-        .tw-unit-result .zeta-badge img,
-        .tw-unit-result .omicron-badge img {
-            transform: translateX(-17px);
+        /* The portrait component owns its badge alignment. Keep the selector neutral. */
+        .tw-unit-result .tw-portrait-slot {
+            justify-content: center;
+        }
+
+        .tw-unit-result .tw-portrait-slot > .portrait-container {
+            transform: translateX(-11%);
         }
 
         .tw-datacron-list {
