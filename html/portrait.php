@@ -37,6 +37,7 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
     $small_class = $small ? ' portrait-small' : '';
 
     echo "<div class='portrait-container".$small_class."' title='".$unit_name."'>";
+    echo "<div class='portrait-art'>";
     echo "<img class='character-avatar' src='IMAGES/CHARACTERS/".$char_id.".png' alt='".$char_id."'>";
 
     // Gear frame
@@ -95,6 +96,7 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
             echo "<img class='star' src='IMAGES/PORTRAIT_FRAME/star-inactive.png' alt='Inactive Star'>";
         }
     }
+    echo "</div>";
     echo "</div>";
     echo "</div>";
 }
