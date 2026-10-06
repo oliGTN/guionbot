@@ -52,7 +52,7 @@
 /* G13 uses a three-frame vertical atlas: blue, red, white. */
 .gear-frame-container {
     position: absolute;
-    top: -1%;
+    top: -5%;
     left: 4.5%;
     width: 116%;
     height: 93%;
@@ -66,10 +66,10 @@
 .gear-frame-sprite-blue,
 .gear-frame-sprite-white {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 300%;
+    top: -5%;
+    left: -5%;
+    width: 110%;
+    height: 330%;
     background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
     background-size: 100% 100%;
     background-repeat: no-repeat;
