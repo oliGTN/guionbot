@@ -1,17 +1,35 @@
-/* Container setting up the portrait dimensions */
+/*
+ * Portrait component
+ *
+ * The portrait-container is the only sizing reference. Its 4:5 aspect ratio
+ * is shared by normal and small portraits. Portrait artwork and overlays use
+ * percentage-based geometry relative to this reference frame.
+ */
 .portrait-container {
     position: relative;
     width: 80px;
-    height: 100px;
+    aspect-ratio: 4 / 5;
+    height: auto;
+    overflow: visible;
 }
 
 .portrait-container.portrait-small {
     width: 60px;
-    height: 75px;
 }
 
-/* Base character portrait with circular mask */
+.portrait-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* Character artwork occupies the upper 80% of the reference frame. */
 .character-avatar {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 80%;
     object-fit: cover;
@@ -19,36 +37,37 @@
     display: block;
 }
 
-.portrait-small .character-avatar {
-    width: 100%;
-    height: 80%;
-}
-
-/* Gear frame layered exactly over the avatar */
+/* Normal gear frames are fitted completely inside the reference frame. */
 .gear-frame {
     position: absolute;
-    top: -5%;
-    left: -5%;
-    width: 110%;
-    height: 88%;
-    overflow: hidden;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80%;
+    object-fit: contain;
     pointer-events: none;
+    z-index: 2;
 }
 
+/* G13 uses a three-frame vertical atlas: blue, red, white. */
 .gear-frame-container {
     position: absolute;
-    top: -10%;
-    left: -20%;
-    width: 140%;
-    height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 80%;
     pointer-events: none;
     overflow: hidden;
     border-radius: 50%;
+    z-index: 2;
 }
 
 .gear-frame-sprite-red,
 .gear-frame-sprite-blue,
 .gear-frame-sprite-white {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 300%;
     background-image: url('IMAGES/PORTRAIT_FRAME/g13-frame-atlas.png');
@@ -56,77 +75,56 @@
     background-repeat: no-repeat;
 }
 
-.gear-frame-sprite-red { transform: translateY(-33.33%); }
 .gear-frame-sprite-blue { transform: translateY(0); }
-.gear-frame-sprite-white { transform: translateY(-66.66%); }
+.gear-frame-sprite-red { transform: translateY(-33.333333%); }
+.gear-frame-sprite-white { transform: translateY(-66.666667%); }
 
+/* Gear/relic/skill badges use the portrait-container as their reference. */
 .gear-level-badge {
     position: absolute;
-    right: 2px;
-    bottom: 14px;
-    min-width: 26px;
-    height: 20px;
-    padding: 0 3px;
+    right: 2%;
+    bottom: 14%;
+    width: 32%;
+    height: 16%;
     box-sizing: border-box;
-    border-radius: 4px;
+    border-radius: 5%;
     background: rgba(0, 0, 0, 0.85);
     border: 1px solid rgba(255, 255, 255, 0.75);
     color: #ffffff;
     font-size: 12px;
     font-weight: bold;
-    line-height: 18px;
+    line-height: 1;
     text-align: center;
     text-shadow: 1px 1px 2px #000;
     z-index: 5;
     pointer-events: none;
-}
-
-.relic-badge {
-    position: absolute;
-    left: 50%;
-    bottom: 15px;
-    transform: translateX(-50%);
-    width: 34px;
-    height: 34px;
-    background-image: url('IMAGES/PORTRAIT_FRAME/relic-badge-atlas.png');
-    background-size: 34px 136px;
-    background-repeat: no-repeat;
-    background-position: 0 0px;
-    z-index: 7;
-    pointer-events: none;
-}
-
-.relic-badge span {
-    position: absolute;
-    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-    line-height: 1;
-    text-shadow: 1px 1px 2px #000;
 }
 
-.zeta-badge {
+.relic-badge,
+.zeta-badge,
+.omicron-badge {
     position: absolute;
-    left: -8px;
-    bottom: 23px;
-    width: 34px;
-    height: 34px;
+    width: 30%;
+    aspect-ratio: 1;
+    height: auto;
     z-index: 6;
     pointer-events: none;
 }
 
-.zeta-badge img,
-.omicron-badge img {
-    position: absolute;
-    width: 34px;
-    height: 34px;
-    object-fit: contain;
+.relic-badge {
+    left: 50%;
+    bottom: 15%;
+    transform: translateX(-50%);
+    background-image: url('IMAGES/PORTRAIT_FRAME/relic-badge-atlas.png');
+    background-size: 100% 400%;
+    background-repeat: no-repeat;
+    background-position: 0 0;
 }
 
+.relic-badge span,
 .zeta-badge span,
 .omicron-badge span {
     position: absolute;
@@ -137,99 +135,49 @@
     color: #ffffff;
     font-size: 13px;
     font-weight: bold;
+    line-height: 1;
     text-shadow: 1px 1px 2px #000;
 }
 
-.omicron-badge {
-    position: absolute;
-    left: 54px;
-    bottom: 23px;
-    width: 34px;
-    height: 34px;
-    z-index: 6;
-    pointer-events: none;
+.zeta-badge {
+    left: 0%;
+    bottom: 23%;
 }
 
+.omicron-badge {
+    left: 67.5%;
+    bottom: 23%;
+}
+
+.zeta-badge img,
+.omicron-badge img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Seven stars share the bottom part of the reference frame. */
 .star-rating {
     position: absolute;
-    bottom: 2%;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 1%;
+    left: 5%;
+    width: 90%;
+    height: 17%;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 90%;
-    height: 20%;
     z-index: 4;
 }
 
 .star {
     height: 80%;
     width: auto;
+    max-width: 15%;
     object-fit: contain;
-    margin: 0 -2px;
+    margin: 0 -2%;
 }
-
-/* Scale all portrait overlays together when the portrait is reduced. */
-.portrait-small .gear-frame {
-    top: -5%;
-    left: -5%;
-    width: 110%;
-    height: 88%;
-}
-
-.portrait-small .gear-frame-container {
-    top: -10%;
-    left: -20%;
-    width: 140%;
-    height: 100%;
-}
-
-.portrait-small .gear-level-badge {
-    bottom: 11px;
-    min-width: 20px;
-    height: 15px;
-    font-size: 9px;
-    line-height: 13px;
-}
-
-.portrait-small .relic-badge {
-    width: 26px;
-    height: 26px;
-    bottom: 11px;
-    background-size: 26px 104px;
-}
-
-.portrait-small .relic-badge span {
-    font-size: 9px;
-}
-
-.portrait-small .zeta-badge,
-.portrait-small .omicron-badge {
-    width: 26px;
-    height: 26px;
-    bottom: 17px;
-}
-
-.portrait-small .zeta-badge {
-    left: -6px;
-}
-
-.portrait-small .omicron-badge {
-    left: 41px;
-}
-
-.portrait-small .zeta-badge img,
-.portrait-small .omicron-badge img {
-    width: 26px;
-    height: 26px;
-}
-
-.portrait-small .zeta-badge span,
-.portrait-small .omicron-badge span {
-    font-size: 10px;
-}
-
 
 /* Datacron display shared by player and TW pages. */
 .datacron-display {
