@@ -392,6 +392,12 @@ $rarity_values = [
             flex: 0 0 auto;
         }
 
+        .tw-fleet-reinforcement {
+            transform: scale(0.75);
+            transform-origin: top left;
+            margin-right: -1.5rem;
+        }
+
         .tw-team-creator {
             display: grid;
             gap: 1rem;
@@ -953,13 +959,20 @@ if (zoneSelect) {
             const portraits = document.createElement('div');
             portraits.className = 'tw-team-portraits';
 
-            team.units.forEach((unitId) => {
+            team.units.forEach((unitId, index) => {
                 const unit = twUnits.find((entry) => entry.id === unitId);
                 if (!unit) return;
 
                 const portrait = document.createElement('div');
                 portrait.innerHTML = unit.portrait;
                 portrait.title = unit.name;
+
+                // Fleet reinforcements are cells 4-7 in My TW teams and
+                // use the same smaller portrait treatment there.
+                if ((team.zone === 'F1' || team.zone === 'F2') && index >= 4) {
+                    portrait.className = 'tw-fleet-reinforcement';
+                }
+
                 portraits.appendChild(portrait);
             });
 
@@ -1043,6 +1056,16 @@ if (zoneSelect) {
 
     function updateCreator() {
         const fleet = fleetZone();
+
+        // A datacron belongs to the team being created, so changing zone
+        // starts a fresh selection and must clear any selected datacron.
+        datacronIdInput.value = '';
+        if (datacronList) {
+            datacronList.querySelectorAll('.tw-datacron-card')
+                .forEach((item) => item.classList.remove('selected'));
+        }
+        renderSelected();
+
         datacronSelector.style.display = fleet ? 'none' : 'block';
         zoneCommandCreator.textContent = twZoneCommands[zoneSelect.value] || '';
         creatorLimit.textContent = fleet
