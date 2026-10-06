@@ -1057,13 +1057,15 @@ if (zoneSelect) {
     function updateCreator() {
         const fleet = fleetZone();
 
-        // A datacron belongs to the team being created, so changing zone
-        // starts a fresh selection and must clear any selected datacron.
+        // Changing zone starts a completely fresh team selection.
+        selectedUnits = [];
         datacronIdInput.value = '';
+
         if (datacronList) {
             datacronList.querySelectorAll('.tw-datacron-card')
                 .forEach((item) => item.classList.remove('selected'));
         }
+
         renderSelected();
 
         datacronSelector.style.display = fleet ? 'none' : 'block';
