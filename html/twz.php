@@ -340,18 +340,18 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     border-radius: 4px;
 }
 
-.tw-zone-tabs {
-    display: flex;
+ .tw-zone-tabs {
+    display: inline-flex;
     width: 100%;
     border-bottom: 1px solid #ccc;
 }
 
 .tw-zone-tab {
-    flex: 1 1 50%;
+    flex: 0 0 auto;
     padding: 0.75rem 1rem;
     border: 1px solid #ccc;
     border-bottom: none;
-    background: #eee;
+    background: #fff;
     cursor: pointer;
     font-size: 0.95rem;
 }
@@ -372,6 +372,12 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
 
 .tw-zone-panel.active {
     display: block;
+    background-color: #fff;
+}
+.tw-zone-content,
+.tw-zone-content .tw-zone-panel,
+.tw-zone-content .tw-team-scroll {
+    background-color: #fff;
 }
 
 .tw-team-scroll {
@@ -495,7 +501,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
   padding: 0 18px;
   display: none;
   overflow: hidden;
-  background-color: #f1f1f1;
+  background-color: #fff;
 /* end of collapsible */
 
 @media (max-width: 600px) {
