@@ -161,7 +161,7 @@ foreach($event_list as $event_element) {
 function event_table($events, $zone_name, $zone_side) {
     if (isset($events[$zone_side][$zone_name])) {
         $zone_events = $events[$zone_side][$zone_name];
-        echo "<table class='tw-team-table'>\n";
+        echo "<table class='tw-event-table'>\n";
         foreach($zone_events as $event) {
             echo "<tr>";
             $ts_hour = explode(' ', $event['timestamp'])[1];
@@ -315,6 +315,35 @@ function openZone(evt, zoneSide, zoneName) {
     padding-right: 1rem;
 }
 
+.tw-team-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tw-team-scroll > table {
+    width: max-content;
+    min-width: max-content;
+}
+
+.tw-event-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.tw-event-table td {
+    padding: 0.4rem 0.6rem;
+    vertical-align: top;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.tw-event-table td:first-child {
+    width: 4.5rem;
+    white-space: nowrap;
+}
+
 .tw-team-table td:not(:first-child) {
     padding-left: 1rem;
     padding-right: 1rem;
@@ -381,6 +410,61 @@ function openZone(evt, zoneSide, zoneName) {
   background-color: #f1f1f1;
 /* end of collapsible */
 
+@media (max-width: 600px) {
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .card {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .collapsible {
+        padding: 0.8rem;
+        font-size: 0.95rem;
+    }
+
+    .collapsiblecontent {
+        padding: 0.4rem;
+    }
+
+    .tw-team-scroll {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .tw-team-table {
+        width: max-content !important;
+    }
+
+    .tw-team-table td {
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
+    .tw-event-table {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .tw-event-table td {
+        padding: 0.45rem 0.35rem;
+        font-size: 0.9rem;
+        line-height: 1.3;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .tw-event-table td:first-child {
+        width: 3.8rem;
+        font-size: 0.8rem;
+    }
+}
+
 </style>
 
 </head>
@@ -411,7 +495,7 @@ function openZone(evt, zoneSide, zoneName) {
             foreach(['B1', 'B2', 'B3', 'B4', 'T1', 'T2', 'T3', 'T4', 'F1', 'F2'] as $zone_name) {
                 echo "<div id='h".$zone_name."' class='hometabcontent'>";
                 echo "<button type='button' class='collapsible'>Home ".$zone_name." teams</button>";
-                echo "<div class='collapsiblecontent' style='overflow-x:auto;white-space:nowrap'>";
+                echo "<div class='collapsiblecontent tw-team-scroll'>";
                 squad_table($squads, $zones, $zone_name, 'home');
                 echo "</div>"; //collapsibleelement
 
