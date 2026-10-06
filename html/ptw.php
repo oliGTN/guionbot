@@ -406,8 +406,9 @@ $rarity_values = [
 
         .tw-selected-units {
             display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
+            align-items: flex-start;
+            flex-wrap: nowrap;
+            gap: 0.25rem;
             min-height: 100px;
             padding: 0.75rem;
             border: 1px solid #ccc;
@@ -417,9 +418,6 @@ $rarity_values = [
         .tw-selected-unit {
             position: relative;
             flex: 0 0 auto;
-            width: 120px;
-            height: 150px;
-            text-align: center;
         }
 
         .tw-selected-unit[draggable="true"] {
@@ -435,28 +433,11 @@ $rarity_values = [
             cursor: default;
         }
 
-        .tw-selected-unit > .portrait-container {
-            width: 120px;
-            transform: scale(1);
-            transform-origin: top left;
-        }
-
-        .tw-selected-unit .portrait-container img {
-            display: block;
-        }
-
         .tw-selected-team {
             display: flex;
             align-items: flex-start;
             flex-wrap: nowrap;
             width: 100%;
-        }
-
-        .tw-selected-units {
-            display: flex;
-            align-items: flex-start;
-            flex-wrap: nowrap;
-            gap: 0.25rem;
         }
 
         .tw-selected-datacron {
