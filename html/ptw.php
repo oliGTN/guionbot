@@ -392,7 +392,7 @@ $rarity_values = [
             flex: 0 0 auto;
         }
 
-        .tw-fleet-reinforcement {
+        .tw-selected-unit.tw-fleet-reinforcement {
             transform: scale(0.75);
             transform-origin: top left;
             margin-right: -1.5rem;
@@ -779,6 +779,10 @@ if (zoneSelect) {
 
             const wrapper = document.createElement('div');
             wrapper.className = 'tw-selected-unit';
+
+            if (fleetZone() && index >= 4) {
+                wrapper.classList.add('tw-fleet-reinforcement');
+            }
 
             const portrait = document.createElement('div');
             portrait.innerHTML = unit.portrait;
