@@ -52,10 +52,10 @@
 /* G13 uses a three-frame vertical atlas: blue, red, white. */
 .gear-frame-container {
     position: absolute;
-    top: -1%;
-    left: -8%;
-    width: 116%;
-    height: 93%;
+    top: 0;
+    left: 5%;
+    width: 90%;
+    height: 80%;
     pointer-events: none;
     overflow: hidden;
     z-index: 2;
@@ -111,6 +111,10 @@
     height: auto;
     z-index: 6;
     pointer-events: none;
+}
+
+.relic-badge {
+    width: 45%;
 }
 
 .relic-badge {
