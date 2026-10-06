@@ -80,7 +80,10 @@ if (!function_exists('tw_zone_svg')) {
         $font_size = 24;
         $small_font_size = (int) (24*.75);
 
-        echo '<g' . $onclick . ' style="cursor:' . $cursor . '">';
+        echo '<g' . $onclick
+            . ' data-side="' . htmlspecialchars($side, ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-zone="' . htmlspecialchars($zone_name, ENT_QUOTES, 'UTF-8') . '"'
+            . ' style="cursor:' . $cursor . '">';
         echo '<rect x="' . $x . '" y="' . $y . '" width="' . $width . '" height="' . $height
             . '" fill="' . htmlspecialchars($fill, ENT_QUOTES, 'UTF-8') . '" stroke="white" stroke-width="3"/>';
 
@@ -139,6 +142,15 @@ if (!function_exists('render_tw_map')) {
             .tw-map-svg text {
                 font-family: Arial, sans-serif;
                 pointer-events: none;
+            }
+
+            .tw-map-svg g.tw-zone-selected rect {
+                stroke: #ffd54f !important;
+                stroke-width: 7 !important;
+            }
+
+            .tw-map-svg g.tw-zone-selected text {
+                font-weight: 900;
             }
 
             @media (max-width: 700px) {
@@ -218,7 +230,7 @@ if (!function_exists('render_tw_map')) {
     </h3>
 <?php else : ?> <!-- empty($twheader_use_existing_zones -->
     <h2>TW for <a href="/g.php?gid=<?php echo htmlspecialchars($tw['guild_id']); ?>"><?php echo htmlspecialchars($tw['guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
-        vs <a href="/g.php?gid=<?php echo htmlspecialchars($tw['away_guild_id']); ?>"><?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
+        vs <a href="/g.php?gid=<?php echo htmlspecialchars($tw['away_guild_id'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tw['away_guild_name'], ENT_QUOTES, 'UTF-8'); ?></a>
     </h2>
 
     <div class="card">
