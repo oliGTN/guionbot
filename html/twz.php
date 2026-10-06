@@ -200,7 +200,8 @@ function event_table($events, $zone_name, $zone_side) {
         $zone_events = $events[$zone_side][$zone_name];
         $filter_id = "event-filter-".$zone_side."-".$zone_name;
         echo "<input type='search' class='tw-filter' id='".$filter_id."' placeholder='Filter events...' autocomplete='off'>";
-        echo "<table class='tw-event-table'>\n";
+        echo "<table class='tw-event-table'>
+";
         foreach($zone_events as $event) {
             $event_is_mine = is_my_player($event['name']);
             echo "<tr class='".($event_is_mine ? "tw-my-result" : "")."'>";
@@ -228,9 +229,11 @@ function event_table($events, $zone_name, $zone_side) {
                 echo "&#9989;".$event['name']." wins vs ".explode(':', $event['squad_leader'])[0]."@".$event['squad_player_name'];
             }
             echo "</td>";
-            echo "</tr>\n";
+            echo "</tr>
+";
         }
-        echo "</table>\n";
+        echo "</table>
+";
     } else {
         echo "No log yet... waiting for some action";
     }
@@ -253,9 +256,11 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     if (isset($squads[$zone_side][$zone_name])) {
         $zone_squads = $squads[$zone_side][$zone_name];
         $filter_id = "team-filter-".$zone_side."-".$zone_name;
-        echo "<b>".$zone_name.": ".$zones[$zone_side][$zone_name]['commandMsg']."</br>\n";
+        echo "<b>".$zone_name.": ".$zones[$zone_side][$zone_name]['commandMsg']."</br>
+";
         echo "<input type='search' class='tw-filter' id='".$filter_id."' placeholder='Filter by player or unit...' autocomplete='off'>";
-        echo "<table>\n";
+        echo "<table>
+";
         foreach($zone_squads as $squad_id => $squad) {
             $player_name = "";
             $unit_names = [];
@@ -306,16 +311,16 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                 display_datacron($squad["datacron"], $datacron_icons, true);
                 echo "</td>";
             }
-            echo "</tr>\n";
+            echo "</tr>
+";
         }
-        echo "</table>\n";
+        echo "</table>
+";
     } else {
         echo "Zone not yet open, you cannot see inside";
     }
 }
 ?>
-
-
 
 <!DOCTYPE html>
 <html>
@@ -340,7 +345,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     border-radius: 4px;
 }
 
- .tw-zone-tabs {
+.tw-zone-tabs {
     display: inline-flex;
     width: 100%;
     border-bottom: 1px solid #ccc;
@@ -361,7 +366,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
 }
 
 .tw-zone-tab.active {
-    background: #fff;
+    background: #e0e0e0;
     font-weight: 600;
 }
 
@@ -374,6 +379,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     display: block;
     background-color: #fff;
 }
+
 .tw-zone-content,
 .tw-zone-content .tw-zone-panel,
 .tw-zone-content .tw-team-scroll {
@@ -443,6 +449,9 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     padding-right: 1rem;
 }
 
+.tw-my-result {
+    background-color: lightgray !important;
+}
 
 /* Style the tab */
 .tab {
@@ -704,6 +713,16 @@ function openZone(evt, zoneSide, zoneName) {
 
   // Show the current tab, and add an "active" class to the button that opened the tab
   document.getElementById(zoneName).style.display = "block";
+
+  // Highlight the selected zone on the map.
+  document.querySelectorAll(".tw-map-svg g.tw-zone-selected").forEach(function(zone) {
+    zone.classList.remove("tw-zone-selected");
+  });
+  document.querySelectorAll(
+    '.tw-map-svg g[data-side="' + zoneSide + '"][data-zone="' + zoneName.substring(1) + '"]'
+  ).forEach(function(zone) {
+    zone.classList.add("tw-zone-selected");
+  });
 }
 </script>
 </body>
