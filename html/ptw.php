@@ -519,6 +519,14 @@ $rarity_values = [
             border-radius: 4px;
         }
 
+        .tw-unit-result .portrait-container .zeta-badge {
+            left: -8px;
+        }
+
+        .tw-unit-result .portrait-container .omicron-badge {
+            left: 34px;
+        }
+
         .tw-unit-result {
             cursor: pointer;
             border: 1px solid #ccc;
