@@ -207,7 +207,7 @@ try {
             COALESCE(
                 SUM(
                     CASE
-                        WHEN rs.omicron_type <> '' AND rs.level > 0 THEN 1
+                        WHEN rs.omicron_type = 'TW' AND rs.level > 0 THEN 1
                         ELSE 0
                     END
                 ),
@@ -248,6 +248,9 @@ try {
                     && (int) $dict_capas[$def_id][$skill_name]['zetaTier'] < 99
                     && (int) $skill_level >= (int) $dict_capas[$def_id][$skill_name]['zetaTier']
                 ) {
+                    $zeta_count++;
+                } else if ($skill_name == 'GL')
+                {
                     $zeta_count++;
                 }
             }
