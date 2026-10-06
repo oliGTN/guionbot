@@ -533,22 +533,6 @@ $rarity_values = [
             text-align: center;
         }
 
-        .tw-unit-result > .tw-selected-unit {
-            position: relative;
-            width: 120px;
-            height: 150px;
-            margin: 0;
-            padding: 0;
-            text-align: center;
-        }
-
-        .tw-unit-result > .tw-selected-unit > .portrait-container {
-            width: 120px;
-            height: 100px;
-            transform: none;
-            transform-origin: top left;
-        }
-
         .tw-datacron-list {
             display: flex;
             flex-wrap: wrap;
@@ -919,7 +903,6 @@ if (zoneSelect) {
                 button.className = 'tw-unit-result';
 
                 const portraitWrapper = document.createElement('div');
-                portraitWrapper.className = 'tw-selected-unit';
                 portraitWrapper.innerHTML = unit.portrait;
                 portraitWrapper.title = unit.name;
                 button.appendChild(portraitWrapper);
