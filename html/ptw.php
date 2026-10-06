@@ -532,12 +532,28 @@ $rarity_values = [
             overflow: visible;
         }
 
-        .tw-unit-result .portrait-container {
+        .tw-unit-result > div {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(0.65);
-            transform-origin: center center;
+            width: 52px;
+            height: 65px;
+            transform: translate(-50%, -50%);
+        }
+
+        .tw-unit-result .portrait-container {
+            transform: scale(0.65);
+            transform-origin: top left;
+        }
+
+        .tw-unit-result .zeta-badge {
+            left: -8px;
+            bottom: 23px;
+        }
+
+        .tw-unit-result .omicron-badge {
+            left: 54px;
+            bottom: 23px;
         }
 
         .tw-datacron-list {
