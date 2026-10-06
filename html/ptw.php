@@ -392,7 +392,8 @@ $rarity_values = [
             flex: 0 0 auto;
         }
 
-        .tw-selected-unit.tw-fleet-reinforcement {
+        .tw-selected-unit.tw-fleet-reinforcement,
+        .tw-team-portraits .tw-fleet-reinforcement {
             transform: scale(0.75);
             transform-origin: top left;
             margin-right: -1.5rem;
@@ -1033,7 +1034,7 @@ if (zoneSelect) {
                 // Fleet reinforcements are cells 4-7 in My TW teams and
                 // use the same smaller portrait treatment there.
                 if ((team.zone === 'F1' || team.zone === 'F2') && index >= 4) {
-                    portrait.className = 'tw-fleet-reinforcement';
+                    portrait.classList.add('tw-fleet-reinforcement');
                 }
 
                 portraits.appendChild(portrait);
