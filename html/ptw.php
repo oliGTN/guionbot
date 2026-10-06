@@ -1054,19 +1054,21 @@ if (zoneSelect) {
         alert('Pushing proposed teams to the game is not implemented yet.');
     }
 
-    function updateCreator() {
+    function updateCreator(previousFleet) {
         const fleet = fleetZone();
+        const fleetStatusChanged = previousFleet !== undefined && previousFleet !== fleet;
 
-        // Changing zone starts a completely fresh team selection.
-        selectedUnits = [];
-        datacronIdInput.value = '';
+        // Only reset the current selection when switching between fleet and
+        // non-fleet zones. Switching between zones of the same type keeps it.
+        if (fleetStatusChanged) {
+            selectedUnits = [];
+            datacronIdInput.value = '';
 
-        if (datacronList) {
-            datacronList.querySelectorAll('.tw-datacron-card')
-                .forEach((item) => item.classList.remove('selected'));
+            if (datacronList) {
+                datacronList.querySelectorAll('.tw-datacron-card')
+                    .forEach((item) => item.classList.remove('selected'));
+            }
         }
-
-        renderSelected();
 
         datacronSelector.style.display = fleet ? 'none' : 'block';
         zoneCommandCreator.textContent = twZoneCommands[zoneSelect.value] || '';
@@ -1085,10 +1087,16 @@ if (zoneSelect) {
         updateDatacrons();
     }
 
+    let previousFleetStatus = fleetZone();
+
     createTeamButton.addEventListener('click', createProposedTeam);
     pushProposedButton.addEventListener('click', pushProposedTeams);
 
-    zoneSelect.addEventListener('change', updateCreator);
+    zoneSelect.addEventListener('change', () => {
+        const currentFleetStatus = fleetZone();
+        updateCreator(previousFleetStatus);
+        previousFleetStatus = currentFleetStatus;
+    });
     unitSearch.addEventListener('input', renderResults);
     updateCreator();
     updateZoneCounts();
