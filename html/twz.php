@@ -161,6 +161,8 @@ foreach($event_list as $event_element) {
 function event_table($events, $zone_name, $zone_side) {
     if (isset($events[$zone_side][$zone_name])) {
         $zone_events = $events[$zone_side][$zone_name];
+        $filter_id = "event-filter-".$zone_side."-".$zone_name;
+        echo "<input type='search' class='tw-filter' id='".$filter_id."' placeholder='Filter events...' autocomplete='off'>";
         echo "<table class='tw-event-table'>\n";
         foreach($zone_events as $event) {
             echo "<tr>";
@@ -212,10 +214,21 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
 
     if (isset($squads[$zone_side][$zone_name])) {
         $zone_squads = $squads[$zone_side][$zone_name];
+        $filter_id = "team-filter-".$zone_side."-".$zone_name;
         echo "<b>".$zone_name.": ".$zones[$zone_side][$zone_name]['commandMsg']."</br>\n";
+        echo "<input type='search' class='tw-filter' id='".$filter_id."' placeholder='Filter by player or unit...' autocomplete='off'>";
         echo "<table>\n";
         foreach($zone_squads as $squad_id => $squad) {
-            echo "<tr>";
+            $player_name = "";
+            $unit_names = [];
+            foreach ($squad["cells"] as $cell) {
+                if ($player_name === "") {
+                    $player_name = $cell['player_name'];
+                }
+                $unit_short_id = explode(':', $cell['defId'])[0];
+                $unit_names[] = $dict_units[$unit_short_id]['name'] ?? $unit_short_id;
+            }
+            echo "<tr class='tw-team-row' data-player='".htmlspecialchars($player_name, ENT_QUOTES, 'UTF-8')."' data-units='".htmlspecialchars(implode(' ', $unit_names), ENT_QUOTES, 'UTF-8')."'>";
             $display_player = true;
             foreach($squad["cells"] as $cellIndex => $unit) {
                 if ($display_player) {
@@ -304,6 +317,69 @@ function openZone(evt, zoneSide, zoneName) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <link rel="stylesheet" href="portrait.css">
 <style>
+.tw-filter {
+    display: block;
+    width: 100%;
+    max-width: 32rem;
+    box-sizing: border-box;
+    margin: 0.5rem 0;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.tw-zone-tabs {
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid #ccc;
+}
+
+.tw-zone-tab {
+    flex: 1 1 50%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #eee;
+    cursor: pointer;
+    font-size: 0.95rem;
+}
+
+.tw-zone-tab + .tw-zone-tab {
+    border-left: none;
+}
+
+.tw-zone-tab.active {
+    background: #fff;
+    font-weight: 600;
+}
+
+.tw-zone-panel {
+    display: none;
+    padding: 0.5rem 0;
+}
+
+.tw-zone-panel.active {
+    display: block;
+}
+
+.tw-team-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tw-team-scroll > table {
+    width: max-content;
+    min-width: max-content;
+}
+
+.tw-team-row.tw-filter-hidden,
+.tw-event-table tr.tw-filter-hidden {
+    display: none;
+}
+
 .tw-team-table {
     width: max-content !important;
     border-collapse: separate;
@@ -493,18 +569,18 @@ function openZone(evt, zoneSide, zoneName) {
             <?php
             //foreach($squads['home'] as $zone_name => $zone_squads) {
             foreach(['B1', 'B2', 'B3', 'B4', 'T1', 'T2', 'T3', 'T4', 'F1', 'F2'] as $zone_name) {
-                echo "<div id='h".$zone_name."' class='hometabcontent'>";
-                echo "<button type='button' class='collapsible'>Home ".$zone_name." teams</button>";
-                echo "<div class='collapsiblecontent tw-team-scroll'>";
+                echo "<div id='h".$zone_name."' class='hometabcontent tw-zone-content'>";
+                echo "<div class='tw-zone-tabs'>";
+                echo "<button type='button' class='tw-zone-tab active' data-tab='teams'>Home ".$zone_name." teams</button>";
+                echo "<button type='button' class='tw-zone-tab' data-tab='events'>Home ".$zone_name." events</button>";
+                echo "</div>";
+                echo "<div class='tw-zone-panel active' data-panel='teams'><div class='tw-team-scroll'>";
                 squad_table($squads, $zones, $zone_name, 'home');
-                echo "</div>"; //collapsibleelement
-
-                echo "<button type='button' class='collapsible'>Home ".$zone_name." logs</button>";
-                echo "<div class='collapsiblecontent'>";
+                echo "</div></div>";
+                echo "<div class='tw-zone-panel' data-panel='events'>";
                 event_table($events, $zone_name, 'home');
-                echo "</div>"; //collapsibleelement
-
-                echo "</div>"; //hometabcontent
+                echo "</div>";
+                echo "</div>";
             }
             ?>
     </div> <!-- class="col s12" -->
@@ -513,18 +589,18 @@ function openZone(evt, zoneSide, zoneName) {
             <!-- AWAY ZONES -->
             <?php
             foreach(['B1', 'B2', 'B3', 'B4', 'T1', 'T2', 'T3', 'T4', 'F1', 'F2'] as $zone_name) {
-                echo "<div id='a".$zone_name."' class='awaytabcontent'>";
-                echo "<button type='button' class='collapsible'>Away ".$zone_name." teams</button>";
-                echo "<div class='collapsiblecontent'>";
+                echo "<div id='a".$zone_name."' class='awaytabcontent tw-zone-content'>";
+                echo "<div class='tw-zone-tabs'>";
+                echo "<button type='button' class='tw-zone-tab active' data-tab='teams'>Away ".$zone_name." teams</button>";
+                echo "<button type='button' class='tw-zone-tab' data-tab='events'>Away ".$zone_name." events</button>";
+                echo "</div>";
+                echo "<div class='tw-zone-panel active' data-panel='teams'><div class='tw-team-scroll'>";
                 squad_table($squads, $zones, $zone_name, 'away');
-                echo "</div>"; //collapsibleelement
-
-                echo "<button type='button' class='collapsible'>Away ".$zone_name." logs</button>";
-                echo "<div class='collapsiblecontent'>";
+                echo "</div></div>";
+                echo "<div class='tw-zone-panel' data-panel='events'>";
                 event_table($events, $zone_name, 'away');
-                echo "</div>"; //collapsibleelement
-
-                echo "</div>"; //awaytabcontent
+                echo "</div>";
+                echo "</div>";
 
             }
             ?>
@@ -544,6 +620,47 @@ function openZone(evt, zoneSide, zoneName) {
 </div>
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".tw-zone-content").forEach(function(zone) {
+        zone.querySelectorAll(".tw-zone-tab").forEach(function(tab) {
+            tab.addEventListener("click", function() {
+                zone.querySelectorAll(".tw-zone-tab").forEach(function(item) {
+                    item.classList.toggle("active", item === tab);
+                });
+                zone.querySelectorAll(".tw-zone-panel").forEach(function(panel) {
+                    panel.classList.toggle("active", panel.dataset.panel === tab.dataset.tab);
+                });
+            });
+        });
+    });
+
+    document.querySelectorAll(".tw-filter").forEach(function(input) {
+        input.addEventListener("input", function() {
+            var filter = this.value.trim().toLocaleLowerCase();
+            var panel = this.closest(".tw-zone-panel");
+
+            if (this.id.indexOf("team-filter-") === 0) {
+                panel.querySelectorAll(".tw-team-row").forEach(function(row) {
+                    var player = (row.dataset.player || "").toLocaleLowerCase();
+                    var units = (row.dataset.units || "").toLocaleLowerCase();
+                    row.classList.toggle(
+                        "tw-filter-hidden",
+                        filter !== "" && !player.includes(filter) && !units.includes(filter)
+                    );
+                });
+            } else {
+                panel.querySelectorAll(".tw-event-table tr").forEach(function(row) {
+                    row.classList.toggle(
+                        "tw-filter-hidden",
+                        filter !== "" && !row.textContent.toLocaleLowerCase().includes(filter)
+                    );
+                });
+            }
+        });
+    });
+});
+</script>
 </body>
 
 <script>
