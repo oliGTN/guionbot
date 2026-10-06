@@ -362,11 +362,17 @@ $rarity_values = [
             font-weight: bold;
         }
 
-        .tw-team-delete {
+        .tw-team-delete,
+        .tw-add-team {
             border: 0;
             border-radius: 4px;
             cursor: pointer;
             padding: 0.25rem 0.6rem;
+        }
+
+        .tw-add-team {
+            align-self: flex-start;
+            margin-left: 0.5rem;
         }
 
         .tw-push-proposed {
@@ -668,6 +674,7 @@ foreach ($squad['cells'] as $unit) {
                                 <div id="tw-selected-team" class="tw-selected-team">
                                     <div id="tw-selected-units" class="tw-selected-units"></div>
                                     <div id="tw-selected-datacron" class="tw-selected-datacron"></div>
+                                    <button type="button" id="tw-create-team" class="tw-add-team">Add</button>
                                 </div>
                             </div>
                             <div>
@@ -708,7 +715,6 @@ foreach (array_keys($player_datacron_sets) as $set_id):
                         </div>
 
                         <div id="tw-creator-limit"></div>
-                        <button type="button" id="tw-create-team">Create team</button>
                     </div>
                 </div>
 
