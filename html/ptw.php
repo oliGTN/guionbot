@@ -439,7 +439,7 @@ $rarity_values = [
             display: flex;
             align-items: flex-start;
             gap: 2rem;
-            min-height: 90px;
+            min-height: 120px;
             white-space: nowrap;
         }
 
