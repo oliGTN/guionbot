@@ -170,6 +170,12 @@ if (is_readable($dict_units_file)) {
     $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
 }
 
+$dict_capas = [];
+$dict_capas_file = __DIR__ . '/../DATA/unit_capa_list.json';
+if (is_readable($dict_capas_file)) {
+    $dict_capas = json_decode(file_get_contents($dict_capas_file), true) ?: [];
+}
+
 $datacron_icons = load_datacron_icons($conn_guionbot);
 
 $used_unit_ids = [];
@@ -194,7 +200,10 @@ try {
             r.level,
             r.rarity,
             r.relic_currentTier,
-            r.zeta_count,
+            GROUP_CONCAT(
+                CONCAT(rs.name, ':', rs.level)
+                SEPARATOR ','
+            ) AS skill_levels,
             COALESCE(
                 SUM(
                     CASE
@@ -216,8 +225,7 @@ try {
             r.gear,
             r.level,
             r.rarity,
-            r.relic_currentTier,
-            r.zeta_count
+            r.relic_currentTier
          ORDER BY r.combatType, r.gp DESC"
     );
     $stmt->execute([':allycode' => $allycode]);
@@ -229,6 +237,22 @@ try {
             continue;
         }
 
+        $zeta_count = 0;
+        if (isset($dict_capas[$def_id]) && !empty($roster_unit['skill_levels'])) {
+            foreach (explode(',', $roster_unit['skill_levels']) as $skill_data) {
+                [$skill_name, $skill_level] = array_pad(explode(':', $skill_data, 2), 2, null);
+                if (
+                    $skill_name !== null
+                    && $skill_level !== null
+                    && isset($dict_capas[$def_id][$skill_name]['zetaTier'])
+                    && (int) $dict_capas[$def_id][$skill_name]['zetaTier'] < 99
+                    && (int) $skill_level >= (int) $dict_capas[$def_id][$skill_name]['zetaTier']
+                ) {
+                    $zeta_count++;
+                }
+            }
+        }
+
         ob_start();
         display_portrait(
             $def_id,
@@ -236,7 +260,7 @@ try {
             max(1, min(7, (int) $roster_unit['rarity'])),
             (int) $roster_unit['gear'],
             (int) $roster_unit['relic_currentTier'],
-            (int) $roster_unit['zeta_count'],
+            $zeta_count,
             (int) $roster_unit['omicron_count'],
             (int) $roster_unit['combatType'] === 2
         );
