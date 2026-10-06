@@ -524,57 +524,23 @@ $rarity_values = [
             border: 1px solid #ccc;
             background: #fff;
             border-radius: 4px;
-            padding: 0.25rem;
-            width: 80px;
-            height: 80px;
+            padding: 0;
+            width: 120px;
+            height: 150px;
             box-sizing: border-box;
             position: relative;
             overflow: visible;
+            text-align: center;
         }
 
-        .tw-unit-result > div {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 52px;
-            height: 65px;
-            transform: translate(-50%, -50%);
+        .tw-unit-result > .portrait-container {
+            width: 120px;
+            transform: scale(1);
+            transform-origin: top left;
         }
 
-        .tw-unit-result .portrait-container {
-            width: 52px;
-            height: 65px;
-            transform: none;
-        }
-
-        .tw-unit-result .character-avatar {
-            width: 52px;
-            height: 52px;
-        }
-
-        .tw-unit-result .zeta-badge {
-            left: -5.2px;
-            bottom: 14.95px;
-            width: 22.1px;
-            height: 22.1px;
-        }
-
-        .tw-unit-result .omicron-badge {
-            left: 35.1px;
-            bottom: 14.95px;
-            width: 22.1px;
-            height: 22.1px;
-        }
-
-        .tw-unit-result .zeta-badge img,
-        .tw-unit-result .omicron-badge img {
-            width: 22.1px;
-            height: 22.1px;
-        }
-
-        .tw-unit-result .zeta-badge span,
-        .tw-unit-result .omicron-badge span {
-            font-size: 8.45px;
+        .tw-unit-result .portrait-container img {
+            display: block;
         }
 
         .tw-datacron-list {
@@ -944,12 +910,9 @@ if (zoneSelect) {
             .forEach((unit) => {
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.className = 'tw-unit-result';
-
-                const portrait = document.createElement('div');
-                portrait.innerHTML = unit.portrait;
-                portrait.title = unit.name;
-                button.appendChild(portrait);
+                button.className = 'tw-unit-result tw-selected-unit';
+                button.innerHTML = unit.portrait;
+                button.title = unit.name;
                 button.title = unit.name;
 
                 button.addEventListener('click', () => {
