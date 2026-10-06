@@ -1729,7 +1729,7 @@ async def manage_me(ctx, alias, allow_tw):
             else:
                 ret_allyCode_txt = "ERR: \"me\" (<@"+str(ctx.author.id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
 
-        elif alias == "-TW":
+        elif alias.upper() == "-TW":
             if not allow_tw:
                 return "ERR: l'option -TW n'est pas utilisable avec cette commande"
 
@@ -5889,7 +5889,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     args.remove(arg)
 
             connected_allyCode = None
-            if "-TW" in args:
+            if "-TW" in [a.upper() for a in args]:
                 #Ensure command is launched from a server, not a DM
                 if ctx.guild == None:
                     await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
@@ -5897,7 +5897,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     return
 
                 tw_mode = True
-                args.remove("-TW")
+                args = [a for a in args if a.upper()!="-TW"]
 
                 #get bot config from DB
                 ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
@@ -5909,7 +5909,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                 guild_id = bot_infos["guild_id"]
                 connected_allyCode = bot_infos["allyCode"]
 
-            if "-TB" in args:
+            if "-TB" in [a.upper() for a in args]:
                 if tw_mode:
                     await ctx.send("ERR: impossible d'utiliser les options -TW et -TB en même temps")
                     await ctx.message.add_reaction(emojis.redcross)
@@ -5922,7 +5922,7 @@ class OfficerCog(commands.Cog, name="Commandes pour les officiers"):
                     return
 
                 tb_mode = True
-                args.remove("-TB")
+                args = [a for a in args if a.upper()!="-TB"]
 
                 #get bot config from DB
                 ec, et, bot_infos = await get_mysql.get_warbot_info(ctx.guild.id, ctx.message.channel.id)
@@ -6290,7 +6290,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 return
 
             teams = list(teams)
-            if "-TW" in teams:
+            if "-TW" in [a.upper() for a in teams]:
                 #Ensure command is launched from a server, not a DM
                 if ctx.guild == None:
                     await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
@@ -6304,7 +6304,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     return
 
                 tw_mode = True
-                teams.remove("-TW")
+                teams = [a for a in teams if a.upper()!="-TW"]
             else:
                 tw_mode = False
 
@@ -6374,7 +6374,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 return
 
             teams = list(teams)
-            if "-TW" in teams:
+            if "-TW" in [a.upper() for a in teams]:
                 #Ensure command is launched from a server, not a DM
                 if ctx.guild == None:
                     await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
@@ -6388,7 +6388,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                     return
 
                 tw_mode = True
-                teams.remove("-TW")
+                teams = [a for a in teams if a.upper()!="-TW"]
             else:
                 tw_mode = False
 
@@ -7889,7 +7889,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 return
 
 
-            if args[0] == "-TW":
+            if args[0].upper() == "-TW":
                 #Ensure command is launched from a server, not a DM
                 if ctx.guild == None:
                     await ctx.send("ERR: commande non autorisée depuis un DM avec l'option -TW")
@@ -7928,7 +7928,7 @@ class MemberCog(commands.Cog, name="Commandes pour les membres"):
                 allyCode = await manage_me(ctx, allyCode, False)
                 guild_id = None
 
-            if "-TW" in args[1:]:
+            if "-TW" in [a.upper() for a in args[:1]]:
                 await ctx.send("ERR: l'option -TW doit être utilisée en première position. Consulter go.help cpg pour plus d'infos.")
                 await ctx.message.add_reaction(emojis.redcross)
                 return

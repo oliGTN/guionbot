@@ -392,13 +392,13 @@ async def tpg(ctx_interaction, *args):
         tb_mode = False
         guild_id = None
 
-        if "-TW" in args:
+        if "-TW" in [a.upper() for a in args]:
             #Ensure command is launched from a server, not a DM
             if commands_check.dm(ctx_interaction, "L'option -TW"):
                 return
 
             tw_mode = True
-            args.remove("-TW")
+            args = [a for a in args if a.upper()!="-TW"]
 
             #get bot config from DB
             ec, et, bot_infos = await get_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
@@ -408,7 +408,7 @@ async def tpg(ctx_interaction, *args):
 
             guild_id = bot_infos["guild_id"]
 
-        if "-TB" in args:
+        if "-TB" in [a.upper() for a in args]:
             if tw_mode:
                 await command_error(ctx_interaction, resp_msg, "ERR: impossible d'utiliser les options -TW et -TB en même temps")
                 return
@@ -419,7 +419,7 @@ async def tpg(ctx_interaction, *args):
                 return
 
             tb_mode = True
-            args.remove("-TB")
+            args = [a for a in args if a.upper()!="-TB"]
 
             #get bot config from DB
             ec, et, bot_infos = await get_mysql.get_warbot_info(ctx_interaction.guild.id, ctx_interaction.message.channel.id)
@@ -488,7 +488,7 @@ async def manage_me(ctx_interaction, alias, allow_tw=True):
             ret_allyCode_txt = str(dict_players_by_ID[user_id]["main"][0])
         else:
             ret_allyCode_txt = "ERR: \"me\" (<@"+str(user_id)+">) n'est pas enregistré dans le bot. Utiliser la comande `go.register <code allié>`"
-    elif alias == "-TW":
+    elif alias.upper() == "-TW":
         if not allow_tw:
             return 1, "ERR: l'option -TW n'est pas utilisable avec cette commande", None
 
