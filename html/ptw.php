@@ -527,11 +527,17 @@ $rarity_values = [
             padding: 0.25rem;
             width: 80px;
             height: 80px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: visible;
         }
 
         .tw-unit-result .portrait-container {
-            transform: scale(0.65);
-            transform-origin: top left;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.65);
+            transform-origin: center center;
         }
 
         .tw-datacron-list {
