@@ -421,6 +421,19 @@ $rarity_values = [
             text-align: center;
         }
 
+        .tw-selected-unit[draggable="true"] {
+            cursor: grab;
+        }
+
+        .tw-selected-unit.tw-dragging {
+            opacity: 0.45;
+            cursor: grabbing;
+        }
+
+        .tw-selected-unit[draggable="false"] {
+            cursor: default;
+        }
+
         .tw-selected-unit > .portrait-container {
             width: 120px;
             transform: scale(1);
@@ -779,10 +792,56 @@ if (zoneSelect) {
 
             const wrapper = document.createElement('div');
             wrapper.className = 'tw-selected-unit';
+            wrapper.dataset.index = String(index);
 
-            if (fleetZone() && index >= 4) {
+            const fleet = fleetZone();
+            const isCapital = fleet && index === 0;
+
+            if (fleet && index >= 4) {
                 wrapper.classList.add('tw-fleet-reinforcement');
             }
+
+            // The capital ship must remain first and cannot be dragged.
+            wrapper.draggable = !isCapital;
+            if (!isCapital) {
+                wrapper.addEventListener('dragstart', (event) => {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', String(index));
+                    wrapper.classList.add('tw-dragging');
+                });
+                wrapper.addEventListener('dragend', () => {
+                    wrapper.classList.remove('tw-dragging');
+                });
+            }
+
+            wrapper.addEventListener('dragover', (event) => {
+                event.preventDefault();
+
+                const sourceIndex = Number(event.dataTransfer.getData('text/plain'));
+                const targetIndex = Number(wrapper.dataset.index);
+
+                if (!Number.isInteger(sourceIndex) || sourceIndex === targetIndex) return;
+                if (fleet && (sourceIndex === 0 || targetIndex === 0)) return;
+
+                event.dataTransfer.dropEffect = 'move';
+            });
+
+            wrapper.addEventListener('drop', (event) => {
+                event.preventDefault();
+
+                const sourceIndex = Number(event.dataTransfer.getData('text/plain'));
+                const targetIndex = Number(wrapper.dataset.index);
+
+                if (!Number.isInteger(sourceIndex) || !Number.isInteger(targetIndex)) return;
+                if (sourceIndex === targetIndex) return;
+                if (fleet && (sourceIndex === 0 || targetIndex === 0)) return;
+
+                const [movedUnit] = selectedUnits.splice(sourceIndex, 1);
+                selectedUnits.splice(targetIndex, 0, movedUnit);
+
+                renderSelected();
+                renderResults();
+            });
 
             const portrait = document.createElement('div');
             portrait.innerHTML = unit.portrait;
