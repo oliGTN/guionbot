@@ -534,9 +534,11 @@ $rarity_values = [
         }
 
         .tw-unit-result > .portrait-container {
-            width: 120px;
+            width: 80px;
+            height: 100px;
             transform: scale(1);
             transform-origin: top left;
+            margin: 0 auto;
         }
 
         .tw-unit-result .portrait-container img {
