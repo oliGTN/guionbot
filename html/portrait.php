@@ -60,12 +60,13 @@ function display_portrait($char_id, $alignment, $rarity, $gear, $relic, $zeta_co
     if (!$is_ship) {
         if ($relic_level > 0) {
             if ($alignment == 3) {
-                echo "<div class='relic-badge' style='background-position:0 -34px'>";
+                $relic_badge_class = ' relic-badge-red';
             } else if ($alignment == 2) {
-                echo "<div class='relic-badge' style='background-position:0 0px'>";
+                $relic_badge_class = ' relic-badge-blue';
             } else {
-                echo "<div class='relic-badge' style='background-position:0 -68px'>";
+                $relic_badge_class = ' relic-badge-white';
             }
+            echo "<div class='relic-badge".$relic_badge_class."'>";
             echo "<span>R".$relic_level."</span>";
             echo "</div>";
         } else if ($gear > 0) {
