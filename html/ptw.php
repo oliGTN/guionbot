@@ -415,6 +415,12 @@ $rarity_values = [
             border-radius: 4px;
         }
 
+        .tw-portrait-slot {
+            width: 80px;
+            height: 100px;
+            flex: 0 0 80px;
+        }
+
         .tw-selected-unit {
             position: relative;
             flex: 0 0 auto;
@@ -501,6 +507,9 @@ $rarity_values = [
         }
 
         .tw-unit-result {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
             cursor: pointer;
             border: 1px solid #ccc;
             background: #fff;
@@ -825,6 +834,7 @@ if (zoneSelect) {
             });
 
             const portrait = document.createElement('div');
+            portrait.className = 'tw-portrait-slot';
             portrait.innerHTML = unit.portrait;
             portrait.title = unit.name;
             wrapper.appendChild(portrait);
@@ -884,6 +894,7 @@ if (zoneSelect) {
                 button.className = 'tw-unit-result';
 
                 const portraitWrapper = document.createElement('div');
+                portraitWrapper.className = 'tw-portrait-slot';
                 portraitWrapper.innerHTML = unit.portrait;
                 portraitWrapper.title = unit.name;
                 button.appendChild(portraitWrapper);
