@@ -900,9 +900,14 @@ if (zoneSelect) {
             .forEach((unit) => {
                 const button = document.createElement('button');
                 button.type = 'button';
-                button.className = 'tw-unit-result tw-selected-unit';
-                button.innerHTML = unit.portrait;
-                button.title = unit.name;
+                button.className = 'tw-unit-result';
+
+                const portraitWrapper = document.createElement('div');
+                portraitWrapper.className = 'tw-selected-unit';
+                portraitWrapper.innerHTML = unit.portrait;
+                portraitWrapper.title = unit.name;
+                button.appendChild(portraitWrapper);
+
                 button.title = unit.name;
 
                 button.addEventListener('click', () => {
