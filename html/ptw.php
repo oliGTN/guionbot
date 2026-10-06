@@ -542,18 +542,39 @@ $rarity_values = [
         }
 
         .tw-unit-result .portrait-container {
-            transform: scale(0.65);
-            transform-origin: top left;
+            width: 52px;
+            height: 65px;
+            transform: none;
+        }
+
+        .tw-unit-result .character-avatar {
+            width: 52px;
+            height: 52px;
         }
 
         .tw-unit-result .zeta-badge {
-            left: -8px;
-            bottom: 23px;
+            left: -5.2px;
+            bottom: 14.95px;
+            width: 22.1px;
+            height: 22.1px;
         }
 
         .tw-unit-result .omicron-badge {
-            left: 54px;
-            bottom: 23px;
+            left: 35.1px;
+            bottom: 14.95px;
+            width: 22.1px;
+            height: 22.1px;
+        }
+
+        .tw-unit-result .zeta-badge img,
+        .tw-unit-result .omicron-badge img {
+            width: 22.1px;
+            height: 22.1px;
+        }
+
+        .tw-unit-result .zeta-badge span,
+        .tw-unit-result .omicron-badge span {
+            font-size: 8.45px;
         }
 
         .tw-datacron-list {
