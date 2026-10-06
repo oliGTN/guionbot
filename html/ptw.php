@@ -983,8 +983,14 @@ if (zoneSelect) {
         if (index < 0) return;
 
         const team = proposedTeams[index];
+        const zone = team.zone;
         if (team.element) team.element.remove();
         proposedTeams.splice(index, 1);
+
+        const zoneCard = zoneTeamsContainer.querySelector('[data-tw-zone="' + zone + '"]');
+        if (zoneCard && !zoneCard.querySelector('.tw-team')) {
+            zoneCard.remove();
+        }
 
         renderProposedTeams();
         renderResults();
