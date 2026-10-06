@@ -13,6 +13,19 @@
     overflow: visible;
 }
 
+.portrait-name {
+    width: 125%;
+    margin-left: -12.5%;
+    margin-top: 4px;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.15;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .portrait-container.portrait-small {
     width: 60px;
 }
