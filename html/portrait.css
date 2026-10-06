@@ -57,7 +57,7 @@
     width: 116%;
     height: 93%;
     pointer-events: none;
-    overflow: visible;
+    overflow: hidden;
     z-index: 2;
 }
 
