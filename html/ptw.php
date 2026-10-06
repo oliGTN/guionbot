@@ -533,18 +533,6 @@ $rarity_values = [
             text-align: center;
         }
 
-        .tw-unit-result > .portrait-container {
-            width: 80px;
-            height: 100px;
-            transform: scale(1);
-            transform-origin: top left;
-            margin: 0 auto;
-        }
-
-        .tw-unit-result .portrait-container img {
-            display: block;
-        }
-
         .tw-datacron-list {
             display: flex;
             flex-wrap: wrap;
