@@ -275,33 +275,6 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     }
 }
 ?>
-<script>
-function openZone(evt, zoneSide, zoneName) {
-  // Declare all variables
-  var i, tabcontent, tablinks;
-
-  // Get the default message "click a zone" and hide it
-  document.getElementById("defaultmessage").style.display = "none";
-
-  // Get all side elements with class="teamside" and hide them
-  tabs = document.getElementsByClassName("teamside");
-  for (i = 0; i < tabs.length; i++) {
-    tabs[i].style.display = "none";
-  }
-
-  // Get all zone elements with class="tabcontent" and hide them
-  tabcontent = document.getElementsByClassName(zoneSide+"tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
-
-  // Show the side tab, and add an "active" class to the button that opened the tab
-  document.getElementById(zoneSide+"teamside").style.display = "block";
-
-  // Show the current tab, and add an "active" class to the button that opened the tab
-  document.getElementById(zoneName).style.display = "block";
-}
-</script>
 
 
 
@@ -660,6 +633,33 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+</script>
+<script>
+function openZone(evt, zoneSide, zoneName) {
+  // Declare all variables
+  var i, tabcontent, tablinks;
+
+  // Get the default message "click a zone" and hide it
+  document.getElementById("defaultmessage").style.display = "none";
+
+  // Get all side elements with class="teamside" and hide them
+  tabs = document.getElementsByClassName("teamside");
+  for (i = 0; i < tabs.length; i++) {
+    tabs[i].style.display = "none";
+  }
+
+  // Get all zone elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName(zoneSide+"tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+
+  // Show the side tab, and add an "active" class to the button that opened the tab
+  document.getElementById(zoneSide+"teamside").style.display = "block";
+
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(zoneName).style.display = "block";
+}
 </script>
 </body>
 
