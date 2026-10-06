@@ -29,6 +29,11 @@ if (!isset($_SESSION['user_id']) && isset($_COOKIE['discord_access_token'])) {
 // Check if the user is logged in and if the user is an admin
 $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
 
+$my_ally_codes = isset($_SESSION['allyCodes']) && is_array($_SESSION['allyCodes'])
+    ? array_map('intval', array_keys($_SESSION['allyCodes']))
+    : [];
+$my_player_names = [];
+
 // Check if a TB id and a round are given in URL, otherwise redirect to index
 if (!isset($_GET['id'])) {
     error_log("No id: redirect to index.php");
@@ -43,6 +48,16 @@ include 'twvariables.php';
 
 // define $isMyGuild, $isOfficer FROM $guild_id
 list($isMyGuild, $isMyGuildConfirmed, $isBonusGuild, $isOfficer) = set_session_rights_for_guild($guild_id);
+
+if (!empty($my_ally_codes)) {
+    $placeholders = implode(',', array_fill(0, count($my_ally_codes), '?'));
+    $stmt = $conn_guionbot->prepare(
+        "SELECT name FROM players WHERE guildId = ? AND allyCode IN (".$placeholders.")"
+    );
+    $stmt->execute(array_merge([$guild_id], $my_ally_codes));
+    $my_player_names = array_column($stmt->fetchAll(PDO::FETCH_ASSOC), 'name');
+}
+$my_player_names_lower = array_map('mb_strtolower', $my_player_names);
 
 include 'portrait.php';
 
@@ -175,6 +190,11 @@ foreach($event_list as $event_element) {
     $events[$side][$zone_name][] = $event_element;
 }
 
+function is_my_player($player_name) {
+    global $my_player_names_lower;
+    return in_array(mb_strtolower($player_name), $my_player_names_lower, true);
+}
+
 function event_table($events, $zone_name, $zone_side) {
     if (isset($events[$zone_side][$zone_name])) {
         $zone_events = $events[$zone_side][$zone_name];
@@ -182,7 +202,8 @@ function event_table($events, $zone_name, $zone_side) {
         echo "<input type='search' class='tw-filter' id='".$filter_id."' placeholder='Filter events...' autocomplete='off'>";
         echo "<table class='tw-event-table'>\n";
         foreach($zone_events as $event) {
-            echo "<tr>";
+            $event_is_mine = is_my_player($event['name']);
+            echo "<tr class='".($event_is_mine ? "tw-my-result" : "")."'>";
             $ts_hour = explode(' ', $event['timestamp'])[1];
             $ts_hour_int = explode('.', $ts_hour)[0];
             echo "<td>".$ts_hour_int."</td>";
@@ -245,7 +266,8 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
                 $unit_short_id = explode(':', $cell['defId'])[0];
                 $unit_names[] = $dict_units[$unit_short_id]['name'] ?? $unit_short_id;
             }
-            echo "<tr class='tw-team-row' data-player='".htmlspecialchars($player_name, ENT_QUOTES, 'UTF-8')."' data-units='".htmlspecialchars(implode(' ', $unit_names), ENT_QUOTES, 'UTF-8')."'>";
+            $team_is_mine = is_my_player($player_name);
+            echo "<tr class='tw-team-row".($team_is_mine ? " tw-my-result" : "")."' data-player='".htmlspecialchars($player_name, ENT_QUOTES, 'UTF-8')."' data-units='".htmlspecialchars(implode(' ', $unit_names), ENT_QUOTES, 'UTF-8')."'>";
             $display_player = true;
             foreach($squad["cells"] as $cellIndex => $unit) {
                 if ($display_player) {
