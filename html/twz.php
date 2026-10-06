@@ -256,7 +256,7 @@ function squad_table($squads, $zones, $zone_name, $zone_side) {
     if (isset($squads[$zone_side][$zone_name])) {
         $zone_squads = $squads[$zone_side][$zone_name];
         $filter_id = "team-filter-".$zone_side."-".$zone_name;
-        echo "<b>".$zone_name.": ".$zones[$zone_side][$zone_name]['commandMsg']."</br>
+        echo $zones[$zone_side][$zone_name]['commandMsg']."</br>
 ";
         echo "<input type='search' class='tw-filter' id='".$filter_id."' placeholder='Filter by player or unit...' autocomplete='off'>";
         echo "<table>
