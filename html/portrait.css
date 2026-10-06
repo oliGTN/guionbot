@@ -41,7 +41,7 @@
 .gear-frame {
     position: absolute;
     top: 0;
-    left: 0;
+    left: 12.5%;
     width: 100%;
     height: 80%;
     object-fit: contain;
@@ -53,7 +53,7 @@
 .gear-frame-container {
     position: absolute;
     top: -1%;
-    left: -8%;
+    left: 4.5%;
     width: 116%;
     height: 93%;
     pointer-events: none;
@@ -82,7 +82,7 @@
 /* Gear/relic/skill badges use the portrait-container as their reference. */
 .gear-level-badge {
     position: absolute;
-    right: 2%;
+    right: -10.5%;
     bottom: 14%;
     width: 32%;
     height: 16%;
@@ -119,7 +119,7 @@
 }
 
 .relic-badge {
-    left: 50%;
+    left: 62.5%;
     bottom: 15%;
     transform: translateX(-50%);
     background-image: url('IMAGES/PORTRAIT_FRAME/relic-badge-atlas.png');
@@ -156,12 +156,12 @@
 }
 
 .zeta-badge {
-    left: 0%;
+    left: 12.5%;
     bottom: 23%;
 }
 
 .omicron-badge {
-    left: 67.5%;
+    left: 80%;
     bottom: 23%;
 }
 
@@ -178,7 +178,7 @@
 .star-rating {
     position: absolute;
     bottom: 1%;
-    left: 5%;
+    left: 17.5%;
     width: 90%;
     height: 17%;
     display: flex;
