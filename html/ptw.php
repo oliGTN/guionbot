@@ -170,6 +170,12 @@ if (is_readable($dict_units_file)) {
     $dict_units = json_decode(file_get_contents($dict_units_file), true) ?: [];
 }
 
+$dict_categories = [];
+$dict_categories_file = __DIR__ . '/../DATA/categoryList_dict.json';
+if (is_readable($dict_categories_file)) {
+    $dict_categories = json_decode(file_get_contents($dict_categories_file), true) ?: [];
+}
+
 $dict_capas = [];
 $dict_capas_file = __DIR__ . '/../DATA/unit_capa_list.json';
 if (is_readable($dict_capas_file)) {
@@ -269,9 +275,22 @@ try {
         );
         $portrait_html = ob_get_clean();
 
+        $search_metadata = [];
+        foreach (($dict_units[$def_id]['categoryId'] ?? []) as $category_id) {
+            if (
+                isset($dict_categories[$category_id]['descKey'])
+                && is_string($dict_categories[$category_id]['descKey'])
+                && $dict_categories[$category_id]['descKey'] !== ''
+            ) {
+                $search_metadata[] = $dict_categories[$category_id]['descKey'];
+            }
+        }
+        $search_metadata = array_values(array_unique($search_metadata));
+
         $roster_units[] = [
             'id' => $def_id,
             'name' => $dict_units[$def_id]['name'] ?? $def_id,
+            'searchMetadata' => $search_metadata,
             'isShip' => (int) $roster_unit['combatType'] === 2,
             'isCapital' => strpos($def_id, 'CAPITAL') === 0,
             'portrait' => $portrait_html,
@@ -934,7 +953,17 @@ if (zoneSelect) {
 
         twUnits
             .filter((unit) => fleet ? unit.isShip : !unit.isShip)
-            .filter((unit) => unit.name.toLowerCase().includes(search))
+            .filter((unit) => {
+                if (!search) return true;
+
+                const searchableMetadata = Array.isArray(unit.searchMetadata)
+                    ? unit.searchMetadata.join(' ')
+                    : '';
+
+                return (unit.name + ' ' + searchableMetadata)
+                    .toLocaleLowerCase()
+                    .includes(search);
+            })
             .filter((unit) => !selectedUnits.includes(unit.id))
             .filter((unit) => !proposedTeams.some((team) => team.units.includes(unit.id)))
             .filter((unit) => !fleet || (selectedUnits.length === 0 ? unit.isCapital : !unit.isCapital))
