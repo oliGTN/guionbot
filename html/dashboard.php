@@ -21,6 +21,7 @@ $isAdmin = isset($_SESSION['admin']) && $_SESSION['admin'];
 
 // ---- get DB data after handling potential POST commands, so that the page is up to date ----------
 if ($isAdmin) {
+    ## ADMIN: get guild associations
     try {
         // Prepare the SQL query to fetch the specific guild associations from the DB table
         $query = "SELECT users.user_id AS user_id, users.name AS name, GROUP_CONCAT(guilds.name) AS guild_names FROM users";
@@ -44,6 +45,7 @@ if ($isAdmin) {
         echo "Error fetching users: " . $e->getMessage();
     }
 } 
+    ## get user guilds
     try {
         // Prepare the SQL query to fetch the user infos
         $query = "SELECT id, name FROM guilds";
@@ -59,6 +61,8 @@ if ($isAdmin) {
     } catch (PDOException $e) {
         echo "Error fetching my_guilds: " . $e->getMessage();
     }
+
+    ## get user bonus guilds
     try {
         // Prepare the SQL query to fetch the user infos
         $query = "SELECT id, name FROM guilds";
@@ -75,22 +79,40 @@ if ($isAdmin) {
         echo "Error fetching my_bonus_guilds: " . $e->getMessage();
     }
     
-try {
-    // Prepare the SQL query to fetch all guilds from the DB table
-    $stmt = $conn_guionbot->prepare("SELECT id, name FROM guilds ORDER BY name");
-    $stmt->execute();
+    ## get user game accounts (players)
+    try {
+        // Prepare the SQL query to fetch the user infos
+        $query = "SELECT allyCode, name FROM players";
+        $query .= " WHERE allyCode IN ('".implode("','", array_keys($_SESSION['allyCodes']))."')";
+        $query .= " ORDER BY name;";
+        //error_log($query);
+        $stmt = $conn_guionbot->prepare($query);
+        $stmt->execute();
 
-    // Fetch all the results as an associative array
-    $db_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Fetch all the results as an associative array
+        $my_players = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $guilds = array();
-    foreach($db_data as $line) {
-        $guilds[$line['name']] = $line['id'];
+    } catch (PDOException $e) {
+        echo "Error fetching my_bonus_guilds: " . $e->getMessage();
     }
+    
+    ## get all guilds
+    try {
+        // Prepare the SQL query to fetch all guilds from the DB table
+        $stmt = $conn_guionbot->prepare("SELECT id, name FROM guilds ORDER BY name");
+        $stmt->execute();
 
-} catch (PDOException $e) {
-    echo "Error fetching guilds: " . $e->getMessage();
-}
+        // Fetch all the results as an associative array
+        $db_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $guilds = array();
+        foreach($db_data as $line) {
+            $guilds[$line['name']] = $line['id'];
+        }
+
+    } catch (PDOException $e) {
+        echo "Error fetching guilds: " . $e->getMessage();
+    }
 
 ?>
 
@@ -124,7 +146,62 @@ try {
             <div class="card">
                 <p style="color:green;display:inline">You are logged in as an administrator</p>
             </div>
+        <?php endif ;?> <!-- $isAdmin -->
 
+            <div class="card">
+            <table>
+                <tr>
+                    <th>My game accounts</th>
+                </tr>
+                <?php
+                // Loop through each allycode and display in a table row
+                if (!empty($my_players)) {
+                    foreach ($my_players as $user_player) {
+                        echo "<tr><td><a href='p.php?ac=".$user_player['allyCode']."'>" . htmlspecialchars($user_player['name']) . "</a></td></tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='2'>No player found.</td></tr>";
+                }
+                ?>
+            </table>
+            </div>
+
+            <div class="card">
+            <table>
+                <tr>
+                    <th>My guilds</th>
+                </tr>
+                <?php
+                // Loop through each guild and display in a table row
+                if (!empty($my_guilds)) {
+                    foreach ($my_guilds as $user_guild) {
+                        echo "<tr><td><a href='g.php?gid=".$user_guild['id']."'>" . htmlspecialchars($user_guild['name']) . "</a></td></tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='2'>No guild found.</td></tr>";
+                }
+                ?>
+            </table>
+            </div>
+
+            <?php if (!empty($my_bonus_guilds)): ?>
+            <div class="card">
+            <table>
+                <tr>
+                    <th>My bonus guilds</th>
+                </tr>
+                <?php
+                // Loop through each guild and display in a table row
+                    foreach ($my_bonus_guilds as $user_guild) {
+                        echo "<tr><td><a href='g.php?gid=".$user_guild['id']."'>" . htmlspecialchars($user_guild['name']) . "</a></td></tr>";
+                    }
+                ?>
+            </table>
+            </div>
+            <?php endif; ?> <!-- !empty($my_bonus_guilds) -->
+
+
+        <?php if ($isAdmin): ?>
             <div class="card">
                 <!-- Table to display user names -->
                 <h3>Admin panel</h3>
@@ -163,39 +240,6 @@ try {
             </div>
 
         <?php endif; ?>
-            <div class="card">
-            <table>
-                <tr>
-                    <th>My guilds</th>
-                </tr>
-                <?php
-                // Loop through each guild and display in a table row
-                if (!empty($my_guilds)) {
-                    foreach ($my_guilds as $user_guild) {
-                        echo "<tr><td><a href='g.php?gid=".$user_guild['id']."'>" . htmlspecialchars($user_guild['name']) . "</a></td></tr>";
-                    }
-                } else {
-                    echo "<tr><td colspan='2'>No guild found.</td></tr>";
-                }
-                ?>
-            </table>
-            </div>
-
-            <?php if (!empty($my_bonus_guilds)): ?>
-            <div class="card">
-            <table>
-                <tr>
-                    <th>My bonus guilds</th>
-                </tr>
-                <?php
-                // Loop through each guild and display in a table row
-                    foreach ($my_bonus_guilds as $user_guild) {
-                        echo "<tr><td><a href='g.php?gid=".$user_guild['id']."'>" . htmlspecialchars($user_guild['name']) . "</a></td></tr>";
-                    }
-                ?>
-            </table>
-            </div>
-            <?php endif; ?> <!-- !empty($my_bonus_guilds) -->
     </div> <!-- container -->
     </div> <!-- site-content -->
     <div class="site-cache" id="site-cache" onclick="document.body.classList.toggle('with--sidebar')"></div>
