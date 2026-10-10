@@ -71,9 +71,13 @@ try {
     $journey_guide = array();
     foreach ($db_data as $line) {
         $journey_unit_id = $line['name'];
-        $journey_unit_name = $full_dict_units[$journey_unit_id]['name']?:$journey_unit_id;
+        $journey_unit_name = isset($full_dict_units[$journey_unit_id]['name'])
+            ? $full_dict_units[$journey_unit_id]['name']
+            : $journey_unit_id;
         $unit_id = $line['unit_id'];
-        $unit_name = $full_dict_units[$unit_id]['name'];
+        $unit_name = isset($full_dict_units[$unit_id]['name'])
+            ? $full_dict_units[$unit_id]['name']
+            : $unit_id;
         $star_gear_relic = $line['star_gear_relic'];
         if (!isset($journey_guide[$journey_unit_name])) {
             $journey_guide[$journey_unit_name] = array();
