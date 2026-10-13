@@ -5,11 +5,6 @@ const summaryFields = document.querySelector("#summary-fields");
 const structure = document.querySelector("#structure");
 const errorOutput = document.querySelector("#error");
 
-const OWNER_FIELDS = [
-  "characterId", "character_id", "unitId", "unit_id",
-  "character", "owner", "assignedTo", "assigned_to",
-];
-
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -21,13 +16,14 @@ function firstArray(object, keys) {
   return null;
 }
 
-function hasOwnerReference(mod) {
-  return OWNER_FIELDS.some((key) => {
-    const value = mod?.[key];
-    if (typeof value === "string") return value.trim().length > 0;
-    if (typeof value === "number") return value !== 0;
-    return isObject(value) && Object.keys(value).length > 0;
-  });
+function countBy(items, getKey) {
+  const counts = {};
+  for (const item of items) {
+    const key = getKey(item);
+    const label = key === null || key === undefined || key === "" ? "(empty)" : String(key);
+    counts[label] = (counts[label] || 0) + 1;
+  }
+  return counts;
 }
 
 function addField(label, value) {
@@ -54,37 +50,67 @@ function inspectProgressFile(data, file) {
 
   const mods = modsEntry.value;
   const validMods = mods.filter(isObject);
-  const ownerCount = validMods.filter(hasOwnerReference).length;
+  const characters = firstArray(profile, ["characters", "roster", "units", "rosterUnit"]);
   const selectedCharacters = firstArray(profile, ["selectedCharacters", "selected_characters"]);
   const assignments = firstArray(profile, ["modAssignments", "mod_assignments"]);
-  const roster = firstArray(profile, ["roster", "characters", "units", "rosterUnit"]);
-  const profileName = profile.name ?? profile.profileName ?? profile.playerName ?? profile.allyCode ?? "(not present)";
+  const validCharacters = characters ? characters.value.filter(isObject) : [];
+  const withCharacterID = validMods.filter((mod) =>
+    typeof mod.characterID === "string" && mod.characterID.trim() !== ""
+  ).length;
+  const withoutCharacterID = validMods.filter((mod) =>
+    mod.characterID === undefined || mod.characterID === null || String(mod.characterID).trim() === ""
+  ).length;
+  const profileName = profile.playerName ?? profile.name ?? profile.profileName ?? "(not present)";
 
   summaryFields.replaceChildren();
   addField("File", file.name);
   addField("Size", (file.size / 1024).toFixed(1) + " KiB");
-  addField("Profile", profileName);
+  addField("Player profile", profileName);
   addField("Profiles in file", profiles.length);
+  addField("Character entries", characters ? characters.value.length : "not found");
+  addField("Character entries that are objects", validCharacters.length);
   addField("Mods in first profile", mods.length);
   addField("Mod entries that are objects", validMods.length);
-  addField("Mods with a recognizable owner/character reference", ownerCount);
+  addField('Mods with non-empty "characterID"', withCharacterID);
+  addField('Mods with missing/empty "characterID"', withoutCharacterID);
   addField("Selected-character entries", selectedCharacters ? selectedCharacters.value.length : "not found as an array");
   addField("Mod-assignment entries", assignments ? assignments.value.length : "not found as an array");
-  addField("Possible roster array", roster ? roster.key + " (" + roster.value.length + " entries)" : "not found");
 
   const sampleMod = validMods[0] ?? null;
+  const sampleCharacter = validCharacters[0] ?? null;
+  const characterIDCounts = countBy(validMods, (mod) => mod.characterID);
+  const selectedSample = selectedCharacters?.value?.[0];
+  const assignmentSample = assignments?.value?.[0];
+
   structure.textContent = JSON.stringify({
     topLevelKeys: Object.keys(data),
     profileKeys: Object.keys(profile),
+    charactersArray: characters?.key ?? null,
+    firstCharacterKeys: sampleCharacter ? Object.keys(sampleCharacter) : [],
     modsArray: modsEntry.key,
     firstModKeys: sampleMod ? Object.keys(sampleMod) : [],
+    modDistribution: {
+      bySlot: countBy(validMods, (mod) => mod.slot),
+      bySet: countBy(validMods, (mod) => mod.set),
+      byPips: countBy(validMods, (mod) => mod.pips),
+      byLevel: countBy(validMods, (mod) => mod.level),
+      characterIDPresentVsEmpty: {
+        nonEmpty: withCharacterID,
+        emptyOrMissing: withoutCharacterID,
+      },
+      distinctCharacterIDCount: Object.keys(characterIDCounts).filter((key) => key !== "(empty)").length,
+    },
     selectedCharactersArray: selectedCharacters?.key ?? null,
+    selectedCharacterEntryType: selectedSample === undefined ? null : Array.isArray(selectedSample) ? "array" : typeof selectedSample,
+    selectedCharacterObjectKeys: isObject(selectedSample) ? Object.keys(selectedSample) : [],
     modAssignmentsArray: assignments?.key ?? null,
-    possibleRosterArray: roster?.key ?? null,
+    modAssignmentEntryType: assignmentSample === undefined ? null : Array.isArray(assignmentSample) ? "array" : typeof assignmentSample,
+    modAssignmentObjectKeys: isObject(assignmentSample) ? Object.keys(assignmentSample) : [],
     notes: [
-      "These counts describe JSON structure; they do not yet prove every mod can be normalized for the solver.",
-      "Owner-reference detection is heuristic, not a definitive equipped/unequipped count.",
-      "The file is read locally and is not uploaded.",
+      "This is a structural inventory only; it does not yet normalize mods for the solver.",
+      'A non-empty "characterID" is reported as a field observation, not yet treated as a confirmed equipped-mod rule.',
+      "The file is parsed locally and is not uploaded.",
+      "Profile name is displayed in the summary but is not copied into the diagnostic structure.",
     ],
   }, null, 2);
   summary.hidden = false;
@@ -107,8 +133,11 @@ fileInput.addEventListener("change", async () => {
   try {
     const raw = await file.text();
     let data;
-    try { data = JSON.parse(raw); }
-    catch { throw new Error("The selected file is not valid JSON."); }
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error("The selected file is not valid JSON.");
+    }
     inspectProgressFile(data, file);
     status.textContent = "File parsed successfully. No optimization has been run.";
   } catch (error) {
