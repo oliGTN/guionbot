@@ -145,20 +145,32 @@ self.onmessage = async ({ data }) => {
     if (data.mode === "batch" && Array.isArray(data.inputs)) {
       const results = [];
       const total = data.inputs.length;
+      const sequentialAllocation = data.sequentialAllocation === true;
+      const usedModIds = new Set();
       for (let index = 0; index < total; index += 1) {
         const item = data.inputs[index];
         self.postMessage({ type: "progress", completed: index, total, heroId: item.heroId });
         // Yield between heroes so the browser can render progress updates.
         await new Promise(resolve => setTimeout(resolve, 0));
         try {
-          const solved = solveHero(highs, item.input);
+          // Python removes each hero's assigned mods from the pool before solving the next.
+          // Keep the original input untouched so candidate counts and current IDs remain inspectable.
+          const solveInput = sequentialAllocation
+            ? { ...item.input, modsAvailable: item.input.modsAvailable.filter(mod => !usedModIds.has(mod.id)) }
+            : item.input;
+          const solved = solveHero(highs, solveInput);
           const chosen = (solved.chosen || []).slice().sort((a, b) => a.slot - b.slot).map(mod => ({
             slot: SLOT_NAMES[mod.slot - 1], id: mod.id, set: mod.set, primary: mod.primary,
             speed: Number(mod.flat?.[5] || 0) + Number(mod.pct?.[57] || 0),
             current: (item.input.currentIds || []).includes(mod.id),
           }));
+          if (sequentialAllocation) {
+            for (const mod of chosen) usedModIds.add(mod.id);
+          }
           results.push({ heroId: item.heroId, status: solved.info?.status, objectiveValue: solved.info?.objectiveValue ?? null,
-            selectedMods: chosen, counts: { candidateMods: solved.info?.n_candidates ?? null, slots: 6 } });
+            selectedMods: chosen, counts: { candidateMods: solved.info?.n_candidates ?? null, slots: 6 },
+            allocationMode: sequentialAllocation ? "sequential" : "independent",
+            modsReservedByEarlierHeroes: sequentialAllocation ? usedModIds.size - chosen.length : 0 });
         } catch (error) {
           results.push({ heroId: item.heroId, error: error instanceof Error ? error.message : String(error) });
         }
