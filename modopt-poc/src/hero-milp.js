@@ -278,9 +278,11 @@ export function buildHeroMilp(input, overrides = {}) {
     });
   }
 
+  const statExpressions = {};
   for (const [mk] of keyKeys) {
     const { terms, constant } = statExpression(mk, { forms, candidates, xs, groups, setBonuses: opts.setBonuses }, number(opts.F0), number(opts.P0));
     const target = targets[mk];
+    statExpressions[mk] = { terms, constant, target, kind: "key" };
     let previous = null;
     BAND_THRESHOLDS.forEach((threshold, band) => {
       const b = P.variable("b_" + mk + "_" + band, { lb: 0, ub: 1, integer: true, objective: BIG });
@@ -293,12 +295,13 @@ export function buildHeroMilp(input, overrides = {}) {
   for (const [mk] of alsoKeys) {
     const { terms, constant } = statExpression(mk, { forms, candidates, xs, groups, setBonuses: opts.setBonuses }, number(opts.F0), number(opts.P0));
     const target = Math.max(targets[mk], 1e-9);
+    statExpressions[mk] = { terms, constant, target: targets[mk], kind: "also" };
     const z = P.variable("z_" + mk, { lb: 0, ub: 1000, integer: false, objective: 1 });
     const row = Object.fromEntries(Object.entries(terms).map(([name, v]) => [name, -v * 1000 / target]));
     row[z] = 1;
     P.row("also_progress_" + mk, row, -Infinity, constant * 1000 / target);
   }
-  return { lp: P.toLp(), candidates, variableNames: xs, objective: P.objective };
+  return { lp: P.toLp(), candidates, variableNames: xs, objective: P.objective, statExpressions };
 }
 
 function solveOnce(highs, input, lock, F0, P0, strict) {
@@ -337,6 +340,21 @@ function solveOnce(highs, input, lock, F0, P0, strict) {
   for (const key of Object.keys(objectiveBreakdown.statBands)) {
     if (Math.abs(objectiveBreakdown.statBands[key]) < 1e-8) delete objectiveBreakdown.statBands[key];
   }
+  const statDiagnostics = {};
+  for (const [mk, expr] of Object.entries(model.statExpressions)) {
+    let value = expr.constant;
+    for (const [name, coefficient] of Object.entries(expr.terms)) {
+      value += coefficient * number(result.Columns[name]?.Primal);
+    }
+    const ratio = expr.target ? value / expr.target : null;
+    statDiagnostics[mk] = {
+      value: Number(value.toFixed(4)),
+      target: expr.target,
+      ratio: ratio === null ? null : Number(ratio.toFixed(6)),
+      bandsSatisfied: ratio === null ? 0 : BAND_THRESHOLDS.filter(threshold => ratio >= threshold).length,
+      kind: expr.kind,
+    };
+  }
   const referenceIds = new Set(input.referenceMods || []);
   const referenceCandidates = model.candidates.filter(mod => referenceIds.has(mod.id)).map(mod => mod.id);
   return { chosen, info: {
@@ -345,6 +363,7 @@ function solveOnce(highs, input, lock, F0, P0, strict) {
     objectiveValue: result.ObjectiveValue,
     objectiveBreakdown,
     activeStatBands: Object.keys(activeStatBands),
+    statDiagnostics,
     referenceCandidateCount: referenceCandidates.length,
     referenceCandidates,
     referenceMods: [...referenceIds],
