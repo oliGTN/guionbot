@@ -144,7 +144,12 @@ self.onmessage = async ({ data }) => {
 
     if (data.mode === "batch" && Array.isArray(data.inputs)) {
       const results = [];
-      for (const item of data.inputs) {
+      const total = data.inputs.length;
+      for (let index = 0; index < total; index += 1) {
+        const item = data.inputs[index];
+        self.postMessage({ type: "progress", completed: index, total, heroId: item.heroId });
+        // Yield between heroes so the browser can render progress updates.
+        await new Promise(resolve => setTimeout(resolve, 0));
         try {
           const solved = solveHero(highs, item.input);
           const chosen = (solved.chosen || []).slice().sort((a, b) => a.slot - b.slot).map(mod => ({
@@ -157,6 +162,7 @@ self.onmessage = async ({ data }) => {
         } catch (error) {
           results.push({ heroId: item.heroId, error: error instanceof Error ? error.message : String(error) });
         }
+        self.postMessage({ type: "progress", completed: index + 1, total, heroId: item.heroId });
       }
       self.postMessage({ mode: "batch", results, timingsMs: { initialization: Number((solverReady - started).toFixed(2)), total: Number((performance.now() - started).toFixed(2)) }, note: "Browser-side batch results; compare against reference Python output before treating them as parity-validated." });
       return;
