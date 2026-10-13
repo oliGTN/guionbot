@@ -224,6 +224,7 @@ export function prepareHeroInput(progress, gameData, keystats, heroId, options =
     heroId, base, modsAvailable, currentIds, keyStats, also, setBonuses, combos,
     lockedPrimary: primaryLocks(ksHero, Number(options.primaryLock ?? 75)),
     strict: Boolean(options.strict ?? false),
+    referenceMods: Array.isArray(options.referenceMods) ? options.referenceMods : [],
     timeLimit: Number(options.timeLimit || 8),
     keepBonus: 150,
     setReward: 5000,
