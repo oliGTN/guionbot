@@ -172,7 +172,18 @@ function combosFromKeystats(ksHero, setBonuses) {
   }).filter(combo => Object.keys(combo.groups).length);
 }
 
-function primaryLocks(ksHero, threshold = 75) {
+function primaryLocks(ksHero, threshold = 75, referenceLocks = null) {
+  // When a Python reference is supplied, prefer its effective locks over
+  // re-deriving them from keystats and a presumed threshold.
+  if (referenceLocks && typeof referenceLocks === "object" && !Array.isArray(referenceLocks)) {
+    const locks = {};
+    for (const [slotText, label] of Object.entries(referenceLocks)) {
+      const slot = SLOT_ID[cleanKey(slotText)] ?? Number(slotText);
+      const sid = statId(label);
+      if ([2, 4, 5, 6].includes(slot) && sid) locks[slot] = sid;
+    }
+    return locks;
+  }
   // Match swgoh_modopt.py's --primary-lock default (75% of top-K1).
   const locks = {};
   for (const [slotText, primary] of Object.entries(ksHero?.primaries || {})) {
@@ -222,7 +233,7 @@ export function prepareHeroInput(progress, gameData, keystats, heroId, options =
   }
   return {
     heroId, base, modsAvailable, currentIds, keyStats, also, setBonuses, combos,
-    lockedPrimary: primaryLocks(ksHero, Number(options.primaryLock ?? 75)),
+    lockedPrimary: primaryLocks(ksHero, Number(options.primaryLock ?? 75), options.referencePrimaryLocks),
     strict: Boolean(options.strict ?? false),
     referenceMods: Array.isArray(options.referenceMods) ? options.referenceMods : [],
     timeLimit: Number(options.timeLimit || 8),
