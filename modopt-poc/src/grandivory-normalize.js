@@ -190,7 +190,7 @@ export function prepareHeroInput(progress, gameData, keystats, heroId, options =
     }
   }
   const allMods = profile.mods.map(normalizeMod);
-  const modsAvailable = allMods.filter(m => m.level >= 15 && m.pips >= 5 && (!options.lockUnselected || !m.owner || (profile.selectedCharacters || []).some(c => c.id === m.owner)));
+  const modsAvailable = allMods.filter(m => m.level >= 15 && (!options.lockUnselected || !m.owner || (profile.selectedCharacters || []).some(c => c.id === m.owner)));
   const currentIds = allMods.filter(m => m.owner === heroId).map(m => m.id);
   const setBonuses = normalizeSetBonuses(gameData);
   const targetCombos = comboFromTarget(selected.target, setBonuses);
@@ -211,7 +211,7 @@ export function prepareHeroInput(progress, gameData, keystats, heroId, options =
   return {
     heroId, base, modsAvailable, currentIds, keyStats, also, setBonuses, combos,
     lockedPrimary: primaryLocks(selected.target),
-    strict: Boolean(selected.target.useOnlyFullSets),
+    strict: Boolean(options.strict ?? false),
     timeLimit: Number(options.timeLimit || 8),
     keepBonus: 150,
     setReward: 5000,
