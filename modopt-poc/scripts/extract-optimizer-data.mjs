@@ -155,7 +155,16 @@ for (const [id, unit] of Object.entries(statsRaw.units)) {
   units[id] = {
     players: unit.players ?? null,
     stats: { speed: { median: unit.stats?.speed?.median ?? null } },
-    mod_stats: { speed: { median: unit.mod_stats?.speed?.median ?? null } },
+    mod_stats: {
+      speed: {
+        median: unit.mod_stats?.speed?.median ?? null,
+        mean: unit.mod_stats?.speed?.mean ?? null,
+      },
+    },
+    secondaries: {
+      speed: { rolls_mean: unit.secondaries?.speed?.rolls_mean ?? null },
+    },
+    relic: { mean: unit.relic?.mean ?? null },
   };
 }
 const stats = { _meta: statsRaw._meta ?? null, units };
