@@ -110,7 +110,7 @@ progress JSON plus `GameData.json`, `keystats.json`, and
 normalizer in `src/grandivory-normalize.js` maps Grandivory mod fields to the
 MILP's numeric stat IDs, maps set IDs, reads set bonuses from
 `GameData.statModSet`, converts keystats targets and the selected character's
-primary/set restrictions, and filters out mods below level 15 or five pips.
+primary/set restrictions, and filters out mods below level 15 (matching the Python optimizer; lower-dot mods are not automatically excluded).
 The page then can run the existing per-hero MILP in a Web Worker.
 
 This remains a **prototype, not a trusted optimizer**. In particular:
