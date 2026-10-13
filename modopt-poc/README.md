@@ -179,9 +179,10 @@ npm run extract-data
 ```
 
 The script's default paths match the local layout:
-`../.. /warstats/GameData.json`, `../.. /DATA/keystats.json`, and writes
-`src/optimizer-data.generated.js`. (There is no space in the actual paths;
-they resolve relative to the `modopt-poc` working directory.) If your files
+`../../warstats/GameData.json`, `../../DATA/keystats.json`, and
+`../../DATA/stats_v2_top100.json`; it writes
+`src/optimizer-data.generated.js`. These paths resolve relative to the
+`modopt-poc` working directory. If your files
 are elsewhere, pass explicit paths:
 
 ```sh
