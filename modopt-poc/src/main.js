@@ -577,7 +577,7 @@ prepareHeroButton?.addEventListener("click", () => {
     const gameData = loadedData.get("gamedata-file")?.data;
     const keystats = loadedData.get("keystats-file")?.data;
     if (!progress || !gameData || !keystats) throw new Error("Select the progress file, GameData.json, and keystats.json first.");
-    preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value, { strict: pythonStrictForHero(heroSelect.value), comboName: pythonComboForHero(heroSelect.value), referenceMods: pythonModIdsForHero(heroSelect.value) });
+    preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value, { strict: pythonStrictForHero(heroSelect.value), comboName: pythonComboForHero(heroSelect.value), referenceMods: pythonModIdsForHero(heroSelect.value), referencePrimaryLocks: pythonPrimaryLocksForHero(heroSelect.value) });
     const preparedSummary = summarizePreparedHero(preparedHeroInput);
     const populationUnit = loadedData.get("stats-file")?.data?.units?.[heroSelect.value];
     preparedSummary.populationReference = populationUnit ? {
@@ -699,6 +699,11 @@ function pythonModIdsForHero(heroId) {
   return Object.values(mods).filter(id => typeof id === "string" && id.length > 0);
 }
 
+function pythonPrimaryLocksForHero(heroId) {
+  const locks = pythonReferenceRowForHero(heroId)?.solver?.primary_lock;
+  return locks && typeof locks === "object" && !Array.isArray(locks) ? locks : null;
+}
+
 function slotMap(row) {
   const mods = row?.selectedMods ?? row?.selected_mods ?? row?.chosen ?? row?.mods;
   if (Array.isArray(mods)) return new Map(mods.map(mod => [String(mod.slot ?? ""), String(mod.id ?? mod.mod_uid ?? mod.modId ?? "")]));
@@ -774,7 +779,7 @@ batchButton?.addEventListener("click", () => {
   const preparationErrors = [];
   for (const character of selected) {
     try {
-      inputs.push({ heroId: character.id, input: prepareHeroInput(progress, gameData, keystats, character.id, { strict: pythonStrictForHero(character.id), comboName: pythonComboForHero(character.id), referenceMods: pythonModIdsForHero(character.id) }) });
+      inputs.push({ heroId: character.id, input: prepareHeroInput(progress, gameData, keystats, character.id, { strict: pythonStrictForHero(character.id), comboName: pythonComboForHero(character.id), referenceMods: pythonModIdsForHero(character.id), referencePrimaryLocks: pythonPrimaryLocksForHero(character.id) }) });
     } catch (error) {
       preparationErrors.push({ heroId: character.id, error: error instanceof Error ? error.message : String(error) });
     }
