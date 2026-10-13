@@ -550,7 +550,7 @@ prepareHeroButton?.addEventListener("click", () => {
     const gameData = loadedData.get("gamedata-file")?.data;
     const keystats = loadedData.get("keystats-file")?.data;
     if (!progress || !gameData || !keystats) throw new Error("Select the progress file, GameData.json, and keystats.json first.");
-    preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value, { lockUnselected: true });
+    preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value);
     optimizerOutput.textContent = JSON.stringify(summarizePreparedHero(preparedHeroInput), null, 2);
     optimizerStatus.textContent = "Hero normalized. Review counts and stat targets, then run the MILP preview.";
     solveHeroButton.disabled = false;
