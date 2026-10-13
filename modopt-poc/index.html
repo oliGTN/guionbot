@@ -45,6 +45,8 @@
         <button id="solve-hero" type="button" disabled>Run single-hero MILP</button>
         <h3>Python parity test</h3>
         <p>Run a batch of heroes in one worker and optionally compare each assignment with reference results exported by the Python optimizer. The reference file is read locally only.</p>
+        <label for="batch-hero-id">Only solve this hero ID (optional)</label>
+        <input id="batch-hero-id" type="text" placeholder="e.g. GRANDMASTERLUKE or 4LOM" />
         <label for="batch-limit">Maximum heroes (0 = all available)</label>
         <input id="batch-limit" type="number" min="0" step="1" value="10" />
         <button id="run-parity-batch" type="button" disabled>Run batch parity test</button>
