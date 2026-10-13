@@ -305,7 +305,16 @@ function solveOnce(highs, input, lock, F0, P0, strict) {
   if (chosen.length !== 6 || new Set(chosen.map(m => Number(m.slot))).size !== 6) {
     return { chosen: null, info: { status: result.Status, message: "Solver result did not select exactly one mod per slot" } };
   }
-  return { chosen, info: { status: result.Status, n_candidates: model.candidates.length, objectiveValue: result.ObjectiveValue } };
+  const referenceIds = new Set(input.referenceMods || []);
+  const referenceCandidates = model.candidates.filter(mod => referenceIds.has(mod.id)).map(mod => mod.id);
+  return { chosen, info: {
+    status: result.Status,
+    n_candidates: model.candidates.length,
+    objectiveValue: result.ObjectiveValue,
+    referenceCandidateCount: referenceCandidates.length,
+    referenceCandidates,
+    referenceMods: [...referenceIds],
+  } };
 }
 
 /** Runs the original three-pass health linearization and primary-lock fallback. */
