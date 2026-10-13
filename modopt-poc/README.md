@@ -159,3 +159,41 @@ hero still builds and solves its own MILP. Start with a small batch and inspect
 the report for preparation errors, failed solves, and reference-format issues.
 An assignment match is a useful regression signal, not a substitute for exact
 in-game stat evaluation or multi-hero inventory-allocation validation.
+
+
+## One-time extraction of optimizer reference data
+
+The browser no longer needs the three large reference JSON files selected every
+time. The app imports `src/optimizer-data.generated.js`, a compact generated
+module containing only:
+
+- `GameData.statModSet`, including the exact set-bonus records used by the normalizer;
+- per-hero `key_stats`, `also`, and set-combo data from `keystats.json`;
+- per-unit player counts and speed medians from `stats_v2_top100.json`.
+
+From the `modopt-poc` directory on the GuionBot checkout, run this once after
+pulling the branch:
+
+```sh
+npm run extract-data
+```
+
+The script's default paths match the local layout:
+`../.. /warstats/GameData.json`, `../.. /DATA/keystats.json`, and writes
+`src/optimizer-data.generated.js`. (There is no space in the actual paths;
+they resolve relative to the `modopt-poc` working directory.) If your files
+are elsewhere, pass explicit paths:
+
+```sh
+npm run extract-data -- /path/to/GameData.json /path/to/keystats.json /path/to/stats_v2_top100.json
+```
+
+Then restart/reload Vite. From then on, only the Grandivory progress export
+needs to be selected for each run. The three reference-file pickers are under
+an optional override section for testing alternate snapshots.
+
+The generated module is derived data, not a copy of the source files. Re-run
+the extraction command when you update the source JSONs. The source JSONs are
+read locally and are not uploaded by the app. Because the generated module is
+expected to be committed for other checkouts to use the same snapshot, review
+its size and commit it only if that is appropriate for your repository.
