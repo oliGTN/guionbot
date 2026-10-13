@@ -722,8 +722,15 @@ batchButton?.addEventListener("click", () => {
   const available = (profile?.selectedCharacters || [])
     .filter(c => c?.id && profile.characters?.[c.id] && keystats.heroes?.[c.id]?.key_stats?.length)
     .sort((a, b) => a.id.localeCompare(b.id));
+  const requestedHeroId = String(batchHeroIdInput?.value || "").trim();
+  const heroPool = requestedHeroId ? available.filter(c => c.id.toUpperCase() === requestedHeroId.toUpperCase()) : available;
+  if (requestedHeroId && heroPool.length === 0) {
+    parityStatus.textContent = "Hero " + requestedHeroId + " is not eligible in the loaded progress/reference data. Check the ID and make sure the hero is selected in the Grandivory export.";
+    parityOutput.textContent = "";
+    return;
+  }
   const requestedLimit = Math.max(0, Number.parseInt(batchLimitInput?.value || "0", 10) || 0);
-  const selected = requestedLimit > 0 ? available.slice(0, requestedLimit) : available;
+  const selected = requestedLimit > 0 ? heroPool.slice(0, requestedLimit) : heroPool;
   const inputs = [];
   const preparationErrors = [];
   for (const character of selected) {
