@@ -260,7 +260,7 @@ fileInput.addEventListener("change", async () => {
     inspectProgressFile(data, file);
     loadedData.set("progress-file", { fileName: file.name, data });
     refreshHeroOptions();
-refreshOptimizerDataSummary();
+    refreshOptimizerDataSummary();
     refreshParityAvailability();
     status.textContent = "File parsed successfully. No optimization has been run.";
   } catch (error) {
