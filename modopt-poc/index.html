@@ -9,10 +9,9 @@
     <main>
       <h1>Browser mod optimizer — data loading</h1>
       <p>
-        Select the Grandivory progress export and the three local data files used
-        by the Python optimizer. Files are read in this browser tab only; they
-        are not uploaded. This step validates and inspects the data sources but
-        does not run optimization yet.
+        Select your changing Grandivory progress export. The reference data from
+        GameData.json, keystats.json and stats_v2_top100.json is loaded from a
+        generated JavaScript module after one-time extraction.
       </p>
 
       <section>
@@ -21,16 +20,20 @@
         <input id="progress-file" type="file" accept=".json,application/json" />
         <p id="file-status" role="status" aria-live="polite">Choose a progress file to inspect it.</p>
 
-        <label for="gamedata-file">GameData.json</label>
-        <input id="gamedata-file" type="file" accept=".json,application/json" />
+        <details>
+          <summary>Optional: override embedded reference data</summary>
+          <p>Normally leave these empty. They are available for testing a different data snapshot.</p>
+          <label for="gamedata-file">GameData.json override</label>
+          <input id="gamedata-file" type="file" accept=".json,application/json" />
 
-        <label for="keystats-file">keystats.json</label>
-        <input id="keystats-file" type="file" accept=".json,application/json" />
+          <label for="keystats-file">keystats.json override</label>
+          <input id="keystats-file" type="file" accept=".json,application/json" />
 
-        <label for="stats-file">stats_v2_top100.json</label>
-        <input id="stats-file" type="file" accept=".json,application/json" />
+          <label for="stats-file">stats_v2_top100.json override</label>
+          <input id="stats-file" type="file" accept=".json,application/json" />
+        </details>
 
-        <p id="data-status" role="status" aria-live="polite">Select the three optimizer data files to inspect them.</p>
+        <p id="data-status" role="status" aria-live="polite">Reference data loads from the embedded module; progress file is still required.</p>
       </section>
 
       <section id="optimizer-controls">
