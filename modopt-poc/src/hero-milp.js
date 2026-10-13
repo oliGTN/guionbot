@@ -226,6 +226,18 @@ export function buildHeroMilp(input, overrides = {}) {
     candidates.forEach((m, i) => { if (Number(m.slot) === slot) terms[xs[i]] = 1; });
     P.row("one_mod_slot_" + slot, terms, 1, 1);
   }
+  // Diagnostic mode: require the exact Python reference mods.
+  if (opts.forceReferenceMods) {
+    const expectedIds = [...new Set(opts.referenceMods || [])];
+    const missing = expectedIds.filter(id => !candidates.some(mod => mod.id === id));
+    if (missing.length) {
+      throw new Error("Reference-forced diagnostic cannot run: expected mod(s) missing from candidate pool: " + missing.join(", "));
+    }
+    for (const id of expectedIds) {
+      const index = candidates.findIndex(mod => mod.id === id);
+      P.row("force_reference_mod_" + index, { [xs[index]]: 1 }, 1, 1);
+    }
+  }
 
   const groups = new Map();
   for (const [sidText, bonus] of Object.entries(opts.setBonuses)) {
