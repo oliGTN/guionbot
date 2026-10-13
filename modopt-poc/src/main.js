@@ -577,7 +577,7 @@ prepareHeroButton?.addEventListener("click", () => {
     const gameData = loadedData.get("gamedata-file")?.data;
     const keystats = loadedData.get("keystats-file")?.data;
     if (!progress || !gameData || !keystats) throw new Error("Select the progress file, GameData.json, and keystats.json first.");
-    preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value, { strict: pythonStrictForHero(heroSelect.value) });
+    preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value, { strict: pythonStrictForHero(heroSelect.value), comboName: pythonComboForHero(heroSelect.value) });
     const preparedSummary = summarizePreparedHero(preparedHeroInput);
     const populationUnit = loadedData.get("stats-file")?.data?.units?.[heroSelect.value];
     preparedSummary.populationReference = populationUnit ? {
@@ -675,13 +675,21 @@ function referenceResultsByHero(reference) {
   return new Map();
 }
 
+function pythonReferenceRowForHero(heroId) {
+  const references = referenceResultsByHero(pythonReference);
+  const target = String(heroId || "").toUpperCase();
+  return [...references.entries()].find(([id]) => String(id).toUpperCase() === target)?.[1] ?? null;
+}
+
 function pythonStrictForHero(heroId) {
   // The Python reference marks heroes solved with an imposed keystats set combo
   // as solver.mode === "sets imposés". Reproduce that mode for parity runs.
-  const references = referenceResultsByHero(pythonReference);
-  const target = String(heroId || "").toUpperCase();
-  const row = [...references.entries()].find(([id]) => String(id).toUpperCase() === target)?.[1];
-  return row?.solver?.mode === "sets imposés";
+  return pythonReferenceRowForHero(heroId)?.solver?.mode === "sets imposés";
+}
+
+function pythonComboForHero(heroId) {
+  // The Python reference records the exact combo used by its imposed-set solve.
+  return pythonReferenceRowForHero(heroId)?.solver?.combo ?? null;
 }
 
 function slotMap(row) {
@@ -759,7 +767,7 @@ batchButton?.addEventListener("click", () => {
   const preparationErrors = [];
   for (const character of selected) {
     try {
-      inputs.push({ heroId: character.id, input: prepareHeroInput(progress, gameData, keystats, character.id, { strict: pythonStrictForHero(character.id) }) });
+      inputs.push({ heroId: character.id, input: prepareHeroInput(progress, gameData, keystats, character.id, { strict: pythonStrictForHero(character.id), comboName: pythonComboForHero(character.id) }) });
     } catch (error) {
       preparationErrors.push({ heroId: character.id, error: error instanceof Error ? error.message : String(error) });
     }
