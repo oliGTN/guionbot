@@ -723,10 +723,20 @@ batchButton?.addEventListener("click", () => {
   const keystats = loadedData.get("keystats-file")?.data;
   if (!progress || !gameData || !keystats) return;
   const profile = progress.profiles?.[0];
-  // Grandivory selectedCharacters preserves the optimizer priority order. Do not sort by ID:
-  // Python assigns mods sequentially in this order, so the order is part of the parity test.
+  // Python determines its own priority order; Grandivory selectedCharacters is not that order.
+  // When a Python plan is loaded, use its plan order for roster-level parity. Otherwise retain
+  // the Grandivory order and explicitly report that this is only an approximate priority order.
   const available = (profile?.selectedCharacters || [])
     .filter(c => c?.id && profile.characters?.[c.id] && keystats.heroes?.[c.id]?.key_stats?.length);
+  const pythonPlan = Array.isArray(pythonReference?.plan) ? pythonReference.plan
+    : Array.isArray(pythonReference?.results) ? pythonReference.results : Array.isArray(pythonReference) ? pythonReference : [];
+  const pythonOrder = new Map(pythonPlan.map((row, index) => [String(row?.base ?? row?.heroId ?? row?.hero_id ?? row?.id ?? "").toUpperCase(), index]).filter(([id]) => id));
+  const hasPythonOrder = available.some(c => pythonOrder.has(c.id.toUpperCase()));
+  if (hasPythonOrder) available.sort((a, b) => {
+    const ai = pythonOrder.has(a.id.toUpperCase()) ? pythonOrder.get(a.id.toUpperCase()) : Number.MAX_SAFE_INTEGER;
+    const bi = pythonOrder.has(b.id.toUpperCase()) ? pythonOrder.get(b.id.toUpperCase()) : Number.MAX_SAFE_INTEGER;
+    return ai - bi;
+  });
   const requestedHeroId = String(batchHeroIdInput?.value || "").trim();
   const heroPool = requestedHeroId ? available.filter(c => c.id.toUpperCase() === requestedHeroId.toUpperCase()) : available;
   if (requestedHeroId && heroPool.length === 0) {
@@ -750,7 +760,7 @@ batchButton?.addEventListener("click", () => {
   solveHeroButton.disabled = true;
   downloadParityButton.disabled = true;
   parityOutput.textContent = "";
-  parityStatus.textContent = "Preparing " + inputs.length + " heroes; running " + (requestedHeroId ? "independent single-hero diagnostic" : "sequential roster-allocation parity batch") + "…";
+  parityStatus.textContent = "Preparing " + inputs.length + " heroes; running " + (requestedHeroId ? "independent single-hero diagnostic" : "sequential roster-allocation batch") + (hasPythonOrder ? " in Python reference order…" : " in Grandivory order (Python priority order unavailable)…");
   activeWorker = new Worker(new URL("./solver-worker.js", import.meta.url), { type: "module" });
   activeWorker.onmessage = ({ data }) => {
     if (data.type === "progress") {
@@ -775,6 +785,7 @@ batchButton?.addEventListener("click", () => {
         heroesPrepared: inputs.length,
         heroesFailedPreparation: preparationErrors.length,
         allocationMode: data.allocationMode || (requestedHeroId ? "independent" : "sequential"),
+        priorityOrder: hasPythonOrder ? "python-reference-plan" : "grandivory-selectedCharacters",
         allocationNote: data.note || null,
         pythonReferenceLoaded: Boolean(pythonReference),
         summary: { results: results.length, compared: comparable, matched, mismatched, noReference, referenceFormatUnrecognized: unrecognized, errors: results.filter(row => row.error || row.comparison === "browser-solve-failed").length },
