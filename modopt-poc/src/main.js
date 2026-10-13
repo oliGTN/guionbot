@@ -345,31 +345,85 @@ function focusedValueShape(value) {
   return { type: value === null ? "null" : typeof value };
 }
 
+function compactExample(value, maxDepth = 3, maxEntries = 12) {
+  if (maxDepth < 0) return "[depth limit]";
+  if (Array.isArray(value)) {
+    return {
+      type: "array",
+      length: value.length,
+      examples: value.slice(0, 3).map(item => compactExample(item, maxDepth - 1, maxEntries)),
+    };
+  }
+  if (isObject(value)) {
+    const entries = Object.entries(value);
+    const result = {};
+    for (const [key, item] of entries.slice(0, maxEntries)) {
+      result[key] = isObject(item) || Array.isArray(item)
+        ? compactExample(item, maxDepth - 1, maxEntries)
+        : item;
+    }
+    if (entries.length > maxEntries) result.__remainingKeys = entries.length - maxEntries;
+    return result;
+  }
+  return value;
+}
+
 function inspectRelevantBranches(definitionId, data) {
   if (!isObject(data)) return {};
   if (definitionId === "gamedata-file") {
     const units = data.units;
     const statMod = data.statMod;
     const statModSet = data.statModSet;
+    const firstUnit = Array.isArray(units) ? units[0] : null;
+    const firstSet = Array.isArray(statModSet) ? statModSet[0] : null;
     return {
       units: focusedValueShape(units),
       statMod: focusedValueShape(statMod),
       statModSet: focusedValueShape(statModSet),
       relicTierDefinition: focusedValueShape(data.relicTierDefinition),
+      examples: {
+        unit: firstUnit ? compactExample(firstUnit, 3, 15) : null,
+        statMod: Array.isArray(statMod) ? compactExample(statMod[0], 3, 15) : null,
+        statModSet: firstSet ? compactExample(firstSet, 4, 10) : null,
+        relicTier: Array.isArray(data.relicTierDefinition) ? compactExample(data.relicTierDefinition[0], 4, 10) : null,
+      },
     };
   }
   if (definitionId === "keystats-file") {
+    const heroes = data.heroes;
+    const firstId = isObject(heroes) ? Object.keys(heroes)[0] : null;
+    const firstHero = firstId ? heroes[firstId] : null;
     return {
       meta: focusedValueShape(data._meta),
-      heroes: focusedValueShape(data.heroes),
-      firstHero: isObject(data.heroes) ? focusedValueShape(data.heroes[Object.keys(data.heroes)[0]]) : null,
+      heroes: focusedValueShape(heroes),
+      firstHero: focusedValueShape(firstHero),
+      examples: firstHero ? {
+        heroId: firstId,
+        key_stats: compactExample(firstHero.key_stats, 4, 10),
+        also: compactExample(firstHero.also, 4, 10),
+        sets: compactExample(firstHero.sets, 4, 10),
+        primaries: compactExample(firstHero.primaries, 4, 10),
+      } : null,
     };
   }
   if (definitionId === "stats-file") {
+    const units = data.units;
+    const firstId = isObject(units) ? Object.keys(units)[0] : null;
+    const firstUnit = firstId ? units[firstId] : null;
     return {
       meta: focusedValueShape(data._meta),
-      units: focusedValueShape(data.units),
-      firstUnit: isObject(data.units) ? focusedValueShape(data.units[Object.keys(data.units)[0]]) : null,
+      units: focusedValueShape(units),
+      firstUnit: focusedValueShape(firstUnit),
+      examples: firstUnit ? {
+        unitId: firstId,
+        stats: compactExample(firstUnit.stats, 4, 10),
+        mod_stats: compactExample(firstUnit.mod_stats, 4, 10),
+        set_bonus_stats: compactExample(firstUnit.set_bonus_stats, 4, 10),
+        mod_raw: compactExample(firstUnit.mod_raw, 4, 10),
+        sets: compactExample(firstUnit.sets, 4, 10),
+        primaries: compactExample(firstUnit.primaries, 4, 10),
+        secondaries: compactExample(firstUnit.secondaries, 4, 10),
+      } : null,
     };
   }
   return {};
