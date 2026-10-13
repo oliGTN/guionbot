@@ -169,6 +169,12 @@ self.onmessage = async ({ data }) => {
           }
           results.push({ heroId: item.heroId, status: solved.info?.status, objectiveValue: solved.info?.objectiveValue ?? null,
             selectedMods: chosen, counts: { candidateMods: solved.info?.n_candidates ?? null, slots: 6 },
+            referenceDiagnostics: {
+              expectedModIds: solved.info?.referenceMods ?? item.input.referenceMods ?? [],
+              expectedModsInCandidatePool: solved.info?.referenceCandidates ?? [],
+              expectedModsInCandidatePoolCount: solved.info?.referenceCandidateCount ?? 0,
+              expectedModsSelected: chosen.filter(mod => (solved.info?.referenceMods ?? item.input.referenceMods ?? []).includes(mod.id)).map(mod => mod.id),
+            },
             allocationMode: sequentialAllocation ? "sequential" : "independent",
             modsReservedByEarlierHeroes: sequentialAllocation ? usedModIds.size - chosen.length : 0 });
         } catch (error) {
