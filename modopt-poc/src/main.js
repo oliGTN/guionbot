@@ -655,6 +655,11 @@ function slotMap(row) {
 
 function compareWithReference(results, reference) {
   const refs = referenceResultsByHero(reference);
+  // A single Python result can omit heroId when the batch contains one hero.
+  if (refs.size === 0 && results.length === 1 && reference && typeof reference === "object" &&
+      (reference.selectedMods || reference.selected_mods || reference.chosen || reference.mods)) {
+    refs.set(String(results[0].heroId), reference);
+  }
   return results.map(result => {
     const ref = refs.get(String(result.heroId));
     if (!ref) return { ...result, comparison: "no-reference-for-hero" };
