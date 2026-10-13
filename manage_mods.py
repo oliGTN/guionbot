@@ -537,6 +537,44 @@ async def get_mod_config(conf_name, txt_allyCode):
 
     return 0, "", mod_allocations
 
+async def apply_codex_allocations(
+        codex_content, 
+        txt_allyCode, 
+        is_simu, 
+        interaction=None, 
+        initialdata=None):
+
+    codex_plan = json.loads(codex_content)
+
+    #basic check of JSON format
+    if not "plan" in codex_plan:
+        return 1, "Le fichier n'est pas au bon format, il faut un fichier issu de *SWGOH Codex*", {}
+
+    # mod_allocation element - dict
+    # {'unit_id': "PRINCESSLEIA",
+    #  'mods': [{'id': '9Ax0P8ybxxxxx', 'slot': 4, 'rarity': 5},
+    #           {'id': '8Phsg65trTGxxxx', ...}
+    #          ]
+    # }
+    mod_allocations = []
+    for plan_item in codex_plan["plan"]:
+        unit_id = plan_item["base"]
+        mod_allocation = {"unit_id": unit_id, "mods": []}
+
+        for mod_shape in plan_item["mods"]:
+            mod_id = plan_item["mods"][mod_shape]
+            if not mod_shape in dict_slot_by_shape:
+                return 1, "Le mod "+mod_id+" est de forme inconnue : "+str(mod_shape)
+
+            mod_slot = dict_slot_by_shape[mod_shape]
+            mod_allocation["mods"].append({"id": mod_id,
+                                           "slot": mod_slot})
+        mod_allocations.append(mod_allocation)
+
+    #Apply modifications
+    return await apply_mod_allocations(mod_allocations, txt_allyCode, is_simu, 
+                                       interaction=interaction, initialdata=initialdata)
+
 async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu, 
                                          interaction=None, initialdata=None):
     modopti_progress = json.loads(modopti_content)
@@ -583,6 +621,13 @@ async def apply_modoptimizer_allocations(modopti_content, txt_allyCode, is_simu,
         mod_allocation = {"unit_id": unit_id, "mods": []}
 
         for mod_id in mod_assignment["assignedMods"]:
+            if not mod_id in player_mods:
+                return 1, "Le mod "+mod_id+" demandé pour "+unit_id+" est introuvable parmi les mods du profile dans le fichier"
+
+            mod_shape = player_mods[mod_id]["slot"]
+            if not mod_shape in dict_slot_by_shape:
+                return 1, "Le mod "+mod_id+" est de forme inconnue : "+str(mod_shape)
+
             mod_slot = dict_slot_by_shape[player_mods[mod_id]["slot"]]
             mod_rarity = player_mods[mod_id]["pips"]
             mod_allocation["mods"].append({"id": mod_id,
