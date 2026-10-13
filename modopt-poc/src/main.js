@@ -417,7 +417,11 @@ async function refreshOptimizerDataSummary() {
     dataStructure.textContent = JSON.stringify({
       filesSelected: reports.length,
       filesExpected: dataFileInputs.length,
-      files: reports.map(({ label, root }) => ({ label, root })),
+      files: reports.map(({ label, root, relevantBranches }) => ({
+        label,
+        root,
+        relevantBranches,
+      })),
       note: "This is schema discovery only. The files have not yet been mapped to the optimizer's internal stat IDs or loaded into the MILP.",
     }, null, 2);
     dataSummary.hidden = false;
