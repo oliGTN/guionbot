@@ -661,10 +661,13 @@ referenceFileInput?.addEventListener("change", async () => {
 });
 
 function referenceResultsByHero(reference) {
-  if (Array.isArray(reference)) return new Map(reference.map(row => [String(row.heroId ?? row.hero_id ?? row.unitId ?? row.id ?? ""), row]).filter(([id]) => id));
+  const heroKey = row => String(row?.heroId ?? row?.hero_id ?? row?.unitId ?? row?.id ?? row?.base ?? "");
+  if (Array.isArray(reference)) return new Map(reference.map(row => [heroKey(row), row]).filter(([id]) => id));
   if (Array.isArray(reference?.results)) return referenceResultsByHero(reference.results);
-  if (reference && typeof reference === "object" && (reference.heroId || reference.hero_id || reference.unitId || reference.id)) {
-    return new Map([[String(reference.heroId ?? reference.hero_id ?? reference.unitId ?? reference.id), reference]]);
+  // Python optimizer exports its assignments inside a top-level "plan" array.
+  if (Array.isArray(reference?.plan)) return new Map(reference.plan.map(row => [heroKey(row), row]).filter(([id]) => id));
+  if (reference && typeof reference === "object" && heroKey(reference)) {
+    return new Map([[heroKey(reference), reference]]);
   }
   if (reference && typeof reference === "object") {
     return new Map(Object.entries(reference).filter(([, row]) => row && typeof row === "object"));
