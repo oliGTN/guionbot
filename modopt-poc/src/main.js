@@ -319,6 +319,62 @@ function addDataSummaryField(label, value) {
   dataSummaryFields.append(term, description);
 }
 
+function focusedValueShape(value) {
+  if (Array.isArray(value)) {
+    return {
+      type: "array",
+      length: value.length,
+      sample: value.length ? focusedValueShape(value[0]) : null,
+    };
+  }
+  if (isObject(value)) {
+    const entries = Object.entries(value);
+    const firstNested = entries.find(([, item]) => isObject(item) || Array.isArray(item));
+    return {
+      type: "object",
+      keyCount: entries.length,
+      keys: entries.slice(0, 60).map(([key]) => key),
+      valueTypes: Object.fromEntries(entries.slice(0, 30).map(([key, item]) => [
+        key,
+        item === null ? "null" : Array.isArray(item) ? "array" : typeof item,
+      ])),
+      sampleNestedKey: firstNested?.[0] ?? null,
+      sampleNested: firstNested ? focusedValueShape(firstNested[1]) : null,
+    };
+  }
+  return { type: value === null ? "null" : typeof value };
+}
+
+function inspectRelevantBranches(definitionId, data) {
+  if (!isObject(data)) return {};
+  if (definitionId === "gamedata-file") {
+    const units = data.units;
+    const statMod = data.statMod;
+    const statModSet = data.statModSet;
+    return {
+      units: focusedValueShape(units),
+      statMod: focusedValueShape(statMod),
+      statModSet: focusedValueShape(statModSet),
+      relicTierDefinition: focusedValueShape(data.relicTierDefinition),
+    };
+  }
+  if (definitionId === "keystats-file") {
+    return {
+      meta: focusedValueShape(data._meta),
+      heroes: focusedValueShape(data.heroes),
+      firstHero: isObject(data.heroes) ? focusedValueShape(data.heroes[Object.keys(data.heroes)[0]]) : null,
+    };
+  }
+  if (definitionId === "stats-file") {
+    return {
+      meta: focusedValueShape(data._meta),
+      units: focusedValueShape(data.units),
+      firstUnit: isObject(data.units) ? focusedValueShape(data.units[Object.keys(data.units)[0]]) : null,
+    };
+  }
+  return {};
+}
+
 async function inspectOptimizerDataFile(definition, file) {
   const raw = await file.text();
   let parsed;
@@ -328,12 +384,12 @@ async function inspectOptimizerDataFile(definition, file) {
     throw new Error(definition.label + " is not valid JSON.");
   }
   loadedData.set(definition.id, { fileName: file.name, data: parsed });
-  const description = shallowDescription(parsed);
   return {
     label: definition.label,
     fileName: file.name,
     sizeBytes: file.size,
-    root: description,
+    root: shallowDescription(parsed),
+    relevantBranches: inspectRelevantBranches(definition.id, parsed),
   };
 }
 
