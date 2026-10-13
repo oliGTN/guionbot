@@ -759,7 +759,6 @@ downloadParityButton?.addEventListener("click", () => {
 });
 
 // Keep batch availability synchronized with the existing file-loading flow.
-const originalRefreshOptimizerControls = refreshOptimizerControls;
 function refreshParityAvailability() {
   const ready = ["progress-file", "gamedata-file", "keystats-file"].every(id => loadedData.has(id));
   if (batchButton) batchButton.disabled = !ready;
