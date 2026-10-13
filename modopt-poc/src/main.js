@@ -636,6 +636,7 @@ refreshOptimizerDataSummary();
 // in this browser tab; the downloadable report contains only solver outputs.
 const batchButton = document.querySelector("#run-parity-batch");
 const batchLimitInput = document.querySelector("#batch-limit");
+const batchHeroIdInput = document.querySelector("#batch-hero-id");
 const referenceFileInput = document.querySelector("#reference-file");
 const referenceHeroIdInput = document.querySelector("#reference-hero-id");
 const parityStatus = document.querySelector("#parity-status");
