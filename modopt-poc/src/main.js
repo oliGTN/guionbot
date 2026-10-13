@@ -723,9 +723,10 @@ batchButton?.addEventListener("click", () => {
   const keystats = loadedData.get("keystats-file")?.data;
   if (!progress || !gameData || !keystats) return;
   const profile = progress.profiles?.[0];
+  // Grandivory selectedCharacters preserves the optimizer priority order. Do not sort by ID:
+  // Python assigns mods sequentially in this order, so the order is part of the parity test.
   const available = (profile?.selectedCharacters || [])
-    .filter(c => c?.id && profile.characters?.[c.id] && keystats.heroes?.[c.id]?.key_stats?.length)
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .filter(c => c?.id && profile.characters?.[c.id] && keystats.heroes?.[c.id]?.key_stats?.length);
   const requestedHeroId = String(batchHeroIdInput?.value || "").trim();
   const heroPool = requestedHeroId ? available.filter(c => c.id.toUpperCase() === requestedHeroId.toUpperCase()) : available;
   if (requestedHeroId && heroPool.length === 0) {
@@ -749,7 +750,7 @@ batchButton?.addEventListener("click", () => {
   solveHeroButton.disabled = true;
   downloadParityButton.disabled = true;
   parityOutput.textContent = "";
-  parityStatus.textContent = "Preparing " + inputs.length + " heroes; running browser MILP batch…";
+  parityStatus.textContent = "Preparing " + inputs.length + " heroes; running " + (requestedHeroId ? "independent single-hero diagnostic" : "sequential roster-allocation parity batch") + "…";
   activeWorker = new Worker(new URL("./solver-worker.js", import.meta.url), { type: "module" });
   activeWorker.onmessage = ({ data }) => {
     if (data.type === "progress") {
@@ -797,7 +798,9 @@ batchButton?.addEventListener("click", () => {
     activeWorker.terminate();
     activeWorker = null;
   };
-  activeWorker.postMessage({ type: "run", mode: "batch", inputs });
+  // A named single-hero run remains an independent diagnostic. Full/limited batches
+  // reproduce Python\'s sequential allocation, reserving each chosen mod for that hero.
+  activeWorker.postMessage({ type: "run", mode: "batch", inputs, sequentialAllocation: !requestedHeroId });
 });
 
 downloadParityButton?.addEventListener("click", () => {
