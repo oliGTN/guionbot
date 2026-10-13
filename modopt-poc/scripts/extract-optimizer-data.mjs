@@ -40,92 +40,76 @@ function readJson(filePath, label) {
 // This works with a single file or with byte-split segments that concatenate
 // back into the original JSON document.
 async function extractTopLevelArray(filePaths, targetKey) {
-  let objectDepth = 0;
-  let arrayDepth = 0;
-  let inString = false;
-  let escaped = false;
-  let stringBytes = [];
-  let captureTopString = false;
-  let candidateState = 0; // 1 = awaiting colon, 2 = awaiting array value
+  // Find the literal key in the stream, then parse only its array value.
+  // The GameData segments may each be independent sections, so do not carry
+  // JSON nesting/string state from one segment to the next.
+  const marker = Buffer.from(JSON.stringify(targetKey), "utf8");
+  let tail = Buffer.alloc(0);
+  let found = false;
+  let awaitingArray = false;
   let captureArray = false;
   let captured = [];
-  let targetDepth = 0;
-  let arrayInString = false;
-  let arrayEscaped = false;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
 
   for (const filePath of filePaths) {
     process.stdout.write("Streaming GameData segment: " + filePath + "\n");
+    tail = Buffer.alloc(0);
     for await (const chunk of fs.createReadStream(filePath)) {
-      for (let i = 0; i < chunk.length; i++) {
-        const b = chunk[i];
-        if (captureArray) {
-          captured.push(b);
-          if (arrayInString) {
-            if (arrayEscaped) arrayEscaped = false;
-            else if (b === 0x5c) arrayEscaped = true;
-            else if (b === 0x22) arrayInString = false;
-          } else if (b === 0x22) arrayInString = true;
-          else if (b === 0x5b) targetDepth++;
-          else if (b === 0x5d) {
-            targetDepth--;
-            if (targetDepth === 0) {
-              const parsed = JSON.parse(Buffer.from(captured).toString("utf8"));
-              if (!Array.isArray(parsed)) throw new Error(targetKey + " is not an array.");
-              return parsed;
-            }
+      let i = 0;
+      while (i < chunk.length) {
+        if (!found) {
+          const combined = tail.length ? Buffer.concat([tail, chunk.subarray(i)]) : chunk.subarray(i);
+          const markerIndex = combined.indexOf(marker);
+          if (markerIndex < 0) {
+            const keep = Math.min(marker.length - 1, combined.length);
+            tail = Buffer.from(combined.subarray(combined.length - keep));
+            break;
           }
+          found = true;
+          awaitingArray = true;
+          i += markerIndex - tail.length + marker.length;
+          if (i < 0) i = 0;
+          tail = Buffer.alloc(0);
           continue;
         }
 
-        if (candidateState === 1) {
+        const b = chunk[i++];
+        if (awaitingArray) {
           if (b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d) continue;
-          if (b === 0x3a) { candidateState = 2; continue; }
-          candidateState = 0;
-          // Process this byte normally below.
-        } else if (candidateState === 2) {
-          if (b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d) continue;
-          if (b === 0x5b) {
-            captureArray = true;
-            targetDepth = 1;
-            captured = [b];
-            arrayInString = false;
-            arrayEscaped = false;
-            continue;
+          if (b === 0x3a) continue;
+          if (b !== 0x5b) {
+            throw new Error("Found " + targetKey + " but its value is not an array in " + filePath);
           }
-          candidateState = 0;
-          // Not an array value; continue normal scanning.
+          awaitingArray = false;
+          captureArray = true;
+          depth = 1;
+          captured.push(b);
+          continue;
         }
 
+        if (!captureArray) continue;
+        captured.push(b);
         if (inString) {
-          if (captureTopString) stringBytes.push(b);
           if (escaped) escaped = false;
           else if (b === 0x5c) escaped = true;
-          else if (b === 0x22) {
-            inString = false;
-            if (captureTopString) {
-              const key = Buffer.from(stringBytes).toString("utf8");
-              if (key === targetKey) candidateState = 1;
-              captureTopString = false;
-              stringBytes = [];
-            }
+          else if (b === 0x22) inString = false;
+        } else if (b === 0x22) inString = true;
+        else if (b === 0x5b) depth++;
+        else if (b === 0x5d) {
+          depth--;
+          if (depth === 0) {
+            const parsed = JSON.parse(Buffer.from(captured).toString("utf8"));
+            if (!Array.isArray(parsed)) throw new Error(targetKey + " is not an array.");
+            return parsed;
           }
-          continue;
         }
-
-        if (b === 0x22) {
-          inString = true;
-          // Segments may be split by top-level sections rather than raw byte offsets.\n          // Accept the target key at any object depth; it is unique in GameData.\n          captureTopString = true;
-          stringBytes = [];
-        } else if (b === 0x7b) objectDepth++;
-        else if (b === 0x7d) objectDepth--;
-        else if (b === 0x5b) arrayDepth++;
-        else if (b === 0x5d) arrayDepth--;
       }
     }
   }
-  throw new Error("Could not find top-level array " + targetKey + " in " + filePaths.join(", "));
+  throw new Error("Could not find array " + targetKey + " in " + filePaths.join(", "));
 }
-
 async function loadGameDataSetDefinitions(filePath) {
   const dir = path.dirname(filePath);
   const segments = [1, 2, 3, 4].map(n => path.join(dir, "GameData_segment" + n + ".json"));
