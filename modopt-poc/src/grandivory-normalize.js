@@ -145,23 +145,42 @@ function normalizedKeystats(ksHero) {
   };
 }
 
-function comboFromTarget(target, setBonuses) {
-  const groups = {};
-  for (const [name, countValue] of Object.entries(target?.setRestrictions || {})) {
-    const sid = SET_ID[cleanKey(name)];
-    const count = Number(countValue);
-    if (sid && count > 0 && Number.isFinite(count)) groups[sid] = Math.floor(count);
+function combosFromKeystats(ksHero, setBonuses) {
+  // Match swgoh_modopt.py::accepted_combos: use keystats combos at >=25%,
+  // and fall back to top_combo only when no qualifying combos are present.
+  const sets = ksHero?.sets || {};
+  let raw = (sets.combos || []).filter(c =>
+    Number(c.pct || 0) >= 25 && c.sets && Object.keys(c.sets).length
+  );
+  if (!raw.length && sets.top_combo?.sets && Object.keys(sets.top_combo.sets).length) {
+    raw = [sets.top_combo];
   }
-  if (!Object.keys(groups).length) return null;
-  return [{ name: "Grandivory set restrictions", pct: 100, groups }];
+  return raw.slice(0, 4).map(combo => {
+    const groups = {};
+    for (const [name, countValue] of Object.entries(combo.sets || {})) {
+      const sid = SET_ID[cleanKey(name)];
+      const bonus = sid ? setBonuses[sid] : null;
+      if (!bonus) continue;
+      const count = Math.floor(Number(countValue) / Number(bonus.count));
+      if (count > 0) groups[sid] = count;
+    }
+    return {
+      name: combo.combo || Object.keys(combo.sets || {}).join("+"),
+      pct: combo.pct,
+      groups,
+    };
+  }).filter(combo => Object.keys(combo.groups).length);
 }
 
-function primaryLocks(target) {
+function primaryLocks(ksHero, threshold = 75) {
+  // Match swgoh_modopt.py's --primary-lock default (75% of top-K1).
   const locks = {};
-  for (const [slotName, label] of Object.entries(target?.primaryStatRestrictions || {})) {
-    const slot = SLOT_ID[String(slotName).toLowerCase()];
-    const sid = statId(label);
-    if (slot && sid) locks[slot] = sid;
+  for (const [slotText, primary] of Object.entries(ksHero?.primaries || {})) {
+    const slot = Number(slotText);
+    const sid = statId(primary?.main);
+    if ([2, 4, 5, 6].includes(slot) && sid && Number(primary?.pct) >= threshold) {
+      locks[slot] = sid;
+    }
   }
   return locks;
 }
@@ -193,24 +212,10 @@ export function prepareHeroInput(progress, gameData, keystats, heroId, options =
   const modsAvailable = allMods.filter(m => m.level >= 15 && (!options.lockUnselected || !m.owner || (profile.selectedCharacters || []).some(c => c.id === m.owner)));
   const currentIds = allMods.filter(m => m.owner === heroId).map(m => m.id);
   const setBonuses = normalizeSetBonuses(gameData);
-  const targetCombos = comboFromTarget(selected.target, setBonuses);
-  const combos = targetCombos || (ksHero.sets?.combos || [])
-    .filter(c => Number(c.pct || 0) >= 25 && c.sets)
-    .slice(0, 4)
-    .map(c => {
-      const groups = {};
-      for (const [name, count] of Object.entries(c.sets)) {
-        const sid = SET_ID[cleanKey(name)];
-        if (sid && setBonuses[sid]) {
-          const n = Math.floor(Number(count) / setBonuses[sid].count);
-          if (n > 0) groups[sid] = n;
-        }
-      }
-      return { name: c.combo, pct: c.pct, groups };
-    }).filter(c => Object.keys(c.groups).length);
+  const combos = combosFromKeystats(ksHero, setBonuses);
   return {
     heroId, base, modsAvailable, currentIds, keyStats, also, setBonuses, combos,
-    lockedPrimary: primaryLocks(selected.target),
+    lockedPrimary: primaryLocks(ksHero, Number(options.primaryLock ?? 75)),
     strict: Boolean(options.strict ?? false),
     timeLimit: Number(options.timeLimit || 8),
     keepBonus: 150,
