@@ -29,13 +29,114 @@ const [gameDataPath, keystatsPath, statsPath, outputPath] = [
 
 function readJson(filePath, label) {
   if (!fs.existsSync(filePath)) {
-    throw new Error(label + " not found: " + filePath + "\nPass its path as a command-line argument if it is stored elsewhere.");
+    throw new Error(label + " not found: " + filePath + "\\nPass its path as a command-line argument if it is stored elsewhere.");
   }
-  process.stdout.write("Reading " + label + ": " + filePath + "\n");
+  process.stdout.write("Reading " + label + ": " + filePath + "\\n");
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-const gameDataRaw = readJson(gameDataPath, "GameData.json");
+// GameData exceeds Node's maximum string length on this system. Stream it and
+// retain only the top-level statModSet array needed by the browser optimizer.
+// This works with a single file or with byte-split segments that concatenate
+// back into the original JSON document.
+async function extractTopLevelArray(filePaths, targetKey) {
+  let objectDepth = 0;
+  let arrayDepth = 0;
+  let inString = false;
+  let escaped = false;
+  let stringBytes = [];
+  let captureTopString = false;
+  let candidateState = 0; // 1 = awaiting colon, 2 = awaiting array value
+  let captureArray = false;
+  let captured = [];
+  let targetDepth = 0;
+  let arrayInString = false;
+  let arrayEscaped = false;
+
+  for (const filePath of filePaths) {
+    process.stdout.write("Streaming GameData segment: " + filePath + "\\n");
+    for await (const chunk of fs.createReadStream(filePath)) {
+      for (let i = 0; i < chunk.length; i++) {
+        const b = chunk[i];
+        if (captureArray) {
+          captured.push(b);
+          if (arrayInString) {
+            if (arrayEscaped) arrayEscaped = false;
+            else if (b === 0x5c) arrayEscaped = true;
+            else if (b === 0x22) arrayInString = false;
+          } else if (b === 0x22) arrayInString = true;
+          else if (b === 0x5b) targetDepth++;
+          else if (b === 0x5d) {
+            targetDepth--;
+            if (targetDepth === 0) {
+              const parsed = JSON.parse(Buffer.from(captured).toString("utf8"));
+              if (!Array.isArray(parsed)) throw new Error(targetKey + " is not an array.");
+              return parsed;
+            }
+          }
+          continue;
+        }
+
+        if (candidateState === 1) {
+          if (b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d) continue;
+          if (b === 0x3a) { candidateState = 2; continue; }
+          candidateState = 0;
+          // Process this byte normally below.
+        } else if (candidateState === 2) {
+          if (b === 0x20 || b === 0x09 || b === 0x0a || b === 0x0d) continue;
+          if (b === 0x5b) {
+            captureArray = true;
+            targetDepth = 1;
+            captured = [b];
+            arrayInString = false;
+            arrayEscaped = false;
+            continue;
+          }
+          candidateState = 0;
+          // Not an array value; continue normal scanning.
+        }
+
+        if (inString) {
+          if (captureTopString) stringBytes.push(b);
+          if (escaped) escaped = false;
+          else if (b === 0x5c) escaped = true;
+          else if (b === 0x22) {
+            inString = false;
+            if (captureTopString) {
+              const key = Buffer.from(stringBytes).toString("utf8");
+              if (key === targetKey) candidateState = 1;
+              captureTopString = false;
+              stringBytes = [];
+            }
+          }
+          continue;
+        }
+
+        if (b === 0x22) {
+          inString = true;
+          captureTopString = objectDepth === 1 && arrayDepth === 0;
+          stringBytes = [];
+        } else if (b === 0x7b) objectDepth++;
+        else if (b === 0x7d) objectDepth--;
+        else if (b === 0x5b) arrayDepth++;
+        else if (b === 0x5d) arrayDepth--;
+      }
+    }
+  }
+  throw new Error("Could not find top-level array " + targetKey + " in " + filePaths.join(", "));
+}
+
+async function loadGameDataSetDefinitions(filePath) {
+  const dir = path.dirname(filePath);
+  const segments = [1, 2, 3, 4].map(n => path.join(dir, "GameData_segment" + n + ".json"));
+  const inputs = segments.every(file => fs.existsSync(file)) ? segments : [filePath];
+  if (!inputs.every(file => fs.existsSync(file))) {
+    throw new Error("GameData.json or all four GameData_segment1.json … GameData_segment4.json files must exist.");
+  }
+  return { statModSet: await extractTopLevelArray(inputs, "statModSet"), sourceFiles: inputs.map(file => path.basename(file)) };
+}
+
+const gameDataRaw = await loadGameDataSetDefinitions(gameDataPath);
 const keystatsRaw = readJson(keystatsPath, "keystats.json");
 const statsRaw = readJson(statsPath, "stats_v2_top100.json");
 
@@ -77,7 +178,7 @@ const stats = { _meta: statsRaw._meta ?? null, units };
 const payload = {
   generatedAt: new Date().toISOString(),
   sourceFiles: {
-    gameData: path.basename(gameDataPath),
+    gameData: gameDataRaw.sourceFiles.join(", "),
     keystats: path.basename(keystatsPath),
     stats: path.basename(statsPath),
   },
