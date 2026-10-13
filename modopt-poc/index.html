@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GuionBot mod optimizer — HiGHS-JS proof of concept</title>
+  </head>
+  <body>
+    <main>
+      <h1>HiGHS-JS mod optimizer proof of concept</h1>
+      <p>
+        A small synthetic MILP with six slots, binary mod choices, set-group
+        variables, and stat target bands. The solver runs in a Web Worker.
+        This is an isolated experiment; it does not change the production bot.
+      </p>
+      <button id="run" type="button">Run proof of concept</button>
+      <pre id="output" aria-live="polite">Ready. Click “Run proof of concept”.</pre>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
