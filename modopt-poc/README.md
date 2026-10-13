@@ -198,3 +198,14 @@ the extraction command when you update the source JSONs. The source JSONs are
 read locally and are not uploaded by the app. Because the generated module is
 expected to be committed for other checkouts to use the same snapshot, review
 its size and commit it only if that is appropriate for your repository.
+
+
+### Very large GameData files
+
+The extractor streams `GameData.json` rather than reading it into one JavaScript
+string, so it avoids Node's `ERR_STRING_TOO_LONG` limit. If all four files
+`GameData_segment1.json` through `GameData_segment4.json` exist beside
+`GameData.json`, it automatically scans the four segments in order as one
+continuous JSON byte stream and extracts only the top-level `statModSet`
+array. The segment files must be consecutive pieces of the original JSON in
+the correct order; they do not need to be individually valid JSON documents.
