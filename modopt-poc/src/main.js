@@ -76,6 +76,7 @@ function inspectProgressFile(data, file) {
   const mods = modsEntry.value;
   const validMods = mods.filter(isObject);
   const charactersValue = profile.characters;
+  const characterMap = isObject(charactersValue) ? charactersValue : null;
   const charactersArray = firstArray(profile, ["characters", "roster", "units", "rosterUnit"]);
   const selectedCharacters = firstArray(profile, ["selectedCharacters", "selected_characters"]);
   const assignments = firstArray(profile, ["modAssignments", "mod_assignments"]);
