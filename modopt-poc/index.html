@@ -7,21 +7,45 @@
   </head>
   <body>
     <main>
-      <h1>Browser mod optimizer — step 1</h1>
+      <h1>Browser mod optimizer — data loading</h1>
       <p>
-        Select a Grandivory “Save my progress” JSON file. This step only reads
-        the file locally and summarizes its structure; it does not upload the
-        file or run the optimizer.
+        Select the Grandivory progress export and the three local data files used
+        by the Python optimizer. Files are read in this browser tab only; they
+        are not uploaded. This step validates and inspects the data sources but
+        does not run optimization yet.
       </p>
-      <label for="progress-file">Progress file (JSON)</label>
-      <input id="progress-file" type="file" accept=".json,application/json" />
-      <p id="file-status" role="status" aria-live="polite">Choose a progress file to inspect it.</p>
+
+      <section>
+        <h2>Input files</h2>
+        <label for="progress-file">Grandivory “Save my progress” file (JSON)</label>
+        <input id="progress-file" type="file" accept=".json,application/json" />
+        <p id="file-status" role="status" aria-live="polite">Choose a progress file to inspect it.</p>
+
+        <label for="gamedata-file">GameData.json</label>
+        <input id="gamedata-file" type="file" accept=".json,application/json" />
+
+        <label for="keystats-file">keystats.json</label>
+        <input id="keystats-file" type="file" accept=".json,application/json" />
+
+        <label for="stats-file">stats_v2_top100.json</label>
+        <input id="stats-file" type="file" accept=".json,application/json" />
+
+        <p id="data-status" role="status" aria-live="polite">Select the three optimizer data files to inspect them.</p>
+      </section>
+
       <section id="summary" hidden>
-        <h2>Inventory summary</h2>
+        <h2>Progress inventory summary</h2>
         <dl id="summary-fields"></dl>
-        <h2>Detected structure</h2>
+        <h2>Progress file structure</h2>
         <pre id="structure"></pre>
       </section>
+
+      <section id="data-summary" hidden>
+        <h2>Optimizer data files</h2>
+        <dl id="data-summary-fields"></dl>
+        <pre id="data-structure"></pre>
+      </section>
+
       <pre id="error" role="alert" hidden></pre>
     </main>
     <script type="module" src="/src/main.js"></script>
