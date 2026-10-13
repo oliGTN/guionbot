@@ -24,18 +24,22 @@ Requires Node.js 18 or newer.
     npm install
     npm run dev
 
-Open the local URL printed by Vite and choose a Grandivory progress JSON file
-in the file picker. The current UI reads the file locally and reports a basic
-inventory/structure summary; it does not upload the file or run optimization.
-Use npm run build to check that Vite can bundle the browser code.
+Open the local URL printed by Vite and choose the Grandivory progress JSON,
+`GameData.json`, `keystats.json`, and `stats_v2_top100.json` in the file pickers.
+The browser parses these files locally and reports their basic structure; it
+does not upload them or run optimization yet. Browsers cannot read arbitrary
+absolute paths such as `/home/pi/GuionBot/warstats/GameData.json` directly, so
+the files must be selected by the user unless a separate local server explicitly
+serves them. Use `npm run build` to check that Vite can bundle the browser code.
 
 ## Step 1: local progress-file inspection
 
 The browser UI expects a Grandivory-style JSON object with a non-empty
 `profiles` array and a `mods` array in the first profile. It reports basic
-counts and key names to help establish the real file schema. The owner-field
-count is only a heuristic; it is not yet an authoritative equipped/unequipped
-mod count. No file data is sent over the network by this inspection UI.
+counts and key names to help establish the real file schema. Separate file
+pickers also inspect the top-level shapes of the game data, keystats, and
+stats data. These are schema-discovery steps only: they do not yet normalize
+mods or run the solver. No file data is sent over the network by this UI.
 
 ## Next validation stage
 
