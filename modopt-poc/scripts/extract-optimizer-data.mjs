@@ -143,6 +143,9 @@ for (const [id, hero] of Object.entries(keystatsRaw.heroes)) {
   heroes[id] = {
     key_stats: Array.isArray(hero.key_stats) ? hero.key_stats : [],
     also: Array.isArray(hero.also) ? hero.also : [],
+    primaries: hero.primaries && typeof hero.primaries === "object"
+      ? hero.primaries
+      : {},
     sets: hero.sets && typeof hero.sets === "object"
       ? { combos: Array.isArray(hero.sets.combos) ? hero.sets.combos : [], top_combo: hero.sets.top_combo ?? null }
       : {},
