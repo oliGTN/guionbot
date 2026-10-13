@@ -630,7 +630,7 @@ function refreshOptimizerControls() {
   if (typeof refreshParityAvailability === "function") refreshParityAvailability();
 }
 refreshHeroOptions();
-
+refreshOptimizerDataSummary();
 
 // Repeatable Python-vs-browser parity harness. All input and reference files stay
 // in this browser tab; the downloadable report contains only solver outputs.
