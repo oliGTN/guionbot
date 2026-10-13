@@ -1,3 +1,4 @@
+import { prepareHeroInput, summarizePreparedHero } from "./grandivory-normalize.js";
 const fileInput = document.querySelector("#progress-file");
 const status = document.querySelector("#file-status");
 const summary = document.querySelector("#summary");
@@ -256,6 +257,8 @@ fileInput.addEventListener("change", async () => {
       throw new Error("The selected file is not valid JSON.");
     }
     inspectProgressFile(data, file);
+    loadedData.set("progress-file", { fileName: file.name, data });
+    refreshHeroOptions();
     status.textContent = "File parsed successfully. No optimization has been run.";
   } catch (error) {
     status.textContent = "Could not inspect this file.";
@@ -495,3 +498,98 @@ for (const definition of dataFileInputs) {
     refreshOptimizerDataSummary();
   });
 }
+
+
+// Wire the real normalized single-hero input into the existing Web Worker.
+const heroSelect = document.querySelector("#hero-select");
+const prepareHeroButton = document.querySelector("#prepare-hero");
+const solveHeroButton = document.querySelector("#solve-hero");
+const optimizerStatus = document.querySelector("#optimizer-status");
+const optimizerOutput = document.querySelector("#optimizer-output");
+let preparedHeroInput = null;
+let activeWorker = null;
+
+function refreshHeroOptions() {
+  if (!heroSelect) return;
+  const progress = loadedData.get("progress-file")?.data;
+  const ks = loadedData.get("keystats-file")?.data;
+  const profile = progress?.profiles?.[0];
+  const heroes = ks?.heroes;
+  const previous = heroSelect.value;
+  heroSelect.replaceChildren();
+  if (!profile || !heroes || !profile.characters) {
+    heroSelect.add(new Option("Load all files first", ""));
+    heroSelect.disabled = true;
+    prepareHeroButton.disabled = true;
+    solveHeroButton.disabled = true;
+    return;
+  }
+  const eligible = (profile.selectedCharacters || [])
+    .filter(c => c?.id && profile.characters[c.id] && heroes[c.id]?.key_stats?.length)
+    .sort((a, b) => a.id.localeCompare(b.id));
+  heroSelect.add(new Option("Select a hero (" + eligible.length + " available)", ""));
+  for (const hero of eligible) heroSelect.add(new Option(hero.id, hero.id));
+  if (eligible.some(h => h.id === previous)) heroSelect.value = previous;
+  heroSelect.disabled = eligible.length === 0;
+  prepareHeroButton.disabled = !heroSelect.value;
+  solveHeroButton.disabled = !preparedHeroInput || preparedHeroInput.heroId !== heroSelect.value;
+}
+
+heroSelect?.addEventListener("change", () => {
+  preparedHeroInput = null;
+  prepareHeroButton.disabled = !heroSelect.value;
+  solveHeroButton.disabled = true;
+  optimizerOutput.textContent = "";
+  optimizerStatus.textContent = heroSelect.value ? "Hero selected; prepare its normalized input." : "Choose a hero.";
+});
+
+prepareHeroButton?.addEventListener("click", () => {
+  try {
+    const progress = loadedData.get("progress-file")?.data;
+    const gameData = loadedData.get("gamedata-file")?.data;
+    const keystats = loadedData.get("keystats-file")?.data;
+    if (!progress || !gameData || !keystats) throw new Error("Select the progress file, GameData.json, and keystats.json first.");
+    preparedHeroInput = prepareHeroInput(progress, gameData, keystats, heroSelect.value, { lockUnselected: true });
+    optimizerOutput.textContent = JSON.stringify(summarizePreparedHero(preparedHeroInput), null, 2);
+    optimizerStatus.textContent = "Hero normalized. Review counts and stat targets, then run the MILP preview.";
+    solveHeroButton.disabled = false;
+  } catch (error) {
+    preparedHeroInput = null;
+    solveHeroButton.disabled = true;
+    optimizerStatus.textContent = "Could not prepare this hero.";
+    optimizerOutput.textContent = error instanceof Error ? error.message : String(error);
+  }
+});
+
+solveHeroButton?.addEventListener("click", () => {
+  if (!preparedHeroInput) return;
+  solveHeroButton.disabled = true;
+  optimizerStatus.textContent = "Solving in a Web Worker…";
+  optimizerOutput.textContent = "";
+  if (activeWorker) activeWorker.terminate();
+  activeWorker = new Worker(new URL("./solver-worker.js", import.meta.url), { type: "module" });
+  activeWorker.onmessage = ({ data }) => {
+    optimizerOutput.textContent = JSON.stringify(data, null, 2);
+    optimizerStatus.textContent = data.error
+      ? "Solver failed; see details below."
+      : "MILP finished. Selected mods are a preliminary model result, not yet exact-stat validated.";
+    solveHeroButton.disabled = false;
+    activeWorker.terminate();
+    activeWorker = null;
+  };
+  activeWorker.onerror = event => {
+    optimizerStatus.textContent = "Worker error.";
+    optimizerOutput.textContent = event.message || "Unknown Web Worker error.";
+    solveHeroButton.disabled = false;
+    activeWorker.terminate();
+    activeWorker = null;
+  };
+  // Structured-clone only the normalized solver input; raw files remain in this tab.
+  activeWorker.postMessage({ type: "run", mode: "hero", input: preparedHeroInput });
+});
+
+function refreshOptimizerControls() {
+  refreshHeroOptions();
+  if (loadedData.size >= 4) optimizerStatus.textContent = "All input files are loaded locally. Choose a hero.";
+}
+refreshHeroOptions();
