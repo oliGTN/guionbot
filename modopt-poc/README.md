@@ -132,3 +132,30 @@ Do not use the returned mod assignments for live remodding until a real hero
 has been compared with the Python optimizer using the same normalized mods,
 set bonuses, target rows and objective, and the selected result has been
 validated with the game's exact stat calculation.
+
+
+## Python parity batch harness
+
+The **Python parity test** controls run the real per-hero JavaScript MILP for a
+repeatable list of heroes. Load the four local input files, choose a batch size
+(default 10; enter 0 to run every eligible hero), and click **Run batch parity
+test**. The first batch is intentionally small so you can validate the workflow
+before committing to a long run.
+
+To compare against Python, load a reference JSON file before starting the batch.
+The harness accepts a JSON array of per-hero result objects, an object with a
+`results` array, one result object with a `heroId`/ `hero_id`/ `unitId`/
+`id` field, or an object keyed by hero ID. Each hero result should include
+`selectedMods` (or `selected_mods` / `chosen` / `mods`) as an array of
+objects with slot names and mod IDs. If present, `objectiveValue` is compared
+as well. The report shows per-slot ID differences and objective mismatches.
+Unmatched hero IDs or unrecognized reference shapes are called out rather than
+counted as parity matches.
+
+The **Download batch results JSON** button saves the report so you can archive
+and compare runs. Reference and game data are read locally in the browser; they
+are not uploaded. The batch worker initializes HiGHS once for the run, but each
+hero still builds and solves its own MILP. Start with a small batch and inspect
+the report for preparation errors, failed solves, and reference-format issues.
+An assignment match is a useful regression signal, not a substitute for exact
+in-game stat evaluation or multi-hero inventory-allocation validation.
