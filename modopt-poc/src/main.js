@@ -117,6 +117,21 @@ function inspectProgressFile(data, file) {
     key, value === null ? "null" : Array.isArray(value) ? "array" : typeof value
   ])) : {};
   const targetSettings = optimizerSettings?.targets;
+  const selectedEntries = selectedCharacters?.value?.filter(isObject) ?? [];
+  const selectedTargets = selectedEntries.map((entry) => isObject(entry.target) ? entry.target : null).filter(Boolean);
+  const targetStatsArrays = selectedTargets.map((entry) => Array.isArray(entry.targetStats) ? entry.targetStats : []);
+  const targetStatsLengths = countBy(targetStatsArrays, (items) => items.length);
+  const targetStatsSample = targetStatsArrays.flat().find(isObject) ?? null;
+  const charsWithOptimizerTargets = characterMap
+    ? Object.values(characterMap).filter((character) =>
+        isObject(character?.optimizerSettings) &&
+        Array.isArray(character.optimizerSettings.targets) &&
+        character.optimizerSettings.targets.length > 0
+      ).length
+    : null;
+  const selectedIdMatchCount = characterMap
+    ? selectedEntries.filter((entry) => typeof entry.id === "string" && Object.prototype.hasOwnProperty.call(characterMap, entry.id)).length
+    : null;
   const statObjectShape = (value) => ({
     shape: describeShape(value),
     keys: isObject(value) ? Object.keys(value).slice(0, 40) : [],
@@ -138,9 +153,9 @@ function inspectProgressFile(data, file) {
     },
     characterOptimizerSettingsShape: describeShape(sampleCharacter?.optimizerSettings),
     optimizerTargets: {
-      shape: describeShape(targetSettings),
-      firstEntryShape: Array.isArray(targetSettings) ? describeShape(targetSettings[0]) : null,
-      firstEntryKeys: Array.isArray(targetSettings) && isObject(targetSettings[0]) ? Object.keys(targetSettings[0]) : [],
+      sampleCharacterTargetsShape: describeShape(targetSettings),
+      charactersWithNonEmptyOptimizerTargets: charsWithOptimizerTargets,
+      note: "The per-character optimizerSettings.targets field may be separate from selectedCharacters[].target.",
     },
     modsArray: modsEntry.key,
     firstModKeys: sampleMod ? Object.keys(sampleMod) : [],
@@ -163,6 +178,18 @@ function inspectProgressFile(data, file) {
     selectedCharacterTargetKeys: target ? Object.keys(target) : [],
     selectedCharacterTargetValueTypes: targetValueTypes,
     selectedCharacterTargetSampleShape: target ? statObjectShape(target) : null,
+    selectedTargetSummary: {
+      selectedCharacterCount: selectedEntries.length,
+      selectedIdsMatchingCharacterMap: selectedIdMatchCount,
+      entriesWithTargetObject: selectedTargets.length,
+      targetStatsArrayLengths: targetStatsLengths,
+      firstTargetStatsEntryKeys: targetStatsSample ? Object.keys(targetStatsSample) : [],
+      firstTargetStatsEntryValueTypes: targetStatsSample ? Object.fromEntries(Object.entries(targetStatsSample).map(([key, value]) => [
+        key, value === null ? "null" : Array.isArray(value) ? "array" : typeof value
+      ])) : {},
+      primaryStatRestrictionsShape: describeShape(target?.primaryStatRestrictions),
+      setRestrictionsShape: describeShape(target?.setRestrictions),
+    },
     modAssignmentsArray: assignments?.key ?? null,
     modAssignmentCount: assignments?.value.length ?? null,
     modAssignmentEntryType: assignmentSample === undefined ? null : Array.isArray(assignmentSample) ? "array" : typeof assignmentSample,
