@@ -142,6 +142,26 @@ self.onmessage = async ({ data }) => {
     let counts;
     let note;
 
+    if (data.mode === "batch" && Array.isArray(data.inputs)) {
+      const results = [];
+      for (const item of data.inputs) {
+        try {
+          const solved = solveHero(highs, item.input);
+          const chosen = (solved.chosen || []).slice().sort((a, b) => a.slot - b.slot).map(mod => ({
+            slot: SLOT_NAMES[mod.slot - 1], id: mod.id, set: mod.set, primary: mod.primary,
+            speed: Number(mod.flat?.[5] || 0) + Number(mod.pct?.[57] || 0),
+            current: (item.input.currentIds || []).includes(mod.id),
+          }));
+          results.push({ heroId: item.heroId, status: solved.info?.status, objectiveValue: solved.info?.objectiveValue ?? null,
+            selectedMods: chosen, counts: { candidateMods: solved.info?.n_candidates ?? null, slots: 6 } });
+        } catch (error) {
+          results.push({ heroId: item.heroId, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+      self.postMessage({ mode: "batch", results, timingsMs: { initialization: Number((solverReady - started).toFixed(2)), total: Number((performance.now() - started).toFixed(2)) }, note: "Browser-side batch results; compare against reference Python output before treating them as parity-validated." });
+      return;
+    }
+
     if (data.mode === "hero" && data.input) {
       result = solveHero(highs, data.input);
       selected = (result.chosen || []).slice().sort((a, b) => a.slot - b.slot).map(mod => ({
