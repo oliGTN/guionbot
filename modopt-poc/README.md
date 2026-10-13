@@ -24,8 +24,18 @@ Requires Node.js 18 or newer.
     npm install
     npm run dev
 
-Open the local URL printed by Vite and click **Run proof of concept**. Use
-npm run build to check that Vite can bundle the browser and worker code.
+Open the local URL printed by Vite and choose a Grandivory progress JSON file
+in the file picker. The current UI reads the file locally and reports a basic
+inventory/structure summary; it does not upload the file or run optimization.
+Use npm run build to check that Vite can bundle the browser code.
+
+## Step 1: local progress-file inspection
+
+The browser UI expects a Grandivory-style JSON object with a non-empty
+`profiles` array and a `mods` array in the first profile. It reports basic
+counts and key names to help establish the real file schema. The owner-field
+count is only a heuristic; it is not yet an authoritative equipped/unequipped
+mod count. No file data is sent over the network by this inspection UI.
 
 ## Next validation stage
 
