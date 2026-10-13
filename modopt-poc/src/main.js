@@ -133,6 +133,29 @@ function inspectProgressFile(data, file) {
   const selectedIdMatchCount = characterMap
     ? selectedEntries.filter((entry) => typeof entry.id === "string" && Object.prototype.hasOwnProperty.call(characterMap, entry.id)).length
     : null;
+  const scalarTargetSummary = {};
+  for (const key of ["health", "protection", "speed", "critDmg", "potency", "tenacity", "physDmg", "specDmg", "critChance", "armor", "resistance", "accuracy", "critAvoid"]) {
+    const values = selectedTargets.map((entry) => entry[key]).filter((value) => typeof value === "number" && Number.isFinite(value));
+    scalarTargetSummary[key] = {
+      numericCount: values.length,
+      distinctCount: new Set(values).size,
+      min: values.length ? Math.min(...values) : null,
+      max: values.length ? Math.max(...values) : null,
+      zeroCount: values.filter((value) => value === 0).length,
+      positiveCount: values.filter((value) => value > 0).length,
+    };
+  }
+  const restrictionSummary = (key) => {
+    const values = selectedTargets.map((entry) => entry[key]).filter(isObject);
+    return {
+      entriesWithObject: values.length,
+      sampleKeys: values.length ? Object.keys(values[0]) : [],
+      valueTypes: values.length ? Object.fromEntries(Object.entries(values[0]).map(([name, value]) => [
+        name, value === null ? "null" : Array.isArray(value) ? "array" : typeof value
+      ])) : {},
+      entriesWithAnyKeys: values.filter((value) => Object.keys(value).length > 0).length,
+    };
+  };
   const statObjectShape = (value) => ({
     shape: describeShape(value),
     keys: isObject(value) ? Object.keys(value).slice(0, 40) : [],
@@ -183,6 +206,9 @@ function inspectProgressFile(data, file) {
       selectedCharacterCount: selectedEntries.length,
       selectedIdsMatchingCharacterMap: selectedIdMatchCount,
       entriesWithTargetObject: selectedTargets.length,
+      scalarTargetSummary,
+      primaryStatRestrictions: restrictionSummary("primaryStatRestrictions"),
+      setRestrictions: restrictionSummary("setRestrictions"),
       targetStatsArrayLengths: targetStatsLengths,
       firstTargetStatsEntryKeys: targetStatsSample ? Object.keys(targetStatsSample) : [],
       firstTargetStatsEntryValueTypes: targetStatsSample ? Object.fromEntries(Object.entries(targetStatsSample).map(([key, value]) => [
