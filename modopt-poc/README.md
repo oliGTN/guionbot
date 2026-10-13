@@ -39,3 +39,50 @@ npm run build to check that Vite can bundle the browser and worker code.
 
 The current fixture uses illustrative stat values and simplified set bonuses.
 It must not be used to make real remodding decisions.
+
+
+## First port of the real per-hero MILP
+
+`src/hero-milp.js` now contains a data-driven JavaScript implementation of
+the core `Problem`, `StatForm`, candidate filtering, set-group/remainder,
+combo, stat-band, secondary-stat and health-linearization logic from
+`swgoh_modopt.py`. It can be invoked from the worker with a message of this
+shape:
+
+```js
+worker.postMessage({
+  type: "run",
+  mode: "hero",
+  input: {
+    base: { level: 85, stats: { "1": 10000, "5": 150, "6": 1000, "7": 1000, "28": 10000 }, armor_flat: 100, resist_flat: 100 },
+    modsAvailable: [ /* normalized parsed mods; see below */ ],
+    currentIds: [],
+    keyStats: [{ stat: "speed", mod_key: "speed", target: 300 }],
+    also: [],
+    setBonuses: {
+      "1": { count: 2, stat: 55, lvl15: 1000000 },
+      "4": { count: 4, stat: 57, lvl15: 1000000 }
+    },
+    combos: [],
+    lockedPrimary: {},
+    timeLimit: 8,
+    keepBonus: 150,
+    setReward: 5000
+  }
+});
+```
+
+Each entry in `modsAvailable` must already be normalized to the Python
+`parse_mod()` representation: `{id, set, slot, primary, flat, pct, quality,
+owner?, virtual?}`. `setBonuses` must contain the exact `count`, `stat` and
+`lvl15` values from `swgoh_cron.MOD_SET_BONUSES`. Combo `groups` is keyed by
+numeric set ID. `lockedPrimary` maps slot numbers to primary stat IDs.
+
+**Important limitations:** this is an initial core port, not yet a parity
+claim. Python still owns game-data loading, raw-mod parsing, K1/keystats
+preparation, candidate data generation, exact in-game stat evaluation,
+multi-hero inventory allocation, farm-mod generation and report output.
+The JS model must be tested against Python using identical normalized
+single-hero inputs before it can be trusted. In particular, compare the
+objective and feasibility first, then compare selected mods and exact statq
+points; equally optimal solutions may choose different mods.
