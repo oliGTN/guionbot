@@ -176,7 +176,7 @@ self.onmessage = async ({ data }) => {
         }
         self.postMessage({ type: "progress", completed: index + 1, total, heroId: item.heroId });
       }
-      self.postMessage({ mode: "batch", results, timingsMs: { initialization: Number((solverReady - started).toFixed(2)), total: Number((performance.now() - started).toFixed(2)) }, note: "Browser-side batch results; compare against reference Python output before treating them as parity-validated." });
+      self.postMessage({ mode: "batch", results, allocationMode: sequentialAllocation ? "sequential" : "independent", timingsMs: { initialization: Number((solverReady - started).toFixed(2)), total: Number((performance.now() - started).toFixed(2)) }, note: sequentialAllocation ? "Sequential roster allocation in input priority order. Mods chosen for earlier heroes are excluded from later candidate pools. Mods equipped on unselected heroes remain locked by input normalization." : "Independent single-hero diagnostic; this does not model mods reserved by earlier heroes. Compare with a full sequential batch for roster parity." });
       return;
     }
 
