@@ -1,5 +1,6 @@
 import loadHighs from "highs";
 import highsWasmUrl from "../node_modules/highs/build/highs.wasm?url";
+import { solveHero } from "./hero-milp.js";
 
 const SLOT_NAMES = ["square", "arrow", "diamond", "triangle", "circle", "cross"];
 const BAND_THRESHOLDS = [0.90, 0.95, 0.98, 1.02];
@@ -134,45 +135,61 @@ self.onmessage = async ({ data }) => {
   const started = performance.now();
   try {
     const highs = await loadHighs({ locateFile: () => highsWasmUrl });
-    const mods = makeFixture();
-    const lp = buildModel(mods);
-    const modelBuilt = performance.now();
-    const result = highs.solve(lp, {
-      output_flag: false,
-      time_limit: 8,
-      mip_rel_gap: 0.001,
-    });
-    const finished = performance.now();
+    const modelBuiltStart = performance.now();
+    let result;
+    let selected;
+    let counts;
+    let note;
 
-    if (!result || !result.Status) throw new Error("HiGHS returned no solver status");
-
-    const selected = mods
-      .filter(mod => (result.Columns?.["x_" + mod.id]?.Primal ?? 0) > 0.5)
-      .sort((a, b) => a.slot - b.slot)
-      .map(mod => ({
+    if (data.mode === "hero" && data.input) {
+      result = solveHero(highs, data.input);
+      selected = (result.chosen || []).slice().sort((a, b) => a.slot - b.slot).map(mod => ({
         slot: SLOT_NAMES[mod.slot - 1],
         id: mod.id,
         set: mod.set,
-        speed: mod.speed,
-        health: mod.health,
-        current: mod.current,
+        primary: mod.primary,
+        speed: Number(mod.flat?.[5] || 0) + Number(mod.pct?.[57] || 0),
+        current: (data.input.currentIds || []).includes(mod.id),
       }));
+      counts = { candidateMods: result.info?.n_candidates ?? null, slots: SLOT_NAMES.length };
+      note = "Normalized single-hero input; exact in-game evaluation and multi-hero inventory allocation are not included.";
+    } else {
+      const mods = makeFixture();
+      const lp = buildModel(mods);
+      result = highs.solve(lp, {
+        output_flag: false,
+        time_limit: 8,
+        mip_rel_gap: 0.001,
+      });
+      if (!result || !result.Status) throw new Error("HiGHS returned no solver status");
+      selected = mods
+        .filter(mod => (result.Columns?.["x_" + mod.id]?.Primal ?? 0) > 0.5)
+        .sort((a, b) => a.slot - b.slot)
+        .map(mod => ({
+          slot: SLOT_NAMES[mod.slot - 1],
+          id: mod.id,
+          set: mod.set,
+          speed: mod.speed,
+          health: mod.health,
+          current: mod.current,
+        }));
+      counts = { candidateMods: mods.length, slots: SLOT_NAMES.length, statBands: 2 * BAND_THRESHOLDS.length };
+      note = "Synthetic model only; timings are browser/device dependent and do not yet measure the full optimizer workload.";
+    }
+    const modelBuilt = performance.now();
+    const finished = modelBuilt;
 
     self.postMessage({
-      status: result.Status,
-      objectiveValue: result.ObjectiveValue,
+      status: data.mode === "hero" ? result.info?.status : result.Status,
+      objectiveValue: data.mode === "hero" ? result.info?.objectiveValue : result.ObjectiveValue,
       selectedMods: selected,
-      counts: {
-        candidateMods: mods.length,
-        slots: SLOT_NAMES.length,
-        statBands: 2 * BAND_THRESHOLDS.length,
-      },
+      counts,
       timingsMs: {
         initializationAndModelBuild: Number((modelBuilt - started).toFixed(2)),
         solve: Number((finished - modelBuilt).toFixed(2)),
         total: Number((finished - started).toFixed(2)),
       },
-      note: "Synthetic model only; timings are browser/device dependent and do not yet measure the full optimizer workload.",
+      note,
     });
   } catch (error) {
     self.postMessage({
