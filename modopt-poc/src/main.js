@@ -103,7 +103,10 @@ function inspectProgressFile(data, file) {
   addField("Mod-assignment entries", assignments ? assignments.value.length : "not found as an array");
 
   const sampleMod = validMods[0] ?? null;
-  const sampleCharacter = validCharacters[0] ?? null;
+  const sampleCharacter = validCharacters[0] ?? (isObject(charactersValue) ? Object.values(charactersValue).find(isObject) ?? null : null);
+  const sampleCharacterId = sampleCharacter && isObject(charactersValue)
+    ? Object.keys(charactersValue).find((key) => charactersValue[key] === sampleCharacter) ?? null
+    : null;
   const characterIDCounts = countBy(validMods, (mod) => mod.characterID);
   const selectedSample = selectedCharacters?.value?.[0];
   const assignmentSample = assignments?.value?.[0];
@@ -112,7 +115,10 @@ function inspectProgressFile(data, file) {
     topLevelKeys: Object.keys(data),
     profileKeys: Object.keys(profile),
     charactersContainer: describeShape(charactersValue),
+    sampleCharacterIdKey: sampleCharacterId,
     firstCharacterKeys: sampleCharacter ? Object.keys(sampleCharacter) : [],
+    characterPlayerValuesShape: describeShape(sampleCharacter?.playerValues),
+    characterOptimizerSettingsShape: describeShape(sampleCharacter?.optimizerSettings),
     modsArray: modsEntry.key,
     firstModKeys: sampleMod ? Object.keys(sampleMod) : [],
     modDistribution: {
@@ -127,6 +133,7 @@ function inspectProgressFile(data, file) {
     selectedCharacterCount: selectedCharacters?.value.length ?? null,
     selectedCharacterEntryType: selectedSample === undefined ? null : Array.isArray(selectedSample) ? "array" : typeof selectedSample,
     selectedCharacterObjectKeys: isObject(selectedSample) ? Object.keys(selectedSample) : [],
+    selectedCharacterTargetShape: describeShape(selectedSample?.target),
     modAssignmentsArray: assignments?.key ?? null,
     modAssignmentCount: assignments?.value.length ?? null,
     modAssignmentEntryType: assignmentSample === undefined ? null : Array.isArray(assignmentSample) ? "array" : typeof assignmentSample,
