@@ -135,7 +135,8 @@ self.onmessage = async ({ data }) => {
   const started = performance.now();
   try {
     const highs = await loadHighs({ locateFile: () => highsWasmUrl });
-    const modelBuiltStart = performance.now();
+    const solverReady = performance.now();
+    const operationStarted = performance.now();
     let result;
     let selected;
     let counts;
@@ -176,8 +177,7 @@ self.onmessage = async ({ data }) => {
       counts = { candidateMods: mods.length, slots: SLOT_NAMES.length, statBands: 2 * BAND_THRESHOLDS.length };
       note = "Synthetic model only; timings are browser/device dependent and do not yet measure the full optimizer workload.";
     }
-    const modelBuilt = performance.now();
-    const finished = modelBuilt;
+    const operationFinished = performance.now();
 
     self.postMessage({
       status: data.mode === "hero" ? result.info?.status : result.Status,
@@ -185,9 +185,9 @@ self.onmessage = async ({ data }) => {
       selectedMods: selected,
       counts,
       timingsMs: {
-        initializationAndModelBuild: Number((modelBuilt - started).toFixed(2)),
-        solve: Number((finished - modelBuilt).toFixed(2)),
-        total: Number((finished - started).toFixed(2)),
+        initialization: Number((solverReady - started).toFixed(2)),
+        modelAndSolve: Number((operationFinished - operationStarted).toFixed(2)),
+        total: Number((operationFinished - started).toFixed(2)),
       },
       note,
     });
