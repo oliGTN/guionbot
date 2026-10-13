@@ -611,6 +611,7 @@ refreshHeroOptions();
 const batchButton = document.querySelector("#run-parity-batch");
 const batchLimitInput = document.querySelector("#batch-limit");
 const referenceFileInput = document.querySelector("#reference-file");
+const referenceHeroIdInput = document.querySelector("#reference-hero-id");
 const parityStatus = document.querySelector("#parity-status");
 const parityOutput = document.querySelector("#parity-output");
 const downloadParityButton = document.querySelector("#download-parity");
@@ -656,9 +657,11 @@ function slotMap(row) {
 function compareWithReference(results, reference) {
   const refs = referenceResultsByHero(reference);
   // A single Python result can omit heroId when the batch contains one hero.
-  if (refs.size === 0 && results.length === 1 && reference && typeof reference === "object" &&
+  if (refs.size === 0 && reference && typeof reference === "object" &&
       (reference.selectedMods || reference.selected_mods || reference.chosen || reference.mods)) {
-    refs.set(String(results[0].heroId), reference);
+    const explicitHeroId = String(referenceHeroIdInput?.value || "").trim();
+    if (explicitHeroId) refs.set(explicitHeroId, reference);
+    else if (results.length === 1) refs.set(String(results[0].heroId), reference);
   }
   return results.map(result => {
     const ref = refs.get(String(result.heroId));
@@ -720,6 +723,9 @@ batchButton?.addEventListener("click", () => {
       if (pythonReference) results = compareWithReference(results, pythonReference);
       const matched = results.filter(row => row.comparison === "match").length;
       const mismatched = results.filter(row => row.comparison === "mismatch").length;
+      const comparable = results.filter(row => ["match", "mismatch"].includes(row.comparison)).length;
+      const noReference = results.filter(row => row.comparison === "no-reference-for-hero").length;
+      const unrecognized = results.filter(row => row.comparison === "reference-format-unrecognized").length;
       const report = {
         reportType: "guionbot-modopt-python-parity",
         generatedAt: new Date().toISOString(),
@@ -727,7 +733,7 @@ batchButton?.addEventListener("click", () => {
         heroesPrepared: inputs.length,
         heroesFailedPreparation: preparationErrors.length,
         pythonReferenceLoaded: Boolean(pythonReference),
-        summary: { results: results.length, matched, mismatched, noReference: results.filter(row => row.comparison === "no-reference-for-hero").length, errors: results.filter(row => row.error || row.comparison === "browser-solve-failed").length },
+        summary: { results: results.length, compared: comparable, matched, mismatched, noReference, referenceFormatUnrecognized: unrecognized, errors: results.filter(row => row.error || row.comparison === "browser-solve-failed").length },
         timingsMs: data.timingsMs,
         results,
       };
