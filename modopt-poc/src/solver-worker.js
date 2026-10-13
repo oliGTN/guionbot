@@ -1,4 +1,5 @@
 import loadHighs from "highs";
+import highsWasmUrl from "../node_modules/highs/build/highs.wasm?url";
 
 const SLOT_NAMES = ["square", "arrow", "diamond", "triangle", "circle", "cross"];
 const BAND_THRESHOLDS = [0.90, 0.95, 0.98, 1.02];
@@ -132,7 +133,7 @@ self.onmessage = async ({ data }) => {
 
   const started = performance.now();
   try {
-    const highs = await loadHighs();
+    const highs = await loadHighs({ locateFile: () => highsWasmUrl });
     const mods = makeFixture();
     const lp = buildModel(mods);
     const modelBuilt = performance.now();
