@@ -740,7 +740,7 @@ batchButton?.addEventListener("click", () => {
       lastParityReport = report;
       parityOutput.textContent = JSON.stringify(report, null, 2);
       parityStatus.textContent = pythonReference
-        ? "Batch complete: " + matched + " matches, " + mismatched + " mismatches across " + results.length + " results. Inspect per-slot differences below."
+        ? "Batch complete: " + matched + " matches, " + mismatched + " mismatches; " + noReference + " heroes had no reference" + (unrecognized ? ", " + unrecognized + " reference formats were unrecognized" : "") + ". Compared " + comparable + " of " + results.length + " results."
         : "Batch complete for " + results.length + " heroes. Load Python reference JSON and rerun to compare assignments.";
       downloadParityButton.disabled = false;
     }
