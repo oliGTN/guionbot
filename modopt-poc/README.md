@@ -100,3 +100,35 @@ The JS model must be tested against Python using identical normalized
 single-hero inputs before it can be trusted. In particular, compare the
 objective and feasibility first, then compare selected mods and exact statq
 points; equally optimal solutions may choose different mods.
+
+
+## Current browser-side normalization stage
+
+The page now has a **Single-hero optimizer preview** section. Load the Grandivory
+progress JSON plus `GameData.json`, `keystats.json`, and
+`stats_v2_top100.json`; select a hero and click **Prepare hero input**. The
+normalizer in `src/grandivory-normalize.js` maps Grandivory mod fields to the
+MILP's numeric stat IDs, maps set IDs, reads set bonuses from
+`GameData.statModSet`, converts keystats targets and the selected character's
+primary/set restrictions, and filters out mods below level 15 or five pips.
+The page then can run the existing per-hero MILP in a Web Worker.
+
+This remains a **prototype, not a trusted optimizer**. In particular:
+
+- The stats-v2 file is parsed for inspection but is not yet used for exact
+  in-game stat evaluation.
+- Grandivory base stats do not necessarily expose the underlying defense and
+  resistance ratings required by the Python linearization. A hero whose target
+  includes armor/resistance is deliberately rejected if those inputs are
+  missing.
+- The Grandivory-to-Python stat-value mapping must still be checked against a
+  real raw game mod and the Python `parse_mod()` result. Unknown stat labels
+  cause a clear error rather than being silently treated as zero.
+- This preview does not yet reproduce the Python optimizer's sequential
+  multi-hero inventory allocation, virtual/farm mods, exact post-solve statq
+  evaluation, report output, or all lock/unselected rules.
+
+Do not use the returned mod assignments for live remodding until a real hero
+has been compared with the Python optimizer using the same normalized mods,
+set bonuses, target rows and objective, and the selected result has been
+validated with the game's exact stat calculation.
