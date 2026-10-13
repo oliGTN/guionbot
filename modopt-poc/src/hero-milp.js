@@ -317,12 +317,34 @@ function solveOnce(highs, input, lock, F0, P0, strict) {
   if (chosen.length !== 6 || new Set(chosen.map(m => Number(m.slot))).size !== 6) {
     return { chosen: null, info: { status: result.Status, message: "Solver result did not select exactly one mod per slot" } };
   }
+  // Break down the objective so parity differences can be attributed to the
+  // dominant stat-band rewards versus mod quality/current-mod and set rewards.
+  const objectiveBreakdown = { modTerms: 0, statBands: {}, setComboRewards: 0, other: 0 };
+  const activeStatBands = {};
+  for (const [name, coefficient] of model.objective) {
+    const primal = number(result.Columns[name]?.Primal);
+    const contribution = coefficient * primal;
+    if (name.startsWith("x_")) objectiveBreakdown.modTerms += contribution;
+    else if (name.startsWith("b_")) {
+      objectiveBreakdown.statBands[name] = contribution;
+      if (primal > 0.5) activeStatBands[name] = true;
+    } else if (name.startsWith("y_")) objectiveBreakdown.setComboRewards += contribution;
+    else objectiveBreakdown.other += contribution;
+  }
+  objectiveBreakdown.modTerms = Number(objectiveBreakdown.modTerms.toFixed(6));
+  objectiveBreakdown.setComboRewards = Number(objectiveBreakdown.setComboRewards.toFixed(6));
+  objectiveBreakdown.other = Number(objectiveBreakdown.other.toFixed(6));
+  for (const key of Object.keys(objectiveBreakdown.statBands)) {
+    if (Math.abs(objectiveBreakdown.statBands[key]) < 1e-8) delete objectiveBreakdown.statBands[key];
+  }
   const referenceIds = new Set(input.referenceMods || []);
   const referenceCandidates = model.candidates.filter(mod => referenceIds.has(mod.id)).map(mod => mod.id);
   return { chosen, info: {
     status: result.Status,
     n_candidates: model.candidates.length,
     objectiveValue: result.ObjectiveValue,
+    objectiveBreakdown,
+    activeStatBands: Object.keys(activeStatBands),
     referenceCandidateCount: referenceCandidates.length,
     referenceCandidates,
     referenceMods: [...referenceIds],
