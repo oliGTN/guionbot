@@ -110,6 +110,20 @@ function inspectProgressFile(data, file) {
   const characterIDCounts = countBy(validMods, (mod) => mod.characterID);
   const selectedSample = selectedCharacters?.value?.[0];
   const assignmentSample = assignments?.value?.[0];
+  const target = isObject(selectedSample?.target) ? selectedSample.target : null;
+  const playerValues = isObject(sampleCharacter?.playerValues) ? sampleCharacter.playerValues : null;
+  const optimizerSettings = isObject(sampleCharacter?.optimizerSettings) ? sampleCharacter.optimizerSettings : null;
+  const targetValueTypes = target ? Object.fromEntries(Object.entries(target).map(([key, value]) => [
+    key, value === null ? "null" : Array.isArray(value) ? "array" : typeof value
+  ])) : {};
+  const targetSettings = optimizerSettings?.targets;
+  const statObjectShape = (value) => ({
+    shape: describeShape(value),
+    keys: isObject(value) ? Object.keys(value).slice(0, 40) : [],
+    valueTypes: isObject(value) ? Object.fromEntries(Object.entries(value).slice(0, 40).map(([key, item]) => [
+      key, item === null ? "null" : Array.isArray(item) ? "array" : typeof item
+    ])) : {},
+  });
 
   structure.textContent = JSON.stringify({
     topLevelKeys: Object.keys(data),
@@ -118,9 +132,21 @@ function inspectProgressFile(data, file) {
     sampleCharacterIdKey: sampleCharacterId,
     firstCharacterKeys: sampleCharacter ? Object.keys(sampleCharacter) : [],
     characterPlayerValuesShape: describeShape(sampleCharacter?.playerValues),
+    characterPlayerStats: {
+      baseStats: statObjectShape(playerValues?.baseStats),
+      equippedStats: statObjectShape(playerValues?.equippedStats),
+    },
     characterOptimizerSettingsShape: describeShape(sampleCharacter?.optimizerSettings),
+    optimizerTargets: {
+      shape: describeShape(targetSettings),
+      firstEntryShape: Array.isArray(targetSettings) ? describeShape(targetSettings[0]) : null,
+      firstEntryKeys: Array.isArray(targetSettings) && isObject(targetSettings[0]) ? Object.keys(targetSettings[0]) : [],
+    },
     modsArray: modsEntry.key,
     firstModKeys: sampleMod ? Object.keys(sampleMod) : [],
+    firstModValueTypes: sampleMod ? Object.fromEntries(Object.entries(sampleMod).map(([key, value]) => [
+      key, value === null ? "null" : Array.isArray(value) ? "array" : typeof value
+    ])) : {},
     modDistribution: {
       bySlot: countBy(validMods, (mod) => mod.slot),
       bySet: countBy(validMods, (mod) => mod.set),
@@ -134,6 +160,9 @@ function inspectProgressFile(data, file) {
     selectedCharacterEntryType: selectedSample === undefined ? null : Array.isArray(selectedSample) ? "array" : typeof selectedSample,
     selectedCharacterObjectKeys: isObject(selectedSample) ? Object.keys(selectedSample) : [],
     selectedCharacterTargetShape: describeShape(selectedSample?.target),
+    selectedCharacterTargetKeys: target ? Object.keys(target) : [],
+    selectedCharacterTargetValueTypes: targetValueTypes,
+    selectedCharacterTargetSampleShape: target ? statObjectShape(target) : null,
     modAssignmentsArray: assignments?.key ?? null,
     modAssignmentCount: assignments?.value.length ?? null,
     modAssignmentEntryType: assignmentSample === undefined ? null : Array.isArray(assignmentSample) ? "array" : typeof assignmentSample,
