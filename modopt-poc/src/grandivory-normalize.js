@@ -8,7 +8,7 @@ const STAT_ID = {
   health: 1, speed: 5, physical_damage: 6, physicaldamage: 6, physdmg: 6, phys_dmg: 6,
   special_damage: 7, specialdamage: 7, specdmg: 7, protection: 28, offense: 41,
   physical_offense: 41, special_offense: 41, defense: 42, defence: 42,
-  crit_damage: 16, critdamage: 16, critdmg: 16, crit_dmg: 16, potency: 17, tenacity: 18,
+  crit_damage: 16, critdamage: 16, critdmg: 16, crit_dmg: 16, crit_damage_pct: 16, crit_dmg_pct: 16, potency: 17, potency_pct: 17, tenacity: 18, tenacity_pct: 18,
   offense_pct: 48, physical_damage_pct: 48, special_damage_pct: 48,
   defense_pct: 49, defence_pct: 49, accuracy_pct: 52, crit_chance_pct: 53,
   critical_chance_pct: 53, crit_chance: 53, crit_avoid_pct: 54, critical_avoidance_pct: 54, crit_avoid: 54,
@@ -193,13 +193,21 @@ export function prepareHeroInput(progress, gameData, keystats, heroId, options =
   const modsAvailable = allMods.filter(m => m.level >= 15 && m.pips >= 5 && (!options.lockUnselected || !m.owner || (profile.selectedCharacters || []).some(c => c.id === m.owner)));
   const currentIds = allMods.filter(m => m.owner === heroId).map(m => m.id);
   const setBonuses = normalizeSetBonuses(gameData);
-  const combos = comboFromTarget(selected.target, setBonuses) || (ksHero.sets?.combos || [])
+  const targetCombos = comboFromTarget(selected.target, setBonuses);
+  const combos = targetCombos || (ksHero.sets?.combos || [])
     .filter(c => Number(c.pct || 0) >= 25 && c.sets)
     .slice(0, 4)
-    .map(c => ({
-      name: c.combo, pct: c.pct,
-      groups: Object.fromEntries(Object.entries(c.sets).map(([name, count]) => [SET_ID[cleanKey(name)], Math.floor(Number(count) / setBonuses[SET_ID[cleanKey(name)]].count)]).filter(([sid, n]) => sid && n > 0)),
-    }));
+    .map(c => {
+      const groups = {};
+      for (const [name, count] of Object.entries(c.sets)) {
+        const sid = SET_ID[cleanKey(name)];
+        if (sid && setBonuses[sid]) {
+          const n = Math.floor(Number(count) / setBonuses[sid].count);
+          if (n > 0) groups[sid] = n;
+        }
+      }
+      return { name: c.combo, pct: c.pct, groups };
+    }).filter(c => Object.keys(c.groups).length);
   return {
     heroId, base, modsAvailable, currentIds, keyStats, also, setBonuses, combos,
     lockedPrimary: primaryLocks(selected.target),
