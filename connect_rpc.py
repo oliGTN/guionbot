@@ -388,18 +388,29 @@ async def _get_event_events(session, event_type, guild_id, bot_allyCode,
     req_data = json_dumps(params)
 
     try:
+        t0 = time.perf_counter()
         async with session.post(url, data=req_data) as resp:
             golog.log(
                 "DBG",
                 "POST " + event_type + " events status=" + str(resp.status)
             )
 
+            t1 = time.perf_counter()
             if resp.status == 200:
-                if use_cache_data:
-                    cache_json = await resp.json()
-                    return 0, "", cache_json["data"]
+                resp_data = await resp.json()
+                t2 = time.perf_counter()
 
-                return 0, "", await resp.json()
+                golog.log(
+                    "INFO",
+                    f"{event_type} events HTTP={t1-t0:.2f}s, "
+                    f"JSON decode={t2-t1:.2f}s"
+                )
+
+                if use_cache_data:
+                    cache_json = resp_data["data"]
+                    return 0, "", cache_json
+
+                return 0, "", resp_data
 
             if resp.status == 401:
                 return 401, "authentication failed", None
@@ -1018,9 +1029,20 @@ async def get_bot_player_data(guild_id, use_cache_data):
     return ec, et, d
 
 async def get_player_data(txt_allyCode, use_cache_data):
+    #get playerId
+    query = "SELECT playerId FROM players WHERE allyCode="+txt_allyCode
+    golog.log("DBG", query)
+    db_data = await connect_mysql.get_value_async(query)
+    if db_data == None:
+        return 1, "Le joueur "+txt_allyCode+" est inconnu du bot", None
+        return 0
+
+    player_id = db_data
+
+
     # prepare actual server request
     url = "http://localhost:8000/player"
-    params = {"allyCode":txt_allyCode, "player_id": txt_allyCode, "use_cache_data": use_cache_data}
+    params = {"allyCode":txt_allyCode, "player_id": player_id, "use_cache_data": use_cache_data}
     req_data = json_dumps(params)
     try:
         async with aiohttp.ClientSession() as session:
