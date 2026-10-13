@@ -485,6 +485,7 @@ async function refreshOptimizerDataSummary() {
     dataStatus.textContent = reports.length === dataFileInputs.length
       ? "All three optimizer data files parsed locally."
       : reports.length + " of " + dataFileInputs.length + " optimizer data files parsed locally.";
+    refreshOptimizerControls();
   } catch (error) {
     dataStatus.textContent = "Could not inspect optimizer data files.";
     errorOutput.textContent = error instanceof Error ? error.message : String(error);
