@@ -263,3 +263,121 @@ fileInput.addEventListener("change", async () => {
     errorOutput.hidden = false;
   }
 });
+
+
+// Inspect the three optimizer data sources independently. The schema is not
+// assumed: we report the top-level shape and shallow field names before wiring
+// these files into the solver.
+const dataFileInputs = [
+  { id: "gamedata-file", label: "GameData.json" },
+  { id: "keystats-file", label: "keystats.json" },
+  { id: "stats-file", label: "stats_v2_top100.json" },
+];
+const dataStatus = document.querySelector("#data-status");
+const dataSummary = document.querySelector("#data-summary");
+const dataSummaryFields = document.querySelector("#data-summary-fields");
+const dataStructure = document.querySelector("#data-structure");
+const loadedData = new Map();
+
+function shallowDescription(value, depth = 0) {
+  if (Array.isArray(value)) {
+    return {
+      type: "array",
+      length: value.length,
+      sample: value.length ? shallowDescription(value[0], depth + 1) : null,
+    };
+  }
+  if (isObject(value)) {
+    const entries = Object.entries(value);
+    const result = {
+      type: "object",
+      keyCount: entries.length,
+      firstKeys: entries.slice(0, 40).map(([key]) => key),
+    };
+    if (depth < 1) {
+      const first = entries.slice(0, 12);
+      result.firstValueTypes = Object.fromEntries(first.map(([key, item]) => [
+        key,
+        item === null ? "null" : Array.isArray(item) ? "array" : typeof item,
+      ]));
+      const sampleEntry = first.find(([, item]) => isObject(item) || Array.isArray(item));
+      if (sampleEntry) {
+        result.sampleEntryKey = sampleEntry[0];
+        result.sampleEntry = shallowDescription(sampleEntry[1], depth + 1);
+      }
+    }
+    return result;
+  }
+  return { type: value === null ? "null" : typeof value };
+}
+
+function addDataSummaryField(label, value) {
+  const term = document.createElement("dt");
+  term.textContent = label;
+  const description = document.createElement("dd");
+  description.textContent = String(value);
+  dataSummaryFields.append(term, description);
+}
+
+async function inspectOptimizerDataFile(definition, file) {
+  const raw = await file.text();
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(definition.label + " is not valid JSON.");
+  }
+  loadedData.set(definition.id, { fileName: file.name, data: parsed });
+  const description = shallowDescription(parsed);
+  return {
+    label: definition.label,
+    fileName: file.name,
+    sizeBytes: file.size,
+    root: description,
+  };
+}
+
+async function refreshOptimizerDataSummary() {
+  const chosen = dataFileInputs
+    .map((definition) => ({ definition, file: document.getElementById(definition.id).files?.[0] }))
+    .filter((entry) => entry.file);
+  dataSummaryFields.replaceChildren();
+  dataStructure.textContent = "";
+  if (!chosen.length) {
+    dataSummary.hidden = true;
+    dataStatus.textContent = "Select the three optimizer data files to inspect them.";
+    return;
+  }
+
+  dataStatus.textContent = "Reading selected data files locally…";
+  try {
+    const reports = await Promise.all(chosen.map(({ definition, file }) =>
+      inspectOptimizerDataFile(definition, file)
+    ));
+    for (const report of reports) {
+      addDataSummaryField(report.label, report.fileName);
+      addDataSummaryField(report.label + " size", (report.sizeBytes / 1024 / 1024).toFixed(2) + " MiB");
+    }
+    dataStructure.textContent = JSON.stringify({
+      filesSelected: reports.length,
+      filesExpected: dataFileInputs.length,
+      files: reports.map(({ label, root }) => ({ label, root })),
+      note: "This is schema discovery only. The files have not yet been mapped to the optimizer's internal stat IDs or loaded into the MILP.",
+    }, null, 2);
+    dataSummary.hidden = false;
+    dataStatus.textContent = reports.length === dataFileInputs.length
+      ? "All three optimizer data files parsed locally."
+      : reports.length + " of " + dataFileInputs.length + " optimizer data files parsed locally.";
+  } catch (error) {
+    dataStatus.textContent = "Could not inspect optimizer data files.";
+    errorOutput.textContent = error instanceof Error ? error.message : String(error);
+    errorOutput.hidden = false;
+  }
+}
+
+for (const definition of dataFileInputs) {
+  document.getElementById(definition.id).addEventListener("change", () => {
+    errorOutput.hidden = true;
+    refreshOptimizerDataSummary();
+  });
+}
